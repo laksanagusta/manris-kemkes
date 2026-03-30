@@ -1,0 +1,269 @@
+"use client";
+import { toast } from "sonner";
+
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Sparkles,
+  RefreshCw,
+  ArrowUp,
+  ArrowDown,
+  BarChart3,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/auth-context";
+
+
+const levelColors: Record<string, string> = {
+  Rendah: "text-risk-low",
+  Sedang: "text-risk-medium",
+  Tinggi: "text-risk-high",
+  Ekstrem: "text-risk-extreme",
+};
+
+const levelBadgeVariant: Record<string, string> = {
+  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
+  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
+  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
+  Ekstrem: "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+};
+
+function ConfidenceBar({ value }: { value: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all",
+            value >= 80 ? "bg-success" : value >= 60 ? "bg-risk-medium" : "bg-risk-high"
+          )}
+          style={{ width: `${value}%` }}
+        />
+      </div>
+      <span className="text-[10px] font-mono text-muted-foreground">{value}%</span>
+    </div>
+  );
+}
+
+export default function PredictivePage() {
+  const { token, user } = useAuth();
+  const [isRunning, setIsRunning] = useState(false);
+  const [predictions, setPredictions] = useState<any[]>([]);
+
+  useEffect(() => {
+    // try to load existing predictions from simple local state / or we could have loaded it from the backend if we saved it
+    // But since it's an AI tool page, maybe we just leave it empty until the user runs it.
+  }, []);
+
+  const handleRunPrediction = async () => {
+    if (!token) return;
+    setIsRunning(true);
+    try {
+      // 1. Fetch all risks (could limit to top 10 as AI endpoint does)
+      const risks = await api.get<any[]>("/risks?status=approved", token);
+      
+      // 2. Call AI prediction
+      const result = await api.post<any[]>("/ai/predictive-analyses", { risks: risks.slice(0, 10) }, token);
+      
+      if (Array.isArray(result)) {
+        setPredictions(result);
+      } else {
+        setPredictions([]);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal menjalankan AI Prediction");
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const upCount = predictions.filter((p) => p.trend === "up").length;
+  const downCount = predictions.filter((p) => p.trend === "down").length;
+  const stableCount = predictions.filter((p) => p.trend === "stable").length;
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            AI Predictive Scoring
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Prediksi tren level risiko berdasarkan data historis
+          </p>
+        </div>
+        <Button
+          onClick={handleRunPrediction}
+          className="gap-2 shadow-lg shadow-primary/20"
+          disabled={isRunning}
+        >
+          {isRunning ? (
+            <>
+              <RefreshCw className="size-4 animate-spin" />
+              Predicting...
+            </>
+          ) : (
+            <>
+              <Sparkles className="size-4" />
+              Run Prediction
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Executive Summary */}
+      <Card className="border-border/50 bg-card/80">
+        <CardContent className="p-5">
+          <div className="flex items-start gap-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+              <Sparkles className="size-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">Ringkasan Eksekutif AI</h3>
+              {predictions.length === 0 ? (
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  Belum ada data prediksi. Klik tombol &quot;Run Prediction&quot; untuk memulai analisis profil risiko.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  Dari {predictions.length} risiko yang dianalisis,{" "}
+                  <span className="font-medium text-success">{downCount} diprediksi membaik</span>,{" "}
+                  <span className="font-medium text-risk-extreme">{upCount} diprediksi memburuk</span>, dan{" "}
+                  <span className="font-medium text-muted-foreground">{stableCount} stabil</span>.
+                  Secara keseluruhan, algoritma AI telah mengkalkulasi tren untuk profil risiko utama Anda.
+                </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Trend Summary */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Tren Naik</p>
+              <p className="text-2xl font-bold mt-1 text-risk-extreme">{upCount}</p>
+            </div>
+            <TrendingUp className="size-5 text-risk-extreme" />
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Tren Turun</p>
+              <p className="text-2xl font-bold mt-1 text-success">{downCount}</p>
+            </div>
+            <TrendingDown className="size-5 text-success" />
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Stabil</p>
+              <p className="text-2xl font-bold mt-1">{stableCount}</p>
+            </div>
+            <Minus className="size-5 text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Predictions Table */}
+      <Card className="border-border/50 bg-card/80 overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-border/50 hover:bg-transparent">
+              <TableHead className="w-20 text-xs">Kode</TableHead>
+              <TableHead className="text-xs">Risiko</TableHead>
+              <TableHead className="text-xs w-24">Level Saat Ini</TableHead>
+              <TableHead className="text-xs text-center w-12">→</TableHead>
+              <TableHead className="text-xs w-24">Prediksi Level</TableHead>
+              <TableHead className="text-xs w-16">Tren</TableHead>
+              <TableHead className="text-xs w-28">Confidence</TableHead>
+              <TableHead className="text-xs">Reasoning</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {predictions.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                  Data prediksi kosong.
+                </TableCell>
+              </TableRow>
+            ) : predictions.map((pred) => (
+              <TableRow
+                key={pred.riskCode}
+                className="border-border/30 hover:bg-muted/30 transition-colors"
+              >
+                <TableCell className="text-xs font-mono text-muted-foreground">
+                  {pred.riskCode}
+                </TableCell>
+                <TableCell className="text-xs font-medium max-w-[200px]">
+                  <span className="line-clamp-1">{pred.title}</span>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    className={cn(
+                      "text-[10px] font-semibold border h-5 px-1.5",
+                      levelBadgeVariant[pred.currentLevel]
+                    )}
+                  >
+                    {pred.currentLevel}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-center text-muted-foreground">
+                  →
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    className={cn(
+                      "text-[10px] font-semibold border h-5 px-1.5",
+                      levelBadgeVariant[pred.predictedLevel]
+                    )}
+                  >
+                    {pred.predictedLevel}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {pred.trend === "up" && (
+                    <ArrowUp className="size-4 text-risk-extreme" />
+                  )}
+                  {pred.trend === "down" && (
+                    <ArrowDown className="size-4 text-success" />
+                  )}
+                  {pred.trend === "stable" && (
+                    <Minus className="size-4 text-muted-foreground" />
+                  )}
+                </TableCell>
+                <TableCell>
+                  <ConfidenceBar value={pred.confidence} />
+                </TableCell>
+                <TableCell className="text-[11px] text-muted-foreground max-w-[250px]">
+                  <span className="line-clamp-2">{pred.reasoning}</span>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
+}
