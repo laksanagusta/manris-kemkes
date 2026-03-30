@@ -1,0 +1,255 @@
+package mitigation_task
+
+import (
+	"context"
+	"fmt"
+	"net/url"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/domain/repository"
+)
+
+// ListTasksUseCase lists mitigation tasks for a risk
+type ListTasksUseCase struct {
+	taskRepo repository.MitigationTaskRepository
+}
+
+func NewListTasksUseCase(taskRepo repository.MitigationTaskRepository) *ListTasksUseCase {
+	return &ListTasksUseCase{taskRepo: taskRepo}
+}
+
+type ListTasksInput struct {
+	RiskID       *uuid.UUID
+	MitigationID *uuid.UUID
+	UserID       *uuid.UUID
+	Status       string
+}
+
+func (uc *ListTasksUseCase) Execute(ctx context.Context, input ListTasksInput) ([]*entity.MitigationTask, error) {
+	if input.RiskID != nil {
+		return uc.taskRepo.ListByRisk(ctx, *input.RiskID)
+	}
+	if input.MitigationID != nil {
+		return uc.taskRepo.ListByMitigation(ctx, *input.MitigationID)
+	}
+	if input.UserID != nil {
+		return uc.taskRepo.ListByUser(ctx, *input.UserID, input.Status)
+	}
+	// No filter: return all tasks (for compliance monitoring dashboard)
+	return uc.taskRepo.ListAll(ctx)
+}
+
+// SubmitProgressUseCase handles a PIC submitting progress for a task
+type SubmitProgressUseCase struct {
+	taskRepo repository.MitigationTaskRepository
+}
+
+func NewSubmitProgressUseCase(taskRepo repository.MitigationTaskRepository) *SubmitProgressUseCase {
+	return &SubmitProgressUseCase{taskRepo: taskRepo}
+}
+
+type SubmitProgressInput struct {
+	TaskID      uuid.UUID `json:"taskId"`
+	ProgressPct int       `json:"progressPct"`
+	ActualCost  float64   `json:"actualCost"`
+	EvidenceURL string    `json:"evidenceUrl"`
+	Notes       string    `json:"notes"`
+	ReportedBy  uuid.UUID `json:"-"`
+}
+
+func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgressInput) (*entity.MitigationTask, error) {
+	if input.ProgressPct < 0 || input.ProgressPct > 100 {
+		return nil, domainerrors.ErrInvalidProgress
+	}
+	if input.ActualCost < 0 {
+		return nil, domainerrors.ErrInvalidActualCost
+	}
+
+	evidenceURL := strings.TrimSpace(input.EvidenceURL)
+	if evidenceURL == "" {
+		return nil, domainerrors.ErrInvalidEvidenceURL
+	}
+	parsedURL, err := url.ParseRequestURI(evidenceURL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		return nil, domainerrors.ErrInvalidEvidenceURL
+	}
+
+	notes := strings.TrimSpace(input.Notes)
+	if len(notes) < 10 || len(notes) > 1000 {
+		return nil, domainerrors.ErrInvalidNotes
+	}
+
+	task, err := uc.taskRepo.GetByID(ctx, input.TaskID)
+	if err != nil {
+		return nil, fmt.Errorf("task not found: %w", err)
+	}
+
+	now := time.Now()
+	task.ProgressPct = input.ProgressPct
+	task.ActualCost = input.ActualCost
+	task.EvidenceURL = evidenceURL
+	task.Notes = notes
+	task.ReportedBy = &input.ReportedBy
+	task.ReportedAt = &now
+	task.Status = "done"
+
+	if err := uc.taskRepo.Update(ctx, task); err != nil {
+		return nil, fmt.Errorf("update task: %w", err)
+	}
+
+	// Re-fetch to get joined fields
+	return uc.taskRepo.GetByID(ctx, task.ID)
+}
+
+// GenerateTasksUseCase generates tasks for recurring mitigations (called by cron)
+type GenerateTasksUseCase struct {
+	taskRepo repository.MitigationTaskRepository
+}
+
+func NewGenerateTasksUseCase(taskRepo repository.MitigationTaskRepository) *GenerateTasksUseCase {
+	return &GenerateTasksUseCase{taskRepo: taskRepo}
+}
+
+func (uc *GenerateTasksUseCase) Execute(ctx context.Context, now time.Time) (int, error) {
+	mitigations, err := uc.taskRepo.GetRecurringMitigations(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("get recurring mitigations: %w", err)
+	}
+
+	created := 0
+
+	for _, m := range mitigations {
+		if m.RecurringInterval == nil {
+			continue
+		}
+
+		var periodStart, periodEnd, dueDate time.Time
+		var periodLabel string
+
+		switch *m.RecurringInterval {
+		case "harian":
+			periodStart = now.Truncate(24 * time.Hour)
+			periodEnd = periodStart
+			dueDate = periodStart.Add(23*time.Hour + 59*time.Minute)
+			periodLabel = now.Format("2 Jan 2006")
+
+		case "mingguan":
+			// Find the start of the current week (Monday)
+			weekday := int(now.Weekday())
+			if weekday == 0 {
+				weekday = 7 // Sunday = 7
+			}
+			periodStart = now.AddDate(0, 0, -(weekday - 1)).Truncate(24 * time.Hour)
+			periodEnd = periodStart.AddDate(0, 0, 6)
+
+			// Due date = the configured report_day, default Friday (5)
+			reportDay := 5 // Friday
+			if m.ReportDay != nil {
+				reportDay = *m.ReportDay
+			}
+			// Calculate due date within NEXT week
+			daysUntilReport := reportDay - 1 // Monday=0 offset
+			if reportDay == 0 {
+				daysUntilReport = 6 // Sunday
+			}
+			dueDate = periodStart.AddDate(0, 0, daysUntilReport+7) // Add 7 days to push it to next week
+
+			_, weekNum := now.ISOWeek()
+			periodLabel = fmt.Sprintf("Minggu %d, %s", weekNum, now.Format("Jan 2006"))
+
+		case "bulanan":
+			periodStart = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+			periodEnd = periodStart.AddDate(0, 1, -1)
+
+			reportDate := 5 // Default: tanggal 5
+			if m.ReportDate != nil {
+				reportDate = *m.ReportDate
+			}
+			// Due date is report_date of the NEXT month
+			dueDateMonth := periodStart.AddDate(0, 1, 0)
+			maxDay := time.Date(dueDateMonth.Year(), dueDateMonth.Month()+1, 0, 0, 0, 0, 0, now.Location()).Day()
+			if reportDate > maxDay {
+				reportDate = maxDay
+			}
+			dueDate = time.Date(dueDateMonth.Year(), dueDateMonth.Month(), reportDate, 0, 0, 0, 0, now.Location())
+			periodLabel = now.Format("Januari 2006")
+			periodLabel = fmt.Sprintf("%s %d", now.Month().String(), now.Year())
+
+		case "triwulan":
+			quarter := (int(now.Month()) - 1) / 3
+			periodStart = time.Date(now.Year(), time.Month(quarter*3+1), 1, 0, 0, 0, 0, now.Location())
+			periodEnd = periodStart.AddDate(0, 3, -1)
+
+			reportDate := 10 // Default: tanggal 10
+			if m.ReportDate != nil {
+				reportDate = *m.ReportDate
+			}
+			dueMonth := periodStart.AddDate(0, 3, 0)
+			dueDate = time.Date(dueMonth.Year(), dueMonth.Month(), reportDate, 0, 0, 0, 0, now.Location())
+			periodLabel = fmt.Sprintf("Q%d %d", quarter+1, now.Year())
+
+		default:
+			continue
+		}
+
+		pStart := periodStart.Format("2006-01-02")
+		pEnd := periodEnd.Format("2006-01-02")
+
+		// Check if task already exists for this period
+		exists, err := uc.taskRepo.TaskExistsForPeriod(ctx, m.ID, pStart, pEnd)
+		if err != nil {
+			continue
+		}
+		if exists {
+			continue
+		}
+
+		task := &entity.MitigationTask{
+			MitigationID: m.ID,
+			RiskID:       m.RiskID,
+			PeriodLabel:  periodLabel,
+			PeriodStart:  pStart,
+			PeriodEnd:    pEnd,
+			DueDate:      dueDate.Format("2006-01-02"),
+			Status:       "pending",
+			GeneratedBy:  "cron",
+		}
+
+		if err := uc.taskRepo.Create(ctx, task); err != nil {
+			continue
+		}
+		created++
+	}
+
+	return created, nil
+}
+
+// MarkOverdueUseCase marks pending tasks past due_date as overdue
+type MarkOverdueUseCase struct {
+	taskRepo repository.MitigationTaskRepository
+}
+
+func NewMarkOverdueUseCase(taskRepo repository.MitigationTaskRepository) *MarkOverdueUseCase {
+	return &MarkOverdueUseCase{taskRepo: taskRepo}
+}
+
+func (uc *MarkOverdueUseCase) Execute(ctx context.Context, refDate time.Time) (int, error) {
+	tasks, err := uc.taskRepo.ListPendingOverdue(ctx, refDate)
+	if err != nil {
+		return 0, err
+	}
+
+	marked := 0
+	for _, t := range tasks {
+		t.Status = "overdue"
+		if err := uc.taskRepo.Update(ctx, t); err != nil {
+			continue
+		}
+		marked++
+	}
+	return marked, nil
+}
