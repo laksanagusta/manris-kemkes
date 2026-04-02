@@ -171,7 +171,7 @@ export default function ReportsPage() {
     if (!token) return;
 
     Promise.allSettled([
-      api.get<RiskTrendSourceItem[]>("/risks", token),
+      api.get<RiskTrendSourceItem[]>("/risks/trend", token),
       api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}`, token),
       api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${encodeURIComponent(previousCycle)}`, token),
       api.get<RiskCycleComparisonItem[]>(`/risks/compare?from=${previousCycle}&to=${exportCycle}`, token),
@@ -419,24 +419,21 @@ export default function ReportsPage() {
               <>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      layout="vertical"
-                      data={unitExposureData}
-                      margin={{ top: 0, right: 16, left: 16, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" horizontal={false} />
-                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis
+                    <BarChart data={unitExposureData} margin={{ top: 8, right: 12, left: -24, bottom: 32 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" vertical={false} />
+                      <XAxis
                         dataKey="orgName"
-                        type="category"
-                        width={132}
                         tick={{ fontSize: 10 }}
                         tickFormatter={(value: string) =>
-                          value.length > 18 ? `${value.slice(0, 18)}…` : value
+                          value.length > 12 ? `${value.slice(0, 12)}…` : value
                         }
                         axisLine={false}
                         tickLine={false}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
                       />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                       <RechartsTooltip
                         formatter={(value) => [`${value ?? 0} poin`, "Exposure"]}
                         contentStyle={{
@@ -446,7 +443,7 @@ export default function ReportsPage() {
                           fontSize: "11px",
                         }}
                       />
-                      <Bar dataKey="exposureScore" fill="oklch(0.68 0.17 35)" radius={[0, 6, 6, 0]} />
+                      <Bar dataKey="exposureScore" fill="oklch(0.68 0.17 35)" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
