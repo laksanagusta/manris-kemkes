@@ -15,6 +15,7 @@ import (
 
 	"github.com/manris/backend/internal/config"
 	"github.com/manris/backend/internal/database"
+	domainsvc "github.com/manris/backend/internal/domain/service"
 	httpHandler "github.com/manris/backend/internal/handler/http"
 	"github.com/manris/backend/internal/middleware"
 	openairepo "github.com/manris/backend/internal/repository/openai"
@@ -23,11 +24,13 @@ import (
 	approvaluc "github.com/manris/backend/internal/usecase/approval"
 	authuc "github.com/manris/backend/internal/usecase/auth"
 	cbauc "github.com/manris/backend/internal/usecase/cba"
+	commloguc "github.com/manris/backend/internal/usecase/communication_log"
 	controluc "github.com/manris/backend/internal/usecase/control"
 	incidentuc "github.com/manris/backend/internal/usecase/incident"
 	kriuc "github.com/manris/backend/internal/usecase/kri"
 	krireportuc "github.com/manris/backend/internal/usecase/kri_report"
 	lessonuc "github.com/manris/backend/internal/usecase/lesson"
+	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
@@ -61,6 +64,11 @@ func main() {
 	domainSystemRepo := postgresrepo.NewSystemRepository(pool)
 	domainMitigationTaskRepo := postgresrepo.NewMitigationTaskRepository(pool)
 	domainKRIReportRepo := postgresrepo.NewKRIReportRepository(pool)
+	domainCommLogRepo := postgresrepo.NewCommunicationLogRepository(pool)
+	domainMMRepo := postgresrepo.NewMeetingMinuteRepository(pool)
+
+	// Domain services
+	orgHierarchySvc := domainsvc.NewOrganizationHierarchy(domainOrgRepo)
 
 	// AI repository (OpenAI)
 	domainAIRepo := openairepo.NewAIRepository(cfg.OpenAIKey, domainRiskRepo)
@@ -74,20 +82,30 @@ func main() {
 
 	// Risk usecases
 	riskCreateUC := riskuc.NewCreateRiskUseCase(domainRiskRepo, domainUserRepo, domainOrgRepo)
+	riskCreateBatchUC := riskuc.NewCreateRiskBatchUseCase(riskCreateUC)
+	riskSpreadsheetUC := riskuc.NewBulkRiskSpreadsheetUseCase(domainOrgRepo, domainUserRepo)
 	riskGetUC := riskuc.NewGetRiskUseCase(domainRiskRepo)
+	riskReassessUC := riskuc.NewCreateRiskReassessmentUseCase(domainRiskRepo)
 	riskUpdateUC := riskuc.NewUpdateRiskUseCase(domainRiskRepo, domainUserRepo, domainOrgRepo)
 	riskDeleteUC := riskuc.NewDeleteRiskUseCase(domainRiskRepo)
-	riskListUC := riskuc.NewListRisksUseCase(domainRiskRepo)
+	riskListUC := riskuc.NewListRisksUseCase(domainRiskRepo, orgHierarchySvc)
+	riskListVersionsUC := riskuc.NewListRiskVersionsUseCase(domainRiskRepo)
+	riskReviewQueueUC := riskuc.NewListRiskReviewQueueUseCase(domainRiskRepo, orgHierarchySvc)
+	riskCompareCyclesUC := riskuc.NewCompareRiskCyclesUseCase(domainRiskRepo, orgHierarchySvc)
+	riskCompareCycleDetailsUC := riskuc.NewCompareRiskCycleDetailsUseCase(domainRiskRepo, orgHierarchySvc)
+	riskReviewSummaryUC := riskuc.NewRiskReviewSummaryUseCase(domainRiskRepo, orgHierarchySvc)
 	riskDashboardSummaryUC := riskuc.NewDashboardSummaryUseCase(domainRiskRepo)
 	riskHeatmapDataUC := riskuc.NewHeatmapDataUseCase(domainRiskRepo)
 	riskTopRisksUC := riskuc.NewTopRisksUseCase(domainRiskRepo)
 
 	// Incident usecases
 	incidentCreateUC := incidentuc.NewCreateIncidentUseCase(domainIncidentRepo, domainUserRepo, domainOrgRepo, domainRiskRepo)
+	incidentCreateBatchUC := incidentuc.NewCreateIncidentBatchUseCase(incidentCreateUC)
 	incidentGetUC := incidentuc.NewGetIncidentUseCase(domainIncidentRepo)
 	incidentUpdateUC := incidentuc.NewUpdateIncidentUseCase(domainIncidentRepo, domainRiskRepo)
 	incidentDeleteUC := incidentuc.NewDeleteIncidentUseCase(domainIncidentRepo)
-	incidentListUC := incidentuc.NewListIncidentsUseCase(domainIncidentRepo)
+	incidentListUC := incidentuc.NewListIncidentsUseCase(domainIncidentRepo, orgHierarchySvc)
+	incidentSummaryUC := incidentuc.NewGetIncidentSummaryUseCase(domainIncidentRepo)
 
 	// User usecases
 	userCreateUC := useruc.NewCreateUserUseCase(domainUserRepo, domainOrgRepo)
@@ -101,31 +119,32 @@ func main() {
 	controlGetUC := controluc.NewGetControlUseCase(domainControlRepo)
 	controlUpdateUC := controluc.NewUpdateControlUseCase(domainControlRepo, domainRiskRepo, domainOrgRepo)
 	controlDeleteUC := controluc.NewDeleteControlUseCase(domainControlRepo)
-	controlListUC := controluc.NewListControlsUseCase(domainControlRepo)
-	controlDashboardUC := controluc.NewControlDashboardUseCase(domainControlRepo)
+	controlListUC := controluc.NewListControlsUseCase(domainControlRepo, orgHierarchySvc)
+	controlDashboardUC := controluc.NewControlDashboardUseCase(domainControlRepo, orgHierarchySvc)
 
 	// KRI usecases
 	kriCreateUC := kriuc.NewCreateKRIUseCase(domainKRiRepo, domainRiskRepo, domainOrgRepo)
 	kriGetUC := kriuc.NewGetKRIUseCase(domainKRiRepo)
 	kriUpdateUC := kriuc.NewUpdateKRIUseCase(domainKRiRepo, domainRiskRepo, domainOrgRepo)
 	kriDeleteUC := kriuc.NewDeleteKRIUseCase(domainKRiRepo)
-	kriListUC := kriuc.NewListKRIsUseCase(domainKRiRepo)
-	kriDashboardUC := kriuc.NewKRIDashboardUseCase(domainKRiRepo)
+	kriListUC := kriuc.NewListKRIsUseCase(domainKRiRepo, orgHierarchySvc)
+	kriDashboardUC := kriuc.NewKRIDashboardUseCase(domainKRiRepo, orgHierarchySvc)
 
 	// Lesson usecases
 	lessonCreateUC := lessonuc.NewCreateLessonUseCase(domainLessonRepo, domainUserRepo, domainOrgRepo)
 	lessonGetUC := lessonuc.NewGetLessonUseCase(domainLessonRepo)
 	lessonUpdateUC := lessonuc.NewUpdateLessonUseCase(domainLessonRepo, domainUserRepo, domainOrgRepo)
 	lessonDeleteUC := lessonuc.NewDeleteLessonUseCase(domainLessonRepo)
-	lessonListUC := lessonuc.NewListLessonsUseCase(domainLessonRepo)
-	lessonDashboardUC := lessonuc.NewLessonDashboardUseCase(domainLessonRepo)
+	lessonListUC := lessonuc.NewListLessonsUseCase(domainLessonRepo, orgHierarchySvc)
+	lessonDashboardUC := lessonuc.NewLessonDashboardUseCase(domainLessonRepo, orgHierarchySvc)
 
 	// Approval usecases
 	approvalListUC := approvaluc.NewListApprovalUseCase(domainApprovalRepo)
-	approvalSubmitUC := approvaluc.NewSubmitApprovalUseCase(domainApprovalRepo, domainRiskRepo, domainIncidentRepo)
+	approvalSubmitUC := approvaluc.NewSubmitApprovalUseCase(domainApprovalRepo, domainRiskRepo, domainIncidentRepo, domainUserRepo)
 	approvalActionUC := approvaluc.NewApprovalActionUseCase(domainApprovalRepo, domainRiskRepo, domainIncidentRepo)
 	approvalGetDetailUC := approvaluc.NewGetApprovalDetailUseCase(domainApprovalRepo)
 	approvalGetPendingCountUC := approvaluc.NewGetPendingCountUseCase(domainApprovalRepo)
+	approvalGetByEntityUC := approvaluc.NewGetApprovalByEntityUseCase(domainApprovalRepo)
 
 	// Auth usecases
 	authLoginUC := authuc.NewLoginUseCase(domainUserRepo, cfg.JWTSecret, cfg.JWTExpiry)
@@ -137,9 +156,12 @@ func main() {
 	aiMitigationUC := aiuc.NewGenerateMitigationUseCase(domainAIRepo)
 	aiMinutesUC := aiuc.NewGenerateMinutesUseCase(domainAIRepo)
 	aiTranscriptUC := aiuc.NewAnalyzeTranscriptUseCase(domainAIRepo)
+	aiApplyTranscriptRiskChangeUC := aiuc.NewApplyTranscriptRiskChangesUseCase(domainRiskRepo)
 	aiPredictiveUC := aiuc.NewGeneratePredictiveUseCase(domainAIRepo)
 	aiRiskSuggestionUC := aiuc.NewGenerateRiskSuggestionsUseCase(domainAIRepo)
 	aiKRIUC := aiuc.NewGenerateKRIUseCase(domainAIRepo)
+	aiIncidentBatchUC := aiuc.NewGenerateIncidentBatchExtractionUseCase(domainAIRepo)
+	aiIncidentRiskUC := aiuc.NewGenerateManualIncidentRiskSuggestionsUseCase(domainAIRepo)
 
 	// CBA usecases
 	cbaRecommendUC := cbauc.NewRecommendVariablesUseCase(domainCBARepo)
@@ -163,17 +185,30 @@ func main() {
 	kriReportGenerateUC := krireportuc.NewGenerateReportsUseCase(domainKRIReportRepo)
 	kriReportOverdueUC := krireportuc.NewMarkOverdueUseCase(domainKRIReportRepo)
 
+	// Communication Log usecases
+	commLogCreateUC := commloguc.NewCreateCommunicationLogUseCase(domainCommLogRepo, domainRiskRepo, domainUserRepo)
+	commLogListUC := commloguc.NewListCommunicationLogsUseCase(domainCommLogRepo)
+	commLogDeleteUC := commloguc.NewDeleteCommunicationLogUseCase(domainCommLogRepo)
+
+	// Meeting Minute usecases
+	mmCreateUC := mmuc.NewCreateMeetingMinuteUseCase(domainMMRepo, domainUserRepo)
+	mmGetUC := mmuc.NewGetMeetingMinuteUseCase(domainMMRepo)
+	mmListUC := mmuc.NewListMeetingMinutesUseCase(domainMMRepo)
+	mmDeleteUC := mmuc.NewDeleteMeetingMinuteUseCase(domainMMRepo)
+	mmLinkUC := mmuc.NewLinkRisksUseCase(domainMMRepo)
+	riskListCycleSnapshotUC := riskuc.NewListRiskCycleSnapshotUseCase(domainRiskRepo, orgHierarchySvc)
+
 	// ============================================================================
 	// CLEAN ARCHITECTURE - Handler Layer (Presentation / HTTP)
 	// ============================================================================
 
 	// Clean architecture handlers
 	cleanRiskHandler := httpHandler.NewRiskHandler(
-		riskCreateUC, riskGetUC, riskUpdateUC, riskDeleteUC, riskListUC,
-		riskDashboardSummaryUC, riskHeatmapDataUC, riskTopRisksUC,
+		riskCreateUC, riskCreateBatchUC, riskSpreadsheetUC, riskGetUC, riskReassessUC, riskUpdateUC, riskDeleteUC, riskListUC, riskListCycleSnapshotUC, riskListVersionsUC, riskReviewQueueUC, riskCompareCyclesUC, riskCompareCycleDetailsUC, riskReviewSummaryUC,
+		riskDashboardSummaryUC, riskHeatmapDataUC, riskTopRisksUC, domainMMRepo,
 	)
 	cleanIncidentHandler := httpHandler.NewIncidentHandler(
-		incidentCreateUC, incidentGetUC, incidentUpdateUC, incidentDeleteUC, incidentListUC,
+		incidentCreateUC, incidentCreateBatchUC, incidentGetUC, incidentUpdateUC, incidentDeleteUC, incidentListUC, incidentSummaryUC,
 	)
 	cleanUserHandler := httpHandler.NewUserHandler(
 		userCreateUC, userGetUC, userUpdateUC, userDeleteUC, userListUC,
@@ -188,7 +223,7 @@ func main() {
 		lessonCreateUC, lessonGetUC, lessonUpdateUC, lessonDeleteUC, lessonListUC, lessonDashboardUC,
 	)
 	approvalHandler := httpHandler.NewApprovalHandler(
-		approvalListUC, approvalSubmitUC, approvalActionUC, approvalGetDetailUC, approvalGetPendingCountUC,
+		approvalListUC, approvalSubmitUC, approvalActionUC, approvalGetDetailUC, approvalGetPendingCountUC, approvalGetByEntityUC,
 	)
 
 	// Auth handlers (Clean Architecture)
@@ -201,9 +236,12 @@ func main() {
 		aiMitigationUC,
 		aiMinutesUC,
 		aiTranscriptUC,
+		aiApplyTranscriptRiskChangeUC,
 		aiPredictiveUC,
 		aiRiskSuggestionUC,
 		aiKRIUC,
+		aiIncidentBatchUC,
+		aiIncidentRiskUC,
 	)
 
 	// CBA handler (Clean Architecture)
@@ -223,6 +261,16 @@ func main() {
 	// KRI Report handler
 	cleanKRIReportHandler := httpHandler.NewKRIReportHandler(
 		kriReportListUC, kriReportSubmitUC, kriReportGenerateUC, kriReportOverdueUC,
+	)
+
+	// Communication Log handler
+	cleanCommLogHandler := httpHandler.NewCommunicationLogHandler(
+		commLogCreateUC, commLogListUC, commLogDeleteUC,
+	)
+
+	// Meeting Minute handler
+	cleanMMHandler := httpHandler.NewMeetingMinuteHandler(
+		mmCreateUC, mmGetUC, mmListUC, mmDeleteUC, mmLinkUC,
 	)
 
 	// Fiber app
@@ -278,19 +326,31 @@ func main() {
 
 	// Risks (Clean Architecture)
 	protected.Get("/risks", cleanRiskHandler.ListRisks)
+	protected.Get("/risks/cycle-snapshot", cleanRiskHandler.ListCycleSnapshot)
+	protected.Get("/risks/review-queue", cleanRiskHandler.ListReviewQueue)
+	protected.Get("/risks/compare", cleanRiskHandler.CompareCycles)
+	protected.Get("/risks/compare/detail", cleanRiskHandler.CompareCyclesDetail)
 	protected.Post("/risks", cleanRiskHandler.CreateRisk)
+	protected.Get("/risks/batch/template", cleanRiskHandler.DownloadBulkRiskTemplate)
+	protected.Post("/risks/batch/preview", cleanRiskHandler.PreviewRiskBatchUpload)
+	protected.Post("/risks/batch", cleanRiskHandler.CreateRiskBatch)
 	protected.Get("/risks/:id", cleanRiskHandler.GetRisk)
+	protected.Get("/risks/:id/versions", cleanRiskHandler.ListVersions)
+	protected.Post("/risks/:id/reassess", cleanRiskHandler.CreateReassessment)
 	protected.Put("/risks/:id", cleanRiskHandler.UpdateRisk)
 	protected.Delete("/risks/:id", cleanRiskHandler.DeleteRisk)
 
 	// Risk Dashboard (Clean Architecture)
 	protected.Get("/dashboard/summary", cleanRiskHandler.DashboardSummary)
+	protected.Get("/dashboard/risk-review-summary", cleanRiskHandler.ReviewSummary)
 	protected.Get("/dashboard/heatmap", cleanRiskHandler.HeatmapData)
 	protected.Get("/dashboard/top-risks", cleanRiskHandler.TopRisks)
 
 	// Incidents (Clean Architecture)
 	protected.Get("/incidents", cleanIncidentHandler.ListIncidents)
+	protected.Get("/incidents/summary", cleanIncidentHandler.GetSummary)
 	protected.Post("/incidents", cleanIncidentHandler.CreateIncident)
+	protected.Post("/incidents/batch", cleanIncidentHandler.CreateIncidentBatch)
 	protected.Get("/incidents/:id", cleanIncidentHandler.GetIncident)
 	protected.Put("/incidents/:id", cleanIncidentHandler.UpdateIncident)
 	protected.Delete("/incidents/:id", cleanIncidentHandler.DeleteIncident)
@@ -325,9 +385,12 @@ func main() {
 	protected.Post("/ai/mitigations", cleanAIHandler.GenerateMitigation)
 	protected.Post("/ai/minutes", cleanAIHandler.GenerateMinutes)
 	protected.Post("/ai/transcripts", cleanAIHandler.GenerateTranscript)
+	protected.Post("/ai/transcripts/apply-risk-change", cleanAIHandler.ApplyTranscriptRiskChange)
 	protected.Post("/ai/predictive-analyses", cleanAIHandler.GeneratePredictive)
 	protected.Post("/ai/risk-suggestions", cleanAIHandler.GenerateRiskSuggestion)
 	protected.Post("/ai/kris", cleanAIHandler.GenerateKRI)
+	protected.Post("/ai/incidents/suggest-risks", cleanAIHandler.GenerateManualIncidentRiskSuggestions)
+	protected.Post("/ai/incidents/extract-batch", cleanAIHandler.GenerateIncidentBatch)
 
 	// CBA Advocacy (Clean Architecture)
 	protected.Post("/cba/recommend", cleanCBAHandler.RecommendVariables)
@@ -336,6 +399,7 @@ func main() {
 	// Approval Workflow (New Clean Architecture)
 	protected.Get("/approvals", approvalHandler.List)
 	protected.Get("/approvals/pending-count", approvalHandler.GetPendingCount)
+	protected.Get("/approvals/by-entity", approvalHandler.GetByEntity)
 	protected.Get("/approvals/:id", approvalHandler.GetDetail)
 	protected.Post("/approvals/submit", approvalHandler.Submit)
 	protected.Post("/approvals/:id/action", approvalHandler.Action)
@@ -353,7 +417,21 @@ func main() {
 	protected.Post("/kri-reports/:id/submit", cleanKRIReportHandler.SubmitReport)
 	protected.Post("/kri-reports/generate", cleanKRIReportHandler.TriggerGenerate)
 
+	// Communication Logs
+	protected.Get("/risks/:riskId/communication-logs", cleanCommLogHandler.List)
+	protected.Post("/risks/:riskId/communication-logs", cleanCommLogHandler.Create)
+	protected.Delete("/communication-logs/:id", cleanCommLogHandler.Delete)
 
+	// Meeting Minutes
+	protected.Post("/meeting-minutes", cleanMMHandler.Create)
+	protected.Get("/meeting-minutes/:id", cleanMMHandler.Get)
+	protected.Get("/meeting-minutes", cleanMMHandler.List)
+	protected.Delete("/meeting-minutes/:id", cleanMMHandler.Delete)
+	protected.Post("/meeting-minutes/:id/risks", cleanMMHandler.LinkRisks)
+	protected.Delete("/meeting-minutes/:id/risks", cleanMMHandler.UnlinkRisks)
+
+	// Risk Meeting Minutes
+	protected.Get("/risks/:riskId/meeting-minutes", cleanRiskHandler.GetMeetingMinutes)
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)

@@ -9,25 +9,33 @@ import (
 
 // Incident represents an incident report
 type Incident struct {
-	ID               uuid.UUID
-	Code             *string
-	Title            string
-	What             string
-	Who              string
-	When             *time.Time
-	Where            string
-	WhyHow           string
-	Severity         string
-	Status           string
-	CorrectiveAction string
-	PreventiveAction string
-	LinkedRiskID     *uuid.UUID
-	LinkedRiskCode   *string
-	ReporterID       *uuid.UUID
-	ReporterName     *string
-	OrganizationID   *uuid.UUID
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID               uuid.UUID          `json:"id"`
+	Code             *string            `json:"code,omitempty"`
+	Title            string             `json:"title"`
+	What             string             `json:"what"`
+	Who              string             `json:"who"`
+	When             *time.Time         `json:"when,omitempty"`
+	Where            string             `json:"where"`
+	WhyHow           string             `json:"whyHow"`
+	Severity         string             `json:"severity"`
+	Status           string             `json:"status"`
+	CorrectiveAction string             `json:"correctiveAction"`
+	PreventiveAction string             `json:"preventiveAction"`
+	LinkedRiskID     *uuid.UUID         `json:"linkedRiskId,omitempty"`
+	LinkedRiskCode   *string            `json:"linkedRiskCode,omitempty"`
+	LinkedRisks      []IncidentRiskLink `json:"linkedRisks,omitempty"`
+	ReporterID       *uuid.UUID         `json:"reporterId,omitempty"`
+	ReporterName     *string            `json:"reporterName,omitempty"`
+	OrganizationID   *uuid.UUID         `json:"organizationId,omitempty"`
+	CreatedAt        time.Time          `json:"createdAt"`
+	UpdatedAt        time.Time          `json:"updatedAt"`
+}
+
+// IncidentRiskLink represents a risk linked to an incident.
+type IncidentRiskLink struct {
+	ID    uuid.UUID `json:"id"`
+	Code  string    `json:"code"`
+	Title string    `json:"title"`
 }
 
 // Validate performs domain validation on Incident

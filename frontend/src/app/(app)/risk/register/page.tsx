@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import type { RiskVersionTimelineItem } from "@/types/risk";
+import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,14 +27,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   Plus,
   Search,
-  Filter,
   ArrowUpRight,
-  FileEdit,
   ChevronLeft,
   ChevronRight,
   Edit3,
@@ -41,11 +50,12 @@ import {
   History,
   GitBranch,
   Calendar,
-  Eye,
   TrendingDown,
   TrendingUp,
   Minus,
   AlertCircle,
+  Upload,
+  RefreshCcw,
 } from "lucide-react";
 
 const levelBadgeVariant: Record<string, string> = {
@@ -62,6 +72,53 @@ const statusVariant: Record<string, string> = {
   rejected: "bg-destructive/15 text-destructive border-destructive/20",
 };
 
+type RiskListItem = {
+  id: string;
+  code?: string;
+  title?: string;
+  description?: string;
+  status?: string;
+  orgName?: string;
+  createdByName?: string;
+  updatedAt?: string;
+  probability?: number;
+  impact?: number;
+  inherentScore?: number;
+  targetProbability?: number;
+  targetImpact?: number;
+  cause?: string[];
+  impactDesc?: string[];
+  existingControl?: string;
+  treatmentOption?: string;
+  nextReviewDate?: string;
+  versionGroupId?: string;
+  previousRiskId?: string | null;
+  isCurrent?: boolean;
+  assessmentCycle?: string;
+  reviewType?: string;
+  changeReason?: string;
+};
+
+type HistoryItem = {
+  id: string;
+  riskId: string;
+  title: string;
+  unit: string;
+  cycle: string;
+  currentLevel: string;
+  previousLevel: string;
+  trend: "up" | "down" | "stable";
+  changeReason: string;
+  isCurrent: boolean;
+};
+
+type VersionOption = {
+  id: string;
+  name: string;
+  date: string;
+  isCurrent: boolean;
+};
+
 function getRiskLevel(prob: number | undefined, impact: number | undefined): string {
   if (prob === undefined || impact === undefined || isNaN(prob) || isNaN(impact)) return "Rendah";
   const score = (prob + 1) * (impact + 1);
@@ -71,9 +128,9 @@ function getRiskLevel(prob: number | undefined, impact: number | undefined): str
   return "Ekstrem";
 }
 
-function computeCompleteness(draft: any) {
+function computeCompleteness(draft: RiskListItem) {
   let score = 0;
-  let total = 6;
+  const total = 6;
   if (draft.title && draft.description) score++;
   if (draft.cause && draft.impactDesc) score++;
   if (draft.existingControl && draft.probability && draft.impact) score++;
@@ -83,25 +140,82 @@ function computeCompleteness(draft: any) {
   return Math.round((score / total) * 100);
 }
 
+function currentGlobalCycle() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const half = now.getMonth() < 6 ? "H1" : "H2";
+  return `${year}-${half}`;
+}
+
+function formatCycleLabel(cycle?: string, createdAt?: string) {
+  if (cycle) return cycle;
+  if (!createdAt) return "Baseline";
+  return `Baseline ${new Date(createdAt).toLocaleDateString("id-ID", { year: "numeric", month: "short" })}`;
+}
+
+function buildHistoryItem(version: RiskVersionTimelineItem, current: RiskVersionTimelineItem): HistoryItem {
+  const previousScore = version.inherentScore ?? ((version.probability ?? 1) * (version.impact ?? 1));
+  const currentScore = current.inherentScore ?? ((current.probability ?? 1) * (current.impact ?? 1));
+
+  let trend: HistoryItem["trend"] = "stable";
+  if (currentScore > previousScore) trend = "up";
+  if (currentScore < previousScore) trend = "down";
+
+  return {
+    id: version.id,
+    riskId: version.code || current.code || "-",
+    title: version.title || current.title || "-",
+    unit: current.orgName || version.orgName || "—",
+    cycle: formatCycleLabel(version.assessmentCycle, version.createdAt),
+    previousLevel: getRiskLevel((version.probability ?? 1) - 1, (version.impact ?? 1) - 1),
+    currentLevel: getRiskLevel((current.probability ?? 1) - 1, (current.impact ?? 1) - 1),
+    trend,
+    changeReason: version.changeReason || `Skor ${previousScore} dibanding current ${currentScore}`,
+    isCurrent: version.isCurrent,
+  };
+}
+
 export default function RiskRegisterPage() {
+  const router = useRouter();
   const { token } = useAuth();
-  const [risks, setRisks] = useState<any[]>([]);
-  const [drafts, setDrafts] = useState<any[]>([]);
-  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [risks, setRisks] = useState<RiskListItem[]>([]);
+  const [drafts, setDrafts] = useState<RiskListItem[]>([]);
+  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
+  const [historyRiskId, setHistoryRiskId] = useState<string>("");
+  const [versions, setVersions] = useState<VersionOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedVersion, setSelectedVersion] = useState("v3");
+  const [selectedVersion, setSelectedVersion] = useState("");
   const [activeTab, setActiveTab] = useState("all-risks");
+  const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
 
-  // Mock versions data (can be replaced with API call later)
-  const versions = [
-    { id: "v4", name: "Q1 2026 Snapshot", date: "2026-03-01", isCurrent: true },
-    { id: "v3", name: "Q4 2025 Snapshot", date: "2025-12-01", isCurrent: false },
-    { id: "v2", name: "Q3 2025 Snapshot", date: "2025-09-01", isCurrent: false },
-    { id: "v1", name: "Q2 2025 Snapshot", date: "2025-06-01", isCurrent: false },
-  ];
+  const refreshRisks = async (activeToken: string) => {
+    const [allRisks, draftRisks] = await Promise.all([
+      api.get<RiskListItem[]>("/risks", activeToken),
+      api.get<RiskListItem[]>("/risks?status=draft", activeToken),
+    ]);
+
+    const nonDraftRisks = allRisks.filter((risk) => risk.status !== "draft");
+    const approvedCurrentRisks = nonDraftRisks.filter((risk) => risk.status === "approved" && risk.isCurrent);
+
+    setDrafts(draftRisks);
+    setRisks(nonDraftRisks);
+
+    if (approvedCurrentRisks.length === 0) {
+      setHistoryRiskId("");
+      setVersions([]);
+      setSelectedVersion("");
+      setHistoryData([]);
+      return;
+    }
+
+    setHistoryRiskId((currentId) => {
+      if (currentId && approvedCurrentRisks.some((risk) => risk.id === currentId)) return currentId;
+      return approvedCurrentRisks[0].id;
+    });
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -109,51 +223,7 @@ export default function RiskRegisterPage() {
     const fetchData = async () => {
       try {
         setError(null);
-        const [allRisks, draftRisks] = await Promise.all([
-          api.get<any[]>("/risks", token),
-          api.get<any[]>("/risks?status=draft", token)
-        ]);
-
-        // Separate drafts from all risks
-        setDrafts(draftRisks);
-        setRisks(allRisks.filter(r => r.status !== 'draft'));
-
-        // Generate history data from approved risks
-        const approvedRisks = allRisks.filter(r => r.status === 'approved');
-        const mappedHistory = approvedRisks.map((r) => {
-          const prob = r.probability ?? 1;
-          const impact = r.impact ?? 1;
-          const targetProb = r.targetProbability ?? prob;
-          const targetImpact = r.targetImpact ?? impact;
-
-          const score = prob * impact;
-          const target = targetProb * targetImpact;
-
-          let currentLevel = "Rendah";
-          if (score >= 17) currentLevel = "Ekstrem";
-          else if (score >= 10) currentLevel = "Tinggi";
-          else if (score >= 5) currentLevel = "Sedang";
-
-          let previousLevel = "Rendah";
-          if (target >= 17) previousLevel = "Ekstrem";
-          else if (target >= 10) previousLevel = "Tinggi";
-          else if (target >= 5) previousLevel = "Sedang";
-
-          let trend = "stable";
-          if (score > target) trend = "up";
-          else if (score < target) trend = "down";
-
-          return {
-            riskId: r.code || "-",
-            title: r.title || "-",
-            unit: r.orgName || "—",
-            currentLevel,
-            previousLevel,
-            trend,
-            changeReason: `Skor awal (Inherent): ${score}, Skor Target: ${target}`,
-          };
-        });
-        setHistoryData(mappedHistory.slice(0, 10));
+        await refreshRisks(token);
       } catch (err) {
         console.error(err);
         setError(err instanceof Error ? err.message : "Gagal memuat data risiko. Silakan coba lagi.");
@@ -165,43 +235,109 @@ export default function RiskRegisterPage() {
     fetchData();
   }, [token]);
 
+  useEffect(() => {
+    if (!token || !historyRiskId) return;
+
+    const fetchVersions = async () => {
+      try {
+        const versionItems = await api.get<RiskVersionTimelineItem[]>(`/risks/${historyRiskId}/versions`, token);
+        const currentVersion = versionItems.find((item) => item.isCurrent) ?? versionItems[0];
+
+        if (!currentVersion) {
+          setVersions([]);
+          setSelectedVersion("");
+          setHistoryData([]);
+          return;
+        }
+
+        const versionOptions = versionItems.map((item) => ({
+          id: item.id,
+          name: formatCycleLabel(item.assessmentCycle, item.createdAt),
+          date: item.createdAt ? new Date(item.createdAt).toLocaleDateString("id-ID") : "-",
+          isCurrent: item.isCurrent,
+        }));
+
+        setVersions(versionOptions);
+        setSelectedVersion((currentId) => {
+          if (currentId && versionOptions.some((option) => option.id === currentId)) return currentId;
+          return versionOptions.find((option) => !option.isCurrent)?.id || currentVersion.id;
+        });
+        setHistoryData(versionItems.map((item) => buildHistoryItem(item, currentVersion)));
+      } catch (err) {
+        console.error(err);
+        setVersions([]);
+        setSelectedVersion("");
+        setHistoryData([]);
+        toast.error(err instanceof Error ? err.message : "Riwayat versi belum berhasil dimuat.");
+      }
+    };
+
+    fetchVersions();
+  }, [historyRiskId, token]);
+
   const filteredRisks = useMemo(() => {
     return risks.filter(r => {
-      if (search && !r.title.toLowerCase().includes(search.toLowerCase()) && !r.code.toLowerCase().includes(search.toLowerCase())) return false;
+      const title = (r.title ?? "").toLowerCase();
+      const code = (r.code ?? "").toLowerCase();
+      if (search && !title.includes(search.toLowerCase()) && !code.includes(search.toLowerCase())) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       return true;
     });
   }, [risks, search, statusFilter]);
 
   const handleDeleteDraft = async (id: string) => {
-    if (!confirm("Hapus draft ini?")) return;
-    try {
-      await api.delete(`/risks/${id}`, token || undefined);
-      // Refresh drafts
-      const updatedDrafts = await api.get<any[]>("/risks?status=draft", token || undefined);
-      setDrafts(updatedDrafts);
-    } catch (err) {
-      console.error(err);
-    }
+    toast.promise(
+      (async () => {
+        await api.delete(`/risks/${id}`, token || undefined);
+        if (token) await refreshRisks(token);
+      })(),
+      {
+        loading: "Menghapus draft...",
+        success: "Draft berhasil dihapus.",
+        error: (err) => err instanceof Error ? err.message : "Draft belum berhasil dihapus.",
+      }
+    );
   };
 
-  const handleSubmitDraft = async (draft: any) => {
-    if (!confirm("Ajukan draft ini menjadi Final?")) return;
-    try {
-      // Fetch full object so mitigations arrays are not wiped out
-      const fullRisk = await api.get<any>(`/risks/${draft.id}`, token || undefined);
-      await api.put(`/risks/${draft.id}`, { ...fullRisk, status: "final" }, token || undefined);
-      // Refresh drafts and risks
-      const [updatedDrafts, allRisks] = await Promise.all([
-        api.get<any[]>("/risks?status=draft", token || undefined),
-        api.get<any[]>("/risks", token || undefined)
-      ]);
-      setDrafts(updatedDrafts);
-      setRisks(allRisks.filter(r => r.status !== 'draft'));
-    } catch (err) {
-      console.error(err);
-    }
+  const handleSubmitDraft = async (draft: RiskListItem) => {
+    toast.promise(
+      (async () => {
+        const fullRisk = await api.get<RiskListItem>(`/risks/${draft.id}`, token || undefined);
+        await api.put(`/risks/${draft.id}`, { ...fullRisk, status: "final" }, token || undefined);
+        if (token) await refreshRisks(token);
+      })(),
+      {
+        loading: "Mengajukan draft...",
+        success: "Draft berhasil diajukan menjadi final.",
+        error: (err) => err instanceof Error ? err.message : "Draft belum berhasil diajukan.",
+      }
+    );
   };
+
+  const handleCreateReassessment = async (risk: RiskListItem) => {
+    if (!token) {
+      toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+
+    const cycle = currentGlobalCycle();
+    toast.promise(
+      (async () => {
+        const result = await api.post<{ id: string }>(`/risks/${risk.id}/reassess`, { cycle }, token);
+        await refreshRisks(token);
+        setActiveTab("my-drafts");
+        router.push(`/risk/register/${result.id}`);
+      })(),
+      {
+        loading: `Membuat draft reassessment ${cycle}...`,
+        success: `Draft reassessment ${cycle} berhasil dibuat.`,
+        error: (err) => err instanceof Error ? err.message : "Draft reassessment belum berhasil dibuat.",
+      }
+    );
+  };
+
+  const selectedVersionMeta = versions.find((version) => version.id === selectedVersion);
+  const selectedHistory = historyData.find((history) => history.id === selectedVersion);
 
   if (loading) {
     return <div className="p-8 text-center text-muted-foreground animate-pulse">Memuat daftar risiko...</div>;
@@ -234,12 +370,20 @@ export default function RiskRegisterPage() {
             Kelola seluruh risiko organisasi sesuai ISO 31000:2018
           </p>
         </div>
-        <Link href="/risk/register/new">
-          <Button className="gap-2 shadow-lg shadow-primary/20">
-            <Plus className="size-4" />
-            Tambah Risiko
-          </Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/risk/register/bulk">
+            <Button variant="outline" className="gap-2">
+              <Upload className="size-4" />
+              Bulk Create
+            </Button>
+          </Link>
+          <Link href="/risk/register/new">
+            <Button className="gap-2 shadow-lg shadow-primary/20">
+              <Plus className="size-4" />
+              Tambah Risiko
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -268,12 +412,12 @@ export default function RiskRegisterPage() {
         <TabsContent value="all-risks" className="space-y-6 mt-6">
           {/* Summary badges */}
           <div className="flex flex-wrap gap-2">
-            {[
-              { label: `Total: ${risks.length}`, variant: "outline" as const },
-              { label: `Ekstrem: ${risks.filter(r => getRiskLevel(r.probability - 1, r.impact - 1) === 'Ekstrem').length}`, cls: levelBadgeVariant.Ekstrem },
-              { label: `Tinggi: ${risks.filter(r => getRiskLevel(r.probability - 1, r.impact - 1) === 'Tinggi').length}`, cls: levelBadgeVariant.Tinggi },
-              { label: `Sedang: ${risks.filter(r => getRiskLevel(r.probability - 1, r.impact - 1) === 'Sedang').length}`, cls: levelBadgeVariant.Sedang },
-              { label: `Rendah: ${risks.filter(r => getRiskLevel(r.probability - 1, r.impact - 1) === 'Rendah').length}`, cls: levelBadgeVariant.Rendah },
+              {[
+                { label: `Total: ${risks.length}`, variant: "outline" as const },
+              { label: `Ekstrem: ${risks.filter(r => getRiskLevel((r.probability ?? 1) - 1, (r.impact ?? 1) - 1) === 'Ekstrem').length}`, cls: levelBadgeVariant.Ekstrem },
+              { label: `Tinggi: ${risks.filter(r => getRiskLevel((r.probability ?? 1) - 1, (r.impact ?? 1) - 1) === 'Tinggi').length}`, cls: levelBadgeVariant.Tinggi },
+              { label: `Sedang: ${risks.filter(r => getRiskLevel((r.probability ?? 1) - 1, (r.impact ?? 1) - 1) === 'Sedang').length}`, cls: levelBadgeVariant.Sedang },
+              { label: `Rendah: ${risks.filter(r => getRiskLevel((r.probability ?? 1) - 1, (r.impact ?? 1) - 1) === 'Rendah').length}`, cls: levelBadgeVariant.Rendah },
             ].filter(b => b.cls !== undefined).map((b) => (
               <Badge
                 key={b.label}
@@ -344,6 +488,7 @@ export default function RiskRegisterPage() {
                 <TableRow className="border-border/50 hover:bg-transparent">
                   <TableHead className="w-20 text-xs">Kode</TableHead>
                   <TableHead className="text-xs">Judul Risiko</TableHead>
+                  <TableHead className="text-xs w-28">Periode</TableHead>
                   <TableHead className="text-xs w-32">Unit Kerja</TableHead>
                   <TableHead className="text-xs text-center w-24">Probabilitas</TableHead>
                   <TableHead className="text-xs text-center w-24">Dampak</TableHead>
@@ -351,35 +496,37 @@ export default function RiskRegisterPage() {
                   <TableHead className="text-xs w-24">Level</TableHead>
                   <TableHead className="text-xs w-24">Status</TableHead>
                   <TableHead className="text-xs w-28">Perlakuan</TableHead>
+                  <TableHead className="text-xs w-28 text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredRisks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground text-xs">
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground text-xs">
                       Tidak ada risiko yang ditemukan
                     </TableCell>
                   </TableRow>
                 ) : filteredRisks.map((risk) => {
-                  const levelLabel = getRiskLevel(risk.probability - 1, risk.impact - 1);
+                  const levelLabel = getRiskLevel((risk.probability ?? 1) - 1, (risk.impact ?? 1) - 1);
+                  const canReassess = risk.status === "approved" && risk.isCurrent;
                   return (
                   <TableRow
                     key={risk.id}
-                    className="border-border/30 cursor-pointer hover:bg-muted/30 transition-colors"
-                    onClick={() => window.location.href = `/risk/register/${risk.id}`}
+                    className="border-border/30 hover:bg-muted/30 transition-colors"
                   >
                     <TableCell className="text-xs font-mono text-muted-foreground">
                       {risk.code || "-"}
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <p className="text-xs font-medium leading-relaxed line-clamp-1">
-                          {risk.title || "-"}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          Dibuat oleh: {risk.createdByName || "System"}
-                        </p>
-                      </div>
+                      <Link
+                        href={`/risk/register/${risk.id}`}
+                        className="block text-xs font-medium leading-relaxed line-clamp-1 text-primary transition-colors hover:text-primary/80 hover:underline"
+                      >
+                        {risk.title || "-"}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatCycleLabel(risk.assessmentCycle, risk.updatedAt)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {risk.orgName || "-"}
@@ -405,9 +552,9 @@ export default function RiskRegisterPage() {
                     </TableCell>
                     <TableCell>
                       <Badge
-                        className={cn(
-                          "text-[10px] font-medium border h-5 px-1.5 capitalize",
-                          statusVariant[risk.status]
+                          className={cn(
+                            "text-[10px] font-medium border h-5 px-1.5 capitalize",
+                          risk.status ? statusVariant[risk.status] : undefined
                         )}
                       >
                         {risk.status || "-"}
@@ -415,6 +562,21 @@ export default function RiskRegisterPage() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground capitalize">
                       {risk.treatmentOption || "-"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        {canReassess && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1.5 px-2 text-xs"
+                            onClick={() => handleCreateReassessment(risk)}
+                          >
+                            <RefreshCcw className="size-3" />
+                            Reassessment
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 )})}
@@ -455,6 +617,7 @@ export default function RiskRegisterPage() {
                 <TableRow className="border-border/50 hover:bg-transparent">
                   <TableHead className="w-20 text-xs">ID</TableHead>
                   <TableHead className="text-xs">Judul Draf / Risiko</TableHead>
+                  <TableHead className="text-xs w-28">Periode</TableHead>
                   <TableHead className="text-xs w-32">Status</TableHead>
                   <TableHead className="text-xs w-32">Pembaruan</TableHead>
                   <TableHead className="text-xs w-28 text-center">Progres</TableHead>
@@ -464,7 +627,7 @@ export default function RiskRegisterPage() {
               <TableBody>
                 {drafts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground text-xs">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground text-xs">
                       Belum ada draft.
                     </TableCell>
                   </TableRow>
@@ -478,8 +641,12 @@ export default function RiskRegisterPage() {
                   <TableRow key={draft.id} className="border-border/30 hover:bg-muted/30">
                     <TableCell className="text-xs font-mono text-muted-foreground">{draft.code || (draft.id ? draft.id.substring(0,8) : "-")}</TableCell>
                     <TableCell>
-                      <p className="text-xs font-medium line-clamp-1">{draft.title || "Tanpa Judul"}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{draft.orgName || "-"}</p>
+                      <Link href={`/risk/register/${draft.id}`} className="block text-xs font-medium leading-relaxed line-clamp-1 text-primary transition-colors hover:text-primary/80 hover:underline">
+                        {draft.title || "Tanpa Judul"}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatCycleLabel(draft.assessmentCycle, draft.updatedAt)}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -507,13 +674,25 @@ export default function RiskRegisterPage() {
                       <div className="flex justify-end gap-1">
                         {draft.status === 'draft' && (
                           <>
-                            <Link href={`/risk/register/new?id=${draft.id}`}>
-                              <Button variant="ghost" size="icon-xs" className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10" title="Lanjutkan Draft"><Edit3 className="size-3.5" /></Button>
-                            </Link>
                             {completeness === 100 && (
-                              <Button variant="ghost" size="icon-xs" onClick={() => handleSubmitDraft(draft)} className="h-7 w-7 text-success hover:text-success hover:bg-success/10" title="Ajukan Final"><Send className="size-3.5" /></Button>
+                              <Button
+                                size="sm"
+                                className="h-7 gap-1.5 px-2 text-xs bg-success/80 hover:bg-success"
+                                onClick={() => handleSubmitDraft(draft)}
+                              >
+                                <Send className="size-3" />
+                                Ajukan
+                              </Button>
                             )}
-                            <Button variant="ghost" size="icon-xs" onClick={() => handleDeleteDraft(draft.id)} className="h-7 w-7 text-destructive hover:bg-destructive/10 hover:text-destructive"><Trash2 className="size-3.5" /></Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => setDraftToDelete(draft)}
+                            >
+                              <Trash2 className="size-3" />
+                              Hapus
+                            </Button>
                           </>
                         )}
                       </div>
@@ -527,6 +706,29 @@ export default function RiskRegisterPage() {
 
         {/* TAB 3: HISTORY */}
         <TabsContent value="history" className="space-y-6 mt-6">
+          <Card className="border-border/50 bg-card/80">
+            <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Riwayat Versi Live</p>
+                <p className="mt-1 text-sm text-muted-foreground">Pilih satu risiko current approved untuk melihat timeline reassessment dan membandingkannya dengan versi aktif saat ini.</p>
+              </div>
+              <Select value={historyRiskId} onValueChange={setHistoryRiskId}>
+                <SelectTrigger className="w-full md:w-[340px]">
+                  <SelectValue placeholder="Pilih risiko untuk history" />
+                </SelectTrigger>
+                <SelectContent>
+                  {risks
+                    .filter((risk) => risk.status === "approved" && risk.isCurrent)
+                    .map((risk) => (
+                      <SelectItem key={risk.id} value={risk.id}>
+                        {(risk.code || "Risk") + " • " + (risk.title || "Tanpa judul")}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
           <div className="grid gap-6 lg:grid-cols-4">
             {/* Timeline Version Selector */}
             <div className="lg:col-span-1 border-r border-border/50 pr-4">
@@ -567,7 +769,7 @@ export default function RiskRegisterPage() {
                 <CardHeader className="pb-3 flex flex-row items-center justify-between">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <GitBranch className="size-4" />
-                    Perbandingan: {versions.find(v => v.id === selectedVersion)?.name} vs Current
+                    Perbandingan: {selectedVersionMeta?.name || "Pilih versi"} vs Current
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -583,37 +785,38 @@ export default function RiskRegisterPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {historyData.length === 0 ? (
+                      {!selectedHistory ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                            Belum ada history untuk snapshot ini.
+                            Belum ada history untuk risiko ini.
                           </TableCell>
                         </TableRow>
-                      ) : historyData.map((history) => (
-                        <TableRow key={history.riskId} className="border-border/30 hover:bg-muted/30">
-                          <TableCell className="text-xs font-mono text-muted-foreground">{history.riskId || "-"}</TableCell>
+                      ) : (
+                        <TableRow key={selectedHistory.id} className="border-border/30 hover:bg-muted/30">
+                          <TableCell className="text-xs font-mono text-muted-foreground">{selectedHistory.riskId || "-"}</TableCell>
                           <TableCell>
-                            <p className="text-xs font-medium leading-relaxed">{history.title || "-"}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 italic text-primary/70">{history.changeReason || "-"}</p>
+                            <p className="text-xs font-medium leading-relaxed">{selectedHistory.title || "-"}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{selectedHistory.cycle}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2 italic text-primary/70">{selectedHistory.changeReason || "-"}</p>
                           </TableCell>
                           <TableCell>
-                            <Badge className={cn("text-[10px] font-semibold border h-5 px-1.5", levelBadgeVariant[history.previousLevel] || levelBadgeVariant.Rendah)}>
-                              {history.previousLevel || "Rendah"}
+                            <Badge className={cn("text-[10px] font-semibold border h-5 px-1.5", levelBadgeVariant[selectedHistory.previousLevel] || levelBadgeVariant.Rendah)}>
+                              {selectedHistory.previousLevel || "Rendah"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center text-muted-foreground">→</TableCell>
                           <TableCell>
-                            <Badge className={cn("text-[10px] font-semibold border h-5 px-1.5", levelBadgeVariant[history.currentLevel] || levelBadgeVariant.Rendah)}>
-                              {history.currentLevel || "Rendah"}
+                            <Badge className={cn("text-[10px] font-semibold border h-5 px-1.5", levelBadgeVariant[selectedHistory.currentLevel] || levelBadgeVariant.Rendah)}>
+                              {selectedHistory.currentLevel || "Rendah"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center">
-                            {history.trend === "up" && <TrendingUp className="size-4 text-risk-extreme mx-auto" />}
-                            {history.trend === "down" && <TrendingDown className="size-4 text-success mx-auto" />}
-                            {(history.trend === "stable" || !history.trend) && <Minus className="size-4 text-muted-foreground mx-auto" />}
+                            {selectedHistory.trend === "up" && <TrendingUp className="size-4 text-risk-extreme mx-auto" />}
+                            {selectedHistory.trend === "down" && <TrendingDown className="size-4 text-success mx-auto" />}
+                            {(selectedHistory.trend === "stable" || !selectedHistory.trend) && <Minus className="size-4 text-muted-foreground mx-auto" />}
                           </TableCell>
                         </TableRow>
-                      ))}
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -622,6 +825,37 @@ export default function RiskRegisterPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!draftToDelete} onOpenChange={(open) => !open && setDraftToDelete(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Hapus Draft Risiko?</DialogTitle>
+            <DialogDescription>
+              Draft yang dihapus tidak bisa dikembalikan. Risiko dengan status final harus dikembalikan ke draft terlebih dahulu sebelum dapat dihapus.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+            <p className="font-medium">{draftToDelete?.title || "Tanpa judul"}</p>
+            <p className="text-xs text-muted-foreground">{draftToDelete?.code || draftToDelete?.id}</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDraftToDelete(null)}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!draftToDelete) return;
+                const current = draftToDelete;
+                setDraftToDelete(null);
+                await handleDeleteDraft(current.id);
+              }}
+            >
+              Hapus Draft
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

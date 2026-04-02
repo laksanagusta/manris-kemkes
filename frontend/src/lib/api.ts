@@ -14,11 +14,15 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const { token, ...fetchOpts } = options;
+  const isFormDataBody = typeof FormData !== "undefined" && fetchOpts.body instanceof FormData;
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...(fetchOpts.headers as Record<string, string>),
   };
+
+  if (!isFormDataBody && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -51,11 +55,25 @@ export const api = {
     request<T>(path, { method: "GET", token }),
 
   post: <T>(path: string, body: unknown, token?: string) =>
-    request<T>(path, { method: "POST", body: JSON.stringify(body), token }),
+    request<T>(path, {
+      method: "POST",
+      body:
+        typeof FormData !== "undefined" && body instanceof FormData
+          ? body
+          : JSON.stringify(body),
+      token,
+    }),
+
+  postForm: <T>(path: string, body: FormData, token?: string) =>
+    request<T>(path, { method: "POST", body, token }),
 
   put: <T>(path: string, body: unknown, token?: string) =>
     request<T>(path, { method: "PUT", body: JSON.stringify(body), token }),
 
-  delete: <T>(path: string, token?: string) =>
-    request<T>(path, { method: "DELETE", token }),
+  delete: <T>(path: string, body?: unknown, token?: string) =>
+    request<T>(path, {
+      method: "DELETE",
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      token,
+    }),
 };

@@ -90,20 +90,21 @@ func (r *lessonRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // List retrieves lessons with optional filters
-func (r *lessonRepository) List(ctx context.Context, orgID *uuid.UUID) ([]*entity.Lesson, error) {
+func (r *lessonRepository) List(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Lesson, error) {
 	query := `
 		SELECT l.id, l.title, l.description, l.source_type, l.source_ref,
 		       l.success_factors, l.failure_factors, l.recommendations, l.tags,
 		       l.author_id, u.name as author_name, l.organization_id, l.created_at
 		FROM lessons_learned l
-		LEFT JOIN users u ON l.author_id = u.id`
+		LEFT JOIN users u ON l.author_id = u.id
+		WHERE 1=1`
 
 	args := []interface{}{}
 	argIdx := 1
 
-	if orgID != nil {
-		query += fmt.Sprintf(" WHERE l.organization_id = $%d", argIdx)
-		args = append(args, orgID)
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND l.organization_id = ANY($%d)", argIdx)
+		args = append(args, orgIDs)
 		argIdx++
 	}
 
@@ -133,18 +134,19 @@ func (r *lessonRepository) List(ctx context.Context, orgID *uuid.UUID) ([]*entit
 }
 
 // GetDashboard retrieves dashboard metrics for lessons
-func (r *lessonRepository) GetDashboard(ctx context.Context, orgID *uuid.UUID) (map[string]interface{}, error) {
+func (r *lessonRepository) GetDashboard(ctx context.Context, orgIDs []uuid.UUID) (map[string]interface{}, error) {
 	query := `
 		SELECT
 			COUNT(*) as total,
 			COUNT(*) FILTER (WHERE source_type = 'incident') as from_incidents,
 			COUNT(*) FILTER (WHERE source_type = 'risk') as from_risks
-		FROM lessons_learned`
+		FROM lessons_learned
+		WHERE 1=1`
 
 	args := []interface{}{}
-	if orgID != nil {
-		query += " WHERE organization_id = $1"
-		args = append(args, orgID)
+	if len(orgIDs) > 0 {
+		query += " AND organization_id = ANY($1)"
+		args = append(args, orgIDs)
 	}
 
 	var total, fromIncidents, fromRisks int

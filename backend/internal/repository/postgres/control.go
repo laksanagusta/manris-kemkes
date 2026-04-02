@@ -85,19 +85,20 @@ func (r *controlRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // List retrieves controls with optional filters
-func (r *controlRepository) List(ctx context.Context, orgID *uuid.UUID) ([]*entity.Control, error) {
+func (r *controlRepository) List(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Control, error) {
 	query := `
 		SELECT c.id, c.name, c.description, c.control_type, c.frequency,
 		       c.owner, c.organization_id, COALESCE(o.name, '') as org_name, c.created_at
 		FROM controls c
-		LEFT JOIN organizations o ON c.organization_id = o.id`
+		LEFT JOIN organizations o ON c.organization_id = o.id
+		WHERE 1=1`
 
 	args := []interface{}{}
 	argIdx := 1
 
-	if orgID != nil {
-		query += fmt.Sprintf(" WHERE c.organization_id = $%d", argIdx)
-		args = append(args, orgID)
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND c.organization_id = ANY($%d)", argIdx)
+		args = append(args, orgIDs)
 		argIdx++
 	}
 
@@ -125,9 +126,7 @@ func (r *controlRepository) List(ctx context.Context, orgID *uuid.UUID) ([]*enti
 }
 
 // GetDashboard retrieves dashboard metrics for controls
-func (r *controlRepository) GetDashboard(ctx context.Context, orgID *uuid.UUID) (map[string]interface{}, error) {
-	// Since the controls table doesn't have an effectiveness column,
-	// we derive it from the latest control_test result
+func (r *controlRepository) GetDashboard(ctx context.Context, orgIDs []uuid.UUID) (map[string]interface{}, error) {
 	query := `
 		SELECT
 			COUNT(*) as total,
@@ -139,12 +138,13 @@ func (r *controlRepository) GetDashboard(ctx context.Context, orgID *uuid.UUID) 
 			SELECT result FROM control_tests ct
 			WHERE ct.control_id = c.id
 			ORDER BY ct.test_date DESC LIMIT 1
-		) lt(latest_result) ON TRUE`
+		) lt(latest_result) ON TRUE
+		WHERE 1=1`
 
 	args := []interface{}{}
-	if orgID != nil {
-		query += " WHERE c.organization_id = $1"
-		args = append(args, orgID)
+	if len(orgIDs) > 0 {
+		query += " AND c.organization_id = ANY($1)"
+		args = append(args, orgIDs)
 	}
 
 	var total, effective, ineffective, notTested int

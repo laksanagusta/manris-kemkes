@@ -30,9 +30,9 @@ func (uc *DeleteRiskUseCase) Execute(ctx context.Context, id uuid.UUID) (*Delete
 		return nil, errors.ErrRiskNotFound
 	}
 
-	// 2. Business rule: Cannot delete approved risks
-	if risk.Status == "approved" {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "cannot delete approved risk")
+	// 2. Business rule: only drafts can be deleted.
+	if risk.Status != "draft" {
+		return nil, errors.Wrap(errors.ErrInvalidStatus, "only draft risks can be deleted")
 	}
 
 	// 3. Delete from database

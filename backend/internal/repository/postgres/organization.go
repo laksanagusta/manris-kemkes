@@ -90,3 +90,39 @@ func (r *organizationRepository) List(ctx context.Context) ([]*entity.Organizati
 
 	return orgs, nil
 }
+
+func (r *organizationRepository) GetDescendants(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {
+	query := `
+		WITH RECURSIVE org_tree AS (
+			SELECT id FROM organizations WHERE id = $1
+			
+			UNION ALL
+			
+			SELECT o.id 
+			FROM organizations o
+			INNER JOIN org_tree ot ON o.parent_id = ot.id
+		)
+		SELECT id FROM org_tree
+	`
+
+	rows, err := r.pool.Query(ctx, query, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("get organization descendants: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan organization id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+
+	if len(ids) == 0 {
+		return []uuid.UUID{orgID}, nil
+	}
+
+	return ids, nil
+}

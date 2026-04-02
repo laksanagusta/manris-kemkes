@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 
 interface MitigationPickerProps {
+  title: string;
   description: string;
   cause: string;
   impactDescription: string;
@@ -16,7 +17,7 @@ interface MitigationPickerProps {
 }
 
 
-export function MitigationPicker({ description, cause, impactDescription, onSelect, existingActions, disabled }: MitigationPickerProps) {
+export function MitigationPicker({ title, description, cause, impactDescription, onSelect, existingActions, disabled }: MitigationPickerProps) {
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -26,7 +27,7 @@ export function MitigationPicker({ description, cause, impactDescription, onSele
     setLoading(true);
     try {
       const payload = {
-        title: description, // using description as proxy title if title isn't passed, wait, picker doesn't get title. Let me pass title down as well or use description. 
+        title: title || description,
         description: description,
         cause: cause,
         impact: impactDescription,
@@ -54,11 +55,11 @@ export function MitigationPicker({ description, cause, impactDescription, onSele
         variant="outline"
         size="sm"
         onClick={handleGenerate}
-        disabled={disabled || loading || !description.trim()}
-        className="mt-2 gap-2 text-xs text-primary border-primary/20 hover:bg-primary/10"
+        disabled={disabled || loading || !description.trim() || !title.trim()}
+        className="mt-2 gap-2 text-xs text-primary border-primary/20 bg-primary/[0.03] hover:bg-primary/10"
       >
         {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-        {loading ? "AI sedang menganalisis..." : "AI Recommend Mitigasi"}
+        {loading ? "AI sedang menyiapkan opsi..." : "Minta rekomendasi mitigasi"}
       </Button>
     );
   }
@@ -66,7 +67,10 @@ export function MitigationPicker({ description, cause, impactDescription, onSele
   return (
     <div className="mt-3 rounded-lg border border-primary/20 bg-primary/[0.03] p-3 space-y-2">
       <p className="text-[11px] font-semibold text-primary flex items-center gap-1.5">
-        <Sparkles className="size-3" /> Rekomendasi AI — Klik untuk menambahkan
+        <Sparkles className="size-3" /> Rekomendasi AI untuk mempercepat drafting mitigasi
+      </p>
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        Gunakan sebagai titik awal, lalu sesuaikan dengan kapasitas unit, PIC, dan tenggat yang realistis.
       </p>
       {suggestions.map((s, i) => {
         const isUsed = selected.has(s) || existingActions.some((a) => a.includes(s));

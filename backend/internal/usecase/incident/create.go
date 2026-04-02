@@ -42,7 +42,7 @@ type CreateIncidentInput struct {
 	Severity         string
 	CorrectiveAction string
 	PreventiveAction string
-	LinkedRiskID     *uuid.UUID
+	LinkedRiskIDs    []string
 	ReporterID       *uuid.UUID
 	OrganizationID   *uuid.UUID
 }
@@ -69,8 +69,13 @@ func (uc *CreateIncidentUseCase) Execute(ctx context.Context, input CreateIncide
 		return nil, errors.ErrInvalidInput
 	}
 
+	linkedRiskIDs, err := parseLinkedRiskIDs(input.LinkedRiskIDs)
+	if err != nil {
+		return nil, err
+	}
+
 	// 2. Validate reporter exists
-	_, err := uc.userRepo.GetByID(ctx, *input.ReporterID)
+	_, err = uc.userRepo.GetByID(ctx, *input.ReporterID)
 	if err != nil {
 		return nil, errors.Wrap(err, "reporter not found")
 	}
@@ -84,8 +89,8 @@ func (uc *CreateIncidentUseCase) Execute(ctx context.Context, input CreateIncide
 	}
 
 	// 4. Validate linked risk if provided
-	if input.LinkedRiskID != nil {
-		_, err := uc.riskRepo.GetByID(ctx, *input.LinkedRiskID)
+	for _, riskID := range linkedRiskIDs {
+		_, err := uc.riskRepo.GetByID(ctx, riskID)
 		if err != nil {
 			return nil, errors.Wrap(err, "linked risk not found")
 		}
@@ -103,7 +108,7 @@ func (uc *CreateIncidentUseCase) Execute(ctx context.Context, input CreateIncide
 		Status:           "draft",
 		CorrectiveAction: input.CorrectiveAction,
 		PreventiveAction: input.PreventiveAction,
-		LinkedRiskID:     input.LinkedRiskID,
+		LinkedRisks:      buildIncidentRiskLinks(linkedRiskIDs),
 		ReporterID:       input.ReporterID,
 		OrganizationID:   input.OrganizationID,
 	}

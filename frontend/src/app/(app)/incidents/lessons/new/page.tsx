@@ -1,13 +1,14 @@
 "use client";
+
 import { toast } from "sonner";
-
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Save } from "lucide-react";
+
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save } from "lucide-react";
 
 export default function NewLessonPage() {
   const router = useRouter();
@@ -37,145 +37,170 @@ export default function NewLessonPage() {
 
   const handleSave = async () => {
     if (!title || !description) {
-      toast("Judul dan Deskripsi wajib diisi!");
+      toast.error("Lengkapi judul dan ringkasan pembelajaran terlebih dahulu.");
       return;
     }
 
     setSaving(true);
     try {
-      const tagsArray = tagsInput.split(",").map(t => t.trim()).filter(t => t !== "");
-      const payload = {
-        title,
-        description,
-        sourceType,
-        sourceRef,
-        successFactors,
-        failureFactors,
-        recommendations,
-        tags: tagsArray,
-        organizationId: user?.organizationId,
-      };
+      const tagsArray = tagsInput
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean);
 
-      await api.post("/lessons", payload, token || undefined);
-      router.push("/lessons");
+      await api.post(
+        "/lessons",
+        {
+          title,
+          description,
+          sourceType,
+          sourceRef,
+          successFactors,
+          failureFactors,
+          recommendations,
+          tags: tagsArray,
+          organizationId: user?.organizationId,
+        },
+        token || undefined,
+      );
+      router.push("/incidents/lessons");
     } catch (error) {
       console.error("Failed to create lesson:", error);
-      toast.error("Gagal menambahkan lessons learned");
+      toast.error("Pembelajaran baru belum berhasil disimpan.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl mx-auto pb-20">
-      {/* Header */}
-      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/80 backdrop-blur-md pt-2 pb-4 border-b border-border/50">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground" onClick={() => router.back()}>
-            <ArrowLeft className="size-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Tambah Lesson</h1>
-            <p className="text-sm text-muted-foreground">Catat pembelajaran dari risiko atau insiden</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button className="gap-2 shadow-lg shadow-primary/20 text-xs" onClick={handleSave} disabled={saving}>
+    <FormPage className="max-w-4xl">
+      <FormHeader
+        title="Tambah pembelajaran"
+        description="Catat pembelajaran dari risiko atau insiden agar bisa dipakai pada evaluasi berikutnya."
+        badges={
+          <Badge variant="outline" className="border-primary/15 bg-primary/[0.04] text-primary">
+            Lessons learned
+          </Badge>
+        }
+        backLabel="Kembali ke lessons learned"
+        onBack={() => router.push("/incidents/lessons")}
+        actions={
+          <Button className="gap-2 text-xs" onClick={handleSave} disabled={saving}>
             <Save className="size-3.5" />
-            {saving ? "Menyimpan..." : "Simpan"}
+            {saving ? "Menyimpan..." : "Simpan pembelajaran"}
           </Button>
+        }
+      />
+
+      <FormSection
+        title="Informasi dasar"
+        description="Mulai dari ringkasan pembelajaran dan sumber referensinya."
+        contentClassName="space-y-5"
+      >
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">
+            Judul pembelajaran <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Contoh: Redundansi cold chain harus diuji berkala"
+            className="h-10 text-sm"
+          />
         </div>
-      </div>
 
-      <Card className="border-border/50 bg-card/80">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Informasi Dasar</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1.5">
-             <Label className="text-xs">Judul Pembelajaran <span className="text-destructive">*</span></Label>
-             <Input 
-               value={title} onChange={(e) => setTitle(e.target.value)}
-               placeholder="Contoh: Pentingnya redundansi cold chain" 
-               className="text-xs" 
-             />
-          </div>
-          <div className="space-y-1.5">
-             <Label className="text-xs">Deskripsi Kejadian <span className="text-destructive">*</span></Label>
-             <Textarea 
-               value={description} onChange={(e) => setDescription(e.target.value)}
-               placeholder="Jelaskan konteks dan apa yang terjadi..." 
-               className="min-h-[80px] text-xs" 
-             />
-          </div>
-          
-          <div className="grid gap-4 md:grid-cols-2">
-             <div className="space-y-1.5">
-               <Label className="text-xs">Sumber Daya</Label>
-               <Select value={sourceType} onValueChange={setSourceType}>
-                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="risiko" className="text-xs">Risiko</SelectItem>
-                   <SelectItem value="insiden" className="text-xs">Insiden</SelectItem>
-                 </SelectContent>
-               </Select>
-             </div>
-             <div className="space-y-1.5">
-               <Label className="text-xs">ID Referensi</Label>
-               <Input 
-                 value={sourceRef} onChange={(e) => setSourceRef(e.target.value)}
-                 placeholder="Contoh: R-001 atau INC-002" 
-                 className="text-xs h-8" 
-               />
-             </div>
-          </div>
-        </CardContent>
-      </Card>
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">
+            Ringkasan pembelajaran <span className="text-destructive">*</span>
+          </Label>
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Jelaskan konteks, kejadian, dan pelajaran yang paling penting."
+            className="min-h-28 text-sm leading-6"
+          />
+        </div>
 
-      <Card className="border-border/50 bg-card/80">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Analisis</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-           <div className="space-y-1.5">
-             <Label className="text-xs text-success font-semibold">Faktor Keberhasilan</Label>
-             <Textarea 
-               value={successFactors} onChange={(e) => setSuccessFactors(e.target.value)}
-               placeholder="Apa yang berjalan dengan baik? Mengapa bisa berhasil?" 
-               className="min-h-[60px] text-xs resize-none" 
-             />
-          </div>
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
-             <Label className="text-xs text-risk-extreme font-semibold">Faktor Kegagalan</Label>
-             <Textarea 
-               value={failureFactors} onChange={(e) => setFailureFactors(e.target.value)}
-               placeholder="Apa hambatan/kegagalannya? Mengapa terjadi?" 
-               className="min-h-[60px] text-xs resize-none" 
-             />
+            <Label className="text-sm font-medium">Sumber referensi</Label>
+            <Select value={sourceType} onValueChange={setSourceType}>
+              <SelectTrigger className="h-10 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="risiko" className="text-sm">
+                  Risiko
+                </SelectItem>
+                <SelectItem value="insiden" className="text-sm">
+                  Insiden
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
           <div className="space-y-1.5">
-             <Label className="text-xs text-risk-medium font-semibold">Rekomendasi / Saran</Label>
-             <Textarea 
-               value={recommendations} onChange={(e) => setRecommendations(e.target.value)}
-               placeholder="Tindakan yang perlu diambil ke depannya..." 
-               className="min-h-[60px] text-xs resize-none" 
-             />
+            <Label className="text-sm font-medium">ID referensi</Label>
+            <Input
+              value={sourceRef}
+              onChange={(e) => setSourceRef(e.target.value)}
+              placeholder="Contoh: R-001 atau INC-002"
+              className="h-10 text-sm"
+            />
           </div>
-        </CardContent>
-      </Card>
-      
-      <Card className="border-border/50 bg-card/80">
-        <CardContent className="pt-6 space-y-4">
-           <div className="space-y-1.5">
-             <Label className="text-xs">Tags (Pisahkan dengan koma)</Label>
-             <Input 
-               value={tagsInput} onChange={(e) => setTagsInput(e.target.value)}
-               placeholder="Contoh: cold-chain, infrastruktur, sdm" 
-               className="text-xs" 
-             />
-           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="Analisis"
+        description="Pisahkan apa yang berhasil, apa yang gagal, dan apa yang perlu dilakukan berikutnya."
+        contentClassName="space-y-5"
+      >
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">Faktor keberhasilan</Label>
+          <Textarea
+            value={successFactors}
+            onChange={(e) => setSuccessFactors(e.target.value)}
+            placeholder="Tuliskan hal yang membantu situasi berjalan baik."
+            className="min-h-24 text-sm leading-6"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">Faktor kegagalan</Label>
+          <Textarea
+            value={failureFactors}
+            onChange={(e) => setFailureFactors(e.target.value)}
+            placeholder="Tuliskan hambatan atau penyebab kegagalan yang perlu diingat."
+            className="min-h-24 text-sm leading-6"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">Rekomendasi</Label>
+          <Textarea
+            value={recommendations}
+            onChange={(e) => setRecommendations(e.target.value)}
+            placeholder="Tuliskan tindak lanjut yang paling relevan."
+            className="min-h-24 text-sm leading-6"
+          />
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="Tag"
+        description="Gunakan tag singkat agar pembelajaran mudah ditemukan kembali."
+      >
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">Tag</Label>
+          <Input
+            value={tagsInput}
+            onChange={(e) => setTagsInput(e.target.value)}
+            placeholder="Contoh: cold-chain, infrastruktur, SDM"
+            className="h-10 text-sm"
+          />
+        </div>
+      </FormSection>
+    </FormPage>
   );
 }

@@ -1,7 +1,14 @@
 "use client";
-import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, Save, Sparkles } from "lucide-react";
+
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/auth-context";
+import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,18 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ArrowLeft,
-  Activity,
-  Save,
-  Sparkles,
-  Loader2,
-  CheckCircle,
-} from "lucide-react";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
-import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 
 interface KRISuggestion {
@@ -37,13 +32,20 @@ interface KRISuggestion {
   frequency: string;
 }
 
+interface RiskOption {
+  id: string;
+  code?: string;
+  title: string;
+  description?: string;
+}
+
 export default function NewKRIPage() {
   const router = useRouter();
   const { token, user } = useAuth();
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [risks, setRisks] = useState<any[]>([]);
+  const [risks, setRisks] = useState<RiskOption[]>([]);
   const [suggestions, setSuggestions] = useState<KRISuggestion[]>([]);
 
   const [riskId, setRiskId] = useState("");
@@ -58,17 +60,18 @@ export default function NewKRIPage() {
 
   useEffect(() => {
     if (!token) return;
-    api.get<any[]>("/risks", token)
-      .then(res => setRisks(res || []))
+
+    api
+      .get<RiskOption[]>("/risks", token)
+      .then((res) => setRisks(res || []))
       .catch(console.error);
   }, [token]);
 
-  // Get selected risk data
-  const selectedRisk = risks.find(r => r.id === riskId);
+  const selectedRisk = risks.find((risk) => risk.id === riskId);
 
   async function handleAIGenerate() {
     if (!riskId || !selectedRisk) {
-      toast.error("Pilih risiko terlebih dahulu sebelum menggunakan AI Generate");
+      toast.error("Pilih risiko terlebih dahulu sebelum meminta saran AI.");
       return;
     }
 
@@ -81,289 +84,292 @@ export default function NewKRIPage() {
           title: selectedRisk.title,
           description: selectedRisk.description || selectedRisk.title,
         },
-        token || undefined
+        token || undefined,
       );
 
-      const sug = result?.suggestions || [];
-      setSuggestions(sug);
+      const nextSuggestions = result?.suggestions || [];
+      setSuggestions(nextSuggestions);
 
-      if (sug.length > 0) {
-        toast.success(`AI menghasilkan ${sug.length} saran KRI. Pilih salah satu di bawah.`);
+      if (nextSuggestions.length > 0) {
+        toast.success(`${nextSuggestions.length} saran indikator siap direview.`);
       } else {
-        toast.info("AI tidak menghasilkan saran KRI. Silakan isi manual.");
+        toast.info("Belum ada saran AI yang cukup relevan. Anda bisa isi manual.");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Gagal menghasilkan KRI dari AI. Silakan coba lagi.");
+      toast.error("Saran AI belum berhasil dibuat. Coba lagi beberapa saat lagi.");
     } finally {
       setGenerating(false);
     }
   }
 
-  function applySuggestion(sug: KRISuggestion) {
-    setName(sug.name);
-    setDescription(sug.description);
-    setMetric(sug.metric);
-    setThresholdMin(sug.thresholdMin);
-    setThresholdMax(sug.thresholdMax);
-    setDirection(sug.direction);
-    setFrequency(sug.frequency);
-    setSuggestions([]); // Clear suggestions after selection
-    toast.success("Saran KRI diterapkan! Anda bisa mengedit sebelum menyimpan.");
+  function applySuggestion(suggestion: KRISuggestion) {
+    setName(suggestion.name);
+    setDescription(suggestion.description);
+    setMetric(suggestion.metric);
+    setThresholdMin(suggestion.thresholdMin);
+    setThresholdMax(suggestion.thresholdMax);
+    setDirection(suggestion.direction);
+    setFrequency(suggestion.frequency);
+    setSuggestions([]);
+    toast.success("Saran indikator diterapkan. Anda masih bisa mengubah isinya.");
   }
 
   async function handleSave() {
     if (!riskId || !name) {
-      toast("Pilih risiko dan nama KRI wajib diisi");
+      toast.error("Pilih risiko dan isi nama indikator terlebih dahulu.");
       return;
     }
 
     setSaving(true);
     try {
-      const payload = {
-        riskId,
-        name,
-        description,
-        metric,
-        thresholdMin: Number(thresholdMin),
-        thresholdMax: Number(thresholdMax),
-        currentValue: Number(currentValue),
-        direction,
-        frequency,
-        organizationId: user?.organizationId,
-      };
-
-      await api.post<any>("/kris", payload, token || undefined);
-      router.push("/compliance/kri");
+      await api.post(
+        "/kris",
+        {
+          riskId,
+          name,
+          description,
+          metric,
+          thresholdMin: Number(thresholdMin),
+          thresholdMax: Number(thresholdMax),
+          currentValue: Number(currentValue),
+          direction,
+          frequency,
+          organizationId: user?.organizationId,
+        },
+        token || undefined,
+      );
+      router.push("/compliance/monitoring?tab=kri");
     } catch (err) {
       console.error(err);
-      toast.error("Gagal menambahkan KRI");
+      toast.error("Indikator KRI belum berhasil disimpan.");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl mx-auto pb-20">
-      {/* Header */}
-      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/80 backdrop-blur-md pt-2 pb-4 border-b border-border/50">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground" onClick={() => router.back()}>
-            <ArrowLeft className="size-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Tambah KRI</h1>
-            <p className="text-sm text-muted-foreground">Pasang indikator risiko kunci baru pada risiko</p>
+    <FormPage className="max-w-4xl">
+      <FormHeader
+        title="Tambah indikator KRI"
+        description="Tambahkan indikator pemantauan untuk satu risiko, lalu tetapkan batas aman yang akan dipantau."
+        badges={
+          <Badge variant="outline" className="border-primary/15 bg-primary/[0.04] text-primary">
+            Monitoring risiko
+          </Badge>
+        }
+        backLabel="Kembali ke tab KRI"
+        onBack={() => router.push("/compliance/monitoring?tab=kri")}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              className={cn("gap-2 text-xs", !riskId && "opacity-60")}
+              onClick={handleAIGenerate}
+              disabled={generating || !riskId}
+            >
+              {generating ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+              {generating ? "Memproses..." : "Gunakan saran AI"}
+            </Button>
+            <Button className="gap-2 text-xs" onClick={handleSave} disabled={saving}>
+              <Save className="size-3.5" />
+              {saving ? "Menyimpan..." : "Simpan indikator"}
+            </Button>
+          </>
+        }
+      />
+
+      <FormSection
+        title="Risiko terkait"
+        description="Pilih satu risiko sebagai induk indikator ini."
+      >
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">
+            Risiko <span className="text-destructive">*</span>
+          </Label>
+          <Select
+            value={riskId}
+            onValueChange={(value) => {
+              setRiskId(value);
+              setSuggestions([]);
+            }}
+          >
+            <SelectTrigger className="h-10 text-sm">
+              <SelectValue placeholder="Pilih risiko" />
+            </SelectTrigger>
+            <SelectContent>
+              {risks.map((risk) => (
+                <SelectItem key={risk.id} value={risk.id} className="text-sm">
+                  {risk.code} - {risk.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </FormSection>
+
+      {suggestions.length > 0 ? (
+        <FormSection
+          title="Saran AI"
+          description="Pilih saran yang paling mendekati kebutuhan Anda, lalu sesuaikan jika perlu."
+          className="border-primary/20 bg-primary/[0.03]"
+          contentClassName="space-y-3"
+        >
+          {suggestions.map((suggestion, index) => (
+            <button
+              key={`${suggestion.name}-${index}`}
+              type="button"
+              onClick={() => applySuggestion(suggestion)}
+              className="w-full rounded-2xl border border-border/20 bg-background px-4 py-4 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.03]"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-foreground">{suggestion.name}</p>
+                  <p className="text-sm leading-6 text-muted-foreground">{suggestion.description}</p>
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <span>{suggestion.metric || "Tanpa satuan ukur"}</span>
+                    <span>
+                      {suggestion.thresholdMin} sampai {suggestion.thresholdMax}
+                    </span>
+                    <span>
+                      {suggestion.direction === "higher_worse"
+                        ? "Semakin tinggi semakin buruk"
+                        : "Semakin rendah semakin buruk"}
+                    </span>
+                    <span>{suggestion.frequency}</span>
+                  </div>
+                </div>
+                <span className="text-xs font-medium text-primary">Terapkan</span>
+              </div>
+            </button>
+          ))}
+        </FormSection>
+      ) : null}
+
+      <FormSection
+        title="Detail indikator"
+        description="Tentukan apa yang diukur dan bagaimana indikator ini dibaca."
+        className={cn(!riskId && "opacity-70")}
+        contentClassName="space-y-5"
+      >
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">
+            Nama indikator <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Contoh: Persentase keterlambatan pengiriman vaksin"
+            className="h-10 text-sm"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">Deskripsi</Label>
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Jelaskan indikator ini dan apa yang dipantau."
+            className="min-h-28 text-sm leading-6"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">Satuan ukur</Label>
+          <Input
+            value={metric}
+            onChange={(e) => setMetric(e.target.value)}
+            placeholder="Contoh: %, hari, jumlah, rupiah"
+            className="h-10 text-sm"
+          />
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="Batas dan pembaruan"
+        description="Tentukan batas aman, nilai terkini, dan frekuensi pembaruan indikator."
+        className={cn(!riskId && "opacity-70")}
+        contentClassName="space-y-5"
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Batas bawah</Label>
+            <Input
+              type="number"
+              value={thresholdMin}
+              onChange={(e) => setThresholdMin(Number(e.target.value))}
+              className="h-10 text-sm"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Batas atas</Label>
+            <Input
+              type="number"
+              value={thresholdMax}
+              onChange={(e) => setThresholdMax(Number(e.target.value))}
+              className="h-10 text-sm"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Nilai saat ini</Label>
+            <Input
+              type="number"
+              value={currentValue}
+              onChange={(e) => setCurrentValue(Number(e.target.value))}
+              className="h-10 text-sm"
+            />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className={cn(
-              "gap-2 text-xs transition-all",
-              !riskId && "opacity-50 cursor-not-allowed"
-            )}
-            onClick={handleAIGenerate}
-            disabled={generating || !riskId}
-            title={!riskId ? "Pilih risiko terlebih dahulu" : "Generate KRI menggunakan AI"}
-          >
-            {generating ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-            {generating ? "Memproses..." : "AI Generate KRI"}
-          </Button>
-          <Button className="gap-2 shadow-lg shadow-primary/20 text-xs" onClick={handleSave} disabled={saving}>
-            <Save className="size-3.5" /> {saving ? "Menyimpan..." : "Simpan"}
-          </Button>
-        </div>
-      </div>
 
-      {/* Step 1: Link to Risk */}
-      <Card className={cn(
-        "border-border/50 bg-card/80 transition-all",
-        !riskId && "ring-2 ring-primary/30"
-      )}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <div className={cn(
-              "flex items-center justify-center size-5 rounded-full text-[10px] font-bold",
-              riskId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            )}>
-              {riskId ? <CheckCircle className="size-3" /> : "1"}
-            </div>
-            <Activity className="size-4 text-primary" /> Risiko Terkait
-            {!riskId && <span className="text-[10px] text-primary ml-auto animate-pulse">← Pilih risiko dulu</span>}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+        <div className="rounded-2xl border border-border/15 bg-muted/20 px-4 py-4">
+          <p className="text-xs font-medium text-foreground">Preview status</p>
+          <div className="mt-3 h-2 rounded-full bg-gradient-to-r from-success via-risk-medium to-risk-extreme" />
+          <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+            <span>Aman</span>
+            <span>Waspada</span>
+            <span>Melewati batas</span>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-xs">Pilih Risiko <span className="text-destructive">*</span></Label>
-            <Select value={riskId} onValueChange={(val) => {
-              setRiskId(val);
-              // Clear suggestions when risk changes
-              setSuggestions([]);
-            }}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Pilih risiko untuk KRI ini..." /></SelectTrigger>
+            <Label className="text-sm font-medium">Arah indikator</Label>
+            <Select value={direction} onValueChange={setDirection}>
+              <SelectTrigger className="h-10 text-sm">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {risks.map(r => (
-                  <SelectItem key={r.id} value={r.id} className="text-xs">{r.code} — {r.title}</SelectItem>
-                ))}
+                <SelectItem value="higher_worse" className="text-sm">
+                  Semakin tinggi semakin buruk
+                </SelectItem>
+                <SelectItem value="lower_worse" className="text-sm">
+                  Semakin rendah semakin buruk
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* AI Suggestions */}
-      {suggestions.length > 0 && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Sparkles className="size-4 text-primary" />
-              Saran KRI dari AI
-              <span className="text-[10px] text-muted-foreground ml-auto">Klik untuk menerapkan</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {suggestions.map((sug, idx) => (
-              <button
-                key={idx}
-                onClick={() => applySuggestion(sug)}
-                className="w-full text-left p-3 rounded-lg border border-border/50 bg-background/80
-                  hover:border-primary/50 hover:bg-primary/5 hover:shadow-md
-                  transition-all cursor-pointer group"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold group-hover:text-primary transition-colors">
-                      {sug.name}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
-                      {sug.description}
-                    </p>
-                    <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
-                      <span className="bg-muted px-1.5 py-0.5 rounded">
-                        {sug.metric}
-                      </span>
-                      <span>
-                        {sug.thresholdMin} — {sug.thresholdMax}
-                      </span>
-                      <span>
-                        {sug.direction === "higher_worse" ? "↑ = buruk" : "↓ = buruk"}
-                      </span>
-                      <span>
-                        {sug.frequency}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    Terapkan →
-                  </div>
-                </div>
-              </button>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 2: KRI Details */}
-      <Card className={cn(
-        "border-border/50 bg-card/80 transition-all",
-        !riskId && "opacity-60 pointer-events-none"
-      )}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <div className={cn(
-              "flex items-center justify-center size-5 rounded-full text-[10px] font-bold",
-              name ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            )}>
-              {name ? <CheckCircle className="size-3" /> : "2"}
-            </div>
-            Detail Indikator
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs">Nama KRI <span className="text-destructive">*</span></Label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Contoh: Persentase keterlambatan pengiriman vaksin" className="text-xs" />
+            <Label className="text-sm font-medium">Frekuensi pembaruan</Label>
+            <Select value={frequency} onValueChange={setFrequency}>
+              <SelectTrigger className="h-10 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="harian" className="text-sm">
+                  Harian
+                </SelectItem>
+                <SelectItem value="mingguan" className="text-sm">
+                  Mingguan
+                </SelectItem>
+                <SelectItem value="bulanan" className="text-sm">
+                  Bulanan
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Deskripsi</Label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Penjelasan indikator dan apa yang diukur..." className="min-h-[60px] text-xs" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Satuan Ukur (Metric)</Label>
-            <Input value={metric} onChange={e => setMetric(e.target.value)} placeholder="Contoh: %, jumlah, hari, Rp" className="text-xs" />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Step 3: Threshold & Current Value */}
-      <Card className={cn(
-        "border-border/50 bg-card/80 transition-all",
-        !riskId && "opacity-60 pointer-events-none"
-      )}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <div className="flex items-center justify-center size-5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground">
-              3
-            </div>
-            Threshold & Nilai
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Batas Bawah (Min Aman)</Label>
-              <Input type="number" value={thresholdMin} onChange={e => setThresholdMin(Number(e.target.value))} placeholder="0" className="text-xs" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Batas Atas (Max Aman)</Label>
-              <Input type="number" value={thresholdMax} onChange={e => setThresholdMax(Number(e.target.value))} placeholder="100" className="text-xs" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Nilai Saat Ini</Label>
-              <Input type="number" value={currentValue} onChange={e => setCurrentValue(Number(e.target.value))} placeholder="Masukkan nilai..." className="text-xs" />
-            </div>
-          </div>
-
-          {/* Visual indicator preview */}
-          <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
-            <p className="text-[10px] font-semibold text-muted-foreground mb-2">Preview Status</p>
-            <div className="relative h-3 bg-gradient-to-r from-success via-risk-medium to-risk-extreme rounded-full overflow-hidden">
-              <div className="absolute top-0 left-[35%] w-0.5 h-full bg-white/80" />
-              <div className="absolute top-0 left-[70%] w-0.5 h-full bg-white/80" />
-            </div>
-            <div className="flex justify-between mt-1">
-              <span className="text-[9px] text-success font-medium">Aman</span>
-              <span className="text-[9px] text-risk-medium font-medium">Warning</span>
-              <span className="text-[9px] text-risk-extreme font-medium">Breach</span>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Arah Indikator</Label>
-              <Select value={direction} onValueChange={setDirection}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="higher_worse" className="text-xs">↑ Semakin tinggi semakin buruk</SelectItem>
-                  <SelectItem value="lower_worse" className="text-xs">↓ Semakin rendah semakin buruk</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Frekuensi Update</Label>
-              <Select value={frequency} onValueChange={setFrequency}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="harian" className="text-xs">Harian</SelectItem>
-                  <SelectItem value="mingguan" className="text-xs">Mingguan</SelectItem>
-                  <SelectItem value="bulanan" className="text-xs">Bulanan</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </FormSection>
+    </FormPage>
   );
 }

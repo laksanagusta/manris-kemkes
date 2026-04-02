@@ -1,0 +1,1 @@
+ALTER TABLE risks ALTER COLUMN review_type DROP DEFAULT;

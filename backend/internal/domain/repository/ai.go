@@ -31,4 +31,10 @@ type AIRepository interface {
 
 	// GenerateKRI generates KRI suggestions based on a risk's title and description
 	GenerateKRI(ctx context.Context, req entity.AIRequest) (*entity.KRISuggestions, error)
+
+	// GenerateIncidentBatchExtraction extracts multiple incident candidates from a PDF-derived text document.
+	GenerateIncidentBatchExtraction(ctx context.Context, req entity.IncidentExtractionRequest) (*entity.IncidentBatchExtraction, error)
+
+	// GenerateManualIncidentRiskSuggestions suggests related risks for a single manual incident input.
+	GenerateManualIncidentRiskSuggestions(ctx context.Context, req entity.ManualIncidentRiskSuggestionRequest) ([]entity.IncidentRiskSuggestion, error)
 }

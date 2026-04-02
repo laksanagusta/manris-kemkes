@@ -8,6 +8,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	domainrepo "github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/domain/service"
 )
 
 // GetIncidentUseCase retrieves a single incident by ID
@@ -33,20 +34,32 @@ func (uc *GetIncidentUseCase) Execute(ctx context.Context, id string) (*entity.I
 // ListIncidentsUseCase retrieves a list of incidents with optional filters
 type ListIncidentsUseCase struct {
 	incidentRepo domainrepo.IncidentRepository
+	orgSvc       *service.OrganizationHierarchy
 }
 
-func NewListIncidentsUseCase(incidentRepo domainrepo.IncidentRepository) *ListIncidentsUseCase {
+func NewListIncidentsUseCase(incidentRepo domainrepo.IncidentRepository, orgSvc *service.OrganizationHierarchy) *ListIncidentsUseCase {
 	return &ListIncidentsUseCase{
 		incidentRepo: incidentRepo,
+		orgSvc:       orgSvc,
 	}
 }
 
 type ListIncidentsInput struct {
-	Filters map[string]string
+	OrgID *uuid.UUID
 }
 
 func (uc *ListIncidentsUseCase) Execute(ctx context.Context, input ListIncidentsInput) ([]*entity.Incident, error) {
-	incidents, err := uc.incidentRepo.List(ctx, input.Filters)
+	var orgIDs []uuid.UUID
+	var err error
+
+	if input.OrgID != nil {
+		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	incidents, err := uc.incidentRepo.List(ctx, orgIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +95,7 @@ type UpdateIncidentInput struct {
 	Status           string
 	CorrectiveAction string
 	PreventiveAction string
-	LinkedRiskID     *uuid.UUID
+	LinkedRiskIDs    []string
 	OrganizationID   *uuid.UUID
 }
 
@@ -100,8 +113,13 @@ func (uc *UpdateIncidentUseCase) Execute(ctx context.Context, input UpdateIncide
 	}
 
 	// 2. Validate linked risk if changed
-	if input.LinkedRiskID != nil {
-		_, err := uc.riskRepo.GetByID(ctx, *input.LinkedRiskID)
+	linkedRiskIDs, err := parseLinkedRiskIDs(input.LinkedRiskIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, riskID := range linkedRiskIDs {
+		_, err := uc.riskRepo.GetByID(ctx, riskID)
 		if err != nil {
 			return nil, errors.Wrap(err, "linked risk not found")
 		}
@@ -118,7 +136,8 @@ func (uc *UpdateIncidentUseCase) Execute(ctx context.Context, input UpdateIncide
 	existingIncident.Status = input.Status
 	existingIncident.CorrectiveAction = input.CorrectiveAction
 	existingIncident.PreventiveAction = input.PreventiveAction
-	existingIncident.LinkedRiskID = input.LinkedRiskID
+	existingIncident.LinkedRisks = buildIncidentRiskLinks(linkedRiskIDs)
+	existingIncident.LinkedRiskID = nil
 	existingIncident.OrganizationID = input.OrganizationID
 
 	// 4. Validate incident entity
@@ -137,6 +156,25 @@ func (uc *UpdateIncidentUseCase) Execute(ctx context.Context, input UpdateIncide
 		Message:   "Incident updated successfully",
 		UpdatedAt: existingIncident.UpdatedAt,
 	}, nil
+}
+
+// GetIncidentSummaryUseCase retrieves aggregated incident summary counters.
+type GetIncidentSummaryUseCase struct {
+	incidentRepo domainrepo.IncidentRepository
+}
+
+func NewGetIncidentSummaryUseCase(incidentRepo domainrepo.IncidentRepository) *GetIncidentSummaryUseCase {
+	return &GetIncidentSummaryUseCase{
+		incidentRepo: incidentRepo,
+	}
+}
+
+type GetIncidentSummaryInput struct {
+	OrgID string
+}
+
+func (uc *GetIncidentSummaryUseCase) Execute(ctx context.Context, input GetIncidentSummaryInput) (map[string]interface{}, error) {
+	return uc.incidentRepo.GetSummary(ctx, input.OrgID)
 }
 
 // DeleteIncidentUseCase handles incident deletion business logic

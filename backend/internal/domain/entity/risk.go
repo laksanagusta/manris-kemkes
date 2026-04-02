@@ -14,6 +14,11 @@ type Risk struct {
 	Title          string     `json:"title"`
 	Description    string     `json:"description"`
 	Status         string     `json:"status"`
+	VersionGroupID uuid.UUID  `json:"versionGroupId"`
+	PreviousRiskID *uuid.UUID `json:"previousRiskId,omitempty"`
+	IsCurrent      bool       `json:"isCurrent"`
+	ArchivedAt     *time.Time `json:"archivedAt,omitempty"`
+	ArchivedReason string     `json:"archivedReason,omitempty"`
 	OrganizationID *uuid.UUID `json:"organizationId,omitempty"`
 	OrgName        string     `json:"orgName"`
 	CreatedBy      *uuid.UUID `json:"createdBy,omitempty"`
@@ -44,14 +49,27 @@ type Risk struct {
 	Mitigations []Mitigation `json:"mitigations,omitempty"`
 
 	// Section 5
-	TargetProbability int     `json:"targetProbability,omitempty"`
-	TargetImpact      int     `json:"targetImpact,omitempty"`
-	TargetWeight      float64 `json:"targetWeight,omitempty"`
-	TargetScore       int     `json:"targetScore,omitempty"`
-	NextReviewDate    *string `json:"nextReviewDate,omitempty"`
+	TargetProbability int                  `json:"targetProbability,omitempty"`
+	TargetImpact      int                  `json:"targetImpact,omitempty"`
+	TargetWeight      float64              `json:"targetWeight,omitempty"`
+	TargetScore       int                  `json:"targetScore,omitempty"`
+	NextReviewDate    *string              `json:"nextReviewDate,omitempty"`
+	AssessmentCycle   string               `json:"assessmentCycle,omitempty"`
+	ReviewType        string               `json:"reviewType,omitempty"`
+	ChangeReason      string               `json:"changeReason,omitempty"`
+	ReviewSummary     string               `json:"reviewSummary,omitempty"`
+	ReviewStartedAt   *time.Time           `json:"reviewStartedAt,omitempty"`
+	ReviewSubmittedAt *time.Time           `json:"reviewSubmittedAt,omitempty"`
+	ReviewApprovedAt  *time.Time           `json:"reviewApprovedAt,omitempty"`
+	DraftApprovalLine []ApprovalLineMember `json:"draftApprovalLine,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type ApprovalLineMember struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 // Validate performs domain validation on Risk
@@ -99,7 +117,17 @@ func (r *Risk) GetRiskLevel() string {
 
 // IsFinal checks if risk is in final status
 func (r *Risk) IsFinal() bool {
-	return r.Status == "approved" || r.Status == "rejected"
+	return r.Status == "final" || r.Status == "approved" || r.Status == "rejected"
+}
+
+// IsApprovedCurrent returns whether this risk is the active approved version.
+func (r *Risk) IsApprovedCurrent() bool {
+	return r.Status == "approved" && r.IsCurrent
+}
+
+// CanBeReassessed returns whether the risk can start a periodic reassessment.
+func (r *Risk) CanBeReassessed() bool {
+	return r.IsApprovedCurrent()
 }
 
 // AddMitigation adds a mitigation to the risk

@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -10,15 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import {
-  FileBarChart,
   Download,
   FileSpreadsheet,
   TrendingUp,
-  BarChart3,
   PieChart,
-  Calendar,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -33,9 +29,27 @@ import {
   Cell,
 } from "recharts";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { useEffect, useMemo, useState } from "react";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { RiskCycleDetailReport } from "./risk-cycle-detail-report";
+import {
+  exportRiskBulkCSV,
+  exportRiskBulkXLSX,
+  type RiskExportItem,
+} from "@/lib/risk-export";
+
+type RiskCycleSnapshotItem = RiskExportItem & {
+  assessmentCycle?: string;
+  status?: string;
+};
+import {
+  buildRiskTrendData,
+  type RiskPiePoint,
+  type RiskTrendPoint,
+  type RiskTrendSourceItem,
+  type RiskTrendWindow,
+} from "@/lib/risk-report-trend";
 
 const trendColors: Record<string, string> = {
   Rendah: "oklch(0.72 0.17 155)",
@@ -46,24 +60,28 @@ const trendColors: Record<string, string> = {
 
 const exportOptions = [
   {
+    key: "risk-csv",
     title: "Risk Register (CSV)",
     description: "Export seluruh risiko ke format CSV",
     icon: FileSpreadsheet,
     format: "CSV",
   },
   {
+    key: "risk-xlsx",
     title: "Risk Register (Excel)",
     description: "Export seluruh risiko ke format Excel lengkap",
     icon: FileSpreadsheet,
     format: "XLSX",
   },
   {
+    key: "incident-xlsx",
     title: "Incident Report (Excel)",
     description: "Export seluruh insiden ke format Excel",
     icon: FileSpreadsheet,
     format: "XLSX",
   },
   {
+    key: "kri-xlsx",
     title: "KRI Summary (Excel)",
     description: "Export ringkasan KRI dengan status threshold",
     icon: FileSpreadsheet,
@@ -71,62 +89,110 @@ const exportOptions = [
   },
 ];
 
+function currentGlobalCycle() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const half = now.getMonth() < 6 ? "H1" : "H2";
+  return `${year}-${half}`;
+}
+
+function buildRecentCycleOptions(count = 6) {
+  const now = new Date();
+  let year = now.getFullYear();
+  let half = now.getMonth() < 6 ? 1 : 2;
+  const result: string[] = [];
+
+  for (let i = 0; i < count; i += 1) {
+    result.push(`${year}-H${half}`);
+    if (half === 1) {
+      half = 2;
+      year -= 1;
+    } else {
+      half = 1;
+    }
+  }
+
+  return result;
+}
+
 export default function ReportsPage() {
   const { token } = useAuth();
-  const [trendData, setTrendData] = useState<any[]>([]);
-  const [pieData, setPieData] = useState<any[]>([]);
+  const [trendData, setTrendData] = useState<RiskTrendPoint[]>([]);
+  const [pieData, setPieData] = useState<RiskPiePoint[]>([]);
+  const [trendWindow, setTrendWindow] = useState<RiskTrendWindow>("4s");
+  const [exportCycle, setExportCycle] = useState(currentGlobalCycle());
+  const [isExporting, setIsExporting] = useState<string | null>(null);
+
+  const visiblePieData = pieData.filter((item) => item.value > 0);
+  const renderedPieData = visiblePieData.length > 0 ? visiblePieData : pieData;
+  const piePaddingAngle = visiblePieData.length > 1 ? 3 : 0;
+  const cycleOptions = useMemo(() => buildRecentCycleOptions(), []);
 
   useEffect(() => {
     if (!token) return;
 
-    api.get<any[]>("/risks", token)
+    api.get<RiskTrendSourceItem[]>("/risks", token)
       .then(risks => {
-        // Calculate Trend Data
-        const trends: Record<string, any> = {};
-        
-        // Calculate Pie Data
-        const pieCounts = { Rendah: 0, Sedang: 0, Tinggi: 0, Ekstrem: 0 };
-
-        risks.forEach(risk => {
-          if (!risk.createdAt) return;
-          const d = new Date(risk.createdAt);
-          const q = Math.ceil((d.getMonth() + 1) / 3);
-          const period = `${d.getFullYear()}-Q${q}`;
-          
-          if (!trends[period]) {
-            trends[period] = { Rendah: 0, Sedang: 0, Tinggi: 0, Ekstrem: 0 };
-          }
-          
-          const score = risk.probability * risk.impact;
-          let lvl = "Rendah";
-          if (score >= 17) lvl = "Ekstrem";
-          else if (score >= 10) lvl = "Tinggi";
-          else if (score >= 5) lvl = "Sedang";
-          
-          trends[period][lvl] += 1;
-          pieCounts[lvl as keyof typeof pieCounts] += 1;
-        });
-        
-        const tl = Object.keys(trends).sort().map(k => ({ period: k, ...trends[k] }));
-        setTrendData(tl);
-
-        const pl = [
-          { name: "Rendah", value: pieCounts.Rendah, color: trendColors.Rendah },
-          { name: "Sedang", value: pieCounts.Sedang, color: trendColors.Sedang },
-          { name: "Tinggi", value: pieCounts.Tinggi, color: trendColors.Tinggi },
-          { name: "Ekstrem", value: pieCounts.Ekstrem, color: trendColors.Ekstrem },
-        ];
-        setPieData(pl);
-
+        const result = buildRiskTrendData(risks, trendWindow, trendColors);
+        setTrendData(result.trendData);
+        setPieData(result.pieData);
       })
       .catch(console.error);
-  }, [token]);
+  }, [token, trendWindow]);
+
+  const handleExport = async (key: string) => {
+    if (!token) {
+      toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+
+    if (key !== "risk-csv" && key !== "risk-xlsx") {
+      toast.info("Export ini belum diaktifkan.");
+      return;
+    }
+
+    setIsExporting(key);
+    try {
+      let risks: RiskExportItem[] = [];
+      try {
+        risks = await api.get<RiskExportItem[]>(`/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}`, token);
+      } catch (error) {
+        const shouldFallback =
+          error instanceof ApiError &&
+          (error.status === 404 || error.message.toLowerCase().includes("invalid risk id"));
+
+        if (!shouldFallback) {
+          throw error;
+        }
+
+        const approvedRisks = await api.get<RiskCycleSnapshotItem[]>("/risks?status=approved", token);
+        risks = approvedRisks.filter((risk) => risk.assessmentCycle === exportCycle);
+      }
+
+      if (!risks || risks.length === 0) {
+        toast.error(`Belum ada risk approved untuk cycle ${exportCycle}.`);
+        return;
+      }
+
+      if (key === "risk-csv") {
+        exportRiskBulkCSV(risks, exportCycle);
+      } else {
+        await exportRiskBulkXLSX(risks, exportCycle);
+      }
+      toast.success(`Export risk ${exportCycle} berhasil dibuat.`);
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Gagal export risk.");
+    } finally {
+      setIsExporting(null);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Reports & Extract</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
         <p className="text-sm text-muted-foreground">
           Export data dan generate laporan risiko
         </p>
@@ -135,16 +201,32 @@ export default function ReportsPage() {
       {/* Export Section */}
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Download className="size-4" />
-            Export Data
-          </CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Download className="size-4" />
+              Export Data
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground">Cycle</span>
+              <Select value={exportCycle} onValueChange={setExportCycle}>
+                <SelectTrigger className="h-8 w-28 text-[10px] bg-muted/30 border-none">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {cycleOptions.map((cycle) => (
+                    <SelectItem key={cycle} value={cycle}>{cycle}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             {exportOptions.map((opt) => (
               <button
                 key={opt.title}
+                onClick={() => handleExport(opt.key)}
                 className="flex items-start gap-3 rounded-lg border border-border/50 p-3 text-left transition-all hover:bg-muted/30 hover:border-primary/30 group"
               >
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/15 transition-colors">
@@ -155,10 +237,10 @@ export default function ReportsPage() {
                     {opt.title}
                   </p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {opt.description}
+                    {opt.key.startsWith("risk-") ? `${opt.description} untuk cycle ${exportCycle}` : opt.description}
                   </p>
                   <Badge variant="outline" className="text-[8px] h-4 px-1 mt-1.5">
-                    {opt.format}
+                    {isExporting === opt.key ? "Exporting..." : opt.format}
                   </Badge>
                 </div>
               </button>
@@ -177,13 +259,13 @@ export default function ReportsPage() {
                 <TrendingUp className="size-4" />
                 Risk Trend Report
               </CardTitle>
-              <Select defaultValue="5q">
+              <Select value={trendWindow} onValueChange={(value) => setTrendWindow(value as RiskTrendWindow)}>
                 <SelectTrigger className="h-7 w-28 text-[10px] bg-muted/30 border-none">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="5q">5 Kuartal</SelectItem>
-                  <SelectItem value="8q">8 Kuartal</SelectItem>
+                  <SelectItem value="2s">2 Semester</SelectItem>
+                  <SelectItem value="4s">4 Semester</SelectItem>
                   <SelectItem value="all">Semua</SelectItem>
                 </SelectContent>
               </Select>
@@ -241,16 +323,16 @@ export default function ReportsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <RPieChart>
                   <Pie
-                    data={pieData}
+                    data={renderedPieData}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
                     outerRadius={90}
-                    paddingAngle={3}
+                    paddingAngle={piePaddingAngle}
                     dataKey="value"
                     stroke="none"
                   >
-                    {pieData.map((entry, index) => (
+                    {renderedPieData.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
                   </Pie>
@@ -278,6 +360,8 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <RiskCycleDetailReport />
     </div>
   );
 }

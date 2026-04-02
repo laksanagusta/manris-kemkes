@@ -1,0 +1,229 @@
+package approval
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
+	repo "github.com/manris/backend/internal/domain/repository"
+)
+
+type fakeApprovalRepo struct {
+	request       *entity.ApprovalRequest
+	updatedStatus string
+	histories     []*entity.ApprovalHistory
+}
+
+func (r *fakeApprovalRepo) List(context.Context, string, string, *uuid.UUID) ([]*entity.ApprovalRequest, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRepo) FindByID(context.Context, uuid.UUID) (*entity.ApprovalRequest, error) {
+	if r.request == nil {
+		return nil, domainerrors.ErrApprovalNotFound
+	}
+	return r.request, nil
+}
+func (r *fakeApprovalRepo) FindByEntity(context.Context, string, uuid.UUID) (*entity.ApprovalRequest, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRepo) GetHistoryByEntity(context.Context, string, uuid.UUID) ([]*entity.ApprovalHistory, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRepo) Create(context.Context, *entity.ApprovalRequest) error {
+	return errors.New("not implemented")
+}
+func (r *fakeApprovalRepo) UpdateStatus(_ context.Context, _ uuid.UUID, status string) error {
+	r.updatedStatus = status
+	return nil
+}
+func (r *fakeApprovalRepo) AddHistory(_ context.Context, hist *entity.ApprovalHistory) error {
+	r.histories = append(r.histories, hist)
+	return nil
+}
+func (r *fakeApprovalRepo) GetHistory(context.Context, uuid.UUID) ([]*entity.ApprovalHistory, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRepo) GetPendingCount(context.Context, string, *uuid.UUID) (int, error) {
+	return 0, errors.New("not implemented")
+}
+func (r *fakeApprovalRepo) CreateSteps(context.Context, uuid.UUID, []entity.ApprovalStep) error {
+	return errors.New("not implemented")
+}
+func (r *fakeApprovalRepo) GetSteps(context.Context, uuid.UUID) ([]*entity.ApprovalStep, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRepo) ApproveCurrentStep(context.Context, uuid.UUID, uuid.UUID, string) (*entity.ApprovalStep, *entity.ApprovalStep, error) {
+	return &entity.ApprovalStep{}, nil, nil
+}
+func (r *fakeApprovalRepo) RejectCurrentStep(context.Context, uuid.UUID, uuid.UUID, string) error {
+	return nil
+}
+
+var _ repo.ApprovalRepository = (*fakeApprovalRepo)(nil)
+
+type fakeApprovalRiskRepo struct {
+	risk              *entity.Risk
+	activatedRiskID   uuid.UUID
+	updatedRiskStatus string
+	updateErr         error
+}
+
+func (r *fakeApprovalRiskRepo) Create(context.Context, *entity.Risk) error {
+	return errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) GetByID(context.Context, uuid.UUID) (*entity.Risk, error) {
+	if r.risk == nil {
+		return nil, domainerrors.ErrRiskNotFound
+	}
+	clone := *r.risk
+	return &clone, nil
+}
+func (r *fakeApprovalRiskRepo) Update(_ context.Context, risk *entity.Risk) error {
+	if r.updateErr != nil {
+		return r.updateErr
+	}
+	r.updatedRiskStatus = risk.Status
+	return nil
+}
+func (r *fakeApprovalRiskRepo) Delete(context.Context, uuid.UUID) error {
+	return errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) List(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) NextRiskCode(context.Context) (string, error) {
+	return "", errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) DashboardSummary(context.Context) (*entity.DashboardSummary, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) HeatmapData(context.Context) ([]*entity.HeatmapCell, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) TopRisks(context.Context, int) ([]*entity.Risk, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) ListCycleSnapshot(context.Context, string, []uuid.UUID) ([]*entity.Risk, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) ActivateApprovedVersion(_ context.Context, approvedRiskID uuid.UUID) error {
+	r.activatedRiskID = approvedRiskID
+	return nil
+}
+func (r *fakeApprovalRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string) ([]*entity.RiskReviewQueueItem, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) CompareCycles(context.Context, string, string, []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
+	return nil, errors.New("not implemented")
+}
+
+var _ repo.RiskRepository = (*fakeApprovalRiskRepo)(nil)
+
+type fakeApprovalIncidentRepo struct{}
+
+func (r *fakeApprovalIncidentRepo) Create(context.Context, *entity.Incident) error {
+	return errors.New("not implemented")
+}
+func (r *fakeApprovalIncidentRepo) GetByID(context.Context, string) (*entity.Incident, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalIncidentRepo) Update(context.Context, *entity.Incident) error {
+	return errors.New("not implemented")
+}
+func (r *fakeApprovalIncidentRepo) Delete(context.Context, string) error {
+	return errors.New("not implemented")
+}
+func (r *fakeApprovalIncidentRepo) List(context.Context, []uuid.UUID) ([]*entity.Incident, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalIncidentRepo) GetSummary(context.Context, string) (map[string]interface{}, error) {
+	return nil, errors.New("not implemented")
+}
+
+var _ repo.IncidentRepository = (*fakeApprovalIncidentRepo)(nil)
+
+func TestApprovalActionUseCase_ApproveReassessmentActivatesNewCurrentVersion(t *testing.T) {
+	approvalID := uuid.New()
+	riskID := uuid.New()
+	previousRiskID := uuid.New()
+	approvalRepo := &fakeApprovalRepo{request: &entity.ApprovalRequest{
+		ID:                    approvalID,
+		RequestType:           "risk",
+		EntityID:              riskID,
+		CurrentStatus:         "pending",
+		CurrentApproverRole:   "reviewer",
+		CurrentApproverUserID: uuidPtrApprovalTest(uuid.MustParse("10000000-0000-0000-0000-000000000004")),
+	}}
+	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
+		ID:             riskID,
+		Status:         "final",
+		PreviousRiskID: &previousRiskID,
+	}}
+
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	_, err := uc.Execute(context.Background(), ApprovalActionInput{
+		ApprovalID: approvalID.String(),
+		Action:     "approve",
+		ActorID:    uuid.New().String(),
+		ActorName:  "Testing User",
+		ActorRole:  "unit",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if riskRepo.activatedRiskID != riskID {
+		t.Fatalf("expected activated risk id %s, got %s", riskID, riskRepo.activatedRiskID)
+	}
+	if riskRepo.updatedRiskStatus != "" {
+		t.Fatalf("expected no direct status update when activating reassessment, got %q", riskRepo.updatedRiskStatus)
+	}
+}
+
+func TestApprovalActionUseCase_ReturnsErrorWhenRiskStatusUpdateFails(t *testing.T) {
+	approvalID := uuid.New()
+	riskID := uuid.New()
+	approvalRepo := &fakeApprovalRepo{request: &entity.ApprovalRequest{
+		ID:                    approvalID,
+		RequestType:           "risk",
+		EntityID:              riskID,
+		CurrentStatus:         "pending",
+		CurrentApproverRole:   "reviewer",
+		CurrentApproverUserID: uuidPtrApprovalTest(uuid.MustParse("10000000-0000-0000-0000-000000000004")),
+	}}
+	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
+		ID:     riskID,
+		Status: "final",
+	}, updateErr: errors.New("db write failed")}
+
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	_, err := uc.Execute(context.Background(), ApprovalActionInput{
+		ApprovalID: approvalID.String(),
+		Action:     "approve",
+		ActorID:    uuid.New().String(),
+		ActorName:  "Testing User",
+		ActorRole:  "unit",
+	})
+	if err == nil {
+		t.Fatal("expected error when entity status update fails")
+	}
+	if approvalRepo.updatedStatus != "" {
+		t.Fatalf("expected approval status to remain unchanged, got %q", approvalRepo.updatedStatus)
+	}
+	if len(approvalRepo.histories) != 0 {
+		t.Fatalf("expected no approval history on failure, got %d", len(approvalRepo.histories))
+	}
+}
+
+func uuidPtrApprovalTest(value uuid.UUID) *uuid.UUID { return &value }

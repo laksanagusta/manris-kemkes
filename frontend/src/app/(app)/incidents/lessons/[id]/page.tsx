@@ -69,16 +69,18 @@ export default function LessonDetailPage() {
     );
   }
 
-  const handleDelete = async () => {
-    if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
-      try {
+  const handleDelete = () => {
+    toast.promise(
+      (async () => {
         await api.delete(`/lessons/${lesson.id}`, token || undefined);
         router.push("/lessons");
-      } catch (err) {
-         console.error(err);
-         toast.error("Gagal menghapus lesson");
+      })(),
+      {
+        loading: "Menghapus...",
+        success: "Data berhasil dihapus.",
+        error: "Gagal menghapus lesson.",
       }
-    }
+    );
   };
 
   return (

@@ -1,23 +1,43 @@
 "use client";
-import { toast } from "sonner";
 
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  AlertCircle,
+  AlertTriangle,
+  Check,
+  Clock,
+  FileText,
+  Loader2,
+  Search,
+  X,
+} from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { ApprovalModal } from "@/components/approval-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
-  Check,
-  X,
-  Clock,
-  Loader2,
-  FileText,
-  AlertTriangle,
-} from "lucide-react";
-import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/auth-context";
-import { ApprovalModal } from "@/components/approval-modal";
+import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface ApprovalRequest {
   id: string;
@@ -29,29 +49,66 @@ interface ApprovalRequest {
   requestedBy: string;
   requestedByName: string;
   requestedAt: string;
-  currentStatus: string;
+  currentStatus: "pending" | "approved" | "rejected";
   currentApproverRole: string;
   notes?: string;
 }
 
-const statusVariant: Record<string, string> = {
-  pending: "bg-yellow-500/15 text-yellow-700 border-yellow-500/20",
-  approved: "bg-green-500/15 text-green-700 border-green-500/20",
-  rejected: "bg-red-500/15 text-red-700 border-red-500/20",
+const statusVariant: Record<ApprovalRequest["currentStatus"], string> = {
+  pending: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
+  approved: "bg-success/15 text-success border-success/20",
+  rejected: "bg-destructive/15 text-destructive border-destructive/20",
 };
 
-const requestTypeIcon: Record<string, any> = {
-  risk: FileText,
-  incident: AlertTriangle,
+const statusLabel: Record<ApprovalRequest["currentStatus"], string> = {
+  pending: "Menunggu",
+  approved: "Disetujui",
+  rejected: "Ditolak",
 };
+
+const requestTypeConfig: Record<
+  string,
+  { icon: typeof FileText; label: string; href: (id: string) => string }
+> = {
+  risk: {
+    icon: FileText,
+    label: "Risiko",
+    href: (id) => `/risk/register/${id}`,
+  },
+  incident: {
+    icon: AlertTriangle,
+    label: "Insiden",
+    href: (id) => `/incidents/${id}`,
+  },
+};
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+async function getApprovalRequests(token: string) {
+  return api.get<ApprovalRequest[]>("/approvals?status=all", token);
+}
 
 export default function InboxPage() {
+  const searchParams = useSearchParams();
   const { token } = useAuth();
-  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
+  const [filter, setFilter] = useState<"all" | ApprovalRequest["currentStatus"]>(() => {
+    const value = searchParams.get("status");
+    return value === "all" || value === "approved" || value === "rejected" ? value : "pending";
+  });
+  const [typeFilter, setTypeFilter] = useState<"all" | "risk" | "incident">(() => {
+    const value = searchParams.get("type");
+    return value === "risk" || value === "incident" ? value : "all";
+  });
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Modal state
+  const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"approve" | "reject">("approve");
   const [selectedApproval, setSelectedApproval] = useState<{
@@ -59,21 +116,84 @@ export default function InboxPage() {
     title: string;
   } | null>(null);
 
-  const fetchRequests = async () => {
+  const refreshRequests = async () => {
     if (!token) return;
+
     try {
-      const data = await api.get<ApprovalRequest[]>(`/approvals?status=${filter}`, token);
+      setLoading(true);
+      setError(null);
+      const data = await getApprovalRequests(token);
       setRequests(data);
     } catch (err) {
       console.error(err);
+      setError(err instanceof Error ? err.message : "Gagal memuat daftar persetujuan.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRequests();
-  }, [token, filter]);
+    const queryStatus = searchParams.get("status");
+    const queryType = searchParams.get("type");
+    const querySearch = searchParams.get("search");
+
+    setFilter(queryStatus === "all" || queryStatus === "approved" || queryStatus === "rejected" ? queryStatus : "pending");
+    setTypeFilter(queryType === "risk" || queryType === "incident" ? queryType : "all");
+    setSearch(querySearch ?? "");
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    const loadRequests = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getApprovalRequests(token);
+        setRequests(data);
+      } catch (err) {
+        console.error(err);
+        setError(err instanceof Error ? err.message : "Gagal memuat daftar persetujuan.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadRequests();
+  }, [token]);
+
+  const counts = useMemo(
+    () => ({
+      all: requests.length,
+      pending: requests.filter((item) => item.currentStatus === "pending").length,
+      approved: requests.filter((item) => item.currentStatus === "approved").length,
+      rejected: requests.filter((item) => item.currentStatus === "rejected").length,
+    }),
+    [requests]
+  );
+
+  const filteredRequests = useMemo(() => {
+    return requests.filter((item) => {
+      if (filter !== "all" && item.currentStatus !== filter) return false;
+      if (typeFilter !== "all" && item.requestType !== typeFilter) return false;
+
+      const keyword = search.trim().toLowerCase();
+      if (!keyword) return true;
+
+      return [
+        item.entityCode,
+        item.entityTitle,
+        item.entityOrgName,
+        item.requestedByName,
+        item.currentApproverRole,
+      ]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(keyword));
+    });
+  }, [filter, requests, search, typeFilter]);
 
   const openApprovalModal = (id: string, title: string, type: "approve" | "reject") => {
     setSelectedApproval({ id, title });
@@ -81,158 +201,247 @@ export default function InboxPage() {
     setModalOpen(true);
   };
 
-  const pendingCount = requests.filter((r) => r.currentStatus === "pending").length;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
+        <Loader2 className="mr-2 size-4 animate-spin" />
+        Memuat daftar persetujuan...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 p-8">
+        <div className="text-center">
+          <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-destructive/10">
+            <AlertCircle className="size-6 text-destructive" />
+          </div>
+          <h2 className="text-lg font-semibold">Gagal Memuat Data</h2>
+          <p className="mt-2 max-w-md text-sm text-muted-foreground">{error}</p>
+        </div>
+        <Button variant="outline" onClick={() => refreshRequests()}>
+          Coba Lagi
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Inbox Persetujuan
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight">Approval</h1>
         <p className="text-sm text-muted-foreground">
-          Daftar permintaan persetujuan ({pendingCount} menunggu)
+          Tinjau permintaan persetujuan dengan pola kerja yang sama seperti risk register.
         </p>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-1 border-b border-border/50 pb-px">
-        {(
-          [
-            { key: "all", label: "Semua" },
-            { key: "pending", label: "Menunggu" },
-            { key: "approved", label: "Disetujui" },
-            { key: "rejected", label: "Ditolak" },
-          ] as const
-        ).map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key)}
-            className={cn(
-              "px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px",
-              filter === tab.key
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+      <Tabs value={filter} onValueChange={(value) => setFilter(value as typeof filter)}>
+        <TabsList className="bg-muted/40 border border-border/50">
+          <TabsTrigger value="all">Semua</TabsTrigger>
+          <TabsTrigger value="pending" className="gap-2">
+            Menunggu
+            {counts.pending > 0 && (
+              <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
+                {counts.pending}
+              </Badge>
             )}
-          >
-            {tab.label}
-          </button>
-        ))}
+          </TabsTrigger>
+          <TabsTrigger value="approved">Disetujui</TabsTrigger>
+          <TabsTrigger value="rejected">Ditolak</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="outline" className="text-xs font-medium border">
+          Total: {counts.all}
+        </Badge>
+        <Badge className={cn("text-xs font-medium border", statusVariant.pending)}>
+          Menunggu: {counts.pending}
+        </Badge>
+        <Badge className={cn("text-xs font-medium border", statusVariant.approved)}>
+          Disetujui: {counts.approved}
+        </Badge>
+        <Badge className={cn("text-xs font-medium border", statusVariant.rejected)}>
+          Ditolak: {counts.rejected}
+        </Badge>
       </div>
 
-      {/* Approval Cards */}
-      <div className="space-y-3">
-        {loading ? (
-          <div className="flex justify-center p-8">
-            <Loader2 className="animate-spin text-muted-foreground size-6" />
-          </div>
-        ) : requests.length === 0 ? (
-          <div className="text-center p-8 text-sm text-muted-foreground border rounded-lg border-dashed">
-            Belum ada permintaan persetujuan.
-          </div>
-        ) : (
-          requests.map((item) => {
-            const Icon = requestTypeIcon[item.requestType] || FileText;
-            return (
-              <Card
-                key={item.id}
-                className={cn(
-                  "border-border/50 bg-card/80 transition-all hover:shadow-md",
-                  item.currentStatus === "pending" && "border-l-4 border-l-primary"
-                )}
-              >
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="size-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-mono text-muted-foreground">
-                          {item.entityCode || `REQ-${item.id.slice(0, 8)}`}
-                        </span>
-                        <Badge
-                          className={cn(
-                            "text-[9px] font-semibold border h-4 px-1.5 uppercase",
-                            statusVariant[item.currentStatus]
-                          )}
-                        >
-                          {item.currentStatus}
-                        </Badge>
-                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 uppercase">
-                          {item.requestType}
-                        </Badge>
-                      </div>
-                      <h3 className="text-sm font-semibold">{item.entityTitle || "Untitled"}</h3>
-                      <div className="flex items-center gap-4 mt-1.5 text-[11px] text-muted-foreground">
-                        <span>{item.entityOrgName || "—"}</span>
-                        <span>Oleh: {item.requestedByName || "System"}</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="size-3" />
-                          {new Date(item.requestedAt).toLocaleDateString("id-ID", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })}
-                        </span>
-                      </div>
-                      {item.notes && (
-                        <div className="mt-2 text-[10px] text-muted-foreground italic">
-                          "{item.notes}"
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {item.currentStatus === "pending" ? (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => openApprovalModal(item.id, item.entityTitle || "Untitled", "approve")}
-                            className="gap-1.5 h-7 text-xs shadow-sm"
-                          >
-                            <Check className="size-3" />
-                            Setuju
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openApprovalModal(item.id, item.entityTitle || "Untitled", "reject")}
-                            className="gap-1.5 h-7 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <X className="size-3" />
-                            Tolak
-                          </Button>
-                        </>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[10px] h-5 px-2",
-                            item.currentStatus === "approved"
-                              ? "text-success border-success/20"
-                              : "text-destructive border-destructive/20"
-                          )}
-                        >
-                          {item.currentStatus === "approved" ? "Disetujui" : "Ditolak"}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
-      </div>
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[220px] max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Cari kode, judul, unit, atau pemohon..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="h-8 pl-8 text-xs bg-muted/30 border-none"
+              />
+            </div>
 
-      {/* Approval Modal */}
+            <Select
+              value={typeFilter}
+              onValueChange={(value) => setTypeFilter(value as typeof typeFilter)}
+            >
+              <SelectTrigger className="h-8 w-40 text-xs bg-muted/30 border-none">
+                <SelectValue placeholder="Jenis Permintaan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Jenis</SelectItem>
+                <SelectItem value="risk">Risiko</SelectItem>
+                <SelectItem value="incident">Insiden</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-border/50 hover:bg-transparent">
+              <TableHead className="w-24 text-xs">Kode</TableHead>
+              <TableHead className="text-xs">Entitas</TableHead>
+              <TableHead className="w-32 text-xs">Unit Kerja</TableHead>
+              <TableHead className="w-24 text-xs">Jenis</TableHead>
+              <TableHead className="w-36 text-xs">Pemohon</TableHead>
+              <TableHead className="w-32 text-xs">Tanggal</TableHead>
+              <TableHead className="w-28 text-xs">Status</TableHead>
+              <TableHead className="w-28 text-xs text-right">Tindakan</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredRequests.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="py-8 text-center text-xs text-muted-foreground">
+                  Belum ada permintaan persetujuan yang sesuai filter.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredRequests.map((item) => {
+                const typeConfig = requestTypeConfig[item.requestType] ?? requestTypeConfig.risk;
+                const Icon = typeConfig.icon;
+                const canAction = item.currentStatus === "pending";
+
+                return (
+                  <TableRow key={item.id} className="border-border/30 hover:bg-muted/30">
+                    <TableCell className="text-xs font-mono text-muted-foreground">
+                      {item.entityCode || `REQ-${item.id.slice(0, 8)}`}
+                    </TableCell>
+                    <TableCell>
+                      <div className="min-w-0">
+                        <Link
+                          href={typeConfig.href(item.entityId)}
+                          className="block text-xs font-medium leading-relaxed line-clamp-1 text-primary transition-colors hover:text-primary/80 hover:underline"
+                        >
+                          {item.entityTitle || "Tanpa judul"}
+                        </Link>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground line-clamp-1">
+                          {item.notes || `Menunggu review ${item.currentApproverRole}`}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {item.entityOrgName || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                        <span className="inline-flex items-center gap-1">
+                          <Icon className="size-3" />
+                          {typeConfig.label}
+                        </span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-xs font-medium">{item.requestedByName || "System"}</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground capitalize">
+                          Approver: {item.currentApproverRole || "-"}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Clock className="size-3" />
+                        {formatDate(item.requestedAt)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={cn(
+                          "h-5 px-1.5 text-[10px] font-medium border",
+                          statusVariant[item.currentStatus]
+                        )}
+                      >
+                        {statusLabel[item.currentStatus]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        {canAction ? (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                openApprovalModal(
+                                  item.id,
+                                  item.entityTitle || "Tanpa judul",
+                                  "approve"
+                                )
+                              }
+                              className="h-7 gap-1.5 px-2 text-xs"
+                            >
+                              <Check className="size-3" />
+                              Setuju
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                openApprovalModal(
+                                  item.id,
+                                  item.entityTitle || "Tanpa judul",
+                                  "reject"
+                                )
+                              }
+                              className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <X className="size-3" />
+                              Tolak
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="px-2 text-[10px] text-muted-foreground">
+                            {item.currentStatus === "pending" ? "Siap untuk testing approval" : "Tidak ada aksi"}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+
+        <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+          <p className="text-xs text-muted-foreground">
+            Menampilkan {filteredRequests.length} dari {requests.length} permintaan persetujuan
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Fokus utama: {counts.pending} item masih menunggu keputusan
+          </p>
+        </div>
+      </Card>
+
       <ApprovalModal
         open={modalOpen}
         onOpenChange={setModalOpen}
         approvalId={selectedApproval?.id || null}
         approvalType={modalType}
         entityTitle={selectedApproval?.title}
-        onSuccess={() => fetchRequests()}
+        onSuccess={() => refreshRequests()}
         token={token || undefined}
       />
     </div>

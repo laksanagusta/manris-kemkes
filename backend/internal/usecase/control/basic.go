@@ -8,6 +8,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/domain/service"
 )
 
 // GetControlUseCase retrieves a single control by ID
@@ -33,11 +34,13 @@ func (uc *GetControlUseCase) Execute(ctx context.Context, id uuid.UUID) (*entity
 // ListControlsUseCase retrieves controls with optional filters
 type ListControlsUseCase struct {
 	controlRepo repository.ControlRepository
+	orgSvc      *service.OrganizationHierarchy
 }
 
-func NewListControlsUseCase(controlRepo repository.ControlRepository) *ListControlsUseCase {
+func NewListControlsUseCase(controlRepo repository.ControlRepository, orgSvc *service.OrganizationHierarchy) *ListControlsUseCase {
 	return &ListControlsUseCase{
 		controlRepo: controlRepo,
+		orgSvc:      orgSvc,
 	}
 }
 
@@ -46,7 +49,17 @@ type ListControlsInput struct {
 }
 
 func (uc *ListControlsUseCase) Execute(ctx context.Context, input ListControlsInput) ([]*entity.Control, error) {
-	controls, err := uc.controlRepo.List(ctx, input.OrgID)
+	var orgIDs []uuid.UUID
+	var err error
+
+	if input.OrgID != nil {
+		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	controls, err := uc.controlRepo.List(ctx, orgIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -183,11 +196,13 @@ func (uc *DeleteControlUseCase) Execute(ctx context.Context, id uuid.UUID) (*Del
 // ControlDashboardUseCase retrieves dashboard metrics for controls
 type ControlDashboardUseCase struct {
 	controlRepo repository.ControlRepository
+	orgSvc      *service.OrganizationHierarchy
 }
 
-func NewControlDashboardUseCase(controlRepo repository.ControlRepository) *ControlDashboardUseCase {
+func NewControlDashboardUseCase(controlRepo repository.ControlRepository, orgSvc *service.OrganizationHierarchy) *ControlDashboardUseCase {
 	return &ControlDashboardUseCase{
 		controlRepo: controlRepo,
+		orgSvc:      orgSvc,
 	}
 }
 
@@ -196,7 +211,17 @@ type ControlDashboardInput struct {
 }
 
 func (uc *ControlDashboardUseCase) Execute(ctx context.Context, input ControlDashboardInput) (map[string]interface{}, error) {
-	metrics, err := uc.controlRepo.GetDashboard(ctx, input.OrgID)
+	var orgIDs []uuid.UUID
+	var err error
+
+	if input.OrgID != nil {
+		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	metrics, err := uc.controlRepo.GetDashboard(ctx, orgIDs)
 	if err != nil {
 		return nil, err
 	}

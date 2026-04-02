@@ -13,6 +13,7 @@ type ApprovalHandler struct {
 	actionUC          *approvaluc.ApprovalActionUseCase
 	getDetailUC       *approvaluc.GetApprovalDetailUseCase
 	getPendingCountUC *approvaluc.GetPendingCountUseCase
+	getByEntityUC     *approvaluc.GetApprovalByEntityUseCase
 }
 
 // NewApprovalHandler creates a new approval handler
@@ -22,6 +23,7 @@ func NewApprovalHandler(
 	actionUC *approvaluc.ApprovalActionUseCase,
 	getDetailUC *approvaluc.GetApprovalDetailUseCase,
 	getPendingCountUC *approvaluc.GetPendingCountUseCase,
+	getByEntityUC *approvaluc.GetApprovalByEntityUseCase,
 ) *ApprovalHandler {
 	return &ApprovalHandler{
 		listUC:            listUC,
@@ -29,6 +31,7 @@ func NewApprovalHandler(
 		actionUC:          actionUC,
 		getDetailUC:       getDetailUC,
 		getPendingCountUC: getPendingCountUC,
+		getByEntityUC:     getByEntityUC,
 	}
 }
 
@@ -37,10 +40,18 @@ func (h *ApprovalHandler) List(c *fiber.Ctx) error {
 	// Parse query parameters
 	status := c.Query("status", "all")
 	approverRole := c.Query("approver_role", "")
+	userRole, _ := c.Locals("role").(string)
+	var approverUserID *uuid.UUID
+	if userRole != "superadmin" {
+		if userID, ok := c.Locals("userId").(uuid.UUID); ok {
+			approverUserID = &userID
+		}
+	}
 
 	input := approvaluc.ListApprovalInput{
-		Status:       status,
-		ApproverRole: approverRole,
+		Status:         status,
+		ApproverRole:   approverRole,
+		ApproverUserID: approverUserID,
 	}
 
 	result, err := h.listUC.Execute(c.Context(), input)
@@ -96,6 +107,7 @@ func (h *ApprovalHandler) Submit(c *fiber.Ctx) error {
 	}
 
 	input.RequestedBy = userID.String()
+	input.ActorName = userName
 	input.Role = userRole
 
 	// Set notes if not provided
@@ -165,8 +177,31 @@ func (h *ApprovalHandler) GetPendingCount(c *fiber.Ctx) error {
 	input := approvaluc.GetPendingCountInput{
 		Role: userRole,
 	}
+	if userID, ok := c.Locals("userId").(uuid.UUID); ok {
+		input.UserID = &userID
+	}
 
 	result, err := h.getPendingCountUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
+}
+
+// GetByEntity handles GET /api/approvals/by-entity
+func (h *ApprovalHandler) GetByEntity(c *fiber.Ctx) error {
+	requestType := c.Query("request_type")
+	entityID := c.Query("entity_id")
+
+	if requestType == "" || entityID == "" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "request_type and entity_id are required")
+	}
+
+	result, err := h.getByEntityUC.Execute(c.Context(), approvaluc.GetApprovalByEntityInput{
+		RequestType: requestType,
+		EntityID:    entityID,
+	})
 	if err != nil {
 		return handleError(c, err)
 	}

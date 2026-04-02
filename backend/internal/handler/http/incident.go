@@ -9,26 +9,32 @@ import (
 
 // IncidentHandler handles HTTP requests for Incident operations using clean architecture
 type IncidentHandler struct {
-	createUC *incidentuc.CreateIncidentUseCase
-	getUC    *incidentuc.GetIncidentUseCase
-	updateUC *incidentuc.UpdateIncidentUseCase
-	deleteUC *incidentuc.DeleteIncidentUseCase
-	listUC   *incidentuc.ListIncidentsUseCase
+	createUC      *incidentuc.CreateIncidentUseCase
+	createBatchUC *incidentuc.CreateIncidentBatchUseCase
+	getUC         *incidentuc.GetIncidentUseCase
+	updateUC      *incidentuc.UpdateIncidentUseCase
+	deleteUC      *incidentuc.DeleteIncidentUseCase
+	listUC        *incidentuc.ListIncidentsUseCase
+	summaryUC     *incidentuc.GetIncidentSummaryUseCase
 }
 
 func NewIncidentHandler(
 	createUC *incidentuc.CreateIncidentUseCase,
+	createBatchUC *incidentuc.CreateIncidentBatchUseCase,
 	getUC *incidentuc.GetIncidentUseCase,
 	updateUC *incidentuc.UpdateIncidentUseCase,
 	deleteUC *incidentuc.DeleteIncidentUseCase,
 	listUC *incidentuc.ListIncidentsUseCase,
+	summaryUC *incidentuc.GetIncidentSummaryUseCase,
 ) *IncidentHandler {
 	return &IncidentHandler{
-		createUC: createUC,
-		getUC:    getUC,
-		updateUC: updateUC,
-		deleteUC: deleteUC,
-		listUC:   listUC,
+		createUC:      createUC,
+		createBatchUC: createBatchUC,
+		getUC:         getUC,
+		updateUC:      updateUC,
+		deleteUC:      deleteUC,
+		listUC:        listUC,
+		summaryUC:     summaryUC,
 	}
 }
 
@@ -53,10 +59,37 @@ func (h *IncidentHandler) CreateIncident(c *fiber.Ctx) error {
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid linked risk ID")
 		}
-		input.LinkedRiskID = &riskID
+		input.LinkedRiskIDs = append(input.LinkedRiskIDs, riskID.String())
 	}
 
 	result, err := h.createUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.Status(201).JSON(fiber.Map{"data": result})
+}
+
+type createIncidentBatchRequest struct {
+	Items []incidentuc.CreateIncidentBatchItemInput `json:"items"`
+}
+
+// CreateIncidentBatch handles POST /api/incidents/batch
+func (h *IncidentHandler) CreateIncidentBatch(c *fiber.Ctx) error {
+	var req createIncidentBatchRequest
+	if err := c.BodyParser(&req); err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+
+	userID, ok := c.Locals("userId").(uuid.UUID)
+	if !ok {
+		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+	}
+
+	result, err := h.createBatchUC.Execute(c.Context(), incidentuc.CreateIncidentBatchInput{
+		Items:      req.Items,
+		ReporterID: &userID,
+	})
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -90,6 +123,14 @@ func (h *IncidentHandler) UpdateIncident(c *fiber.Ctx) error {
 
 	input.ID = id
 
+	if riskIDStr := c.Query("linked_risk_id"); riskIDStr != "" {
+		riskID, err := uuid.Parse(riskIDStr)
+		if err != nil {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid linked risk ID")
+		}
+		input.LinkedRiskIDs = append(input.LinkedRiskIDs, riskID.String())
+	}
+
 	result, err := h.updateUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
@@ -112,21 +153,18 @@ func (h *IncidentHandler) DeleteIncident(c *fiber.Ctx) error {
 
 // ListIncidents handles GET /api/incidents
 func (h *IncidentHandler) ListIncidents(c *fiber.Ctx) error {
-	filters := make(map[string]string)
+	var orgID *uuid.UUID
 
-	// Parse optional filters
-	if orgID := c.Query("org_id"); orgID != "" {
-		filters["orgId"] = orgID
-	}
-	if severity := c.Query("severity"); severity != "" && severity != "all" {
-		filters["severity"] = severity
-	}
-	if status := c.Query("status"); status != "" && status != "all" {
-		filters["status"] = status
+	// Parse optional org_id filter
+	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
+		parsedID, err := uuid.Parse(orgIDStr)
+		if err == nil {
+			orgID = &parsedID
+		}
 	}
 
 	input := incidentuc.ListIncidentsInput{
-		Filters: filters,
+		OrgID: orgID,
 	}
 
 	incidents, err := h.listUC.Execute(c.Context(), input)
@@ -138,4 +176,16 @@ func (h *IncidentHandler) ListIncidents(c *fiber.Ctx) error {
 		incidents = []*entity.Incident{}
 	}
 	return c.JSON(fiber.Map{"data": incidents})
+}
+
+// GetSummary handles GET /api/incidents/summary
+func (h *IncidentHandler) GetSummary(c *fiber.Ctx) error {
+	result, err := h.summaryUC.Execute(c.Context(), incidentuc.GetIncidentSummaryInput{
+		OrgID: c.Query("org_id"),
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
 }

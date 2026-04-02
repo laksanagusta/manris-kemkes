@@ -1,13 +1,14 @@
 "use client";
+
 import { toast } from "sonner";
-
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Save } from "lucide-react";
+
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save } from "lucide-react";
 
 export default function NewControlPage() {
   const router = useRouter();
@@ -34,123 +34,142 @@ export default function NewControlPage() {
 
   const handleSave = async () => {
     if (!name || !owner) {
-      toast("Nama dan PIC Control (Owner) wajib diisi!");
+      toast.error("Lengkapi nama kontrol dan penanggung jawab terlebih dahulu.");
       return;
     }
 
     setSaving(true);
     try {
-      const payload = {
-        name,
-        description,
-        owner,
-        type,
-        frequency,
-        organizationId: user?.organizationId,
-      };
-
-      await api.post("/controls", payload, token || undefined);
-      router.push("/controls");
+      await api.post(
+        "/controls",
+        {
+          name,
+          description,
+          owner,
+          type,
+          frequency,
+          organizationId: user?.organizationId,
+        },
+        token || undefined,
+      );
+      router.push("/compliance/controls");
     } catch (error) {
       console.error("Failed to create control:", error);
-      toast.error("Gagal menambahkan control library");
+      toast.error("Kontrol baru belum berhasil disimpan.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl mx-auto pb-20">
-      {/* Header */}
-      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/80 backdrop-blur-md pt-2 pb-4 border-b border-border/50">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground" onClick={() => router.back()}>
-            <ArrowLeft className="size-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Tambah Kontrol</h1>
-            <p className="text-sm text-muted-foreground">Tambah item baru ke pustaka pengendalian (Control Library)</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button className="gap-2 shadow-lg shadow-primary/20 text-xs" onClick={handleSave} disabled={saving}>
+    <FormPage className="max-w-4xl">
+      <FormHeader
+        title="Tambah kontrol"
+        description="Catat kontrol baru agar bisa dipakai di register risiko dan monitoring."
+        badges={
+          <Badge variant="outline" className="border-primary/15 bg-primary/[0.04] text-primary">
+            Pustaka kontrol
+          </Badge>
+        }
+        backLabel="Kembali ke pustaka kontrol"
+        onBack={() => router.push("/compliance/controls")}
+        actions={
+          <Button className="gap-2 text-xs" onClick={handleSave} disabled={saving}>
             <Save className="size-3.5" />
-            {saving ? "Menyimpan..." : "Simpan"}
+            {saving ? "Menyimpan..." : "Simpan kontrol"}
           </Button>
+        }
+      />
+
+      <FormSection
+        title="Detail kontrol"
+        description="Tulis nama, tujuan, dan pola pelaksanaan kontrol secara ringkas."
+        contentClassName="space-y-5"
+      >
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">
+            Nama kontrol <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Contoh: Pengecekan suhu cold chain harian"
+            className="h-10 text-sm"
+          />
         </div>
-      </div>
 
-      {/* Control Form */}
-      <Card className="border-border/50 bg-card/80">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Detail Kontrol Utama</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">Deskripsi</Label>
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Jelaskan bagaimana kontrol ini dijalankan."
+            className="min-h-28 text-sm leading-6"
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-xs">
-              Nama Kontrol <span className="text-destructive">*</span>
+            <Label className="text-sm font-medium">
+              Penanggung jawab <span className="text-destructive">*</span>
             </Label>
-            <Input 
-              value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="Contoh: Pengecekan suhu cold chain harian" 
-              className="text-xs" 
+            <Input
+              value={owner}
+              onChange={(e) => setOwner(e.target.value)}
+              placeholder="Contoh: Tim logistik vaksin"
+              className="h-10 text-sm"
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Deskripsi</Label>
-            <Textarea 
-              value={description} onChange={(e) => setDescription(e.target.value)}
-              placeholder="Jelaskan mekanisme kontrol ini secara rinci..." 
-              className="min-h-[80px] text-xs" 
-            />
+            <Label className="text-sm font-medium">Tipe kontrol</Label>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger className="h-10 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="preventif" className="text-sm">
+                  Preventif
+                </SelectItem>
+                <SelectItem value="detektif" className="text-sm">
+                  Detektif
+                </SelectItem>
+                <SelectItem value="korektif" className="text-sm">
+                  Korektif
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                 PIC / Penanggung Jawab <span className="text-destructive">*</span>
-              </Label>
-              <Input 
-                value={owner} onChange={(e) => setOwner(e.target.value)}
-                placeholder="Contoh: Dr. Andi" 
-                className="text-xs" 
-              />
-            </div>
-          </div>
+        </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Tipe Kontrol</Label>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="preventif" className="text-xs">Preventif</SelectItem>
-                  <SelectItem value="detektif" className="text-xs">Detektif</SelectItem>
-                  <SelectItem value="korektif" className="text-xs">Korektif</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Frekuensi</Label>
-              <Select value={frequency} onValueChange={setFrequency}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="harian" className="text-xs">Harian</SelectItem>
-                  <SelectItem value="mingguan" className="text-xs">Mingguan</SelectItem>
-                  <SelectItem value="bulanan" className="text-xs">Bulanan</SelectItem>
-                  <SelectItem value="triwulan" className="text-xs">Triwulan</SelectItem>
-                  <SelectItem value="tahunan" className="text-xs">Tahunan</SelectItem>
-                  <SelectItem value="insidental" className="text-xs">Insidental</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        <div className="space-y-1.5 md:max-w-sm">
+          <Label className="text-sm font-medium">Frekuensi</Label>
+          <Select value={frequency} onValueChange={setFrequency}>
+            <SelectTrigger className="h-10 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="harian" className="text-sm">
+                Harian
+              </SelectItem>
+              <SelectItem value="mingguan" className="text-sm">
+                Mingguan
+              </SelectItem>
+              <SelectItem value="bulanan" className="text-sm">
+                Bulanan
+              </SelectItem>
+              <SelectItem value="triwulan" className="text-sm">
+                Triwulan
+              </SelectItem>
+              <SelectItem value="tahunan" className="text-sm">
+                Tahunan
+              </SelectItem>
+              <SelectItem value="insidental" className="text-sm">
+                Insidental
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </FormSection>
+    </FormPage>
   );
 }

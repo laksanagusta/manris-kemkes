@@ -8,6 +8,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/domain/service"
 )
 
 // GetKRIUseCase retrieves a single KRI by ID
@@ -33,11 +34,13 @@ func (uc *GetKRIUseCase) Execute(ctx context.Context, id uuid.UUID) (*entity.KRI
 // ListKRIsUseCase retrieves KRIs with optional filters
 type ListKRIsUseCase struct {
 	kriRepo repository.KRIRepository
+	orgSvc  *service.OrganizationHierarchy
 }
 
-func NewListKRIsUseCase(kriRepo repository.KRIRepository) *ListKRIsUseCase {
+func NewListKRIsUseCase(kriRepo repository.KRIRepository, orgSvc *service.OrganizationHierarchy) *ListKRIsUseCase {
 	return &ListKRIsUseCase{
 		kriRepo: kriRepo,
+		orgSvc:  orgSvc,
 	}
 }
 
@@ -46,7 +49,17 @@ type ListKRIsInput struct {
 }
 
 func (uc *ListKRIsUseCase) Execute(ctx context.Context, input ListKRIsInput) ([]*entity.KRI, error) {
-	kris, err := uc.kriRepo.List(ctx, input.OrgID)
+	var orgIDs []uuid.UUID
+	var err error
+
+	if input.OrgID != nil {
+		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	kris, err := uc.kriRepo.List(ctx, orgIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -179,11 +192,13 @@ func (uc *DeleteKRIUseCase) Execute(ctx context.Context, id uuid.UUID) (*DeleteK
 // KRIDashboardUseCase retrieves dashboard metrics for KRIs
 type KRIDashboardUseCase struct {
 	kriRepo repository.KRIRepository
+	orgSvc  *service.OrganizationHierarchy
 }
 
-func NewKRIDashboardUseCase(kriRepo repository.KRIRepository) *KRIDashboardUseCase {
+func NewKRIDashboardUseCase(kriRepo repository.KRIRepository, orgSvc *service.OrganizationHierarchy) *KRIDashboardUseCase {
 	return &KRIDashboardUseCase{
 		kriRepo: kriRepo,
+		orgSvc:  orgSvc,
 	}
 }
 
@@ -192,7 +207,17 @@ type KRIDashboardInput struct {
 }
 
 func (uc *KRIDashboardUseCase) Execute(ctx context.Context, input KRIDashboardInput) (map[string]interface{}, error) {
-	metrics, err := uc.kriRepo.GetDashboard(ctx, input.OrgID)
+	var orgIDs []uuid.UUID
+	var err error
+
+	if input.OrgID != nil {
+		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	metrics, err := uc.kriRepo.GetDashboard(ctx, orgIDs)
 	if err != nil {
 		return nil, err
 	}

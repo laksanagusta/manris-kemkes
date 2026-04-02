@@ -8,20 +8,16 @@ import {
   LayoutDashboard,
   Inbox,
   ShieldAlert,
-  Activity,
-  ShieldCheck,
   ClipboardCheck,
   BookOpen,
   FileBarChart,
   AlertTriangle,
   FileText,
-  CalendarClock,
   TrendingUp,
   Users,
   Settings2,
   ChevronDown,
   Bot,
-  Shield,
   Calculator,
 } from "lucide-react";
 import {
@@ -38,6 +34,7 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   badge?: string;
+  matchHrefs?: string[];
 }
 
 interface NavGroup {
@@ -52,24 +49,39 @@ const navigation: NavGroup[] = [
     title: "MAIN MENU",
     items: [
       { label: "Dashboard", href: "/overview", icon: LayoutDashboard },
-      { label: "Inbox Persetujuan", href: "/inbox", icon: Inbox, badge: "3" },
+      { label: "Approval", href: "/inbox", icon: Inbox },
       { label: "Risk Register", href: "/risk/register", icon: ShieldAlert },
-      { label: "KRI Monitor", href: "/compliance/kri", icon: Activity },
-      { label: "Control Library", href: "/compliance/controls", icon: ShieldCheck },
-      { label: "Compliance Monitoring", href: "/compliance/monitoring", icon: ClipboardCheck },
-      { label: "Incident Register", href: "/incidents", icon: AlertTriangle },
+      {
+        label: "Monitoring & Reporting",
+        href: "/compliance/monitoring",
+        icon: ClipboardCheck,
+        matchHrefs: ["/compliance/monitoring", "/compliance/kri"],
+      },
+      { label: "Insiden", href: "/incidents", icon: AlertTriangle },
       { label: "Lessons Learned", href: "/incidents/lessons", icon: BookOpen },
-      { label: "Reports & Extract", href: "/reports", icon: FileBarChart },
+      { label: "Reports", href: "/reports", icon: FileBarChart },
     ],
   },
   {
-    title: "INTELLIGENCE",
+    title: "AI & Automation",
     icon: Bot,
     items: [
-      { label: "Transcript Analyzer", href: "/intelligence/transcript", icon: FileText },
-      { label: "Meeting Minutes", href: "/intelligence/minutes", icon: CalendarClock },
-      { label: "Predictive Scoring", href: "/intelligence/predictive", icon: TrendingUp },
-      { label: "CBA Advokasi", href: "/intelligence/cba", icon: Calculator },
+      {
+        label: "Meeting",
+        href: "/minutes",
+        icon: FileText,
+        matchHrefs: ["/minutes", "/intelligence/transcript"],
+      },
+      {
+        label: "Predictive Scoring",
+        href: "/intelligence/predictive",
+        icon: TrendingUp,
+      },
+      {
+        label: "Cost Benefit Analysis",
+        href: "/intelligence/cba",
+        icon: Calculator,
+      },
     ],
   },
   {
@@ -82,10 +94,48 @@ const navigation: NavGroup[] = [
   },
 ];
 
-function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
+const allNavHrefs = navigation.flatMap((group) =>
+  group.items.flatMap((item) => item.matchHrefs ?? [item.href]),
+);
+
+function matchesPath(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function isNavItemActive(pathname: string, item: NavItem) {
+  const candidateHrefs = item.matchHrefs ?? [item.href];
+  const matchedHref = candidateHrefs.find((href) =>
+    matchesPath(pathname, href),
+  );
+  if (!matchedHref) return false;
+
+  const hasMoreSpecificMatch = allNavHrefs.some(
+    (candidate) =>
+      candidate !== matchedHref &&
+      candidate.startsWith(`${matchedHref}/`) &&
+      matchesPath(pathname, candidate),
+  );
+
+  return !hasMoreSpecificMatch;
+}
+
+function NavLink({
+  item,
+  collapsed,
+  badgeOverride,
+}: {
+  item: NavItem;
+  collapsed: boolean;
+  badgeOverride?: number;
+}) {
   const pathname = usePathname();
-  const isActive =
-    pathname === item.href || pathname.startsWith(item.href + "/");
+  const isActive = isNavItemActive(pathname, item);
+  const displayBadge =
+    badgeOverride !== undefined
+      ? badgeOverride
+      : item.badge
+        ? parseInt(item.badge)
+        : undefined;
 
   const content = (
     <Link
@@ -94,7 +144,7 @@ function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
         "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
         isActive
           ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
-          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
       )}
     >
       <item.icon
@@ -102,15 +152,15 @@ function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
           "size-4 shrink-0 transition-colors",
           isActive
             ? "text-sidebar-primary"
-            : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
+            : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70",
         )}
       />
       {!collapsed && (
         <>
           <span className="truncate">{item.label}</span>
-          {item.badge && (
+          {displayBadge !== undefined && displayBadge > 0 && (
             <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-sidebar-primary text-[10px] font-semibold text-sidebar-primary-foreground">
-              {item.badge}
+              {displayBadge}
             </span>
           )}
         </>
@@ -132,8 +182,16 @@ function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   return content;
 }
 
-export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+export function AppSidebar({
+  collapsed = false,
+  inboxBadge = 0,
+}: {
+  collapsed?: boolean;
+  inboxBadge?: number;
+}) {
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    new Set(),
+  );
 
   const toggleGroup = (title: string) => {
     setCollapsedGroups((prev) => {
@@ -151,13 +209,19 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
     <aside
       className={cn(
         "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+        collapsed ? "w-16" : "w-64",
       )}
     >
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/20 shadow-md p-1 border border-sidebar-border/50">
-          <Image src="/logo.png" alt="Logo" width={24} height={24} className="object-contain" />
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border/60 bg-primary/10 p-1.5">
+          <Image
+            src="/logo.svg"
+            alt="MANRIS logo"
+            width={20}
+            height={20}
+            className="object-contain"
+          />
         </div>
         {!collapsed && (
           <div className="flex flex-col">
@@ -190,7 +254,7 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
                     <ChevronDown
                       className={cn(
                         "size-3 transition-transform duration-200",
-                        isGroupCollapsed && "-rotate-90"
+                        isGroupCollapsed && "-rotate-90",
                       )}
                     />
                   </button>
@@ -203,6 +267,9 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
                         key={item.href}
                         item={item}
                         collapsed={collapsed}
+                        badgeOverride={
+                          item.href === "/inbox" ? inboxBadge : undefined
+                        }
                       />
                     ))}
                   </div>

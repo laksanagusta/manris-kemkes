@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -62,8 +62,8 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md px-4 animate-fade-in">
         {/* Logo & title */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 shadow-lg shadow-primary/5 p-2">
-            <Image src="/logo.png" alt="MANRIS Logo" width={64} height={64} className="object-contain drop-shadow-sm" />
+          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 p-2.5">
+            <Image src="/logo.svg" alt="MANRIS logo" width={44} height={44} className="object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">
             <span className="gradient-text">MANRIS</span>

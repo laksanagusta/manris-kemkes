@@ -9,19 +9,20 @@ import (
 
 // Mitigation represents a risk treatment plan item
 type Mitigation struct {
-	ID                uuid.UUID  `json:"id"`
-	RiskID            uuid.UUID  `json:"riskId"`
-	Action            string     `json:"action"`
-	Owner             string     `json:"owner"`
-	OwnerUserID       *uuid.UUID `json:"ownerUserId,omitempty"`
-	DueDate           *string    `json:"dueDate,omitempty"`
-	Frequency         string     `json:"frequency,omitempty"`
-	RecurringInterval *string    `json:"recurringInterval,omitempty"`
-	ReportDay         *int       `json:"reportDay,omitempty"`         // 0=Sun..6=Sat (for mingguan)
-	ReportDate        *int       `json:"reportDate,omitempty"`        // 1-31 (for bulanan/triwulan)
-	TargetCost        float64    `json:"targetCost"`
-	SortOrder         int        `json:"sortOrder"`
-	CreatedAt         time.Time  `json:"createdAt"`
+	ID                    uuid.UUID  `json:"id"`
+	RiskID                uuid.UUID  `json:"riskId"`
+	Action                string     `json:"action"`
+	Owner                 string     `json:"owner"`
+	OwnerUserID           *uuid.UUID `json:"ownerUserId,omitempty"`
+	DueDate               *string    `json:"dueDate,omitempty"`
+	Frequency             string     `json:"frequency,omitempty"`
+	RecurringInterval     *string    `json:"recurringInterval,omitempty"`
+	ReportDay             *int       `json:"reportDay,omitempty"`  // 0=Sun..6=Sat (for mingguan)
+	ReportDate            *int       `json:"reportDate,omitempty"` // 1-31 (for bulanan/triwulan)
+	ExecutionScheduleText string     `json:"executionScheduleText,omitempty"`
+	TargetCost            float64    `json:"targetCost"`
+	SortOrder             int        `json:"sortOrder"`
+	CreatedAt             time.Time  `json:"createdAt"`
 }
 
 // MitigationAssoc represents a mitigation joined with its parent risk info

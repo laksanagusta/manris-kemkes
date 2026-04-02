@@ -8,6 +8,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/domain/service"
 )
 
 // GetLessonUseCase retrieves a single lesson by ID
@@ -33,11 +34,13 @@ func (uc *GetLessonUseCase) Execute(ctx context.Context, id uuid.UUID) (*entity.
 // ListLessonsUseCase retrieves lessons with optional filters
 type ListLessonsUseCase struct {
 	lessonRepo repository.LessonRepository
+	orgSvc     *service.OrganizationHierarchy
 }
 
-func NewListLessonsUseCase(lessonRepo repository.LessonRepository) *ListLessonsUseCase {
+func NewListLessonsUseCase(lessonRepo repository.LessonRepository, orgSvc *service.OrganizationHierarchy) *ListLessonsUseCase {
 	return &ListLessonsUseCase{
 		lessonRepo: lessonRepo,
+		orgSvc:     orgSvc,
 	}
 }
 
@@ -46,7 +49,17 @@ type ListLessonsInput struct {
 }
 
 func (uc *ListLessonsUseCase) Execute(ctx context.Context, input ListLessonsInput) ([]*entity.Lesson, error) {
-	lessons, err := uc.lessonRepo.List(ctx, input.OrgID)
+	var orgIDs []uuid.UUID
+	var err error
+
+	if input.OrgID != nil {
+		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	lessons, err := uc.lessonRepo.List(ctx, orgIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -171,11 +184,13 @@ func (uc *DeleteLessonUseCase) Execute(ctx context.Context, id uuid.UUID) (*Dele
 // LessonDashboardUseCase retrieves dashboard metrics for lessons
 type LessonDashboardUseCase struct {
 	lessonRepo repository.LessonRepository
+	orgSvc     *service.OrganizationHierarchy
 }
 
-func NewLessonDashboardUseCase(lessonRepo repository.LessonRepository) *LessonDashboardUseCase {
+func NewLessonDashboardUseCase(lessonRepo repository.LessonRepository, orgSvc *service.OrganizationHierarchy) *LessonDashboardUseCase {
 	return &LessonDashboardUseCase{
 		lessonRepo: lessonRepo,
+		orgSvc:     orgSvc,
 	}
 }
 
@@ -184,7 +199,17 @@ type LessonDashboardInput struct {
 }
 
 func (uc *LessonDashboardUseCase) Execute(ctx context.Context, input LessonDashboardInput) (map[string]interface{}, error) {
-	metrics, err := uc.lessonRepo.GetDashboard(ctx, input.OrgID)
+	var orgIDs []uuid.UUID
+	var err error
+
+	if input.OrgID != nil {
+		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	metrics, err := uc.lessonRepo.GetDashboard(ctx, orgIDs)
 	if err != nil {
 		return nil, err
 	}

@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
 	"github.com/sashabaranov/go-openai"
@@ -127,9 +130,32 @@ func (r *aiRepository) AnalyzeTranscript(ctx context.Context, transcript string)
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
 
-	prompt := r.buildTranscriptPrompt(transcript)
+	existingRisks, err := r.riskRepo.List(ctx, nil, "")
+	if err != nil {
+		existingRisks = []*entity.Risk{}
+	}
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko. Hanya merespons menggunakan array JSON yang tersusun rapi.")
+	type riskCandidate struct {
+		ID     string `json:"id"`
+		Code   string `json:"code"`
+		Title  string `json:"title"`
+		Status string `json:"status"`
+	}
+
+	candidates := make([]riskCandidate, 0, len(existingRisks))
+	for _, risk := range existingRisks {
+		candidates = append(candidates, riskCandidate{
+			ID:     risk.ID.String(),
+			Code:   risk.Code,
+			Title:  risk.Title,
+			Status: risk.Status,
+		})
+	}
+
+	existingRisksJSON, _ := json.Marshal(candidates)
+	prompt := r.buildTranscriptPrompt(transcript, string(existingRisksJSON))
+
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko. Hanya merespons menggunakan JSON valid tanpa markdown.")
 	if err != nil {
 		return nil, err
 	}
@@ -228,13 +254,75 @@ func (r *aiRepository) GenerateRiskSuggestions(ctx context.Context) (*entity.Ris
 	return &suggestions, nil
 }
 
+// GenerateIncidentBatchExtraction extracts one or more incident candidates from a PDF-derived text document.
+func (r *aiRepository) GenerateIncidentBatchExtraction(ctx context.Context, req entity.IncidentExtractionRequest) (*entity.IncidentBatchExtraction, error) {
+	if r.client == nil {
+		return nil, fmt.Errorf("OpenAI client is not configured")
+	}
+
+	riskCandidatesJSON, err := r.buildIncidentRiskCandidatesJSON(ctx, req.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+	prompt := r.buildIncidentBatchExtractionPrompt(req.DocumentText, string(riskCandidatesJSON))
+
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis insiden dan risiko di sektor kesehatan pemerintahan. Kembalikan JSON valid saja, tanpa markdown.")
+	if err != nil {
+		return nil, err
+	}
+
+	content = cleanMarkdown(content)
+
+	var extraction entity.IncidentBatchExtraction
+	if err := json.Unmarshal([]byte(content), &extraction); err != nil {
+		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+	}
+
+	extraction.SourcePreview = truncateText(strings.TrimSpace(req.DocumentText), 1200)
+	return &extraction, nil
+}
+
+// GenerateManualIncidentRiskSuggestions suggests related risks for a manual incident form input.
+func (r *aiRepository) GenerateManualIncidentRiskSuggestions(ctx context.Context, req entity.ManualIncidentRiskSuggestionRequest) ([]entity.IncidentRiskSuggestion, error) {
+	if r.client == nil {
+		return nil, fmt.Errorf("OpenAI client is not configured")
+	}
+
+	riskCandidatesJSON, err := r.buildIncidentRiskCandidatesJSON(ctx, req.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+
+	prompt := r.buildManualIncidentRiskSuggestionPrompt(req, string(riskCandidatesJSON))
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis insiden dan risiko di sektor kesehatan pemerintahan. Kembalikan JSON valid saja, tanpa markdown.")
+	if err != nil {
+		return nil, err
+	}
+
+	content = cleanMarkdown(content)
+
+	var envelope struct {
+		Suggestions []entity.IncidentRiskSuggestion `json:"suggestions"`
+	}
+	if err := json.Unmarshal([]byte(content), &envelope); err == nil {
+		return envelope.Suggestions, nil
+	}
+
+	var suggestions []entity.IncidentRiskSuggestion
+	if err := json.Unmarshal([]byte(content), &suggestions); err != nil {
+		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+	}
+
+	return suggestions, nil
+}
+
 // Helper methods
 
 func (r *aiRepository) callOpenAI(ctx context.Context, prompt string, systemMessage string) (string, error) {
 	resp, err := r.client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model: openai.GPT3Dot5Turbo,
+			Model: "gpt-5.4-mini",
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleSystem,
@@ -247,7 +335,6 @@ func (r *aiRepository) callOpenAI(ctx context.Context, prompt string, systemMess
 			},
 		},
 	)
-
 	if err != nil {
 		return "", err
 	}
@@ -323,35 +410,110 @@ Kembalikan respon HANYA dalam bentuk JSON yang sesuai dengan struktur berikut, t
   "participants": ["..."],
   "agenda": ["..."],
   "summary": "...",
+  "keyPoints": ["..."],
   "decisions": ["..."],
+  "openIssues": ["..."],
   "actionItems": [
-    { "task": "...", "pic": "...", "deadline": "YYYY-MM-DD", "priority": "High|Medium|Low" }
-  ]
+    {
+      "task": "...",
+      "pic": "...",
+      "ownerUnit": "...",
+      "deadline": "YYYY-MM-DD",
+      "priority": "High|Medium|Low",
+      "status": "open|on_track|blocked",
+      "notes": "...",
+      "relatedDecision": "...",
+      "needsConfirmation": ["pic"]
+    }
+  ],
+  "nextCheckIn": "YYYY-MM-DD"
+}
+
+Aturan penting:
+- Fokuskan notulen sebagai alat tindak lanjut operasional.
+- Isi keyPoints dengan 3-7 bullet poin pembahasan penting rapat, bukan kutipan mentah.
+- Jangan membuat action item jika tugas konkretnya tidak jelas.
+- Jika PIC tidak disebut, isi string kosong dan tambahkan "pic" ke needsConfirmation.
+- Jika deadline tidak disebut, isi string kosong dan tambahkan "deadline" ke needsConfirmation.
+- Jika priority tidak jelas, gunakan "Medium".
+- Jika status tidak jelas, gunakan "open".
+- Jika tidak ada keputusan eksplisit, biarkan decisions kosong.
+- Jika tidak ada isu terbuka, biarkan openIssues kosong.
+- Jangan menambahkan teks penjelasan di luar JSON.
 }`, transcript)
 }
 
-func (r *aiRepository) buildTranscriptPrompt(transcript string) string {
-	return fmt.Sprintf(`Sebagai analis risiko handal, berikan saran pembaruan risiko (CREATE, UPDATE, atau DELETE) berdasarkan transkrip rapat berikut.
-Transkrip: %s
+func (r *aiRepository) buildTranscriptPrompt(transcript, existingRisksJSON string) string {
+	return fmt.Sprintf(`Tugas Anda adalah meninjau transkrip rapat dan menghasilkan rekomendasi perubahan risiko yang siap dipakai untuk review operasional.
 
-Kembalikan respon HANYA dalam bentuk array of JSON dengan struktur berikut:
-[
-  {
-    "id": "1",
-    "action": "CREATE|UPDATE|DELETE",
-    "title": "...",
-    "description": "...",
-    "quote": "Kutipan kalimat dari transkrip yang menjadi dasar...",
-    "reasoning": "...",
-    "prefilled": {
-      "riskCode": "R-...",
-      "source": "Internal|Eksternal",
-      "probability": 3,
-      "impact": 4,
-      "mitigation": "..."
+Daftar risiko existing aktif saat ini:
+%s
+
+Transkrip:
+%s
+
+Kembalikan respon HANYA dalam bentuk JSON object berikut:
+{
+  "suggestions": [
+    {
+      "id": "grp-1",
+      "targetType": "existing|new",
+      "targetRiskId": "uuid",
+      "targetRiskCode": "R-001",
+      "targetRiskTitle": "Judul risiko existing",
+      "matchConfidence": 88,
+      "candidateRisks": [
+        {
+          "id": "uuid",
+          "code": "R-001",
+          "title": "Judul risiko"
+        }
+      ],
+      "quote": "Kutipan pendukung dari transkrip",
+      "reasoning": "Alasan kenapa pembahasan ini dianggap existing atau new",
+      "changes": [
+        {
+          "id": "chg-1",
+          "field": "description|cause|impactDesc|existingControl|treatmentOption|mitigations|probability|impact",
+          "operation": "set|append",
+          "label": "Ringkasan perubahan",
+          "value": "... atau object/array sesuai field",
+          "reasoning": "Alasan perubahan",
+          "quote": "Kutipan pendukung"
+        }
+      ],
+      "draftPrefill": {
+        "title": "...",
+        "description": "...",
+        "source": "Internal|Eksternal",
+        "probability": 3,
+        "impact": 4,
+        "mitigation": "...",
+        "treatmentOption": "avoid|mitigate|transfer|accept"
+      }
     }
+  ]
+}
+
+Aturan penting:
+- Jika pembahasan jelas merujuk ke satu risiko existing, gunakan "targetType": "existing".
+- Jika pembahasan belum cocok dengan risiko existing manapun, gunakan "targetType": "new".
+- Kelompokkan beberapa perubahan yang membahas risiko existing yang sama menjadi satu suggestion group.
+- Hanya gunakan targetRiskId/Code/Title dari daftar risiko existing yang diberikan.
+- Jika confidence pencocokan rendah, tetap beri target existing terbaik dan isi candidateRisks dengan 1-3 alternatif dari daftar yang diberikan.
+- Untuk field scalar seperti description, existingControl, treatmentOption, probability, dan impact gunakan operasi "set".
+- Untuk field daftar seperti cause, impactDesc, dan mitigations gunakan operasi "append".
+- Jangan sarankan operasi delete atau menghapus data existing.
+- Untuk mitigations, value harus berupa object misalnya:
+  {
+    "action": "Audit laporan",
+    "owner": "",
+    "dueDate": null,
+    "frequency": "insidental"
   }
-]`, transcript)
+- Untuk risk baru, isi draftPrefill dan boleh kosongkan changes.
+- Untuk risk existing, isi changes dan boleh kosongkan draftPrefill.
+- Jangan menambahkan teks apa pun di luar JSON.`, existingRisksJSON, transcript)
 }
 
 func (r *aiRepository) buildPredictivePrompt(risks []entity.Risk) string {
@@ -394,10 +556,11 @@ Risiko yang SUDAH ADA di database (HINDARI risiko-risiko ini atau variasi yang m
 
 Tugas:
 1. Buat 5 risiko baru yang BERBEDA dari daftar di atas
-2. Setiap risiko harus spesifik, realistis, dan relevan dengan konteks organisasi kesehatan/pemerintahan
-3. Berikan judul risiko yang jelas dan deskripsi kronologi kejadian yang detail
-4. Pastikan judul risiko unik dan tidak mirip dengan yang sudah ada
-5. Variasi topik: SDM, infrastruktur, proses bisnis, keuangan, teknologi informasi, kepatuhan, dll.
+2. Dalami isu-isu terkini di indonesia khususnya di bidang kesehatan
+3. Setiap risiko harus spesifik, realistis, dan relevan dengan konteks organisasi kesehatan/pemerintahan
+4. Berikan judul risiko yang jelas dan deskripsi kronologi kejadian yang detail
+5. Pastikan judul risiko unik dan tidak mirip dengan yang sudah ada
+6. Variasi topik: SDM, infrastruktur, proses bisnis, keuangan, teknologi informasi, kepatuhan, dll.
 
 Format respons JSON (hanya JSON, tanpa markdown):
 {
@@ -414,6 +577,158 @@ PENTING:
 - Judul harus berbeda dari daftar yang sudah ada
 - Jangan buat variasi kecil dari risiko yang sudah ada
 - Berikan konteks yang spesifik dan realistis`, existingTitlesJSON)
+}
+
+func (r *aiRepository) buildIncidentBatchExtractionPrompt(documentText, riskCandidatesJSON string) string {
+	return fmt.Sprintf(`Tugas Anda adalah membaca narasi dokumen insiden dan memecahnya menjadi beberapa kandidat insiden yang berbeda.
+
+Aturan penting:
+1. Hanya ekstrak fakta yang eksplisit tertulis di dokumen.
+2. Jika satu informasi tidak tersedia, biarkan string kosong atau nilai null untuk tanggal.
+3. Pisahkan item hanya jika memang ada insiden berbeda. Jangan memecah satu insiden menjadi beberapa item.
+4. severity hanya boleh salah satu: "insignificant", "minor", "major", "critical".
+5. riskSuggestions hanya boleh memilih dari daftar risiko existing yang diberikan.
+6. Untuk setiap risk suggestion, isi reason singkat dan confidence 0-100.
+7. Jika dokumen ambigu, tambahkan warning di level item atau documentWarnings.
+
+Daftar risiko existing:
+%s
+
+Dokumen:
+%s
+
+Kembalikan HANYA JSON valid dengan struktur persis:
+{
+  "items": [
+    {
+      "clientKey": "string-unik",
+      "incident": {
+        "title": "",
+        "what": "",
+        "who": "",
+        "when": "2026-03-30T10:00:00Z",
+        "where": "",
+        "whyHow": "",
+        "severity": "minor",
+        "correctiveAction": "",
+        "preventiveAction": ""
+      },
+      "riskSuggestions": [
+        {
+          "riskId": "uuid-dari-daftar-risk-existing",
+          "riskCode": "",
+          "riskTitle": "",
+          "reason": "",
+          "confidence": 0
+        }
+      ],
+      "missingFields": ["who", "when"],
+      "warnings": ["Tanggal tidak tertulis eksplisit"],
+      "confidence": 0
+    }
+  ],
+  "sourcePreview": "",
+  "documentWarnings": []
+}`, riskCandidatesJSON, documentText)
+}
+
+func (r *aiRepository) buildManualIncidentRiskSuggestionPrompt(req entity.ManualIncidentRiskSuggestionRequest, riskCandidatesJSON string) string {
+	when := ""
+	if req.When != nil {
+		when = req.When.UTC().Format(time.RFC3339)
+	}
+
+	return fmt.Sprintf(`Tugas Anda adalah memilih risiko existing yang paling relevan atau paling terdampak oleh sebuah insiden yang sedang dilaporkan.
+
+Aturan penting:
+1. Hanya pilih dari daftar risiko existing yang diberikan.
+2. Kembalikan maksimal 5 suggestion, urut dari yang paling relevan.
+3. Jika tidak ada yang benar-benar relevan dengan data insiden secara keseluruhan, kembalikan array kosong.
+4. confidence harus berupa angka 0-100.
+5. reason harus singkat, spesifik, dan menjelaskan kaitan insiden dengan risiko.
+
+Daftar risiko existing:
+%s
+
+Data insiden:
+{
+  "title": %q,
+  "what": %q,
+  "who": %q,
+  "when": %q,
+  "where": %q,
+  "whyHow": %q,
+  "severity": %q
+}
+
+Kembalikan HANYA JSON valid dengan struktur persis:
+{
+  "suggestions": [
+    {
+      "riskId": "uuid-dari-daftar-risk-existing",
+      "riskCode": "",
+      "riskTitle": "",
+      "reason": "",
+      "confidence": 0
+    }
+  ]
+}
+
+contoh: data insiden{
+  "title": "Dugaan keracunan pangan massal pada pelaksanaan MBG di sekolah,
+  "what": "Puluhan siswa dari beberapa sekolah mengalami mual, muntah, dan diare beberapa jam setelah mengonsumsi makanan dari program MBG. Investigasi awal menemukan indikasi masalah pada proses pengolahan makanan, menu tinggi gula/kalori pada beberapa hari sebelumnya, dan keterlambatan koordinasi respons dari unit teknis daerah.",
+}
+ 
+hasilnya dia akan berkaitan dengan risiko Potensi Kejadian Luar Biasa (KLB) Keracunan Pangan terkait Program Makan Bergizi Gratis (MBG) dan Obesitas belum dianggap penting sebagai faktor risiko penyakit degeneratif.`,
+		riskCandidatesJSON,
+		req.Title,
+		req.What,
+		req.Who,
+		when,
+		req.Where,
+		req.WhyHow,
+		req.Severity,
+	)
+}
+
+func (r *aiRepository) buildIncidentRiskCandidatesJSON(ctx context.Context, organizationID *uuid.UUID) ([]byte, error) {
+	var orgIDs []uuid.UUID
+	if organizationID != nil {
+		orgIDs = []uuid.UUID{*organizationID}
+	}
+	existingRisks, err := r.riskRepo.List(ctx, orgIDs, "")
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println(existingRisks)
+
+	type riskCandidate struct {
+		ID    string `json:"id"`
+		Code  string `json:"code"`
+		Title string `json:"title"`
+	}
+
+	candidates := make([]riskCandidate, 0, len(existingRisks))
+	for _, risk := range existingRisks {
+		if strings.EqualFold(risk.Status, "draft") {
+			continue
+		}
+		candidates = append(candidates, riskCandidate{
+			ID:    risk.ID.String(),
+			Code:  risk.Code,
+			Title: risk.Title,
+		})
+	}
+
+	return json.Marshal(candidates)
+}
+
+func truncateText(value string, limit int) string {
+	if len(value) <= limit {
+		return value
+	}
+	return value[:limit]
 }
 
 // GenerateKRI generates KRI suggestions for a given risk

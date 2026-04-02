@@ -1,16 +1,17 @@
 
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,37 +24,195 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
-  Sparkles, Loader2, Fish,
-  Users, BookOpen, Settings2, Package, Globe2,
-  ChevronDown, ChevronUp, X, Check,
-  History, Save, ArrowLeft, Send,
-  MessageSquare, Shield, Activity, Trash2, Plus,
+  Loader2,
+  BookOpen,
+  History,
+  Save,
+  ArrowLeft,
+  Send,
+  MessageSquare,
+  Activity,
+  Plus,
+  CheckCircle2,
+  CircleDot,
+  WandSparkles,
+  ChevronUp,
+  ChevronDown,
+  Trash2,
 } from "lucide-react";
 
 import { getRiskLevel, getRiskLevelLabel, levelToColor } from "@/lib/risk";
 import { EditableList } from "@/components/shared/editable-list";
-import { EditableItemsTable, type EditableItem } from "@/components/shared/editable-items-table";
+import { EditableItemsTable } from "@/components/shared/editable-items-table";
+import { FormHeader } from "@/components/shared/form-shell";
 import { MitigationTable, type MitigationItem } from "@/components/shared/mitigation-table";
 import { MitigationPicker } from "@/components/shared/mitigation-picker";
 import { MitigationProgressTab } from "@/components/shared/mitigation-progress-tab";
-import type { Controllability, ControlEffectiveness, TreatmentOption } from "@/types/risk";
+import type { MitigationFrequency, RecurringInterval } from "@/types/risk";
+import {
+  consumeMeetingIntelligencePrefill,
+  MEETING_INTELLIGENCE_PREFILL_PARAM,
+  MEETING_INTELLIGENCE_PREFILL_KEY,
+  type RiskDraftPrefill,
+} from "@/lib/meeting-intelligence";
+
+const RiskLogTimeline = dynamic(
+  () => import("@/components/risk/risk-log-timeline").then((mod) => mod.RiskLogTimeline),
+  {
+    ssr: false,
+    loading: () => (
+      <Card className="border-border/50">
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-sm text-muted-foreground">Memuat log...</span>
+        </CardContent>
+      </Card>
+    ),
+  }
+);
 
 const CATEGORY_TITLES: Record<string, string> = {
   manusia: "Manusia", metode: "Metode", mesin: "Mesin", material: "Material", lingkungan: "Lingkungan",
 };
 const CATEGORY_ORDER: string[] = ["manusia", "metode", "mesin", "material", "lingkungan"];
+type CategoryKey = "manusia" | "metode" | "mesin" | "material" | "lingkungan";
 
-function AiFieldButton({ loading, disabled, onClick, label }: { loading: boolean; disabled: boolean; onClick: () => void; label: string }) {
+type SectionId = "identifikasi" | "analisis" | "evaluasi" | "penanganan" | "target" | "jadwal";
+type WorkspaceView = "form" | "progress" | "log";
+type CauseImpactItem = { id: string; text: string };
+type RoleUser = { id: string; name: string; role: string };
+type RiskSuggestion = { title: string; description: string };
+type ErrorWithMessage = { message?: string; error?: string };
+
+type RiskApiMitigation = MitigationItem & {
+  ownerUserId?: string;
+};
+
+type RiskApiResponse = {
+  id: string;
+  status?: string;
+  title?: string;
+  description?: string;
+  organizationId?: string;
+  code?: string;
+  assessmentCycle?: string;
+  draftApprovalLine?: { id: string; name: string }[];
+  cause?: string[] | string;
+  riskSource?: string;
+  controllability?: "C" | "UC";
+  impactDesc?: string[] | string;
+  existingControl?: string;
+  controlEffectiveness?: string;
+  probability?: number;
+  impact?: number;
+  weight?: number;
+  riskPriority?: number;
+  riskAppetite?: string;
+  treatmentOption?: string;
+  mitigations?: RiskApiMitigation[];
+  targetProbability?: number;
+  targetImpact?: number;
+  targetWeight?: number;
+  nextReviewDate?: string;
+};
+
+type RiskSaveResponse = {
+  id: string;
+  code?: string;
+};
+
+function currentAssessmentCycle() {
+  const now = new Date();
+  const half = now.getMonth() < 6 ? "H1" : "H2";
+  return `${now.getFullYear()}-${half}`;
+}
+
+type CausesResponse = {
+  categories: Partial<Record<CategoryKey, string[]>>;
+};
+
+type ImpactsResponse = {
+  impactDescription?: string;
+};
+
+type SectionStatus = {
+  id: SectionId;
+  step: string;
+  title: string;
+  description: string;
+  done: boolean;
+  hint: string;
+};
+
+function AiFieldButton({
+  loading,
+  disabled,
+  onClick,
+  label,
+}: {
+  loading: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  label: string;
+}) {
   return (
-    <Button type="button" variant="outline" size="sm" onClick={onClick} disabled={disabled || loading}
-      className="h-6 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10 border-primary/20 shrink-0">
-      {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+    <Button
+      type="button"
+      variant="outline"
+      size="xs"
+      onClick={onClick}
+      disabled={disabled || loading}
+      className="h-7 gap-2 border-primary/20 bg-primary/[0.03] px-2.5 text-[11px] text-primary hover:bg-primary/10 hover:text-primary"
+    >
+      {loading ? <Loader2 className="size-3 animate-spin" /> : <WandSparkles className="size-3" />}
+      {loading ? "Memproses..." : label}
     </Button>
+  );
+}
+
+function SectionHeader({
+  step,
+  title,
+  ready,
+}: {
+  step: string;
+  title: string;
+  description?: string;
+  ready: boolean;
+}) {
+  return (
+    <CardHeader className="pb-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-1">
+          <CardTitle className="text-base font-semibold text-foreground">
+            {step}. {title}
+          </CardTitle>
+        </div>
+        <Badge
+          variant="outline"
+          className={cn(
+            "gap-1.5 self-start border-border/15 px-2.5",
+            ready
+              ? "bg-success/10 text-success"
+              : "bg-muted/40 text-muted-foreground",
+          )}
+        >
+          {ready ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
+          {ready ? "Siap" : "Perlu dilengkapi"}
+        </Badge>
+      </div>
+    </CardHeader>
   );
 }
 
@@ -113,7 +272,46 @@ const draftSchema = z.object({
   organizationId: z.string().optional(),
 }).passthrough();
 
-type FormValues = z.infer<typeof formSchema>;
+type FormInput = z.input<typeof formSchema>;
+type FormValues = z.output<typeof formSchema>;
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === "object") {
+    const typedError = error as ErrorWithMessage;
+    if (typedError.message) return typedError.message;
+    if (typedError.error) return typedError.error;
+  }
+  return fallback;
+}
+
+function normalizeFormValues(values: FormInput): FormValues {
+  return {
+    title: values.title ?? "",
+    description: values.description ?? "",
+    organizationId: values.organizationId ?? "",
+    riskCode: values.riskCode ?? "",
+    causes: values.causes ?? [],
+    riskSource: values.riskSource ?? "",
+    controllability: values.controllability ?? "C",
+    impacts: values.impacts ?? [],
+    existingControl: values.existingControl ?? "",
+    controlEffectiveness: values.controlEffectiveness ?? "",
+    probability: values.probability ?? 3,
+    impact: values.impact ?? 3,
+    weight: values.weight ?? 1,
+    riskPriority: values.riskPriority ?? 0,
+    riskAppetite: values.riskAppetite ?? "",
+    treatmentOption: values.treatmentOption ?? "",
+    mitigations: (values.mitigations ?? []).map((mitigation) => ({
+      ...mitigation,
+      owner: mitigation.owner ?? "",
+      frequency: mitigation.frequency ?? "insidental",
+    })),
+    targetProbability: values.targetProbability ?? 1,
+    targetImpact: values.targetImpact ?? 1,
+    targetWeight: values.targetWeight ?? 1,
+    nextReviewDate: values.nextReviewDate ?? "",
+  };
+}
 
 export default function RiskInputPage() {
   const router = useRouter();
@@ -124,16 +322,15 @@ export default function RiskInputPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]);
   const [availableUsers, setAvailableUsers] = useState<{ id: string; name: string }[]>([]);
+  const [selectedApproverId, setSelectedApproverId] = useState<string>("");
+  const [approvalLine, setApprovalLine] = useState<{ id: string; name: string }[]>([]);
+  const [assessmentCycleDisplay, setAssessmentCycleDisplay] = useState(currentAssessmentCycle());
+  const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const submitTarget = useRef<"draft" | "finalize">("draft");
 
-  const resolver = (data: any, context: any, options: any) => {
-    const isDraft = submitTarget.current === "draft";
-    const currentSchema = isDraft ? draftSchema : formSchema;
-    return zodResolver(currentSchema)(data, context, options);
-  };
-
-  const form = useForm<any>({
-    resolver,
+  const form = useForm<FormInput, unknown, FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
       description: "",
@@ -159,20 +356,137 @@ export default function RiskInputPage() {
     }
   });
 
-  const { watch, control, formState: { errors }, setValue, handleSubmit, reset, clearErrors } = form;
+  const { watch, control, formState: { errors }, setValue, setError, handleSubmit, reset, clearErrors } = form;
   
-  const title = watch("title");
-  const description = watch("description");
-  const causes = watch("causes");
-  const impacts = watch("impacts");
-  const probability = watch("probability");
-  const impact = watch("impact");
-  const mitigations = watch("mitigations");
-  const targetProbability = watch("targetProbability");
-  const targetImpact = watch("targetImpact");
-  const existingControl = watch("existingControl");
-  const treatmentOption = watch("treatmentOption");
-  const nextReviewDate = watch("nextReviewDate");
+  const title = watch("title") ?? "";
+  const description = watch("description") ?? "";
+  const causes = watch("causes") ?? [];
+  const impacts = watch("impacts") ?? [];
+  const probability = watch("probability") ?? 3;
+  const impact = watch("impact") ?? 3;
+  const mitigations = watch("mitigations") ?? [];
+  const targetProbability = watch("targetProbability") ?? 1;
+  const targetImpact = watch("targetImpact") ?? 1;
+  const existingControl = watch("existingControl") ?? "";
+  const controlEffectiveness = watch("controlEffectiveness") ?? "";
+  const treatmentOption = watch("treatmentOption") ?? "";
+  const nextReviewDate = watch("nextReviewDate") ?? "";
+
+  const addApproverToLine = () => {
+    if (!selectedApproverId) return;
+    const selectedUser = availableUsers.find((item) => item.id === selectedApproverId);
+    if (!selectedUser) return;
+    setApprovalLine((current) => {
+      if (current.some((item) => item.id === selectedUser.id)) return current;
+      return [...current, selectedUser];
+    });
+    setSelectedApproverId("");
+  };
+
+  const moveApprover = (index: number, direction: -1 | 1) => {
+    setApprovalLine((current) => {
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= current.length) return current;
+      const copy = [...current];
+      [copy[index], copy[nextIndex]] = [copy[nextIndex], copy[index]];
+      return copy;
+    });
+  };
+
+  const removeApprover = (id: string) => {
+    setApprovalLine((current) => current.filter((item) => item.id !== id));
+  };
+
+  const loadRiskData = useCallback(async (id: string) => {
+    try {
+      setIsSubmitting(true);
+      const risk = await api.get<RiskApiResponse>(`/risks/${id}`, token ?? undefined);
+
+      setRiskId(risk.id);
+      setRiskStatus(risk.status || "draft");
+
+      const loadedCauses: CauseImpactItem[] = Array.isArray(risk.cause)
+        ? risk.cause
+            .filter((line) => line.trim())
+            .map((line, index) => ({ id: `c-${index}`, text: line.trim() }))
+        : typeof risk.cause === "string" && risk.cause
+          ? risk.cause
+              .split("\n")
+              .filter((line) => line.trim())
+              .map((line, index) => ({ id: `c-${index}`, text: line.trim() }))
+          : [];
+
+      const loadedImpacts: CauseImpactItem[] = Array.isArray(risk.impactDesc)
+        ? risk.impactDesc
+            .filter((line) => line.trim())
+            .map((line, index) => ({ id: `i-${index}`, text: line.trim() }))
+        : typeof risk.impactDesc === "string" && risk.impactDesc
+          ? risk.impactDesc
+              .split("\n")
+              .filter((line) => line.trim())
+              .map((line, index) => ({ id: `i-${index}`, text: line.trim() }))
+          : [];
+
+      reset({
+        title: risk.title || "",
+        description: risk.description || "",
+        organizationId: risk.organizationId || "",
+        riskCode: risk.code || "",
+        causes: loadedCauses,
+        impacts: loadedImpacts,
+        riskSource: risk.riskSource || "",
+        controllability: risk.controllability === "UC" ? "UC" : "C",
+        existingControl: risk.existingControl || "",
+        controlEffectiveness: risk.controlEffectiveness || "",
+        probability: risk.probability || 3,
+        impact: risk.impact || 3,
+        weight: risk.weight || 1.0,
+        riskPriority: risk.riskPriority || 0,
+        riskAppetite: risk.riskAppetite || "",
+        treatmentOption: risk.treatmentOption || "",
+        mitigations: Array.isArray(risk.mitigations)
+          ? risk.mitigations.map((mitigation) => ({
+              ...mitigation,
+              treatmentOwnerId: mitigation.ownerUserId || mitigation.treatmentOwnerId,
+            }))
+          : [],
+        targetProbability: risk.targetProbability || 1,
+        targetImpact: risk.targetImpact || 1,
+        targetWeight: risk.targetWeight || 1.0,
+        nextReviewDate: risk.nextReviewDate || "",
+      });
+
+      setAssessmentCycleDisplay(risk.assessmentCycle || currentAssessmentCycle());
+      setApprovalLine(Array.isArray(risk.draftApprovalLine) ? risk.draftApprovalLine : []);
+
+      if (risk.status && risk.status !== "draft") {
+        try {
+          const approvalResult = await api.get<{ steps?: { approverUserId?: string; approverName?: string }[] } | null>(
+            `/approvals/by-entity?request_type=risk&entity_id=${id}`,
+            token ?? undefined
+          );
+          if (approvalResult?.steps && Array.isArray(approvalResult.steps)) {
+            const approvalSteps = approvalResult.steps
+              .filter((step) => step.approverUserId && step.approverName)
+              .map((step) => ({
+                id: step.approverUserId!,
+                name: step.approverName!,
+              }));
+            setApprovalLine(approvalSteps);
+          }
+        } catch (approvalError) {
+          if (approvalError instanceof ApiError && approvalError.status !== 404) {
+            console.error("Failed to load approval line:", approvalError);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load risk data:", error);
+      toast.error("Gagal memuat data risiko. Silakan coba lagi.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [reset, token]);
 
   useEffect(() => {
     if (token) {
@@ -180,14 +494,10 @@ export default function RiskInputPage() {
         .then(res => setOrganizations(res))
         .catch(console.error);
 
-      api.get<any[]>("/users", token)
+      api.get<RoleUser[]>("/users", token)
         .then(res => {
-          // Hanya ambil user dengan role 'unit' (PIC yang sesuai) atau semua
-          // Anda bisa sesuaikan filter. Jika ingin semua:
-          // setAvailableUsers(res.map(u => ({ id: u.id, name: u.name })));
-          
           const mappedUsers = res
-            .filter(u => u.role === 'unit' || u.role === 'reviewer' || u.role === 'pimpinan') // Sesuaikan logic
+            .filter(u => u.role === 'unit' || u.role === 'reviewer' || u.role === 'pimpinan' || u.role === 'superadmin')
             .map(u => ({ id: u.id, name: u.name }));
           setAvailableUsers(mappedUsers);
         })
@@ -199,84 +509,183 @@ export default function RiskInputPage() {
 
     const searchParams = new URLSearchParams(window.location.search);
     const existingRiskId = searchParams.get('id');
+    const meetingPrefillToken = searchParams.get(MEETING_INTELLIGENCE_PREFILL_PARAM);
 
     if (existingRiskId && token) {
       loadRiskData(existingRiskId);
+      return;
     }
-  }, [user, token]);
 
-  async function loadRiskData(id: string) {
+    let meetingPrefill: RiskDraftPrefill | null = null;
+    if (meetingPrefillToken) {
+      meetingPrefill = consumeMeetingIntelligencePrefill(meetingPrefillToken);
+    }
+
+    if (!meetingPrefill) {
+      const meetingPrefillRaw = sessionStorage.getItem(MEETING_INTELLIGENCE_PREFILL_KEY);
+      if (meetingPrefillRaw) {
+        try {
+          meetingPrefill = JSON.parse(meetingPrefillRaw) as RiskDraftPrefill;
+        } catch (error) {
+          console.error("Failed to parse legacy Meeting Intelligence prefill:", error);
+        } finally {
+          sessionStorage.removeItem(MEETING_INTELLIGENCE_PREFILL_KEY);
+        }
+      }
+    }
+
+    if (!meetingPrefill) {
+      return;
+    }
+
     try {
-      setIsSubmitting(true);
-      const risk = await api.get<any>(`/risks/${id}`, token ?? undefined);
-
-      setRiskId(risk.id);
-      setRiskStatus(risk.status || "draft");
-      
-      const loadedCauses = Array.isArray(risk.cause) 
-        ? risk.cause.filter((l: string) => l.trim()).map((l: string, i: number) => ({ id: `c-${i}`, text: l.trim() })) 
-        : (typeof risk.cause === 'string' && risk.cause ? risk.cause.split("\\n").filter((l: string) => l.trim()).map((l: string, i: number) => ({ id: `c-${i}`, text: l.trim() })) : []);
-      const loadedImpacts = Array.isArray(risk.impactDesc) 
-        ? risk.impactDesc.filter((l: string) => l.trim()).map((l: string, i: number) => ({ id: `i-${i}`, text: l.trim() })) 
-        : (typeof risk.impactDesc === 'string' && risk.impactDesc ? risk.impactDesc.split("\\n").filter((l: string) => l.trim()).map((l: string, i: number) => ({ id: `i-${i}`, text: l.trim() })) : []);
-
       reset({
-        title: risk.title || "",
-        description: risk.description || "",
-        organizationId: risk.organizationId || "",
-        riskCode: risk.code || "",
-        causes: loadedCauses,
-        impacts: loadedImpacts,
-        riskSource: risk.riskSource || "",
-        controllability: (risk.controllability as any) || "C",
-        existingControl: risk.existingControl || "",
-        controlEffectiveness: risk.controlEffectiveness || "",
-        probability: risk.probability || 3,
-        impact: risk.impact || 3,
-        weight: risk.weight || 1.0,
-        riskPriority: risk.riskPriority || 0,
-        riskAppetite: risk.riskAppetite || "",
-        treatmentOption: risk.treatmentOption || "",
-        mitigations: Array.isArray(risk.mitigations) ? risk.mitigations.map((m: any) => ({
-          ...m,
-          treatmentOwnerId: m.ownerUserId || m.treatmentOwnerId,
-        })) : [],
-        targetProbability: risk.targetProbability || 1,
-        targetImpact: risk.targetImpact || 1,
-        targetWeight: risk.targetWeight || 1.0,
-        nextReviewDate: risk.nextReviewDate || "",
+        title: meetingPrefill.title || "",
+        description: meetingPrefill.description || "",
+        organizationId: user?.organizationId || "",
+        riskCode: meetingPrefill.riskCode || "",
+        causes: meetingPrefill.quote
+          ? [{ id: "meeting-intelligence-quote", text: meetingPrefill.quote }]
+          : [],
+        impacts: [],
+        riskSource: meetingPrefill.source || "",
+        controllability: "C",
+        existingControl: "",
+        controlEffectiveness: "",
+        probability: meetingPrefill.probability || 3,
+        impact: meetingPrefill.impact || 3,
+        weight: 1.0,
+        riskPriority: 0,
+        riskAppetite: "",
+        treatmentOption: meetingPrefill.treatmentOption || "mitigate",
+        mitigations: meetingPrefill.mitigation
+          ? [{
+              action: meetingPrefill.mitigation,
+              owner: "",
+              dueDate: "",
+              frequency: "insidental",
+            }]
+          : [],
+        targetProbability: Math.max(1, (meetingPrefill.probability || 3) - 1),
+        targetImpact: Math.max(1, (meetingPrefill.impact || 3) - 1),
+        targetWeight: 1.0,
+        nextReviewDate: "",
       });
-
-    } catch (err) {
-      console.error("Failed to load risk data:", err);
-      toast.error("Gagal memuat data risiko. Silakan coba lagi.");
-    } finally {
-      setIsSubmitting(false);
+      setAssessmentCycleDisplay(currentAssessmentCycle());
+      setRiskId(null);
+      setRiskStatus("draft");
+      toast.success("Draft risiko diisi dari rekomendasi Meeting Intelligence.");
+    } catch (error) {
+      console.error("Failed to apply Meeting Intelligence prefill:", error);
+      toast.error("Prefill dari Meeting Intelligence tidak dapat dibaca. Silakan isi draft secara manual.");
     }
-  }
+  }, [loadRiskData, reset, setValue, token, user]);
 
   // UI state
   const [generatingCause, setGeneratingCause] = useState(false);
   const [generatingImpact, setGeneratingImpact] = useState(false);
   const [generatingRisk, setGeneratingRisk] = useState(false);
-  const [riskSuggestions, setRiskSuggestions] = useState<{ title: string; description: string }[]>([]);
+  const [riskSuggestions, setRiskSuggestions] = useState<RiskSuggestion[]>([]);
   const [showRiskSuggestions, setShowRiskSuggestions] = useState(false);
+  const [activeView, setActiveView] = useState<WorkspaceView>("form");
 
   // Computed
   const score = probability * impact;
   const level = useMemo(() => getRiskLevel(score), [score]);
   const targetScore = targetProbability * targetImpact;
   const targetLevel = useMemo(() => getRiskLevel(targetScore), [targetScore]);
+  const canUseAiAssist = title.trim().length > 0 && description.trim().length > 0;
 
-  // Completeness
-  const completenessItems = [
-    { label: "Identifikasi", done: title.trim().length > 0 && description.trim().length > 0 && causes.length > 0 && impacts.length > 0 },
-    { label: "Analisis", done: (existingControl || "").trim().length > 0 && score > 0 },
-    { label: "Evaluasi", done: !!treatmentOption },
-    { label: "Penanganan", done: mitigations.length > 0 },
-    { label: "Target", done: targetScore > 0 },
-    { label: "Jadwal", done: !!nextReviewDate },
+  const sectionStatuses: SectionStatus[] = [
+    {
+      id: "identifikasi",
+      step: "1",
+      title: "Identifikasi Risiko",
+      description: "Tentukan konteks risiko, penyebab utama, dan dampak yang paling relevan.",
+      done: title.trim().length > 0 && description.trim().length > 0 && causes.length > 0 && impacts.length > 0,
+      hint: "Lengkapi judul, deskripsi, sebab, dan dampak.",
+    },
+    {
+      id: "analisis",
+      step: "2",
+      title: "Analisis Risiko",
+      description: "Nilai pengendalian yang sudah ada lalu tetapkan skor probabilitas dan dampak.",
+      done: (existingControl || "").trim().length > 0 && !!controlEffectiveness && score > 0,
+      hint: "Isi pengendalian yang ada dan nilai efektivitasnya.",
+    },
+    {
+      id: "evaluasi",
+      step: "3",
+      title: "Evaluasi Risiko",
+      description: "Tetapkan prioritas dan pilihan penanganan sebelum diajukan untuk approval.",
+      done: !!treatmentOption,
+      hint: "Pilih strategi penanganan risiko.",
+    },
+    {
+      id: "penanganan",
+      step: "4",
+      title: "Rencana Penanganan",
+      description: "Tentukan aksi mitigasi yang nyata, siapa PIC-nya, dan kapan eksekusinya.",
+      done: mitigations.length > 0,
+      hint: "Tambahkan minimal satu rencana penanganan.",
+    },
+    {
+      id: "target",
+      step: "5",
+      title: "Target Penurunan",
+      description: "Tetapkan target residual risk agar reviewer melihat tujuan akhirnya dengan jelas.",
+      done: targetScore > 0,
+      hint: "Tetapkan target probabilitas dan dampak residual.",
+    },
+    {
+      id: "jadwal",
+      step: "6",
+      title: "Jadwal Review",
+      description: "Pastikan ada tanggal review agar risiko tidak berhenti di tahap pencatatan.",
+      done: !!nextReviewDate,
+      hint: "Tentukan tanggal review berikutnya.",
+    },
   ];
+
+  const completedSectionCount = sectionStatuses.filter((section) => section.done).length;
+  const missingSections = sectionStatuses.filter((section) => !section.done);
+  const isFinalizeReady = missingSections.length === 0;
+  const isRiskLocked = riskStatus === "final" || riskStatus === "approved" || riskStatus === "rejected";
+
+  const scrollToSection = (sectionId: SectionId) => {
+    if (typeof document === "undefined") return;
+    const element = document.getElementById(sectionId);
+    element?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const getSectionIdFromField = (fieldName?: string): SectionId | undefined => {
+    if (!fieldName) return undefined;
+    if (["title", "description", "organizationId", "riskCode", "causes", "riskSource", "controllability", "impacts"].includes(fieldName)) {
+      return "identifikasi";
+    }
+    if (["existingControl", "controlEffectiveness", "probability", "impact", "weight"].includes(fieldName)) {
+      return "analisis";
+    }
+    if (["riskPriority", "riskAppetite", "treatmentOption"].includes(fieldName)) {
+      return "evaluasi";
+    }
+    if (fieldName === "mitigations") {
+      return "penanganan";
+    }
+    if (["targetProbability", "targetImpact", "targetWeight"].includes(fieldName)) {
+      return "target";
+    }
+    if (fieldName === "nextReviewDate") {
+      return "jadwal";
+    }
+    return undefined;
+  };
+
+  useEffect(() => {
+    if (!riskId && activeView !== "form") {
+      setActiveView("form");
+    }
+  }, [riskId, activeView]);
 
   const buildPayload = (data: FormValues, status: string) => {
     let orgId: string | null = null;
@@ -291,10 +700,11 @@ export default function RiskInputPage() {
       description: data.description,
       status, 
       organizationId: orgId,
-      cause: (data.causes || []).map((c: any) => c.text).filter((t: string) => t.trim()),
+      draftApprovalLine: approvalLine,
+      cause: (data.causes || []).map((cause) => cause.text).filter((text) => text.trim()),
       riskSource: data.riskSource,
       controllability: data.controllability,
-      impactDesc: (data.impacts || []).map((i: any) => i.text).filter((t: string) => t.trim()),
+      impactDesc: (data.impacts || []).map((impactItem) => impactItem.text).filter((text) => text.trim()),
       existingControl: data.existingControl,
       controlEffectiveness: data.controlEffectiveness,
       probability: data.probability,
@@ -307,21 +717,31 @@ export default function RiskInputPage() {
       targetImpact: data.targetImpact,
       targetWeight: data.targetWeight,
       nextReviewDate: data.nextReviewDate && data.nextReviewDate.trim() !== "" ? data.nextReviewDate : null,
-      mitigations: (data.mitigations || []).map((m: any) => ({
-        action: m.action,
-        owner: m.owner,
-        ...(m.treatmentOwnerId ? { ownerUserId: m.treatmentOwnerId } : {}),
-        dueDate: m.dueDate && m.dueDate.trim() !== "" ? m.dueDate : null,
-        frequency: m.frequency,
-        recurringInterval: m.frequency === "rutin" ? (m.recurringInterval && m.recurringInterval.trim() !== "" ? m.recurringInterval : "mingguan") : null,
-        reportDay: m.frequency === "rutin" && (m.recurringInterval === "mingguan" || !m.recurringInterval) ? (m.reportDay ?? 5) : null,
-        reportDate: m.frequency === "rutin" && (m.recurringInterval === "bulanan" || m.recurringInterval === "triwulan") ? (m.reportDate ?? 5) : null,
+      mitigations: (data.mitigations || []).map((mitigation) => ({
+        action: mitigation.action,
+        owner: mitigation.owner,
+        ...(mitigation.treatmentOwnerId ? { ownerUserId: mitigation.treatmentOwnerId } : {}),
+        dueDate: mitigation.dueDate && mitigation.dueDate.trim() !== "" ? mitigation.dueDate : null,
+        frequency: mitigation.frequency,
+        recurringInterval: mitigation.frequency === "rutin"
+          ? (mitigation.recurringInterval && mitigation.recurringInterval.trim() !== "" ? mitigation.recurringInterval : "mingguan")
+          : null,
+        reportDay: mitigation.frequency === "rutin" && (mitigation.recurringInterval === "mingguan" || !mitigation.recurringInterval)
+          ? (mitigation.reportDay ?? 5)
+          : null,
+        reportDate: mitigation.frequency === "rutin" && (mitigation.recurringInterval === "bulanan" || mitigation.recurringInterval === "triwulan")
+          ? (mitigation.reportDate ?? 5)
+          : null,
         targetCost: 0,
       })),
     };
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: FormValues) => {
+    if (isRiskLocked) {
+      toast.info("Risiko yang sudah final harus dikembalikan ke draft terlebih dahulu sebelum diubah.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const isDraft = submitTarget.current === "draft";
@@ -329,74 +749,149 @@ export default function RiskInputPage() {
 
       let currentRiskId = riskId;
 
-      if (currentRiskId) {
-        await api.put<any>(`/risks/${currentRiskId}`, payload, token || undefined);
+if (currentRiskId) {
+        await api.put(`/risks/${currentRiskId}`, payload, token || undefined);
       } else {
-        const res = await api.post<any>("/risks", payload, token || undefined);
+        const res = await api.post<RiskSaveResponse>("/risks", payload, token || undefined);
         setRiskId(res.id);
-        setValue("riskCode", res.code);
+        setValue("riskCode", res.code || "");
         currentRiskId = res.id;
+        if (isDraft) {
+          const newUrl = `/risk/register/new?id=${res.id}`;
+          window.history.replaceState(null, "", newUrl);
+        }
       }
 
       if (isDraft) {
         toast.success("Draft berhasil disimpan!");
+        if (!riskId && currentRiskId) {
+          router.push(`/risk/register/new?id=${currentRiskId}`);
+          return;
+        }
       } else {
-        // Finalize
-        try {
-          await api.post("/approvals/submit", {
-            requestType: "risk",
-            entityId: currentRiskId,
-            notes: ""
-          }, token || undefined);
+          if (approvalLine.length === 0) {
+            toast.error("Pilih minimal 1 approver sebelum mengajukan approval.");
+            return;
+          }
+          // Finalize
+          try {
+            await api.post("/approvals/submit", {
+              requestType: "risk",
+              entityId: currentRiskId,
+              notes: "",
+              approverIds: approvalLine.map((item) => item.id),
+            }, token || undefined);
           toast.success("Risk berhasil disimpan dan diajukan untuk approval!");
           router.push("/risk/register");
-        } catch (approvalErr: any) {
-          const errorMsg = approvalErr?.message || approvalErr?.error || "Unknown error";
+        } catch (approvalErr: unknown) {
+          const errorMsg = getErrorMessage(approvalErr, "Unknown error");
           toast.success(`Risk disimpan, namun gagal diajukan: ${errorMsg}`);
           router.push("/risk/register");
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to save", err);
-      const errorMessage = err?.message || err?.error || "Gagal menyimpan data.";
+      const errorMessage = getErrorMessage(err, "Gagal menyimpan data.");
       toast.error(`Error: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleSaveDraft = async () => {
+    submitTarget.current = "draft";
+    clearErrors();
+
+    const values = form.getValues();
+    const draftResult = draftSchema.safeParse(values);
+
+    if (!draftResult.success) {
+      draftResult.error.issues.forEach((issue) => {
+        const field = issue.path[0];
+        if (field === "title" || field === "description" || field === "organizationId") {
+          setError(field, { type: "manual", message: issue.message });
+        }
+      });
+      toast.error("Lengkapi minimal judul dan deskripsi sebelum menyimpan draft.");
+      scrollToSection("identifikasi");
+      return;
+    }
+
+    await onSubmit(normalizeFormValues(values));
+  };
+
   const handleRevertToDraft = async () => {
     if (!riskId) return;
-    if (!confirm("Kembalikan dokumen ini ke status draft? (Akan menghapus status persetujuan saat ini)")) return;
+    const promise = (async () => {
+      const payload = buildPayload(normalizeFormValues(form.getValues()), "draft");
+      await api.put(`/risks/${riskId}`, payload, token || undefined);
+      setRiskStatus("draft");
+    })();
+    toast.promise(promise, {
+      loading: "Mengembalikan ke draft...",
+      success: "Berhasil dikembalikan ke status Draft.",
+      error: (err) => `Error: ${getErrorMessage(err, "Gagal mengubah status.")}`,
+    });
     try {
       setIsSubmitting(true);
-      const payload = buildPayload(form.getValues(), "draft");
-      await api.put<any>(`/risks/${riskId}`, payload, token || undefined);
-      toast.success("Berhasil dikembalikan ke status Draft.");
-      setRiskStatus("draft");
-    } catch (err: any) {
-      toast.error(`Error: ${err?.message || err?.error || "Gagal mengubah status."}`);
+      await promise;
+    } catch {
+      // error handled by toast.promise
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const onValidationError = (errors: any) => {
+  const handleDeleteDraft = async () => {
+    if (!riskId) return;
+    setShowDeleteConfirm(false);
+    const promise = (async () => {
+      await api.delete(`/risks/${riskId}`, token || undefined);
+      router.push("/risk/register");
+    })();
+
+    toast.promise(promise, {
+      loading: "Menghapus draft...",
+      success: "Draft berhasil dihapus.",
+      error: (err) => `Error: ${getErrorMessage(err, "Gagal menghapus draft.")}`,
+    });
+  };
+
+  const onValidationError = (errors: FieldErrors<FormInput>) => {
     toast.error("Ada form isian yang wajib diisi atau masih salah. Periksa teks merah di bawah form.");
+    const [firstErrorField] = Object.keys(errors || {});
+    const sectionId = getSectionIdFromField(firstErrorField);
+    if (sectionId) {
+      scrollToSection(sectionId);
+    }
     console.error("Form Validation Errors: ", errors);
   };
 
-  const FormErrorMessage = ({ error }: { error?: any }) => {
-    if (!error) return null;
-    return <span className="text-[10px] text-destructive mt-1 font-medium">{error}</span>;
+  const showUnavailableFeatureToast = (featureName: string) => {
+    toast.info(`${featureName} akan diaktifkan pada iterasi berikutnya.`);
+  };
+
+  const handleViewChange = (nextView: WorkspaceView) => {
+    if (nextView !== "form" && !riskId) {
+      toast.info("Simpan draft terlebih dahulu untuk membuka progress mitigasi dan log komunikasi.");
+      return;
+    }
+    setActiveView(nextView);
+  };
+
+  const FormErrorMessage = ({ error }: { error?: string | { message?: string } }) => {
+    const message = typeof error === "string" ? error : error?.message;
+    if (!message) return null;
+    return <span className="mt-1 text-[10px] font-medium text-destructive">{message}</span>;
   };
 
   // AI Generators
   async function handleGenerateRisk() {
+    if (isRiskLocked) return;
     setGeneratingRisk(true);
     setShowRiskSuggestions(false);
     try {
-      const res = await api.post<{ suggestions: { title: string; description: string }[] }>("/ai/risk-suggestions", { existingRisks: [] }, token || undefined);
+      const res = await api.post<{ suggestions: RiskSuggestion[] }>("/ai/risk-suggestions", { existingRisks: [] }, token || undefined);
       setRiskSuggestions(res.suggestions || []);
       setShowRiskSuggestions(true);
     } catch (err) {
@@ -407,21 +902,23 @@ export default function RiskInputPage() {
   }
 
   async function handleGenerateCause() {
+    if (isRiskLocked) return;
     if (!title.trim() || !description.trim()) {
       toast.error("Isi judul dan deskripsi dulu untuk AI");
       return;
     }
     setGeneratingCause(true);
     try {
-      const res = await api.post<any>("/ai/causes", { title, description }, token || undefined);
+      const res = await api.post<CausesResponse>("/ai/causes", { title, description }, token || undefined);
       const newItems: { id: string; text: string }[] = [];
       let idx = 0;
       CATEGORY_ORDER.forEach((category) => {
-        const categoryItems = res.categories[category] || [];
+        const categoryKey = category as CategoryKey;
+        const categoryItems = res.categories[categoryKey] || [];
         categoryItems.forEach((itemText: string) => {
           newItems.push({ 
-            id: `cause-${Date.now()}-${idx++}`, 
-            text: `[${CATEGORY_TITLES[category]}] ${itemText}` 
+            id: `cause-${Date.now()}-${idx++}`,
+            text: `[${CATEGORY_TITLES[categoryKey]}] ${itemText}`
           });
         });
       });
@@ -434,19 +931,20 @@ export default function RiskInputPage() {
   }
 
   async function handleGenerateImpact() {
+    if (isRiskLocked) return;
     if (!title.trim() || !description.trim()) {
       toast.error("Isi judul dan deskripsi dulu untuk AI");
       return;
     }
     setGeneratingImpact(true);
     try {
-      const res = await api.post<any>("/ai/impacts", { title, description }, token || undefined);
+      const res = await api.post<ImpactsResponse>("/ai/impacts", { title, description }, token || undefined);
       if (res.impactDescription) {
         const lines = res.impactDescription.split("\n").filter((line: string) => line.trim());
         const items = lines.map((line: string, idx: number) => ({
           id: `impact-${Date.now()}-${idx}`,
           text: line.replace(/^\d+\.\s*/, "").trim(),
-        })).filter((i: any) => i.text);
+        })).filter((item) => item.text);
 
         setValue("impacts", items.length > 0 ? items : [{ id: "impact-1", text: res.impactDescription }], { shouldValidate: true });
       }
@@ -459,384 +957,625 @@ export default function RiskInputPage() {
 
   return (
     <div className="animate-fade-in pb-20">
-      <div className="flex items-center justify-between sticky top-0 z-20 bg-background/80 backdrop-blur-md pt-2 pb-4 border-b border-border/50 mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground" onClick={() => router.back()}><ArrowLeft className="size-4" /></Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Input Risiko</h1>
-            <p className="text-sm text-muted-foreground">Identifikasi risiko unit kerja sesuai framework ISO 31000</p>
+      <FormHeader
+        title="Form registrasi risiko"
+        description={
+          isRiskLocked
+            ? "Dokumen ini terkunci karena sudah final. Kembalikan ke draft terlebih dahulu jika ingin mengubah data risiko."
+            : "Lengkapi identifikasi, analisis, dan rencana penanganan sebelum diajukan untuk approval."
+        }
+        badges={
+          <>
+            <Badge variant="outline" className="border-primary/15 bg-primary/[0.04] text-primary">
+              Draft kerja
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn(
+                "border-border/15",
+                isFinalizeReady ? "bg-success/10 text-success" : "bg-muted/40 text-muted-foreground",
+              )}
+            >
+              {isFinalizeReady ? "Siap diajukan" : `${missingSections.length} bagian belum siap`}
+            </Badge>
+          </>
+        }
+        backLabel="Kembali ke register risiko"
+        onBack={() => router.push("/risk/register")}
+        actions={
+          <>
+            {riskId && (riskStatus === "final" || riskStatus === "approved" || riskStatus === "rejected") && (
+              <Button variant="outline" className="gap-2 text-xs text-destructive hover:bg-destructive/10" onClick={handleRevertToDraft} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowLeft className="size-3.5 rounded-full border border-current p-0.5" />} Kembalikan ke draft
+              </Button>
+            )}
+
+            {riskId && (
+              <Button
+                variant="outline"
+                className="gap-2 text-xs"
+                onClick={() => showUnavailableFeatureToast("Riwayat versi")}
+              >
+                <History className="size-3.5" /> Riwayat versi
+              </Button>
+            )}
+
+            {(riskStatus === "draft" || !riskId) && (
+              <>
+                {riskId && (
+                  <Button
+                    variant="outline"
+                    className="gap-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={isSubmitting}
+                  >
+                    <Trash2 className="size-3.5" /> Hapus draft
+                  </Button>
+                )}
+                <Button variant="outline" className="gap-2 text-xs" onClick={handleSaveDraft} disabled={isSubmitting}>
+                  {isSubmitting && submitTarget.current === "draft" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="size-3.5" />} Simpan draft
+                </Button>
+                <Button
+                  className="gap-2 text-xs"
+                  onClick={() => {
+                    submitTarget.current = "finalize";
+                    clearErrors();
+                    if (approvalLine.length === 0) {
+                      toast.error("Susun approval line terlebih dahulu.");
+                      return;
+                    }
+                    if (!isFinalizeReady) {
+                      scrollToSection(missingSections[0]?.id ?? "identifikasi");
+                      return;
+                    }
+                    setShowApprovalConfirm(true);
+                  }}
+                  disabled={isSubmitting || !isFinalizeReady}
+                >
+                  {isSubmitting && submitTarget.current === "finalize" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="size-3.5" />} Ajukan approval
+                </Button>
+              </>
+            )}
+          </>
+        }
+      />
+
+      <div className="mb-6 max-w-4xl space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Ruang kerja
+          </p>
+          {riskId && (
+            <Badge variant="outline" className="border-primary/15 bg-primary/[0.04] text-primary">
+              Dokumen tersimpan
+            </Badge>
+          )}
+        </div>
+        <div className="rounded-2xl border border-border/20 bg-muted/[0.18] p-1.5">
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              {
+                id: "form" as const,
+                label: "Form Aktif",
+                icon: BookOpen,
+              },
+              {
+                id: "progress" as const,
+                label: "Progress Mitigasi",
+                icon: Activity,
+              },
+              {
+                id: "log" as const,
+                label: "Log & Komunikasi",
+                icon: MessageSquare,
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = activeView === item.id;
+              const isDisabled = item.id !== "form" && !riskId;
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleViewChange(item.id)}
+                  className={cn(
+                    "inline-flex min-w-[180px] flex-1 items-center gap-2 rounded-[18px] px-4 py-3 text-left transition-colors",
+                    isActive
+                      ? "bg-background text-foreground ring-1 ring-border/35"
+                      : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+                    isDisabled && "opacity-60",
+                  )}
+                >
+                  <Icon className="size-4" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {riskId && (riskStatus === "final" || riskStatus === "approved" || riskStatus === "rejected") && (
-            <Button variant="outline" className="gap-2 text-xs text-destructive hover:bg-destructive/10" onClick={handleRevertToDraft} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowLeft className="size-3.5 border border-current rounded-full p-0.5" />} Kembalikan ke Draft
-            </Button>
-          )}
-
-          {riskId && <Button variant="outline" className="gap-2 text-xs"><History className="size-3.5" /> Riwayat Versi</Button>}
-          
-          {(riskStatus === "draft" || !riskId) && (
-            <>
-              <Button variant="outline" className="gap-2 text-xs" onClick={() => { submitTarget.current = "draft"; clearErrors(); handleSubmit(onSubmit, onValidationError)(); }} disabled={isSubmitting}>
-                {isSubmitting && submitTarget.current === "draft" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="size-3.5" />} Simpan Draft
-              </Button>
-              <Button className="gap-2 shadow-lg shadow-primary/20 text-xs" onClick={() => { submitTarget.current = "finalize"; clearErrors(); handleSubmit(onSubmit, onValidationError)(); }} disabled={isSubmitting}>
-                {isSubmitting && submitTarget.current === "finalize" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="size-3.5" />} Finalisasi
-              </Button>
-            </>
-          )}
-        </div>
       </div>
 
-      <Tabs defaultValue="form" className="w-full">
-        {riskId && (
-          <TabsList className="bg-muted/40 border border-border/50 mb-6">
-            <TabsTrigger value="form" className="gap-2">
-              <BookOpen className="size-3.5" /> Form Registrasi Risiko
-            </TabsTrigger>
-            <TabsTrigger value="progress" className="gap-2">
-              <Activity className="size-3.5" /> Progress Mitigasi
-            </TabsTrigger>
-            <TabsTrigger value="log" className="gap-2">
-              <MessageSquare className="size-3.5" /> Log & Komunikasi
-            </TabsTrigger>
-          </TabsList>
-        )}
-        
-        <TabsContent value="form" className="m-0">
-          <div className="flex flex-col xl:flex-row gap-6 items-start">
-            <form onSubmit={(e) => e.preventDefault()} className="w-full xl:w-2/3 space-y-6">
+      {activeView === "form" && (
+        <div className="flex flex-col items-start gap-6 xl:flex-row">
+            <form onSubmit={(e) => e.preventDefault()} className="w-full space-y-6 xl:w-2/3">
+              <Card id="identifikasi" className="scroll-mt-28 border-border/20 bg-card">
+                <SectionHeader
+                  step="1"
+                  title="Identifikasi Risiko"
+                  ready={sectionStatuses[0].done}
+                />
+                <CardContent className="space-y-5">
+                  <div className="relative space-y-1.5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <Label className="text-sm font-medium">Risiko <span className="text-muted-foreground">*</span></Label>
+                      <AiFieldButton loading={generatingRisk} disabled={isRiskLocked} onClick={handleGenerateRisk} label="Bantu rumuskan risiko" />
+                    </div>
+                    <Controller name="title" control={control} render={({ field }) => (
+                      <Input {...field} placeholder="Contoh: Terjadi kebakaran di gudang bahan baku" disabled={isRiskLocked} className={cn("text-sm", errors.title && "border-destructive")} />
+                    )} />
+                    <FormErrorMessage error={errors.title?.message} />
 
-          {/* SECTION 1 */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base">1. Identifikasi Risiko</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              
-              <div className="space-y-1.5 relative">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Risiko <span className="text-muted-foreground">*</span></Label>
-                  <AiFieldButton loading={generatingRisk} disabled={false} onClick={handleGenerateRisk} label="" />
-                </div>
-                <Controller name="title" control={control} render={({ field }) => (
-                  <Input {...field} placeholder="Contoh: Terjadi kebakaran di gudang bahan baku" className={cn("text-xs", errors.title && "border-destructive")} />
-                )} />
-                <FormErrorMessage error={errors.title?.message} />
+                    {showRiskSuggestions && riskSuggestions.length > 0 && (
+                      <div className="absolute z-50 mt-2 w-full rounded-lg border border-border bg-background shadow-lg">
+                        <div className="border-b border-border/60 px-3 py-2">
+                          <p className="text-[11px] font-semibold text-foreground">Saran AI untuk judul risiko</p>
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto">
+                          {riskSuggestions.map((suggestion, idx) => (
+                            <button key={idx} type="button" onClick={() => { setValue("title", suggestion.title); setValue("description", suggestion.description); setShowRiskSuggestions(false); }} className="w-full border-b border-border/50 p-3 text-left hover:bg-muted/30">
+                              <p className="text-sm font-medium text-foreground">{suggestion.title}</p>
+                              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground line-clamp-2">{suggestion.description}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                {showRiskSuggestions && riskSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full mt-2 bg-background border border-border rounded-lg shadow-lg">
-                    {/* popup AI title... */}
-                    <div className="max-h-[300px] overflow-y-auto">
-                      {riskSuggestions.map((suggestion, idx) => (
-                        <button key={idx} type="button" onClick={() => { setValue("title", suggestion.title); setValue("description", suggestion.description); setShowRiskSuggestions(false); }} className="w-full p-3 text-left border-b border-border/50 hover:bg-muted/30">
-                          <p className="text-xs font-medium text-foreground">{suggestion.title}</p>
-                          <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{suggestion.description}</p>
-                        </button>
-                      ))}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Deskripsi Kejadian Risiko <span className="text-muted-foreground">*</span></Label>
+                    <Controller name="description" control={control} render={({ field }) => (
+                      <Textarea {...field} placeholder="Contoh: Mesin A mati secara tiba-tiba saat proses produksi berlangsung..." disabled={isRiskLocked} className={cn("min-h-[120px] text-sm", errors.description && "border-destructive")} />
+                    )} />
+                    <FormErrorMessage error={errors.description?.message} />
+                  </div>
+
+                  <div className="grid gap-5 md:grid-cols-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Kode Risiko</Label>
+                      <Controller name="riskCode" control={control} render={({ field }) => (
+                        <Input {...field} placeholder="Terisi otomatis setelah draft disimpan" disabled className="text-sm" />
+                      )} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Assessment Cycle</Label>
+                      <Input value={assessmentCycleDisplay} disabled className="text-sm" />
+                      <p className="text-[11px] text-muted-foreground">Diisi otomatis mengikuti siklus aktif.</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Unit Kerja</Label>
+                      <Controller name="organizationId" control={control} render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange} disabled={isRiskLocked}>
+                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Pilih Unit Kerja" /></SelectTrigger>
+                          <SelectContent>
+                            {organizations.map((u, idx) => <SelectItem key={`${u.id}-${idx}`} value={u.id} className="text-sm">{u.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )} />
                     </div>
                   </div>
-                )}
-              </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Deskripsi Kejadian Risiko <span className="text-muted-foreground">*</span></Label>
-                <Controller name="description" control={control} render={({ field }) => (
-                  <Textarea {...field} placeholder="Contoh: Mesin A mati secara tiba-tiba..." className={cn("min-h-[100px] text-xs", errors.description && "border-destructive")} />
-                )} />
-                <FormErrorMessage error={errors.description?.message} />
-              </div>
+                  <Separator />
 
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Kode Risiko</Label>
-                  <Controller name="riskCode" control={control} render={({ field }) => (
-                    <Input {...field} placeholder="R-XXX (Auto)" disabled className="text-xs" />
-                  )} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Unit Kerja</Label>
-                  <Controller name="organizationId" control={control} render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Pilih Unit Kerja" /></SelectTrigger>
-                      <SelectContent>
-                        {organizations.map((u, idx) => <SelectItem key={`${u.id}-${idx}`} value={u.id} className="text-xs">{u.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  )} />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Sebab <span className="text-muted-foreground">*</span></Label>
-                  <AiFieldButton loading={generatingCause} disabled={false} onClick={handleGenerateCause} label="" />
-                </div>
-                <Controller name="causes" control={control} render={({ field }) => (
-                  <EditableItemsTable items={field.value} onChange={field.onChange} placeholder="Tulis penyebab..." addItemLabel="Tambah Sebab" emptyMessage="Belum ada sebab" />
-                )} />
-                <FormErrorMessage error={errors.causes?.message} />
-              </div>
-
-
-
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Sumber Risiko</Label>
-                  <Controller name="riskSource" control={control} render={({ field }) => (
-                    <Input {...field} placeholder="Internal, SDM..." className="text-xs" />
-                  )} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Controllable / Uncontrollable</Label>
-                  <Controller name="controllability" control={control} render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="C" className="text-xs">Controllable</SelectItem>
-                        <SelectItem value="UC" className="text-xs">Uncontrollable</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )} />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Dampak <span className="text-muted-foreground">*</span></Label>
-                  <AiFieldButton loading={generatingImpact} disabled={false} onClick={handleGenerateImpact} label="" />
-                </div>
-                <Controller name="impacts" control={control} render={({ field }) => (
-                  <EditableItemsTable items={field.value} onChange={field.onChange} placeholder="Tulis dampak..." addItemLabel="Tambah Dampak" />
-                )} />
-                <FormErrorMessage error={errors.impacts?.message} />
-              </div>
-
-            </CardContent>
-          </Card>
-
-          {/* SECTION 2 */}
-          <Card>
-            <CardHeader className="pb-4"><CardTitle className="text-base">2. Analisis Risiko</CardTitle></CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Pengendalian yang Ada</Label>
-                <Controller name="existingControl" control={control} render={({ field }) => (
-                  <EditableList value={field.value || ""} onChange={field.onChange} placeholder="Tulis pengendalian..." />
-                )} />
-              </div>
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Efektivitas Pengendalian</Label>
-                  <Controller name="controlEffectiveness" control={control} render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="— Belum dinilai —" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="efektif" className="text-xs">Efektif</SelectItem>
-                        <SelectItem value="tidak_efektif" className="text-xs">Tidak Efektif</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Bobot</Label>
-                  <Controller name="weight" control={control} render={({ field }) => (
-                    <Input type="number" step="0.1" value={field.value} onChange={(e) => field.onChange(parseFloat(e.target.value))} className="text-xs" />
-                  )} />
-                </div>
-              </div>
-
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">P — Probabilitas (1-5)</Label>
-                  <div className="grid grid-cols-5 gap-1">
-                    {[1, 2, 3, 4, 5].map((val) => (
-                      <button key={val} type="button" onClick={() => setValue("probability", val, {shouldValidate: true})}
-                        className={cn("h-9 rounded-md text-xs font-semibold border",
-                          val === probability ? `${levelToColor(getRiskLevel(val * impact))} font-bold ring-1` : "bg-muted/30"
-                        )}>{val}</button>
-                    ))}
+                  <div className="space-y-1.5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <Label className="text-sm font-medium">Sebab <span className="text-muted-foreground">*</span></Label>
+                      <AiFieldButton loading={generatingCause} disabled={!canUseAiAssist || isRiskLocked} onClick={handleGenerateCause} label="Susun sebab dengan AI" />
+                    </div>
+                    <Controller name="causes" control={control} render={({ field }) => (
+                      <EditableItemsTable items={field.value} onChange={field.onChange} placeholder="Tulis penyebab..." addItemLabel="Tambah Sebab" emptyMessage="Belum ada sebab" disabled={isRiskLocked} />
+                    )} />
+                    <FormErrorMessage error={errors.causes?.message} />
                   </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">D — Dampak (1-5)</Label>
-                  <div className="grid grid-cols-5 gap-1">
-                    {[1, 2, 3, 4, 5].map((val) => (
-                      <button key={val} type="button" onClick={() => setValue("impact", val, {shouldValidate: true})}
-                        className={cn("h-9 rounded-md text-xs font-semibold border",
-                          val === impact ? `${levelToColor(getRiskLevel(probability * val))} font-bold ring-1` : "bg-muted/30"
-                        )}>{val}</button>
-                    ))}
+
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Sumber Risiko</Label>
+                      <Controller name="riskSource" control={control} render={({ field }) => (
+                        <Input {...field} placeholder="Contoh: proses internal, SDM, vendor, regulasi" disabled={isRiskLocked} className="text-sm" />
+                      )} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Tingkat Kendali</Label>
+                      <Controller name="controllability" control={control} render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange} disabled={isRiskLocked}>
+                          <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="C" className="text-sm">Dapat dikendalikan</SelectItem>
+                            <SelectItem value="UC" className="text-sm">Sulit dikendalikan</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )} />
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              <div className={cn("rounded-lg p-4 flex items-center justify-between border", levelToColor(level))}>
-                <div><p className="text-xs font-semibold">Hasil Asesmen</p></div>
-                <div className="text-right"><p className="text-lg font-bold">{getRiskLevelLabel(level)}</p><p className="text-xs font-mono">Skor: {score}</p></div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* SECTION 3 */}
-          <Card>
-            <CardHeader className="pb-4"><CardTitle className="text-base">3. Evaluasi Risiko</CardTitle></CardHeader>
-            <CardContent className="space-y-5">
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Prioritas Risiko</Label>
-                  <Controller name="riskPriority" control={control} render={({ field }) => (
-                    <Input type="number" value={field.value} onChange={(e) => field.onChange(parseInt(e.target.value)||0)} className="text-xs" />
-                  )} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Selera Risiko</Label>
-                  <Controller name="riskAppetite" control={control} render={({ field }) => (
-                     <Input {...field} className="text-xs" />
-                  )} />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Pilihan Penanganan</Label>
-                <Controller name="treatmentOption" control={control} render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="— Belum ditentukan —" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="avoid" className="text-xs">Avoid</SelectItem>
-                      <SelectItem value="mitigate" className="text-xs">Mitigate</SelectItem>
-                      <SelectItem value="transfer" className="text-xs">Transfer</SelectItem>
-                      <SelectItem value="accept" className="text-xs">Accept</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )} />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* SECTION 4 */}
-          <Card>
-            <CardHeader className="pb-4"><CardTitle className="text-base">4. Rencana Penanganan Risiko</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <Controller name="mitigations" control={control} render={({ field }) => (
-                <MitigationTable items={field.value} onChange={field.onChange} users={availableUsers} />
-              )} />
-              <FormErrorMessage error={errors.mitigations?.message} />
-              
-              <MitigationPicker 
-                description={description} 
-                cause={(causes || []).map((c: any) => c.text).join("\\n")} 
-                impactDescription={(impacts || []).map((i: any) => i.text).join("\\n")}
-                onSelect={(action) => setValue("mitigations", [...(mitigations || []), { action, owner: "", dueDate: "", frequency: "insidental" }])}
-                existingActions={(mitigations || []).map((m: any) => m.action)}
-              />
-            </CardContent>
-          </Card>
-
-          {/* SECTION 5 */}
-          <Card>
-            <CardHeader className="pb-4"><CardTitle className="text-base">5. Target Penurunan</CardTitle></CardHeader>
-            <CardContent className="space-y-5">
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Target P (1-5)</Label>
-                  <div className="grid grid-cols-5 gap-1">
-                    {[1, 2, 3, 4, 5].map((val) => (
-                      <button key={val} type="button" onClick={() => setValue("targetProbability", val)}
-                        className={cn("h-9 rounded-md text-xs font-semibold border",
-                          val === targetProbability ? `${levelToColor(getRiskLevel(val * targetImpact))} font-bold ring-1` : "bg-muted/30"
-                        )}>
-                        {val}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Target D (1-5)</Label>
-                  <div className="grid grid-cols-5 gap-1">
-                    {[1, 2, 3, 4, 5].map((val) => (
-                      <button key={val} type="button" onClick={() => setValue("targetImpact", val)}
-                        className={cn("h-9 rounded-md text-xs font-semibold border",
-                          val === targetImpact ? `${levelToColor(getRiskLevel(targetProbability * val))} font-bold ring-1` : "bg-muted/30"
-                        )}>
-                        {val}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Target Bobot</Label>
-                  <Controller name="targetWeight" control={control} render={({ field }) => (
-                    <Input type="number" step="0.1" value={field.value} onChange={e => field.onChange(parseFloat(e.target.value))} className="text-xs" />
-                  )} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Jadwal Review</Label>
-                  <Controller name="nextReviewDate" control={control} render={({ field }) => (
-                    <Input type="date" value={field.value || ""} onChange={field.onChange} className="text-xs" />
-                  )} />
-                </div>
-              </div>
-              <div className={cn("rounded-lg p-4 flex items-center justify-between border", levelToColor(targetLevel))}>
-                <div><p className="text-xs font-semibold">Target Residual Risk</p></div>
-                <div className="text-right"><p className="text-lg font-bold">{getRiskLevelLabel(targetLevel)}</p><p className="text-xs font-mono">Skor: {targetScore}</p></div>
-              </div>
-            </CardContent>
-          </Card>
-        </form>
-
-        <div className="w-full xl:w-1/3 space-y-4 xl:sticky xl:top-24">
-          <Card>
-            <CardContent className="pt-5 pb-4">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Kelengkapan Form</h3>
-              <div className="grid grid-cols-1 gap-1.5">
-                {completenessItems.map((item) => (
-                  <div key={item.label} className={cn("flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium border", item.done ? "bg-success/10 text-success border-success/20" : "bg-muted/30 text-muted-foreground")}>
-                    <div className={cn("w-2 h-2 rounded-full", item.done ? "bg-success" : "bg-muted-foreground/30")} />
-                    {item.label}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-        </TabsContent>
-
-        {riskId && (
-          <>
-            <TabsContent value="progress" className="m-0 space-y-6">
-              <MitigationProgressTab riskId={riskId} token={token || ""} />
-            </TabsContent>
-
-            <TabsContent value="log" className="m-0 space-y-6">
-              <Card className="border-border/50">
-                <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-border/50">
-                  <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <MessageSquare className="size-4" /> Log Komunikasi & Aktivitas
-                  </CardTitle>
-                  <Button size="sm" className="gap-2 text-xs h-8">
-                    <Plus className="size-3.5" /> Tambah Log
-                  </Button>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="flex flex-col items-center justify-center p-8 text-center border-2 border-dashed border-border/60 rounded-lg bg-muted/10">
-                    <MessageSquare className="size-8 text-muted-foreground/50 mb-3" />
-                    <p className="text-sm font-medium">Belum Ada Catatan Komunikasi</p>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                      Gunakan tab ini untuk mencatat hasil rapat, email konsultasi, dan persetujuan terkait risiko ini (Sesuai Prinsip ISO 31000).
-                    </p>
+                  <div className="space-y-1.5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <Label className="text-sm font-medium">Dampak <span className="text-muted-foreground">*</span></Label>
+                      <AiFieldButton loading={generatingImpact} disabled={!canUseAiAssist || isRiskLocked} onClick={handleGenerateImpact} label="Susun dampak dengan AI" />
+                    </div>
+                    <Controller name="impacts" control={control} render={({ field }) => (
+                      <EditableItemsTable items={field.value} onChange={field.onChange} placeholder="Tulis dampak..." addItemLabel="Tambah Dampak" disabled={isRiskLocked} />
+                    )} />
+                    <FormErrorMessage error={errors.impacts?.message} />
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </>
-        )}
-      </Tabs>
+
+              <Card id="analisis" className="scroll-mt-28 border-border/20 bg-card">
+                <SectionHeader
+                  step="2"
+                  title="Analisis Risiko"
+                  ready={sectionStatuses[1].done}
+                />
+                <CardContent className="space-y-5">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Pengendalian yang Ada</Label>
+                    <Controller name="existingControl" control={control} render={({ field }) => (
+                      <EditableList value={field.value || ""} onChange={field.onChange} placeholder="Tulis pengendalian yang sudah berjalan..." disabled={isRiskLocked} />
+                    )} />
+                  </div>
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Efektivitas Pengendalian</Label>
+                      <Controller name="controlEffectiveness" control={control} render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange} disabled={isRiskLocked}>
+                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Belum dinilai" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="efektif" className="text-sm">Efektif</SelectItem>
+                            <SelectItem value="tidak_efektif" className="text-sm">Tidak efektif</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Bobot</Label>
+                      <Controller name="weight" control={control} render={({ field }) => (
+                        <Input type="number" step="0.1" value={field.value} onChange={(e) => field.onChange(parseFloat(e.target.value))} disabled={isRiskLocked} className="text-sm" />
+                      )} />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">P — Probabilitas (1-5)</Label>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {[1, 2, 3, 4, 5].map((val) => (
+                          <button key={val} type="button" disabled={isRiskLocked} onClick={() => setValue("probability", val, { shouldValidate: true })}
+                            className={cn("h-10 rounded-lg border text-sm font-semibold transition-colors",
+                              val === probability ? `${levelToColor(getRiskLevel(val * impact))} ring-1 font-bold` : "bg-muted/30 hover:bg-muted/50",
+                              isRiskLocked && "cursor-not-allowed opacity-70 hover:bg-muted/30"
+                            )}>{val}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">D — Dampak (1-5)</Label>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {[1, 2, 3, 4, 5].map((val) => (
+                          <button key={val} type="button" disabled={isRiskLocked} onClick={() => setValue("impact", val, { shouldValidate: true })}
+                            className={cn("h-10 rounded-lg border text-sm font-semibold transition-colors",
+                              val === impact ? `${levelToColor(getRiskLevel(probability * val))} ring-1 font-bold` : "bg-muted/30 hover:bg-muted/50",
+                              isRiskLocked && "cursor-not-allowed opacity-70 hover:bg-muted/30"
+                            )}>{val}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={cn("flex items-center justify-between rounded-lg border p-4", levelToColor(level))}>
+                    <p className="text-xs font-semibold">Hasil Asesmen</p>
+                    <div className="text-right">
+                      <p className="text-lg font-bold">{getRiskLevelLabel(level)}</p>
+                      <p className="text-xs font-mono">Skor: {score}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card id="evaluasi" className="scroll-mt-28 border-border/20 bg-card">
+                <SectionHeader
+                  step="3"
+                  title="Evaluasi Risiko"
+                  ready={sectionStatuses[2].done}
+                />
+                <CardContent className="space-y-5">
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Prioritas Risiko</Label>
+                      <Controller name="riskPriority" control={control} render={({ field }) => (
+                        <Input type="number" value={field.value} onChange={(e) => field.onChange(parseInt(e.target.value) || 0)} disabled={isRiskLocked} className="text-sm" />
+                      )} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Selera Risiko</Label>
+                      <Controller name="riskAppetite" control={control} render={({ field }) => (
+                        <Input {...field} placeholder="Contoh: rendah, sedang, tinggi" disabled={isRiskLocked} className="text-sm" />
+                      )} />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Pilihan Penanganan</Label>
+                    <Controller name="treatmentOption" control={control} render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange} disabled={isRiskLocked}>
+                        <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Pilih strategi penanganan" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="avoid" className="text-sm">Hindari (Avoid)</SelectItem>
+                          <SelectItem value="mitigate" className="text-sm">Mitigasi (Mitigate)</SelectItem>
+                          <SelectItem value="transfer" className="text-sm">Transfer</SelectItem>
+                          <SelectItem value="accept" className="text-sm">Terima (Accept)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card id="penanganan" className="scroll-mt-28 border-border/20 bg-card">
+                <SectionHeader
+                  step="4"
+                  title="Rencana Penanganan"
+                  ready={sectionStatuses[3].done}
+                />
+                <CardContent className="space-y-4">
+                  <Controller name="mitigations" control={control} render={({ field }) => (
+                    <MitigationTable
+                      items={(field.value ?? []).map((mitigation): MitigationItem => ({
+                        id: mitigation.id,
+                        action: mitigation.action,
+                        owner: mitigation.owner ?? "",
+                        treatmentOwnerId: mitigation.treatmentOwnerId,
+                        dueDate: mitigation.dueDate ?? "",
+                        frequency: (mitigation.frequency as MitigationFrequency | undefined) ?? "insidental",
+                        recurringInterval: mitigation.recurringInterval as RecurringInterval | undefined,
+                        reportDay: mitigation.reportDay,
+                        reportDate: mitigation.reportDate,
+                      }))}
+                      onChange={field.onChange}
+                      users={availableUsers}
+                      disabled={isRiskLocked}
+                    />
+                  )} />
+                  <FormErrorMessage error={errors.mitigations?.message} />
+
+                  <MitigationPicker
+                    title={title}
+                    description={description}
+                    cause={(causes || []).map((cause) => cause.text).join("\n")}
+                    impactDescription={(impacts || []).map((impactItem) => impactItem.text).join("\n")}
+                    onSelect={(action) => setValue("mitigations", [...(mitigations || []), { action, owner: "", dueDate: "", frequency: "insidental" }])}
+                    existingActions={(mitigations || []).map((mitigation) => mitigation.action)}
+                    disabled={isRiskLocked}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card id="target" className="scroll-mt-28 border-border/20 bg-card">
+                <SectionHeader
+                  step="5"
+                  title="Target Penurunan"
+                  ready={sectionStatuses[4].done && sectionStatuses[5].done}
+                />
+                <CardContent className="space-y-5">
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Target P (1-5)</Label>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {[1, 2, 3, 4, 5].map((val) => (
+                          <button key={val} type="button" disabled={isRiskLocked} onClick={() => setValue("targetProbability", val)}
+                            className={cn("h-10 rounded-lg border text-sm font-semibold transition-colors",
+                              val === targetProbability ? `${levelToColor(getRiskLevel(val * targetImpact))} ring-1 font-bold` : "bg-muted/30 hover:bg-muted/50",
+                              isRiskLocked && "cursor-not-allowed opacity-70 hover:bg-muted/30"
+                            )}>
+                            {val}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Target D (1-5)</Label>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {[1, 2, 3, 4, 5].map((val) => (
+                          <button key={val} type="button" disabled={isRiskLocked} onClick={() => setValue("targetImpact", val)}
+                            className={cn("h-10 rounded-lg border text-sm font-semibold transition-colors",
+                              val === targetImpact ? `${levelToColor(getRiskLevel(targetProbability * val))} ring-1 font-bold` : "bg-muted/30 hover:bg-muted/50",
+                              isRiskLocked && "cursor-not-allowed opacity-70 hover:bg-muted/30"
+                            )}>
+                            {val}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Target Bobot</Label>
+                      <Controller name="targetWeight" control={control} render={({ field }) => (
+                        <Input type="number" step="0.1" value={field.value} onChange={e => field.onChange(parseFloat(e.target.value))} disabled={isRiskLocked} className="text-sm" />
+                      )} />
+                    </div>
+                    <div id="jadwal" className="space-y-1.5 scroll-mt-28">
+                      <Label className="text-sm font-medium">Jadwal Review</Label>
+                      <Controller name="nextReviewDate" control={control} render={({ field }) => (
+                        <Input type="date" value={field.value || ""} onChange={field.onChange} disabled={isRiskLocked} className="text-sm" />
+                      )} />
+                    </div>
+                  </div>
+                  <div className={cn("flex items-center justify-between rounded-lg border p-4", levelToColor(targetLevel))}>
+                    <p className="text-xs font-semibold">Target Residual Risk</p>
+                    <div className="text-right">
+                      <p className="text-lg font-bold">{getRiskLevelLabel(targetLevel)}</p>
+                      <p className="text-xs font-mono">Skor: {targetScore}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card id="approval-line" className="scroll-mt-28 border-border/20 bg-card">
+                <SectionHeader
+                  step="6"
+                  title="Approval Line"
+                  ready={approvalLine.length > 0}
+                />
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Pilih urutan user yang akan approve risk ini. Approver pertama harus approve dulu sebelum approver berikutnya aktif.</p>
+
+                  <div className="flex flex-col gap-3 md:flex-row">
+                    <Select value={selectedApproverId} onValueChange={setSelectedApproverId}>
+                      <SelectTrigger className="h-9 text-sm md:w-[320px]"><SelectValue placeholder="Pilih approver" /></SelectTrigger>
+                      <SelectContent>
+                        {availableUsers
+                          .filter((userOption) => !approvalLine.some((item) => item.id === userOption.id))
+                          .map((userOption) => (
+                            <SelectItem key={userOption.id} value={userOption.id} className="text-sm">{userOption.name}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" className="gap-2 text-xs" onClick={addApproverToLine} disabled={!selectedApproverId}>
+                      <Plus className="size-3.5" /> Tambah approver
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {approvalLine.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
+                        Belum ada approver. Tambahkan minimal satu user sebelum klik `Ajukan approval`.
+                      </div>
+                    ) : approvalLine.map((approver, index) => (
+                      <div key={approver.id} className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{index + 1}. {approver.name}</p>
+                          <p className="text-[11px] text-muted-foreground">Urutan approval ke-{index + 1}</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => moveApprover(index, -1)} disabled={index === 0}>
+                            <ChevronUp className="size-4" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => moveApprover(index, 1)} disabled={index === approvalLine.length - 1}>
+                            <ChevronDown className="size-4" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon" className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => removeApprover(approver.id)}>
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </form>
+
+            <div className="w-full space-y-4 xl:sticky xl:top-24 xl:w-1/3">
+              <Card className="border-border/20 bg-card">
+                <CardContent className="pt-5 pb-4">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <h3 className="text-sm font-semibold">Kesiapan Finalisasi</h3>
+                    <Badge variant="outline" className="border-primary/20 bg-primary/[0.04] text-primary">
+                      {completedSectionCount}/{sectionStatuses.length}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {sectionStatuses.map((section) => (
+                      <button
+                        key={section.id}
+                        type="button"
+                        onClick={() => scrollToSection(section.id)}
+                        className={cn(
+                          "rounded-xl border px-3 py-3 text-left transition-colors",
+                          section.done ? "border-success/20 bg-success/10" : "border-border/60 bg-muted/20 hover:bg-muted/40",
+                        )}
+                      >
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          {section.done ? <CheckCircle2 className="size-4 text-success" /> : <CircleDot className="size-4 text-muted-foreground" />}
+                          {section.step}. {section.title}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+        </div>
+      )}
+
+      {activeView === "progress" && riskId && (
+        <div className="space-y-6">
+          <MitigationProgressTab riskId={riskId} token={token || ""} />
+        </div>
+      )}
+
+      {activeView === "log" && riskId && (
+        <RiskLogTimeline riskId={riskId} token={token || ""} />
+      )}
+
+      <Dialog open={showApprovalConfirm} onOpenChange={setShowApprovalConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Pengajuan Approval</DialogTitle>
+            <DialogDescription>
+              Anda akan mengajukan risiko ini untuk persetujuan. Risk akan dikirim ke approver berikut:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {approvalLine.map((approver, index) => (
+              <div key={approver.id} className="flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+                  {index + 1}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{approver.name}</p>
+                  <p className="text-xs text-muted-foreground">Approver #{index + 1}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowApprovalConfirm(false)}>
+              Batal
+            </Button>
+            <Button size="sm" onClick={() => {
+              setShowApprovalConfirm(false);
+              handleSubmit(onSubmit, onValidationError)();
+            }}>
+              <CheckCircle2 className="size-3.5" /> Ya, Ajukan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Hapus Draft Risiko?</DialogTitle>
+            <DialogDescription>
+              Draft yang dihapus tidak bisa dikembalikan. Risiko berstatus final harus dikembalikan ke draft terlebih dahulu sebelum dapat dihapus.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+            <p className="font-medium">{title || "Tanpa judul"}</p>
+            <p className="text-xs text-muted-foreground">{riskId || "Belum tersimpan"}</p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+              Batal
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteDraft}>
+              <Trash2 className="size-3.5" /> Hapus Draft
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

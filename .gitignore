@@ -42,6 +42,7 @@ vendor/
 # IDE / Editor
 .idea/
 .vscode/
+.worktrees/
 *.swp
 *.swo
 *~

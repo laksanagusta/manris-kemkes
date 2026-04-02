@@ -13,12 +13,18 @@ type RiskRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*entity.Risk, error)
 	Update(ctx context.Context, risk *entity.Risk) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	List(ctx context.Context, orgID *uuid.UUID, status string) ([]*entity.Risk, error)
-	ListMitigations(ctx context.Context, orgID *uuid.UUID) ([]*entity.MitigationAssoc, error)
+	List(ctx context.Context, orgIDs []uuid.UUID, status string) ([]*entity.Risk, error)
+	ListMitigations(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationAssoc, error)
 	NextRiskCode(ctx context.Context) (string, error)
 
 	// Dashboard methods
 	DashboardSummary(ctx context.Context) (*entity.DashboardSummary, error)
 	HeatmapData(ctx context.Context) ([]*entity.HeatmapCell, error)
 	TopRisks(ctx context.Context, limit int) ([]*entity.Risk, error)
+	ListVersions(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.Risk, error)
+	ListCycleSnapshot(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error)
+	ActivateApprovedVersion(ctx context.Context, approvedRiskID uuid.UUID) error
+	ListReviewQueue(ctx context.Context, cycle string, orgIDs []uuid.UUID, status string) ([]*entity.RiskReviewQueueItem, error)
+	CompareCycles(ctx context.Context, fromCycle string, toCycle string, orgIDs []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error)
+	RiskReviewSummary(ctx context.Context, cycle string, orgIDs []uuid.UUID) (*entity.RiskReviewSummary, error)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -205,6 +206,17 @@ func (r *meetingMinuteRepository) List(ctx context.Context, opts repository.List
 	}
 
 	return results, total, nil
+}
+
+func (r *meetingMinuteRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	commandTag, err := r.pool.Exec(ctx, `DELETE FROM meeting_minutes WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete meeting minute: %w", err)
+	}
+	if commandTag.RowsAffected() == 0 {
+		return domainerrors.ErrNotFound
+	}
+	return nil
 }
 
 func (r *meetingMinuteRepository) ListByRiskID(ctx context.Context, riskID uuid.UUID) ([]entity.MeetingMinutesRisk, error) {

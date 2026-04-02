@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 )
 
@@ -12,6 +13,6 @@ type IncidentRepository interface {
 	GetByID(ctx context.Context, id string) (*entity.Incident, error)
 	Update(ctx context.Context, incident *entity.Incident) error
 	Delete(ctx context.Context, id string) error
-	List(ctx context.Context, filters map[string]string) ([]*entity.Incident, error)
+	List(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Incident, error)
 	GetSummary(ctx context.Context, orgID string) (map[string]interface{}, error)
 }

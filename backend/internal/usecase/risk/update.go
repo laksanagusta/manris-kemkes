@@ -61,6 +61,11 @@ type UpdateRiskInput struct {
 	TargetImpact      int
 	TargetWeight      float64
 	NextReviewDate    *string
+	AssessmentCycle   string
+	ReviewType        string
+	ChangeReason      string
+	ReviewSummary     string
+	DraftApprovalLine []entity.ApprovalLineMember
 }
 
 type UpdateRiskOutput struct {
@@ -106,6 +111,12 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput)
 	existingRisk.Description = input.Description
 	existingRisk.Status = input.Status
 	existingRisk.OrganizationID = input.OrganizationID
+	if input.AssessmentCycle == "" {
+		input.AssessmentCycle = existingRisk.AssessmentCycle
+		if input.AssessmentCycle == "" {
+			input.AssessmentCycle = currentAssessmentCycle()
+		}
+	}
 
 	// Section 1
 	existingRisk.Cause = input.Cause
@@ -133,6 +144,11 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput)
 	existingRisk.TargetImpact = input.TargetImpact
 	existingRisk.TargetWeight = input.TargetWeight
 	existingRisk.NextReviewDate = input.NextReviewDate
+	existingRisk.AssessmentCycle = input.AssessmentCycle
+	existingRisk.ReviewType = input.ReviewType
+	existingRisk.ChangeReason = input.ChangeReason
+	existingRisk.ReviewSummary = input.ReviewSummary
+	existingRisk.DraftApprovalLine = input.DraftApprovalLine
 
 	// 6. Validate risk entity
 	if err := existingRisk.Validate(); err != nil {

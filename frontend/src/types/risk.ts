@@ -7,6 +7,8 @@ export type RiskStatus = "draft" | "final" | "approved" | "rejected";
 
 export type RiskLevel = "rendah" | "sedang" | "tinggi" | "ekstrem";
 
+export type RiskReviewType = "periodic" | "ad_hoc";
+
 export interface RiskMitigation {
   id?: string;
   action: string;
@@ -17,6 +19,7 @@ export interface RiskMitigation {
   recurringInterval?: RecurringInterval;
   reportDay?: number;   // 0=Sun..6=Sat (for mingguan)
   reportDate?: number;  // 1-31 (for bulanan/triwulan)
+  executionScheduleText?: string;
   targetCost?: number;
 }
 
@@ -56,9 +59,164 @@ export interface RiskVersion {
   createdAt: string;
 }
 
+export interface RiskVersionTimelineItem {
+  id: string;
+  code?: string;
+  title: string;
+  status: RiskStatus;
+  isCurrent: boolean;
+  versionGroupId: string;
+  previousRiskId?: string | null;
+  probability: number;
+  impact: number;
+  inherentScore: number;
+  targetScore?: number;
+  assessmentCycle?: string;
+  reviewType?: RiskReviewType | "";
+  changeReason?: string;
+  reviewSummary?: string;
+  createdAt: string;
+  updatedAt?: string;
+  orgName?: string;
+}
+
+export type RiskReviewStatus = "due" | "in_draft" | "pending_approval" | "approved" | "overdue" | "rejected";
+
+export interface RiskReviewQueueItem {
+  riskId: string;
+  versionGroupId: string;
+  code: string;
+  title: string;
+  orgName: string;
+  currentStatus: RiskStatus | string;
+  reviewStatus: RiskReviewStatus | string;
+  assessmentCycle: string;
+  currentScore: number;
+  currentLevel: string;
+  candidateRiskId?: string | null;
+  candidateStatus?: string | null;
+  candidateScore?: number | null;
+  candidateLevel?: string | null;
+  nextReviewDate?: string | null;
+  changeReason?: string;
+  reviewSummary?: string;
+  candidateUpdatedAt?: string | null;
+}
+
+export interface RiskCycleComparisonItem {
+  versionGroupId: string;
+  code: string;
+  title: string;
+  orgName: string;
+  fromCycle: string;
+  toCycle: string;
+  previousScore: number;
+  currentScore: number;
+  previousLevel: string;
+  currentLevel: string;
+  scoreDelta: number;
+  movement: "up" | "down" | "stable" | string;
+  changeReason?: string;
+}
+
+export interface RiskFieldDiff {
+  field: string;
+  label: string;
+  before?: unknown;
+  after?: unknown;
+  changeType: "added" | "removed" | "modified" | string;
+}
+
+export interface RiskMitigationDiff {
+  rowKey: string;
+  changeType: "added" | "removed" | "modified" | string;
+  fieldDiffs: RiskFieldDiff[];
+  beforeLabel?: string;
+  afterLabel?: string;
+}
+
+export interface RiskCycleSideBySideSnapshot {
+  description?: string;
+  cause?: string[];
+  existingControl?: string;
+  probability?: number;
+  impact?: number;
+  inherentScore?: number;
+  riskPriority?: number;
+  treatmentOption?: string;
+  targetProbability?: number;
+  targetImpact?: number;
+  targetScore?: number;
+  nextReviewDate?: string;
+  mitigations?: string[];
+}
+
+export interface RiskCycleDetailedComparisonItem {
+  changeCategory: "changed" | "stable" | "added" | "removed" | string;
+  versionGroupId: string;
+  code: string;
+  title: string;
+  orgName: string;
+  fromCycle: string;
+  toCycle: string;
+  fromRiskId?: string;
+  toRiskId?: string;
+  fromSnapshot?: RiskCycleSideBySideSnapshot;
+  toSnapshot?: RiskCycleSideBySideSnapshot;
+  fieldDiffs: RiskFieldDiff[];
+  mitigationDiffs: RiskMitigationDiff[];
+  changeReason?: string;
+  reviewSummary?: string;
+}
+
+export interface RiskCycleDetailedComparisonSummary {
+  fromCycle: string;
+  toCycle: string;
+  totalFrom: number;
+  totalTo: number;
+  addedCount: number;
+  removedCount: number;
+  changedCount: number;
+  stableCount: number;
+}
+
+export interface RiskCycleDetailedComparisonReport {
+  summary: RiskCycleDetailedComparisonSummary;
+  items: RiskCycleDetailedComparisonItem[];
+}
+
+export interface HeatmapCell {
+  probability: number;
+  impact: number;
+  count: number;
+}
+
+export interface RiskReviewUnitCompletion {
+  orgName: string;
+  totalAssigned: number;
+  completed: number;
+  pending: number;
+  overdue: number;
+  completionRate: number;
+}
+
+export interface RiskReviewSummary {
+  cycle: string;
+  previousCycle: string;
+  totalDue: number;
+  completed: number;
+  pendingApproval: number;
+  overdue: number;
+  inDraft: number;
+  unitCompletion: RiskReviewUnitCompletion[];
+  previousHeatmap: HeatmapCell[];
+  currentHeatmap: HeatmapCell[];
+}
+
 export interface Risk {
   id: string;
   riskCode: string;
+  code?: string;
   title: string;
   description: string;
   unitId: string;
@@ -82,5 +240,16 @@ export interface Risk {
   targetWeight: number;
   nextReviewDate: string;
   status: RiskStatus;
+  versionGroupId?: string;
+  previousRiskId?: string | null;
+  isCurrent?: boolean;
+  assessmentCycle?: string;
+  reviewType?: RiskReviewType | "";
+  changeReason?: string;
+  reviewSummary?: string;
+  orgName?: string;
+  createdByName?: string;
+  updatedAt?: string;
+  inherentScore?: number;
   fishboneDraft?: import("./fishbone").FishboneDraft | null;
 }

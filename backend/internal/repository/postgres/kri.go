@@ -93,7 +93,7 @@ func (r *kriRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // List retrieves KRIs with optional filters
-func (r *kriRepository) List(ctx context.Context, orgID *uuid.UUID) ([]*entity.KRI, error) {
+func (r *kriRepository) List(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.KRI, error) {
 	query := `
 		SELECT k.id, k.risk_id, r.code as risk_code, r.title as risk_title,
 		       k.name, k.description, k.metric, k.threshold_min, k.threshold_max,
@@ -101,14 +101,15 @@ func (r *kriRepository) List(ctx context.Context, orgID *uuid.UUID) ([]*entity.K
 		       k.organization_id, o.name as org_name, k.last_updated, k.created_at
 		FROM kris k
 		LEFT JOIN risks r ON k.risk_id = r.id
-		LEFT JOIN organizations o ON k.organization_id = o.id`
+		LEFT JOIN organizations o ON k.organization_id = o.id
+		WHERE 1=1`
 
 	args := []interface{}{}
 	argIdx := 1
 
-	if orgID != nil {
-		query += fmt.Sprintf(" WHERE k.organization_id = $%d", argIdx)
-		args = append(args, orgID)
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND k.organization_id = ANY($%d)", argIdx)
+		args = append(args, orgIDs)
 		argIdx++
 	}
 
@@ -138,19 +139,20 @@ func (r *kriRepository) List(ctx context.Context, orgID *uuid.UUID) ([]*entity.K
 }
 
 // GetDashboard retrieves dashboard metrics for KRIs
-func (r *kriRepository) GetDashboard(ctx context.Context, orgID *uuid.UUID) (map[string]interface{}, error) {
+func (r *kriRepository) GetDashboard(ctx context.Context, orgIDs []uuid.UUID) (map[string]interface{}, error) {
 	query := `
 		SELECT
 			COUNT(*) as total,
 			COUNT(*) FILTER (WHERE current_value > threshold_max OR current_value < threshold_min) as breached,
 			COUNT(*) FILTER (WHERE direction = 'increasing' AND current_value >= threshold_max * 0.9) as warning,
 			COUNT(*) FILTER (WHERE direction = 'decreasing' AND current_value <= threshold_min * 1.1) as warning_down
-		FROM kris`
+		FROM kris
+		WHERE 1=1`
 
 	args := []interface{}{}
-	if orgID != nil {
-		query += " WHERE organization_id = $1"
-		args = append(args, orgID)
+	if len(orgIDs) > 0 {
+		query += " AND organization_id = ANY($1)"
+		args = append(args, orgIDs)
 	}
 
 	var total, breached, warning, warningDown int

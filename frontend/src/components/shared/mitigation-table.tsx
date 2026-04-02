@@ -23,6 +23,7 @@ export interface MitigationItem {
   recurringInterval?: RecurringInterval;
   reportDay?: number;   // 0=Sun..6=Sat
   reportDate?: number;  // 1-31
+  executionScheduleText?: string;
 }
 
 interface MitigationTableProps {

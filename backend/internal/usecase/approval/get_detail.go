@@ -27,21 +27,24 @@ type GetApprovalDetailInput struct {
 
 // Output represents the output of getting approval detail
 type GetApprovalDetailOutput struct {
-	ID                  string
-	RequestType         string
-	EntityID            string
-	EntityCode          *string
-	EntityTitle         *string
-	EntityOrgName       *string
-	RequestedBy         string
-	RequestedByName     string
-	RequestedAt         string
-	CurrentStatus       string
-	CurrentApproverRole string
-	Notes               string
-	CreatedAt           string
-	UpdatedAt           string
-	History             []HistoryOutput
+	ID                    string
+	RequestType           string
+	EntityID              string
+	EntityCode            *string
+	EntityTitle           *string
+	EntityOrgName         *string
+	RequestedBy           string
+	RequestedByName       string
+	RequestedAt           string
+	CurrentStatus         string
+	CurrentApproverRole   string
+	CurrentApproverUserID *string
+	CurrentApproverName   *string
+	Notes                 string
+	CreatedAt             string
+	UpdatedAt             string
+	History               []HistoryOutput
+	Steps                 []StepOutput
 }
 
 // HistoryOutput represents history in the output
@@ -53,6 +56,17 @@ type HistoryOutput struct {
 	ActorRole string
 	Comments  string
 	CreatedAt string
+}
+
+type StepOutput struct {
+	ID             string
+	SequenceNo     int
+	ApproverUserID string
+	ApproverName   string
+	ApproverRole   string
+	Status         string
+	ActedAt        *string
+	Comments       string
 }
 
 // Execute executes the get approval detail usecase
@@ -82,22 +96,48 @@ func (uc *GetApprovalDetailUseCase) Execute(ctx context.Context, input GetApprov
 			CreatedAt: h.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
 	}
+	steps := make([]StepOutput, len(req.Steps))
+	for i, step := range req.Steps {
+		var actedAt *string
+		if step.ActedAt != nil {
+			value := step.ActedAt.Format("2006-01-02T15:04:05Z07:00")
+			actedAt = &value
+		}
+		steps[i] = StepOutput{
+			ID:             step.ID.String(),
+			SequenceNo:     step.SequenceNo,
+			ApproverUserID: step.ApproverUserID.String(),
+			ApproverName:   step.ApproverName,
+			ApproverRole:   step.ApproverRole,
+			Status:         step.Status,
+			ActedAt:        actedAt,
+			Comments:       step.Comments,
+		}
+	}
+	var currentApproverUserID *string
+	if req.CurrentApproverUserID != nil {
+		value := req.CurrentApproverUserID.String()
+		currentApproverUserID = &value
+	}
 
 	return &GetApprovalDetailOutput{
-		ID:                  req.ID.String(),
-		RequestType:         req.RequestType,
-		EntityID:            req.EntityID.String(),
-		EntityCode:          req.EntityCode,
-		EntityTitle:         req.EntityTitle,
-		EntityOrgName:       req.EntityOrgName,
-		RequestedBy:         req.RequestedBy.String(),
-		RequestedByName:     req.RequestedByName,
-		RequestedAt:         req.RequestedAt.Format("2006-01-02T15:04:05Z07:00"),
-		CurrentStatus:       req.CurrentStatus,
-		CurrentApproverRole: req.CurrentApproverRole,
-		Notes:               req.Notes,
-		CreatedAt:           req.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:           req.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		History:             history,
+		ID:                    req.ID.String(),
+		RequestType:           req.RequestType,
+		EntityID:              req.EntityID.String(),
+		EntityCode:            req.EntityCode,
+		EntityTitle:           req.EntityTitle,
+		EntityOrgName:         req.EntityOrgName,
+		RequestedBy:           req.RequestedBy.String(),
+		RequestedByName:       req.RequestedByName,
+		RequestedAt:           req.RequestedAt.Format("2006-01-02T15:04:05Z07:00"),
+		CurrentStatus:         req.CurrentStatus,
+		CurrentApproverRole:   req.CurrentApproverRole,
+		CurrentApproverUserID: currentApproverUserID,
+		CurrentApproverName:   req.CurrentApproverName,
+		Notes:                 req.Notes,
+		CreatedAt:             req.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:             req.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		History:               history,
+		Steps:                 steps,
 	}, nil
 }

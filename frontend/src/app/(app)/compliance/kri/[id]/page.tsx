@@ -29,7 +29,7 @@ import {
 export default function KRIDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   
   const [kri, setKri] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +66,7 @@ export default function KRIDetailPage() {
           <AlertCircle className="size-10 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-bold">KRI Tidak Ditemukan</h2>
           <p className="text-sm text-muted-foreground mt-2 mb-4">Indikator tidak ditemukan atau Anda tidak memiliki akses.</p>
-          <Button onClick={() => router.push("/kri")} variant="outline">Kembali ke KRI Monitor</Button>
+          <Button onClick={() => router.push("/compliance/monitoring?tab=kri")} variant="outline">Kembali ke tab KRI</Button>
         </div>
       </div>
     );
@@ -101,16 +101,18 @@ export default function KRIDetailPage() {
     return Math.max(0, Math.min(100, normalized));
   }
 
-  const handleDelete = async () => {
-    if (confirm("Apakah Anda yakin ingin menghapus KRI ini?")) {
-      try {
+  const handleDelete = () => {
+    toast.promise(
+      (async () => {
         await api.delete(`/kris/${kri.id}`, token || undefined);
-        router.push("/kri");
-      } catch (err) {
-         console.error(err);
-         toast.error("Gagal menghapus KRI");
+        router.push("/compliance/monitoring?tab=kri");
+      })(),
+      {
+        loading: "Menghapus KRI...",
+        success: "KRI berhasil dihapus.",
+        error: "Gagal menghapus KRI.",
       }
-    }
+    );
   };
 
   return (

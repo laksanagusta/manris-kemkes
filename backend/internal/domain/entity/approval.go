@@ -10,24 +10,41 @@ import (
 // ApprovalRequest represents an approval request for risks/incidents.
 // This is a domain entity that contains business logic.
 type ApprovalRequest struct {
-	ID                  uuid.UUID
-	RequestType         string // 'risk' or 'incident'
-	EntityID            uuid.UUID
-	RequestedBy         uuid.UUID
-	RequestedByName     string
-	RequestedAt         time.Time
-	CurrentStatus       string // 'pending', 'approved', 'rejected'
-	CurrentApproverRole string // 'reviewer' or 'pimpinan'
-	Notes               string
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+	ID                    uuid.UUID
+	RequestType           string // 'risk' or 'incident'
+	EntityID              uuid.UUID
+	RequestedBy           uuid.UUID
+	RequestedByName       string
+	RequestedAt           time.Time
+	CurrentStatus         string // 'pending', 'approved', 'rejected'
+	CurrentApproverRole   string // 'reviewer' or 'pimpinan'
+	CurrentApproverUserID *uuid.UUID
+	Notes                 string
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 
 	// Joined data for display (not part of core domain)
-	EntityCode    *string
-	EntityTitle   *string
-	EntityOrgID   *uuid.UUID
-	EntityOrgName *string
-	History       []ApprovalHistory
+	EntityCode          *string
+	EntityTitle         *string
+	EntityOrgID         *uuid.UUID
+	EntityOrgName       *string
+	CurrentApproverName *string
+	History             []ApprovalHistory
+	Steps               []ApprovalStep
+}
+
+type ApprovalStep struct {
+	ID                uuid.UUID
+	ApprovalRequestID uuid.UUID
+	SequenceNo        int
+	ApproverUserID    uuid.UUID
+	ApproverName      string
+	ApproverRole      string
+	Status            string
+	ActedAt           *time.Time
+	Comments          string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // ApprovalHistory represents the audit trail for approval workflow.

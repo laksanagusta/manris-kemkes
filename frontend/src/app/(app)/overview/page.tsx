@@ -255,7 +255,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base font-semibold">
-                  Risk Heatmap 5×5
+                  Heatmap Risiko
                 </CardTitle>
                 <p className="text-xs text-muted-foreground mt-1">
                   Distribusi risiko berdasarkan Probabilitas × Dampak

@@ -54,6 +54,9 @@ var (
 	ErrInvalidProbability = &AppError{Code: "INVALID_PROBABILITY", Message: "probability must be between 1-5"}
 	ErrInvalidImpact      = &AppError{Code: "INVALID_IMPACT", Message: "impact must be between 1-5"}
 	ErrInvalidOwner       = &AppError{Code: "INVALID_OWNER", Message: "owner cannot be empty"}
+	ErrInvalidFileType    = &AppError{Code: "INVALID_FILE_TYPE", Message: "only PDF files are supported"}
+	ErrFileTooLarge       = &AppError{Code: "FILE_TOO_LARGE", Message: "file exceeds the maximum allowed size"}
+	ErrDocumentUnreadable = &AppError{Code: "DOCUMENT_UNREADABLE", Message: "document could not be read as text"}
 
 	// Not found errors
 	ErrNotFound         = &AppError{Code: "NOT_FOUND", Message: "resource not found"}
@@ -141,5 +144,8 @@ func IsValidation(err error) bool {
 		errors.Is(err, ErrInvalidSeverity) ||
 		errors.Is(err, ErrInvalidProbability) ||
 		errors.Is(err, ErrInvalidImpact) ||
-		errors.Is(err, ErrInvalidOwner)
+		errors.Is(err, ErrInvalidOwner) ||
+		errors.Is(err, ErrInvalidFileType) ||
+		errors.Is(err, ErrFileTooLarge) ||
+		errors.Is(err, ErrDocumentUnreadable)
 }

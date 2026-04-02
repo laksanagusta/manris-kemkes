@@ -1,0 +1,295 @@
+package risk
+
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
+)
+
+func TestCompareRiskCycleDetailsUseCase_ExecuteReturnsDetailedChanges(t *testing.T) {
+	changedGroupID := uuid.New()
+	stableGroupID := uuid.New()
+	removedGroupID := uuid.New()
+	addedGroupID := uuid.New()
+
+	repo := &fakeReassessRiskRepo{}
+	repo.listCycleSnapshot = func(_ context.Context, cycle string, _ []uuid.UUID) ([]*entity.Risk, error) {
+		switch cycle {
+		case "2025-H2":
+			return []*entity.Risk{
+				{
+					ID:             uuid.New(),
+					VersionGroupID: changedGroupID,
+					Code:           "R-001",
+					Title:          "Distribusi vaksin terlambat",
+					OrgName:        "Dit. Surveilans",
+					Description:    "Versi awal",
+					Probability:    3,
+					Impact:         4,
+					InherentScore:  12,
+					Cause:          []string{"Vendor tunggal"},
+					Mitigations: []entity.Mitigation{{
+						Action:    "Koordinasi vendor A",
+						Owner:     "Tim logistik",
+						Frequency: "rutin",
+						SortOrder: 1,
+					}},
+				},
+				{
+					ID:             uuid.New(),
+					VersionGroupID: stableGroupID,
+					Code:           "R-002",
+					Title:          "Kegagalan backup data",
+					OrgName:        "Pusdatin",
+					Description:    "Tetap sama",
+					Probability:    2,
+					Impact:         3,
+					InherentScore:  6,
+				},
+				{
+					ID:             uuid.New(),
+					VersionGroupID: removedGroupID,
+					Code:           "R-003",
+					Title:          "Risiko lama",
+					OrgName:        "Dit. Imunisasi",
+					Probability:    2,
+					Impact:         2,
+					InherentScore:  4,
+				},
+			}, nil
+		case "2026-H1":
+			return []*entity.Risk{
+				{
+					ID:             uuid.New(),
+					VersionGroupID: changedGroupID,
+					Code:           "R-001",
+					Title:          "Distribusi vaksin terlambat",
+					OrgName:        "Dit. Surveilans",
+					Description:    "Versi revisi",
+					Probability:    4,
+					Impact:         4,
+					InherentScore:  16,
+					Cause:          []string{"Vendor tunggal", "Cuaca buruk"},
+					Mitigations: []entity.Mitigation{{
+						Action:    "Koordinasi vendor A dan B",
+						Owner:     "Tim logistik",
+						Frequency: "rutin",
+						SortOrder: 1,
+					}},
+					ChangeReason: "Semester baru",
+				},
+				{
+					ID:             uuid.New(),
+					VersionGroupID: stableGroupID,
+					Code:           "R-002",
+					Title:          "Kegagalan backup data",
+					OrgName:        "Pusdatin",
+					Description:    "Tetap sama",
+					Probability:    2,
+					Impact:         3,
+					InherentScore:  6,
+				},
+				{
+					ID:             uuid.New(),
+					VersionGroupID: addedGroupID,
+					Code:           "R-004",
+					Title:          "Risiko baru",
+					OrgName:        "Dit. Imunisasi",
+					Probability:    5,
+					Impact:         4,
+					InherentScore:  20,
+				},
+			}, nil
+		default:
+			return nil, nil
+		}
+	}
+
+	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
+	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{
+		FromCycle: "2025-H2",
+		ToCycle:   "2026-H1",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if report == nil || report.Summary == nil {
+		t.Fatal("expected report summary")
+	}
+	if report.Summary.ChangedCount != 1 {
+		t.Fatalf("expected 1 changed risk, got %d", report.Summary.ChangedCount)
+	}
+	if report.Summary.AddedCount != 1 {
+		t.Fatalf("expected 1 added risk, got %d", report.Summary.AddedCount)
+	}
+	if report.Summary.RemovedCount != 1 {
+		t.Fatalf("expected 1 removed risk, got %d", report.Summary.RemovedCount)
+	}
+	if report.Summary.StableCount != 1 {
+		t.Fatalf("expected 1 stable risk, got %d", report.Summary.StableCount)
+	}
+	if len(report.Items) != 3 {
+		t.Fatalf("expected 3 visible items without stable rows, got %d", len(report.Items))
+	}
+
+	var changed *entity.RiskCycleDetailedComparisonItem
+	for _, item := range report.Items {
+		if item.ChangeCategory == "changed" {
+			changed = item
+			break
+		}
+	}
+	if changed == nil {
+		t.Fatal("expected a changed item")
+	}
+	if !hasFieldDiff(changed.FieldDiffs, "probability", "modified") {
+		t.Fatal("expected probability diff in changed risk")
+	}
+	if !hasFieldDiff(changed.FieldDiffs, "description", "modified") {
+		t.Fatal("expected description diff in changed risk")
+	}
+	if len(changed.MitigationDiffs) != 1 {
+		t.Fatalf("expected 1 mitigation diff, got %d", len(changed.MitigationDiffs))
+	}
+	if changed.MitigationDiffs[0].ChangeType != "modified" {
+		t.Fatalf("expected mitigation diff type modified, got %q", changed.MitigationDiffs[0].ChangeType)
+	}
+	if !hasFieldDiff(changed.MitigationDiffs[0].FieldDiffs, "action", "modified") {
+		t.Fatal("expected mitigation action diff")
+	}
+	if changed.ChangeReason != "Semester baru" {
+		t.Fatalf("expected change reason from target cycle, got %q", changed.ChangeReason)
+	}
+	if changed.FromSnapshot == nil || changed.ToSnapshot == nil {
+		t.Fatal("expected side-by-side snapshots to be populated")
+	}
+	if changed.FromSnapshot.Description != "Versi awal" {
+		t.Fatalf("expected from snapshot description, got %q", changed.FromSnapshot.Description)
+	}
+	if changed.ToSnapshot.Description != "Versi revisi" {
+		t.Fatalf("expected to snapshot description, got %q", changed.ToSnapshot.Description)
+	}
+	if changed.FromSnapshot.Probability != 3 || changed.ToSnapshot.Probability != 4 {
+		t.Fatalf("expected probability snapshots 3->4, got %d->%d", changed.FromSnapshot.Probability, changed.ToSnapshot.Probability)
+	}
+	if len(changed.FromSnapshot.Mitigations) != 1 || len(changed.ToSnapshot.Mitigations) != 1 {
+		t.Fatalf("expected mitigation summaries in snapshots, got %d and %d", len(changed.FromSnapshot.Mitigations), len(changed.ToSnapshot.Mitigations))
+	}
+	if !strings.Contains(changed.FromSnapshot.Mitigations[0], "Koordinasi vendor A") {
+		t.Fatalf("expected from mitigation summary to contain action, got %q", changed.FromSnapshot.Mitigations[0])
+	}
+	if !strings.Contains(changed.ToSnapshot.Mitigations[0], "Koordinasi vendor A dan B") {
+		t.Fatalf("expected to mitigation summary to contain action, got %q", changed.ToSnapshot.Mitigations[0])
+	}
+	if strings.TrimSpace(report.Summary.FromCycle) != "2025-H2" || strings.TrimSpace(report.Summary.ToCycle) != "2026-H1" {
+		t.Fatal("expected cycles to be echoed in summary")
+	}
+}
+
+func TestCompareRiskCycleDetailsUseCase_ExecuteIncludesStableWhenRequested(t *testing.T) {
+	repo := &fakeReassessRiskRepo{}
+	groupID := uuid.New()
+	repo.listCycleSnapshot = func(_ context.Context, _ string, _ []uuid.UUID) ([]*entity.Risk, error) {
+		return []*entity.Risk{{
+			ID:             uuid.New(),
+			VersionGroupID: groupID,
+			Code:           "R-010",
+			Title:          "Risiko stabil",
+			Probability:    3,
+			Impact:         3,
+			InherentScore:  9,
+		}}, nil
+	}
+
+	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
+	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{
+		FromCycle:     "2025-H2",
+		ToCycle:       "2026-H1",
+		IncludeStable: true,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(report.Items) != 1 {
+		t.Fatalf("expected stable row to be included, got %d items", len(report.Items))
+	}
+	if report.Items[0].ChangeCategory != "stable" {
+		t.Fatalf("expected stable change category, got %q", report.Items[0].ChangeCategory)
+	}
+	if len(report.Items[0].FieldDiffs) != 0 {
+		t.Fatalf("expected no field diffs for stable row, got %d", len(report.Items[0].FieldDiffs))
+	}
+}
+
+func TestCompareRiskCycleDetailsUseCase_ExecuteRejectsMissingCycles(t *testing.T) {
+	uc := NewCompareRiskCycleDetailsUseCase(&fakeReassessRiskRepo{}, nil)
+	_, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "", ToCycle: "2026-H1"})
+	if !domainerrors.IsValidation(err) {
+		t.Fatalf("expected validation error, got %v", err)
+	}
+}
+
+func TestCompareRiskCycleDetailsUseCase_ExecuteMatchesMitigationsBeforeSortOrder(t *testing.T) {
+	groupID := uuid.New()
+	repo := &fakeReassessRiskRepo{}
+	repo.listCycleSnapshot = func(_ context.Context, cycle string, _ []uuid.UUID) ([]*entity.Risk, error) {
+		base := &entity.Risk{
+			ID:             uuid.New(),
+			VersionGroupID: groupID,
+			Code:           "R-020",
+			Title:          "Risiko mitigasi bergeser",
+			Probability:    3,
+			Impact:         4,
+			InherentScore:  12,
+		}
+		switch cycle {
+		case "2025-H2":
+			base.Mitigations = []entity.Mitigation{
+				{Action: "Validasi vendor", Owner: "Tim A", Frequency: "rutin", SortOrder: 1},
+				{Action: "Monitoring stok", Owner: "Tim B", Frequency: "rutin", SortOrder: 2},
+			}
+		case "2026-H1":
+			base.Mitigations = []entity.Mitigation{
+				{Action: "Briefing mingguan", Owner: "Tim C", Frequency: "rutin", SortOrder: 1},
+				{Action: "Validasi vendor", Owner: "Tim A", Frequency: "rutin", SortOrder: 2},
+				{Action: "Monitoring stok", Owner: "Tim B", Frequency: "rutin", SortOrder: 3},
+			}
+		}
+		return []*entity.Risk{base}, nil
+	}
+
+	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
+	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-H2", ToCycle: "2026-H1"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(report.Items) != 1 {
+		t.Fatalf("expected one changed item, got %d", len(report.Items))
+	}
+	item := report.Items[0]
+	if item.ChangeCategory != "changed" {
+		t.Fatalf("expected changed category, got %q", item.ChangeCategory)
+	}
+	if len(item.MitigationDiffs) != 1 {
+		t.Fatalf("expected only one mitigation diff for inserted row, got %d", len(item.MitigationDiffs))
+	}
+	if item.MitigationDiffs[0].ChangeType != "added" {
+		t.Fatalf("expected added mitigation diff, got %q", item.MitigationDiffs[0].ChangeType)
+	}
+	if item.MitigationDiffs[0].AfterLabel != "Briefing mingguan" {
+		t.Fatalf("expected inserted mitigation to be detected, got %q", item.MitigationDiffs[0].AfterLabel)
+	}
+}
+
+func hasFieldDiff(diffs []*entity.RiskFieldDiff, field string, changeType string) bool {
+	for _, diff := range diffs {
+		if diff.Field == field && diff.ChangeType == changeType {
+			return true
+		}
+	}
+	return false
+}

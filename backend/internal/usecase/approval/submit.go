@@ -14,6 +14,7 @@ type SubmitApprovalUseCase struct {
 	approvalRepo repository.ApprovalRepository
 	riskRepo     repository.RiskRepository
 	incidentRepo repository.IncidentRepository
+	userRepo     repository.UserRepository
 }
 
 // NewSubmitApprovalUseCase creates a new submit approval usecase
@@ -21,21 +22,25 @@ func NewSubmitApprovalUseCase(
 	approvalRepo repository.ApprovalRepository,
 	riskRepo repository.RiskRepository,
 	incidentRepo repository.IncidentRepository,
+	userRepo repository.UserRepository,
 ) *SubmitApprovalUseCase {
 	return &SubmitApprovalUseCase{
 		approvalRepo: approvalRepo,
 		riskRepo:     riskRepo,
 		incidentRepo: incidentRepo,
+		userRepo:     userRepo,
 	}
 }
 
 // Input represents the input for submitting approval
 type SubmitApprovalInput struct {
-	RequestType string // 'risk' or 'incident'
-	EntityID    string // entity ID as string
-	RequestedBy string // user ID who is submitting
-	Role        string // user role (unit, reviewer, pimpinan, etc.)
-	Notes       string // optional notes
+	RequestType string   // 'risk' or 'incident'
+	EntityID    string   // entity ID as string
+	RequestedBy string   // user ID who is submitting
+	ActorName   string   // user name who is submitting
+	Role        string   // user role (unit, reviewer, pimpinan, etc.)
+	ApproverIDs []string `json:"approverIds"`
+	Notes       string   // optional notes
 }
 
 // Output represents the output of submitting approval
@@ -64,13 +69,8 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 		return nil, domainerrors.ErrInvalidRequestType
 	}
 
-	// Determine approver role based on user role
-	var approverRole string
-	switch input.Role {
-	case "unit", "superadmin":
-		approverRole = "reviewer"
-	default:
-		approverRole = "pimpinan"
+	if input.RequestType == "risk" && len(input.ApproverIDs) == 0 {
+		return nil, domainerrors.ErrInvalidInput
 	}
 
 	// Check entity existence and permissions
@@ -95,18 +95,63 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 		return nil, err
 	}
 
+	approverIDs := input.ApproverIDs
+	if len(approverIDs) == 0 {
+		var approverRole string
+		switch input.Role {
+		case "unit", "superadmin":
+			approverRole = "reviewer"
+		default:
+			approverRole = "pimpinan"
+		}
+		users, err := uc.userRepo.List(ctx)
+		if err != nil {
+			return nil, domainerrors.Wrap(err, "failed to load fallback approvers")
+		}
+		for _, user := range users {
+			if user.Role == approverRole {
+				approverIDs = []string{user.ID.String()}
+				break
+			}
+		}
+	}
+
+	steps := make([]entity.ApprovalStep, 0, len(approverIDs))
+	var firstApprover *entity.User
+	for index, approverIDStr := range approverIDs {
+		approverID, err := uuid.Parse(approverIDStr)
+		if err != nil {
+			return nil, domainerrors.ErrInvalidInput
+		}
+		approver, err := uc.userRepo.GetByID(ctx, approverID)
+		if err != nil {
+			return nil, domainerrors.Wrap(err, "failed to load approver")
+		}
+		if index == 0 {
+			firstApprover = approver
+		}
+		steps = append(steps, entity.ApprovalStep{SequenceNo: index + 1, ApproverUserID: approverID, Status: "pending"})
+	}
+	if firstApprover == nil {
+		return nil, domainerrors.ErrInvalidInput
+	}
+
 	// Create approval request
 	approvalReq := &entity.ApprovalRequest{
-		RequestType:         input.RequestType,
-		EntityID:            entityID,
-		RequestedBy:         requestedBy,
-		CurrentStatus:       "pending",
-		CurrentApproverRole: approverRole,
-		Notes:               input.Notes,
+		RequestType:           input.RequestType,
+		EntityID:              entityID,
+		RequestedBy:           requestedBy,
+		CurrentStatus:         "pending",
+		CurrentApproverRole:   firstApprover.Role,
+		CurrentApproverUserID: &firstApprover.ID,
+		Notes:                 input.Notes,
 	}
 
 	if err := uc.approvalRepo.Create(ctx, approvalReq); err != nil {
 		return nil, domainerrors.Wrap(err, "failed to create approval request")
+	}
+	if err := uc.approvalRepo.CreateSteps(ctx, approvalReq.ID, steps); err != nil {
+		return nil, domainerrors.Wrap(err, "failed to create approval steps")
 	}
 
 	// Add initial history
@@ -114,7 +159,7 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 		ApprovalRequestID: approvalReq.ID,
 		Action:            "submitted",
 		ActorID:           requestedBy,
-		ActorName:         "", // Will be filled by handler
+		ActorName:         input.ActorName,
 		ActorRole:         input.Role,
 		Comments:          input.Notes,
 	}

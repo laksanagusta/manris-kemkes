@@ -3,6 +3,7 @@ package approval
 import (
 	"context"
 
+	"github.com/google/uuid"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
@@ -21,7 +22,8 @@ func NewGetPendingCountUseCase(approvalRepo repository.ApprovalRepository) *GetP
 
 // Input represents the input for getting pending count
 type GetPendingCountInput struct {
-	Role string // user role (reviewer, pimpinan, superadmin)
+	Role   string
+	UserID *uuid.UUID
 }
 
 // Output represents the output of getting pending count
@@ -47,7 +49,7 @@ func (uc *GetPendingCountUseCase) Execute(ctx context.Context, input GetPendingC
 		return &GetPendingCountOutput{Count: 0}, nil
 	}
 
-	count, err := uc.approvalRepo.GetPendingCount(ctx, approverRole)
+	count, err := uc.approvalRepo.GetPendingCount(ctx, approverRole, input.UserID)
 	if err != nil {
 		return nil, domainerrors.Wrap(err, "failed to get pending count")
 	}

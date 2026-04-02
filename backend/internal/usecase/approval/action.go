@@ -64,10 +64,7 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 		return nil, domainerrors.ErrApprovalNotFound
 	}
 
-	// Check if user has permission to approve
-	if input.ActorRole != "superadmin" && input.ActorRole != approvalReq.CurrentApproverRole {
-		return nil, domainerrors.ErrForbidden
-	}
+	actorID := uuid.MustParse(input.ActorID)
 
 	// Check if request is still pending
 	if !approvalReq.IsPending() {
@@ -80,8 +77,6 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 	var historyAction string
 
 	if input.Action == "approve" {
-		newStatus = "approved"
-		newEntityStatus = "approved"
 		historyAction = "approved"
 	} else {
 		newStatus = "rejected"
@@ -89,22 +84,40 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 		historyAction = "rejected"
 	}
 
-	// Update approval request status
-	if err := uc.approvalRepo.UpdateStatus(ctx, approvalID, newStatus); err != nil {
-		return nil, domainerrors.Wrap(err, "failed to update approval status")
-	}
-
-	// Update entity status
-	if err := uc.updateEntityStatus(ctx, approvalReq.RequestType, approvalReq.EntityID, newEntityStatus); err != nil {
-		// Log error but don't fail - the approval status is already updated
-		// In production, you might want to use transactions for consistency
+	if input.Action == "approve" {
+		_, nextStep, err := uc.approvalRepo.ApproveCurrentStep(ctx, approvalID, actorID, input.Comments)
+		if err != nil {
+			return nil, domainerrors.Wrap(err, "failed to approve current step")
+		}
+		if nextStep == nil {
+			newStatus = "approved"
+			newEntityStatus = "approved"
+			if err := uc.updateEntityStatus(ctx, approvalReq.RequestType, approvalReq.EntityID, newEntityStatus); err != nil {
+				return nil, domainerrors.Wrap(err, "failed to update entity status")
+			}
+			if err := uc.approvalRepo.UpdateStatus(ctx, approvalID, newStatus); err != nil {
+				return nil, domainerrors.Wrap(err, "failed to update approval status")
+			}
+		} else {
+			newStatus = "pending"
+		}
+	} else {
+		if err := uc.approvalRepo.RejectCurrentStep(ctx, approvalID, actorID, input.Comments); err != nil {
+			return nil, domainerrors.Wrap(err, "failed to reject current step")
+		}
+		if err := uc.updateEntityStatus(ctx, approvalReq.RequestType, approvalReq.EntityID, newEntityStatus); err != nil {
+			return nil, domainerrors.Wrap(err, "failed to update entity status")
+		}
+		if err := uc.approvalRepo.UpdateStatus(ctx, approvalID, newStatus); err != nil {
+			return nil, domainerrors.Wrap(err, "failed to update approval status")
+		}
 	}
 
 	// Add history
 	history := &entity.ApprovalHistory{
 		ApprovalRequestID: approvalReq.ID,
 		Action:            historyAction,
-		ActorID:           uuid.MustParse(input.ActorID),
+		ActorID:           actorID,
 		ActorName:         input.ActorName,
 		ActorRole:         input.ActorRole,
 		Comments:          input.Comments,
@@ -126,6 +139,10 @@ func (uc *ApprovalActionUseCase) updateEntityStatus(ctx context.Context, request
 		risk, err := uc.riskRepo.GetByID(ctx, entityID)
 		if err != nil {
 			return err
+		}
+
+		if status == "approved" && risk.PreviousRiskID != nil {
+			return uc.riskRepo.ActivateApprovedVersion(ctx, entityID)
 		}
 		risk.Status = status
 		return uc.riskRepo.Update(ctx, risk)

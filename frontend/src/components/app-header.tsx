@@ -21,28 +21,38 @@ import {
   Sun,
   User,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
 
 const breadcrumbMap: Record<string, string> = {
   "/dashboard": "Dashboard",
-  "/inbox": "Inbox Persetujuan",
+  "/inbox": "Approval",
+  "/compliance": "Compliance",
+  "/compliance/monitoring": "Monitoring & Reporting",
+  "/compliance/kri": "Monitoring & Reporting",
+  "/compliance/controls": "Control Library",
   "/risk": "Risk Assessments",
   "/risk/register": "Risk Register",
   "/risk/new": "New Risk",
   "/risk/history": "Risk History",
-  "/kri": "KRI Monitor",
   "/controls": "Control Library",
-  "/monitoring": "Monitoring & Review",
   "/monitoring/overdue": "Overdue",
   "/lessons": "Lessons Learned",
-  "/reports": "Reports & Extract",
-  "/incident": "Incident Register",
+  "/reports": "Reports",
+  "/incident": "Insiden",
   "/incident/new": "New Incident",
-  "/ai/transcript": "Transcript Analyzer",
-  "/ai/minutes": "Meeting Minutes",
-  "/ai/predictive": "Predictive Scoring",
-  "/ai/fishbone": "Fishbone Generator",
+  "/incidents": "Insiden",
+  "/incidents/new": "Laporan Insiden Baru",
+  "/incidents/lessons": "Lessons Learned",
+  "/intelligence": "Inteligensi",
+  "/intelligence/transcript": "Meeting",
+  "/intelligence/minutes": "Meeting",
+  "/intelligence/minutes/new": "Buat Notulen",
+  "/minutes": "Meeting",
+  "/minutes/new": "Buat Notulen",
+  "/intelligence/predictive": "Predictive Scoring",
+  "/intelligence/cba": "Cost Benefit Analysis",
   "/management/users": "User Management",
   "/management/criteria": "Scope & Criteria",
 };
@@ -69,6 +79,8 @@ export function AppHeader({
   onToggleCollapse: () => void;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
   const breadcrumbs = getBreadcrumbs(pathname);
   const [isDark, setIsDark] = useState(false);
 
@@ -159,9 +171,7 @@ export function AppHeader({
               <div className="flex size-6 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
                 DA
               </div>
-              <span className="hidden text-xs font-medium md:inline">
-                Dika
-              </span>
+              <span className="hidden text-xs font-medium md:inline">Dika</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -174,7 +184,13 @@ export function AppHeader({
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => {
+                logout();
+                router.push("/login");
+              }}
+            >
               <LogOut className="mr-2 size-4" />
               Logout
             </DropdownMenuItem>

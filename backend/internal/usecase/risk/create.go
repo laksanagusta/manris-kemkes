@@ -60,6 +60,11 @@ type CreateRiskInput struct {
 	TargetImpact      int
 	TargetWeight      float64
 	NextReviewDate    *string
+	AssessmentCycle   string
+	ReviewType        string
+	ChangeReason      string
+	ReviewSummary     string
+	DraftApprovalLine []entity.ApprovalLineMember
 }
 
 type CreateRiskOutput struct {
@@ -106,12 +111,18 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		input.Mitigations[i].RiskID = uuid.Nil // Will be set after risk creation
 	}
 
+	if input.AssessmentCycle == "" {
+		input.AssessmentCycle = currentAssessmentCycle()
+	}
+
 	// 6. Create risk entity
 	risk := &entity.Risk{
 		Code:           nextCode,
 		Title:          input.Title,
 		Description:    input.Description,
 		Status:         "draft",
+		VersionGroupID: uuid.New(),
+		IsCurrent:      true,
 		OrganizationID: input.OrganizationID,
 		CreatedBy:      input.CreatedBy,
 
@@ -141,6 +152,11 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		TargetImpact:      input.TargetImpact,
 		TargetWeight:      input.TargetWeight,
 		NextReviewDate:    input.NextReviewDate,
+		AssessmentCycle:   input.AssessmentCycle,
+		ReviewType:        input.ReviewType,
+		ChangeReason:      input.ChangeReason,
+		ReviewSummary:     input.ReviewSummary,
+		DraftApprovalLine: input.DraftApprovalLine,
 	}
 
 	// 7. Validate risk entity
