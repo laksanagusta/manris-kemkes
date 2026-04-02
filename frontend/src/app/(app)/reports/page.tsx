@@ -417,22 +417,27 @@ export default function ReportsPage() {
           <CardContent>
             {hasExposureData ? (
               <>
-                <div className="h-56">
+                <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart layout="vertical" data={unitExposureData} margin={{ top: 0, right: 12, left: 12, bottom: 0 }}>
+                    <BarChart
+                      layout="vertical"
+                      data={unitExposureData}
+                      margin={{ top: 0, right: 16, left: 16, bottom: 0 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" horizontal={false} />
                       <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis
                         dataKey="orgName"
                         type="category"
-                        width={124}
+                        width={132}
                         tick={{ fontSize: 10 }}
-                        tickFormatter={(value: string) => value.length > 18 ? `${value.slice(0, 18)}…` : value}
+                        tickFormatter={(value: string) =>
+                          value.length > 18 ? `${value.slice(0, 18)}…` : value
+                        }
                         axisLine={false}
                         tickLine={false}
                       />
                       <RechartsTooltip
-                        cursor={{ fill: "oklch(0.95 0.01 250 / 35%)" }}
                         formatter={(value) => [`${value ?? 0} poin`, "Exposure"]}
                         contentStyle={{
                           background: "oklch(0.98 0.003 170 / 95%)",
@@ -473,7 +478,7 @@ export default function ReportsPage() {
                 </div>
               </>
             ) : (
-              <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+              <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
                 Belum ada data risiko untuk menyusun ranking unit prioritas.
               </div>
             )}
