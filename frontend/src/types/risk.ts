@@ -213,6 +213,23 @@ export interface RiskReviewSummary {
   currentHeatmap: HeatmapCell[];
 }
 
+export interface DashboardActionPressurePoint {
+  period: string;
+  incidentsCreated: number;
+  mitigationsCompleted: number;
+  overdueMitigations: number;
+}
+
+export interface ExecutiveAlert {
+  id: string;
+  category: "new_extreme" | "risk_up" | "mitigation_overdue" | "unit_no_update" | string;
+  severity: "high" | "medium" | "low" | string;
+  title: string;
+  detail: string;
+  orgName?: string;
+  riskCode?: string;
+}
+
 export interface Risk {
   id: string;
   riskCode: string;

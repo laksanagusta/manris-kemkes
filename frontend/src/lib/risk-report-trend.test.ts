@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildRiskTrendData, type RiskTrendSourceItem } from "./risk-report-trend";
+import { buildRiskTrendData, type RiskTrendSourceItem } from "./risk-report-trend.ts";
 
 test("buildRiskTrendData groups risks by semester assessment cycle instead of createdAt quarter", () => {
   const risks: RiskTrendSourceItem[] = [

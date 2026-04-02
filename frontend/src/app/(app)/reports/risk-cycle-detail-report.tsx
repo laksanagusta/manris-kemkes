@@ -42,6 +42,7 @@ function dedupeOrganizations(items: OrganizationOption[]) {
 }
 
 type FilterTab = "all" | "changed" | "added" | "removed" | "stable";
+type MovementFilter = "new" | "up" | "down" | "stable" | "removed";
 
 const tabOptions: Array<{ value: FilterTab; label: string }> = [
   { value: "all", label: "Semua" },
@@ -150,6 +151,20 @@ function buildFilteredSummary(report: RiskCycleDetailedComparisonReport, items: 
   return summary;
 }
 
+function deriveMovementFromDetailItem(item: RiskCycleDetailedComparisonItem): MovementFilter | null {
+  if (item.changeCategory === "added") return "new";
+  if (item.changeCategory === "removed") return "removed";
+  if (item.changeCategory === "stable") return "stable";
+  if (item.changeCategory !== "changed") return null;
+
+  const beforeScore = item.fromSnapshot?.inherentScore ?? ((item.fromSnapshot?.probability ?? 0) * (item.fromSnapshot?.impact ?? 0));
+  const afterScore = item.toSnapshot?.inherentScore ?? ((item.toSnapshot?.probability ?? 0) * (item.toSnapshot?.impact ?? 0));
+
+  if (afterScore > beforeScore) return "up";
+  if (afterScore < beforeScore) return "down";
+  return "stable";
+}
+
 function FieldDiffTable({ diffs }: { diffs: RiskFieldDiff[] }) {
   if (diffs.length === 0) {
     return <div className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">Tidak ada perubahan kolom.</div>;
@@ -215,7 +230,19 @@ function MitigationDiffTable({ diffs }: { diffs: RiskMitigationDiff[] }) {
   );
 }
 
-export function RiskCycleDetailReport() {
+type RiskCycleDetailReportProps = {
+  fromCycle?: string;
+  toCycle?: string;
+  externalOrgName?: string | null;
+  externalMovement?: MovementFilter | null;
+};
+
+export function RiskCycleDetailReport({
+  fromCycle: controlledFromCycle,
+  toCycle: controlledToCycle,
+  externalOrgName,
+  externalMovement,
+}: RiskCycleDetailReportProps) {
   const { token } = useAuth();
   const cycleOptions = useMemo(() => buildCycleOptions(), []);
   const defaultToCycle = useMemo(() => currentGlobalCycle(), []);
@@ -229,6 +256,35 @@ export function RiskCycleDetailReport() {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState<RiskCycleDetailedComparisonReport | null>(null);
+
+  useEffect(() => {
+    if (controlledFromCycle) setFromCycle(controlledFromCycle);
+  }, [controlledFromCycle]);
+
+  useEffect(() => {
+    if (controlledToCycle) setToCycle(controlledToCycle);
+  }, [controlledToCycle]);
+
+  useEffect(() => {
+    if (externalMovement === "stable") {
+      setIncludeStable(true);
+      setActiveTab("stable");
+      return;
+    }
+    if (externalMovement === "new") {
+      setActiveTab("added");
+      return;
+    }
+    if (externalMovement === "removed") {
+      setActiveTab("removed");
+      return;
+    }
+    if (externalMovement === "up" || externalMovement === "down") {
+      setActiveTab("changed");
+      return;
+    }
+    setActiveTab("changed");
+  }, [externalMovement]);
 
   useEffect(() => {
     if (!token) return;
@@ -283,9 +339,18 @@ export function RiskCycleDetailReport() {
 
   const filteredItems = useMemo(() => {
     const items = report?.items ?? [];
-    if (activeTab === "all") return items;
-    return items.filter((item) => item.changeCategory === activeTab);
-  }, [report, activeTab]);
+    let nextItems = activeTab === "all" ? items : items.filter((item) => item.changeCategory === activeTab);
+
+    if (externalOrgName) {
+      nextItems = nextItems.filter((item) => item.orgName === externalOrgName);
+    }
+
+    if (externalMovement) {
+      nextItems = nextItems.filter((item) => deriveMovementFromDetailItem(item) === externalMovement);
+    }
+
+    return nextItems;
+  }, [report, activeTab, externalOrgName, externalMovement]);
 
   const exportReport = useMemo(() => {
     if (!report) return null;
@@ -390,6 +455,14 @@ export function RiskCycleDetailReport() {
             </SelectContent>
           </Select>
         </div>
+
+        {(externalOrgName || externalMovement) ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/15 px-4 py-3 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Filter drilldown aktif:</span>
+            {externalOrgName ? <Badge variant="outline">Unit: {externalOrgName}</Badge> : null}
+            {externalMovement ? <Badge variant="outline">Movement: {externalMovement}</Badge> : null}
+          </div>
+        ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
         {fromCycle === toCycle ? (

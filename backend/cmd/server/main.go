@@ -95,6 +95,8 @@ func main() {
 	riskCompareCycleDetailsUC := riskuc.NewCompareRiskCycleDetailsUseCase(domainRiskRepo, orgHierarchySvc)
 	riskReviewSummaryUC := riskuc.NewRiskReviewSummaryUseCase(domainRiskRepo, orgHierarchySvc)
 	riskDashboardSummaryUC := riskuc.NewDashboardSummaryUseCase(domainRiskRepo)
+	riskActionPressureUC := riskuc.NewDashboardActionPressureUseCase(domainIncidentRepo, domainMitigationTaskRepo)
+	riskExecutiveAlertsUC := riskuc.NewExecutiveAlertsUseCase(domainRiskRepo, domainMitigationTaskRepo)
 	riskHeatmapDataUC := riskuc.NewHeatmapDataUseCase(domainRiskRepo)
 	riskTopRisksUC := riskuc.NewTopRisksUseCase(domainRiskRepo)
 
@@ -205,7 +207,7 @@ func main() {
 	// Clean architecture handlers
 	cleanRiskHandler := httpHandler.NewRiskHandler(
 		riskCreateUC, riskCreateBatchUC, riskSpreadsheetUC, riskGetUC, riskReassessUC, riskUpdateUC, riskDeleteUC, riskListUC, riskListCycleSnapshotUC, riskListVersionsUC, riskReviewQueueUC, riskCompareCyclesUC, riskCompareCycleDetailsUC, riskReviewSummaryUC,
-		riskDashboardSummaryUC, riskHeatmapDataUC, riskTopRisksUC, domainMMRepo,
+		riskDashboardSummaryUC, riskActionPressureUC, riskExecutiveAlertsUC, riskHeatmapDataUC, riskTopRisksUC, domainMMRepo,
 	)
 	cleanIncidentHandler := httpHandler.NewIncidentHandler(
 		incidentCreateUC, incidentCreateBatchUC, incidentGetUC, incidentUpdateUC, incidentDeleteUC, incidentListUC, incidentSummaryUC,
@@ -342,6 +344,8 @@ func main() {
 
 	// Risk Dashboard (Clean Architecture)
 	protected.Get("/dashboard/summary", cleanRiskHandler.DashboardSummary)
+	protected.Get("/dashboard/action-pressure", cleanRiskHandler.ActionPressure)
+	protected.Get("/dashboard/executive-alerts", cleanRiskHandler.ExecutiveAlerts)
 	protected.Get("/dashboard/risk-review-summary", cleanRiskHandler.ReviewSummary)
 	protected.Get("/dashboard/heatmap", cleanRiskHandler.HeatmapData)
 	protected.Get("/dashboard/top-risks", cleanRiskHandler.TopRisks)

@@ -29,6 +29,8 @@ type RiskHandler struct {
 	compareDetailUC     *riskuc.CompareRiskCycleDetailsUseCase
 	reviewSummaryUC     *riskuc.RiskReviewSummaryUseCase
 	dashboardSummaryUC  *riskuc.DashboardSummaryUseCase
+	actionPressureUC    *riskuc.DashboardActionPressureUseCase
+	executiveAlertsUC   *riskuc.ExecutiveAlertsUseCase
 	heatmapDataUC       *riskuc.HeatmapDataUseCase
 	topRisksUC          *riskuc.TopRisksUseCase
 	mmRepo              repository.MeetingMinuteRepository
@@ -50,6 +52,8 @@ func NewRiskHandler(
 	compareDetailUC *riskuc.CompareRiskCycleDetailsUseCase,
 	reviewSummaryUC *riskuc.RiskReviewSummaryUseCase,
 	dashboardSummaryUC *riskuc.DashboardSummaryUseCase,
+	actionPressureUC *riskuc.DashboardActionPressureUseCase,
+	executiveAlertsUC *riskuc.ExecutiveAlertsUseCase,
 	heatmapDataUC *riskuc.HeatmapDataUseCase,
 	topRisksUC *riskuc.TopRisksUseCase,
 	mmRepo repository.MeetingMinuteRepository,
@@ -70,6 +74,8 @@ func NewRiskHandler(
 		compareDetailUC:     compareDetailUC,
 		reviewSummaryUC:     reviewSummaryUC,
 		dashboardSummaryUC:  dashboardSummaryUC,
+		actionPressureUC:    actionPressureUC,
+		executiveAlertsUC:   executiveAlertsUC,
 		heatmapDataUC:       heatmapDataUC,
 		topRisksUC:          topRisksUC,
 		mmRepo:              mmRepo,
@@ -417,6 +423,36 @@ func (h *RiskHandler) DashboardSummary(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"data": summary})
+}
+
+// ActionPressure handles GET /api/dashboard/action-pressure
+func (h *RiskHandler) ActionPressure(c *fiber.Ctx) error {
+	points, err := h.actionPressureUC.Execute(c.Context(), riskuc.DashboardActionPressureInput{
+		Interval: c.Query("interval", "month"),
+		Window:   c.QueryInt("window", 6),
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+	if points == nil {
+		points = []*entity.DashboardActionPressurePoint{}
+	}
+	return c.JSON(fiber.Map{"data": points})
+}
+
+// ExecutiveAlerts handles GET /api/dashboard/executive-alerts
+func (h *RiskHandler) ExecutiveAlerts(c *fiber.Ctx) error {
+	alerts, err := h.executiveAlertsUC.Execute(c.Context(), riskuc.ExecutiveAlertsInput{
+		Cycle: c.Query("cycle"),
+		Limit: c.QueryInt("limit", 10),
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+	if alerts == nil {
+		alerts = []*entity.ExecutiveAlert{}
+	}
+	return c.JSON(fiber.Map{"data": alerts})
 }
 
 // HeatmapData handles GET /api/risks/dashboard/heatmap
