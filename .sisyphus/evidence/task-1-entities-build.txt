@@ -1,0 +1,2 @@
+=== go build ./... ===
+EXIT CODE: 0

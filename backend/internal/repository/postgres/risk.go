@@ -367,7 +367,7 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context) ([]*entity
 	rows, err := r.pool.Query(ctx,
 		`SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category, COUNT(*) as count
 		 FROM risks
-		 WHERE deleted_at IS NULL AND is_current = TRUE
+		 WHERE is_current = TRUE
 		 GROUP BY 1
 		 ORDER BY count DESC, category ASC`)
 	if err != nil {
@@ -902,4 +902,20 @@ func (r *riskRepository) RiskReviewSummary(ctx context.Context, cycle string, or
 	}
 
 	return summary, nil
+}
+
+func (r *riskRepository) GetHeatmapVelocity(ctx context.Context, fromCycle, toCycle string) ([]entity.HeatmapVelocityCell, error) {
+	return []entity.HeatmapVelocityCell{}, nil
+}
+
+func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+	return []entity.OverdueMitigationTimelineItem{}, nil
+}
+
+func (r *riskRepository) GetKRIBreachSummary(ctx context.Context) ([]entity.KRIBreachItem, error) {
+	return []entity.KRIBreachItem{}, nil
+}
+
+func (r *riskRepository) GetUnitResponseTime(ctx context.Context) ([]entity.UnitResponseTime, error) {
+	return []entity.UnitResponseTime{}, nil
 }

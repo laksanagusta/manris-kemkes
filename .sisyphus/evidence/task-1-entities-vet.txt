@@ -1,0 +1,2 @@
+=== go vet ./internal/domain/... ===
+EXIT CODE: 0

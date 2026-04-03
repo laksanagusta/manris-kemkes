@@ -37,3 +37,46 @@ type DashboardCategoryCount struct {
 	Category string `json:"category"`
 	Count    int    `json:"count"`
 }
+
+// HeatmapVelocityCell extends HeatmapCell with movement direction counts
+type HeatmapVelocityCell struct {
+	Probability int `json:"probability"`
+	Impact      int `json:"impact"`
+	Count       int `json:"count"`
+	UpCount     int `json:"upCount"`
+	DownCount   int `json:"downCount"`
+	StableCount int `json:"stableCount"`
+	NewCount    int `json:"newCount"`
+}
+
+// OverdueMitigationTimelineItem holds overdue mitigation counts per organization
+type OverdueMitigationTimelineItem struct {
+	OrgID              string `json:"orgId"`
+	OrgName            string `json:"orgName"`
+	OnTimeCount        int    `json:"onTimeCount"`
+	Overdue7Count      int    `json:"overdue7Count"`
+	Overdue30Count     int    `json:"overdue30Count"`
+	Overdue30PlusCount int    `json:"overdue30PlusCount"`
+	TotalCount         int    `json:"totalCount"`
+}
+
+// KRIBreachItem holds a single KRI breach or warning entry
+type KRIBreachItem struct {
+	KRIID       string  `json:"kriId"`
+	KRIName     string  `json:"kriName"`
+	Threshold   float64 `json:"threshold"`
+	ActualValue float64 `json:"actualValue"`
+	Unit        string  `json:"unit"`
+	Status      string  `json:"status"`
+	RiskTitle   string  `json:"riskTitle"`
+	OrgName     string  `json:"orgName"`
+}
+
+// UnitResponseTime holds average response metrics per organization
+type UnitResponseTime struct {
+	OrgID             string  `json:"orgId"`
+	OrgName           string  `json:"orgName"`
+	AvgMitigationDays float64 `json:"avgMitigationDays"`
+	AvgApprovalDays   float64 `json:"avgApprovalDays"`
+	TaskCount         int     `json:"taskCount"`
+}

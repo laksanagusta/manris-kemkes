@@ -30,4 +30,10 @@ type RiskRepository interface {
 	ListReviewQueue(ctx context.Context, cycle string, orgIDs []uuid.UUID, status string) ([]*entity.RiskReviewQueueItem, error)
 	CompareCycles(ctx context.Context, fromCycle string, toCycle string, orgIDs []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error)
 	RiskReviewSummary(ctx context.Context, cycle string, orgIDs []uuid.UUID) (*entity.RiskReviewSummary, error)
+
+	// Dashboard analytics
+	GetHeatmapVelocity(ctx context.Context, fromCycle, toCycle string) ([]entity.HeatmapVelocityCell, error)
+	GetOverdueMitigationTimeline(ctx context.Context) ([]entity.OverdueMitigationTimelineItem, error)
+	GetKRIBreachSummary(ctx context.Context) ([]entity.KRIBreachItem, error)
+	GetUnitResponseTime(ctx context.Context) ([]entity.UnitResponseTime, error)
 }
