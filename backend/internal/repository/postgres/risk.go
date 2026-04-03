@@ -28,14 +28,14 @@ func NewRiskRepository(pool *pgxpool.Pool) repository.RiskRepository {
 // Create inserts a new risk and its mitigations
 func (r *riskRepository) Create(ctx context.Context, risk *entity.Risk) error {
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO risks (code, title, description, status, version_group_id, previous_risk_id, is_current, archived_at, archived_reason, organization_id, created_by,
+		`INSERT INTO risks (code, title, description, category, status, version_group_id, previous_risk_id, is_current, archived_at, archived_reason, organization_id, created_by,
 		  cause, risk_source, controllability, impact_description,
 		  existing_control, control_effectiveness, probability, impact, weight,
 		  risk_priority, risk_appetite, treatment_option,
 		  target_probability, target_impact, target_weight, next_review_date, assessment_cycle, review_type, change_reason, review_summary, review_started_at, review_submitted_at, review_approved_at, draft_approval_line)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36)
 		 RETURNING id, inherent_score, target_score, created_at, updated_at`,
-		risk.Code, risk.Title, risk.Description, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID, risk.CreatedBy,
+		risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID, risk.CreatedBy,
 		risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
 		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight,
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
@@ -64,7 +64,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Ris
 	risk := &entity.Risk{}
 	var draftApprovalLineRaw []byte
 	err := r.pool.QueryRow(ctx,
-		`SELECT r.id, r.code, r.title, r.description, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
+		`SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.inherent_score,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -80,7 +80,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Ris
 		 LEFT JOIN users u ON r.created_by = u.id
 		 WHERE r.id = $1`, id,
 	).Scan(
-		&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
+		&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
 		&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 		&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.InherentScore,
 		&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -122,15 +122,15 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Ris
 // Update updates an existing risk and replaces its mitigations
 func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE risks SET code=$2, title=$3, description=$4, status=$5, version_group_id=$6, previous_risk_id=$7, is_current=$8, archived_at=$9, archived_reason=$10, organization_id=$11,
-		  cause=$12, risk_source=$13, controllability=$14, impact_description=$15,
-		  existing_control=$16, control_effectiveness=$17, probability=$18, impact=$19, weight=$20,
-		  risk_priority=$21, risk_appetite=$22, treatment_option=$23,
-		  target_probability=$24, target_impact=$25, target_weight=$26, next_review_date=$27,
-		  assessment_cycle=$28, review_type=$29, change_reason=$30, review_summary=$31, review_started_at=$32, review_submitted_at=$33, review_approved_at=$34,
-		  draft_approval_line=$35, updated_at=now()
+		`UPDATE risks SET code=$2, title=$3, description=$4, category=$5, status=$6, version_group_id=$7, previous_risk_id=$8, is_current=$9, archived_at=$10, archived_reason=$11, organization_id=$12,
+		  cause=$13, risk_source=$14, controllability=$15, impact_description=$16,
+		  existing_control=$17, control_effectiveness=$18, probability=$19, impact=$20, weight=$21,
+		  risk_priority=$22, risk_appetite=$23, treatment_option=$24,
+		  target_probability=$25, target_impact=$26, target_weight=$27, next_review_date=$28,
+		  assessment_cycle=$29, review_type=$30, change_reason=$31, review_summary=$32, review_started_at=$33, review_submitted_at=$34, review_approved_at=$35,
+		  draft_approval_line=$36, updated_at=now()
 		 WHERE id=$1`,
-		risk.ID, risk.Code, risk.Title, risk.Description, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID,
+		risk.ID, risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID,
 		risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
 		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight,
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
@@ -173,8 +173,8 @@ func (r *riskRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // List retrieves risks with optional filters
-func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status string) ([]*entity.Risk, error) {
-	query := `SELECT r.id, r.code, r.title, r.description, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
+func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status string, category string) ([]*entity.Risk, error) {
+	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
 	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.inherent_score,
 	                  r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -201,11 +201,68 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 		args = append(args, status)
 		argIdx++
 	}
+	if category != "" {
+		query += fmt.Sprintf(" AND r.category = $%d", argIdx)
+		args = append(args, category)
+		argIdx++
+	}
 	query += " ORDER BY r.created_at DESC"
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list risks: %w", err)
+	}
+	defer rows.Close()
+
+	var risks []*entity.Risk
+	for rows.Next() {
+		var risk entity.Risk
+		if err := rows.Scan(
+			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
+			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
+			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.InherentScore,
+			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
+			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetScore,
+			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
+			&risk.CreatedAt, &risk.UpdatedAt,
+			&risk.OrgName, &risk.CreatedByName,
+		); err != nil {
+			return nil, fmt.Errorf("scan risk: %w", err)
+		}
+		risks = append(risks, &risk)
+	}
+	return risks, nil
+}
+
+// ListApprovedRisks returns all approved risks for trend analysis (includes all versions, not just current)
+func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
+	query := `SELECT r.id, r.code, r.title, r.description, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
+	                  r.cause, r.risk_source, r.controllability, r.impact_description,
+	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.inherent_score,
+	                  r.risk_priority, r.risk_appetite, r.treatment_option,
+	                  r.target_probability, r.target_impact, r.target_weight, r.target_score,
+	                  r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
+	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
+	                  r.created_at, r.updated_at,
+	                  COALESCE(o.name, '') as org_name,
+	                  COALESCE(u.name, '') as created_by_name
+	           FROM risks r
+	           LEFT JOIN organizations o ON r.organization_id = o.id
+	           LEFT JOIN users u ON r.created_by = u.id
+	           WHERE r.status = 'approved'`
+	var args []interface{}
+	argIdx := 1
+
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
+		args = append(args, orgIDs)
+		argIdx++
+	}
+	query += " ORDER BY r.assessment_cycle, r.created_at DESC"
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list approved risks: %w", err)
 	}
 	defer rows.Close()
 

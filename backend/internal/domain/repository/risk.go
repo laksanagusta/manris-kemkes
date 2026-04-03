@@ -13,9 +13,11 @@ type RiskRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*entity.Risk, error)
 	Update(ctx context.Context, risk *entity.Risk) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	List(ctx context.Context, orgIDs []uuid.UUID, status string) ([]*entity.Risk, error)
+	List(ctx context.Context, orgIDs []uuid.UUID, status string, category string) ([]*entity.Risk, error)
 	ListMitigations(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationAssoc, error)
 	NextRiskCode(ctx context.Context) (string, error)
+	// ListApprovedRisks returns all approved risks for trend analysis (includes all versions)
+	ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Risk, error)
 
 	// Dashboard methods
 	DashboardSummary(ctx context.Context) (*entity.DashboardSummary, error)

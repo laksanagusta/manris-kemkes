@@ -22,7 +22,7 @@ type dashboardTaskRepo interface {
 }
 
 type dashboardRiskRepo interface {
-	List(ctx context.Context, orgIDs []uuid.UUID, status string) ([]*entity.Risk, error)
+	List(ctx context.Context, orgIDs []uuid.UUID, status string, category string) ([]*entity.Risk, error)
 	ListCycleSnapshot(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error)
 	CompareCycles(ctx context.Context, fromCycle string, toCycle string, orgIDs []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error)
 }
@@ -144,7 +144,7 @@ func (uc *ExecutiveAlertsUseCase) Execute(ctx context.Context, input ExecutiveAl
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compare cycles for executive alerts")
 	}
-	approvedRisks, err := uc.riskRepo.List(ctx, nil, "approved")
+	approvedRisks, err := uc.riskRepo.List(ctx, nil, "approved", "")
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load approved risks for executive alerts")
 	}

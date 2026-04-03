@@ -21,6 +21,7 @@ type CreateRiskBatchItemInput struct {
 	ClientKey            string              `json:"clientKey"`
 	Title                string              `json:"title"`
 	Description          string              `json:"description"`
+	Category             string              `json:"category"`
 	OrganizationID       *uuid.UUID          `json:"organizationId,omitempty"`
 	Cause                []string            `json:"cause"`
 	RiskSource           string              `json:"riskSource"`
@@ -77,6 +78,7 @@ func (uc *CreateRiskBatchUseCase) Execute(ctx context.Context, input CreateRiskB
 		result, err := uc.createUC.Execute(ctx, CreateRiskInput{
 			Title:                normalized.Title,
 			Description:          normalized.Description,
+			Category:             normalized.Category,
 			OrganizationID:       normalized.OrganizationID,
 			CreatedBy:            input.CreatedBy,
 			Cause:                normalized.Cause,
@@ -121,6 +123,7 @@ func (uc *CreateRiskBatchUseCase) Execute(ctx context.Context, input CreateRiskB
 func normalizeBatchItem(item CreateRiskBatchItemInput) CreateRiskBatchItemInput {
 	item.Title = strings.TrimSpace(item.Title)
 	item.Description = strings.TrimSpace(item.Description)
+	item.Category = strings.TrimSpace(item.Category)
 	item.RiskSource = strings.TrimSpace(item.RiskSource)
 	item.ExistingControl = strings.TrimSpace(item.ExistingControl)
 	item.RiskAppetite = strings.TrimSpace(item.RiskAppetite)
@@ -140,6 +143,9 @@ func validateBatchItem(item CreateRiskBatchItemInput) error {
 	}
 	if item.Description == "" {
 		return apperrors.Wrap(apperrors.ErrInvalidDescription, "description is required")
+	}
+	if item.Category == "" || !entity.IsValidRiskCategory(item.Category) {
+		return apperrors.Wrap(apperrors.ErrInvalidRiskCategory, "category is required and must be valid")
 	}
 	if item.Probability < 1 || item.Probability > 5 {
 		return apperrors.ErrInvalidProbability

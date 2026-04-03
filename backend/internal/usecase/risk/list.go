@@ -23,8 +23,9 @@ func NewListRisksUseCase(riskRepo repository.RiskRepository, orgSvc *service.Org
 }
 
 type ListRisksInput struct {
-	OrgID  *uuid.UUID
-	Status string
+	OrgID    *uuid.UUID
+	Status   string
+	Category string
 }
 
 func (uc *ListRisksUseCase) Execute(ctx context.Context, input ListRisksInput) ([]*entity.Risk, error) {
@@ -38,7 +39,7 @@ func (uc *ListRisksUseCase) Execute(ctx context.Context, input ListRisksInput) (
 		}
 	}
 
-	risks, err := uc.riskRepo.List(ctx, orgIDs, input.Status)
+	risks, err := uc.riskRepo.List(ctx, orgIDs, input.Status, input.Category)
 	if err != nil {
 		return nil, err
 	}

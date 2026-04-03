@@ -11,14 +11,14 @@ import (
 )
 
 type fakeDashboardRiskRepo struct {
-	list              func(context.Context, []uuid.UUID, string) ([]*entity.Risk, error)
+	list              func(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error)
 	listCycleSnapshot func(context.Context, string, []uuid.UUID) ([]*entity.Risk, error)
 	compareCycles     func(context.Context, string, string, []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error)
 }
 
-func (r *fakeDashboardRiskRepo) List(ctx context.Context, orgIDs []uuid.UUID, status string) ([]*entity.Risk, error) {
+func (r *fakeDashboardRiskRepo) List(ctx context.Context, orgIDs []uuid.UUID, status string, category string) ([]*entity.Risk, error) {
 	if r.list != nil {
-		return r.list(ctx, orgIDs, status)
+		return r.list(ctx, orgIDs, status, category)
 	}
 	return nil, errors.New("not implemented")
 }
@@ -114,9 +114,12 @@ func TestExecutiveAlertsUseCase_ExecuteBuildsRankedAlerts(t *testing.T) {
 	riskUpID := uuid.New()
 	riskOverdueID := uuid.New()
 	riskRepo := &fakeDashboardRiskRepo{
-		list: func(_ context.Context, _ []uuid.UUID, status string) ([]*entity.Risk, error) {
+		list: func(_ context.Context, _ []uuid.UUID, status string, category string) ([]*entity.Risk, error) {
 			if status != "approved" {
 				t.Fatalf("expected status approved, got %q", status)
+			}
+			if category != "" {
+				t.Fatalf("expected empty category filter, got %q", category)
 			}
 			return []*entity.Risk{
 				{ID: riskExtremeID, Code: "R-001", Title: "Lonjakan kasus", OrgName: "Direktorat A"},

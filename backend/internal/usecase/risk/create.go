@@ -2,6 +2,7 @@ package risk
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,6 +33,7 @@ func NewCreateRiskUseCase(
 type CreateRiskInput struct {
 	Title          string
 	Description    string
+	Category       string
 	OrganizationID *uuid.UUID
 	CreatedBy      *uuid.UUID
 
@@ -82,6 +84,10 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 	if input.CreatedBy == nil {
 		return nil, errors.ErrInvalidInput
 	}
+	input.Category = strings.TrimSpace(input.Category)
+	if input.Category == "" || !entity.IsValidRiskCategory(input.Category) {
+		return nil, errors.ErrInvalidRiskCategory
+	}
 
 	// 2. Validate user exists
 	_, err := uc.userRepo.GetByID(ctx, *input.CreatedBy)
@@ -120,6 +126,7 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		Code:           nextCode,
 		Title:          input.Title,
 		Description:    input.Description,
+		Category:       input.Category,
 		Status:         "draft",
 		VersionGroupID: uuid.New(),
 		IsCurrent:      true,

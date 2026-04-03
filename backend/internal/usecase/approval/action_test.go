@@ -91,7 +91,7 @@ func (r *fakeApprovalRiskRepo) Update(_ context.Context, risk *entity.Risk) erro
 func (r *fakeApprovalRiskRepo) Delete(context.Context, uuid.UUID) error {
 	return errors.New("not implemented")
 }
-func (r *fakeApprovalRiskRepo) List(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
+func (r *fakeApprovalRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeApprovalRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
@@ -126,6 +126,9 @@ func (r *fakeApprovalRiskRepo) CompareCycles(context.Context, string, string, []
 	return nil, errors.New("not implemented")
 }
 func (r *fakeApprovalRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 

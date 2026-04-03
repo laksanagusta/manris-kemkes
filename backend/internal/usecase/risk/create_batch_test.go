@@ -31,7 +31,7 @@ func (r *fakeBatchRiskRepo) GetByID(context.Context, uuid.UUID) (*entity.Risk, e
 
 func (r *fakeBatchRiskRepo) Update(context.Context, *entity.Risk) error { return nil }
 func (r *fakeBatchRiskRepo) Delete(context.Context, uuid.UUID) error    { return nil }
-func (r *fakeBatchRiskRepo) List(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
+func (r *fakeBatchRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, nil
 }
 func (r *fakeBatchRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
@@ -66,6 +66,9 @@ func (r *fakeBatchRiskRepo) CompareCycles(context.Context, string, string, []uui
 	return nil, nil
 }
 func (r *fakeBatchRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
+	return nil, nil
+}
+func (r *fakeBatchRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
 
@@ -116,6 +119,7 @@ func TestCreateRiskBatchUseCase_Execute_PartialSuccess(t *testing.T) {
 				ClientKey:         "row-1",
 				Title:             "Fraud pembayaran",
 				Description:       "Pembayaran tidak sesuai kewenangan",
+				Category:          entity.RiskCategoryOperasional,
 				Cause:             []string{"Kontrol lemah"},
 				Controllability:   "C",
 				ImpactDesc:        []string{"Kerugian negara"},

@@ -4,36 +4,40 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
+	krireportuc "github.com/manris/backend/internal/usecase/kri_report"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
 
 // RiskHandler handles HTTP requests for Risk operations using clean architecture
 type RiskHandler struct {
-	createUC            *riskuc.CreateRiskUseCase
-	createBatchUC       *riskuc.CreateRiskBatchUseCase
-	spreadsheetUC       *riskuc.BulkRiskSpreadsheetUseCase
-	getUC               *riskuc.GetRiskUseCase
-	reassessUC          *riskuc.CreateRiskReassessmentUseCase
-	updateUC            *riskuc.UpdateRiskUseCase
-	deleteUC            *riskuc.DeleteRiskUseCase
-	listUC              *riskuc.ListRisksUseCase
-	listCycleSnapshotUC *riskuc.ListRiskCycleSnapshotUseCase
-	listVersionsUC      *riskuc.ListRiskVersionsUseCase
-	reviewQueueUC       *riskuc.ListRiskReviewQueueUseCase
-	compareCyclesUC     *riskuc.CompareRiskCyclesUseCase
-	compareDetailUC     *riskuc.CompareRiskCycleDetailsUseCase
-	reviewSummaryUC     *riskuc.RiskReviewSummaryUseCase
-	dashboardSummaryUC  *riskuc.DashboardSummaryUseCase
-	actionPressureUC    *riskuc.DashboardActionPressureUseCase
-	executiveAlertsUC   *riskuc.ExecutiveAlertsUseCase
-	heatmapDataUC       *riskuc.HeatmapDataUseCase
-	topRisksUC          *riskuc.TopRisksUseCase
-	mmRepo              repository.MeetingMinuteRepository
+	createUC             *riskuc.CreateRiskUseCase
+	createBatchUC        *riskuc.CreateRiskBatchUseCase
+	spreadsheetUC        *riskuc.BulkRiskSpreadsheetUseCase
+	getUC                *riskuc.GetRiskUseCase
+	reassessUC           *riskuc.CreateRiskReassessmentUseCase
+	updateUC             *riskuc.UpdateRiskUseCase
+	deleteUC             *riskuc.DeleteRiskUseCase
+	listUC               *riskuc.ListRisksUseCase
+	listApprovedUC       *riskuc.ListApprovedRisksUseCase
+	listCycleSnapshotUC  *riskuc.ListRiskCycleSnapshotUseCase
+	listVersionsUC       *riskuc.ListRiskVersionsUseCase
+	kriSemesterSummaryUC *krireportuc.BuildKRISemesterSummaryUseCase
+	reviewQueueUC        *riskuc.ListRiskReviewQueueUseCase
+	compareCyclesUC      *riskuc.CompareRiskCyclesUseCase
+	compareDetailUC      *riskuc.CompareRiskCycleDetailsUseCase
+	reviewSummaryUC      *riskuc.RiskReviewSummaryUseCase
+	dashboardSummaryUC   *riskuc.DashboardSummaryUseCase
+	actionPressureUC     *riskuc.DashboardActionPressureUseCase
+	executiveAlertsUC    *riskuc.ExecutiveAlertsUseCase
+	heatmapDataUC        *riskuc.HeatmapDataUseCase
+	topRisksUC           *riskuc.TopRisksUseCase
+	mmRepo               repository.MeetingMinuteRepository
 }
 
 func NewRiskHandler(
@@ -45,8 +49,10 @@ func NewRiskHandler(
 	updateUC *riskuc.UpdateRiskUseCase,
 	deleteUC *riskuc.DeleteRiskUseCase,
 	listUC *riskuc.ListRisksUseCase,
+	listApprovedUC *riskuc.ListApprovedRisksUseCase,
 	listCycleSnapshotUC *riskuc.ListRiskCycleSnapshotUseCase,
 	listVersionsUC *riskuc.ListRiskVersionsUseCase,
+	kriSemesterSummaryUC *krireportuc.BuildKRISemesterSummaryUseCase,
 	reviewQueueUC *riskuc.ListRiskReviewQueueUseCase,
 	compareCyclesUC *riskuc.CompareRiskCyclesUseCase,
 	compareDetailUC *riskuc.CompareRiskCycleDetailsUseCase,
@@ -59,26 +65,28 @@ func NewRiskHandler(
 	mmRepo repository.MeetingMinuteRepository,
 ) *RiskHandler {
 	return &RiskHandler{
-		createUC:            createUC,
-		createBatchUC:       createBatchUC,
-		spreadsheetUC:       spreadsheetUC,
-		getUC:               getUC,
-		reassessUC:          reassessUC,
-		updateUC:            updateUC,
-		deleteUC:            deleteUC,
-		listUC:              listUC,
-		listCycleSnapshotUC: listCycleSnapshotUC,
-		listVersionsUC:      listVersionsUC,
-		reviewQueueUC:       reviewQueueUC,
-		compareCyclesUC:     compareCyclesUC,
-		compareDetailUC:     compareDetailUC,
-		reviewSummaryUC:     reviewSummaryUC,
-		dashboardSummaryUC:  dashboardSummaryUC,
-		actionPressureUC:    actionPressureUC,
-		executiveAlertsUC:   executiveAlertsUC,
-		heatmapDataUC:       heatmapDataUC,
-		topRisksUC:          topRisksUC,
-		mmRepo:              mmRepo,
+		createUC:             createUC,
+		createBatchUC:        createBatchUC,
+		spreadsheetUC:        spreadsheetUC,
+		getUC:                getUC,
+		reassessUC:           reassessUC,
+		updateUC:             updateUC,
+		deleteUC:             deleteUC,
+		listUC:               listUC,
+		listApprovedUC:       listApprovedUC,
+		listCycleSnapshotUC:  listCycleSnapshotUC,
+		listVersionsUC:       listVersionsUC,
+		kriSemesterSummaryUC: kriSemesterSummaryUC,
+		reviewQueueUC:        reviewQueueUC,
+		compareCyclesUC:      compareCyclesUC,
+		compareDetailUC:      compareDetailUC,
+		reviewSummaryUC:      reviewSummaryUC,
+		dashboardSummaryUC:   dashboardSummaryUC,
+		actionPressureUC:     actionPressureUC,
+		executiveAlertsUC:    executiveAlertsUC,
+		heatmapDataUC:        heatmapDataUC,
+		topRisksUC:           topRisksUC,
+		mmRepo:               mmRepo,
 	}
 }
 
@@ -386,8 +394,38 @@ func (h *RiskHandler) ListRisks(c *fiber.Ctx) error {
 	}
 
 	input.Status = c.Query("status", "all")
+	if category := strings.TrimSpace(c.Query("category")); category != "" {
+		if !entity.IsValidRiskCategory(category) {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid category")
+		}
+		input.Category = category
+	}
 
 	risks, err := h.listUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	if risks == nil {
+		risks = []*entity.Risk{}
+	}
+	return c.JSON(fiber.Map{"data": risks})
+}
+
+// ListApprovedRisks handles GET /api/risks/trend - returns all approved risks for trend analysis
+func (h *RiskHandler) ListApprovedRisks(c *fiber.Ctx) error {
+	var input riskuc.ListApprovedRisksInput
+
+	// Parse optional org_id filter
+	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
+		orgID, err := uuid.Parse(orgIDStr)
+		if err != nil {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		}
+		input.OrgID = &orgID
+	}
+
+	risks, err := h.listApprovedUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -413,6 +451,39 @@ func (h *RiskHandler) ListVersions(c *fiber.Ctx) error {
 		versions = []*entity.Risk{}
 	}
 	return c.JSON(fiber.Map{"data": versions})
+}
+
+func (h *RiskHandler) GetKRISemesterSummary(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+	}
+
+	risk, err := h.getUC.Execute(c.Context(), id)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	sourceCycle := strings.TrimSpace(c.Query("cycle"))
+	if sourceCycle == "" {
+		sourceCycle = previousAssessmentCycle(risk.AssessmentCycle)
+	}
+	if sourceCycle == "" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
+	}
+
+	summary, err := h.kriSemesterSummaryUC.Execute(c.Context(), krireportuc.BuildKRISemesterSummaryInput{
+		RiskID:             risk.ID,
+		RiskVersionGroupID: risk.VersionGroupID,
+		SourceCycle:        sourceCycle,
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+	if summary.KRIs == nil {
+		summary.KRIs = []*entity.KRISummary{}
+	}
+	return c.JSON(fiber.Map{"data": summary})
 }
 
 // DashboardSummary handles GET /api/risks/dashboard/summary
@@ -511,4 +582,22 @@ func (h *RiskHandler) GetMeetingMinutes(c *fiber.Ctx) error {
 		minutes = []entity.MeetingMinutesRisk{}
 	}
 	return c.JSON(fiber.Map{"data": minutes})
+}
+
+func previousAssessmentCycle(cycle string) string {
+	parts := strings.Split(strings.TrimSpace(cycle), "-")
+	if len(parts) != 2 {
+		return ""
+	}
+	year, err := time.Parse("2006", parts[0])
+	if err != nil {
+		return ""
+	}
+	if strings.EqualFold(parts[1], "H1") {
+		return fmt.Sprintf("%d-H2", year.Year()-1)
+	}
+	if strings.EqualFold(parts[1], "H2") {
+		return fmt.Sprintf("%d-H1", year.Year())
+	}
+	return ""
 }

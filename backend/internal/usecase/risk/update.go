@@ -3,6 +3,7 @@ package risk
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
@@ -33,6 +34,7 @@ type UpdateRiskInput struct {
 	ID             uuid.UUID
 	Title          string
 	Description    string
+	Category       string
 	Status         string
 	OrganizationID *uuid.UUID
 
@@ -106,9 +108,15 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput)
 		input.Mitigations[i].RiskID = input.ID
 	}
 
+	input.Category = strings.TrimSpace(input.Category)
+	if input.Category == "" || !entity.IsValidRiskCategory(input.Category) {
+		return nil, errors.ErrInvalidRiskCategory
+	}
+
 	// 5. Update risk entity
 	existingRisk.Title = input.Title
 	existingRisk.Description = input.Description
+	existingRisk.Category = input.Category
 	existingRisk.Status = input.Status
 	existingRisk.OrganizationID = input.OrganizationID
 	if input.AssessmentCycle == "" {

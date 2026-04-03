@@ -130,7 +130,7 @@ func (r *aiRepository) AnalyzeTranscript(ctx context.Context, transcript string)
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
 
-	existingRisks, err := r.riskRepo.List(ctx, nil, "")
+	existingRisks, err := r.riskRepo.List(ctx, nil, "", "")
 	if err != nil {
 		existingRisks = []*entity.Risk{}
 	}
@@ -214,7 +214,7 @@ func (r *aiRepository) GenerateRiskSuggestions(ctx context.Context) (*entity.Ris
 	}
 
 	// Fetch existing risks
-	existingRisks, err := r.riskRepo.List(ctx, nil, "")
+	existingRisks, err := r.riskRepo.List(ctx, nil, "", "")
 	if err != nil {
 		// Continue even if we can't fetch existing risks
 		existingRisks = []*entity.Risk{}
@@ -696,7 +696,7 @@ func (r *aiRepository) buildIncidentRiskCandidatesJSON(ctx context.Context, orga
 	if organizationID != nil {
 		orgIDs = []uuid.UUID{*organizationID}
 	}
-	existingRisks, err := r.riskRepo.List(ctx, orgIDs, "")
+	existingRisks, err := r.riskRepo.List(ctx, orgIDs, "", "")
 	if err != nil {
 		return nil, err
 	}
