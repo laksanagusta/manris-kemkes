@@ -205,6 +205,45 @@ func TestCreateRiskBatchUseCase_Execute_RequiresMitigationOwner(t *testing.T) {
 	}
 }
 
+func TestCreateRiskBatchUseCase_ExecutePersistsCategory(t *testing.T) {
+	riskRepo := &fakeBatchRiskRepo{}
+	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
+	batchUC := NewCreateRiskBatchUseCase(createUC)
+	createdBy := uuid.New()
+
+	result, err := batchUC.Execute(context.Background(), CreateRiskBatchInput{
+		CreatedBy: &createdBy,
+		Items: []CreateRiskBatchItemInput{{
+			ClientKey:         "row-1",
+			Title:             "Gangguan layanan",
+			Description:       "Layanan tidak tersedia",
+			Category:          entity.RiskCategoryTeknologiInformasi,
+			Controllability:   "C",
+			Probability:       3,
+			Impact:            4,
+			TargetProbability: 2,
+			TargetImpact:      2,
+			TargetWeight:      1,
+		}},
+	})
+
+	if err != nil {
+		t.Fatalf("expected no batch error, got %v", err)
+	}
+	if len(result.Items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(result.Items))
+	}
+	if result.Items[0].Status != "created" {
+		t.Fatalf("expected item created, got %s", result.Items[0].Status)
+	}
+	if len(riskRepo.created) != 1 {
+		t.Fatalf("expected 1 created risk, got %d", len(riskRepo.created))
+	}
+	if riskRepo.created[0].Category != entity.RiskCategoryTeknologiInformasi {
+		t.Fatalf("expected category %q, got %q", entity.RiskCategoryTeknologiInformasi, riskRepo.created[0].Category)
+	}
+}
+
 func TestNormalizeTreatmentOption(t *testing.T) {
 	tests := []struct {
 		name string

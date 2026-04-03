@@ -123,6 +123,7 @@ func (uc *CreateRiskBatchUseCase) Execute(ctx context.Context, input CreateRiskB
 func normalizeBatchItem(item CreateRiskBatchItemInput) CreateRiskBatchItemInput {
 	item.Title = strings.TrimSpace(item.Title)
 	item.Description = strings.TrimSpace(item.Description)
+	item.Category = strings.TrimSpace(item.Category)
 	item.RiskSource = strings.TrimSpace(item.RiskSource)
 	item.ExistingControl = strings.TrimSpace(item.ExistingControl)
 	item.RiskAppetite = strings.TrimSpace(item.RiskAppetite)

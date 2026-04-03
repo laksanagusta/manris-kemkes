@@ -19,6 +19,7 @@ import (
 var bulkRiskTemplateColumns = []string{
 	"Risiko",
 	"Deskripsi",
+	"Kategori Risiko",
 	"Kode Risiko",
 	"Sebab",
 	"Sumber Risiko",
@@ -44,6 +45,8 @@ var bulkRiskTemplateColumns = []string{
 var bulkRiskColumnAliases = map[string]string{
 	"risiko":                  "Risiko",
 	"deskripsi":               "Deskripsi",
+	"kategori":                "Kategori Risiko",
+	"kategoririsiko":          "Kategori Risiko",
 	"koderisiko":              "Kode Risiko",
 	"sebab":                   "Sebab",
 	"sumberrisiko":            "Sumber Risiko",
@@ -129,7 +132,7 @@ func (uc *BulkRiskSpreadsheetUseCase) Template() ([]byte, string, error) {
 	if _, err := f.NewSheet("Contoh Data"); err != nil {
 		return nil, "", err
 	}
-	example := []string{"Usulan layanan tidak sesuai kewenangan", "Pengajuan layanan diproses tanpa verifikasi kewenangan yang memadai.", "RPL.01", "Telaah tidak memadai", "Internal", "C", "Pelanggaran aturan", "Telaah UPT", "Efektif", "2", "2", "1.8", "4", "Dalam batas selera risiko", "Menerima risiko", "Checklist kewenangan & review SKI pra-penugasan", "SPI", "Feb 2026", "2", "2", "1.8", "Inspektorat Utama"}
+	example := []string{"Usulan layanan tidak sesuai kewenangan", "Pengajuan layanan diproses tanpa verifikasi kewenangan yang memadai.", entity.RiskCategoryOperasional, "RPL.01", "Telaah tidak memadai", "Internal", "C", "Pelanggaran aturan", "Telaah UPT", "Efektif", "2", "2", "1.8", "4", "Dalam batas selera risiko", "Menerima risiko", "Checklist kewenangan & review SKI pra-penugasan", "SPI", "Feb 2026", "2", "2", "1.8", "Inspektorat Utama"}
 	if err := f.SetSheetRow("Contoh Data", "A1", &bulkRiskTemplateColumns); err != nil {
 		return nil, "", err
 	}
@@ -247,6 +250,7 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 		ClientKey:            fmt.Sprintf("row-%d", rowNumber),
 		Title:                strings.TrimSpace(record["Risiko"]),
 		Description:          strings.TrimSpace(record["Deskripsi"]),
+		Category:             normalizeBulkRiskCategory(record["Kategori Risiko"]),
 		Cause:                splitBulkRiskMultiValue(record["Sebab"]),
 		RiskSource:           strings.TrimSpace(record["Sumber Risiko"]),
 		Controllability:      normalizeControllability(record["C/UC"]),
@@ -299,6 +303,11 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 	if item.Description == "" {
 		errors = append(errors, "Kolom Deskripsi wajib diisi.")
 	}
+	if strings.TrimSpace(record["Kategori Risiko"]) == "" {
+		errors = append(errors, "Kolom Kategori Risiko wajib diisi.")
+	} else if !entity.IsValidRiskCategory(item.Category) {
+		errors = append(errors, "Kategori Risiko tidak valid. Gunakan: strategis, operasional, kepatuhan, finansial, reputasi, teknologi_informasi.")
+	}
 	if item.Controllability == "" {
 		errors = append(errors, "Kolom C/UC harus berisi C atau UC.")
 	}
@@ -349,6 +358,26 @@ func matchBulkRiskOrganization(orgs []*entity.Organization, unitName string) *en
 
 func normalizeBulkRiskText(value string) string {
 	return strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(value))), " ")
+}
+
+func normalizeBulkRiskCategory(value string) string {
+	normalized := normalizeBulkRiskText(value)
+	switch normalized {
+	case entity.RiskCategoryStrategis:
+		return entity.RiskCategoryStrategis
+	case entity.RiskCategoryOperasional:
+		return entity.RiskCategoryOperasional
+	case entity.RiskCategoryKepatuhan:
+		return entity.RiskCategoryKepatuhan
+	case entity.RiskCategoryFinansial:
+		return entity.RiskCategoryFinansial
+	case entity.RiskCategoryReputasi:
+		return entity.RiskCategoryReputasi
+	case "teknologi informasi", "teknologi_informasi", "ti":
+		return entity.RiskCategoryTeknologiInformasi
+	default:
+		return strings.ReplaceAll(normalized, " ", "_")
+	}
 }
 
 func splitBulkRiskMultiValue(value string) []string {
