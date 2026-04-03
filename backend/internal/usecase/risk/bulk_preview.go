@@ -373,7 +373,7 @@ func normalizeBulkRiskCategory(value string) string {
 		return entity.RiskCategoryFinansial
 	case entity.RiskCategoryReputasi:
 		return entity.RiskCategoryReputasi
-	case "teknologi informasi", "teknologi_informasi", "ti":
+	case "teknologi informasi", "teknologi_informasi":
 		return entity.RiskCategoryTeknologiInformasi
 	default:
 		return strings.ReplaceAll(normalized, " ", "_")

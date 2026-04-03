@@ -187,6 +187,47 @@ func TestBulkRiskSpreadsheetUseCase_PreviewMapsCategory(t *testing.T) {
 	}
 }
 
+func TestBulkRiskSpreadsheetUseCase_PreviewAcceptsCategoryHeaderAliases(t *testing.T) {
+	uploaderID := uuid.New()
+	orgID := uuid.New()
+	uc := NewBulkRiskSpreadsheetUseCase(
+		&fakePreviewOrgRepo{orgs: []*entity.Organization{{ID: orgID, Name: "Inspektorat Utama"}}},
+		&fakePreviewUserRepo{user: &entity.User{ID: uploaderID, Role: "superadmin"}},
+	)
+
+	tests := []struct {
+		name   string
+		header string
+	}{
+		{name: "kategori alias", header: "kategori"},
+		{name: "kategoririsiko alias", header: "kategoririsiko"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			headers := []string{"Risiko", "Deskripsi", tt.header, "C/UC", "P", "D", "Target P", "Target D", "Target Bobot", "Unit Kerja"}
+			row := []string{"Risiko A", "Deskripsi A", "kepatuhan", "C", "2", "2", "1", "1", "1.0", "Inspektorat Utama"}
+
+			result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, [][]string{headers, row}), UploaderID: uploaderID})
+			if err != nil {
+				t.Fatalf("preview err: %v", err)
+			}
+			if len(result.Items) != 1 {
+				t.Fatalf("expected 1 item, got %d", len(result.Items))
+			}
+			if len(result.Items[0].Errors) != 0 {
+				t.Fatalf("expected no errors, got %v", result.Items[0].Errors)
+			}
+			if result.Items[0].Payload == nil {
+				t.Fatal("expected payload to be present")
+			}
+			if result.Items[0].Payload.Category != entity.RiskCategoryKepatuhan {
+				t.Fatalf("expected normalized category %q, got %q", entity.RiskCategoryKepatuhan, result.Items[0].Payload.Category)
+			}
+		})
+	}
+}
+
 func TestBulkRiskSpreadsheetUseCase_PreviewRejectsInvalidCategory(t *testing.T) {
 	uploaderID := uuid.New()
 	orgID := uuid.New()
@@ -196,7 +237,7 @@ func TestBulkRiskSpreadsheetUseCase_PreviewRejectsInvalidCategory(t *testing.T) 
 	)
 
 	headers := []string{"Risiko", "Deskripsi", "Kategori Risiko", "C/UC", "P", "D", "Target P", "Target D", "Target Bobot", "Unit Kerja"}
-	row := []string{"Risiko A", "Deskripsi A", "Kategori Tidak Valid", "C", "2", "2", "1", "1", "1.0", "Inspektorat Utama"}
+	row := []string{"Risiko A", "Deskripsi A", "ti", "C", "2", "2", "1", "1", "1.0", "Inspektorat Utama"}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, [][]string{headers, row}), UploaderID: uploaderID})
 	if err != nil {
