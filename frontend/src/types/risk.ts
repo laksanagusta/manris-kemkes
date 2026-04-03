@@ -4,6 +4,7 @@ export type MitigationFrequency = "insidental" | "rutin";
 export type RecurringInterval = "harian" | "mingguan" | "bulanan" | "triwulan" | "semesteran" | "tahunan";
 export type TreatmentOption = "" | "avoid" | "mitigate" | "transfer" | "accept";
 export type RiskStatus = "draft" | "final" | "approved" | "rejected";
+export type RiskCategory = "" | "strategis" | "operasional" | "kepatuhan" | "finansial" | "reputasi" | "teknologi_informasi";
 
 export type RiskLevel = "rendah" | "sedang" | "tinggi" | "ekstrem";
 

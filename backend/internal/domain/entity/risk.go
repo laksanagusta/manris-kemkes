@@ -13,6 +13,7 @@ type Risk struct {
 	Code           string     `json:"code"`
 	Title          string     `json:"title"`
 	Description    string     `json:"description"`
+	Category       string     `json:"category,omitempty"`
 	Status         string     `json:"status"`
 	VersionGroupID uuid.UUID  `json:"versionGroupId"`
 	PreviousRiskID *uuid.UUID `json:"previousRiskId,omitempty"`
@@ -72,6 +73,30 @@ type ApprovalLineMember struct {
 	Name string `json:"name"`
 }
 
+const (
+	RiskCategoryStrategis          = "strategis"
+	RiskCategoryOperasional        = "operasional"
+	RiskCategoryKepatuhan          = "kepatuhan"
+	RiskCategoryFinansial          = "finansial"
+	RiskCategoryReputasi           = "reputasi"
+	RiskCategoryTeknologiInformasi = "teknologi_informasi"
+)
+
+var allowedRiskCategories = map[string]struct{}{
+	"":                             {},
+	RiskCategoryStrategis:          {},
+	RiskCategoryOperasional:        {},
+	RiskCategoryKepatuhan:          {},
+	RiskCategoryFinansial:          {},
+	RiskCategoryReputasi:           {},
+	RiskCategoryTeknologiInformasi: {},
+}
+
+func IsValidRiskCategory(category string) bool {
+	_, ok := allowedRiskCategories[category]
+	return ok
+}
+
 // Validate performs domain validation on Risk
 func (r *Risk) Validate() error {
 	if r.Title == "" {
@@ -82,6 +107,9 @@ func (r *Risk) Validate() error {
 	}
 	if r.Status == "" {
 		return errors.ErrInvalidStatus
+	}
+	if !IsValidRiskCategory(r.Category) {
+		return errors.ErrInvalidRiskCategory
 	}
 	if r.Probability < 1 || r.Probability > 5 {
 		return errors.ErrInvalidProbability

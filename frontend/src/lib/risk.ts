@@ -1,4 +1,14 @@
-import type { RiskLevel } from "@/types/risk";
+import type { RiskCategory, RiskLevel } from "@/types/risk";
+
+export const riskCategoryLabels: Record<RiskCategory, string> = {
+  "": "Belum dikategorikan",
+  strategis: "Strategis",
+  operasional: "Operasional",
+  kepatuhan: "Kepatuhan",
+  finansial: "Finansial",
+  reputasi: "Reputasi",
+  teknologi_informasi: "Teknologi Informasi",
+};
 
 export function getRiskLevel(score: number): RiskLevel {
   if (score >= 17) return "ekstrem";
