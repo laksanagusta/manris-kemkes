@@ -28,9 +28,13 @@ import {
 } from "recharts";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { RiskCycleDetailReport } from "./risk-cycle-detail-report";
+import { OverdueMitigationTimeline } from "./_components/overdue-mitigation-timeline";
+import { KRIBreachSummary } from "./_components/kri-breach-summary";
+import { UnitResponseTimeChart } from "./_components/unit-response-time";
 import { cn } from "@/lib/utils";
 import {
   exportRiskBulkCSV,
@@ -48,7 +52,13 @@ import {
   type RiskTrendSourceItem,
   type RiskTrendWindow,
 } from "@/lib/risk-report-trend";
-import type { Risk, RiskCycleComparisonItem } from "@/types/risk";
+import type {
+  KRIBreachItem,
+  OverdueMitigationTimelineItem,
+  Risk,
+  RiskCycleComparisonItem,
+  UnitResponseTime,
+} from "@/types/risk";
 
 type RiskCycleSnapshotItem = RiskExportItem & {
   assessmentCycle?: string;
@@ -69,6 +79,7 @@ const exportOptions = [
     description: "Export seluruh risiko ke format CSV",
     icon: FileSpreadsheet,
     format: "CSV",
+    isEnabled: true,
   },
   {
     key: "risk-xlsx",
@@ -76,20 +87,23 @@ const exportOptions = [
     description: "Export seluruh risiko ke format Excel lengkap",
     icon: FileSpreadsheet,
     format: "XLSX",
+    isEnabled: true,
   },
   {
     key: "incident-xlsx",
     title: "Incident Report (Excel)",
-    description: "Export seluruh insiden ke format Excel",
+    description: "Export insiden belum diaktifkan pada delivery ini",
     icon: FileSpreadsheet,
     format: "XLSX",
+    isEnabled: false,
   },
   {
     key: "kri-xlsx",
     title: "KRI Summary (Excel)",
-    description: "Export ringkasan KRI dengan status threshold",
+    description: "Export KRI belum termasuk ruang lingkup delivery ini",
     icon: FileSpreadsheet,
     format: "XLSX",
+    isEnabled: false,
   },
 ];
 
@@ -137,6 +151,9 @@ export default function ReportsPage() {
   const [isExporting, setIsExporting] = useState<string | null>(null);
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
   const [selectedMovement, setSelectedMovement] = useState<MovementSnapshotDatum["key"] | null>(null);
+  const [overdueTimelineData, setOverdueTimelineData] = useState<OverdueMitigationTimelineItem[]>([]);
+  const [kriBreachData, setKriBreachData] = useState<KRIBreachItem[]>([]);
+  const [responseTimeData, setResponseTimeData] = useState<UnitResponseTime[]>([]);
 
   const cycleOptions = useMemo(() => buildRecentCycleOptions(), []);
   const previousCycle = useMemo(() => previousGlobalCycle(exportCycle), [exportCycle]);
@@ -175,7 +192,10 @@ export default function ReportsPage() {
       api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}`, token),
       api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${encodeURIComponent(previousCycle)}`, token),
       api.get<RiskCycleComparisonItem[]>(`/risks/compare?from=${previousCycle}&to=${exportCycle}`, token),
-    ]).then(([riskResult, cycleRiskResult, previousCycleRiskResult, comparisonResult]) => {
+      api.get<OverdueMitigationTimelineItem[]>("/dashboard/overdue-mitigation-timeline", token),
+      api.get<KRIBreachItem[]>("/dashboard/kri-breach-summary", token),
+      api.get<UnitResponseTime[]>("/dashboard/unit-response-time", token),
+    ]).then(([riskResult, cycleRiskResult, previousCycleRiskResult, comparisonResult, overdueResult, kriBreachResult, responseTimeResult]) => {
       if (riskResult.status === "fulfilled") {
         setTrendRisks(riskResult.value);
       } else {
@@ -203,6 +223,15 @@ export default function ReportsPage() {
         console.error(comparisonResult.reason);
         setComparisons([]);
       }
+
+      if (overdueResult.status === "fulfilled") setOverdueTimelineData(overdueResult.value);
+      else { console.error(overdueResult.reason); setOverdueTimelineData([]); }
+
+      if (kriBreachResult.status === "fulfilled") setKriBreachData(kriBreachResult.value);
+      else { console.error(kriBreachResult.reason); setKriBreachData([]); }
+
+      if (responseTimeResult.status === "fulfilled") setResponseTimeData(responseTimeResult.value);
+      else { console.error(responseTimeResult.reason); setResponseTimeData([]); }
     });
   }, [token, exportCycle, previousCycle]);
 
@@ -258,10 +287,25 @@ export default function ReportsPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Reports & Export</h1>
         <p className="text-sm text-muted-foreground">
-          Export data dan generate laporan risiko
+          Untuk review analitis, perbandingan antar-cycle, dan export formal. Pembaruan operasional mitigasi/KRI tetap dilakukan di Monitoring & Updates.
         </p>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-primary/25 bg-primary/5 px-4 py-3">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-foreground">Untuk analisis & unduhan</p>
+          <p className="text-xs text-muted-foreground">
+            Halaman ini dipakai untuk analisis dan unduhan data. Untuk memperbarui mitigasi atau KRI, gunakan Monitoring & Updates.
+          </p>
+        </div>
+        <Link
+          href="/compliance/monitoring"
+          className="inline-flex h-8 items-center rounded-md border border-border/60 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted/50"
+        >
+          Buka Monitoring & Updates
+        </Link>
       </div>
 
       {/* Export Section */}
@@ -293,20 +337,31 @@ export default function ReportsPage() {
               <button
                 key={opt.title}
                 onClick={() => handleExport(opt.key)}
-                className="flex items-start gap-3 rounded-lg border border-border/50 p-3 text-left transition-all hover:bg-muted/30 hover:border-primary/30 group"
+                disabled={!opt.isEnabled || isExporting !== null}
+                className={cn(
+                  "flex items-start gap-3 rounded-lg border border-border/50 p-3 text-left transition-all group",
+                  opt.isEnabled
+                    ? "hover:bg-muted/30 hover:border-primary/30"
+                    : "cursor-not-allowed opacity-65",
+                )}
               >
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/15 transition-colors">
+                <div
+                  className={cn(
+                    "flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors",
+                    opt.isEnabled ? "bg-primary/10 group-hover:bg-primary/15" : "bg-muted/60",
+                  )}
+                >
                   <opt.icon className="size-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold group-hover:text-primary transition-colors">
+                  <p className={cn("text-xs font-semibold transition-colors", opt.isEnabled && "group-hover:text-primary")}>
                     {opt.title}
                   </p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
                     {opt.key.startsWith("risk-") ? `${opt.description} untuk cycle ${exportCycle}` : opt.description}
                   </p>
                   <Badge variant="outline" className="text-[8px] h-4 px-1 mt-1.5">
-                    {isExporting === opt.key ? "Exporting..." : opt.format}
+                    {isExporting === opt.key ? "Exporting..." : opt.isEnabled ? opt.format : "Disabled"}
                   </Badge>
                 </div>
               </button>
@@ -328,7 +383,7 @@ export default function ReportsPage() {
       </div>
 
       <Card className="border-border/50 bg-card/80">
-        <CardHeader className="pb-3">
+        <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <div>
               <CardTitle className="text-sm font-semibold">Risk Movement Report</CardTitle>
@@ -367,9 +422,9 @@ export default function ReportsPage() {
                   </button>
                 ))}
               </div>
-              <div className="h-64">
+              <div className="h-56">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={movementData} margin={{ top: 8, right: 12, left: -24, bottom: 0 }}>
+                  <BarChart data={movementData} margin={{ top: 4, right: 12, left: -24, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" vertical={false} />
                     <XAxis dataKey="label" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -392,7 +447,7 @@ export default function ReportsPage() {
               </div>
             </>
           ) : (
-            <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+            <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
               Perbandingan cycle belum tersedia, jadi pergerakan risiko belum bisa diringkas.
             </div>
           )}
@@ -400,9 +455,9 @@ export default function ReportsPage() {
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border/50 bg-card/80">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-3">
+      <Card className="border-border/50 bg-card/80">
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-sm font-semibold">Top Unit Exposure</CardTitle>
                 <p className="mt-1 text-[11px] text-muted-foreground">
@@ -417,21 +472,18 @@ export default function ReportsPage() {
           <CardContent>
             {hasExposureData ? (
               <>
-                <div className="h-72">
+                <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={unitExposureData} margin={{ top: 8, right: 12, left: -24, bottom: 32 }}>
+                    <BarChart data={unitExposureData} margin={{ top: 4, right: 12, left: -24, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" vertical={false} />
                       <XAxis
                         dataKey="orgName"
                         tick={{ fontSize: 10 }}
                         tickFormatter={(value: string) =>
-                          value.length > 12 ? `${value.slice(0, 12)}…` : value
+                          value.length > 16 ? `${value.slice(0, 16)}…` : value
                         }
                         axisLine={false}
                         tickLine={false}
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
                       />
                       <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                       <RechartsTooltip
@@ -475,7 +527,7 @@ export default function ReportsPage() {
                 </div>
               </>
             ) : (
-              <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
                 Belum ada data risiko untuk menyusun ranking unit prioritas.
               </div>
             )}
@@ -483,7 +535,7 @@ export default function ReportsPage() {
         </Card>
 
         <Card className="border-border/50 bg-card/80">
-          <CardHeader className="pb-3">
+          <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <TrendingUp className="size-4" />
@@ -504,9 +556,9 @@ export default function ReportsPage() {
           <CardContent>
             {hasTrendData ? (
               <>
-                <div className="h-64">
+                <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={trendData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                    <BarChart data={trendData} margin={{ top: 4, right: 10, left: -10, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" vertical={false} />
                       <XAxis dataKey="period" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -541,7 +593,7 @@ export default function ReportsPage() {
                 </div>
               </>
             ) : (
-              <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
                 Belum ada data semester untuk menampilkan tren risiko.
               </div>
             )}
@@ -566,6 +618,22 @@ export default function ReportsPage() {
           </button>
         </div>
       ) : null}
+
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Analisis Lanjutan</p>
+          <p className="text-xs text-muted-foreground">
+            Insight tambahan dari data mitigasi, KRI, dan waktu respons.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <OverdueMitigationTimeline data={overdueTimelineData} />
+        <KRIBreachSummary data={kriBreachData} />
+      </div>
+
+      <UnitResponseTimeChart data={responseTimeData} />
 
       <RiskCycleDetailReport
         fromCycle={previousCycle}
