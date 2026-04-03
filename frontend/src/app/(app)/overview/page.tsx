@@ -3,11 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
-  ArrowUpRight,
+  ArrowDown,
+  ArrowUp,
+  ChevronRight,
   ClipboardCheck,
   Clock,
   FileBarChart,
   Flame,
+  Gauge,
   ShieldAlert,
   TrendingDown,
   TrendingUp,
@@ -30,25 +33,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
+import { RiskHeatmap } from "./_components/risk-heatmap";
+import { TopRisksPanel } from "./_components/top-risks-panel";
+import { RiskMovementSnapshot } from "./_components/risk-movement-snapshot";
 import type {
   DashboardActionPressurePoint,
   DashboardRiskCategoryItem,
   ExecutiveAlert,
   Risk,
+  RiskCycleComparisonItem,
+  TopRiskItem,
 } from "@/types/risk";
 import { api } from "@/lib/api";
-import { buildDashboardRiskCategoryData, buildExecutiveTrendData } from "@/lib/dashboard-insights";
+import {
+  buildDashboardRiskCategoryData,
+  buildExecutiveTrendData,
+  buildMovementSnapshotData,
+  levelFromScore,
+  weightFor,
+} from "@/lib/dashboard-insights";
 import { cn } from "@/lib/utils";
-
-const impactLabels = ["Insignificant", "Minor", "Moderate", "Major", "Catastrophic"];
-const likelihoodLabels = ["Rare", "Unlikely", "Possible", "Likely", "Almost Certain"];
-
-const levelColors: Record<string, string> = {
-  low: "heatmap-low",
-  medium: "heatmap-medium",
-  high: "heatmap-high",
-  extreme: "heatmap-extreme",
-};
 
 const executiveTrendLegend = [
   { key: "high", color: "oklch(0.70 0.18 40)", label: "High" },
@@ -93,14 +97,6 @@ const alertMeta: Record<string, { label: string; className: string }> = {
   },
 };
 
-function getRiskLevel(prob: number, impact: number): string {
-  const score = (prob + 1) * (impact + 1);
-  if (score <= 4) return "low";
-  if (score <= 9) return "medium";
-  if (score <= 16) return "high";
-  return "extreme";
-}
-
 function currentGlobalCycle() {
   const now = new Date();
   const year = now.getFullYear();
@@ -126,8 +122,18 @@ export default function DashboardPage() {
   const [isRiskCategoryLoading, setIsRiskCategoryLoading] = useState(true);
   const [riskCategoryError, setRiskCategoryError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [topRisks, setTopRisks] = useState<TopRiskItem[]>([]);
+  const [movementSnapshot, setMovementSnapshot] = useState<ReturnType<typeof buildMovementSnapshotData>>([]);
+  const [allRisksForExposure, setAllRisksForExposure] = useState<Risk[]>([]);
+  const [exposureScore, setExposureScore] = useState(0);
 
   const currentCycle = useMemo(() => currentGlobalCycle(), []);
+  const previousCycle = useMemo(() => {
+    const [yearStr, half] = currentCycle.split("-");
+    const year = Number(yearStr);
+    if (half === "H1") return `${year - 1}-H2`;
+    return `${year}-H1`;
+  }, [currentCycle]);
 
   useEffect(() => {
     if (!token) return;
@@ -139,6 +145,8 @@ export default function DashboardPage() {
       api.get<DashboardActionPressurePoint[]>("/dashboard/action-pressure?interval=month&window=6", token),
       api.get<ExecutiveAlert[]>(`/dashboard/executive-alerts?cycle=${currentCycle}&limit=6`, token),
       api.get<DashboardRiskCategoryItem[]>("/dashboard/risk-categories", token),
+      api.get<TopRiskItem[]>("/dashboard/top-risks", token),
+      api.get<RiskCycleComparisonItem[]>(`/risks/compare?from=${previousCycle}&to=${currentCycle}`, token),
     ]).then(([
       summaryResult,
       heatmapResult,
@@ -146,6 +154,8 @@ export default function DashboardPage() {
       actionPressureResult,
       executiveAlertsResult,
       riskCategoryResult,
+      topRisksResult,
+      compareResult,
     ]) => {
       if (summaryResult.status === "fulfilled") setSummary(summaryResult.value);
       else console.error(summaryResult.reason);
@@ -154,7 +164,14 @@ export default function DashboardPage() {
       else console.error(heatmapResult.reason);
 
       if (risksResult.status === "fulfilled") {
-        setTrendData(buildExecutiveTrendData(risksResult.value));
+        const risks = risksResult.value;
+        setAllRisksForExposure(risks);
+        setTrendData(buildExecutiveTrendData(risks));
+        const score = risks.reduce((sum, r) => {
+          const lvl = levelFromScore(r.probability, r.impact);
+          return sum + weightFor(lvl);
+        }, 0);
+        setExposureScore(score);
       } else {
         console.error(risksResult.reason);
         setTrendData([]);
@@ -182,9 +199,25 @@ export default function DashboardPage() {
       }
       setIsRiskCategoryLoading(false);
 
+      if (topRisksResult.status === "fulfilled") setTopRisks(topRisksResult.value);
+      else { console.error(topRisksResult.reason); setTopRisks([]); }
+
+      if (compareResult.status === "fulfilled") {
+        const comparisons = compareResult.value;
+        const risks = risksResult.status === "fulfilled" ? risksResult.value : [];
+        setMovementSnapshot(buildMovementSnapshotData({
+          currentRisks: risks,
+          previousRisks: [],
+          comparisons,
+        }));
+      } else {
+        console.error(compareResult.reason);
+        setMovementSnapshot([]);
+      }
+
       setLoading(false);
     });
-  }, [token, currentCycle]);
+  }, [token, currentCycle, previousCycle]);
 
   const kpiCards: KpiCard[] = summary
     ? [
@@ -228,6 +261,16 @@ export default function DashboardPage() {
           bgColor: "bg-risk-high/10",
           description: "dilaporkan",
         },
+        {
+          title: "Risk Exposure",
+          value: exposureScore,
+          change: "--",
+          trend: "stable",
+          icon: Gauge,
+          color: "text-chart-5",
+          bgColor: "bg-chart-5/10",
+          description: "skor eksposur tertimbang",
+        },
       ]
     : [];
 
@@ -251,7 +294,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         {kpiCards.map((kpi) => (
           <Card
             key={kpi.title}
@@ -296,91 +339,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-3">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-semibold">Heatmap Risiko</CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">Distribusi risiko berdasarkan Probabilitas × Dampak</p>
-              </div>
-              <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground">
-                Detail
-                <ArrowUpRight className="size-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex gap-2">
-              <div className="-mr-1 flex shrink-0 flex-col items-center justify-center">
-                <span className="rotate-180 text-[9px] font-semibold tracking-widest text-muted-foreground [writing-mode:vertical-lr]">
-                  PROBABILITAS
-                </span>
-              </div>
-
-              <div className="flex shrink-0 flex-col justify-end gap-[3px] pb-[22px]">
-                {[...likelihoodLabels].reverse().map((label) => (
-                  <div key={label} className="flex h-0 flex-1 items-center justify-end pr-1.5">
-                    <span className="w-10 truncate text-right text-[9px] leading-none text-muted-foreground">
-                      {label.length > 8 ? `${label.slice(0, 7)}…` : label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="grid grid-rows-5 gap-[3px]">
-                  {[...heatmapData].reverse().map((row, rowIdx) => (
-                    <div key={rowIdx} className="grid grid-cols-5 gap-[3px]">
-                      {row.map((count, colIdx) => {
-                        const level = getRiskLevel(4 - rowIdx, colIdx);
-
-                        return (
-                          <div
-                            key={colIdx}
-                            className={cn(
-                              "aspect-[4/3] cursor-pointer rounded-md text-xs font-bold transition-all hover:scale-[1.08] hover:shadow-md flex items-center justify-center",
-                              levelColors[level],
-                            )}
-                          >
-                            {count > 0 ? count : ""}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-1 grid grid-cols-5 gap-[3px]">
-                  {impactLabels.map((label) => (
-                    <div
-                      key={label}
-                      className="truncate text-center text-[9px] leading-tight text-muted-foreground"
-                    >
-                      {label.length > 8 ? `${label.slice(0, 7)}…` : label}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-1 text-center text-[9px] font-semibold tracking-widest text-muted-foreground">
-                  DAMPAK →
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center justify-center gap-3 border-t border-border/40 pt-3">
-              {[
-                { label: "Rendah", cls: "heatmap-low" },
-                { label: "Sedang", cls: "heatmap-medium" },
-                { label: "Tinggi", cls: "heatmap-high" },
-                { label: "Ekstrem", cls: "heatmap-extreme" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-1">
-                  <div className={cn("size-2.5 rounded-[3px]", item.cls)} />
-                  <span className="text-[10px] text-muted-foreground">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <RiskHeatmap data={heatmapData} loading={loading} />
 
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2">
           <CardHeader className="pb-3">
@@ -422,6 +381,11 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-5">
+        <TopRisksPanel risks={topRisks} loading={loading} />
+        <RiskMovementSnapshot data={movementSnapshot} loading={loading} />
       </div>
 
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">

@@ -63,7 +63,7 @@ function semesterSortValue(period: string) {
   return Number(yearText) * 2 + (half === "H2" ? 1 : 0);
 }
 
-function levelFromScore(probability?: number, impact?: number): Severity {
+export function levelFromScore(probability?: number, impact?: number): Severity {
   const score = (probability ?? 0) * (impact ?? 0);
   if (score >= 17) return "Ekstrem";
   if (score >= 10) return "Tinggi";
@@ -71,7 +71,7 @@ function levelFromScore(probability?: number, impact?: number): Severity {
   return "Rendah";
 }
 
-function weightFor(level: Severity) {
+export function weightFor(level: Severity) {
   if (level === "Ekstrem") return 5;
   if (level === "Tinggi") return 3;
   if (level === "Sedang") return 2;
