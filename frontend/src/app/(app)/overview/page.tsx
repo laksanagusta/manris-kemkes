@@ -40,6 +40,7 @@ import type {
   DashboardActionPressurePoint,
   DashboardRiskCategoryItem,
   ExecutiveAlert,
+  HeatmapVelocityCell,
   Risk,
   RiskCycleComparisonItem,
   TopRiskItem,
@@ -126,6 +127,7 @@ export default function DashboardPage() {
   const [movementSnapshot, setMovementSnapshot] = useState<ReturnType<typeof buildMovementSnapshotData>>([]);
   const [allRisksForExposure, setAllRisksForExposure] = useState<Risk[]>([]);
   const [exposureScore, setExposureScore] = useState(0);
+  const [velocityData, setVelocityData] = useState<HeatmapVelocityCell[]>([]);
 
   const currentCycle = useMemo(() => currentGlobalCycle(), []);
   const previousCycle = useMemo(() => {
@@ -147,6 +149,7 @@ export default function DashboardPage() {
       api.get<DashboardRiskCategoryItem[]>("/dashboard/risk-categories", token),
       api.get<TopRiskItem[]>("/dashboard/top-risks", token),
       api.get<RiskCycleComparisonItem[]>(`/risks/compare?from=${previousCycle}&to=${currentCycle}`, token),
+      api.get<HeatmapVelocityCell[]>(`/dashboard/heatmap-velocity?from=${previousCycle}&to=${currentCycle}`, token),
     ]).then(([
       summaryResult,
       heatmapResult,
@@ -156,6 +159,7 @@ export default function DashboardPage() {
       riskCategoryResult,
       topRisksResult,
       compareResult,
+      velocityResult,
     ]) => {
       if (summaryResult.status === "fulfilled") setSummary(summaryResult.value);
       else console.error(summaryResult.reason);
@@ -214,6 +218,9 @@ export default function DashboardPage() {
         console.error(compareResult.reason);
         setMovementSnapshot([]);
       }
+
+      if (velocityResult.status === "fulfilled") setVelocityData(velocityResult.value);
+      else { console.error(velocityResult.reason); setVelocityData([]); }
 
       setLoading(false);
     });
@@ -339,7 +346,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <RiskHeatmap data={heatmapData} loading={loading} />
+        <RiskHeatmap data={heatmapData} loading={loading} velocityData={velocityData} />
 
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2">
           <CardHeader className="pb-3">
