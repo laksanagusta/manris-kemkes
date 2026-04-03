@@ -14,26 +14,27 @@ import (
 
 // RiskHandler handles HTTP requests for Risk operations using clean architecture
 type RiskHandler struct {
-	createUC            *riskuc.CreateRiskUseCase
-	createBatchUC       *riskuc.CreateRiskBatchUseCase
-	spreadsheetUC       *riskuc.BulkRiskSpreadsheetUseCase
-	getUC               *riskuc.GetRiskUseCase
-	reassessUC          *riskuc.CreateRiskReassessmentUseCase
-	updateUC            *riskuc.UpdateRiskUseCase
-	deleteUC            *riskuc.DeleteRiskUseCase
-	listUC              *riskuc.ListRisksUseCase
-	listCycleSnapshotUC *riskuc.ListRiskCycleSnapshotUseCase
-	listVersionsUC      *riskuc.ListRiskVersionsUseCase
-	reviewQueueUC       *riskuc.ListRiskReviewQueueUseCase
-	compareCyclesUC     *riskuc.CompareRiskCyclesUseCase
-	compareDetailUC     *riskuc.CompareRiskCycleDetailsUseCase
-	reviewSummaryUC     *riskuc.RiskReviewSummaryUseCase
-	dashboardSummaryUC  *riskuc.DashboardSummaryUseCase
-	actionPressureUC    *riskuc.DashboardActionPressureUseCase
-	executiveAlertsUC   *riskuc.ExecutiveAlertsUseCase
-	heatmapDataUC       *riskuc.HeatmapDataUseCase
-	topRisksUC          *riskuc.TopRisksUseCase
-	mmRepo              repository.MeetingMinuteRepository
+	createUC              *riskuc.CreateRiskUseCase
+	createBatchUC         *riskuc.CreateRiskBatchUseCase
+	spreadsheetUC         *riskuc.BulkRiskSpreadsheetUseCase
+	getUC                 *riskuc.GetRiskUseCase
+	reassessUC            *riskuc.CreateRiskReassessmentUseCase
+	updateUC              *riskuc.UpdateRiskUseCase
+	deleteUC              *riskuc.DeleteRiskUseCase
+	listUC                *riskuc.ListRisksUseCase
+	listCycleSnapshotUC   *riskuc.ListRiskCycleSnapshotUseCase
+	listVersionsUC        *riskuc.ListRiskVersionsUseCase
+	reviewQueueUC         *riskuc.ListRiskReviewQueueUseCase
+	compareCyclesUC       *riskuc.CompareRiskCyclesUseCase
+	compareDetailUC       *riskuc.CompareRiskCycleDetailsUseCase
+	reviewSummaryUC       *riskuc.RiskReviewSummaryUseCase
+	dashboardSummaryUC    *riskuc.DashboardSummaryUseCase
+	actionPressureUC      *riskuc.DashboardActionPressureUseCase
+	executiveAlertsUC     *riskuc.ExecutiveAlertsUseCase
+	heatmapDataUC         *riskuc.HeatmapDataUseCase
+	dashboardCategoriesUC *riskuc.DashboardRiskCategoriesUseCase
+	topRisksUC            *riskuc.TopRisksUseCase
+	mmRepo                repository.MeetingMinuteRepository
 }
 
 func NewRiskHandler(
@@ -56,29 +57,31 @@ func NewRiskHandler(
 	executiveAlertsUC *riskuc.ExecutiveAlertsUseCase,
 	heatmapDataUC *riskuc.HeatmapDataUseCase,
 	topRisksUC *riskuc.TopRisksUseCase,
+	dashboardCategoriesUC *riskuc.DashboardRiskCategoriesUseCase,
 	mmRepo repository.MeetingMinuteRepository,
 ) *RiskHandler {
 	return &RiskHandler{
-		createUC:            createUC,
-		createBatchUC:       createBatchUC,
-		spreadsheetUC:       spreadsheetUC,
-		getUC:               getUC,
-		reassessUC:          reassessUC,
-		updateUC:            updateUC,
-		deleteUC:            deleteUC,
-		listUC:              listUC,
-		listCycleSnapshotUC: listCycleSnapshotUC,
-		listVersionsUC:      listVersionsUC,
-		reviewQueueUC:       reviewQueueUC,
-		compareCyclesUC:     compareCyclesUC,
-		compareDetailUC:     compareDetailUC,
-		reviewSummaryUC:     reviewSummaryUC,
-		dashboardSummaryUC:  dashboardSummaryUC,
-		actionPressureUC:    actionPressureUC,
-		executiveAlertsUC:   executiveAlertsUC,
-		heatmapDataUC:       heatmapDataUC,
-		topRisksUC:          topRisksUC,
-		mmRepo:              mmRepo,
+		createUC:              createUC,
+		createBatchUC:         createBatchUC,
+		spreadsheetUC:         spreadsheetUC,
+		getUC:                 getUC,
+		reassessUC:            reassessUC,
+		updateUC:              updateUC,
+		deleteUC:              deleteUC,
+		listUC:                listUC,
+		listCycleSnapshotUC:   listCycleSnapshotUC,
+		listVersionsUC:        listVersionsUC,
+		reviewQueueUC:         reviewQueueUC,
+		compareCyclesUC:       compareCyclesUC,
+		compareDetailUC:       compareDetailUC,
+		reviewSummaryUC:       reviewSummaryUC,
+		dashboardSummaryUC:    dashboardSummaryUC,
+		actionPressureUC:      actionPressureUC,
+		executiveAlertsUC:     executiveAlertsUC,
+		heatmapDataUC:         heatmapDataUC,
+		topRisksUC:            topRisksUC,
+		dashboardCategoriesUC: dashboardCategoriesUC,
+		mmRepo:                mmRepo,
 	}
 }
 
@@ -500,6 +503,17 @@ func (h *RiskHandler) TopRisks(c *fiber.Ctx) error {
 		risks = []*entity.Risk{}
 	}
 	return c.JSON(fiber.Map{"data": risks})
+}
+
+func (h *RiskHandler) GetDashboardRiskCategories(c *fiber.Ctx) error {
+	data, err := h.dashboardCategoriesUC.Execute(c.Context())
+	if err != nil {
+		return handleError(c, err)
+	}
+	if data == nil {
+		data = []*entity.DashboardCategoryCount{}
+	}
+	return c.JSON(fiber.Map{"data": data})
 }
 
 func (h *RiskHandler) GetMeetingMinutes(c *fiber.Ctx) error {

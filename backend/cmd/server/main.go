@@ -99,6 +99,7 @@ func main() {
 	riskExecutiveAlertsUC := riskuc.NewExecutiveAlertsUseCase(domainRiskRepo, domainMitigationTaskRepo)
 	riskHeatmapDataUC := riskuc.NewHeatmapDataUseCase(domainRiskRepo)
 	riskTopRisksUC := riskuc.NewTopRisksUseCase(domainRiskRepo)
+	riskDashboardCategoriesUC := riskuc.NewDashboardRiskCategoriesUseCase(domainRiskRepo)
 
 	// Incident usecases
 	incidentCreateUC := incidentuc.NewCreateIncidentUseCase(domainIncidentRepo, domainUserRepo, domainOrgRepo, domainRiskRepo)
@@ -128,7 +129,7 @@ func main() {
 	kriCreateUC := kriuc.NewCreateKRIUseCase(domainKRiRepo, domainRiskRepo, domainOrgRepo)
 	kriGetUC := kriuc.NewGetKRIUseCase(domainKRiRepo)
 	kriUpdateUC := kriuc.NewUpdateKRIUseCase(domainKRiRepo, domainRiskRepo, domainOrgRepo)
-	kriDeleteUC := kriuc.NewDeleteKRIUseCase(domainKRiRepo)
+	kriArchiveUC := kriuc.NewArchiveKRIUseCase(domainKRiRepo)
 	kriListUC := kriuc.NewListKRIsUseCase(domainKRiRepo, orgHierarchySvc)
 	kriDashboardUC := kriuc.NewKRIDashboardUseCase(domainKRiRepo, orgHierarchySvc)
 
@@ -170,6 +171,10 @@ func main() {
 	cbaCalculateUC := cbauc.NewCalculateUseCase()
 
 	// Organization usecases
+	orgCreateUC := organizationuc.NewCreateOrganizationUseCase(domainOrgRepo)
+	orgGetUC := organizationuc.NewGetOrganizationUseCase(domainOrgRepo)
+	orgUpdateUC := organizationuc.NewUpdateOrganizationUseCase(domainOrgRepo)
+	orgDeleteUC := organizationuc.NewDeleteOrganizationUseCase(domainOrgRepo)
 	orgListUC := organizationuc.NewListOrganizationsUseCase(domainOrgRepo)
 
 	// System usecases
@@ -184,6 +189,9 @@ func main() {
 	// KRI Report usecases
 	kriReportListUC := krireportuc.NewListReportsUseCase(domainKRIReportRepo)
 	kriReportSubmitUC := krireportuc.NewSubmitReportUseCase(domainKRIReportRepo, domainKRiRepo)
+	kriReportAcceptUC := krireportuc.NewAcceptReportUseCase(domainKRIReportRepo, domainKRiRepo)
+	kriReportRevisionUC := krireportuc.NewRequestRevisionUseCase(domainKRIReportRepo)
+	kriReportSkipUC := krireportuc.NewSkipReportUseCase(domainKRIReportRepo)
 	kriReportGenerateUC := krireportuc.NewGenerateReportsUseCase(domainKRIReportRepo)
 	kriReportOverdueUC := krireportuc.NewMarkOverdueUseCase(domainKRIReportRepo)
 
@@ -207,7 +215,7 @@ func main() {
 	// Clean architecture handlers
 	cleanRiskHandler := httpHandler.NewRiskHandler(
 		riskCreateUC, riskCreateBatchUC, riskSpreadsheetUC, riskGetUC, riskReassessUC, riskUpdateUC, riskDeleteUC, riskListUC, riskListCycleSnapshotUC, riskListVersionsUC, riskReviewQueueUC, riskCompareCyclesUC, riskCompareCycleDetailsUC, riskReviewSummaryUC,
-		riskDashboardSummaryUC, riskActionPressureUC, riskExecutiveAlertsUC, riskHeatmapDataUC, riskTopRisksUC, domainMMRepo,
+		riskDashboardSummaryUC, riskActionPressureUC, riskExecutiveAlertsUC, riskHeatmapDataUC, riskTopRisksUC, riskDashboardCategoriesUC, domainMMRepo,
 	)
 	cleanIncidentHandler := httpHandler.NewIncidentHandler(
 		incidentCreateUC, incidentCreateBatchUC, incidentGetUC, incidentUpdateUC, incidentDeleteUC, incidentListUC, incidentSummaryUC,
@@ -219,7 +227,7 @@ func main() {
 		controlCreateUC, controlGetUC, controlUpdateUC, controlDeleteUC, controlListUC, controlDashboardUC,
 	)
 	cleanKRIHandler := httpHandler.NewKRIHandler(
-		kriCreateUC, kriGetUC, kriUpdateUC, kriDeleteUC, kriListUC, kriDashboardUC,
+		kriCreateUC, kriGetUC, kriUpdateUC, kriArchiveUC, kriListUC, kriDashboardUC,
 	)
 	cleanLessonHandler := httpHandler.NewLessonHandler(
 		lessonCreateUC, lessonGetUC, lessonUpdateUC, lessonDeleteUC, lessonListUC, lessonDashboardUC,
@@ -250,7 +258,7 @@ func main() {
 	cleanCBAHandler := httpHandler.NewCBAHandler(cbaRecommendUC, cbaCalculateUC)
 
 	// Organization handlers (Clean Architecture)
-	cleanOrgHandler := httpHandler.NewOrganizationHandler(orgListUC)
+	cleanOrgHandler := httpHandler.NewOrganizationHandler(orgCreateUC, orgGetUC, orgUpdateUC, orgDeleteUC, orgListUC)
 
 	// System handlers (Clean Architecture)
 	cleanSystemHandler := httpHandler.NewSystemHandler(systemSlowQueriesUC)
@@ -262,7 +270,7 @@ func main() {
 
 	// KRI Report handler
 	cleanKRIReportHandler := httpHandler.NewKRIReportHandler(
-		kriReportListUC, kriReportSubmitUC, kriReportGenerateUC, kriReportOverdueUC,
+		kriReportListUC, kriReportSubmitUC, kriReportAcceptUC, kriReportRevisionUC, kriReportSkipUC, kriReportGenerateUC, kriReportOverdueUC,
 	)
 
 	// Communication Log handler
@@ -318,6 +326,10 @@ func main() {
 
 	// Organizations (Clean Architecture)
 	protected.Get("/organizations", cleanOrgHandler.List)
+	protected.Post("/organizations", cleanOrgHandler.Create)
+	protected.Get("/organizations/:id", cleanOrgHandler.Get)
+	protected.Put("/organizations/:id", cleanOrgHandler.Update)
+	protected.Delete("/organizations/:id", cleanOrgHandler.Delete)
 
 	// Users (Clean Architecture)
 	protected.Get("/users", cleanUserHandler.ListUsers)
@@ -349,6 +361,7 @@ func main() {
 	protected.Get("/dashboard/risk-review-summary", cleanRiskHandler.ReviewSummary)
 	protected.Get("/dashboard/heatmap", cleanRiskHandler.HeatmapData)
 	protected.Get("/dashboard/top-risks", cleanRiskHandler.TopRisks)
+	protected.Get("/dashboard/risk-categories", cleanRiskHandler.GetDashboardRiskCategories)
 
 	// Incidents (Clean Architecture)
 	protected.Get("/incidents", cleanIncidentHandler.ListIncidents)
@@ -365,7 +378,7 @@ func main() {
 	protected.Post("/kris", cleanKRIHandler.CreateKRI)
 	protected.Get("/kris/:id", cleanKRIHandler.GetKRI)
 	protected.Put("/kris/:id", cleanKRIHandler.UpdateKRI)
-	protected.Delete("/kris/:id", cleanKRIHandler.DeleteKRI)
+	protected.Post("/kris/:id/archive", cleanKRIHandler.ArchiveKRI)
 
 	// Controls (Clean Architecture)
 	protected.Get("/controls", cleanControlHandler.ListControls)
@@ -418,7 +431,11 @@ func main() {
 	// KRI Reports (Periodic Reporting)
 	protected.Get("/kris/:kriId/reports", cleanKRIReportHandler.ListByKRI)
 	protected.Get("/kri-reports/my", cleanKRIReportHandler.ListMyReports)
+	protected.Get("/kri-reports/review-queue", cleanKRIReportHandler.ListReviewQueue)
 	protected.Post("/kri-reports/:id/submit", cleanKRIReportHandler.SubmitReport)
+	protected.Post("/kri-reports/:id/skip", cleanKRIReportHandler.SkipReport)
+	protected.Post("/kri-reports/:id/accept", cleanKRIReportHandler.AcceptReport)
+	protected.Post("/kri-reports/:id/request-revision", cleanKRIReportHandler.RequestRevision)
 	protected.Post("/kri-reports/generate", cleanKRIReportHandler.TriggerGenerate)
 
 	// Communication Logs

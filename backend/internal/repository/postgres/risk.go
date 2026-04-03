@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"time"
@@ -363,6 +362,30 @@ func (r *riskRepository) DashboardSummary(ctx context.Context) (*entity.Dashboar
 	return s, nil
 }
 
+// DashboardCategoryCounts returns risk counts grouped by category
+func (r *riskRepository) DashboardCategoryCounts(ctx context.Context) ([]*entity.DashboardCategoryCount, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category, COUNT(*) as count
+		 FROM risks
+		 WHERE deleted_at IS NULL AND is_current = TRUE
+		 GROUP BY 1
+		 ORDER BY count DESC, category ASC`)
+	if err != nil {
+		return nil, fmt.Errorf("dashboard category counts: %w", err)
+	}
+	defer rows.Close()
+
+	var counts []*entity.DashboardCategoryCount
+	for rows.Next() {
+		var c entity.DashboardCategoryCount
+		if err := rows.Scan(&c.Category, &c.Count); err != nil {
+			return nil, fmt.Errorf("scan category count: %w", err)
+		}
+		counts = append(counts, &c)
+	}
+	return counts, nil
+}
+
 // HeatmapData returns risk distribution for the 5x5 heatmap
 func (r *riskRepository) HeatmapData(ctx context.Context) ([]*entity.HeatmapCell, error) {
 	rows, err := r.pool.Query(ctx,
@@ -539,8 +562,6 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 
 // ActivateApprovedVersion marks a newly approved version as current and archives the prior one.
 func (r *riskRepository) ActivateApprovedVersion(ctx context.Context, approvedRiskID uuid.UUID) error {
-	log.Println("sdwadwdwad")
-
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin activate approved version: %w", err)

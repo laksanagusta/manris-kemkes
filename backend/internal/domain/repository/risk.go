@@ -21,6 +21,7 @@ type RiskRepository interface {
 
 	// Dashboard methods
 	DashboardSummary(ctx context.Context) (*entity.DashboardSummary, error)
+	DashboardCategoryCounts(ctx context.Context) ([]*entity.DashboardCategoryCount, error)
 	HeatmapData(ctx context.Context) ([]*entity.HeatmapCell, error)
 	TopRisks(ctx context.Context, limit int) ([]*entity.Risk, error)
 	ListVersions(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.Risk, error)
