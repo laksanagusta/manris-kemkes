@@ -133,6 +133,7 @@ type fieldDescriptor struct {
 var riskFieldDescriptors = []fieldDescriptor{
 	{Name: "code", Label: "Kode", Extractor: func(r *entity.Risk) any { return strings.TrimSpace(r.Code) }},
 	{Name: "title", Label: "Judul Risiko", Extractor: func(r *entity.Risk) any { return strings.TrimSpace(r.Title) }},
+	{Name: "category", Label: "Kategori Risiko", Extractor: func(r *entity.Risk) any { return strings.TrimSpace(r.Category) }},
 	{Name: "description", Label: "Deskripsi", Extractor: func(r *entity.Risk) any { return strings.TrimSpace(r.Description) }},
 	{Name: "orgName", Label: "Unit", Extractor: func(r *entity.Risk) any { return strings.TrimSpace(r.OrgName) }},
 	{Name: "cause", Label: "Penyebab", Extractor: func(r *entity.Risk) any { return normalizeStrings(r.Cause) }},
@@ -509,6 +510,7 @@ func buildSideBySideSnapshot(risk *entity.Risk) *entity.RiskCycleSideBySideSnaps
 		return nil
 	}
 	return &entity.RiskCycleSideBySideSnapshot{
+		Category:          strings.TrimSpace(risk.Category),
 		Description:       strings.TrimSpace(risk.Description),
 		Cause:             normalizeStrings(risk.Cause),
 		ExistingControl:   strings.TrimSpace(risk.ExistingControl),

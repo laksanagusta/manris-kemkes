@@ -20,6 +20,7 @@ type RiskMitigationDiff struct {
 
 // RiskCycleSideBySideSnapshot stores core risk fields for side-by-side exports.
 type RiskCycleSideBySideSnapshot struct {
+	Category          string   `json:"category,omitempty"`
 	Description       string   `json:"description,omitempty"`
 	Cause             []string `json:"cause,omitempty"`
 	ExistingControl   string   `json:"existingControl,omitempty"`

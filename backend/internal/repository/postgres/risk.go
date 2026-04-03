@@ -236,7 +236,7 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 
 // ListApprovedRisks returns all approved risks for trend analysis (includes all versions, not just current)
 func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
-	query := `SELECT r.id, r.code, r.title, r.description, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
+	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
 	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.inherent_score,
 	                  r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -270,7 +270,7 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 	for rows.Next() {
 		var risk entity.Risk
 		if err := rows.Scan(
-			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
+			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -388,7 +388,7 @@ func (r *riskRepository) HeatmapData(ctx context.Context) ([]*entity.HeatmapCell
 // TopRisks returns the highest-scoring risks
 func (r *riskRepository) TopRisks(ctx context.Context, limit int) ([]*entity.Risk, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT r.id, r.code, r.title, r.probability, r.impact, r.inherent_score, r.status,
+		`SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.status,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
 		 WHERE r.status IN ('final','approved') AND r.is_current = TRUE
@@ -402,7 +402,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, limit int) ([]*entity.Ris
 	var risks []*entity.Risk
 	for rows.Next() {
 		var risk entity.Risk
-		if err := rows.Scan(&risk.ID, &risk.Code, &risk.Title, &risk.Probability, &risk.Impact, &risk.InherentScore, &risk.Status, &risk.OrgName); err != nil {
+		if err := rows.Scan(&risk.ID, &risk.Code, &risk.Title, &risk.Category, &risk.Probability, &risk.Impact, &risk.InherentScore, &risk.Status, &risk.OrgName); err != nil {
 			return nil, fmt.Errorf("scan top risk: %w", err)
 		}
 		risks = append(risks, &risk)
@@ -413,7 +413,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, limit int) ([]*entity.Ris
 // ListVersions returns all versions for a risk group ordered newest first.
 func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.Risk, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT r.id, r.code, r.title, r.description, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
+		`SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.inherent_score,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -437,7 +437,7 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 	for rows.Next() {
 		var risk entity.Risk
 		if err := rows.Scan(
-			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
+			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -455,7 +455,7 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 
 // ListCycleSnapshot returns approved risks for one assessment cycle including mitigations.
 func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
-	query := `SELECT r.id, r.code, r.title, r.description, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
+	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.inherent_score,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -489,7 +489,7 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 	for rows.Next() {
 		risk := &entity.Risk{}
 		if err := rows.Scan(
-			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
+			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,

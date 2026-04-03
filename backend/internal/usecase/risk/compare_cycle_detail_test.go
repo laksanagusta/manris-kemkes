@@ -285,6 +285,87 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteMatchesMitigationsBeforeSortOrder
 	}
 }
 
+func TestCompareRiskCycleDetailsUseCase_ExecuteIncludesCategoryDiff(t *testing.T) {
+	groupID := uuid.New()
+	repo := &fakeReassessRiskRepo{}
+	repo.listCycleSnapshot = func(_ context.Context, cycle string, _ []uuid.UUID) ([]*entity.Risk, error) {
+		base := &entity.Risk{
+			ID:             uuid.New(),
+			VersionGroupID: groupID,
+			Code:           "R-030",
+			Title:          "Risiko perubahan kategori",
+			Probability:    3,
+			Impact:         3,
+			InherentScore:  9,
+		}
+		switch cycle {
+		case "2025-H2":
+			base.Category = entity.RiskCategoryStrategis
+		case "2026-H1":
+			base.Category = entity.RiskCategoryOperasional
+		}
+		return []*entity.Risk{base}, nil
+	}
+
+	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
+	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-H2", ToCycle: "2026-H1"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(report.Items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(report.Items))
+	}
+	item := report.Items[0]
+	if !hasFieldDiff(item.FieldDiffs, "category", "modified") {
+		t.Fatal("expected category field diff")
+	}
+	if item.FromSnapshot == nil || item.ToSnapshot == nil {
+		t.Fatal("expected snapshots to be present")
+	}
+	if item.FromSnapshot.Category != entity.RiskCategoryStrategis {
+		t.Fatalf("expected from snapshot category %q, got %q", entity.RiskCategoryStrategis, item.FromSnapshot.Category)
+	}
+	if item.ToSnapshot.Category != entity.RiskCategoryOperasional {
+		t.Fatalf("expected to snapshot category %q, got %q", entity.RiskCategoryOperasional, item.ToSnapshot.Category)
+	}
+}
+
+func TestCompareRiskCycleDetailsUseCase_ExecuteHandlesLegacyBlankCategory(t *testing.T) {
+	groupID := uuid.New()
+	repo := &fakeReassessRiskRepo{}
+	repo.listCycleSnapshot = func(_ context.Context, cycle string, _ []uuid.UUID) ([]*entity.Risk, error) {
+		base := &entity.Risk{
+			ID:             uuid.New(),
+			VersionGroupID: groupID,
+			Code:           "R-031",
+			Title:          "Risiko kategori legacy",
+			Probability:    3,
+			Impact:         3,
+			InherentScore:  9,
+			Category:       "",
+		}
+		if cycle == "2026-H1" {
+			base.Category = "   "
+		}
+		return []*entity.Risk{base}, nil
+	}
+
+	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
+	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-H2", ToCycle: "2026-H1"})
+	if err != nil {
+		t.Fatalf("expected no error for blank legacy category, got %v", err)
+	}
+	if len(report.Items) != 0 {
+		t.Fatalf("expected stable blank categories to produce no visible items, got %d", len(report.Items))
+	}
+	if report.Summary == nil {
+		t.Fatal("expected report summary")
+	}
+	if report.Summary.StableCount != 1 {
+		t.Fatalf("expected stable count 1 for blank categories, got %d", report.Summary.StableCount)
+	}
+}
+
 func hasFieldDiff(diffs []*entity.RiskFieldDiff, field string, changeType string) bool {
 	for _, diff := range diffs {
 		if diff.Field == field && diff.ChangeType == changeType {

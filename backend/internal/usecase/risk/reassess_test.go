@@ -217,6 +217,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testi
 				Code:              "R-001",
 				Title:             "Keterlambatan distribusi vaksin",
 				Description:       "Risiko existing",
+				Category:          entity.RiskCategoryOperasional,
 				Status:            "approved",
 				VersionGroupID:    versionGroupID,
 				IsCurrent:         true,
@@ -266,6 +267,9 @@ func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testi
 	}
 	if repo.createdRisk.Code != "R-001" {
 		t.Fatalf("expected reassessment to preserve risk code, got %q", repo.createdRisk.Code)
+	}
+	if repo.createdRisk.Category != entity.RiskCategoryOperasional {
+		t.Fatalf("expected reassessment to preserve category %q, got %q", entity.RiskCategoryOperasional, repo.createdRisk.Category)
 	}
 	if repo.createdRisk.Status != "draft" {
 		t.Fatalf("expected draft status, got %q", repo.createdRisk.Status)
@@ -321,6 +325,48 @@ func TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle(t *testing.T
 	}
 	if repo.createdRisk != nil {
 		t.Fatal("expected no new draft for duplicate cycle")
+	}
+}
+
+func TestListRiskVersionsUseCase_ExecuteReturnsCategory(t *testing.T) {
+	sourceID := uuid.New()
+	versionGroupID := uuid.New()
+	repo := &fakeReassessRiskRepo{
+		risks: map[uuid.UUID]*entity.Risk{
+			sourceID: {
+				ID:             sourceID,
+				VersionGroupID: versionGroupID,
+			},
+		},
+		versions: []*entity.Risk{
+			{
+				ID:              uuid.New(),
+				VersionGroupID:  versionGroupID,
+				AssessmentCycle: "2025-H2",
+				Category:        entity.RiskCategoryStrategis,
+			},
+			{
+				ID:              uuid.New(),
+				VersionGroupID:  versionGroupID,
+				AssessmentCycle: "2026-H1",
+				Category:        entity.RiskCategoryOperasional,
+			},
+		},
+	}
+
+	uc := NewListRiskVersionsUseCase(repo)
+	versions, err := uc.Execute(context.Background(), sourceID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(versions) != 2 {
+		t.Fatalf("expected 2 versions, got %d", len(versions))
+	}
+	if versions[0].Category != entity.RiskCategoryStrategis {
+		t.Fatalf("expected first version category %q, got %q", entity.RiskCategoryStrategis, versions[0].Category)
+	}
+	if versions[1].Category != entity.RiskCategoryOperasional {
+		t.Fatalf("expected second version category %q, got %q", entity.RiskCategoryOperasional, versions[1].Category)
 	}
 }
 
