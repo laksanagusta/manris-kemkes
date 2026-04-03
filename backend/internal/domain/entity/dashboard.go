@@ -31,3 +31,9 @@ type HeatmapCell struct {
 	Impact      int `json:"impact"`
 	Count       int `json:"count"`
 }
+
+// DashboardCategoryCount holds the count of risks per category
+type DashboardCategoryCount struct {
+	Category string `json:"category"`
+	Count    int    `json:"count"`
+}
