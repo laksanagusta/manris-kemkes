@@ -273,3 +273,8 @@ export interface Risk {
   inherentScore?: number;
   fishboneDraft?: import("./fishbone").FishboneDraft | null;
 }
+
+export interface DashboardRiskCategoryItem {
+  category: string;
+  count: number;
+}

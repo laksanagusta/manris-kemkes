@@ -207,3 +207,15 @@ export function buildTopRiskBadgeMap(input: {
 
   return result;
 }
+
+import type { DashboardRiskCategoryItem } from "@/types/risk";
+import { dashboardCategoryLabels } from "@/lib/risk";
+
+export function buildDashboardRiskCategoryData(
+  items: DashboardRiskCategoryItem[]
+): { label: string; count: number }[] {
+  return items.map((item) => ({
+    label: dashboardCategoryLabels[item.category] ?? item.category,
+    count: item.count,
+  }));
+}

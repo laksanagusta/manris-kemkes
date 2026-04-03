@@ -10,6 +10,16 @@ export const riskCategoryLabels: Record<RiskCategory, string> = {
   teknologi_informasi: "Teknologi Informasi",
 };
 
+export const dashboardCategoryLabels: Record<string, string> = {
+  strategis: "Strategis",
+  operasional: "Operasional",
+  kepatuhan: "Kepatuhan",
+  finansial: "Finansial",
+  reputasi: "Reputasi",
+  hukum: "Hukum",
+  uncategorized: "Tanpa Kategori",
+};
+
 export function getRiskLevel(score: number): RiskLevel {
   if (score >= 17) return "ekstrem";
   if (score >= 10) return "tinggi";
