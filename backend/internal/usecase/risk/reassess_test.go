@@ -99,6 +99,112 @@ func (r *fakeReassessRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) (
 	return nil, errors.New("not implemented")
 }
 
+func TestListRiskReviewQueueUseCase_ExecuteReturnsReviewItems(t *testing.T) {
+	repo := &fakeReassessRiskRepo{}
+	want := []*entity.RiskReviewQueueItem{{
+		RiskID:          uuid.New().String(),
+		VersionGroupID:  uuid.New().String(),
+		Code:            "R-010",
+		Title:           "Keterlambatan logistik vaksin",
+		AssessmentCycle: "2026-H1",
+		ReviewStatus:    "due",
+	}}
+	repoList := want
+	repo.listReviewQueue = func(_ context.Context, cycle string, _ []uuid.UUID, status string) ([]*entity.RiskReviewQueueItem, error) {
+		if cycle != "2026-H1" {
+			t.Fatalf("expected cycle 2026-H1, got %q", cycle)
+		}
+		if status != "all" {
+			t.Fatalf("expected status all, got %q", status)
+		}
+		return repoList, nil
+	}
+
+	uc := NewListRiskReviewQueueUseCase(repo, nil)
+	items, err := uc.Execute(context.Background(), ListRiskReviewQueueInput{Cycle: "2026-H1", Status: "all"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(items))
+	}
+	if items[0].ReviewStatus != "due" {
+		t.Fatalf("expected due review status, got %q", items[0].ReviewStatus)
+	}
+}
+
+func TestCompareRiskCyclesUseCase_ExecuteReturnsMovement(t *testing.T) {
+	repo := &fakeReassessRiskRepo{}
+	repo.compareCycles = func(_ context.Context, fromCycle string, toCycle string, _ []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {
+		if fromCycle != "2025-H2" {
+			t.Fatalf("expected from cycle 2025-H2, got %q", fromCycle)
+		}
+		if toCycle != "2026-H1" {
+			t.Fatalf("expected to cycle 2026-H1, got %q", toCycle)
+		}
+		return []*entity.RiskCycleComparisonItem{{
+			VersionGroupID: uuid.New().String(),
+			Code:           "R-022",
+			Title:          "Gangguan pengiriman vaksin",
+			FromCycle:      fromCycle,
+			ToCycle:        toCycle,
+			PreviousScore:  8,
+			CurrentScore:   12,
+			ScoreDelta:     4,
+			Movement:       "up",
+		}}, nil
+	}
+
+	uc := NewCompareRiskCyclesUseCase(repo, nil)
+	items, err := uc.Execute(context.Background(), CompareRiskCyclesInput{FromCycle: "2025-H2", ToCycle: "2026-H1"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected 1 comparison, got %d", len(items))
+	}
+	if items[0].Movement != "up" {
+		t.Fatalf("expected movement up, got %q", items[0].Movement)
+	}
+}
+
+func TestRiskReviewSummaryUseCase_ExecuteReturnsHeatmapAndCompletion(t *testing.T) {
+	repo := &fakeReassessRiskRepo{}
+	repo.riskReviewSummary = func(_ context.Context, cycle string, _ []uuid.UUID) (*entity.RiskReviewSummary, error) {
+		if cycle != "2026-H1" {
+			t.Fatalf("expected cycle 2026-H1, got %q", cycle)
+		}
+		return &entity.RiskReviewSummary{
+			Cycle:         cycle,
+			PreviousCycle: "2025-H2",
+			TotalDue:      10,
+			Completed:     6,
+			UnitCompletion: []*entity.RiskReviewUnitCompletion{{
+				OrgName:        "Dit. Surveilans",
+				TotalAssigned:  4,
+				Completed:      3,
+				CompletionRate: 75,
+			}},
+			CurrentHeatmap: []*entity.HeatmapCell{{Probability: 4, Impact: 4, Count: 2}},
+		}, nil
+	}
+
+	uc := NewRiskReviewSummaryUseCase(repo, nil)
+	summary, err := uc.Execute(context.Background(), RiskReviewSummaryInput{Cycle: "2026-H1"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if summary.Completed != 6 {
+		t.Fatalf("expected completed 6, got %d", summary.Completed)
+	}
+	if len(summary.UnitCompletion) != 1 {
+		t.Fatalf("expected 1 unit completion row, got %d", len(summary.UnitCompletion))
+	}
+	if len(summary.CurrentHeatmap) != 1 {
+		t.Fatalf("expected 1 current heatmap row, got %d", len(summary.CurrentHeatmap))
+	}
+}
+
 var _ repo.RiskRepository = (*fakeReassessRiskRepo)(nil)
 
 func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testing.T) {

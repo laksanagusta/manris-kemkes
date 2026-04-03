@@ -144,9 +144,6 @@ func validateBatchItem(item CreateRiskBatchItemInput) error {
 	if item.Description == "" {
 		return apperrors.Wrap(apperrors.ErrInvalidDescription, "description is required")
 	}
-	if item.Category == "" || !entity.IsValidRiskCategory(item.Category) {
-		return apperrors.Wrap(apperrors.ErrInvalidRiskCategory, "category is required and must be valid")
-	}
 	if item.Probability < 1 || item.Probability > 5 {
 		return apperrors.ErrInvalidProbability
 	}

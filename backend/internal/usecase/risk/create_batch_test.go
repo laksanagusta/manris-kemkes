@@ -177,6 +177,7 @@ func TestCreateRiskBatchUseCase_Execute_RequiresMitigationOwner(t *testing.T) {
 			ClientKey:         "row-1",
 			Title:             "Mark-up estimasi",
 			Description:       "Harga tidak wajar",
+			Category:          entity.RiskCategoryOperasional,
 			Cause:             []string{"Verifikasi lemah"},
 			Controllability:   "C",
 			ImpactDesc:        []string{"Kerugian perusahaan"},
