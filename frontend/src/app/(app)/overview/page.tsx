@@ -18,6 +18,7 @@ import {
   BarChart,
   CartesianGrid,
   ComposedChart,
+  LabelList,
   Line,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
@@ -424,7 +425,7 @@ export default function DashboardPage() {
       </div>
 
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="pb-4">
+        <CardHeader>
           <div>
             <CardTitle className="text-base font-semibold">Distribusi Kategori Risiko</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">Jumlah risiko per kategori dalam portofolio saat ini.</p>
@@ -444,30 +445,23 @@ export default function DashboardPage() {
               Belum ada data kategori risiko.
             </div>
           ) : (
-            <div style={{ height: `${Math.max(160, riskCategoryData.length * 44)}px` }}>
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  layout="vertical"
                   data={riskCategoryData}
-                  margin={{ top: 0, right: 48, left: 8, bottom: 0 }}
+                  layout="vertical"
+                  margin={{ top: 4, right: 40, left: 8, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" horizontal={false} />
-                  <XAxis
-                    type="number"
-                    allowDecimals={false}
-                    tick={{ fontSize: 11, fill: "oklch(0.6 0.02 265)" }}
-                    axisLine={false}
-                    tickLine={false}
+                  <XAxis type="number" allowDecimals={false} tick={{ fill: "oklch(0.6 0 0)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="label" width={110} tick={{ fill: "oklch(0.6 0 0)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <RechartsTooltip
+                    formatter={(value) => [`${value} risiko`]}
+                    contentStyle={{ background: "oklch(0.15 0.02 265 / 95%)", border: "1px solid oklch(0.3 0.03 265)", borderRadius: "8px", fontSize: "12px", color: "oklch(0.9 0 0)", backdropFilter: "blur(8px)" }}
                   />
-                  <YAxis
-                    type="category"
-                    dataKey="label"
-                    width={110}
-                    tick={{ fontSize: 12, fill: "oklch(0.55 0.02 265)" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Bar dataKey="count" fill="oklch(0.55 0.18 265)" radius={[0, 4, 4, 0]} label={{ position: "right", fontSize: 11, fill: "oklch(0.55 0.02 265)" }} />
+                  <Bar dataKey="count" fill="oklch(0.55 0.18 265)" radius={[0, 4, 4, 0]}>
+                    <LabelList dataKey="count" position="right" style={{ fill: "oklch(0.7 0 0)", fontSize: 11 }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -477,7 +471,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-5">
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-3">
-          <CardHeader className="pb-4">
+          <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base font-semibold">Risk Trend</CardTitle>
@@ -495,9 +489,9 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             {trendData.length > 0 ? (
-              <div className="h-72">
+              <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={trendData} margin={{ top: 5, right: 16, left: -10, bottom: 5 }}>
+                  <BarChart data={trendData} margin={{ top: 4, right: 12, left: -12, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" vertical={false} />
                     <XAxis
                       dataKey="period"
@@ -540,7 +534,7 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+              <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
                 Belum ada data semester untuk menghitung eksposur high dan extreme.
               </div>
             )}
@@ -548,7 +542,7 @@ export default function DashboardPage() {
         </Card>
 
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2">
-          <CardHeader className="pb-3">
+          <CardHeader>
             <div>
               <CardTitle className="text-base font-semibold">Incident vs Mitigation Closure</CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">Perbandingan insiden baru, mitigasi selesai, dan overdue per bulan.</p>
@@ -557,9 +551,9 @@ export default function DashboardPage() {
           <CardContent>
             {actionPressureData.length > 0 ? (
               <>
-                <div className="h-72">
+                <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={actionPressureData} margin={{ top: 10, right: 10, left: -16, bottom: 0 }}>
+                    <ComposedChart data={actionPressureData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" vertical={false} />
                       <XAxis
                         dataKey="period"
@@ -613,7 +607,7 @@ export default function DashboardPage() {
                 </div>
               </>
             ) : (
-              <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+              <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
                 Data incident dan closure mitigasi belum tersedia untuk periode ini.
               </div>
             )}
