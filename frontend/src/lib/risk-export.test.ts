@@ -5,7 +5,7 @@ import {
   BULK_RISK_EXPORT_COLUMNS,
   buildRiskBulkExportRows,
   createRiskBulkExportWorkbookBuffer,
-} from "./risk-export.mjs";
+} from "./risk-export";
 
 const sampleRisks = [
   {

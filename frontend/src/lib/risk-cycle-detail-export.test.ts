@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { RiskCycleDetailedComparisonReport } from "@/types/risk";
-import { createRiskCycleDetailWorkbookBuffer } from "./risk-cycle-detail-export.mjs";
+import { createRiskCycleDetailWorkbookBuffer } from "./risk-cycle-detail-export";
 
 const sampleReport: RiskCycleDetailedComparisonReport = {
   summary: {

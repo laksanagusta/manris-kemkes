@@ -1,7 +1,8 @@
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 
-import { riskCategoryLabels } from "./risk.ts";
+import type { RiskCategory } from "../types/risk";
+import { riskCategoryLabels } from "./risk";
 
 export const BULK_RISK_EXPORT_COLUMNS = [
   "Risiko",
@@ -37,7 +38,7 @@ export type RiskExportItem = {
   title?: string;
   description?: string;
   code?: string;
-  category?: string;
+  category?: RiskCategory;
   cause?: string[];
   riskSource?: string;
   controllability?: string;

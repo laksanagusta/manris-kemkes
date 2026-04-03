@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 
 import type { RiskCycleDetailedComparisonItem, RiskCycleDetailedComparisonReport, RiskCycleSideBySideSnapshot } from "../types/risk";
-import { riskCategoryLabels } from "./risk.ts";
+import { riskCategoryLabels } from "./risk";
 
 type ExportRow = Record<string, string | number>;
 
