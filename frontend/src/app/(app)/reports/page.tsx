@@ -192,7 +192,7 @@ export default function ReportsPage() {
       api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}`, token),
       api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${encodeURIComponent(previousCycle)}`, token),
       api.get<RiskCycleComparisonItem[]>(`/risks/compare?from=${previousCycle}&to=${exportCycle}`, token),
-      api.get<OverdueMitigationTimelineItem[]>("/dashboard/overdue-mitigation-timeline", token),
+      api.get<OverdueMitigationTimelineItem[]>("/dashboard/overdue-mitigations-timeline", token),
       api.get<KRIBreachItem[]>("/dashboard/kri-breach-summary", token),
       api.get<UnitResponseTime[]>("/dashboard/unit-response-time", token),
     ]).then(([riskResult, cycleRiskResult, previousCycleRiskResult, comparisonResult, overdueResult, kriBreachResult, responseTimeResult]) => {
