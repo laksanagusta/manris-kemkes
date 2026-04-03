@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-import type { RiskVersionTimelineItem } from "@/types/risk";
+import type { RiskCategory, RiskVersionTimelineItem } from "@/types/risk";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { riskCategoryLabels } from "@/lib/risk";
 import {
   Plus,
   Search,
@@ -77,6 +78,7 @@ type RiskListItem = {
   code?: string;
   title?: string;
   description?: string;
+  category?: RiskCategory | "";
   status?: string;
   orgName?: string;
   createdByName?: string;
@@ -187,13 +189,23 @@ export default function RiskRegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [selectedVersion, setSelectedVersion] = useState("");
   const [activeTab, setActiveTab] = useState("all-risks");
   const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
 
   const refreshRisks = async (activeToken: string) => {
+    const risksQueryParams = new URLSearchParams();
+    if (statusFilter !== "all") {
+      risksQueryParams.set("status", statusFilter);
+    }
+    if (categoryFilter !== "all") {
+      risksQueryParams.set("category", categoryFilter);
+    }
+
+    const riskQuery = risksQueryParams.toString();
     const [allRisks, draftRisks] = await Promise.all([
-      api.get<RiskListItem[]>("/risks", activeToken),
+      api.get<RiskListItem[]>(`/risks${riskQuery ? `?${riskQuery}` : ""}`, activeToken),
       api.get<RiskListItem[]>("/risks?status=draft", activeToken),
     ]);
 
@@ -223,7 +235,40 @@ export default function RiskRegisterPage() {
     const fetchData = async () => {
       try {
         setError(null);
-        await refreshRisks(token);
+        setLoading(true);
+
+        const risksQueryParams = new URLSearchParams();
+        if (statusFilter !== "all") {
+          risksQueryParams.set("status", statusFilter);
+        }
+        if (categoryFilter !== "all") {
+          risksQueryParams.set("category", categoryFilter);
+        }
+
+        const riskQuery = risksQueryParams.toString();
+        const [allRisks, draftRisks] = await Promise.all([
+          api.get<RiskListItem[]>(`/risks${riskQuery ? `?${riskQuery}` : ""}`, token),
+          api.get<RiskListItem[]>("/risks?status=draft", token),
+        ]);
+
+        const nonDraftRisks = allRisks.filter((risk) => risk.status !== "draft");
+        const approvedCurrentRisks = nonDraftRisks.filter((risk) => risk.status === "approved" && risk.isCurrent);
+
+        setDrafts(draftRisks);
+        setRisks(nonDraftRisks);
+
+        if (approvedCurrentRisks.length === 0) {
+          setHistoryRiskId("");
+          setVersions([]);
+          setSelectedVersion("");
+          setHistoryData([]);
+          return;
+        }
+
+        setHistoryRiskId((currentId) => {
+          if (currentId && approvedCurrentRisks.some((risk) => risk.id === currentId)) return currentId;
+          return approvedCurrentRisks[0].id;
+        });
       } catch (err) {
         console.error(err);
         setError(err instanceof Error ? err.message : "Gagal memuat data risiko. Silakan coba lagi.");
@@ -233,7 +278,7 @@ export default function RiskRegisterPage() {
     };
 
     fetchData();
-  }, [token]);
+  }, [token, statusFilter, categoryFilter]);
 
   useEffect(() => {
     if (!token || !historyRiskId) return;
@@ -280,10 +325,9 @@ export default function RiskRegisterPage() {
       const title = (r.title ?? "").toLowerCase();
       const code = (r.code ?? "").toLowerCase();
       if (search && !title.includes(search.toLowerCase()) && !code.includes(search.toLowerCase())) return false;
-      if (statusFilter !== "all" && r.status !== statusFilter) return false;
       return true;
     });
-  }, [risks, search, statusFilter]);
+  }, [risks, search]);
 
   const handleDeleteDraft = async (id: string) => {
     toast.promise(
@@ -477,6 +521,20 @@ export default function RiskRegisterPage() {
                     <SelectItem value="approved">Approved</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="h-8 w-44 text-xs bg-muted/30 border-none">
+                    <SelectValue placeholder="Kategori" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Kategori</SelectItem>
+                    <SelectItem value="strategis">{riskCategoryLabels.strategis}</SelectItem>
+                    <SelectItem value="operasional">{riskCategoryLabels.operasional}</SelectItem>
+                    <SelectItem value="kepatuhan">{riskCategoryLabels.kepatuhan}</SelectItem>
+                    <SelectItem value="finansial">{riskCategoryLabels.finansial}</SelectItem>
+                    <SelectItem value="reputasi">{riskCategoryLabels.reputasi}</SelectItem>
+                    <SelectItem value="teknologi_informasi">{riskCategoryLabels.teknologi_informasi}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -488,6 +546,7 @@ export default function RiskRegisterPage() {
                 <TableRow className="border-border/50 hover:bg-transparent">
                   <TableHead className="w-20 text-xs">Kode</TableHead>
                   <TableHead className="text-xs">Judul Risiko</TableHead>
+                  <TableHead className="text-xs w-32">Kategori</TableHead>
                   <TableHead className="text-xs w-28">Periode</TableHead>
                   <TableHead className="text-xs w-32">Unit Kerja</TableHead>
                   <TableHead className="text-xs text-center w-24">Probabilitas</TableHead>
@@ -502,7 +561,7 @@ export default function RiskRegisterPage() {
               <TableBody>
                 {filteredRisks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground text-xs">
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground text-xs">
                       Tidak ada risiko yang ditemukan
                     </TableCell>
                   </TableRow>
@@ -524,6 +583,9 @@ export default function RiskRegisterPage() {
                       >
                         {risk.title || "-"}
                       </Link>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {riskCategoryLabels[risk.category ?? ""]}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {formatCycleLabel(risk.assessmentCycle, risk.updatedAt)}
