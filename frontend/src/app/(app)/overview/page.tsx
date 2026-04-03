@@ -4,12 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
+  ClipboardCheck,
   Clock,
+  FileBarChart,
   Flame,
   ShieldAlert,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import Link from "next/link";
 import {
   Bar,
   BarChart,
@@ -28,16 +31,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import type {
   DashboardActionPressurePoint,
+  DashboardRiskCategoryItem,
   ExecutiveAlert,
   Risk,
-  RiskCycleComparisonItem,
 } from "@/types/risk";
 import { api } from "@/lib/api";
-import {
-  buildExecutiveTrendData,
-  buildMovementSnapshotData,
-  buildUnitExposureData,
-} from "@/lib/dashboard-insights";
+import { buildDashboardRiskCategoryData, buildExecutiveTrendData } from "@/lib/dashboard-insights";
 import { cn } from "@/lib/utils";
 
 const impactLabels = ["Insignificant", "Minor", "Moderate", "Major", "Catastrophic"];
@@ -108,13 +107,6 @@ function currentGlobalCycle() {
   return `${year}-${half}`;
 }
 
-function previousGlobalCycle(cycle: string) {
-  const [yearPart, half] = cycle.split("-");
-  const year = Number(yearPart);
-  if (half === "H1") return `${year - 1}-H2`;
-  return `${year}-H1`;
-}
-
 function formatMonthPeriod(period: string) {
   const [year, month] = period.split("-");
   const date = new Date(Number(year), Number(month) - 1, 1);
@@ -126,22 +118,15 @@ export default function DashboardPage() {
   const { token } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [heatmapData, setHeatmapData] = useState<number[][]>([]);
-  const [allRisks, setAllRisks] = useState<Risk[]>([]);
-  const [currentSnapshot, setCurrentSnapshot] = useState<Risk[]>([]);
-  const [previousSnapshot, setPreviousSnapshot] = useState<Risk[]>([]);
-  const [comparisons, setComparisons] = useState<RiskCycleComparisonItem[]>([]);
   const [trendData, setTrendData] = useState<Array<{ period: string; high: number; extreme: number; exposureScore: number }>>([]);
   const [actionPressureData, setActionPressureData] = useState<DashboardActionPressurePoint[]>([]);
   const [executiveAlerts, setExecutiveAlerts] = useState<ExecutiveAlert[]>([]);
+  const [riskCategoryData, setRiskCategoryData] = useState<{ label: string; count: number }[]>([]);
+  const [isRiskCategoryLoading, setIsRiskCategoryLoading] = useState(true);
+  const [riskCategoryError, setRiskCategoryError] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const currentCycle = useMemo(() => currentGlobalCycle(), []);
-  const previousCycle = useMemo(() => previousGlobalCycle(currentCycle), [currentCycle]);
-  const unitExposureData = useMemo(() => buildUnitExposureData(allRisks, 5), [allRisks]);
-  const movementSnapshotData = useMemo(
-    () => buildMovementSnapshotData({ currentRisks: currentSnapshot, previousRisks: previousSnapshot, comparisons }),
-    [currentSnapshot, previousSnapshot, comparisons],
-  );
 
   useEffect(() => {
     if (!token) return;
@@ -150,20 +135,16 @@ export default function DashboardPage() {
       api.get<DashboardSummary>("/dashboard/summary", token),
       api.get<number[][]>("/dashboard/heatmap", token),
       api.get<Risk[]>("/risks/trend", token),
-      api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${currentCycle}`, token),
-      api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${previousCycle}`, token),
-      api.get<RiskCycleComparisonItem[]>(`/risks/compare?from=${previousCycle}&to=${currentCycle}`, token),
       api.get<DashboardActionPressurePoint[]>("/dashboard/action-pressure?interval=month&window=6", token),
       api.get<ExecutiveAlert[]>(`/dashboard/executive-alerts?cycle=${currentCycle}&limit=6`, token),
+      api.get<DashboardRiskCategoryItem[]>("/dashboard/risk-categories", token),
     ]).then(([
       summaryResult,
       heatmapResult,
       risksResult,
-      currentSnapshotResult,
-      previousSnapshotResult,
-      comparisonResult,
       actionPressureResult,
       executiveAlertsResult,
+      riskCategoryResult,
     ]) => {
       if (summaryResult.status === "fulfilled") setSummary(summaryResult.value);
       else console.error(summaryResult.reason);
@@ -172,30 +153,10 @@ export default function DashboardPage() {
       else console.error(heatmapResult.reason);
 
       if (risksResult.status === "fulfilled") {
-        setAllRisks(risksResult.value);
         setTrendData(buildExecutiveTrendData(risksResult.value));
       } else {
         console.error(risksResult.reason);
-        setAllRisks([]);
         setTrendData([]);
-      }
-
-      if (currentSnapshotResult.status === "fulfilled") setCurrentSnapshot(currentSnapshotResult.value);
-      else {
-        console.error(currentSnapshotResult.reason);
-        setCurrentSnapshot([]);
-      }
-
-      if (previousSnapshotResult.status === "fulfilled") setPreviousSnapshot(previousSnapshotResult.value);
-      else {
-        console.error(previousSnapshotResult.reason);
-        setPreviousSnapshot([]);
-      }
-
-      if (comparisonResult.status === "fulfilled") setComparisons(comparisonResult.value);
-      else {
-        console.error(comparisonResult.reason);
-        setComparisons([]);
       }
 
       if (actionPressureResult.status === "fulfilled") setActionPressureData(actionPressureResult.value);
@@ -210,9 +171,19 @@ export default function DashboardPage() {
         setExecutiveAlerts([]);
       }
 
+      if (riskCategoryResult.status === "fulfilled") {
+        setRiskCategoryData(buildDashboardRiskCategoryData(riskCategoryResult.value));
+        setRiskCategoryError(false);
+      } else {
+        console.error(riskCategoryResult.reason);
+        setRiskCategoryData([]);
+        setRiskCategoryError(true);
+      }
+      setIsRiskCategoryLoading(false);
+
       setLoading(false);
     });
-  }, [token, currentCycle, previousCycle]);
+  }, [token, currentCycle]);
 
   const kpiCards: KpiCard[] = summary
     ? [
@@ -325,62 +296,88 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-5">
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-3">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-3">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-semibold">Top 5 Unit by Exposure</CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">Ranking unit berdasarkan weighted exposure score saat ini.</p>
+                <CardTitle className="text-base font-semibold">Heatmap Risiko</CardTitle>
+                <p className="mt-1 text-xs text-muted-foreground">Distribusi risiko berdasarkan Probabilitas × Dampak</p>
               </div>
-              <Badge variant="outline" className="text-[10px]">Top 5</Badge>
+              <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground">
+                Detail
+                <ArrowUpRight className="size-3" />
+              </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            {unitExposureData.length > 0 ? (
-              <>
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={unitExposureData} margin={{ top: 8, right: 12, left: -24, bottom: 32 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" vertical={false} />
-                      <XAxis
-                        dataKey="orgName"
-                        tick={{ fontSize: 10 }}
-                        tickFormatter={(value: string) => value.length > 12 ? `${value.slice(0, 12)}…` : value}
-                        axisLine={false}
-                        tickLine={false}
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
-                      />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <RechartsTooltip
-                        formatter={(value) => [`${value ?? 0} poin`, "Exposure"]}
-                        contentStyle={{
-                          background: "oklch(0.98 0.003 170 / 95%)",
-                          border: "1px solid oklch(0.91 0.008 170)",
-                          borderRadius: "8px",
-                          fontSize: "11px",
-                        }}
-                      />
-                      <Bar dataKey="exposureScore" fill="oklch(0.68 0.17 35)" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="mt-3 grid gap-2 md:grid-cols-3">
-                  {unitExposureData.slice(0, 3).map((item) => (
-                    <div key={item.orgName} className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-                      <p className="truncate text-xs font-medium text-foreground">{item.orgName}</p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        {item.extreme} ekstrem, {item.high} tinggi
-                      </p>
+          <CardContent className="pt-0">
+            <div className="flex gap-2">
+              <div className="-mr-1 flex shrink-0 flex-col items-center justify-center">
+                <span className="rotate-180 text-[9px] font-semibold tracking-widest text-muted-foreground [writing-mode:vertical-lr]">
+                  PROBABILITAS
+                </span>
+              </div>
+
+              <div className="flex shrink-0 flex-col justify-end gap-[3px] pb-[22px]">
+                {[...likelihoodLabels].reverse().map((label) => (
+                  <div key={label} className="flex h-0 flex-1 items-center justify-end pr-1.5">
+                    <span className="w-10 truncate text-right text-[9px] leading-none text-muted-foreground">
+                      {label.length > 8 ? `${label.slice(0, 7)}…` : label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="grid grid-rows-5 gap-[3px]">
+                  {[...heatmapData].reverse().map((row, rowIdx) => (
+                    <div key={rowIdx} className="grid grid-cols-5 gap-[3px]">
+                      {row.map((count, colIdx) => {
+                        const level = getRiskLevel(4 - rowIdx, colIdx);
+
+                        return (
+                          <div
+                            key={colIdx}
+                            className={cn(
+                              "aspect-[4/3] cursor-pointer rounded-md text-xs font-bold transition-all hover:scale-[1.08] hover:shadow-md flex items-center justify-center",
+                              levelColors[level],
+                            )}
+                          >
+                            {count > 0 ? count : ""}
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
-              </>
-            ) : (
-              <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Belum ada data unit untuk dihitung ranking eksposurnya.
+
+                <div className="mt-1 grid grid-cols-5 gap-[3px]">
+                  {impactLabels.map((label) => (
+                    <div
+                      key={label}
+                      className="truncate text-center text-[9px] leading-tight text-muted-foreground"
+                    >
+                      {label.length > 8 ? `${label.slice(0, 7)}…` : label}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-1 text-center text-[9px] font-semibold tracking-widest text-muted-foreground">
+                  DAMPAK →
+                </div>
               </div>
-            )}
+            </div>
+
+            <div className="mt-3 flex items-center justify-center gap-3 border-t border-border/40 pt-3">
+              {[
+                { label: "Rendah", cls: "heatmap-low" },
+                { label: "Sedang", cls: "heatmap-medium" },
+                { label: "Tinggi", cls: "heatmap-high" },
+                { label: "Ekstrem", cls: "heatmap-extreme" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-1">
+                  <div className={cn("size-2.5 rounded-[3px]", item.cls)} />
+                  <span className="text-[10px] text-muted-foreground">{item.label}</span>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
@@ -425,6 +422,58 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <div>
+            <CardTitle className="text-base font-semibold">Distribusi Kategori Risiko</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">Jumlah risiko per kategori dalam portofolio saat ini.</p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isRiskCategoryLoading ? (
+            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+              Memuat data kategori...
+            </div>
+          ) : riskCategoryError ? (
+            <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+              Data kategori risiko tidak tersedia saat ini.
+            </div>
+          ) : riskCategoryData.length === 0 ? (
+            <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+              Belum ada data kategori risiko.
+            </div>
+          ) : (
+            <div style={{ height: `${Math.max(160, riskCategoryData.length * 44)}px` }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  layout="vertical"
+                  data={riskCategoryData}
+                  margin={{ top: 0, right: 48, left: 8, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    allowDecimals={false}
+                    tick={{ fontSize: 11, fill: "oklch(0.6 0.02 265)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="label"
+                    width={110}
+                    tick={{ fontSize: 12, fill: "oklch(0.55 0.02 265)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Bar dataKey="count" fill="oklch(0.55 0.18 265)" radius={[0, 4, 4, 0]} label={{ position: "right", fontSize: 11, fill: "oklch(0.55 0.02 265)" }} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-5">
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-3">
@@ -572,123 +621,28 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-3">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-semibold">Heatmap Risiko</CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">Distribusi risiko berdasarkan Probabilitas × Dampak</p>
-              </div>
-              <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground">
-                Detail
-                <ArrowUpRight className="size-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex gap-2">
-              <div className="-mr-1 flex shrink-0 flex-col items-center justify-center">
-                <span className="rotate-180 text-[9px] font-semibold tracking-widest text-muted-foreground [writing-mode:vertical-lr]">
-                  PROBABILITAS
-                </span>
-              </div>
-
-              <div className="flex shrink-0 flex-col justify-end gap-[3px] pb-[22px]">
-                {[...likelihoodLabels].reverse().map((label) => (
-                  <div key={label} className="flex h-0 flex-1 items-center justify-end pr-1.5">
-                    <span className="w-10 truncate text-right text-[9px] leading-none text-muted-foreground">
-                      {label.length > 8 ? `${label.slice(0, 7)}…` : label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="grid grid-rows-5 gap-[3px]">
-                  {[...heatmapData].reverse().map((row, rowIdx) => (
-                    <div key={rowIdx} className="grid grid-cols-5 gap-[3px]">
-                      {row.map((count, colIdx) => {
-                        const level = getRiskLevel(4 - rowIdx, colIdx);
-
-                        return (
-                          <div
-                            key={colIdx}
-                            className={cn(
-                              "aspect-[4/3] cursor-pointer rounded-md text-xs font-bold transition-all hover:scale-[1.08] hover:shadow-md flex items-center justify-center",
-                              levelColors[level],
-                            )}
-                          >
-                            {count > 0 ? count : ""}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-1 grid grid-cols-5 gap-[3px]">
-                  {impactLabels.map((label) => (
-                    <div
-                      key={label}
-                      className="truncate text-center text-[9px] leading-tight text-muted-foreground"
-                    >
-                      {label.length > 8 ? `${label.slice(0, 7)}…` : label}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-1 text-center text-[9px] font-semibold tracking-widest text-muted-foreground">
-                  DAMPAK →
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center justify-center gap-3 border-t border-border/40 pt-3">
-              {[
-                { label: "Rendah", cls: "heatmap-low" },
-                { label: "Sedang", cls: "heatmap-medium" },
-                { label: "Tinggi", cls: "heatmap-high" },
-                { label: "Ekstrem", cls: "heatmap-extreme" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-1">
-                  <div className={cn("size-2.5 rounded-[3px]", item.cls)} />
-                  <span className="text-[10px] text-muted-foreground">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">Risk Movement Snapshot</CardTitle>
-              <Badge variant="outline" className="text-[10px]">{currentCycle}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {movementSnapshotData.some((item) => item.value > 0) ? (
-              <div className="space-y-3">
-                {movementSnapshotData.map((item) => (
-                  <div key={item.key} className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-medium text-foreground">{item.label}</p>
-                        <p className="mt-1 text-[10px] text-muted-foreground">Perubahan terhadap cycle sebelumnya</p>
-                      </div>
-                      <span className="text-2xl font-semibold tracking-tight text-foreground">{item.value}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Snapshot pergerakan risiko belum tersedia untuk perbandingan cycle ini.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">Lanjutkan ke Halaman Detail</p>
+            <p className="text-xs text-muted-foreground">Pindah ke monitoring lanjutan atau ekspor laporan jika perlu analisis lebih dalam.</p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/compliance/monitoring">
+                <ClipboardCheck className="size-4" />
+                Buka Monitoring &amp; Updates
+              </Link>
+            </Button>
+            <Button asChild className="gap-2">
+              <Link href="/reports">
+                <FileBarChart className="size-4" />
+                Buka Reports &amp; Export
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
