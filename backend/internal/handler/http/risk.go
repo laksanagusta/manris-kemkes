@@ -34,6 +34,11 @@ type RiskHandler struct {
 	heatmapDataUC         *riskuc.HeatmapDataUseCase
 	dashboardCategoriesUC *riskuc.DashboardRiskCategoriesUseCase
 	topRisksUC            *riskuc.TopRisksUseCase
+	listApprovedUC        *riskuc.ListApprovedRisksUseCase
+	heatmapVelocityUC     *riskuc.HeatmapVelocityUseCase
+	overdueTimelineUC     *riskuc.OverdueMitigationTimelineUseCase
+	kriBreachSummaryUC    *riskuc.KRIBreachSummaryUseCase
+	unitResponseTimeUC    *riskuc.UnitResponseTimeUseCase
 	mmRepo                repository.MeetingMinuteRepository
 }
 
@@ -58,6 +63,11 @@ func NewRiskHandler(
 	heatmapDataUC *riskuc.HeatmapDataUseCase,
 	topRisksUC *riskuc.TopRisksUseCase,
 	dashboardCategoriesUC *riskuc.DashboardRiskCategoriesUseCase,
+	listApprovedUC *riskuc.ListApprovedRisksUseCase,
+	heatmapVelocityUC *riskuc.HeatmapVelocityUseCase,
+	overdueTimelineUC *riskuc.OverdueMitigationTimelineUseCase,
+	kriBreachSummaryUC *riskuc.KRIBreachSummaryUseCase,
+	unitResponseTimeUC *riskuc.UnitResponseTimeUseCase,
 	mmRepo repository.MeetingMinuteRepository,
 ) *RiskHandler {
 	return &RiskHandler{
@@ -81,6 +91,11 @@ func NewRiskHandler(
 		heatmapDataUC:         heatmapDataUC,
 		topRisksUC:            topRisksUC,
 		dashboardCategoriesUC: dashboardCategoriesUC,
+		listApprovedUC:        listApprovedUC,
+		heatmapVelocityUC:     heatmapVelocityUC,
+		overdueTimelineUC:     overdueTimelineUC,
+		kriBreachSummaryUC:    kriBreachSummaryUC,
+		unitResponseTimeUC:    unitResponseTimeUC,
 		mmRepo:                mmRepo,
 	}
 }
@@ -375,6 +390,29 @@ func (h *RiskHandler) DeleteRisk(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": result})
 }
 
+// ListApprovedRisks handles GET /api/risks/trend
+func (h *RiskHandler) ListApprovedRisks(c *fiber.Ctx) error {
+	var input riskuc.ListApprovedRisksInput
+
+	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
+		orgID, err := uuid.Parse(orgIDStr)
+		if err != nil {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		}
+		input.OrgID = &orgID
+	}
+
+	risks, err := h.listApprovedUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	if risks == nil {
+		risks = []*entity.Risk{}
+	}
+	return c.JSON(fiber.Map{"data": risks})
+}
+
 // ListRisks handles GET /api/risks
 func (h *RiskHandler) ListRisks(c *fiber.Ctx) error {
 	var input riskuc.ListRisksInput
@@ -531,4 +569,51 @@ func (h *RiskHandler) GetMeetingMinutes(c *fiber.Ctx) error {
 		minutes = []entity.MeetingMinutesRisk{}
 	}
 	return c.JSON(fiber.Map{"data": minutes})
+}
+
+func (h *RiskHandler) GetHeatmapVelocity(c *fiber.Ctx) error {
+	fromCycle := c.Query("from")
+	toCycle := c.Query("to")
+	input := riskuc.HeatmapVelocityInput{FromCycle: fromCycle, ToCycle: toCycle}
+	data, err := h.heatmapVelocityUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleError(c, err)
+	}
+	if data == nil {
+		data = []entity.HeatmapVelocityCell{}
+	}
+	return c.JSON(fiber.Map{"data": data})
+}
+
+func (h *RiskHandler) GetOverdueMitigationsTimeline(c *fiber.Ctx) error {
+	data, err := h.overdueTimelineUC.Execute(c.Context())
+	if err != nil {
+		return handleError(c, err)
+	}
+	if data == nil {
+		data = []entity.OverdueMitigationTimelineItem{}
+	}
+	return c.JSON(fiber.Map{"data": data})
+}
+
+func (h *RiskHandler) GetKRIBreachSummary(c *fiber.Ctx) error {
+	data, err := h.kriBreachSummaryUC.Execute(c.Context())
+	if err != nil {
+		return handleError(c, err)
+	}
+	if data == nil {
+		data = []entity.KRIBreachItem{}
+	}
+	return c.JSON(fiber.Map{"data": data})
+}
+
+func (h *RiskHandler) GetUnitResponseTime(c *fiber.Ctx) error {
+	data, err := h.unitResponseTimeUC.Execute(c.Context())
+	if err != nil {
+		return handleError(c, err)
+	}
+	if data == nil {
+		data = []entity.UnitResponseTime{}
+	}
+	return c.JSON(fiber.Map{"data": data})
 }

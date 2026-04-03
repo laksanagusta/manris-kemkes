@@ -100,6 +100,11 @@ func main() {
 	riskHeatmapDataUC := riskuc.NewHeatmapDataUseCase(domainRiskRepo)
 	riskTopRisksUC := riskuc.NewTopRisksUseCase(domainRiskRepo)
 	riskDashboardCategoriesUC := riskuc.NewDashboardRiskCategoriesUseCase(domainRiskRepo)
+	riskListApprovedUC := riskuc.NewListApprovedRisksUseCase(domainRiskRepo, orgHierarchySvc)
+	riskHeatmapVelocityUC := riskuc.NewHeatmapVelocityUseCase(domainRiskRepo)
+	riskOverdueTimelineUC := riskuc.NewOverdueMitigationTimelineUseCase(domainRiskRepo)
+	riskKRIBreachUC := riskuc.NewKRIBreachSummaryUseCase(domainRiskRepo)
+	riskUnitResponseUC := riskuc.NewUnitResponseTimeUseCase(domainRiskRepo)
 
 	// Incident usecases
 	incidentCreateUC := incidentuc.NewCreateIncidentUseCase(domainIncidentRepo, domainUserRepo, domainOrgRepo, domainRiskRepo)
@@ -215,7 +220,8 @@ func main() {
 	// Clean architecture handlers
 	cleanRiskHandler := httpHandler.NewRiskHandler(
 		riskCreateUC, riskCreateBatchUC, riskSpreadsheetUC, riskGetUC, riskReassessUC, riskUpdateUC, riskDeleteUC, riskListUC, riskListCycleSnapshotUC, riskListVersionsUC, riskReviewQueueUC, riskCompareCyclesUC, riskCompareCycleDetailsUC, riskReviewSummaryUC,
-		riskDashboardSummaryUC, riskActionPressureUC, riskExecutiveAlertsUC, riskHeatmapDataUC, riskTopRisksUC, riskDashboardCategoriesUC, domainMMRepo,
+		riskDashboardSummaryUC, riskActionPressureUC, riskExecutiveAlertsUC, riskHeatmapDataUC, riskTopRisksUC, riskDashboardCategoriesUC, riskListApprovedUC,
+		riskHeatmapVelocityUC, riskOverdueTimelineUC, riskKRIBreachUC, riskUnitResponseUC, domainMMRepo,
 	)
 	cleanIncidentHandler := httpHandler.NewIncidentHandler(
 		incidentCreateUC, incidentCreateBatchUC, incidentGetUC, incidentUpdateUC, incidentDeleteUC, incidentListUC, incidentSummaryUC,
@@ -348,6 +354,7 @@ func main() {
 	protected.Get("/risks/batch/template", cleanRiskHandler.DownloadBulkRiskTemplate)
 	protected.Post("/risks/batch/preview", cleanRiskHandler.PreviewRiskBatchUpload)
 	protected.Post("/risks/batch", cleanRiskHandler.CreateRiskBatch)
+	protected.Get("/risks/trend", cleanRiskHandler.ListApprovedRisks)
 	protected.Get("/risks/:id", cleanRiskHandler.GetRisk)
 	protected.Get("/risks/:id/versions", cleanRiskHandler.ListVersions)
 	protected.Post("/risks/:id/reassess", cleanRiskHandler.CreateReassessment)
@@ -362,6 +369,10 @@ func main() {
 	protected.Get("/dashboard/heatmap", cleanRiskHandler.HeatmapData)
 	protected.Get("/dashboard/top-risks", cleanRiskHandler.TopRisks)
 	protected.Get("/dashboard/risk-categories", cleanRiskHandler.GetDashboardRiskCategories)
+	protected.Get("/dashboard/heatmap-velocity", cleanRiskHandler.GetHeatmapVelocity)
+	protected.Get("/dashboard/overdue-mitigations-timeline", cleanRiskHandler.GetOverdueMitigationsTimeline)
+	protected.Get("/dashboard/kri-breach-summary", cleanRiskHandler.GetKRIBreachSummary)
+	protected.Get("/dashboard/unit-response-time", cleanRiskHandler.GetUnitResponseTime)
 
 	// Incidents (Clean Architecture)
 	protected.Get("/incidents", cleanIncidentHandler.ListIncidents)

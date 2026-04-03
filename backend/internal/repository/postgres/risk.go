@@ -905,17 +905,213 @@ func (r *riskRepository) RiskReviewSummary(ctx context.Context, cycle string, or
 }
 
 func (r *riskRepository) GetHeatmapVelocity(ctx context.Context, fromCycle, toCycle string) ([]entity.HeatmapVelocityCell, error) {
-	return []entity.HeatmapVelocityCell{}, nil
+	query := `
+	WITH cycle_compare AS (
+		SELECT
+			curr.probability,
+			curr.impact,
+			CASE
+				WHEN prev.inherent_score IS NULL THEN 'new'
+				WHEN curr.inherent_score > prev.inherent_score THEN 'up'
+				WHEN curr.inherent_score < prev.inherent_score THEN 'down'
+				ELSE 'stable'
+			END AS movement
+		FROM risks curr
+		LEFT JOIN risks prev ON prev.version_group_id = curr.version_group_id
+			AND prev.assessment_cycle = $1
+			AND prev.status = 'approved'
+		WHERE curr.assessment_cycle = $2
+			AND curr.status = 'approved'
+	)
+	SELECT
+		probability,
+		impact,
+		COUNT(*) AS count,
+		COUNT(*) FILTER (WHERE movement = 'up') AS up_count,
+		COUNT(*) FILTER (WHERE movement = 'down') AS down_count,
+		COUNT(*) FILTER (WHERE movement = 'stable') AS stable_count,
+		COUNT(*) FILTER (WHERE movement = 'new') AS new_count
+	FROM cycle_compare
+	GROUP BY probability, impact
+	ORDER BY probability DESC, impact DESC`
+
+	rows, err := r.pool.Query(ctx, query, fromCycle, toCycle)
+	if err != nil {
+		return nil, fmt.Errorf("heatmap velocity: %w", err)
+	}
+	defer rows.Close()
+
+	cells := make([]entity.HeatmapVelocityCell, 0)
+	for rows.Next() {
+		var c entity.HeatmapVelocityCell
+		if err := rows.Scan(&c.Probability, &c.Impact, &c.Count, &c.UpCount, &c.DownCount, &c.StableCount, &c.NewCount); err != nil {
+			return nil, fmt.Errorf("scan heatmap velocity: %w", err)
+		}
+		cells = append(cells, c)
+	}
+	return cells, nil
 }
 
 func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
-	return []entity.OverdueMitigationTimelineItem{}, nil
+	query := `
+	SELECT
+		org.id::text AS org_id,
+		COALESCE(org.name, '') AS org_name,
+		COUNT(*) FILTER (
+			WHERE mt.status = 'done'
+				AND mt.reported_at IS NOT NULL
+				AND mt.reported_at::date <= mt.due_date
+		) AS on_time_count,
+		COUNT(*) FILTER (
+			WHERE mt.status != 'done'
+				AND mt.due_date < CURRENT_DATE
+				AND CURRENT_DATE - mt.due_date <= 7
+		) AS overdue_7_count,
+		COUNT(*) FILTER (
+			WHERE mt.status != 'done'
+				AND mt.due_date < CURRENT_DATE
+				AND CURRENT_DATE - mt.due_date BETWEEN 8 AND 30
+		) AS overdue_30_count,
+		COUNT(*) FILTER (
+			WHERE mt.status != 'done'
+				AND mt.due_date < CURRENT_DATE
+				AND CURRENT_DATE - mt.due_date > 30
+		) AS overdue_30_plus_count,
+		COUNT(*) AS total_count
+	FROM mitigation_tasks mt
+	JOIN mitigations m ON m.id = mt.mitigation_id
+	JOIN risks r ON r.id = mt.risk_id
+	LEFT JOIN organizations org ON org.id = r.organization_id
+	GROUP BY org.id, org.name
+	ORDER BY org.name ASC`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("overdue mitigation timeline: %w", err)
+	}
+	defer rows.Close()
+
+	items := make([]entity.OverdueMitigationTimelineItem, 0)
+	for rows.Next() {
+		var item entity.OverdueMitigationTimelineItem
+		if err := rows.Scan(
+			&item.OrgID, &item.OrgName,
+			&item.OnTimeCount, &item.Overdue7Count, &item.Overdue30Count, &item.Overdue30PlusCount,
+			&item.TotalCount,
+		); err != nil {
+			return nil, fmt.Errorf("scan overdue timeline: %w", err)
+		}
+		items = append(items, item)
+	}
+	return items, nil
 }
 
 func (r *riskRepository) GetKRIBreachSummary(ctx context.Context) ([]entity.KRIBreachItem, error) {
-	return []entity.KRIBreachItem{}, nil
+	query := `
+	SELECT
+		k.id::text AS kri_id,
+		k.name AS kri_name,
+		k.threshold_max AS threshold,
+		k.current_value AS actual_value,
+		COALESCE(k.metric, '') AS unit,
+		CASE
+			WHEN k.direction = 'higher_worse' THEN
+				CASE
+					WHEN k.current_value > k.threshold_max THEN 'breach'
+					WHEN k.current_value >= k.threshold_max * 0.8 THEN 'warning'
+					ELSE 'safe'
+				END
+			WHEN k.direction = 'lower_worse' THEN
+				CASE
+					WHEN k.current_value < k.threshold_min THEN 'breach'
+					WHEN k.current_value <= k.threshold_min * 1.2 THEN 'warning'
+					ELSE 'safe'
+				END
+			ELSE 'safe'
+		END AS status,
+		COALESCE(r.title, '') AS risk_title,
+		COALESCE(org.name, '') AS org_name
+	FROM kris k
+	LEFT JOIN risks r ON r.id = k.risk_id
+	LEFT JOIN organizations org ON org.id = k.organization_id
+	WHERE k.is_archived = FALSE
+	ORDER BY
+		CASE
+			WHEN k.direction = 'higher_worse' AND k.current_value > k.threshold_max THEN 0
+			WHEN k.direction = 'lower_worse' AND k.current_value < k.threshold_min THEN 0
+			ELSE 1
+		END,
+		k.name ASC`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("kri breach summary: %w", err)
+	}
+	defer rows.Close()
+
+	items := make([]entity.KRIBreachItem, 0)
+	for rows.Next() {
+		var item entity.KRIBreachItem
+		if err := rows.Scan(
+			&item.KRIID, &item.KRIName, &item.Threshold, &item.ActualValue,
+			&item.Unit, &item.Status, &item.RiskTitle, &item.OrgName,
+		); err != nil {
+			return nil, fmt.Errorf("scan kri breach: %w", err)
+		}
+		items = append(items, item)
+	}
+	return items, nil
 }
 
 func (r *riskRepository) GetUnitResponseTime(ctx context.Context) ([]entity.UnitResponseTime, error) {
-	return []entity.UnitResponseTime{}, nil
+	query := `
+	WITH approval_timing AS (
+		SELECT
+			r.organization_id,
+			AVG(EXTRACT(EPOCH FROM (ah.created_at - ar.requested_at)) / 86400) AS avg_approval_days
+		FROM approval_requests ar
+		JOIN approval_histories ah ON ah.approval_request_id = ar.id
+		JOIN risks r ON r.id = ar.entity_id AND ar.request_type = 'risk'
+		WHERE ah.created_at > ar.requested_at
+		GROUP BY r.organization_id
+	),
+	mitigation_timing AS (
+		SELECT
+			r.organization_id,
+			AVG(EXTRACT(EPOCH FROM (mt.reported_at - mt.created_at)) / 86400) AS avg_mitigation_days,
+			COUNT(*) AS task_count
+		FROM mitigation_tasks mt
+		JOIN risks r ON r.id = mt.risk_id
+		WHERE mt.status = 'done' AND mt.reported_at IS NOT NULL
+		GROUP BY r.organization_id
+	)
+	SELECT
+		org.id::text AS org_id,
+		COALESCE(org.name, '') AS org_name,
+		COALESCE(mt.avg_mitigation_days, 0) AS avg_mitigation_days,
+		COALESCE(at.avg_approval_days, 0) AS avg_approval_days,
+		COALESCE(mt.task_count, 0) AS task_count
+	FROM organizations org
+	LEFT JOIN mitigation_timing mt ON mt.organization_id = org.id
+	LEFT JOIN approval_timing at ON at.organization_id = org.id
+	ORDER BY org.name ASC`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("unit response time: %w", err)
+	}
+	defer rows.Close()
+
+	items := make([]entity.UnitResponseTime, 0)
+	for rows.Next() {
+		var item entity.UnitResponseTime
+		if err := rows.Scan(
+			&item.OrgID, &item.OrgName,
+			&item.AvgMitigationDays, &item.AvgApprovalDays, &item.TaskCount,
+		); err != nil {
+			return nil, fmt.Errorf("scan unit response time: %w", err)
+		}
+		items = append(items, item)
+	}
+	return items, nil
 }

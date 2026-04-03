@@ -1,0 +1,2 @@
+=== go vet (non-test packages) ===
+EXIT CODE: 0
