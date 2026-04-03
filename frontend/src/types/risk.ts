@@ -278,3 +278,62 @@ export interface DashboardRiskCategoryItem {
   category: string;
   count: number;
 }
+
+// ── Dashboard Analytics (Phase 2) ──────────────────────────────────
+
+export interface HeatmapVelocityCell {
+  probability: number;
+  impact: number;
+  count: number;
+  upCount: number;
+  downCount: number;
+  stableCount: number;
+  newCount: number;
+}
+
+export interface OverdueMitigationTimelineItem {
+  orgId: string;
+  orgName: string;
+  onTimeCount: number;
+  overdue7Count: number;
+  overdue30Count: number;
+  overdue30PlusCount: number;
+  totalCount: number;
+}
+
+export interface KRIBreachItem {
+  kriId: string;
+  kriName: string;
+  threshold: number;
+  actualValue: number;
+  unit: string;
+  status: 'safe' | 'warning' | 'breach';
+  riskTitle: string;
+  orgName: string;
+}
+
+export interface UnitResponseTime {
+  orgId: string;
+  orgName: string;
+  avgMitigationDays: number;
+  avgApprovalDays: number;
+  taskCount: number;
+}
+
+/** Subset of Risk fields returned by GET /api/v1/dashboard/top-risks */
+export interface TopRiskItem {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  category: RiskCategory;
+  status: RiskStatus;
+  orgName: string;
+  probability: number;
+  impact: number;
+  inherentScore: number;
+  treatmentOption: TreatmentOption;
+  assessmentCycle?: string;
+  createdAt: string;
+  updatedAt: string;
+}

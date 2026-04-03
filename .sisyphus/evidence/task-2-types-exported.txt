@@ -1,0 +1,12 @@
+Task 2: New interface export verification
+==========================================
+File: frontend/src/types/risk.ts
+Grep pattern: export interface (HeatmapVelocityCell|OverdueMitigationTimelineItem|KRIBreachItem|UnitResponseTime|TopRiskItem)
+Result: 5/5 interfaces found and exported
+
+Matches:
+  Line 284: export interface HeatmapVelocityCell
+  Line 294: export interface OverdueMitigationTimelineItem
+  Line 304: export interface KRIBreachItem
+  Line 315: export interface UnitResponseTime
+  Line 324: export interface TopRiskItem
