@@ -13,7 +13,7 @@ type Risk struct {
 	Code           string     `json:"code"`
 	Title          string     `json:"title"`
 	Description    string     `json:"description"`
-	Category       string     `json:"category,omitempty"`
+	Category       string     `json:"category"`
 	Status         string     `json:"status"`
 	VersionGroupID uuid.UUID  `json:"versionGroupId"`
 	PreviousRiskID *uuid.UUID `json:"previousRiskId,omitempty"`

@@ -237,6 +237,7 @@ export interface Risk {
   code?: string;
   title: string;
   description: string;
+  category: RiskCategory;
   unitId: string;
   cause: string[];
   riskSource: string;
