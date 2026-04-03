@@ -1,7 +1,8 @@
-import * as ExcelJS from "exceljs";
+import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 
-import type { RiskCycleDetailedComparisonItem, RiskCycleDetailedComparisonReport, RiskCycleSideBySideSnapshot } from "@/types/risk";
+import type { RiskCycleDetailedComparisonItem, RiskCycleDetailedComparisonReport, RiskCycleSideBySideSnapshot } from "../types/risk";
+import { riskCategoryLabels } from "./risk.ts";
 
 type ExportRow = Record<string, string | number>;
 
@@ -16,6 +17,7 @@ type QuantitativeField =
 
 const coreFieldOrder = [
   "description",
+  "category",
   "cause",
   "existingControl",
   "probability",
@@ -52,6 +54,12 @@ function normalizeValue(value: unknown): string {
   if (Array.isArray(value)) return value.map((item) => normalizeValue(item)).filter(Boolean).join(" | ");
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+function categoryLabel(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+  const slug = String(value);
+  return riskCategoryLabels[slug as keyof typeof riskCategoryLabels] || slug;
 }
 
 function sanitizeFileSegment(value: string) {
@@ -245,6 +253,7 @@ function buildTopBottomRows(items: RiskCycleDetailedComparisonItem[]): ExportRow
       ...baseRow,
       version: "Before",
       description: sideBySideValue(item, "from", "description"),
+      category: categoryLabel(sideBySideValue(item, "from", "category")),
       cause: sideBySideValue(item, "from", "cause"),
       existingControl: sideBySideValue(item, "from", "existingControl"),
       probability: sideBySideValue(item, "from", "probability"),
@@ -263,6 +272,7 @@ function buildTopBottomRows(items: RiskCycleDetailedComparisonItem[]): ExportRow
       ...baseRow,
       version: "After",
       description: sideBySideValue(item, "to", "description"),
+      category: categoryLabel(sideBySideValue(item, "to", "category")),
       cause: sideBySideValue(item, "to", "cause"),
       existingControl: sideBySideValue(item, "to", "existingControl"),
       probability: sideBySideValue(item, "to", "probability"),
@@ -357,6 +367,7 @@ export async function createRiskCycleDetailWorkbookBuffer(report: RiskCycleDetai
     { header: "toCycle", key: "toCycle", width: 12 },
     { header: "version", key: "version", width: 10 },
     { header: "description", key: "description", width: 36 },
+    { header: "category", key: "category", width: 20 },
     { header: "cause", key: "cause", width: 28 },
     { header: "existingControl", key: "existingControl", width: 24 },
     { header: "probability", key: "probability", width: 14 },

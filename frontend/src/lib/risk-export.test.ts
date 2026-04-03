@@ -5,7 +5,7 @@ import {
   BULK_RISK_EXPORT_COLUMNS,
   buildRiskBulkExportRows,
   createRiskBulkExportWorkbookBuffer,
-} from "./risk-export";
+} from "./risk-export.mjs";
 
 const sampleRisks = [
   {
@@ -13,6 +13,7 @@ const sampleRisks = [
     title: "Gangguan distribusi vaksin",
     description: "Distribusi terlambat ke daerah.",
     code: "R-001",
+    category: "operasional",
     cause: ["Vendor tunggal", "Cuaca ekstrem"],
     riskSource: "Vendor",
     controllability: "C",
@@ -47,6 +48,7 @@ const sampleRisks = [
     title: "Keterlambatan pelaporan",
     description: "Pelaporan tidak masuk tepat waktu.",
     code: "R-002",
+    category: "kepatuhan",
     cause: ["Beban kerja tinggi"],
     riskSource: "Internal",
     controllability: "UC",
@@ -74,11 +76,13 @@ test("buildRiskBulkExportRows uses bulk template columns and expands mitigations
   assert.deepEqual(Object.keys(rows[0]), BULK_RISK_EXPORT_COLUMNS);
 
   assert.equal(rows[0]["Risiko"], "Gangguan distribusi vaksin");
+  assert.equal(rows[0]["Kategori Risiko"], "Operasional");
   assert.equal(rows[0]["Sebab"], "Vendor tunggal\r\nCuaca ekstrem");
   assert.equal(rows[0]["RPR Uraian"], "Tambah vendor cadangan\r\nReview SLA distribusi");
   assert.equal(rows[0]["PIC RPR"], "Tim Logistik\r\nBagian Pengadaan");
   assert.equal(rows[0]["Jadwal Pelaksanaan"], "Setiap bulan\r\n2026-07-31");
   assert.equal(rows[1]["Risiko"], "Keterlambatan pelaporan");
+  assert.equal(rows[1]["Kategori Risiko"], "Kepatuhan");
   assert.equal(rows[1]["RPR Uraian"], "");
 });
 
@@ -93,15 +97,19 @@ test("createRiskBulkExportWorkbookBuffer creates worksheet with template headers
 
   const sheet = workbook.getWorksheet("Risk Export");
   assert.ok(sheet, "expected Risk Export worksheet");
+  const headerValues = (sheet.getRow(1).values as unknown[]).slice(1);
   assert.deepEqual(
-    sheet.getRow(1).values?.slice(1),
+    headerValues,
     BULK_RISK_EXPORT_COLUMNS,
   );
   assert.equal(sheet.getRow(2).getCell(1).value, "Gangguan distribusi vaksin");
-  assert.equal(sheet.getRow(2).getCell(4).value, "Vendor tunggal\nCuaca ekstrem");
-  assert.equal(sheet.getRow(2).getCell(16).value, "Tambah vendor cadangan\nReview SLA distribusi");
+  assert.equal(sheet.getRow(2).getCell(2).value, "Distribusi terlambat ke daerah.");
+  assert.equal(sheet.getRow(2).getCell(3).value, "R-001");
+  assert.equal(sheet.getRow(2).getCell(4).value, "Operasional");
+  assert.equal(sheet.getRow(2).getCell(5).value, "Vendor tunggal\nCuaca ekstrem");
+  assert.equal(sheet.getRow(2).getCell(17).value, "Tambah vendor cadangan\nReview SLA distribusi");
   assert.equal(sheet.getRow(2).getCell(1).alignment?.horizontal, "left");
-  assert.equal(sheet.getRow(2).getCell(10).alignment?.horizontal, "right");
-  assert.equal(sheet.getRow(2).getCell(10).alignment?.vertical, "top");
-  assert.equal(sheet.getColumn(16).alignment?.wrapText, true);
+  assert.equal(sheet.getRow(2).getCell(12).alignment?.horizontal, "right");
+  assert.equal(sheet.getRow(2).getCell(12).alignment?.vertical, "top");
+  assert.equal(sheet.getColumn(17).alignment?.wrapText, true);
 });

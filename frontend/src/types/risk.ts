@@ -138,6 +138,7 @@ export interface RiskMitigationDiff {
 
 export interface RiskCycleSideBySideSnapshot {
   description?: string;
+  category?: string;
   cause?: string[];
   existingControl?: string;
   probability?: number;

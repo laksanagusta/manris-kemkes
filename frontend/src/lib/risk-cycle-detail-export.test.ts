@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { RiskCycleDetailedComparisonReport } from "@/types/risk";
-import { createRiskCycleDetailWorkbookBuffer } from "./risk-cycle-detail-export";
+import { createRiskCycleDetailWorkbookBuffer } from "./risk-cycle-detail-export.mjs";
 
 const sampleReport: RiskCycleDetailedComparisonReport = {
   summary: {
@@ -28,6 +28,7 @@ const sampleReport: RiskCycleDetailedComparisonReport = {
       toRiskId: "to-1",
       fromSnapshot: {
         description: "Versi awal",
+        category: "operasional",
         cause: ["Vendor tunggal"],
         existingControl: "Kontrol awal",
         probability: 4,
@@ -43,6 +44,7 @@ const sampleReport: RiskCycleDetailedComparisonReport = {
       },
       toSnapshot: {
         description: "Versi revisi",
+        category: "strategis",
         cause: ["Vendor tunggal", "Cuaca buruk"],
         existingControl: "Kontrol revisi",
         probability: 3,
@@ -68,9 +70,9 @@ test("createRiskCycleDetailWorkbookBuffer persists top-bottom comparison trend, 
   const ExcelJSImport = await import("exceljs");
   const Workbook = ExcelJSImport.Workbook || ExcelJSImport.default?.Workbook;
   assert.ok(Workbook, "expected Workbook constructor from exceljs");
-  const buffer = await createRiskCycleDetailWorkbookBuffer(sampleReport);
+  const buffer = (await createRiskCycleDetailWorkbookBuffer(sampleReport)) as unknown as Buffer;
   const workbook = new Workbook();
-  await workbook.xlsx.load(buffer);
+  await workbook.xlsx.load(buffer as any);
 
   assert.deepEqual(workbook.worksheets.map((sheet) => sheet.name), ["Summary", "Perbandingan", "Risks", "Field Changes", "Mitigation Changes"]);
 
@@ -84,8 +86,11 @@ test("createRiskCycleDetailWorkbookBuffer persists top-bottom comparison trend, 
 
   assert.equal(comparisonSheet.getRow(2).getCell("A").value, "improved");
   assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("version") || 0).value, "Before");
+  assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("description") || 0).value, "Versi awal");
+  assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("category") || 0).value, "Operasional");
   assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("probability") ||0).value, "4");
   assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("version") || 0).value, "After");
+  assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("category") || 0).value, "Strategis");
   assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("probability") || 0).value, "3");
   assert.equal(comparisonSheet.views[0]?.state, "frozen");
   assert.equal(comparisonSheet.views[0]?.ySplit, 1);
