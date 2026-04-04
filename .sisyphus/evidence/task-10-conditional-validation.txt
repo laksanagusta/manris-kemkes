@@ -1,0 +1,13 @@
+=== Task 10: Conditional Validation Evidence ===
+Date: Sat Apr  4 20:21:06 WIB 2026
+
+=== Conditional Visibility Logic (evaluateVisibility) ===
+1. Fields with no ConditionSourceFieldID → always VISIBLE
+2. Fields with ConditionSourceFieldID → lookup source field by UUID
+3. Get source field's FieldKey → check answers[sourceFieldKey]
+4. Equals-only check: answers[sourceFieldKey].(string) == *conditionValue
+5. HIDDEN fields: required validation skipped, type validation skipped
+6. Checkbox fields cannot be condition sources (validated at form publish time)
+
+=== Build Verification ===
+Package build: SUCCESS (exit 0)

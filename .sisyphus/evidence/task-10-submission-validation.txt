@@ -1,0 +1,15 @@
+=== Task 10: Submission Validation Evidence ===
+Date: Sat Apr  4 20:20:53 WIB 2026
+
+=== go build ./internal/usecase/form/... ===
+EXIT CODE: 0
+
+=== go build ./... ===
+EXIT CODE: 0
+
+=== Validation Logic Review ===
+1. Form status check: IsAcceptingResponses() → draft=ErrFormNotPublished, closed=ErrFormClosed
+2. Assignment check: specific audience → GetFormIDsForOrganization + slices.Contains
+3. Duplicate check: GetByFormAndRespondent → nil=ok, non-nil=ErrDuplicateResponse
+4. Required field validation: skip hidden fields (conditional visibility)
+5. Type validation: text→string, radio/dropdown→string+option, checkbox→[]any+option

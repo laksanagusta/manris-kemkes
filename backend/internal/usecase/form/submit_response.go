@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,15 +13,12 @@ import (
 	"github.com/manris/backend/internal/domain/repository"
 )
 
-// SubmitResponseUseCase handles form response submission with server-side
-// conditional visibility evaluation and field validation.
 type SubmitResponseUseCase struct {
 	formRepo       repository.FormRepository
 	responseRepo   repository.FormResponseRepository
 	assignmentRepo repository.FormAssignmentRepository
 }
 
-// NewSubmitResponseUseCase creates a new SubmitResponseUseCase.
 func NewSubmitResponseUseCase(
 	formRepo repository.FormRepository,
 	responseRepo repository.FormResponseRepository,
@@ -33,29 +31,24 @@ func NewSubmitResponseUseCase(
 	}
 }
 
-// SubmitResponseInput holds the data required to submit a form response.
 type SubmitResponseInput struct {
 	FormID       uuid.UUID
 	RespondentID uuid.UUID
-	OrgID        uuid.UUID       // for assignment check
-	Answers      json.RawMessage // JSONB: {"field_key": value}
+	OrgID        uuid.UUID
+	Answers      json.RawMessage
 }
 
-// SubmitResponseOutput holds the result of a successful submission.
 type SubmitResponseOutput struct {
 	ResponseID  uuid.UUID
 	SubmittedAt time.Time
 }
 
-// Execute validates and persists a form response.
 func (uc *SubmitResponseUseCase) Execute(ctx context.Context, input SubmitResponseInput) (*SubmitResponseOutput, error) {
-	// 1. Fetch full form (with sections and fields).
 	form, err := uc.formRepo.GetByID(ctx, input.FormID)
 	if err != nil {
-		return nil, err // ErrFormNotFound propagated from repository
+		return nil, err
 	}
 
-	// 2. Check the form is accepting responses.
 	if !form.IsAcceptingResponses() {
 		if form.Status == entity.FormStatusDraft {
 			return nil, domainerrors.ErrFormNotPublished
@@ -63,25 +56,16 @@ func (uc *SubmitResponseUseCase) Execute(ctx context.Context, input SubmitRespon
 		return nil, domainerrors.ErrFormClosed
 	}
 
-	// 3. If targeted to specific organisations, verify assignment.
 	if form.TargetAudience == "specific" {
 		assignedIDs, err := uc.assignmentRepo.GetFormIDsForOrganization(ctx, input.OrgID)
 		if err != nil {
 			return nil, domainerrors.Wrap(err, "failed to check form assignment")
 		}
-		assigned := false
-		for _, id := range assignedIDs {
-			if id == input.FormID {
-				assigned = true
-				break
-			}
-		}
-		if !assigned {
+		if !slices.Contains(assignedIDs, input.FormID) {
 			return nil, domainerrors.ErrFormNotAssigned
 		}
 	}
 
-	// 4. Check duplicate (one response per user per form).
 	existing, err := uc.responseRepo.GetByFormAndRespondent(ctx, input.FormID, input.RespondentID)
 	if err != nil {
 		return nil, domainerrors.Wrap(err, "failed to check existing response")
@@ -90,13 +74,11 @@ func (uc *SubmitResponseUseCase) Execute(ctx context.Context, input SubmitRespon
 		return nil, domainerrors.ErrDuplicateResponse
 	}
 
-	// 5. Parse answers from JSON into a map.
-	var answers map[string]interface{}
+	var answers map[string]any
 	if err := json.Unmarshal(input.Answers, &answers); err != nil {
 		return nil, &domainerrors.AppError{Code: "INVALID_ANSWERS", Message: "answers must be a valid JSON object"}
 	}
 
-	// Build field lookup maps for O(1) access.
 	allFields := collectAllFields(form)
 	fieldByKey := make(map[string]*entity.FormField, len(allFields))
 	fieldByID := make(map[uuid.UUID]*entity.FormField, len(allFields))
@@ -105,10 +87,8 @@ func (uc *SubmitResponseUseCase) Execute(ctx context.Context, input SubmitRespon
 		fieldByID[allFields[i].ID] = &allFields[i]
 	}
 
-	// 6. Evaluate conditional visibility (server-side).
 	visibility := evaluateVisibility(allFields, fieldByID, answers)
 
-	// 7. Validate required fields — skip hidden fields entirely.
 	for i := range allFields {
 		field := &allFields[i]
 		if !field.IsRequired || !visibility[field.FieldKey] {
@@ -123,21 +103,16 @@ func (uc *SubmitResponseUseCase) Execute(ctx context.Context, input SubmitRespon
 		}
 	}
 
-	// 8. Validate value types for all provided answers.
 	for key, val := range answers {
 		field, exists := fieldByKey[key]
-		if !exists {
-			continue // ignore unknown keys
-		}
-		if !visibility[key] {
-			continue // skip hidden fields
+		if !exists || !visibility[key] {
+			continue
 		}
 		if err := validateFieldValue(field, val); err != nil {
 			return nil, err
 		}
 	}
 
-	// 9. Persist the response.
 	response := &entity.FormResponse{
 		FormID:       input.FormID,
 		RespondentID: input.RespondentID,
@@ -148,18 +123,12 @@ func (uc *SubmitResponseUseCase) Execute(ctx context.Context, input SubmitRespon
 		return nil, domainerrors.Wrap(err, "failed to submit response")
 	}
 
-	// 10. Return output.
 	return &SubmitResponseOutput{
 		ResponseID:  created.ID,
 		SubmittedAt: created.SubmittedAt,
 	}, nil
 }
 
-// ---------------------------------------------------------------------------
-// Helper functions (package-level, shared across usecase files)
-// ---------------------------------------------------------------------------
-
-// collectAllFields flattens all fields from every section of a form.
 func collectAllFields(form *entity.Form) []entity.FormField {
 	var fields []entity.FormField
 	for i := range form.Sections {
@@ -168,11 +137,9 @@ func collectAllFields(form *entity.Form) []entity.FormField {
 	return fields
 }
 
-// evaluateVisibility determines which fields are visible based on conditional
-// logic. A field without a condition is always visible. A field with a
-// condition is visible only when the source field's answer equals the
-// condition value (simple "equals" check).
-func evaluateVisibility(fields []entity.FormField, fieldByID map[uuid.UUID]*entity.FormField, answers map[string]interface{}) map[string]bool {
+// evaluateVisibility: no condition → visible; with condition → visible only
+// when answers[sourceField.FieldKey] == conditionValue ("equals" operator only).
+func evaluateVisibility(fields []entity.FormField, fieldByID map[uuid.UUID]*entity.FormField, answers map[string]any) map[string]bool {
 	visible := make(map[string]bool, len(fields))
 	for i := range fields {
 		field := &fields[i]
@@ -190,21 +157,16 @@ func evaluateVisibility(fields []entity.FormField, fieldByID map[uuid.UUID]*enti
 			continue
 		}
 		answerVal, ok := answers[sourceField.FieldKey].(string)
-		if ok && answerVal == *field.ConditionValue {
-			visible[field.FieldKey] = true
-		} else {
-			visible[field.FieldKey] = false
-		}
+		visible[field.FieldKey] = ok && answerVal == *field.ConditionValue
 	}
 	return visible
 }
 
-// isEmpty checks if a value is considered empty for required-field validation.
-func isEmpty(val interface{}) bool {
+func isEmpty(val any) bool {
 	switch v := val.(type) {
 	case string:
 		return v == ""
-	case []interface{}:
+	case []any:
 		return len(v) == 0
 	case nil:
 		return true
@@ -213,9 +175,7 @@ func isEmpty(val interface{}) bool {
 	}
 }
 
-// validateFieldValue checks that the answer value matches the expected type
-// and, for option-based fields, that the value is one of the allowed options.
-func validateFieldValue(field *entity.FormField, val interface{}) error {
+func validateFieldValue(field *entity.FormField, val any) error {
 	switch field.FieldType {
 	case entity.FieldTypeText, entity.FieldTypeTextarea:
 		if _, ok := val.(string); !ok {
@@ -241,7 +201,7 @@ func validateFieldValue(field *entity.FormField, val interface{}) error {
 		}
 
 	case entity.FieldTypeCheckbox:
-		arr, ok := val.([]interface{})
+		arr, ok := val.([]any)
 		if !ok {
 			return &domainerrors.AppError{
 				Code:    "INVALID_FIELD_VALUE",
@@ -267,7 +227,6 @@ func validateFieldValue(field *entity.FormField, val interface{}) error {
 	return nil
 }
 
-// isValidOption checks if a value matches one of the field's allowed options.
 func isValidOption(options []entity.FieldOption, value string) bool {
 	for _, opt := range options {
 		if opt.Value == value {
