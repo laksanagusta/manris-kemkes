@@ -20,6 +20,7 @@ import (
 	"github.com/manris/backend/internal/middleware"
 	openairepo "github.com/manris/backend/internal/repository/openai"
 	postgresrepo "github.com/manris/backend/internal/repository/postgres"
+	reportpdf "github.com/manris/backend/internal/service/pdfreport"
 	aiuc "github.com/manris/backend/internal/usecase/ai"
 	approvaluc "github.com/manris/backend/internal/usecase/approval"
 	authuc "github.com/manris/backend/internal/usecase/auth"
@@ -33,6 +34,7 @@ import (
 	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
+	reportuc "github.com/manris/backend/internal/usecase/report"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 	systemuc "github.com/manris/backend/internal/usecase/system"
 	useruc "github.com/manris/backend/internal/usecase/user"
@@ -213,6 +215,10 @@ func main() {
 	mmLinkUC := mmuc.NewLinkRisksUseCase(domainMMRepo)
 	riskListCycleSnapshotUC := riskuc.NewListRiskCycleSnapshotUseCase(domainRiskRepo, orgHierarchySvc)
 
+	// Report usecases
+	generateReportUC := reportuc.NewGenerateReportUseCase(domainRiskRepo, domainIncidentRepo, domainKRiRepo)
+	pdfReportRenderer := reportpdf.NewPDFReportRenderer()
+
 	// ============================================================================
 	// CLEAN ARCHITECTURE - Handler Layer (Presentation / HTTP)
 	// ============================================================================
@@ -288,6 +294,9 @@ func main() {
 	cleanMMHandler := httpHandler.NewMeetingMinuteHandler(
 		mmCreateUC, mmGetUC, mmListUC, mmDeleteUC, mmLinkUC,
 	)
+
+	// Report handler
+	cleanReportHandler := httpHandler.NewReportHandler(generateReportUC, pdfReportRenderer)
 
 	// Fiber app
 	app := fiber.New(fiber.Config{
@@ -370,9 +379,12 @@ func main() {
 	protected.Get("/dashboard/top-risks", cleanRiskHandler.TopRisks)
 	protected.Get("/dashboard/risk-categories", cleanRiskHandler.GetDashboardRiskCategories)
 	protected.Get("/dashboard/heatmap-velocity", cleanRiskHandler.GetHeatmapVelocity)
-	protected.Get("/dashboard/overdue-mitigations-timeline", cleanRiskHandler.GetOverdueMitigationsTimeline)
+	protected.Get("/dashboard/overdue-mitigation-timeline", cleanRiskHandler.GetOverdueMitigationsTimeline)
 	protected.Get("/dashboard/kri-breach-summary", cleanRiskHandler.GetKRIBreachSummary)
 	protected.Get("/dashboard/unit-response-time", cleanRiskHandler.GetUnitResponseTime)
+
+	// Reports (Clean Architecture)
+	protected.Get("/reports/risk-pdf", cleanReportHandler.GenerateRiskPDF)
 
 	// Incidents (Clean Architecture)
 	protected.Get("/incidents", cleanIncidentHandler.ListIncidents)

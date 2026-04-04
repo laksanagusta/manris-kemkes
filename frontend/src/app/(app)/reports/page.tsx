@@ -13,6 +13,8 @@ import {
 import {
   Download,
   FileSpreadsheet,
+  FileText,
+  Loader2,
   TrendingUp,
   ArrowUpRight,
 } from "lucide-react";
@@ -39,6 +41,7 @@ import { cn } from "@/lib/utils";
 import {
   exportRiskBulkCSV,
   exportRiskBulkXLSX,
+  downloadBlob,
   type RiskExportItem,
 } from "@/lib/risk-export";
 import {
@@ -104,6 +107,14 @@ const exportOptions = [
     icon: FileSpreadsheet,
     format: "XLSX",
     isEnabled: false,
+  },
+  {
+    key: "risk-pdf",
+    title: "Laporan Risiko (PDF)",
+    description: "Download laporan eksekutif lengkap dalam format PDF",
+    icon: FileText,
+    format: "PDF",
+    isEnabled: true,
   },
 ];
 
@@ -192,7 +203,7 @@ export default function ReportsPage() {
       api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}`, token),
       api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${encodeURIComponent(previousCycle)}`, token),
       api.get<RiskCycleComparisonItem[]>(`/risks/compare?from=${previousCycle}&to=${exportCycle}`, token),
-      api.get<OverdueMitigationTimelineItem[]>("/dashboard/overdue-mitigations-timeline", token),
+      api.get<OverdueMitigationTimelineItem[]>("/dashboard/overdue-mitigation-timeline", token),
       api.get<KRIBreachItem[]>("/dashboard/kri-breach-summary", token),
       api.get<UnitResponseTime[]>("/dashboard/unit-response-time", token),
     ]).then(([riskResult, cycleRiskResult, previousCycleRiskResult, comparisonResult, overdueResult, kriBreachResult, responseTimeResult]) => {
@@ -238,6 +249,35 @@ export default function ReportsPage() {
   const handleExport = async (key: string) => {
     if (!token) {
       toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+
+    if (key === "risk-pdf") {
+      setIsExporting("risk-pdf");
+      try {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+        const response = await fetch(
+          `${API_BASE}/api/v1/reports/risk-pdf?cycle=${encodeURIComponent(exportCycle)}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (!response.ok) {
+          if (response.status === 404) {
+            toast.error(`Tidak ada data risiko untuk periode ${exportCycle}.`);
+          } else if (response.status === 400) {
+            toast.error("Parameter cycle tidak valid.");
+          } else {
+            toast.error("Gagal mengunduh laporan PDF.");
+          }
+          return;
+        }
+        const blob = await response.blob();
+        downloadBlob(blob, `risk-report-${exportCycle}.pdf`);
+        toast.success(`Laporan PDF ${exportCycle} berhasil diunduh.`);
+      } catch {
+        toast.error("Gagal mengunduh laporan PDF.");
+      } finally {
+        setIsExporting(null);
+      }
       return;
     }
 
@@ -332,7 +372,7 @@ export default function ReportsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
             {exportOptions.map((opt) => (
               <button
                 key={opt.title}
@@ -351,7 +391,9 @@ export default function ReportsPage() {
                     opt.isEnabled ? "bg-primary/10 group-hover:bg-primary/15" : "bg-muted/60",
                   )}
                 >
-                  <opt.icon className="size-4 text-primary" />
+                  {isExporting === opt.key
+                    ? <Loader2 className="size-4 text-primary animate-spin" />
+                    : <opt.icon className="size-4 text-primary" />}
                 </div>
                 <div>
                   <p className={cn("text-xs font-semibold transition-colors", opt.isEnabled && "group-hover:text-primary")}>
@@ -361,7 +403,9 @@ export default function ReportsPage() {
                     {opt.key.startsWith("risk-") ? `${opt.description} untuk cycle ${exportCycle}` : opt.description}
                   </p>
                   <Badge variant="outline" className="text-[8px] h-4 px-1 mt-1.5">
-                    {isExporting === opt.key ? "Exporting..." : opt.isEnabled ? opt.format : "Disabled"}
+                    {isExporting === opt.key
+                      ? opt.key === "risk-pdf" ? "Downloading..." : "Exporting..."
+                      : opt.isEnabled ? opt.format : "Disabled"}
                   </Badge>
                 </div>
               </button>
@@ -628,12 +672,11 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         <OverdueMitigationTimeline data={overdueTimelineData} />
         <KRIBreachSummary data={kriBreachData} />
+        <UnitResponseTimeChart data={responseTimeData} />
       </div>
-
-      <UnitResponseTimeChart data={responseTimeData} />
 
       <RiskCycleDetailReport
         fromCycle={previousCycle}
