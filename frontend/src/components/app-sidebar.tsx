@@ -13,13 +13,16 @@ import {
   FileBarChart,
   AlertTriangle,
   FileText,
+  ClipboardList,
   TrendingUp,
   Users,
   Settings2,
   ChevronDown,
   Bot,
   Calculator,
+  Building2,
 } from "lucide-react";
+import { mainMenuItems } from "@/lib/app-navigation";
 import {
   Tooltip,
   TooltipContent,
@@ -44,24 +47,25 @@ interface NavGroup {
   collapsible?: boolean;
 }
 
+const iconMap: Record<string, React.ElementType> = {
+  LayoutDashboard,
+  Inbox,
+  ShieldAlert,
+  ClipboardCheck,
+  BookOpen,
+  FileBarChart,
+  AlertTriangle,
+  ClipboardList,
+};
+
 const navigation: NavGroup[] = [
-  {
-    title: "MAIN MENU",
-    items: [
-      { label: "Dashboard", href: "/overview", icon: LayoutDashboard },
-      { label: "Approval", href: "/inbox", icon: Inbox },
-      { label: "Risk Register", href: "/risk/register", icon: ShieldAlert },
-      {
-        label: "Monitoring & Reporting",
-        href: "/compliance/monitoring",
-        icon: ClipboardCheck,
-        matchHrefs: ["/compliance/monitoring", "/compliance/kri"],
-      },
-      { label: "Insiden", href: "/incidents", icon: AlertTriangle },
-      { label: "Lessons Learned", href: "/incidents/lessons", icon: BookOpen },
-      { label: "Reports", href: "/reports", icon: FileBarChart },
-    ],
-  },
+  ...mainMenuItems.map((group) => ({
+    ...group,
+    items: group.items.map((item) => ({
+      ...item,
+      icon: iconMap[item.icon] ?? LayoutDashboard,
+    })),
+  })),
   {
     title: "AI & Automation",
     icon: Bot,
@@ -89,6 +93,8 @@ const navigation: NavGroup[] = [
     icon: Settings2,
     items: [
       { label: "Users", href: "/admin/users", icon: Users },
+      { label: "Organizations", href: "/admin/organizations", icon: Building2 },
+      { label: "Form Builder", href: "/admin/forms", icon: FileText },
       { label: "Settings", href: "/admin/settings", icon: Settings2 },
     ],
   },
