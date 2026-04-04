@@ -1,0 +1,11 @@
+=== Task 9: Form Locking Evidence ===
+
+UpdateFormUseCase enforces form locking:
+1. Checks form.Status != draft -> returns ErrFormLocked
+2. Checks FormRepository.HasResponses(formID) -> returns ErrFormLocked if true
+
+DeleteFormUseCase enforces:
+1. Only draft forms can be deleted -> returns ErrFormLocked if published/closed
+
+Lifecycle: draft -> published -> closed (no reopen)
+Build verification: exits 0

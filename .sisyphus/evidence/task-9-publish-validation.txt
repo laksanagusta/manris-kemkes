@@ -1,0 +1,11 @@
+=== Task 9: Publish Validation Evidence ===
+
+PublishFormUseCase validates:
+1. Form exists (ErrFormNotFound)
+2. Status is draft (ErrFormAlreadyPublished if published, ErrFormClosed if closed)
+3. form.ValidateForPublish() - sections, fields, options, conditionals
+4. For specific audience: at least 1 assignment exists
+5. UpdateStatus(formID, 'published')
+
+Build verification: go build ./internal/usecase/form/... exits 0
+Full build: go build ./... exits 0
