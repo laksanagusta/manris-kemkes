@@ -1,0 +1,5 @@
+  text: TextField,
+  textarea: TextareaField,
+  radio: RadioField,
+  checkbox: CheckboxField,
+  dropdown: DropdownField,
