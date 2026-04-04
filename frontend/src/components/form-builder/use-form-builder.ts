@@ -70,7 +70,15 @@ export type FormBuilderAction =
   | { type: "SELECT_FIELD"; payload: string | null }
   | { type: "SET_SUBMITTING"; payload: boolean }
   | { type: "LOAD_FORM"; payload: FormBuilderState }
-  | { type: "MARK_CLEAN" };
+  | { type: "MARK_CLEAN" }
+  | {
+      type: "REORDER_SECTIONS";
+      payload: { fromIndex: number; toIndex: number };
+    }
+  | {
+      type: "REORDER_FIELDS";
+      payload: { sectionId: string; fromIndex: number; toIndex: number };
+    };
 
 // ── Initial State ─────────────────────────────────────────────────────────────
 
@@ -261,6 +269,45 @@ function formBuilderReducer(
         ),
         isDirty: true,
       };
+
+    case "REORDER_SECTIONS": {
+      const { fromIndex, toIndex } = action.payload;
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= state.sections.length ||
+        toIndex >= state.sections.length
+      )
+        return state;
+      const sections = [...state.sections];
+      const [moved] = sections.splice(fromIndex, 1);
+      sections.splice(toIndex, 0, moved);
+      return { ...state, sections, isDirty: true };
+    }
+
+    case "REORDER_FIELDS": {
+      const { sectionId, fromIndex, toIndex } = action.payload;
+      if (fromIndex === toIndex) return state;
+      return {
+        ...state,
+        sections: state.sections.map((s) => {
+          if (s.id !== sectionId) return s;
+          if (
+            fromIndex < 0 ||
+            toIndex < 0 ||
+            fromIndex >= s.fields.length ||
+            toIndex >= s.fields.length
+          )
+            return s;
+          const fields = [...s.fields];
+          const [moved] = fields.splice(fromIndex, 1);
+          fields.splice(toIndex, 0, moved);
+          return { ...s, fields };
+        }),
+        isDirty: true,
+      };
+    }
 
     case "SELECT_FIELD":
       return { ...state, selectedFieldId: action.payload };

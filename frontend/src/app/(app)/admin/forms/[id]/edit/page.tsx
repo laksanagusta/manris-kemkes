@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { AlertTriangle, Loader2, Plus, Save } from "lucide-react";
+import { DragDropProvider } from "@dnd-kit/react";
+import { isSortable } from "@dnd-kit/dom/sortable";
 
 import { useAuth } from "@/contexts/auth-context";
 import { fetchForm, updateForm, fetchFormAnalytics } from "@/lib/api/forms";
@@ -22,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FormHeader } from "@/components/shared/form-shell";
-import { SectionCard } from "@/components/form-builder/section-card";
+import { SortableSection } from "@/components/form-builder/sortable-section";
 import { FieldConfigPanel } from "@/components/form-builder/field-config-panel";
 import {
   useFormBuilder,
@@ -93,6 +95,23 @@ export default function EditFormPage() {
   const totalFields = useMemo(
     () => state.sections.reduce((acc, s) => acc + s.fields.length, 0),
     [state.sections],
+  );
+
+  const handleSectionDragEnd = useCallback(
+    (event: { canceled: boolean; operation: { source: { id: unknown; index?: number; initialIndex?: number } | null; target: { id: unknown; index?: number } | null } }) => {
+      if (event.canceled) return;
+      const { source, target } = event.operation;
+      if (!source || !target) return;
+      if (!isSortable(source as never) || !isSortable(target as never)) return;
+      const from = (source as unknown as { initialIndex: number }).initialIndex;
+      const to = (target as unknown as { index: number }).index;
+      if (from === to) return;
+      dispatch({
+        type: "REORDER_SECTIONS",
+        payload: { fromIndex: from, toIndex: to },
+      });
+    },
+    [dispatch],
   );
 
   const handleSave = async () => {
@@ -280,17 +299,19 @@ export default function EditFormPage() {
             </div>
           </div>
 
-          {state.sections.map((section, idx) => (
-            <SectionCard
-              key={section.id}
-              section={section}
-              sectionIndex={idx}
-              selectedFieldId={state.selectedFieldId}
-              disabled={locked}
-              dispatch={dispatch}
-              generateId={generateId}
-            />
-          ))}
+          <DragDropProvider onDragEnd={handleSectionDragEnd}>
+            {state.sections.map((section, idx) => (
+              <SortableSection
+                key={section.id}
+                section={section}
+                sectionIndex={idx}
+                selectedFieldId={state.selectedFieldId}
+                disabled={locked}
+                dispatch={dispatch}
+                generateId={generateId}
+              />
+            ))}
+          </DragDropProvider>
 
           {!locked && (
             <Button

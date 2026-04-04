@@ -1,6 +1,9 @@
 "use client";
 
+import { useCallback } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { DragDropProvider } from "@dnd-kit/react";
+import { isSortable } from "@dnd-kit/dom/sortable";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -15,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { FIELD_TYPES, getFieldTypeConfig } from "@/lib/form-field-registry";
 import type { FormFieldType } from "@/types/form";
-import { FieldRow } from "./field-row";
+import { SortableField } from "./sortable-field";
 import type { BuilderSection, FormBuilderAction } from "./use-form-builder";
 
 interface SectionCardProps {
@@ -45,6 +48,23 @@ export function SectionCard({
       },
     });
   };
+
+  const handleFieldDragEnd = useCallback(
+    (event: { canceled: boolean; operation: { source: { id: unknown; index?: number; initialIndex?: number } | null; target: { id: unknown; index?: number } | null } }) => {
+      if (event.canceled) return;
+      const { source, target } = event.operation;
+      if (!source || !target) return;
+      if (!isSortable(source as never) || !isSortable(target as never)) return;
+      const from = (source as unknown as { initialIndex: number }).initialIndex;
+      const to = (target as unknown as { index: number }).index;
+      if (from === to) return;
+      dispatch({
+        type: "REORDER_FIELDS",
+        payload: { sectionId: section.id, fromIndex: from, toIndex: to },
+      });
+    },
+    [dispatch, section.id],
+  );
 
   return (
     <Card className="border-border/20 bg-card">
@@ -113,23 +133,31 @@ export function SectionCard({
           </div>
         )}
 
-        {section.fields.map((field) => (
-          <FieldRow
-            key={field.id}
-            field={field}
-            isSelected={selectedFieldId === field.id}
-            disabled={disabled}
-            onSelect={() =>
-              dispatch({ type: "SELECT_FIELD", payload: field.id })
-            }
-            onRemove={() =>
-              dispatch({
-                type: "REMOVE_FIELD",
-                payload: { sectionId: section.id, fieldId: field.id },
-              })
-            }
-          />
-        ))}
+        {section.fields.length > 0 && (
+          <DragDropProvider onDragEnd={handleFieldDragEnd}>
+            <div className="space-y-2">
+              {section.fields.map((field, fieldIdx) => (
+                <SortableField
+                  key={field.id}
+                  field={field}
+                  fieldIndex={fieldIdx}
+                  sectionId={section.id}
+                  isSelected={selectedFieldId === field.id}
+                  disabled={disabled}
+                  onSelect={() =>
+                    dispatch({ type: "SELECT_FIELD", payload: field.id })
+                  }
+                  onRemove={() =>
+                    dispatch({
+                      type: "REMOVE_FIELD",
+                      payload: { sectionId: section.id, fieldId: field.id },
+                    })
+                  }
+                />
+              ))}
+            </div>
+          </DragDropProvider>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
