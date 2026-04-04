@@ -42,6 +42,7 @@ import {
   Trash2,
   Send,
   BarChart3,
+  ClipboardList,
   Lock,
   FileText,
 } from "lucide-react";
@@ -272,16 +273,28 @@ export default function AdminFormsPage() {
                       )}
 
                       {(form.status === "published" || form.status === "closed") && (
-                        <Link href={`/admin/forms/${form.id}/analytics`}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 gap-1.5 px-2 text-xs"
-                          >
-                            <BarChart3 className="size-3" />
-                            Analytics
-                          </Button>
-                        </Link>
+                        <>
+                          <Link href={`/admin/forms/${form.id}/responses`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1.5 px-2 text-xs"
+                            >
+                              <ClipboardList className="size-3" />
+                              Respons
+                            </Button>
+                          </Link>
+                          <Link href={`/admin/forms/${form.id}/analytics`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1.5 px-2 text-xs"
+                            >
+                              <BarChart3 className="size-3" />
+                              Analytics
+                            </Button>
+                          </Link>
+                        </>
                       )}
 
                       {form.status === "draft" && (
