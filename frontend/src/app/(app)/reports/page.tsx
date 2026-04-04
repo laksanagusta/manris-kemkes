@@ -37,6 +37,8 @@ import { RiskCycleDetailReport } from "./risk-cycle-detail-report";
 import { OverdueMitigationTimeline } from "./_components/overdue-mitigation-timeline";
 import { KRIBreachSummary } from "./_components/kri-breach-summary";
 import { UnitResponseTimeChart } from "./_components/unit-response-time";
+import { InherentResidualTrend } from "./_components/inherent-residual-trend";
+import { CriticalRiskRateTrend } from "./_components/critical-risk-rate-trend";
 import { cn } from "@/lib/utils";
 import {
   exportRiskBulkCSV,
@@ -48,6 +50,8 @@ import {
   buildMovementChartData,
   buildMovementSnapshotData,
   buildUnitExposureData,
+  buildInherentResidualTrendData,
+  buildCriticalRiskRateTrendData,
   type MovementSnapshotDatum,
 } from "@/lib/dashboard-insights";
 import {
@@ -76,14 +80,6 @@ const trendColors: Record<string, string> = {
 };
 
 const exportOptions = [
-  {
-    key: "risk-csv",
-    title: "Risk Register (CSV)",
-    description: "Export seluruh risiko ke format CSV",
-    icon: FileSpreadsheet,
-    format: "CSV",
-    isEnabled: true,
-  },
   {
     key: "risk-xlsx",
     title: "Risk Register (Excel)",
@@ -178,6 +174,8 @@ export default function ReportsPage() {
     () => buildMovementSnapshotData({ currentRisks: cycleRisks, previousRisks: previousCycleRisks, comparisons }),
     [cycleRisks, previousCycleRisks, comparisons],
   );
+  const inherentResidualData = useMemo(() => buildInherentResidualTrendData(trendRisks), [trendRisks]);
+  const criticalRiskRateData = useMemo(() => buildCriticalRiskRateTrendData(trendRisks), [trendRisks]);
   const hasTrendData = trendData.length > 0;
   const hasMovementData = movementData.some((item) => item.value > 0);
   const hasExposureData = unitExposureData.length > 0;
@@ -371,15 +369,15 @@ export default function ReportsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+        <CardContent className="flex flex-col">
+          <div className="grid flex-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
             {exportOptions.map((opt) => (
               <button
                 key={opt.title}
                 onClick={() => handleExport(opt.key)}
                 disabled={!opt.isEnabled || isExporting !== null}
                 className={cn(
-                  "flex items-start gap-3 rounded-lg border border-border/50 p-3 text-left transition-all group",
+                  "flex items-stretch gap-3 rounded-lg border border-border/50 p-3 text-left transition-all group h-full",
                   opt.isEnabled
                     ? "hover:bg-muted/30 hover:border-primary/30"
                     : "cursor-not-allowed opacity-65",
@@ -395,14 +393,16 @@ export default function ReportsPage() {
                     ? <Loader2 className="size-4 text-primary animate-spin" />
                     : <opt.icon className="size-4 text-primary" />}
                 </div>
-                <div>
-                  <p className={cn("text-xs font-semibold transition-colors", opt.isEnabled && "group-hover:text-primary")}>
-                    {opt.title}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {opt.key.startsWith("risk-") ? `${opt.description} untuk cycle ${exportCycle}` : opt.description}
-                  </p>
-                  <Badge variant="outline" className="text-[8px] h-4 px-1 mt-1.5">
+                <div className="flex flex-col justify-between flex-1 min-w-0">
+                  <div>
+                    <p className={cn("text-xs font-semibold transition-colors", opt.isEnabled && "group-hover:text-primary")}>
+                      {opt.title}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                      {opt.description}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-[8px] h-4 px-1 mt-2 self-start">
                     {isExporting === opt.key
                       ? opt.key === "risk-pdf" ? "Downloading..." : "Exporting..."
                       : opt.isEnabled ? opt.format : "Disabled"}
@@ -643,6 +643,20 @@ export default function ReportsPage() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Analisis Tren</p>
+          <p className="text-xs text-muted-foreground">
+            Tren skor risiko dan tingkat kekritisan antar semester.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <InherentResidualTrend data={inherentResidualData} />
+        <CriticalRiskRateTrend data={criticalRiskRateData} />
       </div>
 
       {(selectedUnit || selectedMovement) ? (

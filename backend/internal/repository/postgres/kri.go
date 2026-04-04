@@ -83,6 +83,14 @@ func (r *kriRepository) Update(ctx context.Context, kri *entity.KRI) error {
 	return nil
 }
 
+func (r *kriRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM kris WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete kri: %w", err)
+	}
+	return nil
+}
+
 func (r *kriRepository) Archive(ctx context.Context, id uuid.UUID, reason string) error {
 	_, err := r.pool.Exec(ctx, `UPDATE kris SET is_archived = TRUE, archived_at = NOW(), archived_reason = $2 WHERE id = $1`, id, reason)
 	if err != nil {

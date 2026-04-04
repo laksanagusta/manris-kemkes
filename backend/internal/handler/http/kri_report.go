@@ -8,10 +8,12 @@ import (
 	kruc "github.com/manris/backend/internal/usecase/kri_report"
 )
 
-// KRIReportHandler handles HTTP requests for KRI report operations
 type KRIReportHandler struct {
 	listUC     *kruc.ListReportsUseCase
 	submitUC   *kruc.SubmitReportUseCase
+	acceptUC   *kruc.AcceptReportUseCase
+	revisionUC *kruc.RequestRevisionUseCase
+	skipUC     *kruc.SkipReportUseCase
 	generateUC *kruc.GenerateReportsUseCase
 	overdueUC  *kruc.MarkOverdueUseCase
 }
@@ -19,18 +21,23 @@ type KRIReportHandler struct {
 func NewKRIReportHandler(
 	listUC *kruc.ListReportsUseCase,
 	submitUC *kruc.SubmitReportUseCase,
+	acceptUC *kruc.AcceptReportUseCase,
+	revisionUC *kruc.RequestRevisionUseCase,
+	skipUC *kruc.SkipReportUseCase,
 	generateUC *kruc.GenerateReportsUseCase,
 	overdueUC *kruc.MarkOverdueUseCase,
 ) *KRIReportHandler {
 	return &KRIReportHandler{
 		listUC:     listUC,
 		submitUC:   submitUC,
+		acceptUC:   acceptUC,
+		revisionUC: revisionUC,
+		skipUC:     skipUC,
 		generateUC: generateUC,
 		overdueUC:  overdueUC,
 	}
 }
 
-// ListByKRI handles GET /api/v1/kris/:kriId/reports
 func (h *KRIReportHandler) ListByKRI(c *fiber.Ctx) error {
 	kriID, err := uuid.Parse(c.Params("kriId"))
 	if err != nil {
@@ -49,7 +56,6 @@ func (h *KRIReportHandler) ListByKRI(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": reports})
 }
 
-// ListMyReports handles GET /api/v1/kri-reports/my
 func (h *KRIReportHandler) ListMyReports(c *fiber.Ctx) error {
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
@@ -69,7 +75,19 @@ func (h *KRIReportHandler) ListMyReports(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": reports})
 }
 
-// SubmitReport handles POST /api/v1/kri-reports/:id/submit
+func (h *KRIReportHandler) ListReviewQueue(c *fiber.Ctx) error {
+	input := kruc.ListReportsInput{Status: "submitted"}
+	reports, err := h.listUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	if reports == nil {
+		return c.JSON(fiber.Map{"data": []interface{}{}})
+	}
+	return c.JSON(fiber.Map{"data": reports})
+}
+
 func (h *KRIReportHandler) SubmitReport(c *fiber.Ctx) error {
 	reportID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -97,7 +115,88 @@ func (h *KRIReportHandler) SubmitReport(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": report})
 }
 
-// TriggerGenerate handles POST /api/v1/kri-reports/generate (admin/cron trigger)
+func (h *KRIReportHandler) AcceptReport(c *fiber.Ctx) error {
+	reportID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid report ID")
+	}
+
+	userID, ok := c.Locals("userId").(uuid.UUID)
+	if !ok {
+		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+	}
+
+	var body struct {
+		ReviewNote string `json:"review_note"`
+	}
+	_ = c.BodyParser(&body)
+
+	report, err := h.acceptUC.Execute(c.Context(), kruc.AcceptReportInput{
+		ReportID:   reportID,
+		ReviewedBy: userID,
+		ReviewNote: body.ReviewNote,
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": report})
+}
+
+func (h *KRIReportHandler) RequestRevision(c *fiber.Ctx) error {
+	reportID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid report ID")
+	}
+
+	userID, ok := c.Locals("userId").(uuid.UUID)
+	if !ok {
+		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+	}
+
+	var input kruc.RequestRevisionInput
+	if err := c.BodyParser(&input); err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+
+	input.ReportID = reportID
+	input.ReviewedBy = userID
+
+	report, err := h.revisionUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": report})
+}
+
+func (h *KRIReportHandler) SkipReport(c *fiber.Ctx) error {
+	reportID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid report ID")
+	}
+
+	userID, ok := c.Locals("userId").(uuid.UUID)
+	if !ok {
+		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+	}
+
+	var input kruc.SkipReportInput
+	if err := c.BodyParser(&input); err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+
+	input.ReportID = reportID
+	input.SubmittedBy = userID
+
+	report, err := h.skipUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": report})
+}
+
 func (h *KRIReportHandler) TriggerGenerate(c *fiber.Ctx) error {
 	dateStr := c.Query("date")
 	now := time.Now()

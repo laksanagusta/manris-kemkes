@@ -1,0 +1,2 @@
+/Users/dikalaksana/Engineering/manris-v2/backend/internal/usecase/report/generate.go:		return nil, errors.ErrNotFound
+empty check: 0

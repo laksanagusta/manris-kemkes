@@ -71,6 +71,21 @@ func (r *fakeBatchRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UU
 func (r *fakeBatchRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
+func (r *fakeBatchRiskRepo) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+	return nil, nil
+}
+func (r *fakeBatchRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+	return nil, nil
+}
+func (r *fakeBatchRiskRepo) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+	return nil, nil
+}
+func (r *fakeBatchRiskRepo) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+	return nil, nil
+}
+func (r *fakeBatchRiskRepo) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+	return nil, nil
+}
 
 var _ repo.RiskRepository = (*fakeBatchRiskRepo)(nil)
 

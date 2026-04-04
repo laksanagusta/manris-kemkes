@@ -1,0 +1,47 @@
+=== Task 2: Dashboard Risk Category Aggregation Endpoint ===
+Date: 2026-04-03
+
+--- Build Verification ---
+$ cd backend && go build ./...
+(exit 0 — no errors)
+
+--- Targeted Handler Tests ---
+$ cd backend && go test -v ./internal/usecase/risk/... -run 'TestGetDashboardRiskCategoriesHandler'
+=== RUN   TestGetDashboardRiskCategoriesHandler_ReturnsDashboardCategoryCounts
+--- PASS: TestGetDashboardRiskCategoriesHandler_ReturnsDashboardCategoryCounts (0.00s)
+=== RUN   TestGetDashboardRiskCategoriesHandler_PropagatesUpstreamError
+--- PASS: TestGetDashboardRiskCategoriesHandler_PropagatesUpstreamError (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/risk	0.553s
+
+--- Full Test Suite ---
+$ cd backend && go test ./...
+ok  	github.com/manris/backend/internal/domain/entity	(cached)
+ok  	github.com/manris/backend/internal/domain/service	(cached)
+ok  	github.com/manris/backend/internal/repository/openai	(cached)
+ok  	github.com/manris/backend/internal/usecase/ai	0.455s
+ok  	github.com/manris/backend/internal/usecase/approval	0.959s
+ok  	github.com/manris/backend/internal/usecase/incident	(cached)
+ok  	github.com/manris/backend/internal/usecase/kri	(cached)
+ok  	github.com/manris/backend/internal/usecase/kri_report	(cached)
+ok  	github.com/manris/backend/internal/usecase/meeting_minute	(cached)
+ok  	github.com/manris/backend/internal/usecase/risk	(cached)
+ALL PASS — no failures
+
+--- Files Modified ---
+1. backend/internal/domain/repository/risk.go — Added DashboardCategoryCounts to RiskRepository interface
+2. backend/internal/repository/postgres/risk.go — Implemented DashboardCategoryCounts with SQL aggregation
+3. backend/internal/handler/http/risk.go — Added dashboardCategoriesUC field, constructor param, GetDashboardRiskCategories handler
+4. backend/cmd/server/main.go — Wired usecase, passed to handler, registered GET /dashboard/risk-categories route
+5. backend/internal/usecase/risk/dashboard_category_test.go — Added 2 handler-level tests (happy path + error propagation)
+6. backend/internal/usecase/risk/category_persistence_test.go — Added DashboardCategoryCounts stub to categoryRiskRepo
+7. backend/internal/usecase/risk/create_batch_test.go — Added DashboardCategoryCounts stub to fakeBatchRiskRepo
+8. backend/internal/usecase/risk/list_cycle_snapshot_test.go — Added DashboardCategoryCounts stub to fakeCycleSnapshotRiskRepo
+9. backend/internal/usecase/risk/reassess_test.go — Added DashboardCategoryCounts stub to fakeReassessRiskRepo
+10. backend/internal/usecase/ai/apply_risk_change_test.go — Added DashboardCategoryCounts stub to fakeRiskRepository
+11. backend/internal/usecase/approval/action_test.go — Added DashboardCategoryCounts stub to fakeApprovalRiskRepo
+12. backend/internal/usecase/approval/submit_test.go — Added DashboardCategoryCounts stub to fakeSubmitRiskRepo
+
+--- Endpoint ---
+GET /api/v1/dashboard/risk-categories (protected, no query params)
+Response: {"data": [{"category": "...", "count": N}, ...]}

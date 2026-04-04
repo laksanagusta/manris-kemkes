@@ -1,0 +1,58 @@
+
+> frontend@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.8s
+  Running TypeScript ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/32) ...
+  Generating static pages using 9 workers (8/32) 
+  Generating static pages using 9 workers (16/32) 
+  Generating static pages using 9 workers (24/32) 
+✓ Generating static pages using 9 workers (32/32) in 223.0ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin/organizations
+├ ○ /admin/settings
+├ ○ /admin/users
+├ ○ /admin/users/new
+├ ○ /compliance/controls
+├ ○ /compliance/controls/new
+├ ○ /compliance/kri
+├ ƒ /compliance/kri/[id]
+├ ○ /compliance/kri/new
+├ ○ /compliance/monitoring
+├ ○ /inbox
+├ ○ /incidents
+├ ƒ /incidents/[id]
+├ ○ /incidents/lessons
+├ ƒ /incidents/lessons/[id]
+├ ○ /incidents/lessons/new
+├ ○ /incidents/new
+├ ○ /intelligence/cba
+├ ○ /intelligence/minutes
+├ ○ /intelligence/minutes/new
+├ ○ /intelligence/predictive
+├ ○ /intelligence/transcript
+├ ○ /login
+├ ○ /minutes
+├ ƒ /minutes/[id]
+├ ○ /minutes/new
+├ ○ /overview
+├ ○ /reports
+├ ○ /risk/history
+├ ○ /risk/register
+├ ƒ /risk/register/[id]
+├ ○ /risk/register/bulk
+└ ○ /risk/register/new
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

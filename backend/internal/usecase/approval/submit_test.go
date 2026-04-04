@@ -116,6 +116,21 @@ func (r *fakeSubmitRiskRepo) RiskReviewSummary(context.Context, string, []uuid.U
 func (r *fakeSubmitRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
+func (r *fakeSubmitRiskRepo) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitRiskRepo) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitRiskRepo) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitRiskRepo) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+	return nil, errors.New("not implemented")
+}
 
 var _ repo.RiskRepository = (*fakeSubmitRiskRepo)(nil)
 

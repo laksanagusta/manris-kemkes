@@ -1,0 +1,36 @@
+{
+  "verdict": "APPROVE",
+  "generatedAt": "2026-04-03T09:56:02.203Z",
+  "results": [
+    {
+      "name": "1. KRI Detail Page",
+      "passed": true,
+      "details": "archiveVisible=true, deleteButtons=0, amberVisible=true",
+      "screenshot": ".sisyphus/evidence/manual-qa-kri-s1-detail.png"
+    },
+    {
+      "name": "2. KRI Reporting Flow",
+      "passed": true,
+      "details": "markerPersisted=true, submittedBadgeVisible=true, evidenceVisible=true",
+      "screenshot": ".sisyphus/evidence/manual-qa-kri-s2-reporting.png"
+    },
+    {
+      "name": "3. Reviewer Queue",
+      "passed": true,
+      "details": "reviewerTabVisible=true, panelTitleVisible=true, revisionRowVisible=true",
+      "screenshot": ".sisyphus/evidence/manual-qa-kri-s3-reviewer-queue.png"
+    },
+    {
+      "name": "4. Reassessment Summary",
+      "passed": true,
+      "details": "summaryHeadingVisible=true, guidanceVisible=true, reassessmentId=ab610060-58c4-4553-b0e6-b8d1549b4abd",
+      "screenshot": ".sisyphus/evidence/manual-qa-kri-s4-reassessment-summary.png"
+    },
+    {
+      "name": "5. Cross-surface Consistency",
+      "passed": true,
+      "details": "{\"detailAcceptedLabel\":true,\"reviewQueueUsesAccepted\":true,\"reviewQueueUsesRevisionRequested\":true,\"detailHasArchiveTerminology\":true,\"noDeleteTerminology\":true}",
+      "screenshot": ".sisyphus/evidence/manual-qa-kri-s5-terminology.png"
+    }
+  ]
+}

@@ -76,6 +76,21 @@ func (r *categoryRiskRepo) CompareCycles(context.Context, string, string, []uuid
 func (r *categoryRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, nil
 }
+func (r *categoryRiskRepo) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+	return nil, nil
+}
+func (r *categoryRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+	return nil, nil
+}
+func (r *categoryRiskRepo) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+	return nil, nil
+}
+func (r *categoryRiskRepo) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+	return nil, nil
+}
+func (r *categoryRiskRepo) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+	return nil, nil
+}
 
 var _ repo.RiskRepository = (*categoryRiskRepo)(nil)
 

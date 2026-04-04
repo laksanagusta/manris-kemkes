@@ -1,0 +1,26 @@
+--- Field Aggregations ---
+  satisfaction (radio): map[bad:1 good:1]
+  features (checkbox): map[a:1 b:2 c:1]
+  comment (text): map[filled:2 total:2]
+[PASS] All field aggregations correct
+
+Test data:
+- User 1 answers: {"satisfaction":"good","features":["a","b"],"comment":"nice"}
+- User 2 answers: {"satisfaction":"bad","features":["b","c"],"comment":""}
+
+Verified:
+- radio "satisfaction": good=1, bad=1 ✓
+- checkbox "features": a=1 (user1), b=2 (both), c=1 (user2) ✓
+- text "comment": total=2, filled=2 ✓
+
+--- Field Trends (monthly) ---
+  satisfaction (radio): 1 trend points
+    period=2026-04-01 00:00:00+00 values=map[bad:1 good:1]
+  features (checkbox): 1 trend points
+    period=2026-04-01 00:00:00+00 values=map[a:1 b:2 c:1]
+[PASS] GetFieldTrends: 2 option-based fields returned (text skipped)
+
+Verified:
+- text/textarea fields correctly skipped in trends ✓
+- Trend grouping by month works ✓
+- Values per period aggregated correctly ✓

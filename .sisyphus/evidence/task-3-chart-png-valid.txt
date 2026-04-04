@@ -1,0 +1,5 @@
+=== RUN   TestRenderTrendChartPNG
+--- PASS: TestRenderTrendChartPNG (0.01s)
+PASS
+ok  	github.com/manris/backend/internal/service/pdfreport	0.204s
+exit: 0

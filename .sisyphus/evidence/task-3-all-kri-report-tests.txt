@@ -1,0 +1,25 @@
+=== RUN   TestAcceptKRIReportUpdatesCurrentValue
+--- PASS: TestAcceptKRIReportUpdatesCurrentValue (0.00s)
+=== RUN   TestSubmitDoesNotUpdateCurrentValue
+--- PASS: TestSubmitDoesNotUpdateCurrentValue (0.00s)
+=== RUN   TestGenerateReportsIsIdempotent
+Successfully created KRI report ID: ddcd4753-11b2-4e32-bc9e-7a5c633d97c5 for KRI: 91c91eb0-6304-4e9c-ae8d-11aaef232f68
+--- PASS: TestGenerateReportsIsIdempotent (0.00s)
+=== RUN   TestGenerateReportsSkipsWhenPeriodNotOpen
+--- PASS: TestGenerateReportsSkipsWhenPeriodNotOpen (0.00s)
+=== RUN   TestSubmitRevisionRequestedReportSucceeds
+--- PASS: TestSubmitRevisionRequestedReportSucceeds (0.00s)
+=== RUN   TestAcceptKRIReportDoesNotMutateRisk
+--- PASS: TestAcceptKRIReportDoesNotMutateRisk (0.00s)
+=== RUN   TestListReportsComputesOverdueMetadata
+--- PASS: TestListReportsComputesOverdueMetadata (0.00s)
+=== RUN   TestAcceptSkippedKRIReportFails
+--- PASS: TestAcceptSkippedKRIReportFails (0.00s)
+=== RUN   TestRequestRevisionRequiresNote
+--- PASS: TestRequestRevisionRequiresNote (0.00s)
+=== RUN   TestSkipRequiresReason
+--- PASS: TestSkipRequiresReason (0.00s)
+=== RUN   TestRoleEnforcement
+--- PASS: TestRoleEnforcement (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/kri_report	(cached)

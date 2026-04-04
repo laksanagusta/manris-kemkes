@@ -1,0 +1,56 @@
+F3 Manual QA — Playwright Verification
+Started at: 2026-04-03T17:10:20.450Z
+Target: http://localhost:3000/overview
+
+=== SCENARIO 1: Chart renders with data ===
+Mock: [{"category":"strategis","count":5},{"category":"operasional","count":3},{"category":"uncategorized","count":1}]
+  PASS: "Distribusi Kategori Risiko" heading visible
+  PASS: "Tanpa Kategori" label visible (uncategorized → Tanpa Kategori mapping works)
+  PASS: Chart SVG exists (recharts-surface)
+  PASS: Bar elements exist in chart (count: 3)
+  PASS: "Heatmap Risiko" heading still visible
+  PASS: "Risk Trend" heading still visible
+  PASS: DOM order: Heatmap(564) < Distribusi(920) < Trend(1056) — correctly positioned between heatmap and risk trend
+  Screenshot: f3-scenario1-chart-with-data.png
+
+=== SCENARIO 2: Empty state ===
+Mock: [] (empty array)
+  PASS: "Belum ada data kategori risiko." visible
+  PASS: No chart SVG in category card
+  Screenshot: f3-scenario2-empty-state.png
+
+=== SCENARIO 3: Error state ===
+Mock: HTTP 500 response
+  PASS: "Data kategori risiko tidak tersedia saat ini." visible
+  PASS: "Heatmap Risiko" still visible (dashboard not broken by error)
+  Screenshot: f3-scenario3-error-state.png
+
+=== SCENARIO 4: Read-only (no navigation on click) ===
+Mock: populated data (strategis/operasional/keuangan)
+  PASS: URL unchanged after clicking chart area (http://localhost:3000/overview)
+  PASS: No modal/drawer appeared after click
+  Screenshot: f3-scenario4-readonly.png
+
+========================================
+F3 MANUAL QA VERDICT: APPROVE
+
+Scenario 1 (chart with data): PASS
+Scenario 2 (empty state): PASS
+Scenario 3 (error state): PASS
+Scenario 4 (read-only): PASS
+
+Issues found: None
+========================================
+
+Evidence files:
+  - f3-scenario1-chart-with-data.png  (full page screenshot of chart with 3 bars: Strategis, Operasional, Tanpa Kategori)
+  - f3-scenario2-empty-state.png      (empty state with dashed border message)
+  - f3-scenario3-error-state.png      (error message shown, rest of dashboard intact)
+  - f3-scenario4-readonly.png         (chart visible, no navigation/modal on click)
+  - f3-qa-test.mjs                    (Playwright test script)
+
+Methodology:
+  - Playwright route interception mocks all /api/v1/** calls deterministically
+  - Auth bypassed via localStorage token injection
+  - Each scenario uses a fresh browser context for isolation
+  - Screenshots taken as full-page captures for complete evidence

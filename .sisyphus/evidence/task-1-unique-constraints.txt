@@ -1,0 +1,17 @@
+=== UNIQUE constraint: form_responses (form_id, respondent_id) ===
+
+First insert: INSERT 0 1 (success)
+
+Duplicate insert:
+ERROR:  duplicate key value violates unique constraint "form_responses_form_id_respondent_id_key"
+DETAIL:  Key (form_id, respondent_id)=(dc243c2e-b089-4e05-81c9-373db21fa996, 10000000-0000-0000-0000-000000000001) already exists.
+
+=== UNIQUE constraint: form_assignments (form_id, organization_id) ===
+
+First insert: INSERT 0 1 (success)
+
+Duplicate insert:
+ERROR:  duplicate key value violates unique constraint "form_assignments_form_id_organization_id_key"
+DETAIL:  Key (form_id, organization_id)=(dc243c2e-b089-4e05-81c9-373db21fa996, 00000000-0000-0000-0000-000000000001) already exists.
+
+=== Both UNIQUE constraints verified ===

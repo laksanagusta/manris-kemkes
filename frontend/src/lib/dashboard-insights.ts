@@ -8,6 +8,8 @@ type RiskLike = {
   createdAt?: string;
   probability?: number;
   impact?: number;
+  targetProbability?: number;
+  targetImpact?: number;
 };
 
 type ComparisonLike = {
@@ -218,4 +220,82 @@ export function buildDashboardRiskCategoryData(
     label: dashboardCategoryLabels[item.category] ?? item.category,
     count: item.count,
   }));
+}
+
+/* ───────────────────── Inherent vs Residual Trend ───────────────────── */
+
+export type InherentResidualDatum = {
+  period: string;
+  avgInherent: number;
+  avgResidual: number;
+  gap: number;
+  riskCount: number;
+};
+
+export function buildInherentResidualTrendData(risks: RiskLike[]): InherentResidualDatum[] {
+  const grouped = new Map<string, { inherentSum: number; residualSum: number; count: number }>();
+
+  for (const risk of risks) {
+    const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+    if (!period) continue;
+
+    const inherent = (risk.probability ?? 0) * (risk.impact ?? 0);
+    const residual = (risk.targetProbability ?? risk.probability ?? 0) * (risk.targetImpact ?? risk.impact ?? 0);
+
+    const bucket = grouped.get(period) ?? { inherentSum: 0, residualSum: 0, count: 0 };
+    bucket.inherentSum += inherent;
+    bucket.residualSum += residual;
+    bucket.count += 1;
+    grouped.set(period, bucket);
+  }
+
+  return [...grouped.entries()]
+    .sort(([a], [b]) => semesterSortValue(a) - semesterSortValue(b))
+    .map(([period, bucket]) => {
+      const avgInherent = Math.round((bucket.inherentSum / bucket.count) * 10) / 10;
+      const avgResidual = Math.round((bucket.residualSum / bucket.count) * 10) / 10;
+      return {
+        period,
+        avgInherent,
+        avgResidual,
+        gap: Math.round((avgInherent - avgResidual) * 10) / 10,
+        riskCount: bucket.count,
+      };
+    });
+}
+
+/* ───────────────────── Critical Risk Rate Trend ───────────────────── */
+
+export type CriticalRiskRateDatum = {
+  period: string;
+  highExtremeRate: number;
+  highCount: number;
+  extremeCount: number;
+  totalRisks: number;
+};
+
+export function buildCriticalRiskRateTrendData(risks: RiskLike[]): CriticalRiskRateDatum[] {
+  const grouped = new Map<string, { high: number; extreme: number; total: number }>();
+
+  for (const risk of risks) {
+    const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+    if (!period) continue;
+
+    const level = levelFromScore(risk.probability, risk.impact);
+    const bucket = grouped.get(period) ?? { high: 0, extreme: 0, total: 0 };
+    if (level === "Tinggi") bucket.high += 1;
+    if (level === "Ekstrem") bucket.extreme += 1;
+    bucket.total += 1;
+    grouped.set(period, bucket);
+  }
+
+  return [...grouped.entries()]
+    .sort(([a], [b]) => semesterSortValue(a) - semesterSortValue(b))
+    .map(([period, bucket]) => ({
+      period,
+      highExtremeRate: bucket.total > 0 ? Math.round(((bucket.high + bucket.extreme) / bucket.total) * 100) : 0,
+      highCount: bucket.high,
+      extremeCount: bucket.extreme,
+      totalRisks: bucket.total,
+    }));
 }

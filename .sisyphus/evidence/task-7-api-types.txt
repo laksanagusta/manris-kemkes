@@ -1,0 +1,3 @@
+64:  "/admin/forms": "Form Builder",
+29:      { label: "My Forms", href: "/forms", icon: "ClipboardList" },
+66:  "/forms": "My Forms",

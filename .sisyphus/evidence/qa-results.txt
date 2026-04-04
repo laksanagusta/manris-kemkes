@@ -1,0 +1,43 @@
+=== QA Test Suite: Risk Category Dashboard Chart ===
+Started at: 2026-04-03T19:00:41.828Z
+
+=== SCENARIO 1: Chart renders correctly with data ===
+  [PASS] "Distribusi Kategori Risiko" heading is visible
+  [PASS] Bar chart SVG/recharts container is present
+  [PASS] "Heatmap Risiko" heading is visible
+  [PASS] "Risk Trend" heading is visible
+  [PASS] Ordering: Heatmap (y=344) → Category (y=905) → Trend (y=1277)
+  [PASS] "Tanpa Kategori" label visible for uncategorized category
+  Screenshot saved: scenario-1-chart-renders.png
+  SCENARIO 1 RESULT: PASS
+
+=== SCENARIO 2: Empty state renders correctly ===
+  [PASS] "Belum ada data kategori risiko." is visible
+  [PASS] Card title "Distribusi Kategori Risiko" still visible in empty state
+  Screenshot saved: scenario-2-empty-state.png
+  SCENARIO 2 RESULT: PASS
+
+=== SCENARIO 3: Error state renders correctly ===
+  [PASS] "Data kategori risiko tidak tersedia saat ini." is visible
+  [PASS] "Heatmap Risiko" still visible (other sections unaffected)
+  [PASS] KPI card "Total Risiko" still visible
+  [PASS] "Risk Trend" still visible
+  Screenshot saved: scenario-3-error-state.png
+  SCENARIO 3 RESULT: PASS
+
+=== SCENARIO 4: Chart is read-only (no navigation) ===
+  URL before click: http://localhost:3000/overview
+  URL after click: http://localhost:3000/overview
+  [PASS] URL unchanged after clicking chart
+  [PASS] No modal/drawer appeared after click
+  INFO: Found 0 link/button elements in/near the category card area
+  Screenshot saved: scenario-4-readonly.png
+  SCENARIO 4 RESULT: PASS
+
+=== SUMMARY ===
+Scenario 1 (Chart renders with data): PASS
+Scenario 2 (Empty state): PASS
+Scenario 3 (Error state): PASS
+Scenario 4 (Read-only): PASS
+
+OVERALL VERDICT: APPROVE

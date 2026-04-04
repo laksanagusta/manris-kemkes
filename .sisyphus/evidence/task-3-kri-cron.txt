@@ -1,0 +1,5 @@
+=== RUN   TestGenerateReportsIsIdempotent
+Successfully created KRI report ID: d818de2f-f8ac-44c3-8b29-e1c48fd19e96 for KRI: 539ad630-90fc-4b7d-9d0f-102819435b2b
+--- PASS: TestGenerateReportsIsIdempotent (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/kri_report	(cached)

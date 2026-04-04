@@ -25,7 +25,6 @@ export const mainMenuItems: MainMenuGroup[] = [
       },
       { label: "Reports & Export", href: "/reports", icon: "FileBarChart" },
       { label: "Insiden", href: "/incidents", icon: "AlertTriangle" },
-      { label: "Lessons Learned", href: "/incidents/lessons", icon: "BookOpen" },
       { label: "My Forms", href: "/forms", icon: "ClipboardList" },
     ],
   },

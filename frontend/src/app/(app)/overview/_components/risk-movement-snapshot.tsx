@@ -26,7 +26,7 @@ const movementConfig: Record<MovementSnapshotDatum["key"], {
 export function RiskMovementSnapshot({ data, loading }: RiskMovementSnapshotProps) {
   if (loading) {
     return (
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2" data-testid="movement-snapshot">
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="movement-snapshot">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">Gerakan Risiko</CardTitle>
         </CardHeader>
@@ -42,7 +42,7 @@ export function RiskMovementSnapshot({ data, loading }: RiskMovementSnapshotProp
   }
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2" data-testid="movement-snapshot">
+    <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="movement-snapshot">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold">Gerakan Risiko</CardTitle>
         <p className="mt-1 text-xs text-muted-foreground">Perubahan portofolio risiko vs cycle sebelumnya.</p>

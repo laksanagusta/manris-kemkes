@@ -1,0 +1,27 @@
+$ go run ./cmd/test_form_response/ 2>&1
+
+Created test form: 2721a959-d0c9-4c03-80f9-a177b1dc65e3
+[PASS] Create: id=ca3b29ae-b261-4932-be09-3e1941eebde2 submitted_at=2026-04-04 20:05:03.555933 +0700 WIB
+[PASS] Duplicate detection: got ErrDuplicateResponse
+[PASS] Create user2: id=cf0a4c67-0f34-4fe7-996c-9d92ed50724f
+[PASS] GetByFormID: 2 responses
+[PASS] GetByFormAndRespondent: found correct response
+[PASS] GetByFormAndRespondent (not found): nil returned
+[PASS] CountByFormID: 2
+
+--- Field Aggregations ---
+  satisfaction (radio): map[bad:1 good:1]
+  features (checkbox): map[a:1 b:2 c:1]
+  comment (text): map[filled:2 total:2]
+[PASS] All field aggregations correct
+
+--- Field Trends (monthly) ---
+  satisfaction (radio): 1 trend points
+    period=2026-04-01 00:00:00+00 values=map[bad:1 good:1]
+  features (checkbox): 1 trend points
+    period=2026-04-01 00:00:00+00 values=map[a:1 b:2 c:1]
+[PASS] GetFieldTrends: 2 option-based fields returned (text skipped)
+
+[CLEANUP] Test data removed
+
+All QA tests completed.

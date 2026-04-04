@@ -86,6 +86,21 @@ func (r *fakeRiskRepository) RiskReviewSummary(context.Context, string, []uuid.U
 func (r *fakeRiskRepository) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
+func (r *fakeRiskRepository) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeRiskRepository) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeRiskRepository) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeRiskRepository) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeRiskRepository) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+	return nil, errors.New("not implemented")
+}
 
 func TestApplyTranscriptRiskChangesUpdatesDraftRisk(t *testing.T) {
 	riskID := uuid.New()

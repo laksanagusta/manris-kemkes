@@ -1,0 +1,34 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - img "MANRIS logo" [ref=e11]
+      - heading "MANRIS" [level=1] [ref=e12]
+      - paragraph [ref=e13]: AI-Driven Risk & Incident Management
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - heading "Masuk ke Akun Anda" [level=2] [ref=e16]
+        - paragraph [ref=e17]: Gunakan kredensial yang telah diberikan administrator
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: Username atau Email
+          - textbox "Username atau Email" [ref=e22]:
+            - /placeholder: masukkan username atau email
+        - generic [ref=e23]:
+          - generic [ref=e24]:
+            - generic [ref=e25]: Password
+            - button "Lupa password?" [ref=e26]
+          - generic [ref=e27]:
+            - textbox "Password" [ref=e28]:
+              - /placeholder: masukkan password
+            - button [ref=e29]:
+              - img [ref=e30]
+        - button "Masuk" [ref=e33]:
+          - text: Masuk
+          - img
+    - generic [ref=e34]:
+      - paragraph [ref=e35]: Kementerian Kesehatan RI · Ditjen P2P
+      - paragraph [ref=e36]: MANRIS v2.0 · Powered by AI
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e42] [cursor=pointer]:
+    - img [ref=e43]
+  - alert [ref=e46]

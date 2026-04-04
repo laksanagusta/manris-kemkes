@@ -1,0 +1,20 @@
+== Task 3: Field Registry Verification ==
+Date: 2026-04-04
+
+$ grep -c "text\|textarea\|radio\|checkbox\|dropdown" frontend/src/lib/form-field-registry.ts
+Result: 5 (one per field type in FIELD_TYPE_CONFIG)
+
+$ grep "FormFieldType" frontend/src/lib/form-field-registry.ts
+Result: imported from @/types/form — correct
+
+$ grep "FIELD_TYPES" frontend/src/lib/form-field-registry.ts
+Result: export const FIELD_TYPES: FormFieldType[] — correct
+
+$ grep "hasOptions" frontend/src/lib/form-field-registry.ts
+Result: 3 entries with hasOptions: true (radio, checkbox, dropdown)
+Result: 2 entries with hasOptions: false (text, textarea)
+
+[PASS] All 5 field types present in FIELD_TYPE_CONFIG
+[PASS] Correct hasOptions flag per type
+[PASS] No field types beyond the 5 specified
+[PASS] Registry is data-only (no React component imports)

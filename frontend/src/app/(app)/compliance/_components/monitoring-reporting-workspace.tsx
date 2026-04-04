@@ -106,9 +106,6 @@ export function MonitoringReportingWorkspace() {
               Key Risk Indicator
             </TabsTrigger>
           </TabsList>
-          <p className="text-xs text-muted-foreground">
-            {isPending ? "Memuat tampilan..." : activeMeta.description}
-          </p>
         </div>
 
         <TabsContent value="reviews" className="mt-0">

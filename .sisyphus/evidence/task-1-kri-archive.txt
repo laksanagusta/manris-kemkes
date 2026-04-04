@@ -1,0 +1,4 @@
+=== RUN   TestArchiveKRI
+--- PASS: TestArchiveKRI (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/kri	0.490s

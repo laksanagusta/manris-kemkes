@@ -1,0 +1,4 @@
+=== RUN   TestAcceptKRIReport
+--- PASS: TestAcceptKRIReport (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/kri_report	0.534s

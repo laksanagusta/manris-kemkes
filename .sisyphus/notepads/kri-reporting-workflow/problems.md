@@ -1,0 +1,15 @@
+- No unresolved blockers from Task 1 implementation.
+- Unresolved unrelated baseline failure outside task scope: `internal/usecase/risk/list_cycle_snapshot_test.go` fake repo no longer satisfies `RiskRepository` (missing `ListApprovedRisks`).
+- Unresolved baseline remains: risk-usecase package compile failure from test fake repository (`ListApprovedRisks` not implemented) blocks clean `go test ./internal/usecase/risk` in this task's combined verification target.
+- No unresolved blockers for Task 4 after adding semester summary read model and endpoint wiring.
+- No new unresolved blockers from Task 6 frontend implementation; verification commands and production build passed.
+- No unresolved blockers from Task 7 KRI reviewer queue implementation; frontend tests and build both passed.
+- No unresolved blockers from Task 8 reassessment prior-cycle KRI summary integration; frontend tests and build passed after a local TypeScript nullability fix in API token parameter typing.
+- No unresolved blockers from Task 9 cross-surface consistency pass; backend usecase regressions, frontend tests, and frontend build all passed.
+- Unresolved from code-quality review: scoped workflow still contains debug logging (`fmt.Printf`/`console.error`) that should be removed or routed through structured logging policy before release.
+- Unresolved from code-quality review: `/kri-reports/my` data scoping is currently questionable because repository `ListByUser` does not apply `userID` filtering.
+- Unresolved from code-quality review: test coverage in reviewed backend scope is low for `internal/usecase/kri` and absent in handler/repository packages.
+
+- 2026-04-03 Resolved: debug logging removed from targeted KRI-report backend/frontend files identified by final verification.
+- 2026-04-03 Resolved: `/kri-reports/my` query is now org-scoped by requestor organization in repository.
+- 2026-04-03 Remaining unresolved: repository package still has no `TestKRIReport*` tests (`go test ./internal/repository/postgres -run TestKRIReport -v` reports no test files).

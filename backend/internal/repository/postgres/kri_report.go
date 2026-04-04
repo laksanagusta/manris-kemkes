@@ -102,8 +102,6 @@ func (r *kriReportRepository) ListByKRI(ctx context.Context, kriID uuid.UUID) ([
 }
 
 func (r *kriReportRepository) ListByUser(ctx context.Context, userID uuid.UUID, status string) ([]*entity.KRIReport, error) {
-	// KRI reports are linked to KRI → risk → organization
-	// For now, show all pending reports (can scope to org later)
 	query := `SELECT rp.id, rp.kri_id,
 		        rp.period_label, TO_CHAR(rp.period_start, 'YYYY-MM-DD'), TO_CHAR(rp.period_end, 'YYYY-MM-DD'), TO_CHAR(rp.due_date, 'YYYY-MM-DD'),
 		        rp.value, rp.notes, rp.status,
@@ -132,6 +130,23 @@ func (r *kriReportRepository) ListByUser(ctx context.Context, userID uuid.UUID, 
 	return r.queryReports(ctx, query, args...)
 }
 
+func (r *kriReportRepository) ListByStatus(ctx context.Context, status string) ([]*entity.KRIReport, error) {
+	return r.queryReports(ctx,
+		`SELECT rp.id, rp.kri_id,
+		        rp.period_label, TO_CHAR(rp.period_start, 'YYYY-MM-DD'), TO_CHAR(rp.period_end, 'YYYY-MM-DD'), TO_CHAR(rp.due_date, 'YYYY-MM-DD'),
+		        rp.value, rp.notes, rp.status,
+		        rp.submitted_by, rp.submitted_at, rp.generated_by,
+		        rp.created_at, rp.updated_at,
+		        COALESCE(k.name, ''), COALESCE(k.metric, ''),
+		        COALESCE(rs.code, ''), COALESCE(rs.title, ''),
+		        COALESCE(u.name, '')
+		 FROM kri_reports rp
+		 JOIN kris k ON rp.kri_id = k.id
+		 LEFT JOIN risks rs ON k.risk_id = rs.id
+		 LEFT JOIN users u ON rp.submitted_by = u.id
+		 WHERE rp.status = $1
+		 ORDER BY rp.due_date ASC`, status)
+}
 
 func (r *kriReportRepository) ListPendingOverdue(ctx context.Context, refDate time.Time) ([]*entity.KRIReport, error) {
 	return r.queryReports(ctx,

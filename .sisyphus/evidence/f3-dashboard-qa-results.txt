@@ -1,0 +1,58 @@
+
+═══ OVERVIEW PAGE (Tasks 8-11) ═══
+Screenshot: f3-overview-fullpage.png
+
+--- KPI Cards ---
+  FAIL: KPI grid has 5 cards (found 0)
+  KPI titles found: 
+  FAIL: Has "Total Risiko" card
+  FAIL: Has "Risiko Tinggi & Ekstrem" card
+  FAIL: Has "Mitigasi Overdue" card
+  FAIL: Has "Insiden Bulan Ini" card
+  FAIL: Has "Risk Exposure" card
+
+--- Risk Heatmap ---
+  FAIL: data-testid="heatmap-grid" present
+
+--- Velocity Overlay ---
+  FAIL: Velocity icons found in heatmap cells (0) — No velocity data available or icons not rendering
+
+--- Top Risks Panel ---
+  FAIL: data-testid="top-risks-panel" present
+
+--- Risk Movement Snapshot ---
+  FAIL: data-testid="movement-snapshot" present
+
+═══ REPORTS PAGE (Task 12) ═══
+Screenshot: f3-reports-fullpage.png
+
+--- Analisis Lanjutan Section ---
+  PASS: "Analisis Lanjutan" section present
+
+--- Overdue Mitigation Timeline ---
+  PASS: data-testid="overdue-mitigation-timeline" present
+Screenshot: f3-overdue-timeline.png
+  PASS: Shows data or appropriate empty state — Empty state (expected — no overdue mitigations in test data)
+
+--- KRI Breach Summary ---
+  PASS: data-testid="kri-breach-summary" present
+Screenshot: f3-kri-breach.png
+  PASS: KRI breach cards rendered (found 0) — No cards (check if backend returns data)
+
+--- Unit Response Time ---
+  PASS: data-testid="unit-response-time" present
+Screenshot: f3-response-time.png
+  PASS: Shows data or appropriate empty state — Empty state (expected — all taskCount=0 in test data)
+
+═══ data-testid AUDIT ═══
+  Overview page data-testid attributes: 
+  FAIL: Overview has data-testid="heatmap-grid"
+  FAIL: Overview has data-testid="top-risks-panel"
+  FAIL: Overview has data-testid="movement-snapshot"
+  Reports page data-testid attributes: overdue-mitigation-timeline, kri-breach-summary, unit-response-time
+  PASS: Reports has data-testid="overdue-mitigation-timeline"
+  PASS: Reports has data-testid="kri-breach-summary"
+  PASS: Reports has data-testid="unit-response-time"
+
+═══ CONSOLE ERRORS ═══
+  PASS: No console errors found

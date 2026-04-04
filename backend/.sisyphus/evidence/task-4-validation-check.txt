@@ -1,0 +1,21 @@
+=== RUN   TestValidateForPublish
+=== RUN   TestValidateForPublish/0_sections_→_error
+=== RUN   TestValidateForPublish/1_section_with_0_fields_→_error
+=== RUN   TestValidateForPublish/radio_field_with_1_option_→_error
+=== RUN   TestValidateForPublish/checkbox_field_as_condition_source_→_error
+=== RUN   TestValidateForPublish/self-referencing_conditional_source_→_error
+=== RUN   TestValidateForPublish/conditional_source_referencing_non-existent_field_→_error
+=== RUN   TestValidateForPublish/valid_form:_1_section,_1_text_field_→_nil
+=== RUN   TestValidateForPublish/valid_form_with_radio_(2_options)_and_conditional_text_→_nil
+--- PASS: TestValidateForPublish (0.00s)
+    --- PASS: TestValidateForPublish/0_sections_→_error (0.00s)
+    --- PASS: TestValidateForPublish/1_section_with_0_fields_→_error (0.00s)
+    --- PASS: TestValidateForPublish/radio_field_with_1_option_→_error (0.00s)
+    --- PASS: TestValidateForPublish/checkbox_field_as_condition_source_→_error (0.00s)
+    --- PASS: TestValidateForPublish/self-referencing_conditional_source_→_error (0.00s)
+    --- PASS: TestValidateForPublish/conditional_source_referencing_non-existent_field_→_error (0.00s)
+    --- PASS: TestValidateForPublish/valid_form:_1_section,_1_text_field_→_nil (0.00s)
+    --- PASS: TestValidateForPublish/valid_form_with_radio_(2_options)_and_conditional_text_→_nil (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/domain/entity	(cached)
+ALL TESTS PASSED

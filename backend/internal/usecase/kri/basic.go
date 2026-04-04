@@ -59,7 +59,7 @@ func (uc *ListKRIsUseCase) Execute(ctx context.Context, input ListKRIsInput) ([]
 		}
 	}
 
-	kris, err := uc.kriRepo.List(ctx, orgIDs)
+	kris, err := uc.kriRepo.List(ctx, orgIDs, false)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,6 @@ func (uc *UpdateKRIUseCase) Execute(ctx context.Context, input UpdateKRIInput) (
 	}, nil
 }
 
-// DeleteKRIUseCase handles KRI deletion business logic
 type DeleteKRIUseCase struct {
 	kriRepo repository.KRIRepository
 }
@@ -173,19 +172,60 @@ type DeleteKRIOutput struct {
 }
 
 func (uc *DeleteKRIUseCase) Execute(ctx context.Context, id uuid.UUID) (*DeleteKRIOutput, error) {
-	// 1. Get existing KRI to check if it exists
 	_, err := uc.kriRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
 
-	// 2. Delete from database
 	if err := uc.kriRepo.Delete(ctx, id); err != nil {
 		return nil, err
 	}
 
 	return &DeleteKRIOutput{
 		Message: "KRI deleted successfully",
+	}, nil
+}
+
+type ArchiveKRIUseCase struct {
+	kriRepo repository.KRIRepository
+}
+
+func NewArchiveKRIUseCase(kriRepo repository.KRIRepository) *ArchiveKRIUseCase {
+	return &ArchiveKRIUseCase{kriRepo: kriRepo}
+}
+
+type ArchiveKRIInput struct {
+	ID     uuid.UUID `json:"id"`
+	Reason string    `json:"reason"`
+}
+
+type ArchiveKRIOutput struct {
+	Message        string
+	IsArchived     bool
+	ArchivedAt     *time.Time
+	ArchivedReason string
+}
+
+func (uc *ArchiveKRIUseCase) Execute(ctx context.Context, input ArchiveKRIInput) (*ArchiveKRIOutput, error) {
+	_, err := uc.kriRepo.GetByID(ctx, input.ID)
+	if err != nil {
+		return nil, errors.ErrNotFound
+	}
+
+	if err := uc.kriRepo.Archive(ctx, input.ID, input.Reason); err != nil {
+		return nil, errors.Wrap(err, "failed to archive KRI")
+	}
+
+	archived, err := uc.kriRepo.GetByID(ctx, input.ID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to fetch archived KRI")
+	}
+
+	return &ArchiveKRIOutput{
+		Message:        "KRI archived successfully",
+		IsArchived:     archived.IsArchived,
+		ArchivedAt:     archived.ArchivedAt,
+		ArchivedReason: archived.ArchivedReason,
 	}, nil
 }
 

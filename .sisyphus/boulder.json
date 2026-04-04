@@ -1,0 +1,71 @@
+{
+  "active_plan": "/Users/dikalaksana/Engineering/manris-v2/.sisyphus/plans/pdf-report-generation.md",
+  "started_at": "2026-04-04T04:53:16.241Z",
+  "session_ids": [
+    "ses_2a9a89709ffep5jIosjlnM5ntB",
+    "ses_2a9273503ffealcEOLgJ2l8Qu9",
+    "ses_2a924f832ffejhN11JSvYfZtcq",
+    "ses_2a9047ef6ffeuVEnthFSEIlEBb",
+    "ses_2a903920fffejxfXs4xR28zCDa",
+    "ses_2a8fb3738ffe7zjhKdE7apv11o",
+    "ses_2a8fae981ffepy7gCWmFZUnmGR",
+    "ses_2a8fa6586ffeKOXJRjRLrCDvt9",
+    "ses_2a8f81c44ffemdo30vwLurLolJ",
+    "ses_2a7be1d3affemAxSnnohv7x9Ed",
+    "ses_2a781289effeuRey12jMty68W8",
+    "ses_2a77d2cf2ffegCr5NkYb8VRnGj",
+    "ses_2a7785919ffemcPImQ1n76gjrN",
+    "ses_2a7730c63ffernuzg4QjXTyXkd",
+    "ses_2a76b2602ffeEmBGwB5GNF44Kc",
+    "ses_2a76ac5feffewy6u62BdoNrBgR",
+    "ses_2a76a7e91ffegTwUPvu4gJIJg8",
+    "ses_2a7630cd5ffedfnXIueDM0h2AC",
+    "ses_2a75e4235ffecY2dLIEm7qETqQ",
+    "ses_2a75d810bffeYZIzc3Gv0Bt27p",
+    "ses_2a75ec881ffeKzNknrvXM6Q1V6",
+    "ses_2a75521d9ffeFFIDzfYXLTugh3",
+    "ses_2a7542950ffesfNya94a9w5zsn",
+    "ses_2a750a3d3ffePI5k25B4O559lj",
+    "ses_2a748cb1effeV04ScYWmcJxPFW",
+    "ses_2a73d9fe8ffe4gjfzjWHi0acd9",
+    "ses_2a73e7ff1ffebf4OMtrXwuOODz",
+    "ses_2a73ee576ffec6Fw6WOfpoxm6z",
+    "ses_2a73e06a6ffeJdMJk04fgydpN3",
+    "ses_2a7313941ffeW9g74hWXDb84fS",
+    "ses_2a7297c68ffeUGPVmQrirtmIPA",
+    "ses_2a728adc3ffeuR5le5PReoCk2O",
+    "ses_2a7290863ffeQ4wWkJaE7YSC7f",
+    "ses_2a727b8eaffewgmA8Kw4FE3IjU"
+  ],
+  "plan_name": "pdf-report-generation",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Add Go Dependencies (maroto v2 + vicanso/go-charts v2)",
+      "session_id": "ses_2a9273503ffealcEOLgJ2l8Qu9",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-04T04:57:09.211Z"
+    },
+    "todo:8": {
+      "task_key": "todo:8",
+      "task_label": "8",
+      "task_title": "Frontend Download Button on Reports Page",
+      "session_id": "ses_2a903920fffejxfXs4xR28zCDa",
+      "agent": "Sisyphus-Junior",
+      "category": "visual-engineering",
+      "updated_at": "2026-04-04T05:34:38.386Z"
+    },
+    "final-wave:f3": {
+      "task_key": "final-wave:f3",
+      "task_label": "F3",
+      "task_title": "**Real Manual QA** — `unspecified-high` (+ `playwright` skill for frontend)",
+      "session_id": "ses_2a8f81c44ffemdo30vwLurLolJ",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-low",
+      "updated_at": "2026-04-04T05:47:32.615Z"
+    }
+  }
+}

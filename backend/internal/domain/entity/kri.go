@@ -9,22 +9,27 @@ import (
 
 // KRI represents a Key Risk Indicator
 type KRI struct {
-	ID             uuid.UUID  `json:"id"`
-	RiskID         uuid.UUID  `json:"riskId"`
-	RiskCode       string     `json:"riskCode"`
-	RiskTitle      string     `json:"riskTitle"`
-	Name           string     `json:"name"`
-	Description    string     `json:"description"`
-	Metric         string     `json:"metric"`
-	ThresholdMin   float64    `json:"thresholdMin"`
-	ThresholdMax   float64    `json:"thresholdMax"`
-	CurrentValue   float64    `json:"currentValue"`
-	Direction      string     `json:"direction"`
-	Frequency      string     `json:"frequency"`
-	OrganizationID *uuid.UUID `json:"organizationId,omitempty"`
-	OrgName        string     `json:"orgName"`
-	LastUpdated    time.Time  `json:"lastUpdated"`
-	CreatedAt      time.Time  `json:"createdAt"`
+	ID                uuid.UUID  `json:"id"`
+	RiskID            uuid.UUID  `json:"riskId"`
+	RiskCode          string     `json:"riskCode"`
+	RiskTitle         string     `json:"riskTitle"`
+	Name              string     `json:"name"`
+	Description       string     `json:"description"`
+	Metric            string     `json:"metric"`
+	ThresholdMin      float64    `json:"thresholdMin"`
+	ThresholdMax      float64    `json:"thresholdMax"`
+	AmberThresholdMin *float64   `json:"amberThresholdMin,omitempty"`
+	AmberThresholdMax *float64   `json:"amberThresholdMax,omitempty"`
+	CurrentValue      float64    `json:"currentValue"`
+	Direction         string     `json:"direction"`
+	Frequency         string     `json:"frequency"`
+	OrganizationID    *uuid.UUID `json:"organizationId,omitempty"`
+	OrgName           string     `json:"orgName"`
+	IsArchived        bool       `json:"isArchived"`
+	ArchivedAt        *time.Time `json:"archivedAt,omitempty"`
+	ArchivedReason    string     `json:"archivedReason,omitempty"`
+	LastUpdated       time.Time  `json:"lastUpdated"`
+	CreatedAt         time.Time  `json:"createdAt"`
 }
 
 // Validate performs domain validation on KRI
@@ -36,6 +41,12 @@ func (k *KRI) Validate() error {
 		return errors.ErrInvalidMetric
 	}
 	if k.ThresholdMin >= k.ThresholdMax {
+		return errors.ErrInvalidThreshold
+	}
+	if k.Direction == "higher_worse" && k.AmberThresholdMax == nil {
+		return errors.ErrInvalidThreshold
+	}
+	if k.Direction == "lower_worse" && k.AmberThresholdMin == nil {
 		return errors.ErrInvalidThreshold
 	}
 	return nil

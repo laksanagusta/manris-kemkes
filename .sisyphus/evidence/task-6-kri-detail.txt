@@ -1,0 +1,62 @@
+
+> frontend@0.1.0 test
+> node --test --experimental-specifier-resolution=node src/**/*.test.ts
+
+(node:70976) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/dashboard-insights.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ buildUnitExposureData ranks units by weighted exposure score (0.671583ms)
+✔ buildMovementChartData summarizes up down and stable comparison counts (0.093708ms)
+✔ buildExecutiveTrendData keeps only high and extreme counts plus weighted exposure (0.541292ms)
+✔ buildTopRiskBadgeMap marks movement overdue and newly introduced cycle risks (4.42ms)
+✔ buildUnitExposureData and buildMovementChartData return empty-friendly arrays (0.84475ms)
+✔ buildExecutiveTrendData sorts semester output chronologically for overview charts (0.215542ms)
+✔ buildMovementSnapshotData classifies new up down stable and removed risks (0.319125ms)
+(node:70977) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/kri-reporting.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ getKRIStatus evaluates explicit amber thresholds for higher-worse KRIs (7.023542ms)
+✔ getKRIStatus evaluates explicit amber thresholds for lower-worse KRIs (0.098375ms)
+✔ isReportOverdue only labels active draft states as overdue (0.156ms)
+✔ formatKRIValue keeps the metric suffix deterministic (0.071875ms)
+✔ getKRIStatusFromReport accepts canonical accepted reports only (0.06525ms)
+✔ formatSemesterSummary formats accepted-only summary data (0.418792ms)
+✔ validateEvidenceURL and validateKRIReportForm enforce optional URL rules (0.109958ms)
+✔ normalizeKRIReportPayload trims report fields and carries evidence url (0.050125ms)
+✔ validateKRISkipForm requires reason text (0.059ms)
+(node:70978) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/meeting-minutes-utils.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ normalizeMeetingMinuteDate keeps yyyy-mm-dd values (0.828375ms)
+✔ normalizeMeetingMinuteDate trims ISO datetime to date (0.09775ms)
+✔ normalizeMeetingMinuteDate falls back to today for invalid values (0.823417ms)
+✔ filterMeetingRiskOptions matches code and title locally (0.660166ms)
+(node:70979) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-cycle-detail-export.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ createRiskCycleDetailWorkbookBuffer persists top-bottom comparison trend, legend, freeze panes, autofilter, and styles (34.958791ms)
+(node:70980) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-export.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ buildRiskBulkExportRows uses bulk template columns and expands mitigations (0.691542ms)
+✔ createRiskBulkExportWorkbookBuffer creates worksheet with template headers (32.299125ms)
+(node:70981) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-report-trend.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ buildRiskTrendData groups risks by semester assessment cycle instead of createdAt quarter (0.857125ms)
+✔ buildRiskTrendData falls back to createdAt-derived semester when assessmentCycle is missing (2.157292ms)
+✔ buildRiskTrendData limits trend rows by selected semester window (0.214292ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 384.248917

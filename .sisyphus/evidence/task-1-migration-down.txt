@@ -1,0 +1,21 @@
+=== migrate-down ===
+migrate-down: 20/d dynamic_forms — exit 0
+
+=== Verify tables dropped ===
+Did not find any tables named "form*".
+
+=== migrate-up (re-apply) ===
+migrate-up: 20/u dynamic_forms — exit 0
+
+=== Verify tables restored ===
+                List of tables
+ Schema |       Name       | Type  |  Owner   
+--------+------------------+-------+----------
+ public | form_assignments | table | postgres
+ public | form_fields      | table | postgres
+ public | form_responses   | table | postgres
+ public | form_sections    | table | postgres
+ public | forms            | table | postgres
+(5 rows)
+
+=== Down+Re-up cycle verified ===

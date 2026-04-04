@@ -2,35 +2,106 @@ package http
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
 )
 
-// OrganizationHandler handles organization HTTP requests using clean architecture
 type OrganizationHandler struct {
-	listUC *organizationuc.ListOrganizationsUseCase
+	createUC *organizationuc.CreateOrganizationUseCase
+	getUC    *organizationuc.GetOrganizationUseCase
+	updateUC *organizationuc.UpdateOrganizationUseCase
+	deleteUC *organizationuc.DeleteOrganizationUseCase
+	listUC   *organizationuc.ListOrganizationsUseCase
 }
 
-// NewOrganizationHandler creates a new organization handler
-func NewOrganizationHandler(listUC *organizationuc.ListOrganizationsUseCase) *OrganizationHandler {
+func NewOrganizationHandler(
+	createUC *organizationuc.CreateOrganizationUseCase,
+	getUC *organizationuc.GetOrganizationUseCase,
+	updateUC *organizationuc.UpdateOrganizationUseCase,
+	deleteUC *organizationuc.DeleteOrganizationUseCase,
+	listUC *organizationuc.ListOrganizationsUseCase,
+) *OrganizationHandler {
 	return &OrganizationHandler{
-		listUC: listUC,
+		createUC: createUC,
+		getUC:    getUC,
+		updateUC: updateUC,
+		deleteUC: deleteUC,
+		listUC:   listUC,
 	}
 }
 
-// List handles GET /api/v1/organizations
 func (h *OrganizationHandler) List(c *fiber.Ctx) error {
-	// Execute use case
 	orgs, err := h.listUC.Execute(c.Context())
 	if err != nil {
 		return handleOrganizationError(c, err)
 	}
 
-	// Return response
 	return c.JSON(fiber.Map{"data": orgs})
 }
 
-// handleOrganizationError converts domain errors to HTTP responses
+func (h *OrganizationHandler) Create(c *fiber.Ctx) error {
+	var input organizationuc.CreateOrganizationInput
+	if err := c.BodyParser(&input); err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+
+	result, err := h.createUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleOrganizationError(c, err)
+	}
+
+	return c.Status(201).JSON(fiber.Map{"data": result})
+}
+
+func (h *OrganizationHandler) Get(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+	}
+
+	org, err := h.getUC.Execute(c.Context(), id)
+	if err != nil {
+		return handleOrganizationError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": org})
+}
+
+func (h *OrganizationHandler) Update(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+	}
+
+	var input organizationuc.UpdateOrganizationInput
+	if err := c.BodyParser(&input); err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+
+	input.ID = id
+
+	result, err := h.updateUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleOrganizationError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
+}
+
+func (h *OrganizationHandler) Delete(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+	}
+
+	result, err := h.deleteUC.Execute(c.Context(), id)
+	if err != nil {
+		return handleOrganizationError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
+}
+
 func handleOrganizationError(c *fiber.Ctx, err error) error {
-	// Default to 500 for errors
 	return sendProblemDetails(c, fiber.StatusInternalServerError, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
 }

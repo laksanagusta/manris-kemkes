@@ -3,9 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
-  ArrowDown,
-  ArrowUp,
-  ChevronRight,
   ClipboardCheck,
   Clock,
   FileBarChart,
@@ -18,11 +15,12 @@ import {
 import Link from "next/link";
 import {
   Bar,
-  BarChart,
   CartesianGrid,
+  Cell,
   ComposedChart,
-  LabelList,
   Line,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
@@ -39,7 +37,6 @@ import { RiskMovementSnapshot } from "./_components/risk-movement-snapshot";
 import type {
   DashboardActionPressurePoint,
   DashboardRiskCategoryItem,
-  ExecutiveAlert,
   HeatmapVelocityCell,
   Risk,
   RiskCycleComparisonItem,
@@ -56,9 +53,9 @@ import {
 import { cn } from "@/lib/utils";
 
 const executiveTrendLegend = [
-  { key: "high", color: "oklch(0.70 0.18 40)", label: "High" },
-  { key: "extreme", color: "oklch(0.62 0.22 27)", label: "Extreme" },
-  { key: "exposureScore", color: "oklch(0.55 0.05 260 / 35%)", label: "Exposure Score" },
+  { key: "high", color: "oklch(0.70 0.18 40)", label: "High", type: "bar" },
+  { key: "extreme", color: "oklch(0.62 0.22 27)", label: "Extreme", type: "bar" },
+  { key: "exposureScore", color: "oklch(0.60 0.16 270)", label: "Exposure Score", type: "line" },
 ];
 
 type DashboardSummary = {
@@ -79,24 +76,16 @@ type KpiCard = {
   description: string;
 };
 
-const alertMeta: Record<string, { label: string; className: string }> = {
-  new_extreme: {
-    label: "Baru Ekstrem",
-    className: "border-risk-extreme/30 bg-risk-extreme/10 text-risk-extreme",
-  },
-  risk_up: {
-    label: "Naik Level",
-    className: "border-risk-high/30 bg-risk-high/10 text-risk-high",
-  },
-  mitigation_overdue: {
-    label: "Mitigasi Overdue",
-    className: "border-warning/30 bg-warning/10 text-warning",
-  },
-  unit_no_update: {
-    label: "Belum Update",
-    className: "border-primary/30 bg-primary/10 text-primary",
-  },
-};
+const CATEGORY_COLORS = [
+  "oklch(0.65 0.20 265)", // violet
+  "oklch(0.70 0.18 40)",  // orange
+  "oklch(0.72 0.17 155)", // green
+  "oklch(0.62 0.22 27)",  // red-orange
+  "oklch(0.68 0.15 200)", // teal
+  "oklch(0.60 0.16 330)", // pink
+  "oklch(0.75 0.12 80)",  // yellow
+  "oklch(0.55 0.18 290)", // deep purple
+];
 
 function currentGlobalCycle() {
   const now = new Date();
@@ -118,7 +107,6 @@ export default function DashboardPage() {
   const [heatmapData, setHeatmapData] = useState<number[][]>([]);
   const [trendData, setTrendData] = useState<Array<{ period: string; high: number; extreme: number; exposureScore: number }>>([]);
   const [actionPressureData, setActionPressureData] = useState<DashboardActionPressurePoint[]>([]);
-  const [executiveAlerts, setExecutiveAlerts] = useState<ExecutiveAlert[]>([]);
   const [riskCategoryData, setRiskCategoryData] = useState<{ label: string; count: number }[]>([]);
   const [isRiskCategoryLoading, setIsRiskCategoryLoading] = useState(true);
   const [riskCategoryError, setRiskCategoryError] = useState(false);
@@ -145,7 +133,6 @@ export default function DashboardPage() {
       api.get<number[][]>("/dashboard/heatmap", token),
       api.get<Risk[]>("/risks/trend", token),
       api.get<DashboardActionPressurePoint[]>("/dashboard/action-pressure?interval=month&window=6", token),
-      api.get<ExecutiveAlert[]>(`/dashboard/executive-alerts?cycle=${currentCycle}&limit=6`, token),
       api.get<DashboardRiskCategoryItem[]>("/dashboard/risk-categories", token),
       api.get<TopRiskItem[]>("/dashboard/top-risks", token),
       api.get<RiskCycleComparisonItem[]>(`/risks/compare?from=${previousCycle}&to=${currentCycle}`, token),
@@ -155,7 +142,6 @@ export default function DashboardPage() {
       heatmapResult,
       risksResult,
       actionPressureResult,
-      executiveAlertsResult,
       riskCategoryResult,
       topRisksResult,
       compareResult,
@@ -185,12 +171,6 @@ export default function DashboardPage() {
       else {
         console.error(actionPressureResult.reason);
         setActionPressureData([]);
-      }
-
-      if (executiveAlertsResult.status === "fulfilled") setExecutiveAlerts(executiveAlertsResult.value);
-      else {
-        console.error(executiveAlertsResult.reason);
-        setExecutiveAlerts([]);
       }
 
       if (riskCategoryResult.status === "fulfilled") {
@@ -347,98 +327,83 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-5">
         <RiskHeatmap data={heatmapData} loading={loading} velocityData={velocityData} />
+        <TopRisksPanel risks={topRisks} loading={loading} />
+      </div>
 
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle className="text-base font-semibold">Executive Alerts</CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">Ringkasan item yang butuh perhatian pimpinan pada cycle {currentCycle}.</p>
-              </div>
-              <Badge variant="outline" className="text-[10px]">
-                {executiveAlerts.length} alert
-              </Badge>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <RiskMovementSnapshot data={movementSnapshot} loading={loading} />
+
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardHeader>
+            <div>
+              <CardTitle className="text-base font-semibold">Distribusi Kategori Risiko</CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">Jumlah risiko per kategori dalam portofolio saat ini.</p>
             </div>
           </CardHeader>
           <CardContent>
-            {executiveAlerts.length > 0 ? (
-              <div className="space-y-3">
-                {executiveAlerts.map((alert) => (
-                  <div key={alert.id} className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <Badge
-                        variant="outline"
-                        className={cn("h-5 px-2 text-[10px]", alertMeta[alert.category]?.className || "")}
-                      >
-                        {alertMeta[alert.category]?.label || alert.category}
-                      </Badge>
-                      {alert.orgName ? (
-                        <span className="truncate text-[10px] text-muted-foreground">{alert.orgName}</span>
-                      ) : null}
-                    </div>
-                    <p className="mt-3 text-sm font-semibold text-foreground">{alert.title}</p>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{alert.detail}</p>
-                  </div>
-                ))}
+            {isRiskCategoryLoading ? (
+              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                Memuat data kategori...
+              </div>
+            ) : riskCategoryError ? (
+              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+                Data kategori risiko tidak tersedia saat ini.
+              </div>
+            ) : riskCategoryData.length === 0 ? (
+              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+                Belum ada data kategori risiko.
               </div>
             ) : (
-              <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Belum ada alert eksekutif untuk cycle ini.
+              <div className="flex h-64 items-center">
+                <div className="w-1/2">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
+                      <Pie
+                        data={riskCategoryData}
+                        dataKey="count"
+                        nameKey="label"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={90}
+                        paddingAngle={0}
+                        strokeWidth={0}
+                      >
+                        {riskCategoryData.map((_, idx) => (
+                          <Cell key={idx} fill={CATEGORY_COLORS[idx % CATEGORY_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip
+                        formatter={(value) => [`${value} risiko`]}
+                        contentStyle={{
+                          background: "oklch(0.15 0.02 265 / 95%)",
+                          border: "1px solid oklch(0.3 0.03 265)",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          color: "oklch(0.9 0 0)",
+                          backdropFilter: "blur(8px)",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex w-1/2 flex-col gap-2 pl-4">
+                  {riskCategoryData.map((item, idx) => (
+                    <div key={item.label} className="flex items-center gap-2">
+                      <span
+                        className="inline-block size-2.5 shrink-0 rounded-full"
+                        style={{ background: CATEGORY_COLORS[idx % CATEGORY_COLORS.length] }}
+                      />
+                      <span className="flex-1 truncate text-xs text-muted-foreground">{item.label}</span>
+                      <span className="text-xs font-semibold tabular-nums">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
-
-      <div className="grid gap-6 lg:grid-cols-5">
-        <TopRisksPanel risks={topRisks} loading={loading} />
-        <RiskMovementSnapshot data={movementSnapshot} loading={loading} />
-      </div>
-
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader>
-          <div>
-            <CardTitle className="text-base font-semibold">Distribusi Kategori Risiko</CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">Jumlah risiko per kategori dalam portofolio saat ini.</p>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isRiskCategoryLoading ? (
-            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-              Memuat data kategori...
-            </div>
-          ) : riskCategoryError ? (
-            <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-              Data kategori risiko tidak tersedia saat ini.
-            </div>
-          ) : riskCategoryData.length === 0 ? (
-            <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-              Belum ada data kategori risiko.
-            </div>
-          ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={riskCategoryData}
-                  layout="vertical"
-                  margin={{ top: 4, right: 40, left: 8, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" horizontal={false} />
-                  <XAxis type="number" allowDecimals={false} tick={{ fill: "oklch(0.6 0 0)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="label" width={110} tick={{ fill: "oklch(0.6 0 0)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <RechartsTooltip
-                    formatter={(value) => [`${value} risiko`]}
-                    contentStyle={{ background: "oklch(0.15 0.02 265 / 95%)", border: "1px solid oklch(0.3 0.03 265)", borderRadius: "8px", fontSize: "12px", color: "oklch(0.9 0 0)", backdropFilter: "blur(8px)" }}
-                  />
-                  <Bar dataKey="count" fill="oklch(0.55 0.18 265)" radius={[0, 4, 4, 0]}>
-                    <LabelList dataKey="count" position="right" style={{ fill: "oklch(0.7 0 0)", fontSize: 11 }} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       <div className="grid gap-6 lg:grid-cols-5">
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-3">
@@ -451,7 +416,11 @@ export default function DashboardPage() {
               <div className="flex items-center gap-4">
                 {executiveTrendLegend.map((item) => (
                   <div key={item.key} className="flex items-center gap-1.5">
-                    <div className="size-2.5 rounded-full" style={{ background: item.color }} />
+                    {item.type === "line" ? (
+                      <div className="h-0.5 w-4 rounded-full" style={{ background: item.color }} />
+                    ) : (
+                      <div className="size-2.5 rounded-full" style={{ background: item.color }} />
+                    )}
                     <span className="text-[11px] text-muted-foreground">{item.label}</span>
                   </div>
                 ))}
@@ -462,7 +431,7 @@ export default function DashboardPage() {
             {trendData.length > 0 ? (
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={trendData} margin={{ top: 4, right: 12, left: -12, bottom: 0 }}>
+                  <ComposedChart data={trendData} margin={{ top: 4, right: 12, left: -12, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" vertical={false} />
                     <XAxis
                       dataKey="period"
@@ -495,13 +464,16 @@ export default function DashboardPage() {
                     />
                     <Bar yAxisId="left" dataKey="high" fill="oklch(0.70 0.18 40)" radius={[4, 4, 0, 0]} />
                     <Bar yAxisId="left" dataKey="extreme" fill="oklch(0.62 0.22 27)" radius={[4, 4, 0, 0]} />
-                    <Bar
+                    <Line
                       yAxisId="right"
+                      type="monotone"
                       dataKey="exposureScore"
-                      fill="oklch(0.55 0.05 260 / 35%)"
-                      radius={[4, 4, 0, 0]}
+                      stroke="oklch(0.60 0.16 270)"
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: "oklch(0.60 0.16 270)", strokeWidth: 2, stroke: "#fff" }}
+                      activeDot={{ r: 6 }}
                     />
-                  </BarChart>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             ) : (

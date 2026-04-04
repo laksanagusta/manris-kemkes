@@ -1,0 +1,4 @@
+=== RUN   TestKRIValidateRejectsMissingAmberThreshold
+--- PASS: TestKRIValidateRejectsMissingAmberThreshold (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/kri	0.165s

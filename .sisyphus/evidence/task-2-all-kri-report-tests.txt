@@ -1,0 +1,12 @@
+=== RUN   TestAcceptKRIReport
+--- PASS: TestAcceptKRIReport (0.00s)
+=== RUN   TestAcceptSkippedKRIReportFails
+--- PASS: TestAcceptSkippedKRIReportFails (0.00s)
+=== RUN   TestRequestRevisionRequiresNote
+--- PASS: TestRequestRevisionRequiresNote (0.00s)
+=== RUN   TestSkipRequiresReason
+--- PASS: TestSkipRequiresReason (0.00s)
+=== RUN   TestRoleEnforcement
+--- PASS: TestRoleEnforcement (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/kri_report	0.143s

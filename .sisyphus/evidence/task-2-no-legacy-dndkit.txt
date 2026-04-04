@@ -1,0 +1,17 @@
+== Task 2: Legacy @dnd-kit Package Check ==
+Date: 2026-04-04
+
+$ grep "@dnd-kit/core" frontend/package.json
+NOT FOUND (correct) — @dnd-kit/core is NOT installed
+
+$ grep "@dnd-kit/sortable" frontend/package.json
+NOT FOUND (correct) — @dnd-kit/sortable is NOT installed
+
+== Only New API Packages Present ==
+$ grep "@dnd-kit" frontend/package.json
+    "@dnd-kit/dom": "^0.3.2",
+    "@dnd-kit/react": "^0.3.2",
+
+[PASS] No legacy @dnd-kit/core
+[PASS] No legacy @dnd-kit/sortable
+[PASS] Only @dnd-kit/react and @dnd-kit/dom (new API) installed

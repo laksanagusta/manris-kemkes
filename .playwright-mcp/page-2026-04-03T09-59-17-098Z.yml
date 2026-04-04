@@ -1,0 +1,178 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - img "MANRIS logo" [ref=e6]
+        - generic [ref=e7]:
+          - generic [ref=e8]: MANRIS
+          - generic [ref=e9]: Risk Management v2
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - button "MAIN MENU" [ref=e15]:
+            - generic [ref=e16]: MAIN MENU
+            - img [ref=e17]
+          - generic [ref=e19]:
+            - link "Dashboard" [ref=e20] [cursor=pointer]:
+              - /url: /overview
+              - img [ref=e21]
+              - generic [ref=e26]: Dashboard
+            - link "Approval" [ref=e27] [cursor=pointer]:
+              - /url: /inbox
+              - img [ref=e28]
+              - generic [ref=e31]: Approval
+            - link "Risk Register" [ref=e32] [cursor=pointer]:
+              - /url: /risk/register
+              - img [ref=e33]
+              - generic [ref=e35]: Risk Register
+            - link "Monitoring & Updates" [ref=e36] [cursor=pointer]:
+              - /url: /compliance/monitoring
+              - img [ref=e37]
+              - generic [ref=e41]: Monitoring & Updates
+            - link "Reports & Export" [ref=e42] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e43]
+              - generic [ref=e46]: Reports & Export
+            - link "Insiden" [ref=e47] [cursor=pointer]:
+              - /url: /incidents
+              - img [ref=e48]
+              - generic [ref=e50]: Insiden
+            - link "Lessons Learned" [ref=e51] [cursor=pointer]:
+              - /url: /incidents/lessons
+              - img [ref=e52]
+              - generic [ref=e54]: Lessons Learned
+        - generic [ref=e55]:
+          - button "AI & Automation" [ref=e56]:
+            - generic [ref=e57]:
+              - img [ref=e58]
+              - text: AI & Automation
+            - img [ref=e61]
+          - generic [ref=e63]:
+            - link "Meeting" [ref=e64] [cursor=pointer]:
+              - /url: /minutes
+              - img [ref=e65]
+              - generic [ref=e68]: Meeting
+            - link "Predictive Scoring" [ref=e69] [cursor=pointer]:
+              - /url: /intelligence/predictive
+              - img [ref=e70]
+              - generic [ref=e73]: Predictive Scoring
+            - link "Cost Benefit Analysis" [ref=e74] [cursor=pointer]:
+              - /url: /intelligence/cba
+              - img [ref=e75]
+              - generic [ref=e77]: Cost Benefit Analysis
+        - generic [ref=e78]:
+          - button "ADMINISTRATION" [ref=e79]:
+            - generic [ref=e80]:
+              - img [ref=e81]
+              - text: ADMINISTRATION
+            - img [ref=e84]
+          - generic [ref=e86]:
+            - link "Users" [ref=e87] [cursor=pointer]:
+              - /url: /admin/users
+              - img [ref=e88]
+              - generic [ref=e93]: Users
+            - link "Organizations" [ref=e94] [cursor=pointer]:
+              - /url: /admin/organizations
+              - img [ref=e95]
+              - generic [ref=e99]: Organizations
+            - link "Settings" [ref=e100] [cursor=pointer]:
+              - /url: /admin/settings
+              - img [ref=e101]
+              - generic [ref=e104]: Settings
+      - generic [ref=e106]:
+        - generic [ref=e107]: DA
+        - generic [ref=e108]:
+          - generic [ref=e109]: Dika Laksana
+          - generic [ref=e110]: Super Admin
+    - generic [ref=e111]:
+      - banner [ref=e112]:
+        - button [ref=e113]:
+          - img
+        - navigation [ref=e114]:
+          - generic [ref=e116]: Compliance
+          - generic [ref=e144]:
+            - img [ref=e145]
+            - generic [ref=e147]: Monitoring & Updates
+        - generic [ref=e121]:
+          - generic [ref=e122]:
+            - img [ref=e123]
+            - textbox "Search..." [ref=e126]
+          - button [ref=e127]:
+            - img
+          - button "5" [ref=e128]:
+            - img
+            - generic [ref=e129]: "5"
+          - button "DA Dika" [ref=e130]:
+            - generic [ref=e131]: DA
+            - generic [ref=e132]: Dika
+      - main [ref=e133]:
+        - generic [ref=e148]:
+          - generic [ref=e149]:
+            - paragraph [ref=e150]: Compliance workspace
+            - generic [ref=e151]:
+              - generic [ref=e152]:
+                - heading "Monitoring & Updates" [level=1] [ref=e153]
+                - paragraph [ref=e154]: Satu ruang kerja untuk meninjau antrean reassessment, melacak progres mitigasi, dan memperbarui status KRI tanpa berpindah menu.
+              - link "Lihat Reports & Export" [ref=e155] [cursor=pointer]:
+                - /url: /reports
+          - generic [ref=e156]:
+            - generic [ref=e157]:
+              - tablist [ref=e158]:
+                - tab "Risk Review" [ref=e159]:
+                  - img
+                  - text: Risk Review
+                - tab "Mitigasi" [ref=e160]:
+                  - img
+                  - text: Mitigasi
+                - tab "Key Risk Indicator" [selected] [ref=e161]:
+                  - img
+                  - text: Key Risk Indicator
+                - tab "KRI Reviewer Queue" [ref=e162]:
+                  - img
+                  - text: KRI Reviewer Queue
+              - paragraph [ref=e163]: Tinjau indikator risiko, perbarui statusnya, dan pastikan nilai berkala tetap terkini.
+            - tabpanel "Key Risk Indicator" [ref=e164]:
+              - generic [ref=e165]:
+                - generic [ref=e166]:
+                  - generic [ref=e167]:
+                    - paragraph [ref=e168]: Pelaporan indikator
+                    - generic [ref=e169]:
+                      - heading "Key Risk Indicator" [level=2] [ref=e170]
+                      - paragraph [ref=e171]: Tinjau kesehatan indikator risiko, cari ambang yang mulai menyimpang, lalu masuk ke detail indikator untuk melaporkan nilai berkala.
+                  - link "Key Risk Indicator" [ref=e173] [cursor=pointer]:
+                    - /url: /compliance/kri/new
+                    - button "Key Risk Indicator" [ref=e174]:
+                      - img
+                      - text: Key Risk Indicator
+                - generic [ref=e176]:
+                  - generic [ref=e177]:
+                    - generic [ref=e178]:
+                      - paragraph [ref=e179]: Daftar indikator
+                      - paragraph [ref=e180]: Filter indikator yang perlu perhatian dan buka detail untuk pelaporan nilai.
+                    - generic [ref=e181]:
+                      - generic [ref=e182]:
+                        - img
+                        - textbox "Cari KRI atau kode risiko..." [ref=e183]
+                      - combobox [ref=e184]:
+                        - generic: Semua status
+                        - img
+                      - combobox [ref=e185]:
+                        - generic: Semua frekuensi
+                        - img
+                  - table [ref=e188]:
+                    - rowgroup [ref=e189]:
+                      - row "Kode Indikator Unit Frekuensi Nilai Threshold Tren Diperbarui" [ref=e190]:
+                        - columnheader "Kode" [ref=e191]
+                        - columnheader "Indikator" [ref=e192]
+                        - columnheader "Unit" [ref=e193]
+                        - columnheader "Frekuensi" [ref=e194]
+                        - columnheader "Nilai" [ref=e195]
+                        - columnheader "Threshold" [ref=e196]
+                        - columnheader "Tren" [ref=e197]
+                        - columnheader "Diperbarui" [ref=e198]
+                    - rowgroup [ref=e199]:
+                      - row "Memuat indikator KRI..." [ref=e200]:
+                        - cell "Memuat indikator KRI..." [ref=e201]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e139] [cursor=pointer]:
+    - img [ref=e140]
+  - alert [ref=e143]

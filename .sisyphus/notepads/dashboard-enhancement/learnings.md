@@ -54,3 +54,57 @@
 
 ### Pre-existing Backend Issues
 - Go test files have pre-existing LSP errors: `GetHeatmapVelocity` method missing from test fake repos (parallel Task 1 likely adding this method)
+
+## [2026-04-04] Task 1: Domain Entities
+
+### Entity JSON Tag Convention
+- Existing dashboard entities use **camelCase** json tags consistently (e.g., `json:"totalRisks"`, `json:"orgName"`)
+- New structs converted from snake_case spec to camelCase to match: `up_count` → `upCount`, `org_id` → `orgId`, etc.
+
+### Repository Interface Location
+- Dashboard methods live in `RiskRepository` interface at `backend/internal/domain/repository/risk.go`
+- Grouped under `// Dashboard methods` and `// Dashboard analytics` comments
+- New methods added: `GetHeatmapVelocity`, `GetOverdueMitigationTimeline`, `GetKRIBreachSummary`, `GetUnitResponseTime`
+
+### Implementation Stubs
+- Adding interface methods requires stub implementations in `backend/internal/repository/postgres/risk.go` for `go build` to pass
+- Stubs return empty slices (not nil) — `[]entity.X{}` pattern
+- Real SQL implementations will come in Wave 2 (Tasks 4-7)
+
+## [2026-04-04] Tasks 4-7: Backend Analytics Endpoints
+
+### KRI Schema Discovery
+- KRI table uses `threshold_max` and `threshold_min` (NOT just `threshold`)
+- KRI uses `current_value` (NOT `actual_value`)
+- KRI has `direction` column: `'higher_worse'` or `'lower_worse'` — plan assumption "all higher is worse" was WRONG
+- Status logic: safe (<80% of threshold), warning (80-100%), breach (>threshold for higher_worse)
+- KRI table has `is_archived` column — must filter `WHERE is_archived = FALSE`
+
+### Approval/Response Time Schema
+- `approval_requests` has `requested_at` column (timestamp)
+- `approval_histories` has `created_at` (timestamp of approval action)
+- `approval_requests` links to risks via `entity_id` + `request_type = 'risk'` (not direct org_id)
+- Mitigation tasks have `created_at` and `reported_at` (for done tasks)
+
+### Mitigation Timeline SQL Logic
+- onTime: status='done' AND reported_at <= due_date
+- overdue7: status!='done' AND due_date < now() AND now()-due_date <= 7
+- overdue30: status!='done' AND now()-due_date BETWEEN 8 AND 30
+- overdue30Plus: status!='done' AND now()-due_date > 30
+
+### New Use Case Files Created
+- `dashboard_velocity.go` — HeatmapVelocityUseCase
+- `dashboard_overdue.go` — OverdueMitigationTimelineUseCase
+- `dashboard_kri_breach.go` — KRIBreachSummaryUseCase
+- `dashboard_response_time.go` — UnitResponseTimeUseCase
+
+### Handler Addition Pattern
+- Added 4 new use case fields to RiskHandler struct
+- Updated NewRiskHandler constructor (now 25 params)
+- Added 4 new handler methods following `c.JSON(fiber.Map{"data": result})` pattern
+- Registered 4 new routes in main.go under protected dashboard group
+
+### Pre-existing Test File Issues
+- Test fake repos (`fakeBatchRiskRepo`, `fakeReassessRiskRepo`, etc.) don't implement full interface
+- These are pre-existing issues from before this work — not caused by our changes
+- `go build ./...` passes cleanly; `go vet` fails only on test files

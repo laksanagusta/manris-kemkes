@@ -5,6 +5,8 @@ export type RiskTrendSourceItem = {
   createdAt?: string;
   probability: number;
   impact: number;
+  targetProbability?: number;
+  targetImpact?: number;
 };
 
 export type RiskTrendPoint = { period: string } & Record<RiskTrendLevel, number>;

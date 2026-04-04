@@ -34,6 +34,14 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
   });
 
   if (!res.ok) {
+    // Token expired or unauthorized → clear session and redirect to login
+    if (res.status === 401 && typeof window !== "undefined" && path !== "/auth/login") {
+      localStorage.removeItem("manris_token");
+      window.location.href = "/login";
+      // Return a never-resolving promise so callers don't process stale data
+      return new Promise<T>(() => {});
+    }
+
     const body = await res.json().catch(() => ({ error: res.statusText }));
     throw new ApiError(body.detail || body.error || "Request failed", res.status);
   }

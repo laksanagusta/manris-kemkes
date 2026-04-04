@@ -1,0 +1,8 @@
+=== RUN   TestArchiveKRI
+--- PASS: TestArchiveKRI (0.00s)
+=== RUN   TestKRIValidateRejectsMissingAmberThreshold
+--- PASS: TestKRIValidateRejectsMissingAmberThreshold (0.00s)
+=== RUN   TestListKRIExcludesArchived
+--- PASS: TestListKRIExcludesArchived (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/kri	0.155s

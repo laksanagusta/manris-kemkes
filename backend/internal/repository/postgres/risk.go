@@ -1035,6 +1035,10 @@ func (r *riskRepository) GetKRIBreachSummary(ctx context.Context) ([]entity.KRIB
 	LEFT JOIN risks r ON r.id = k.risk_id
 	LEFT JOIN organizations org ON org.id = k.organization_id
 	WHERE k.is_archived = FALSE
+	  AND (
+	    (k.direction = 'higher_worse' AND k.current_value >= k.threshold_max * 0.8)
+	    OR (k.direction = 'lower_worse' AND k.current_value <= k.threshold_min * 1.2)
+	  )
 	ORDER BY
 		CASE
 			WHEN k.direction = 'higher_worse' AND k.current_value > k.threshold_max THEN 0

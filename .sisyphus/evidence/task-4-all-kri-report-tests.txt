@@ -1,0 +1,31 @@
+=== RUN   TestBuildKRISemesterSummary
+--- PASS: TestBuildKRISemesterSummary (0.00s)
+=== RUN   TestBuildKRISemesterSummaryIncludesArchivedKRIHistory
+--- PASS: TestBuildKRISemesterSummaryIncludesArchivedKRIHistory (0.00s)
+=== RUN   TestBuildKRISemesterSummaryEmptyState
+--- PASS: TestBuildKRISemesterSummaryEmptyState (0.00s)
+=== RUN   TestAcceptKRIReportUpdatesCurrentValue
+--- PASS: TestAcceptKRIReportUpdatesCurrentValue (0.00s)
+=== RUN   TestSubmitDoesNotUpdateCurrentValue
+--- PASS: TestSubmitDoesNotUpdateCurrentValue (0.00s)
+=== RUN   TestGenerateReportsIsIdempotent
+Successfully created KRI report ID: bfa35083-7b55-4034-b699-0968fbb0a6e6 for KRI: b79fece1-48fc-4db2-b6d6-c08a8bd9fdcd
+--- PASS: TestGenerateReportsIsIdempotent (0.00s)
+=== RUN   TestGenerateReportsSkipsWhenPeriodNotOpen
+--- PASS: TestGenerateReportsSkipsWhenPeriodNotOpen (0.00s)
+=== RUN   TestSubmitRevisionRequestedReportSucceeds
+--- PASS: TestSubmitRevisionRequestedReportSucceeds (0.00s)
+=== RUN   TestAcceptKRIReportDoesNotMutateRisk
+--- PASS: TestAcceptKRIReportDoesNotMutateRisk (0.00s)
+=== RUN   TestListReportsComputesOverdueMetadata
+--- PASS: TestListReportsComputesOverdueMetadata (0.00s)
+=== RUN   TestAcceptSkippedKRIReportFails
+--- PASS: TestAcceptSkippedKRIReportFails (0.00s)
+=== RUN   TestRequestRevisionRequiresNote
+--- PASS: TestRequestRevisionRequiresNote (0.00s)
+=== RUN   TestSkipRequiresReason
+--- PASS: TestSkipRequiresReason (0.00s)
+=== RUN   TestRoleEnforcement
+--- PASS: TestRoleEnforcement (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/kri_report	0.154s

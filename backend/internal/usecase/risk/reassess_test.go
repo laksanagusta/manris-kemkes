@@ -98,6 +98,21 @@ func (r *fakeReassessRiskRepo) RiskReviewSummary(ctx context.Context, cycle stri
 func (r *fakeReassessRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
+func (r *fakeReassessRiskRepo) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeReassessRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeReassessRiskRepo) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeReassessRiskRepo) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeReassessRiskRepo) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+	return nil, errors.New("not implemented")
+}
 
 func TestListRiskReviewQueueUseCase_ExecuteReturnsReviewItems(t *testing.T) {
 	repo := &fakeReassessRiskRepo{}

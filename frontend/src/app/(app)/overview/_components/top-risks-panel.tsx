@@ -21,7 +21,7 @@ function scoreColor(score: number) {
 export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
   if (loading) {
     return (
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-3" data-testid="top-risks-panel">
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2" data-testid="top-risks-panel">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">Top Risks</CardTitle>
         </CardHeader>
@@ -37,7 +37,7 @@ export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
   }
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-3" data-testid="top-risks-panel">
+    <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2" data-testid="top-risks-panel">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
           <div>

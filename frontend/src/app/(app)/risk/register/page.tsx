@@ -549,8 +549,6 @@ export default function RiskRegisterPage() {
                   <TableHead className="text-xs w-32">Kategori</TableHead>
                   <TableHead className="text-xs w-28">Periode</TableHead>
                   <TableHead className="text-xs w-32">Unit Kerja</TableHead>
-                  <TableHead className="text-xs text-center w-24">Probabilitas</TableHead>
-                  <TableHead className="text-xs text-center w-24">Dampak</TableHead>
                   <TableHead className="text-xs text-center w-16">Skor</TableHead>
                   <TableHead className="text-xs w-24">Level</TableHead>
                   <TableHead className="text-xs w-24">Status</TableHead>
@@ -561,7 +559,7 @@ export default function RiskRegisterPage() {
               <TableBody>
                 {filteredRisks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground text-xs">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground text-xs">
                       Tidak ada risiko yang ditemukan
                     </TableCell>
                   </TableRow>
@@ -592,12 +590,6 @@ export default function RiskRegisterPage() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {risk.orgName || "-"}
-                    </TableCell>
-                    <TableCell className="text-xs text-center font-medium">
-                      {risk.probability ?? "-"}
-                    </TableCell>
-                    <TableCell className="text-xs text-center font-medium">
-                      {risk.impact ?? "-"}
                     </TableCell>
                     <TableCell className="text-center">
                       <span className="text-xs font-bold">{risk.inherentScore ?? "-"}</span>

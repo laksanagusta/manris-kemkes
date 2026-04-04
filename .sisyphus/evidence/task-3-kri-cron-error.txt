@@ -1,0 +1,4 @@
+=== RUN   TestAcceptKRIReportDoesNotMutateRisk
+--- PASS: TestAcceptKRIReportDoesNotMutateRisk (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/kri_report	(cached)

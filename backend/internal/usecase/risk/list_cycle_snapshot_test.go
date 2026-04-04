@@ -59,6 +59,21 @@ func (r *fakeCycleSnapshotRiskRepo) CompareCycles(context.Context, string, strin
 func (r *fakeCycleSnapshotRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, nil
 }
+func (r *fakeCycleSnapshotRiskRepo) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+	return nil, nil
+}
+func (r *fakeCycleSnapshotRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+	return nil, nil
+}
+func (r *fakeCycleSnapshotRiskRepo) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+	return nil, nil
+}
+func (r *fakeCycleSnapshotRiskRepo) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+	return nil, nil
+}
+func (r *fakeCycleSnapshotRiskRepo) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+	return nil, nil
+}
 
 var _ repo.RiskRepository = (*fakeCycleSnapshotRiskRepo)(nil)
 

@@ -19,6 +19,11 @@ type KRIReport struct {
 	Status      string     `json:"status"`
 	SubmittedBy *uuid.UUID `json:"submittedBy,omitempty"`
 	SubmittedAt *time.Time `json:"submittedAt,omitempty"`
+	ReviewedBy  *uuid.UUID `json:"reviewedBy,omitempty"`
+	ReviewedAt  *time.Time `json:"reviewedAt,omitempty"`
+	ReviewNote  string     `json:"reviewNote,omitempty"`
+	EvidenceURL string     `json:"evidenceUrl,omitempty"`
+	IsOverdue   bool       `json:"isOverdue"`
 	GeneratedBy string     `json:"generatedBy"`
 	CreatedAt   time.Time  `json:"createdAt"`
 	UpdatedAt   time.Time  `json:"updatedAt"`
