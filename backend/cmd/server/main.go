@@ -27,6 +27,7 @@ import (
 	cbauc "github.com/manris/backend/internal/usecase/cba"
 	commloguc "github.com/manris/backend/internal/usecase/communication_log"
 	controluc "github.com/manris/backend/internal/usecase/control"
+	formusecase "github.com/manris/backend/internal/usecase/form"
 	incidentuc "github.com/manris/backend/internal/usecase/incident"
 	kriuc "github.com/manris/backend/internal/usecase/kri"
 	krireportuc "github.com/manris/backend/internal/usecase/kri_report"
@@ -68,6 +69,9 @@ func main() {
 	domainKRIReportRepo := postgresrepo.NewKRIReportRepository(pool)
 	domainCommLogRepo := postgresrepo.NewCommunicationLogRepository(pool)
 	domainMMRepo := postgresrepo.NewMeetingMinuteRepository(pool)
+	domainFormRepo := postgresrepo.NewFormRepository(pool)
+	domainFormAssignmentRepo := postgresrepo.NewFormAssignmentRepository(pool)
+	domainFormResponseRepo := postgresrepo.NewFormResponseRepository(pool)
 
 	// Domain services
 	orgHierarchySvc := domainsvc.NewOrganizationHierarchy(domainOrgRepo)
@@ -215,6 +219,17 @@ func main() {
 	mmLinkUC := mmuc.NewLinkRisksUseCase(domainMMRepo)
 	riskListCycleSnapshotUC := riskuc.NewListRiskCycleSnapshotUseCase(domainRiskRepo, orgHierarchySvc)
 
+	formCreateUC := formusecase.NewCreateFormUseCase(domainFormRepo, domainFormAssignmentRepo)
+	formGetUC := formusecase.NewGetFormUseCase(domainFormRepo, domainFormAssignmentRepo)
+	formListUC := formusecase.NewListFormsUseCase(domainFormRepo, domainFormAssignmentRepo)
+	formUpdateUC := formusecase.NewUpdateFormUseCase(domainFormRepo, domainFormAssignmentRepo)
+	formDeleteUC := formusecase.NewDeleteFormUseCase(domainFormRepo)
+	formPublishUC := formusecase.NewPublishFormUseCase(domainFormRepo, domainFormAssignmentRepo)
+	formCloseUC := formusecase.NewCloseFormUseCase(domainFormRepo)
+	formSubmitUC := formusecase.NewSubmitResponseUseCase(domainFormRepo, domainFormResponseRepo, domainFormAssignmentRepo)
+	formListResponsesUC := formusecase.NewListResponsesUseCase(domainFormRepo, domainFormResponseRepo)
+	formAnalyticsUC := formusecase.NewFormAnalyticsUseCase(domainFormRepo, domainFormResponseRepo)
+
 	// Report usecases
 	generateReportUC := reportuc.NewGenerateReportUseCase(domainRiskRepo, domainIncidentRepo, domainKRiRepo)
 	pdfReportRenderer := reportpdf.NewPDFReportRenderer()
@@ -297,6 +312,11 @@ func main() {
 
 	// Report handler
 	cleanReportHandler := httpHandler.NewReportHandler(generateReportUC, pdfReportRenderer)
+
+	cleanFormHandler := httpHandler.NewFormHandler(
+		formCreateUC, formGetUC, formListUC, formUpdateUC, formDeleteUC,
+		formPublishUC, formCloseUC, formSubmitUC, formListResponsesUC, formAnalyticsUC,
+	)
 
 	// Fiber app
 	app := fiber.New(fiber.Config{
@@ -476,6 +496,19 @@ func main() {
 
 	// Risk Meeting Minutes
 	protected.Get("/risks/:riskId/meeting-minutes", cleanRiskHandler.GetMeetingMinutes)
+
+	// Dynamic Forms
+	protected.Get("/forms", cleanFormHandler.ListForms)
+	protected.Get("/forms/mine", cleanFormHandler.ListMyForms)
+	protected.Post("/forms", cleanFormHandler.CreateForm)
+	protected.Get("/forms/:id", cleanFormHandler.GetForm)
+	protected.Put("/forms/:id", cleanFormHandler.UpdateForm)
+	protected.Delete("/forms/:id", cleanFormHandler.DeleteForm)
+	protected.Post("/forms/:id/publish", cleanFormHandler.PublishForm)
+	protected.Post("/forms/:id/close", cleanFormHandler.CloseForm)
+	protected.Post("/forms/:id/responses", cleanFormHandler.SubmitResponse)
+	protected.Get("/forms/:id/responses", cleanFormHandler.ListResponses)
+	protected.Get("/forms/:id/analytics", cleanFormHandler.Analytics)
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
