@@ -1,0 +1,21 @@
+$ go test -v -run TestFormCreateGetByIDRoundtrip ./internal/repository/postgres/
+=== RUN   TestFormCreateGetByIDRoundtrip
+    form_test.go:188: PASS: Create + GetByID roundtrip verified
+    form_test.go:189:   Form ID: 67bb0d21-acc2-4062-9479-07a9d87d3cd9
+    form_test.go:190:   Sections: 2
+    form_test.go:191:   Section[0] fields: 2
+    form_test.go:192:   Section[1] fields: 1
+    form_test.go:193:   Radio options decoded: 2
+    form_test.go:194:   Dropdown options decoded: 3
+--- PASS: TestFormCreateGetByIDRoundtrip (0.02s)
+PASS
+ok  	github.com/manris/backend/internal/repository/postgres	0.917s
+
+Assertions verified:
+- 2 sections created and retrieved
+- Section[0] has 2 fields (text + radio)
+- Section[1] has 1 field (dropdown)
+- Radio options: 2 (Male, Female) — JSONB decoded correctly
+- Dropdown options: 3 (DKI Jakarta, Jawa Barat, Jawa Tengah) — JSONB decoded correctly
+- Positions preserved in order
+- All DB-generated fields (ID, CreatedAt, UpdatedAt) populated

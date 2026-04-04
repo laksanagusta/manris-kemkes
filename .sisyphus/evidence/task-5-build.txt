@@ -1,0 +1,5 @@
+$ cd backend && go build ./internal/repository/postgres/... 2>&1
+(exit 0, no output)
+
+$ cd backend && go build ./... 2>&1
+(exit 0, no output)
