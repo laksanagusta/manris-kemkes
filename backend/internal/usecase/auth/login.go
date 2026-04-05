@@ -86,10 +86,11 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*entity.
 	authToken := &entity.AuthToken{
 		Token: token,
 		User: &entity.UserPublic{
-			ID:       user.ID,
-			Username: user.Username,
-			Name:     user.Name,
-			Role:     user.Role,
+			ID:             user.ID,
+			Username:       user.Username,
+			Name:           user.Name,
+			Role:           user.Role,
+			OrganizationID: user.OrganizationID,
 		},
 	}
 

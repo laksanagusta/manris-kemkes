@@ -135,14 +135,14 @@ export default function UsersManagementPage() {
                 key={user.id}
                 className="border-border/30 hover:bg-muted/30 transition-colors"
               >
-                <TableCell>
+                <TableCell className="max-w-[250px]">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
                       {getInitials(user.name)}
                     </div>
-                    <div>
-                      <p className="text-xs font-medium">{user.name}</p>
-                      <p className="text-[10px] text-muted-foreground">
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-medium">{user.name}</p>
+                      <p className="truncate text-[10px] text-muted-foreground">
                         {user.email}
                       </p>
                     </div>
@@ -161,8 +161,8 @@ export default function UsersManagementPage() {
                     {user.role}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {user.orgName || "—"}
+                <TableCell className="max-w-[200px] text-xs text-muted-foreground">
+                  <span className="block truncate">{user.orgName || "—"}</span>
                 </TableCell>
                 <TableCell>
                   <Badge

@@ -88,7 +88,7 @@ export default function NewControlPage() {
       >
         <div className="space-y-1.5">
           <Label className="text-sm font-medium">
-            Nama kontrol <span className="text-destructive">*</span>
+            Nama kontrol<span className="text-destructive ml-0.5">*</span>
           </Label>
           <Input
             value={name}
@@ -111,7 +111,7 @@ export default function NewControlPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Penanggung jawab <span className="text-destructive">*</span>
+              Penanggung jawab<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Input
               value={owner}

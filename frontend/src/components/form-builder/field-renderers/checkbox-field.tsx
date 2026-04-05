@@ -26,7 +26,7 @@ export function CheckboxField({
       <Label>
         {field.label}
         {field.isRequired && (
-          <span className="text-destructive ml-0.5">*</span>
+         <span className="text-destructive ml-0.5">*</span>
         )}
       </Label>
       <div className="flex flex-col gap-2">

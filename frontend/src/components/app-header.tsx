@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 
 const breadcrumbMap: Record<string, string> = {
@@ -94,12 +96,37 @@ export function AppHeader({
   }, [isDark]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border bg-background/80 backdrop-blur-xl px-6">
+    <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center gap-3 border-b border-border bg-background/80 pr-6 pl-0 backdrop-blur-xl">
+      {/* Logo */}
+      <div
+        className={cn(
+          "flex h-full shrink-0 items-center gap-3 transition-all duration-300",
+          collapsed ? "w-16 justify-center" : "pl-6 pr-2",
+        )}
+      >
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-primary/10 p-1.5">
+          <Image
+            src="/logo.svg"
+            alt="MANRIS logo"
+            width={20}
+            height={20}
+            className="object-contain"
+          />
+        </div>
+        {!collapsed && (
+          <div className="flex flex-col overflow-hidden whitespace-nowrap">
+            <span className="text-sm font-bold tracking-tight text-foreground">
+              MANRIS
+            </span>
+          </div>
+        )}
+      </div>
+
       <Button
         variant="ghost"
         size="icon-sm"
         onClick={onToggleCollapse}
-        className="text-muted-foreground"
+        className="text-muted-foreground shrink-0"
       >
         {collapsed ? (
           <PanelLeftOpen className="size-4" />
@@ -109,7 +136,7 @@ export function AppHeader({
       </Button>
 
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1 text-sm">
+      <nav className="flex items-center gap-1 text-sm overflow-hidden whitespace-nowrap">
         {breadcrumbs.map((crumb, index) => (
           <div key={crumb.path} className="flex items-center gap-1">
             {index > 0 && (
@@ -146,18 +173,6 @@ export function AppHeader({
           className="text-muted-foreground"
         >
           {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        </Button>
-
-        {/* Notifications */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="relative text-muted-foreground"
-        >
-          <Bell className="size-4" />
-          <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white">
-            5
-          </span>
         </Button>
 
         {/* User menu */}

@@ -99,7 +99,7 @@ export default function NewLessonPage() {
       >
         <div className="space-y-1.5">
           <Label className="text-sm font-medium">
-            Judul pembelajaran <span className="text-destructive">*</span>
+            Judul pembelajaran<span className="text-destructive ml-0.5">*</span>
           </Label>
           <Input
             value={title}
@@ -111,7 +111,7 @@ export default function NewLessonPage() {
 
         <div className="space-y-1.5">
           <Label className="text-sm font-medium">
-            Ringkasan pembelajaran <span className="text-destructive">*</span>
+            Ringkasan pembelajaran<span className="text-destructive ml-0.5">*</span>
           </Label>
           <Textarea
             value={description}

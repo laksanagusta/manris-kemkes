@@ -220,7 +220,7 @@ export default function EditFormPage() {
           <div className="space-y-4 rounded-2xl border border-border/20 bg-card p-5">
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">
-                Judul Formulir <span className="text-destructive">*</span>
+                Judul Formulir<span className="text-destructive ml-0.5">*</span>
               </Label>
               <Input
                 value={state.title}

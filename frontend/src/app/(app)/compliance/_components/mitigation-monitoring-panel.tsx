@@ -240,7 +240,7 @@ export function MitigationMonitoringPanel() {
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
               <TableHead className="w-20 text-xs">Kode</TableHead>
-              <TableHead className="text-xs">Risiko & Rencana Mitigasi</TableHead>
+              <TableHead className="text-xs">Rencana Mitigasi</TableHead>
               <TableHead className="w-28 text-xs">Unit / PIC</TableHead>
               <TableHead className="w-24 text-xs">Jatuh Tempo</TableHead>
               <TableHead className="w-20 text-center text-xs">Hari</TableHead>
@@ -277,17 +277,14 @@ export function MitigationMonitoringPanel() {
                     <TableCell className="text-xs font-mono text-muted-foreground">
                       {item.riskCode}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-0">
                       <button
                         type="button"
                         onClick={() => handleOpenSubmit(item)}
                         className="group block w-full rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       >
-                        <p className="line-clamp-1 text-xs font-medium leading-relaxed text-primary transition-colors group-hover:text-primary/80">
-                          {item.title}
-                        </p>
-                        <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground transition-colors group-hover:text-foreground">
-                          Mitigasi: {item.mitigationAction}
+                        <p className="truncate text-xs font-medium leading-relaxed text-primary transition-colors group-hover:text-primary/80">
+                          {item.mitigationAction}
                         </p>
                       </button>
                     </TableCell>
@@ -374,7 +371,7 @@ export function MitigationMonitoringPanel() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">
-                Biaya Aktual (Rp) <span className="text-destructive">*</span>
+                Biaya Aktual (Rp)<span className="text-destructive ml-0.5">*</span>
               </Label>
               <Input
                 type="number"
@@ -394,7 +391,7 @@ export function MitigationMonitoringPanel() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">
-                Link Bukti / Evidence <span className="text-destructive">*</span>
+                Link Bukti / Evidence<span className="text-destructive ml-0.5">*</span>
               </Label>
               <Input
                 value={evidenceUrl}
@@ -412,7 +409,7 @@ export function MitigationMonitoringPanel() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">
-                Catatan Pelaksanaan <span className="text-destructive">*</span>
+                Catatan Pelaksanaan<span className="text-destructive ml-0.5">*</span>
               </Label>
               <Textarea
                 value={notes}

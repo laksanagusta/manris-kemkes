@@ -14,5 +14,5 @@ export async function createCommunicationLog(
 }
 
 export async function deleteCommunicationLog(id: string, token: string): Promise<void> {
-  return api.delete(`/communication-logs/${id}`, token);
+  return api.delete(`/communication-logs/${id}`, undefined, token);
 }

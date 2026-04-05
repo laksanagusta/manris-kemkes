@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { FormHeader } from "@/components/shared/form-shell";
 import {
   ArrowLeft,
   Activity,
@@ -26,6 +27,16 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+interface KRIReport {
+  id: string;
+  value: number | null;
+  status: string;
+  periodLabel: string;
+  notes: string;
+  submittedByName?: string;
+  submittedAt?: string;
+}
+
 export default function KRIDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -33,13 +44,19 @@ export default function KRIDetailPage() {
   
   const [kri, setKri] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingReport, setPendingReport] = useState<KRIReport | null>(null);
 
   useEffect(() => {
     if (!token || !id) return;
 
-    api.get<any>(`/kris/${id}`, token)
-      .then(data => {
-        setKri(data);
+    Promise.all([
+      api.get<any>(`/kris/${id}`, token),
+      api.get<KRIReport[]>(`/kris/${id}/reports`, token).catch(() => [] as KRIReport[]),
+    ])
+      .then(([kriData, reports]) => {
+        setKri(kriData);
+        const latest = (reports || []).find((r) => r.status === "submitted");
+        setPendingReport(latest ?? null);
         setLoading(false);
       })
       .catch(err => {
@@ -104,7 +121,7 @@ export default function KRIDetailPage() {
   const handleDelete = () => {
     toast.promise(
       (async () => {
-        await api.delete(`/kris/${kri.id}`, token || undefined);
+        await api.delete(`/kris/${kri.id}`, undefined, token || undefined);
         router.push("/compliance/monitoring?tab=kri");
       })(),
       {
@@ -118,32 +135,56 @@ export default function KRIDetailPage() {
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl mx-auto pb-20">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" className="shrink-0 mt-1" onClick={() => router.back()}>
-            <ArrowLeft className="size-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="font-mono text-[10px]">{kri.id.substring(0,8)}</Badge>
-              <Badge variant="outline" className={cn("gap-1 bg-transparent border-current", statusConfig.color)}>
-                <StatusIcon className="size-3" />
-                {statusConfig.label}
-              </Badge>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">{kri.name}</h1>
-            <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{kri.description}</p>
+      <FormHeader
+        title={kri.name}
+        description={kri.description}
+        badges={
+          <>
+            <Badge variant="outline" className="font-mono text-[10px]">{kri.id.substring(0,8)}</Badge>
+            <Badge variant="outline" className={cn("gap-1 bg-transparent border-current", statusConfig.color)}>
+              <StatusIcon className="size-3" />
+              {statusConfig.label}
+            </Badge>
+          </>
+        }
+        backLabel="Kembali ke tab KRI"
+        onBack={() => router.push("/compliance/monitoring?tab=kri")}
+        actions={
+          <>
+            <Button variant="outline" size="sm" className="gap-2 shrink-0">
+              <Pencil className="size-3.5" /> Edit
+            </Button>
+            <Button variant="outline" size="icon" className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20" onClick={handleDelete}>
+              <Trash2 className="size-4" />
+            </Button>
+          </>
+        }
+      />
+
+      {/* Pending report banner */}
+      {pendingReport && pendingReport.value != null && (
+        <div className="flex items-start gap-3 rounded-xl border border-risk-medium/30 bg-risk-medium/5 px-4 py-3">
+          <Clock className="mt-0.5 size-4 shrink-0 text-risk-medium" />
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-sm font-medium text-foreground">
+              Laporan terbaru ({pendingReport.periodLabel}) menunggu persetujuan
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Nilai yang dilaporkan:{" "}
+              <span className="font-semibold text-risk-medium">{pendingReport.value} {kri.metric}</span>
+              {pendingReport.notes ? <span className="italic"> — "{pendingReport.notes}"</span> : null}
+            </p>
+            {pendingReport.submittedByName && (
+              <p className="text-[10px] text-muted-foreground">
+                Disubmit oleh {pendingReport.submittedByName}
+                {pendingReport.submittedAt
+                  ? ` pada ${new Date(pendingReport.submittedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
+                  : null}
+              </p>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="gap-2 shrink-0">
-            <Pencil className="size-3.5" /> Edit
-          </Button>
-          <Button variant="outline" size="icon" className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20" onClick={handleDelete}>
-            <Trash2 className="size-4" />
-          </Button>
-        </div>
-      </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* Main Stats */}

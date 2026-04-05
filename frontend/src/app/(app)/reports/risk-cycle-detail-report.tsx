@@ -157,8 +157,8 @@ function deriveMovementFromDetailItem(item: RiskCycleDetailedComparisonItem): Mo
   if (item.changeCategory === "stable") return "stable";
   if (item.changeCategory !== "changed") return null;
 
-  const beforeScore = item.fromSnapshot?.inherentScore ?? ((item.fromSnapshot?.probability ?? 0) * (item.fromSnapshot?.impact ?? 0));
-  const afterScore = item.toSnapshot?.inherentScore ?? ((item.toSnapshot?.probability ?? 0) * (item.toSnapshot?.impact ?? 0));
+  const beforeScore = item.fromSnapshot?.nilai ?? ((item.fromSnapshot?.probability ?? 0) * (item.fromSnapshot?.impact ?? 0));
+  const afterScore = item.toSnapshot?.nilai ?? ((item.toSnapshot?.probability ?? 0) * (item.toSnapshot?.impact ?? 0));
 
   if (afterScore > beforeScore) return "up";
   if (afterScore < beforeScore) return "down";
@@ -523,10 +523,10 @@ export function RiskCycleDetailReport({
                             </Button>
                           </TableCell>
                           <TableCell className="font-mono text-xs text-muted-foreground">{item.code || "-"}</TableCell>
-                          <TableCell>
+                          <TableCell className="max-w-[300px]">
                             <div className="space-y-1">
-                              <p className="text-sm font-medium text-foreground">{item.title || "-"}</p>
-                              <p className="text-xs text-muted-foreground">{item.changeReason || item.reviewSummary || fieldDiffLabel(item)}</p>
+                              <p className="truncate text-sm font-medium text-foreground">{item.title || "-"}</p>
+                              <p className="truncate text-xs text-muted-foreground">{item.changeReason || item.reviewSummary || fieldDiffLabel(item)}</p>
                             </div>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{item.orgName || "-"}</TableCell>

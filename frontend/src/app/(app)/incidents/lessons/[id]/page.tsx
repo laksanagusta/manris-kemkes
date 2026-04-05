@@ -72,7 +72,7 @@ export default function LessonDetailPage() {
   const handleDelete = () => {
     toast.promise(
       (async () => {
-        await api.delete(`/lessons/${lesson.id}`, token || undefined);
+        await api.delete(`/lessons/${lesson.id}`, undefined, token || undefined);
         router.push("/lessons");
       })(),
       {

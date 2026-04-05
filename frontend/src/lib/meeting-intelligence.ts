@@ -11,7 +11,7 @@ export interface RiskDraftPrefill {
   impact?: number;
   mitigation?: string;
   quote?: string;
-  treatmentOption?: "avoid" | "mitigate" | "transfer" | "accept";
+  treatmentOption?: "menerima" | "mitigasi" | "avoid" | "mitigate" | "transfer" | "accept";
 }
 
 function getStorageKey(token: string) {

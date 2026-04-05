@@ -17,7 +17,7 @@ export function TextareaField({
       <Label htmlFor={field.id}>
         {field.label}
         {field.isRequired && (
-          <span className="text-destructive ml-0.5">*</span>
+         <span className="text-destructive ml-0.5">*</span>
         )}
       </Label>
       <Textarea

@@ -103,7 +103,7 @@ export function CommunicationLogDialog({
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label className="text-xs">
-              Tanggal <span className="text-destructive">*</span>
+              Tanggal<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Input
               type="date"
@@ -115,7 +115,7 @@ export function CommunicationLogDialog({
 
           <div className="space-y-1.5">
             <Label className="text-xs">
-              Metode <span className="text-destructive">*</span>
+              Metode<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Select value={method} onValueChange={(v) => setMethod(v as CommunicationMethod)}>
               <SelectTrigger className="text-xs">
@@ -133,7 +133,7 @@ export function CommunicationLogDialog({
 
           <div className="space-y-1.5">
             <Label className="text-xs">
-              Stakeholder <span className="text-destructive">*</span>
+              Stakeholder<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Input
               value={stakeholder}
@@ -145,7 +145,7 @@ export function CommunicationLogDialog({
 
           <div className="space-y-1.5">
             <Label className="text-xs">
-              Catatan <span className="text-destructive">*</span>
+              Catatan<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Textarea
               value={notes}

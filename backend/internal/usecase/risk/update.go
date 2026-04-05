@@ -31,50 +31,50 @@ func NewUpdateRiskUseCase(
 }
 
 type UpdateRiskInput struct {
-	ID             uuid.UUID
-	Title          string
-	Description    string
-	Category       string
-	Status         string
-	OrganizationID *uuid.UUID
+	ID             uuid.UUID  `json:"-"`
+	Title          string     `json:"title"`
+	Description    string     `json:"description"`
+	Category       string     `json:"category"`
+	Status         string     `json:"status"`
+	OrganizationID *uuid.UUID `json:"organizationId"`
 
-	Cause           []string
-	RiskSource      string
-	Controllability string
-	ImpactDesc      []string
+	Cause           []string `json:"cause"`
+	RiskSource      string   `json:"riskSource"`
+	Controllability string   `json:"controllability"`
+	ImpactDesc      []string `json:"impactDesc"`
 
 	// Section 2: Risk Analysis
-	ExistingControl      string
-	ControlEffectiveness string
-	Probability          int
-	Impact               int
-	Weight               float64
+	ExistingControl      string  `json:"existingControl"`
+	ControlEffectiveness string  `json:"controlEffectiveness"`
+	Probability          int     `json:"probability"`
+	Impact               int     `json:"impact"`
+	Weight               float64 `json:"weight"`
 
 	// Section 3: Risk Evaluation
-	RiskPriority    int
-	RiskAppetite    string
-	TreatmentOption string
+	RiskPriority    int    `json:"riskPriority"`
+	RiskAppetite    string `json:"riskAppetite"`
+	TreatmentOption string `json:"treatmentOption"`
 
 	// Section 4: Mitigations
-	Mitigations []entity.Mitigation
+	Mitigations []entity.Mitigation `json:"mitigations"`
 
 	// Section 5: Target Risk
-	TargetProbability int
-	TargetImpact      int
-	TargetWeight      float64
-	NextReviewDate    *string
-	AssessmentCycle   string
-	ReviewType        string
-	ChangeReason      string
-	ReviewSummary     string
-	DraftApprovalLine []entity.ApprovalLineMember
+	TargetProbability int                         `json:"targetProbability"`
+	TargetImpact      int                         `json:"targetImpact"`
+	TargetWeight      float64                     `json:"targetWeight"`
+	NextReviewDate    *string                     `json:"nextReviewDate"`
+	AssessmentCycle   string                      `json:"assessmentCycle"`
+	ReviewType        string                      `json:"reviewType"`
+	ChangeReason      string                      `json:"changeReason"`
+	ReviewSummary     string                      `json:"reviewSummary"`
+	DraftApprovalLine []entity.ApprovalLineMember `json:"draftApprovalLine"`
 }
 
 type UpdateRiskOutput struct {
-	ID        uuid.UUID
-	Code      string
-	Message   string
-	UpdatedAt fmt.Stringer // time.Time implements Stringer
+	ID        uuid.UUID    `json:"id"`
+	Code      string       `json:"code"`
+	Message   string       `json:"message"`
+	UpdatedAt fmt.Stringer `json:"updatedAt"` // time.Time implements Stringer
 }
 
 func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput) (*UpdateRiskOutput, error) {

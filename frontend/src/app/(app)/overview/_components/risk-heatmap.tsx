@@ -7,23 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { HeatmapVelocityCell } from "@/types/risk";
+import { BobotMatrix, getRiskLevelFromNilai, levelToColor, getRiskLevelLabel } from "@/lib/risk";
 
-const impactLabels = ["Insignificant", "Minor", "Moderate", "Major", "Catastrophic"];
-const likelihoodLabels = ["Rare", "Unlikely", "Possible", "Likely", "Almost Certain"];
+const impactLabels = ["Tdk Signifikan", "Kecil", "Sedang", "Besar", "Katastropik"];
+const likelihoodLabels = ["Jarang", "Kemungkinan Kecil", "Kemungkinan Sedang", "Kemungkinan Besar", "Hampir Pasti"];
 
-const levelColors: Record<string, string> = {
-  low: "heatmap-low",
-  medium: "heatmap-medium",
-  high: "heatmap-high",
-  extreme: "heatmap-extreme",
+const heatmapLevelColors: Record<string, string> = {
+  sangat_rendah: "heatmap-sangat-rendah",
+  rendah: "heatmap-rendah",
+  sedang: "heatmap-sedang",
+  tinggi: "heatmap-tinggi",
+  sangat_tinggi: "heatmap-sangat-tinggi",
 };
 
-function getRiskLevel(prob: number, impact: number): string {
-  const score = (prob + 1) * (impact + 1);
-  if (score <= 4) return "low";
-  if (score <= 9) return "medium";
-  if (score <= 16) return "high";
-  return "extreme";
+function getRiskLevelFromMatrix(prob: number, impact: number): string {
+  const bobot = BobotMatrix[prob]?.[impact] ?? 1.0;
+  const nilai = prob * impact * bobot;
+  return getRiskLevelFromNilai(nilai);
 }
 
 interface RiskHeatmapProps {
@@ -96,8 +96,8 @@ export function RiskHeatmap({ data, loading, error, velocityData }: RiskHeatmapP
           <div className="flex shrink-0 flex-col justify-end gap-[3px] pb-[22px]">
             {[...likelihoodLabels].reverse().map((label) => (
               <div key={label} className="flex h-0 flex-1 items-center justify-end pr-1.5">
-                <span className="w-10 truncate text-right text-[9px] leading-none text-muted-foreground">
-                  {label.length > 8 ? `${label.slice(0, 7)}…` : label}
+                <span className="w-14 truncate text-right text-[8px] leading-none text-muted-foreground">
+                  {label}
                 </span>
               </div>
             ))}
@@ -110,7 +110,7 @@ export function RiskHeatmap({ data, loading, error, velocityData }: RiskHeatmapP
                   {row.map((count, colIdx) => {
                     const prob = 4 - rowIdx;
                     const impact = colIdx;
-                    const level = getRiskLevel(prob, impact);
+                    const level = getRiskLevelFromMatrix(prob, impact);
                     const velocityCell = velocityMap.get(`${prob}-${impact}`);
                     const direction = getVelocityDirection(velocityCell);
 
@@ -120,7 +120,7 @@ export function RiskHeatmap({ data, loading, error, velocityData }: RiskHeatmapP
                         data-testid="heatmap-cell"
                         className={cn(
                           "relative aspect-[4/3] cursor-pointer rounded-md text-xs font-bold transition-all hover:scale-[1.08] hover:shadow-md flex items-center justify-center",
-                          levelColors[level],
+                          heatmapLevelColors[level],
                         )}
                       >
                         {count > 0 ? count : ""}
@@ -144,7 +144,7 @@ export function RiskHeatmap({ data, loading, error, velocityData }: RiskHeatmapP
                   key={label}
                   className="truncate text-center text-[9px] leading-tight text-muted-foreground"
                 >
-                  {label.length > 8 ? `${label.slice(0, 7)}…` : label}
+                  {label}
                 </div>
               ))}
             </div>
@@ -156,10 +156,11 @@ export function RiskHeatmap({ data, loading, error, velocityData }: RiskHeatmapP
 
         <div className="mt-3 flex items-center justify-center gap-3 border-t border-border/40 pt-3">
           {[
-            { label: "Rendah", cls: "heatmap-low" },
-            { label: "Sedang", cls: "heatmap-medium" },
-            { label: "Tinggi", cls: "heatmap-high" },
-            { label: "Ekstrem", cls: "heatmap-extreme" },
+            { label: "Sangat Rendah", cls: "heatmap-sangat-rendah" },
+            { label: "Rendah", cls: "heatmap-rendah" },
+            { label: "Sedang", cls: "heatmap-sedang" },
+            { label: "Tinggi", cls: "heatmap-tinggi" },
+            { label: "Sangat Tinggi", cls: "heatmap-sangat-tinggi" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1">
               <div className={cn("size-2.5 rounded-[3px]", item.cls)} />

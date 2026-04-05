@@ -139,7 +139,7 @@ export function OrganizationFormDialog({
               className="text-sm font-medium leading-none"
             >
               Nama organisasi
-              <span className="text-destructive ml-0.5">*</span>
+             <span className="text-destructive ml-0.5">*</span>
             </label>
             <Input
               id="organization-name"

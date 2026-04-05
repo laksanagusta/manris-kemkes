@@ -361,17 +361,17 @@ export function KRIMonitorPanel() {
                         <TableCell className="text-xs font-medium text-muted-foreground">
                           {kri.riskCode || kri.id.substring(0, 8)}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="max-w-[300px]">
                           <div className="space-y-1">
                             <Link
                               href={`/compliance/kri/${kri.id}`}
                               onClick={(event) => event.stopPropagation()}
                               className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                             >
-                              {kri.name}
+                              <span className="truncate">{kri.name}</span>
                               <span
                                 className={cn(
-                                  "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                                  "shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
                                   config.bg,
                                   config.border,
                                   config.color
@@ -380,7 +380,7 @@ export function KRIMonitorPanel() {
                                 {config.label}
                               </span>
                             </Link>
-                            <p className="line-clamp-1 text-xs text-muted-foreground">
+                            <p className="truncate text-xs text-muted-foreground">
                               {kri.description || kri.riskTitle || "Belum ada deskripsi indikator"}
                             </p>
                           </div>

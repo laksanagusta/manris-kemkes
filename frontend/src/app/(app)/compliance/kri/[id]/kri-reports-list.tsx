@@ -13,6 +13,7 @@ import { CalendarDays, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { normalizeKRIReportPayload, validateKRIReportForm } from "@/lib/validation/reporting";
+import { cn } from "@/lib/utils";
 
 interface KRIReport {
   id: string;
@@ -23,7 +24,7 @@ interface KRIReport {
   dueDate: string;
   value: number | null;
   notes: string;
-  status: "pending" | "submitted" | "overdue" | "skipped";
+  status: "pending" | "submitted" | "accepted" | "overdue" | "skipped";
   submittedByName?: string;
   submittedAt?: string;
 }
@@ -137,6 +138,7 @@ export function KRIReportsList({ kriId, metric }: { kriId: string; metric: strin
                   className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border transition-colors ${
                     report.status === "overdue" ? "border-destructive/30 bg-destructive/5" :
                     report.status === "pending" ? "border-border/50 hover:bg-muted/50" : 
+                    report.status === "submitted" ? "border-amber-200 bg-amber-50/50" :
                     "border-success/30 bg-success/5 opacity-80"
                   }`}
                 >
@@ -145,7 +147,8 @@ export function KRIReportsList({ kriId, metric }: { kriId: string; metric: strin
                       <p className="font-semibold text-sm">{report.periodLabel}</p>
                       {report.status === "pending" && <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-200 bg-yellow-50"><Clock className="size-3 mr-1"/> Pending</Badge>}
                       {report.status === "overdue" && <Badge variant="outline" className="text-xs text-destructive border-destructive/20 bg-destructive/10"><AlertCircle className="size-3 mr-1"/> Terlambat</Badge>}
-                      {report.status === "submitted" && <Badge variant="outline" className="text-xs text-success border-success/20 bg-success/10"><CheckCircle className="size-3 mr-1"/> Selesai</Badge>}
+                      {report.status === "submitted" && <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50"><Clock className="size-3 mr-1"/> Menunggu Persetujuan</Badge>}
+                      {report.status === "accepted" && <Badge variant="outline" className="text-xs text-success border-success/20 bg-success/10"><CheckCircle className="size-3 mr-1"/> Diterima</Badge>}
                     </div>
                     <div className="text-xs text-muted-foreground flex gap-3">
                       <span>Tenggat: <strong className={report.status === "overdue" ? "text-destructive" : ""}>{new Date(report.dueDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric'})}</strong></span>
@@ -154,10 +157,10 @@ export function KRIReportsList({ kriId, metric }: { kriId: string; metric: strin
                       )}
                     </div>
                     
-                    {report.status === "submitted" && (
-                      <div className="mt-2 text-xs border-l-2 border-success/50 pl-2">
-                        <p className="font-medium">Nilai dilaporkan: <span className="text-success text-sm">{report.value}</span> {metric}</p>
-                        {report.notes && <p className="text-muted-foreground mt-0.5 line-clamp-1 italic">"{report.notes}"</p>}
+                    {(report.status === "submitted" || report.status === "accepted") && (
+                      <div className={cn("mt-2 text-xs border-l-2 pl-2", report.status === "accepted" ? "border-success/50" : "border-amber-300")}>
+                        <p className="font-medium">Nilai dilaporkan: <span className={cn("text-sm", report.status === "accepted" ? "text-success" : "text-amber-600")}>{report.value}</span> {metric}</p>
+                        {report.notes && <p className="text-muted-foreground mt-0.5 line-clamp-1 italic">&quot;{report.notes}&quot;</p>}
                         <p className="text-[10px] text-muted-foreground mt-1">Oleh {report.submittedByName} pada {new Date(report.submittedAt!).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
                     )}
@@ -177,9 +180,13 @@ export function KRIReportsList({ kriId, metric }: { kriId: string; metric: strin
                       >
                         Lapor Nilai
                       </Button>
+                    ) : report.status === "submitted" ? (
+                      <div className="text-xs font-semibold text-amber-600 flex items-center gap-1 bg-amber-100 px-3 py-1.5 rounded-full">
+                        <Clock className="size-3.5" /> Menunggu Review
+                      </div>
                     ) : (
                       <div className="text-xs font-semibold text-success flex items-center gap-1 bg-success/10 px-3 py-1.5 rounded-full">
-                        <CheckCircle className="size-3.5" /> Berhasil
+                        <CheckCircle className="size-3.5" /> Diterima
                       </div>
                     )}
                   </div>
@@ -201,7 +208,7 @@ export function KRIReportsList({ kriId, metric }: { kriId: string; metric: strin
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="value">Nilai KRI ({metric}) <span className="text-destructive">*</span></Label>
+              <Label htmlFor="value">Nilai KRI ({metric})<span className="text-destructive ml-0.5">*</span></Label>
               <Input 
                 id="value" 
                 type="number" 

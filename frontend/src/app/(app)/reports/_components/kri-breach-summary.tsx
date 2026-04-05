@@ -33,7 +33,10 @@ interface KRIBreachSummaryProps {
 }
 
 export function KRIBreachSummary({ loading, data = [] }: KRIBreachSummaryProps) {
-  const items = useMemo(() => data.slice(0, 6), [data]);
+  const items = useMemo(
+    () => data.filter((d) => d.status === "warning" || d.status === "breach").slice(0, 6),
+    [data],
+  );
   const hasData = items.length > 0;
 
   if (loading) {
@@ -63,7 +66,7 @@ export function KRIBreachSummary({ loading, data = [] }: KRIBreachSummaryProps) 
           </div>
           {hasData && (
             <Badge variant="outline" className="h-5 px-2 text-[10px]">
-              {data.length} KRI
+              {items.length} KRI
             </Badge>
           )}
         </div>

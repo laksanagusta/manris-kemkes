@@ -173,9 +173,9 @@ export default function RiskHistoryPage() {
                   ) : historyData.map((history) => (
                     <TableRow key={history.riskId} className="border-border/30 hover:bg-muted/30">
                       <TableCell className="text-xs font-mono text-muted-foreground">{history.riskId}</TableCell>
-                      <TableCell>
-                        <p className="text-xs font-medium leading-relaxed">{history.title}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 italic text-primary/70">{history.changeReason}</p>
+                      <TableCell className="max-w-[300px]">
+                        <p className="truncate text-xs font-medium leading-relaxed">{history.title}</p>
+                        <p className="truncate text-[10px] text-muted-foreground mt-0.5 italic text-primary/70">{history.changeReason}</p>
                       </TableCell>
                       <TableCell>
                         <Badge className={cn("text-[10px] font-semibold border h-5 px-1.5", levelBadgeVariant[history.previousLevel])}>

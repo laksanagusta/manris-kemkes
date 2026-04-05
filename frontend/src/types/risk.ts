@@ -2,11 +2,13 @@ export type Controllability = "C" | "UC";
 export type ControlEffectiveness = "" | "efektif" | "tidak_efektif";
 export type MitigationFrequency = "insidental" | "rutin";
 export type RecurringInterval = "harian" | "mingguan" | "bulanan" | "triwulan" | "semesteran" | "tahunan";
-export type TreatmentOption = "" | "avoid" | "mitigate" | "transfer" | "accept";
+export type TreatmentOption = "" | "menerima" | "mitigasi";
 export type RiskStatus = "draft" | "final" | "approved" | "rejected";
 export type RiskCategory = "" | "strategis" | "operasional" | "kepatuhan" | "finansial" | "reputasi" | "teknologi_informasi";
+export type RiskSource = "" | "internal" | "eksternal";
+export type RiskAppetite = "" | "dalam_batas" | "di_atas_batas";
 
-export type RiskLevel = "rendah" | "sedang" | "tinggi" | "ekstrem";
+export type RiskLevel = "sangat_rendah" | "rendah" | "sedang" | "tinggi" | "sangat_tinggi";
 
 export type RiskReviewType = "periodic" | "ad_hoc";
 
@@ -56,7 +58,9 @@ export interface RiskVersion {
   period: string;
   level: RiskLevel;
   inherentScore: number;
+  nilai?: number;
   targetScore: number;
+  targetNilai?: number;
   createdAt: string;
 }
 
@@ -71,7 +75,9 @@ export interface RiskVersionTimelineItem {
   probability: number;
   impact: number;
   inherentScore: number;
+  nilai?: number;
   targetScore?: number;
+  targetNilai?: number;
   assessmentCycle?: string;
   reviewType?: RiskReviewType | "";
   changeReason?: string;
@@ -144,11 +150,13 @@ export interface RiskCycleSideBySideSnapshot {
   probability?: number;
   impact?: number;
   inherentScore?: number;
+  nilai?: number;
   riskPriority?: number;
   treatmentOption?: string;
   targetProbability?: number;
   targetImpact?: number;
   targetScore?: number;
+  targetNilai?: number;
   nextReviewDate?: string;
   mitigations?: string[];
 }
@@ -241,7 +249,7 @@ export interface Risk {
   category: RiskCategory;
   unitId: string;
   cause: string[];
-  riskSource: string;
+  riskSource: RiskSource;
   riskOwnerId: string;
   controllability: Controllability;
   impactDesc: string[];
@@ -251,13 +259,15 @@ export interface Risk {
   probability: number;
   impact: number;
   weight: number;
+  nilai?: number;
   riskPriority: number;
-  riskAppetite: string;
+  riskAppetite: RiskAppetite;
   treatmentOption: TreatmentOption;
   mitigation: RiskMitigation;
   targetProbability: number;
   targetImpact: number;
   targetWeight: number;
+  targetNilai?: number;
   nextReviewDate: string;
   status: RiskStatus;
   versionGroupId?: string;
@@ -332,6 +342,7 @@ export interface TopRiskItem {
   probability: number;
   impact: number;
   inherentScore: number;
+  nilai?: number;
   treatmentOption: TreatmentOption;
   assessmentCycle?: string;
   createdAt: string;

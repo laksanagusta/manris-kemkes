@@ -51,7 +51,7 @@ export function FormHeader({
   backLabel = "Kembali",
 }: FormHeaderProps) {
   return (
-    <div className="sticky top-0 z-20 bg-background/92 pt-3 pb-6 backdrop-blur-md">
+    <div className="pt-3 pb-6">
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <Button

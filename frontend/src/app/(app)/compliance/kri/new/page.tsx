@@ -62,7 +62,7 @@ export default function NewKRIPage() {
     if (!token) return;
 
     api
-      .get<RiskOption[]>("/risks", token)
+      .get<RiskOption[]>("/risks?status=approved", token)
       .then((res) => setRisks(res || []))
       .catch(console.error);
   }, [token]);
@@ -185,7 +185,7 @@ export default function NewKRIPage() {
       >
         <div className="space-y-1.5">
           <Label className="text-sm font-medium">
-            Risiko <span className="text-destructive">*</span>
+            Risiko<span className="text-destructive ml-0.5">*</span>
           </Label>
           <Select
             value={riskId}
@@ -254,7 +254,7 @@ export default function NewKRIPage() {
       >
         <div className="space-y-1.5">
           <Label className="text-sm font-medium">
-            Nama indikator <span className="text-destructive">*</span>
+            Nama indikator<span className="text-destructive ml-0.5">*</span>
           </Label>
           <Input
             value={name}

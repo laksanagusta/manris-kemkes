@@ -17,7 +17,7 @@ export function RadioField({
       <Label>
         {field.label}
         {field.isRequired && (
-          <span className="text-destructive ml-0.5">*</span>
+         <span className="text-destructive ml-0.5">*</span>
         )}
       </Label>
       <RadioGroup

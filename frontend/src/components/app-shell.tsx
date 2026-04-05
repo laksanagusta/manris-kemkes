@@ -22,19 +22,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="flex min-h-screen">
-        <AppSidebar collapsed={collapsed} inboxBadge={inboxCount} />
-        <div
-          className={cn(
-            "flex flex-1 flex-col transition-all duration-300",
-            collapsed ? "ml-16" : "ml-64"
-          )}
-        >
-          <AppHeader
-            collapsed={collapsed}
-            onToggleCollapse={() => setCollapsed(!collapsed)}
-          />
-          <main className="flex-1 p-6 animate-fade-in">{children}</main>
+      <div className="flex min-h-screen flex-col bg-background">
+        <AppHeader
+          collapsed={collapsed}
+          onToggleCollapse={() => setCollapsed(!collapsed)}
+        />
+        <div className="flex flex-1 pt-14">
+          <AppSidebar collapsed={collapsed} inboxBadge={inboxCount} />
+          <main
+            className={cn(
+              "flex-1 p-6 transition-all duration-300 animate-fade-in",
+              collapsed ? "ml-16" : "ml-64"
+            )}
+          >
+            {children}
+          </main>
         </div>
       </div>
     </TooltipProvider>

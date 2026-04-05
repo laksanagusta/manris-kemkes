@@ -969,7 +969,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
               <CardContent className="space-y-8 px-6 py-6">
                 <div className="space-y-3">
                   <Label>
-                    Apa yang terjadi? <span className="text-destructive">*</span>
+                    Apa yang terjadi?<span className="text-destructive ml-0.5">*</span>
                   </Label>
                   <Textarea
                     value={manualWhat}
@@ -991,7 +991,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-3">
                     <Label>
-                      Siapa yang terlibat? <span className="text-destructive">*</span>
+                      Siapa yang terlibat?<span className="text-destructive ml-0.5">*</span>
                     </Label>
                     <Input
                       value={manualWho}
@@ -1001,7 +1001,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
                   </div>
                   <div className="space-y-3">
                     <Label>
-                      Di mana kejadian terjadi? <span className="text-destructive">*</span>
+                      Di mana kejadian terjadi?<span className="text-destructive ml-0.5">*</span>
                     </Label>
                     <Input
                       value={manualWhere}
@@ -1014,7 +1014,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-3">
                     <Label>
-                      Kapan kejadian berlangsung? <span className="text-destructive">*</span>
+                      Kapan kejadian berlangsung?<span className="text-destructive ml-0.5">*</span>
                     </Label>
                     <Input
                       type="datetime-local"
@@ -1024,7 +1024,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
                   </div>
                   <div className="space-y-3">
                     <Label>
-                      Seberapa serius dampaknya? <span className="text-destructive">*</span>
+                      Seberapa serius dampaknya?<span className="text-destructive ml-0.5">*</span>
                     </Label>
                     <Select
                       value={manualSeverity}

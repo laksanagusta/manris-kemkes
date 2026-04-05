@@ -166,14 +166,14 @@ export default function MinutesPage() {
                     <TableCell className="text-xs font-mono text-muted-foreground">
                       {minute.id.slice(0, 8)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-[300px]">
                       <Link
                         href={`/minutes/${minute.id}`}
-                        className="block text-xs font-medium leading-relaxed line-clamp-1 text-primary transition-colors hover:text-primary/80 hover:underline"
+                        className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
                       >
                         {minute.title || "-"}
                       </Link>
-                      <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
                         {minute.summary || "Belum ada ringkasan"}
                       </p>
                     </TableCell>

@@ -305,10 +305,10 @@ export function RiskReviewPanel() {
                   return (
                     <TableRow key={item.versionGroupId}>
                       <TableCell className="font-mono text-xs text-muted-foreground">{item.code || "-"}</TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-[300px]">
                         <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">{item.title}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">{item.changeReason || item.reviewSummary || "Belum ada ringkasan perubahan pada cycle ini."}</p>
+                          <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
+                          <p className="truncate text-xs text-muted-foreground">{item.changeReason || item.reviewSummary || "Belum ada ringkasan perubahan pada cycle ini."}</p>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{item.orgName || "-"}</TableCell>
@@ -395,7 +395,7 @@ export function RiskReviewPanel() {
                     </TableRow>
                   ) : summaryData?.unitCompletion.map((unit) => (
                     <TableRow key={unit.orgName}>
-                      <TableCell className="text-sm font-medium text-foreground">{unit.orgName || "-"}</TableCell>
+                      <TableCell className="max-w-[200px] text-sm font-medium text-foreground"><span className="block truncate">{unit.orgName || "-"}</span></TableCell>
                       <TableCell className="text-center text-sm">{unit.totalAssigned}</TableCell>
                       <TableCell className="text-center text-sm">{unit.completed}</TableCell>
                       <TableCell className="text-center text-sm">{unit.pending}</TableCell>
@@ -500,10 +500,10 @@ export function RiskReviewPanel() {
                 ) : comparisons.slice(0, 12).map((item) => (
                   <TableRow key={item.versionGroupId}>
                     <TableCell className="font-mono text-xs text-muted-foreground">{item.code}</TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-[300px]">
                       <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">{item.title}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-1">{item.changeReason || "Tidak ada alasan perubahan yang tercatat."}</p>
+                        <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">{item.changeReason || "Tidak ada alasan perubahan yang tercatat."}</p>
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{item.orgName || "-"}</TableCell>

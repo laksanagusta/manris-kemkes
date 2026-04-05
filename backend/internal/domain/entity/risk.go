@@ -1,11 +1,33 @@
 package entity
 
 import (
+	"math"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/errors"
 )
+
+// RiskLevel constants for Indonesian risk levels
+const (
+	RiskLevelSangatRendah = "sangat_rendah"
+	RiskLevelRendah       = "rendah"
+	RiskLevelSedang       = "sedang"
+	RiskLevelTinggi       = "tinggi"
+	RiskLevelSangatTinggi = "sangat_tinggi"
+)
+
+// BobotMatrix is the 5x5 weight matrix based on Probability (rows) and Impact (columns)
+// Rows: Probability 1-5 (Jarang to Hampir Pasti Terjadi)
+// Cols: Impact 1-5 (Tdk Signifikan to Katastropik)
+var BobotMatrix = [5][5]float64{
+	// Impact: 1(Tdk Signifikan), 2(Kecil), 3(Sedang), 4(Besar), 5(Katastropik)
+	{1.0, 1.5, 2.0, 3.0, 4.0},      // Prob 1: Jarang
+	{1.0, 1.8, 1.83, 1.9, 2.1},     // Prob 2: Kemungkinan Kecil
+	{1.17, 1.42, 1.43, 1.46, 1.47}, // Prob 3: Kemungkinan Sedang
+	{1.2, 1.19, 1.3, 1.16, 1.2},    // Prob 4: Kemungkinan Besar
+	{1.5, 1.4, 1.13, 1.15, 1.0},    // Prob 5: Hampir Pasti Terjadi
+}
 
 // Risk represents a risk register entry
 type Risk struct {
@@ -39,6 +61,7 @@ type Risk struct {
 	Probability          int     `json:"probability"`
 	Impact               int     `json:"impact"`
 	Weight               float64 `json:"weight,omitempty"`
+	Nilai                float64 `json:"nilai,omitempty"` // Nilai = Probability × Impact × Weight
 	InherentScore        int     `json:"inherentScore"`
 
 	// Section 3
@@ -53,6 +76,7 @@ type Risk struct {
 	TargetProbability int                  `json:"targetProbability,omitempty"`
 	TargetImpact      int                  `json:"targetImpact,omitempty"`
 	TargetWeight      float64              `json:"targetWeight,omitempty"`
+	TargetNilai       float64              `json:"targetNilai,omitempty"`
 	TargetScore       int                  `json:"targetScore,omitempty"`
 	NextReviewDate    *string              `json:"nextReviewDate,omitempty"`
 	AssessmentCycle   string               `json:"assessmentCycle,omitempty"`
@@ -125,22 +149,114 @@ func (r *Risk) CanBeSubmittedForApproval() bool {
 	return r.Status == "draft" || r.Status == "rejected"
 }
 
+// GetBobot returns the weight from the matrix based on probability and impact
+func GetBobot(probability, impact int) float64 {
+	if probability < 1 || probability > 5 || impact < 1 || impact > 5 {
+		return 1.0
+	}
+	return BobotMatrix[probability-1][impact-1]
+}
+
+// CalculateNilai calculates nilai = probability × impact × weight
+func CalculateNilai(probability, impact int, weight float64) float64 {
+	raw := float64(probability) * float64(impact) * weight
+	return math.Round(raw*100) / 100
+}
+
 // GetInherentScore calculates inherent score
 func (r *Risk) GetInherentScore() int {
 	return r.Probability * r.Impact
 }
 
-// GetRiskLevel returns risk level based on score
+// CalculateBobot calculates and sets the weight based on probability and impact
+func (r *Risk) CalculateBobot() {
+	r.Weight = GetBobot(r.Probability, r.Impact)
+}
+
+// CalculateNilai calculates and sets the nilai field
+func (r *Risk) CalculateNilai() {
+	r.Nilai = CalculateNilai(r.Probability, r.Impact, r.Weight)
+}
+
+// CalculateTargetBobot calculates and sets the target weight based on target probability and impact
+func (r *Risk) CalculateTargetBobot() {
+	r.TargetWeight = GetBobot(r.TargetProbability, r.TargetImpact)
+}
+
+// CalculateTargetNilai calculates and sets the target nilai field
+func (r *Risk) CalculateTargetNilai() {
+	r.TargetNilai = CalculateNilai(r.TargetProbability, r.TargetImpact, r.TargetWeight)
+}
+
+// GetRiskLevel returns Indonesian risk level based on nilai
+// Sangat Rendah: nilai < 5, Rendah: 5-9, Sedang: 10-14, Tinggi: 15-19, Sangat Tinggi: >= 20
 func (r *Risk) GetRiskLevel() string {
-	score := r.GetInherentScore()
-	if score >= 15 {
-		return "extreme"
-	} else if score >= 10 {
-		return "high"
-	} else if score >= 5 {
-		return "medium"
+	return GetRiskLevelFromNilai(r.Nilai)
+}
+
+// GetRiskLevelFromNilai returns Indonesian risk level based on nilai value
+func GetRiskLevelFromNilai(nilai float64) string {
+	switch {
+	case nilai >= 20:
+		return RiskLevelSangatTinggi
+	case nilai >= 15:
+		return RiskLevelTinggi
+	case nilai >= 10:
+		return RiskLevelSedang
+	case nilai >= 5:
+		return RiskLevelRendah
+	default:
+		return RiskLevelSangatRendah
 	}
-	return "low"
+}
+
+// GetRiskPriority returns priority based on risk level
+// Sangat Tinggi = 1, Tinggi = 2, Sedang = 3, Rendah = 4, Sangat Rendah = 5
+func (r *Risk) GetRiskPriority() int {
+	return GetRiskPriorityFromLevel(r.GetRiskLevel())
+}
+
+// GetRiskPriorityFromLevel returns priority number based on risk level string
+func GetRiskPriorityFromLevel(level string) int {
+	switch level {
+	case RiskLevelSangatTinggi:
+		return 1
+	case RiskLevelTinggi:
+		return 2
+	case RiskLevelSedang:
+		return 3
+	case RiskLevelRendah:
+		return 4
+	case RiskLevelSangatRendah:
+		return 5
+	default:
+		return 5
+	}
+}
+
+// GetRiskLevelDisplay returns the Indonesian display name for risk level
+func GetRiskLevelDisplay(level string) string {
+	switch level {
+	case RiskLevelSangatTinggi:
+		return "Sangat Tinggi"
+	case RiskLevelTinggi:
+		return "Tinggi"
+	case RiskLevelSedang:
+		return "Sedang"
+	case RiskLevelRendah:
+		return "Rendah"
+	case RiskLevelSangatRendah:
+		return "Sangat Rendah"
+	default:
+		return level
+	}
+}
+
+// CalculateAll computes bobot, nilai, and updates risk priority
+func (r *Risk) CalculateAll() {
+	r.CalculateBobot()
+	r.CalculateNilai()
+	r.RiskPriority = r.GetRiskPriority()
 }
 
 // IsFinal checks if risk is in final status

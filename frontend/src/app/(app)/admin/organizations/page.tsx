@@ -46,18 +46,18 @@ function OrgRow({
   return (
     <>
       <TableRow className="border-border/30 hover:bg-muted/30 transition-colors">
-        <TableCell>
+        <TableCell className="max-w-[300px]">
           <div
             className="flex items-center gap-2"
             style={{ paddingLeft: `${level * 24}px` }}
           >
             {hasChildren ? (
-              <ChevronRight className="size-3.5 text-muted-foreground" />
+              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
             ) : (
-              <span className="size-3.5" />
+              <span className="size-3.5 shrink-0" />
             )}
-            <Building2 className="size-4 text-muted-foreground" />
-            <span className="text-xs font-medium">{org.name}</span>
+            <Building2 className="size-4 shrink-0 text-muted-foreground" />
+            <span className="truncate text-xs font-medium">{org.name}</span>
           </div>
         </TableCell>
         <TableCell className="text-xs text-muted-foreground">

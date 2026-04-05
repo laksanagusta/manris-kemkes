@@ -106,7 +106,7 @@ interface TranscriptDraftPrefill {
   probability?: number;
   impact?: number;
   mitigation?: string;
-  treatmentOption?: "avoid" | "mitigate" | "transfer" | "accept";
+  treatmentOption?: "menerima" | "mitigasi" | "avoid" | "mitigate" | "transfer" | "accept";
 }
 
 interface Suggestion {

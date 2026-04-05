@@ -214,33 +214,10 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
+        "fixed left-0 top-14 z-40 flex h-[calc(100vh-3.5rem)] flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
         collapsed ? "w-16" : "w-64",
       )}
     >
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border/60 bg-primary/10 p-1.5">
-          <Image
-            src="/logo.svg"
-            alt="MANRIS logo"
-            width={20}
-            height={20}
-            className="object-contain"
-          />
-        </div>
-        {!collapsed && (
-          <div className="flex flex-col">
-            <span className="text-sm font-bold tracking-tight text-sidebar-foreground">
-              MANRIS
-            </span>
-            <span className="text-[10px] font-medium text-sidebar-foreground/50">
-              Risk Management v2
-            </span>
-          </div>
-        )}
-      </div>
-
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-6">

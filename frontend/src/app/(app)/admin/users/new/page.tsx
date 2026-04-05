@@ -104,7 +104,7 @@ export default function NewUserPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Nama lengkap <span className="text-destructive">*</span>
+              Nama lengkap<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Input
               placeholder="Contoh: Dr. Andi Pratama, M.Kes"
@@ -115,7 +115,7 @@ export default function NewUserPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Username <span className="text-destructive">*</span>
+              Username<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Input
               placeholder="Contoh: andi.pratama"
@@ -129,7 +129,7 @@ export default function NewUserPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Email <span className="text-destructive">*</span>
+              Email<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Input
               type="email"
@@ -141,7 +141,7 @@ export default function NewUserPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Password <span className="text-destructive">*</span>
+              Password<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Input
               type="password"
@@ -162,7 +162,7 @@ export default function NewUserPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Peran <span className="text-destructive">*</span>
+              Peran<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger className="h-10 text-sm">
@@ -187,7 +187,7 @@ export default function NewUserPage() {
 
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Unit kerja {role !== "superadmin" && <span className="text-destructive">*</span>}
+              Unit kerja {role !== "superadmin" &&<span className="text-destructive ml-0.5">*</span>}
             </Label>
             <Select value={orgId} onValueChange={setOrgId} disabled={role === "superadmin"}>
               <SelectTrigger className="h-10 text-sm">

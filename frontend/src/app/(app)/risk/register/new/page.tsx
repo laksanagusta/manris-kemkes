@@ -52,10 +52,14 @@ import {
 } from "lucide-react";
 
 import {
-  getRiskLevel,
+  getRiskLevelFromNilai,
   getRiskLevelLabel,
   levelToColor,
   riskCategoryLabels,
+  getBobot,
+  calculateNilai,
+  getRiskPriority,
+  calculateRiskMetrics,
 } from "@/lib/risk";
 import { EditableList } from "@/components/shared/editable-list";
 import { EditableItemsTable } from "@/components/shared/editable-items-table";
@@ -299,7 +303,7 @@ const formSchema = z.object({
     )
     .min(1, "Minimal pilih/isi 1 sebab"),
 
-  riskSource: z.string().optional(),
+  riskSource: z.enum(["internal", "eksternal"]).default("internal"),
   controllability: z.enum(["C", "UC"]).default("C"),
 
   impacts: z
@@ -316,10 +320,11 @@ const formSchema = z.object({
   probability: z.number().min(1).max(5).default(3),
   impact: z.number().min(1).max(5).default(3),
   weight: z.number().min(0.1).default(1.0),
+  nilai: z.number().min(0).default(0),
 
   riskPriority: z.number().min(0).default(0),
-  riskAppetite: z.string().optional(),
-  treatmentOption: z.string().optional(),
+  riskAppetite: z.enum(["dalam_batas", "di_atas_batas"]).default("dalam_batas"),
+  treatmentOption: z.enum(["menerima", "mitigasi"]).default(""),
 
   mitigations: z
     .array(
@@ -340,6 +345,7 @@ const formSchema = z.object({
   targetProbability: z.number().min(1).max(5).default(1),
   targetImpact: z.number().min(1).max(5).default(1),
   targetWeight: z.number().min(0.1).default(1.0),
+  targetNilai: z.number().min(0).default(0),
   nextReviewDate: z.string().optional(),
 });
 
@@ -375,7 +381,7 @@ function normalizeFormValues(values: FormInput): FormValues {
     organizationId: values.organizationId ?? "",
     riskCode: values.riskCode ?? "",
     causes: values.causes ?? [],
-    riskSource: values.riskSource ?? "",
+    riskSource: values.riskSource ?? "internal",
     controllability: values.controllability ?? "C",
     impacts: values.impacts ?? [],
     existingControl: values.existingControl ?? "",
@@ -384,7 +390,7 @@ function normalizeFormValues(values: FormInput): FormValues {
     impact: values.impact ?? 3,
     weight: values.weight ?? 1,
     riskPriority: values.riskPriority ?? 0,
-    riskAppetite: values.riskAppetite ?? "",
+    riskAppetite: values.riskAppetite ?? "dalam_batas",
     treatmentOption: values.treatmentOption ?? "",
     mitigations: (values.mitigations ?? []).map((mitigation) => ({
       ...mitigation,
@@ -432,7 +438,7 @@ export default function RiskInputPage() {
       riskCode: "",
       causes: [],
       impacts: [],
-      riskSource: "",
+      riskSource: "internal",
       controllability: "C",
       existingControl: "",
       controlEffectiveness: "",
@@ -440,7 +446,7 @@ export default function RiskInputPage() {
       impact: 3,
       weight: 1.0,
       riskPriority: 0,
-      riskAppetite: "",
+      riskAppetite: "dalam_batas",
       treatmentOption: "",
       mitigations: [],
       targetProbability: 1,
@@ -545,7 +551,7 @@ export default function RiskInputPage() {
           riskCode: risk.code || "",
           causes: loadedCauses,
           impacts: loadedImpacts,
-          riskSource: risk.riskSource || "",
+          riskSource: risk.riskSource || "internal",
           controllability: risk.controllability === "UC" ? "UC" : "C",
           existingControl: risk.existingControl || "",
           controlEffectiveness: risk.controlEffectiveness || "",
@@ -553,7 +559,7 @@ export default function RiskInputPage() {
           impact: risk.impact || 3,
           weight: risk.weight || 1.0,
           riskPriority: risk.riskPriority || 0,
-          riskAppetite: risk.riskAppetite || "",
+          riskAppetite: risk.riskAppetite || "dalam_batas",
           treatmentOption: risk.treatmentOption || "",
           mitigations: Array.isArray(risk.mitigations)
             ? risk.mitigations.map((mitigation) => ({
@@ -611,119 +617,155 @@ export default function RiskInputPage() {
     [reset, token],
   );
 
+  const currentOrganizationId = watch("organizationId");
+
   useEffect(() => {
-    if (token) {
-      api
-        .get<{ id: string; name: string }[]>("/organizations", token)
-        .then((res) => setOrganizations(res))
-        .catch(console.error);
-
-      api
-        .get<RoleUser[]>("/users", token)
-        .then((res) => {
-          const mappedUsers = res
-            .filter(
-              (u) =>
-                u.role === "unit" ||
-                u.role === "reviewer" ||
-                u.role === "pimpinan" ||
-                u.role === "superadmin",
-            )
-            .map((u) => ({ id: u.id, name: u.name }));
-          setAvailableUsers(mappedUsers);
-        })
-        .catch(console.error);
-    }
-    if (user?.organizationId) {
-      setValue("organizationId", user.organizationId);
-    }
-
-    const searchParams = new URLSearchParams(window.location.search);
-    const existingRiskId = searchParams.get("id");
-    const meetingPrefillToken = searchParams.get(
-      MEETING_INTELLIGENCE_PREFILL_PARAM,
-    );
-
-    if (existingRiskId && token) {
-      loadRiskData(existingRiskId);
-      return;
-    }
-
-    let meetingPrefill: RiskDraftPrefill | null = null;
-    if (meetingPrefillToken) {
-      meetingPrefill = consumeMeetingIntelligencePrefill(meetingPrefillToken);
-    }
-
-    if (!meetingPrefill) {
-      const meetingPrefillRaw = sessionStorage.getItem(
-        MEETING_INTELLIGENCE_PREFILL_KEY,
-      );
-      if (meetingPrefillRaw) {
-        try {
-          meetingPrefill = JSON.parse(meetingPrefillRaw) as RiskDraftPrefill;
-        } catch (error) {
-          console.error(
-            "Failed to parse legacy Meeting Intelligence prefill:",
-            error,
-          );
-        } finally {
-          sessionStorage.removeItem(MEETING_INTELLIGENCE_PREFILL_KEY);
-        }
+    if (!riskId && user?.organizationId && organizations.length > 0) {
+      if (!currentOrganizationId || currentOrganizationId === "") {
+        setValue("organizationId", user.organizationId, {
+          shouldValidate: true,
+        });
       }
     }
+  }, [
+    user,
+    user?.organizationId,
+    riskId,
+    organizations.length,
+    currentOrganizationId,
+    setValue,
+  ]);
 
-    if (!meetingPrefill) {
-      return;
-    }
+  useEffect(() => {
+    const init = async () => {
+      if (token) {
+        try {
+          const res = await api.get<any[]>("/organizations", token);
+          const normalized = res.map((org: any) => ({
+            id: org.id || org.ID,
+            name: org.name || org.Name,
+          }));
+          setOrganizations(normalized);
+        } catch (err) {
+          console.error(err);
+        }
 
-    try {
-      reset({
-        title: meetingPrefill.title || "",
-        description: meetingPrefill.description || "",
-        category: undefined,
-        organizationId: user?.organizationId || "",
-        riskCode: meetingPrefill.riskCode || "",
-        causes: meetingPrefill.quote
-          ? [{ id: "meeting-intelligence-quote", text: meetingPrefill.quote }]
-          : [],
-        impacts: [],
-        riskSource: meetingPrefill.source || "",
-        controllability: "C",
-        existingControl: "",
-        controlEffectiveness: "",
-        probability: meetingPrefill.probability || 3,
-        impact: meetingPrefill.impact || 3,
-        weight: 1.0,
-        riskPriority: 0,
-        riskAppetite: "",
-        treatmentOption: meetingPrefill.treatmentOption || "mitigate",
-        mitigations: meetingPrefill.mitigation
-          ? [
-              {
-                action: meetingPrefill.mitigation,
-                owner: "",
-                dueDate: "",
-                frequency: "insidental",
-              },
-            ]
-          : [],
-        targetProbability: Math.max(1, (meetingPrefill.probability || 3) - 1),
-        targetImpact: Math.max(1, (meetingPrefill.impact || 3) - 1),
-        targetWeight: 1.0,
-        nextReviewDate: "",
-      });
-      setAssessmentCycleDisplay(currentAssessmentCycle());
-      setRiskId(null);
-      setRiskStatus("draft");
-      toast.success(
-        "Draft risiko diisi dari rekomendasi Meeting Intelligence.",
+        api
+          .get<RoleUser[]>("/users", token)
+          .then((res) => {
+            const mappedUsers = res
+              .filter(
+                (u) =>
+                  u.role === "unit" ||
+                  u.role === "reviewer" ||
+                  u.role === "pimpinan" ||
+                  u.role === "superadmin",
+              )
+              .map((u) => ({ id: u.id, name: u.name }));
+            setAvailableUsers(mappedUsers);
+          })
+          .catch(console.error);
+      }
+
+      const searchParams = new URLSearchParams(window.location.search);
+      const existingRiskId = searchParams.get("id");
+      const meetingPrefillToken = searchParams.get(
+        MEETING_INTELLIGENCE_PREFILL_PARAM,
       );
-    } catch (error) {
-      console.error("Failed to apply Meeting Intelligence prefill:", error);
-      toast.error(
-        "Prefill dari Meeting Intelligence tidak dapat dibaca. Silakan isi draft secara manual.",
-      );
-    }
+
+      if (existingRiskId && token) {
+        await loadRiskData(existingRiskId);
+        return;
+      }
+
+      let meetingPrefill: RiskDraftPrefill | null = null;
+      if (meetingPrefillToken) {
+        meetingPrefill = consumeMeetingIntelligencePrefill(meetingPrefillToken);
+      }
+
+      if (!meetingPrefill) {
+        const meetingPrefillRaw = sessionStorage.getItem(
+          MEETING_INTELLIGENCE_PREFILL_KEY,
+        );
+        if (meetingPrefillRaw) {
+          try {
+            meetingPrefill = JSON.parse(
+              meetingPrefillRaw,
+            ) as RiskDraftPrefill;
+          } catch (error) {
+            console.error(
+              "Failed to parse legacy Meeting Intelligence prefill:",
+              error,
+            );
+          } finally {
+            sessionStorage.removeItem(MEETING_INTELLIGENCE_PREFILL_KEY);
+          }
+        }
+      }
+
+      if (!meetingPrefill) {
+        return;
+      }
+
+      try {
+        reset({
+          title: meetingPrefill.title || "",
+          description: meetingPrefill.description || "",
+          category: undefined,
+          organizationId: user?.organizationId || "",
+          riskCode: meetingPrefill.riskCode || "",
+          causes: meetingPrefill.quote
+            ? [
+                {
+                  id: "meeting-intelligence-quote",
+                  text: meetingPrefill.quote,
+                },
+              ]
+            : [],
+          impacts: [],
+          riskSource: (meetingPrefill.source as "internal" | "eksternal") || "internal",
+          controllability: "C",
+          existingControl: "",
+          controlEffectiveness: "",
+          probability: meetingPrefill.probability || 3,
+          impact: meetingPrefill.impact || 3,
+          weight: 1.0,
+          riskPriority: 0,
+          riskAppetite: "dalam_batas",
+          treatmentOption: (meetingPrefill.treatmentOption as "menerima" | "mitigasi") || "",
+          mitigations: meetingPrefill.mitigation
+            ? [
+                {
+                  action: meetingPrefill.mitigation,
+                  owner: "",
+                  dueDate: "",
+                  frequency: "insidental",
+                },
+              ]
+            : [],
+          targetProbability: Math.max(
+            1,
+            (meetingPrefill.probability || 3) - 1,
+          ),
+          targetImpact: Math.max(1, (meetingPrefill.impact || 3) - 1),
+          targetWeight: 1.0,
+          nextReviewDate: "",
+        });
+        setAssessmentCycleDisplay(currentAssessmentCycle());
+        setRiskId(null);
+        setRiskStatus("draft");
+        toast.success(
+          "Draft risiko diisi dari rekomendasi Meeting Intelligence.",
+        );
+      } catch (error) {
+        console.error("Failed to apply Meeting Intelligence prefill:", error);
+        toast.error(
+          "Prefill dari Meeting Intelligence tidak dapat dibaca. Silakan isi draft secara manual.",
+        );
+      }
+    };
+
+    init();
   }, [loadRiskData, reset, setValue, token, user]);
 
   // UI state
@@ -734,11 +776,16 @@ export default function RiskInputPage() {
   const [showRiskSuggestions, setShowRiskSuggestions] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("form");
 
-  // Computed
-  const score = probability * impact;
-  const level = useMemo(() => getRiskLevel(score), [score]);
-  const targetScore = targetProbability * targetImpact;
-  const targetLevel = useMemo(() => getRiskLevel(targetScore), [targetScore]);
+  // Computed - using new bobot matrix and nilai calculation
+  const weight = useMemo(() => getBobot(probability, impact), [probability, impact]);
+  const nilai = useMemo(() => calculateNilai(probability, impact, weight), [probability, impact, weight]);
+  const level = useMemo(() => getRiskLevelFromNilai(nilai), [nilai]);
+  const riskPriority = useMemo(() => getRiskPriority(level), [level]);
+
+  const targetWeight = useMemo(() => getBobot(targetProbability, targetImpact), [targetProbability, targetImpact]);
+  const targetNilai = useMemo(() => calculateNilai(targetProbability, targetImpact, targetWeight), [targetProbability, targetImpact, targetWeight]);
+  const targetLevel = useMemo(() => getRiskLevelFromNilai(targetNilai), [targetNilai]);
+  const targetPriority = useMemo(() => getRiskPriority(targetLevel), [targetLevel]);
   const canUseAiAssist =
     title.trim().length > 0 && description.trim().length > 0;
 
@@ -766,7 +813,7 @@ export default function RiskInputPage() {
       done:
         (existingControl || "").trim().length > 0 &&
         !!controlEffectiveness &&
-        score > 0,
+        nilai > 0,
       hint: "Isi pengendalian yang ada dan nilai efektivitasnya.",
     },
     {
@@ -793,7 +840,7 @@ export default function RiskInputPage() {
       title: "Target Penurunan",
       description:
         "Tetapkan target residual risk agar reviewer melihat tujuan akhirnya dengan jelas.",
-      done: targetScore > 0,
+      done: targetNilai > 0,
       hint: "Tetapkan target probabilitas dan dampak residual.",
     },
     {
@@ -883,6 +930,8 @@ export default function RiskInputPage() {
     } else if (data.organizationId && data.organizationId.trim() !== "") {
       orgId = data.organizationId;
     }
+
+    console.log("orgId", orgId);
 
     return {
       title: data.title,
@@ -974,16 +1023,17 @@ export default function RiskInputPage() {
         setRiskId(res.id);
         setValue("riskCode", res.code || "");
         currentRiskId = res.id;
-        if (isDraft) {
-          const newUrl = `/risk/register/new?id=${res.id}`;
-          window.history.replaceState(null, "", newUrl);
-        }
       }
 
       if (isDraft) {
         toast.success("Draft berhasil disimpan!");
         if (!riskId && currentRiskId) {
-          router.push(`/risk/register/new?id=${currentRiskId}`);
+          window.history.replaceState(
+            null,
+            "",
+            `/risk/register/new?id=${currentRiskId}`,
+          );
+          await loadRiskData(currentRiskId);
           return;
         }
       } else {
@@ -1084,7 +1134,7 @@ export default function RiskInputPage() {
     if (!riskId) return;
     setShowDeleteConfirm(false);
     const promise = (async () => {
-      await api.delete(`/risks/${riskId}`, token || undefined);
+      await api.delete(`/risks/${riskId}`, undefined, token || undefined);
       router.push("/risk/register");
     })();
 
@@ -1428,7 +1478,7 @@ export default function RiskInputPage() {
                 <div className="relative space-y-1.5">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <Label className="text-sm font-medium">
-                      Risiko <span className="text-muted-foreground">*</span>
+                      Risiko<span className="text-destructive ml-0.5">*</span>
                     </Label>
                     <AiFieldButton
                       loading={generatingRisk}
@@ -1488,8 +1538,8 @@ export default function RiskInputPage() {
 
                 <div className="space-y-1.5">
                   <Label className="text-sm font-medium">
-                    Deskripsi Kejadian Risiko{" "}
-                    <span className="text-muted-foreground">*</span>
+                    Deskripsi Kejadian Risiko
+                    <span className="text-destructive ml-0.5">*</span>
                   </Label>
                   <Controller
                     name="description"
@@ -1511,8 +1561,8 @@ export default function RiskInputPage() {
 
                 <div className="space-y-1.5">
                   <Label className="text-sm font-medium">
-                    Kategori Risiko{" "}
-                    <span className="text-muted-foreground">*</span>
+                    Kategori Risiko
+                    <span className="text-destructive ml-0.5">*</span>
                   </Label>
                   <Controller
                     name="category"
@@ -1586,7 +1636,7 @@ export default function RiskInputPage() {
                         <Select
                           value={field.value}
                           onValueChange={field.onChange}
-                          disabled={isRiskLocked}
+                          disabled={true}
                         >
                           <SelectTrigger className="h-9 text-sm">
                             <SelectValue placeholder="Pilih Unit Kerja" />
@@ -1613,7 +1663,7 @@ export default function RiskInputPage() {
                 <div className="space-y-1.5">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <Label className="text-sm font-medium">
-                      Sebab <span className="text-muted-foreground">*</span>
+                      Sebab<span className="text-destructive ml-0.5">*</span>
                     </Label>
                     <AiFieldButton
                       loading={generatingCause}
@@ -1641,23 +1691,36 @@ export default function RiskInputPage() {
 
                 <div className="grid gap-5 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Sumber Risiko</Label>
+                    <Label className="text-sm font-medium">
+                      Sumber Risiko<span className="text-destructive ml-0.5">*</span>
+                    </Label>
                     <Controller
                       name="riskSource"
                       control={control}
                       render={({ field }) => (
-                        <Input
-                          {...field}
-                          placeholder="Contoh: proses internal, SDM, vendor, regulasi"
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
                           disabled={isRiskLocked}
-                          className="text-sm"
-                        />
+                        >
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue placeholder="Pilih sumber risiko" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="internal" className="text-sm">
+                              Internal
+                            </SelectItem>
+                            <SelectItem value="eksternal" className="text-sm">
+                              Eksternal
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       )}
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">
-                      Tingkat Kendali
+                      Tingkat Kendali<span className="text-destructive ml-0.5">*</span>
                     </Label>
                     <Controller
                       name="controllability"
@@ -1673,10 +1736,10 @@ export default function RiskInputPage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="C" className="text-sm">
-                              Dapat dikendalikan
+                              Controllable
                             </SelectItem>
                             <SelectItem value="UC" className="text-sm">
-                              Sulit dikendalikan
+                              Uncontrollable
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -1688,7 +1751,7 @@ export default function RiskInputPage() {
                 <div className="space-y-1.5">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <Label className="text-sm font-medium">
-                      Dampak <span className="text-muted-foreground">*</span>
+                      Dampak<span className="text-destructive ml-0.5">*</span>
                     </Label>
                     <AiFieldButton
                       loading={generatingImpact}
@@ -1774,25 +1837,6 @@ export default function RiskInputPage() {
                       )}
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Bobot</Label>
-                    <Controller
-                      name="weight"
-                      control={control}
-                      render={({ field }) => (
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={field.value}
-                          onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value))
-                          }
-                          disabled={isRiskLocked}
-                          className="text-sm"
-                        />
-                      )}
-                    />
-                  </div>
                 </div>
 
                 <div className="grid gap-5 md:grid-cols-2">
@@ -1812,7 +1856,7 @@ export default function RiskInputPage() {
                           className={cn(
                             "h-10 rounded-lg border text-sm font-semibold transition-colors",
                             val === probability
-                              ? `${levelToColor(getRiskLevel(val * impact))} ring-1 font-bold`
+                              ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, impact, getBobot(val, impact))))} ring-1 font-bold`
                               : "bg-muted/30 hover:bg-muted/50",
                             isRiskLocked &&
                               "cursor-not-allowed opacity-70 hover:bg-muted/30",
@@ -1837,7 +1881,7 @@ export default function RiskInputPage() {
                           className={cn(
                             "h-10 rounded-lg border text-sm font-semibold transition-colors",
                             val === impact
-                              ? `${levelToColor(getRiskLevel(probability * val))} ring-1 font-bold`
+                              ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(probability, val, getBobot(probability, val))))} ring-1 font-bold`
                               : "bg-muted/30 hover:bg-muted/50",
                             isRiskLocked &&
                               "cursor-not-allowed opacity-70 hover:bg-muted/30",
@@ -1856,12 +1900,17 @@ export default function RiskInputPage() {
                     levelToColor(level),
                   )}
                 >
-                  <p className="text-xs font-semibold">Hasil Asesmen</p>
+                  <div className="text-left">
+                    <p className="text-xs font-semibold">Hasil Asesmen</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Bobot: {weight.toFixed(2)} | Prioritas: {riskPriority}
+                    </p>
+                  </div>
                   <div className="text-right">
                     <p className="text-lg font-bold">
                       {getRiskLevelLabel(level)}
                     </p>
-                    <p className="text-xs font-mono">Skor: {score}</p>
+                    <p className="text-xs font-mono">Nilai: {Math.round(nilai)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1882,41 +1931,45 @@ export default function RiskInputPage() {
                     <Label className="text-sm font-medium">
                       Prioritas Risiko
                     </Label>
-                    <Controller
-                      name="riskPriority"
-                      control={control}
-                      render={({ field }) => (
-                        <Input
-                          type="number"
-                          value={field.value}
-                          onChange={(e) =>
-                            field.onChange(parseInt(e.target.value) || 0)
-                          }
-                          disabled={isRiskLocked}
-                          className="text-sm"
-                        />
-                      )}
-                    />
+                    <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3 text-sm">
+                      <span className="font-semibold">{riskPriority}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (Otomatis dari tingkat risiko)
+                      </span>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Selera Risiko</Label>
+                    <Label className="text-sm font-medium">
+                      Selera Risiko<span className="text-destructive ml-0.5">*</span>
+                    </Label>
                     <Controller
                       name="riskAppetite"
                       control={control}
                       render={({ field }) => (
-                        <Input
-                          {...field}
-                          placeholder="Contoh: rendah, sedang, tinggi"
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
                           disabled={isRiskLocked}
-                          className="text-sm"
-                        />
+                        >
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue placeholder="Pilih selera risiko" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="dalam_batas" className="text-sm">
+                              Dalam batas selera risiko
+                            </SelectItem>
+                            <SelectItem value="di_atas_batas" className="text-sm">
+                              Di atas batas selera risiko
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       )}
                     />
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-sm font-medium">
-                    Pilihan Penanganan
+                    Pilihan Penanganan<span className="text-destructive ml-0.5">*</span>
                   </Label>
                   <Controller
                     name="treatmentOption"
@@ -1928,20 +1981,14 @@ export default function RiskInputPage() {
                         disabled={isRiskLocked}
                       >
                         <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Pilih strategi penanganan" />
+                          <SelectValue placeholder="Pilih penanganan" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="avoid" className="text-sm">
-                            Hindari (Avoid)
+                          <SelectItem value="menerima" className="text-sm">
+                            Menerima
                           </SelectItem>
-                          <SelectItem value="mitigate" className="text-sm">
-                            Mitigasi (Mitigate)
-                          </SelectItem>
-                          <SelectItem value="transfer" className="text-sm">
-                            Transfer
-                          </SelectItem>
-                          <SelectItem value="accept" className="text-sm">
-                            Terima (Accept)
+                          <SelectItem value="mitigasi" className="text-sm">
+                            Mitigasi
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -2038,7 +2085,7 @@ export default function RiskInputPage() {
                           className={cn(
                             "h-10 rounded-lg border text-sm font-semibold transition-colors",
                             val === targetProbability
-                              ? `${levelToColor(getRiskLevel(val * targetImpact))} ring-1 font-bold`
+                              ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, targetImpact, getBobot(val, targetImpact))))} ring-1 font-bold`
                               : "bg-muted/30 hover:bg-muted/50",
                             isRiskLocked &&
                               "cursor-not-allowed opacity-70 hover:bg-muted/30",
@@ -2061,7 +2108,7 @@ export default function RiskInputPage() {
                           className={cn(
                             "h-10 rounded-lg border text-sm font-semibold transition-colors",
                             val === targetImpact
-                              ? `${levelToColor(getRiskLevel(targetProbability * val))} ring-1 font-bold`
+                              ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(targetProbability, val, getBobot(targetProbability, val))))} ring-1 font-bold`
                               : "bg-muted/30 hover:bg-muted/50",
                             isRiskLocked &&
                               "cursor-not-allowed opacity-70 hover:bg-muted/30",
@@ -2073,42 +2120,22 @@ export default function RiskInputPage() {
                     </div>
                   </div>
                 </div>
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Target Bobot</Label>
-                    <Controller
-                      name="targetWeight"
-                      control={control}
-                      render={({ field }) => (
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={field.value}
-                          onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value))
-                          }
-                          disabled={isRiskLocked}
-                          className="text-sm"
-                        />
-                      )}
-                    />
-                  </div>
-                  <div id="jadwal" className="space-y-1.5 scroll-mt-28">
-                    <Label className="text-sm font-medium">Jadwal Review</Label>
-                    <Controller
-                      name="nextReviewDate"
-                      control={control}
-                      render={({ field }) => (
-                        <Input
-                          type="date"
-                          value={field.value || ""}
-                          onChange={field.onChange}
-                          disabled={isRiskLocked}
-                          className="text-sm"
-                        />
-                      )}
-                    />
-                  </div>
+
+                <div className="space-y-1.5 scroll-mt-28" id="jadwal">
+                  <Label className="text-sm font-medium">Jadwal Review</Label>
+                  <Controller
+                    name="nextReviewDate"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        type="date"
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        disabled={isRiskLocked}
+                        className="text-sm"
+                      />
+                    )}
+                  />
                 </div>
                 <div
                   className={cn(
@@ -2116,12 +2143,17 @@ export default function RiskInputPage() {
                     levelToColor(targetLevel),
                   )}
                 >
-                  <p className="text-xs font-semibold">Target Residual Risk</p>
+                  <div className="text-left">
+                    <p className="text-xs font-semibold">Target Residual Risk</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Bobot: {targetWeight.toFixed(2)} | Prioritas: {targetPriority}
+                    </p>
+                  </div>
                   <div className="text-right">
                     <p className="text-lg font-bold">
                       {getRiskLevelLabel(targetLevel)}
                     </p>
-                    <p className="text-xs font-mono">Skor: {targetScore}</p>
+                    <p className="text-xs font-mono">Nilai: {Math.round(targetNilai)}</p>
                   </div>
                 </div>
               </CardContent>

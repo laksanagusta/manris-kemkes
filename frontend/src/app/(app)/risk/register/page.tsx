@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { riskCategoryLabels } from "@/lib/risk";
+import { riskCategoryLabels, getRiskLevelFromNilai, getRiskLevelLabel, levelToColor, calculateRiskMetrics } from "@/lib/risk";
 import {
   Plus,
   Search,
@@ -60,10 +60,11 @@ import {
 } from "lucide-react";
 
 const levelBadgeVariant: Record<string, string> = {
+  "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
   Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
   Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
   Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  Ekstrem: "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+  "Sangat Tinggi": "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
 };
 
 const statusVariant: Record<string, string> = {
@@ -85,9 +86,13 @@ type RiskListItem = {
   updatedAt?: string;
   probability?: number;
   impact?: number;
+  weight?: number;
+  nilai?: number;
   inherentScore?: number;
   targetProbability?: number;
   targetImpact?: number;
+  targetWeight?: number;
+  targetNilai?: number;
   cause?: string[];
   impactDesc?: string[];
   existingControl?: string;
@@ -121,13 +126,13 @@ type VersionOption = {
   isCurrent: boolean;
 };
 
-function getRiskLevel(prob: number | undefined, impact: number | undefined): string {
-  if (prob === undefined || impact === undefined || isNaN(prob) || isNaN(impact)) return "Rendah";
-  const score = (prob + 1) * (impact + 1);
-  if (score <= 4) return "Rendah";
-  if (score <= 9) return "Sedang";
-  if (score <= 16) return "Tinggi";
-  return "Ekstrem";
+function getRiskLevel(nilai: number | undefined): string {
+  if (nilai === undefined || isNaN(nilai)) return "Sangat Rendah";
+  if (nilai >= 20) return "Sangat Tinggi";
+  if (nilai >= 15) return "Tinggi";
+  if (nilai >= 10) return "Sedang";
+  if (nilai >= 5) return "Rendah";
+  return "Sangat Rendah";
 }
 
 function computeCompleteness(draft: RiskListItem) {
@@ -169,8 +174,8 @@ function buildHistoryItem(version: RiskVersionTimelineItem, current: RiskVersion
     title: version.title || current.title || "-",
     unit: current.orgName || version.orgName || "—",
     cycle: formatCycleLabel(version.assessmentCycle, version.createdAt),
-    previousLevel: getRiskLevel((version.probability ?? 1) - 1, (version.impact ?? 1) - 1),
-    currentLevel: getRiskLevel((current.probability ?? 1) - 1, (current.impact ?? 1) - 1),
+    previousLevel: getRiskLevel(version.nilai),
+    currentLevel: getRiskLevel(current.nilai),
     trend,
     changeReason: version.changeReason || `Skor ${previousScore} dibanding current ${currentScore}`,
     isCurrent: version.isCurrent,
@@ -332,7 +337,7 @@ export default function RiskRegisterPage() {
   const handleDeleteDraft = async (id: string) => {
     toast.promise(
       (async () => {
-        await api.delete(`/risks/${id}`, token || undefined);
+        await api.delete(`/risks/${id}`, undefined, token || undefined);
         if (token) await refreshRisks(token);
       })(),
       {
@@ -458,10 +463,11 @@ export default function RiskRegisterPage() {
           <div className="flex flex-wrap gap-2">
               {[
                 { label: `Total: ${risks.length}`, variant: "outline" as const },
-              { label: `Ekstrem: ${risks.filter(r => getRiskLevel((r.probability ?? 1) - 1, (r.impact ?? 1) - 1) === 'Ekstrem').length}`, cls: levelBadgeVariant.Ekstrem },
-              { label: `Tinggi: ${risks.filter(r => getRiskLevel((r.probability ?? 1) - 1, (r.impact ?? 1) - 1) === 'Tinggi').length}`, cls: levelBadgeVariant.Tinggi },
-              { label: `Sedang: ${risks.filter(r => getRiskLevel((r.probability ?? 1) - 1, (r.impact ?? 1) - 1) === 'Sedang').length}`, cls: levelBadgeVariant.Sedang },
-              { label: `Rendah: ${risks.filter(r => getRiskLevel((r.probability ?? 1) - 1, (r.impact ?? 1) - 1) === 'Rendah').length}`, cls: levelBadgeVariant.Rendah },
+              { label: `Sangat Tinggi: ${risks.filter(r => getRiskLevel(r.nilai) === 'Sangat Tinggi').length}`, cls: levelBadgeVariant["Sangat Tinggi"] },
+              { label: `Tinggi: ${risks.filter(r => getRiskLevel(r.nilai) === 'Tinggi').length}`, cls: levelBadgeVariant.Tinggi },
+              { label: `Sedang: ${risks.filter(r => getRiskLevel(r.nilai) === 'Sedang').length}`, cls: levelBadgeVariant.Sedang },
+              { label: `Rendah: ${risks.filter(r => getRiskLevel(r.nilai) === 'Rendah').length}`, cls: levelBadgeVariant.Rendah },
+              { label: `Sangat Rendah: ${risks.filter(r => getRiskLevel(r.nilai) === 'Sangat Rendah').length}`, cls: levelBadgeVariant["Sangat Rendah"] },
             ].filter(b => b.cls !== undefined).map((b) => (
               <Badge
                 key={b.label}
@@ -499,15 +505,16 @@ export default function RiskRegisterPage() {
                   </SelectContent>
                 </Select>
                 <Select defaultValue="all">
-                  <SelectTrigger className="h-8 w-32 text-xs bg-muted/30 border-none">
+                  <SelectTrigger className="h-8 w-40 text-xs bg-muted/30 border-none">
                     <SelectValue placeholder="Level" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Level</SelectItem>
-                    <SelectItem value="extreme">Ekstrem</SelectItem>
-                    <SelectItem value="high">Tinggi</SelectItem>
-                    <SelectItem value="medium">Sedang</SelectItem>
-                    <SelectItem value="low">Rendah</SelectItem>
+                    <SelectItem value="sangat_tinggi">Sangat Tinggi</SelectItem>
+                    <SelectItem value="tinggi">Tinggi</SelectItem>
+                    <SelectItem value="sedang">Sedang</SelectItem>
+                    <SelectItem value="rendah">Rendah</SelectItem>
+                    <SelectItem value="sangat_rendah">Sangat Rendah</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -549,7 +556,7 @@ export default function RiskRegisterPage() {
                   <TableHead className="text-xs w-32">Kategori</TableHead>
                   <TableHead className="text-xs w-28">Periode</TableHead>
                   <TableHead className="text-xs w-32">Unit Kerja</TableHead>
-                  <TableHead className="text-xs text-center w-16">Skor</TableHead>
+                  <TableHead className="text-xs text-center w-16">Nilai</TableHead>
                   <TableHead className="text-xs w-24">Level</TableHead>
                   <TableHead className="text-xs w-24">Status</TableHead>
                   <TableHead className="text-xs w-28">Perlakuan</TableHead>
@@ -564,7 +571,7 @@ export default function RiskRegisterPage() {
                     </TableCell>
                   </TableRow>
                 ) : filteredRisks.map((risk) => {
-                  const levelLabel = getRiskLevel((risk.probability ?? 1) - 1, (risk.impact ?? 1) - 1);
+                  const levelLabel = getRiskLevel(risk.nilai);
                   const canReassess = risk.status === "approved" && risk.isCurrent;
                   return (
                   <TableRow
@@ -574,10 +581,10 @@ export default function RiskRegisterPage() {
                     <TableCell className="text-xs font-mono text-muted-foreground">
                       {risk.code || "-"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-[300px]">
                       <Link
                         href={`/risk/register/${risk.id}`}
-                        className="block text-xs font-medium leading-relaxed line-clamp-1 text-primary transition-colors hover:text-primary/80 hover:underline"
+                        className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
                       >
                         {risk.title || "-"}
                       </Link>
@@ -592,7 +599,7 @@ export default function RiskRegisterPage() {
                       {risk.orgName || "-"}
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="text-xs font-bold">{risk.inherentScore ?? "-"}</span>
+                      <span className="text-xs font-bold">{risk.nilai?.toFixed(2) ?? "-"}</span>
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -694,8 +701,8 @@ export default function RiskRegisterPage() {
                   return (
                   <TableRow key={draft.id} className="border-border/30 hover:bg-muted/30">
                     <TableCell className="text-xs font-mono text-muted-foreground">{draft.code || (draft.id ? draft.id.substring(0,8) : "-")}</TableCell>
-                    <TableCell>
-                      <Link href={`/risk/register/${draft.id}`} className="block text-xs font-medium leading-relaxed line-clamp-1 text-primary transition-colors hover:text-primary/80 hover:underline">
+                    <TableCell className="max-w-[300px]">
+                      <Link href={`/risk/register/${draft.id}`} className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline">
                         {draft.title || "Tanpa Judul"}
                       </Link>
                     </TableCell>
@@ -727,27 +734,15 @@ export default function RiskRegisterPage() {
                     <TableCell>
                       <div className="flex justify-end gap-1">
                         {draft.status === 'draft' && (
-                          <>
-                            {completeness === 100 && (
-                              <Button
-                                size="sm"
-                                className="h-7 gap-1.5 px-2 text-xs bg-success/80 hover:bg-success"
-                                onClick={() => handleSubmitDraft(draft)}
-                              >
-                                <Send className="size-3" />
-                                Ajukan
-                              </Button>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                              onClick={() => setDraftToDelete(draft)}
-                            >
-                              <Trash2 className="size-3" />
-                              Hapus
-                            </Button>
-                          </>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => setDraftToDelete(draft)}
+                          >
+                            <Trash2 className="size-3" />
+                            Hapus
+                          </Button>
                         )}
                       </div>
                     </TableCell>
@@ -848,10 +843,10 @@ export default function RiskRegisterPage() {
                       ) : (
                         <TableRow key={selectedHistory.id} className="border-border/30 hover:bg-muted/30">
                           <TableCell className="text-xs font-mono text-muted-foreground">{selectedHistory.riskId || "-"}</TableCell>
-                          <TableCell>
-                            <p className="text-xs font-medium leading-relaxed">{selectedHistory.title || "-"}</p>
+                          <TableCell className="max-w-[300px]">
+                            <p className="truncate text-xs font-medium leading-relaxed">{selectedHistory.title || "-"}</p>
                             <p className="text-[10px] text-muted-foreground mt-0.5">{selectedHistory.cycle}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2 italic text-primary/70">{selectedHistory.changeReason || "-"}</p>
+                            <p className="truncate text-[10px] text-muted-foreground mt-0.5 italic text-primary/70">{selectedHistory.changeReason || "-"}</p>
                           </TableCell>
                           <TableCell>
                             <Badge className={cn("text-[10px] font-semibold border h-5 px-1.5", levelBadgeVariant[selectedHistory.previousLevel] || levelBadgeVariant.Rendah)}>

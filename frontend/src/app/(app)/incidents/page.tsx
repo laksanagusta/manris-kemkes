@@ -271,11 +271,11 @@ export default function IncidentPage() {
                   <TableCell className="text-xs font-mono text-muted-foreground">
                     {incident.code || incident.id.slice(0, 8)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="max-w-[300px]">
                     <div className="min-w-0 text-xs">
                       <Link
                         href={`/incidents/${incident.id}`}
-                        className="truncate font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
+                        className="block truncate font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
                       >
                         {incident.title}
                       </Link>
@@ -321,17 +321,17 @@ export default function IncidentPage() {
                       {getStatusLabel(incident.status)}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="max-w-[200px]">
                     {incident.linkedRisks && incident.linkedRisks.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {incident.linkedRisks.map((risk) => (
                           <Link
                             key={`${incident.id}-${risk.id}`}
                             href={`/risk/register/${risk.id}`}
-                            className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] text-primary hover:bg-primary/15"
+                            className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] text-primary hover:bg-primary/15"
                           >
-                            <ShieldAlert className="size-3" />
-                            {risk.code || risk.title}
+                            <ShieldAlert className="size-3 shrink-0" />
+                            <span className="truncate">{risk.code || risk.title}</span>
                           </Link>
                         ))}
                       </div>

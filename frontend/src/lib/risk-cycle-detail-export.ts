@@ -10,10 +10,12 @@ type QuantitativeField =
   | "probability"
   | "impact"
   | "inherentScore"
+  | "nilai"
   | "riskPriority"
   | "targetProbability"
   | "targetImpact"
-  | "targetScore";
+  | "targetScore"
+  | "targetNilai";
 
 const coreFieldOrder = [
   "description",
@@ -23,11 +25,13 @@ const coreFieldOrder = [
   "probability",
   "impact",
   "inherentScore",
+  "nilai",
   "riskPriority",
   "treatmentOption",
   "targetProbability",
   "targetImpact",
   "targetScore",
+  "targetNilai",
   "nextReviewDate",
   "mitigations",
 ] as const;
@@ -36,10 +40,12 @@ const quantitativeFields: QuantitativeField[] = [
   "probability",
   "impact",
   "inherentScore",
+  "nilai",
   "riskPriority",
   "targetProbability",
   "targetImpact",
   "targetScore",
+  "targetNilai",
 ];
 
 const exceljsFillGreen: Partial<ExcelJS.FillPattern> = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8F5E9" } };
@@ -259,11 +265,13 @@ function buildTopBottomRows(items: RiskCycleDetailedComparisonItem[]): ExportRow
       probability: sideBySideValue(item, "from", "probability"),
       impact: sideBySideValue(item, "from", "impact"),
       inherentScore: sideBySideValue(item, "from", "inherentScore"),
+      nilai: sideBySideValue(item, "from", "nilai"),
       riskPriority: sideBySideValue(item, "from", "riskPriority"),
       treatmentOption: sideBySideValue(item, "from", "treatmentOption"),
       targetProbability: sideBySideValue(item, "from", "targetProbability"),
       targetImpact: sideBySideValue(item, "from", "targetImpact"),
       targetScore: sideBySideValue(item, "from", "targetScore"),
+      targetNilai: sideBySideValue(item, "from", "targetNilai"),
       nextReviewDate: sideBySideValue(item, "from", "nextReviewDate"),
       mitigations: sideBySideValue(item, "from", "mitigations"),
     };
@@ -278,11 +286,13 @@ function buildTopBottomRows(items: RiskCycleDetailedComparisonItem[]): ExportRow
       probability: sideBySideValue(item, "to", "probability"),
       impact: sideBySideValue(item, "to", "impact"),
       inherentScore: sideBySideValue(item, "to", "inherentScore"),
+      nilai: sideBySideValue(item, "to", "nilai"),
       riskPriority: sideBySideValue(item, "to", "riskPriority"),
       treatmentOption: sideBySideValue(item, "to", "treatmentOption"),
       targetProbability: sideBySideValue(item, "to", "targetProbability"),
       targetImpact: sideBySideValue(item, "to", "targetImpact"),
       targetScore: sideBySideValue(item, "to", "targetScore"),
+      targetNilai: sideBySideValue(item, "to", "targetNilai"),
       nextReviewDate: sideBySideValue(item, "to", "nextReviewDate"),
       mitigations: sideBySideValue(item, "to", "mitigations"),
     };
@@ -373,11 +383,13 @@ export async function createRiskCycleDetailWorkbookBuffer(report: RiskCycleDetai
     { header: "probability", key: "probability", width: 14 },
     { header: "impact", key: "impact", width: 12 },
     { header: "inherentScore", key: "inherentScore", width: 14 },
+    { header: "nilai", key: "nilai", width: 12 },
     { header: "riskPriority", key: "riskPriority", width: 14 },
     { header: "treatmentOption", key: "treatmentOption", width: 16 },
     { header: "targetProbability", key: "targetProbability", width: 18 },
     { header: "targetImpact", key: "targetImpact", width: 14 },
     { header: "targetScore", key: "targetScore", width: 14 },
+    { header: "targetNilai", key: "targetNilai", width: 12 },
     { header: "nextReviewDate", key: "nextReviewDate", width: 16 },
     { header: "mitigations", key: "mitigations", width: 48 },
   ];

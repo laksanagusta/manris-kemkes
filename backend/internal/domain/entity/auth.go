@@ -15,10 +15,11 @@ type AuthToken struct {
 
 // UserPublic represents user information that can be exposed publicly
 type UserPublic struct {
-	ID       uuid.UUID `json:"id"`
-	Username string    `json:"username"`
-	Name     string    `json:"name"`
-	Role     string    `json:"role"`
+	ID             uuid.UUID  `json:"id"`
+	Username       string     `json:"username"`
+	Name           string     `json:"name"`
+	Role           string     `json:"role"`
+	OrganizationID *uuid.UUID `json:"organizationId,omitempty"`
 }
 
 // LoginCredentials represents user login input
@@ -53,9 +54,10 @@ type UserProfile struct {
 // ToPublic converts UserProfile to UserPublic
 func (u *UserProfile) ToPublic() *UserPublic {
 	return &UserPublic{
-		ID:       u.ID,
-		Username: u.Username,
-		Name:     u.Name,
-		Role:     u.Role,
+		ID:             u.ID,
+		Username:       u.Username,
+		Name:           u.Name,
+		Role:           u.Role,
+		OrganizationID: u.OrganizationID,
 	}
 }
