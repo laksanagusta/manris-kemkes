@@ -249,7 +249,7 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	return risks, nil
 }
 
-// ListApprovedRisks returns all approved risks for trend analysis (includes all versions, not just current)
+// ListApprovedRisks returns approved risks for trend analysis (one version per cycle per risk)
 func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
 	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
@@ -264,7 +264,7 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 	           FROM risks r
 	           LEFT JOIN organizations o ON r.organization_id = o.id
 	           LEFT JOIN users u ON r.created_by = u.id
-	           WHERE r.status = 'approved'`
+	           WHERE r.status = 'approved' AND r.is_cycle_current = TRUE`
 	var args []interface{}
 	argIdx := 1
 
@@ -307,7 +307,7 @@ func (r *riskRepository) ListMitigations(ctx context.Context, orgIDs []uuid.UUID
 	                 r.code as risk_code, r.title as risk_title, r.organization_id as risk_org_id, r.probability, r.impact
 	          FROM mitigations m
 	          JOIN risks r ON m.risk_id = r.id
-	          WHERE r.status != 'draft' AND r.is_current = TRUE`
+	          WHERE r.status != 'draft' AND r.is_current = TRUE AND r.is_cycle_current = TRUE`
 	var args []interface{}
 
 	if len(orgIDs) > 0 {
@@ -973,7 +973,7 @@ func (r *riskRepository) RiskReviewSummary(ctx context.Context, cycle string, or
 	})
 
 	loadHeatmap := func(targetCycle string) ([]*entity.HeatmapCell, error) {
-		query := `SELECT probability, impact, COUNT(*) as cnt FROM risks WHERE assessment_cycle = $1 AND status = 'approved'`
+		query := `SELECT probability, impact, COUNT(*) as cnt FROM risks WHERE assessment_cycle = $1 AND status = 'approved' AND is_cycle_current = TRUE`
 		args := []interface{}{targetCycle}
 		if len(orgIDs) > 0 {
 			query += fmt.Sprintf(" AND organization_id = ANY($%d)", len(args)+1)
@@ -1026,8 +1026,10 @@ func (r *riskRepository) GetHeatmapVelocity(ctx context.Context, fromCycle, toCy
 		LEFT JOIN risks prev ON prev.version_group_id = curr.version_group_id
 			AND prev.assessment_cycle = $1
 			AND prev.status = 'approved'
+			AND prev.is_cycle_current = TRUE
 		WHERE curr.assessment_cycle = $2
 			AND curr.status = 'approved'
+			AND curr.is_cycle_current = TRUE
 	)
 	SELECT
 		probability,
