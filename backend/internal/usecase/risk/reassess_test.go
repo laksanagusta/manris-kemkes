@@ -340,10 +340,59 @@ func TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle(t *testing.T
 		Cycle:  "2026-H1",
 	})
 	if !errors.Is(err, domainerrors.ErrInvalidStatus) {
-		t.Fatalf("expected invalid status error for duplicate cycle, got %v", err)
+		t.Fatalf("expected invalid status error for in-progress reassessment, got %v", err)
 	}
 	if repo.createdRisk != nil {
-		t.Fatal("expected no new draft for duplicate cycle")
+		t.Fatal("expected no new draft when in-progress reassessment exists")
+	}
+}
+
+func TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved(t *testing.T) {
+	sourceID := uuid.New()
+	versionGroupID := uuid.New()
+	repo := &fakeReassessRiskRepo{
+		risks: map[uuid.UUID]*entity.Risk{
+			sourceID: {
+				ID:              sourceID,
+				Code:            "R-003",
+				Title:           "Risk dengan reassessment approved",
+				Status:          "approved",
+				VersionGroupID:  versionGroupID,
+				IsCurrent:       true,
+				IsCycleCurrent:  true,
+				Probability:     3,
+				Impact:          4,
+				AssessmentCycle: "2026-H1",
+			},
+		},
+		versions: []*entity.Risk{
+			{
+				ID:              sourceID,
+				VersionGroupID:  versionGroupID,
+				Status:          "approved",
+				AssessmentCycle: "2026-H1",
+				IsCurrent:       true,
+				IsCycleCurrent:  true,
+			},
+		},
+	}
+
+	uc := NewCreateRiskReassessmentUseCase(repo)
+	output, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{
+		RiskID: sourceID,
+		Cycle:  "2026-H1",
+	})
+	if err != nil {
+		t.Fatalf("expected no error for reassessment after approved version, got %v", err)
+	}
+	if output == nil {
+		t.Fatal("expected output")
+	}
+	if repo.createdRisk == nil {
+		t.Fatal("expected a new reassessment draft to be created")
+	}
+	if repo.createdRisk.AssessmentCycle != "2026-H1" {
+		t.Fatalf("expected assessment cycle 2026-H1, got %q", repo.createdRisk.AssessmentCycle)
 	}
 }
 

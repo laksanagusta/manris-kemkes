@@ -576,6 +576,8 @@ Format respons JSON (hanya JSON, tanpa markdown):
 }
 
 PENTING:
+- Urutkan ke risiko yang paling berbahaya dan
+- utamakan risiko yang prioritas nasional pemerintah Indonesia tentang kesehatan
 - Judul harus berbeda dari daftar yang sudah ada
 - Jangan buat variasi kecil dari risiko yang sudah ada
 - Berikan konteks yang spesifik dan realistis`, existingTitlesJSON)
