@@ -579,7 +579,8 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 	 LEFT JOIN organizations o ON r.organization_id = o.id
 	 LEFT JOIN users u ON r.created_by = u.id
 	 WHERE r.assessment_cycle = $1
-	   AND r.status = 'approved'`
+	   AND r.status = 'approved'
+	   AND r.is_cycle_current = TRUE`
 	args := []interface{}{cycle}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(args)+1)
