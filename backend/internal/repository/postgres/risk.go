@@ -196,17 +196,22 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	                  COALESCE(u.name, '') as created_by_name
 	           FROM risks r
 	           LEFT JOIN organizations o ON r.organization_id = o.id
-	           LEFT JOIN users u ON r.created_by = u.id
-	           WHERE r.is_current = TRUE`
+	           LEFT JOIN users u ON r.created_by = u.id`
 	var args []interface{}
 	argIdx := 1
+
+	if status == "draft" {
+		query += " WHERE r.status = 'draft'"
+	} else {
+		query += " WHERE r.is_current = TRUE"
+	}
 
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
 		args = append(args, orgIDs)
 		argIdx++
 	}
-	if status != "" && status != "all" {
+	if status != "" && status != "all" && status != "draft" {
 		query += fmt.Sprintf(" AND r.status = $%d", argIdx)
 		args = append(args, status)
 		argIdx++
