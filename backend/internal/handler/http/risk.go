@@ -464,7 +464,8 @@ func (h *RiskHandler) ListVersions(c *fiber.Ctx) error {
 
 // DashboardSummary handles GET /api/risks/dashboard/summary
 func (h *RiskHandler) DashboardSummary(c *fiber.Ctx) error {
-	summary, err := h.dashboardSummaryUC.Execute(c.Context())
+	cycle := c.Query("cycle")
+	summary, err := h.dashboardSummaryUC.Execute(c.Context(), riskuc.DashboardSummaryInput{Cycle: cycle})
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -504,15 +505,14 @@ func (h *RiskHandler) ExecutiveAlerts(c *fiber.Ctx) error {
 
 // HeatmapData handles GET /api/risks/dashboard/heatmap
 func (h *RiskHandler) HeatmapData(c *fiber.Ctx) error {
-	data, err := h.heatmapDataUC.Execute(c.Context())
+	cycle := c.Query("cycle")
+	data, err := h.heatmapDataUC.Execute(c.Context(), riskuc.HeatmapDataInput{Cycle: cycle})
 	if err != nil {
 		return handleError(c, err)
 	}
 
-	// Initialize 5x5 matrix
 	matrix := [5][5]int{}
-	for _, cell := range data {
-		// probability and impact are 1-5, matrix is 0-4
+	for _, cell := range data.Data {
 		pIdx := cell.Probability - 1
 		iIdx := cell.Impact - 1
 		if pIdx >= 0 && pIdx < 5 && iIdx >= 0 && iIdx < 5 {
@@ -525,18 +525,20 @@ func (h *RiskHandler) HeatmapData(c *fiber.Ctx) error {
 
 // TopRisks handles GET /api/risks/dashboard/top
 func (h *RiskHandler) TopRisks(c *fiber.Ctx) error {
+	cycle := c.Query("cycle")
 	limit := 10
 	if l := c.QueryInt("limit"); l > 0 {
 		limit = l
 	}
 
-	input := riskuc.TopRisksInput{Limit: limit}
+	input := riskuc.TopRisksInput{Cycle: cycle, Limit: limit}
 
-	risks, err := h.topRisksUC.Execute(c.Context(), input)
+	result, err := h.topRisksUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
 	}
 
+	risks := result.Risks
 	if risks == nil {
 		risks = []*entity.Risk{}
 	}
@@ -544,10 +546,12 @@ func (h *RiskHandler) TopRisks(c *fiber.Ctx) error {
 }
 
 func (h *RiskHandler) GetDashboardRiskCategories(c *fiber.Ctx) error {
-	data, err := h.dashboardCategoriesUC.Execute(c.Context())
+	cycle := c.Query("cycle")
+	result, err := h.dashboardCategoriesUC.Execute(c.Context(), riskuc.DashboardRiskCategoriesInput{Cycle: cycle})
 	if err != nil {
 		return handleError(c, err)
 	}
+	data := result.Counts
 	if data == nil {
 		data = []*entity.DashboardCategoryCount{}
 	}

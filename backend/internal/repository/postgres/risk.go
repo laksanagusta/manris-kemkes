@@ -356,18 +356,30 @@ func (r *riskRepository) NextRiskCode(ctx context.Context) (string, error) {
 	return fmt.Sprintf("R-%03d", num+1), nil
 }
 
-// DashboardSummary returns KPI card data
-func (r *riskRepository) DashboardSummary(ctx context.Context) (*entity.DashboardSummary, error) {
+// DashboardSummary returns KPI card data for a specific cycle (or all cycles if empty)
+func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string) (*entity.DashboardSummary, error) {
 	s := &entity.DashboardSummary{}
-	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_current = TRUE").Scan(&s.TotalRisks)
-	if err != nil {
-		return nil, fmt.Errorf("count risks: %w", err)
+	var baseQuery string
+	if cycle != "" {
+		baseQuery = "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_cycle_current = TRUE AND assessment_cycle = $1"
+		if err := r.pool.QueryRow(ctx, baseQuery, cycle).Scan(&s.TotalRisks); err != nil {
+			return nil, fmt.Errorf("count risks: %w", err)
+		}
+		baseQuery = "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_cycle_current = TRUE AND assessment_cycle = $1 AND inherent_score >= 15"
+		if err := r.pool.QueryRow(ctx, baseQuery, cycle).Scan(&s.HighExtreme); err != nil {
+			return nil, fmt.Errorf("count high/extreme: %w", err)
+		}
+	} else {
+		baseQuery = "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_current = TRUE"
+		if err := r.pool.QueryRow(ctx, baseQuery).Scan(&s.TotalRisks); err != nil {
+			return nil, fmt.Errorf("count risks: %w", err)
+		}
+		baseQuery = "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_current = TRUE AND inherent_score >= 15"
+		if err := r.pool.QueryRow(ctx, baseQuery).Scan(&s.HighExtreme); err != nil {
+			return nil, fmt.Errorf("count high/extreme: %w", err)
+		}
 	}
-	err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_current = TRUE AND inherent_score >= 15").Scan(&s.HighExtreme)
-	if err != nil {
-		return nil, fmt.Errorf("count high/extreme: %w", err)
-	}
-	err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigations WHERE due_date < CURRENT_DATE").Scan(&s.OverdueMitig)
+	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigations WHERE due_date < CURRENT_DATE").Scan(&s.OverdueMitig)
 	if err != nil {
 		return nil, fmt.Errorf("count overdue: %w", err)
 	}
@@ -378,10 +390,25 @@ func (r *riskRepository) DashboardSummary(ctx context.Context) (*entity.Dashboar
 	return s, nil
 }
 
-// DashboardCategoryCounts returns risk counts grouped by category
-func (r *riskRepository) DashboardCategoryCounts(ctx context.Context) ([]*entity.DashboardCategoryCount, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category,
+// DashboardCategoryCounts returns risk counts grouped by category for a specific cycle (or all cycles if empty)
+func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle string) ([]*entity.DashboardCategoryCount, error) {
+	var query string
+	var args []interface{}
+	if cycle != "" {
+		query = `SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category,
+		        COUNT(*) as count,
+		        COUNT(*) FILTER (WHERE inherent_score < 5) as sangat_rendah,
+		        COUNT(*) FILTER (WHERE inherent_score >= 5 AND inherent_score < 10) as rendah,
+		        COUNT(*) FILTER (WHERE inherent_score >= 10 AND inherent_score < 15) as sedang,
+		        COUNT(*) FILTER (WHERE inherent_score >= 15 AND inherent_score < 20) as tinggi,
+		        COUNT(*) FILTER (WHERE inherent_score >= 20) as ekstrem
+		 FROM risks
+		 WHERE is_cycle_current = TRUE AND assessment_cycle = $1
+		 GROUP BY 1
+		 ORDER BY count DESC, category ASC`
+		args = []interface{}{cycle}
+	} else {
+		query = `SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category,
 		        COUNT(*) as count,
 		        COUNT(*) FILTER (WHERE inherent_score < 5) as sangat_rendah,
 		        COUNT(*) FILTER (WHERE inherent_score >= 5 AND inherent_score < 10) as rendah,
@@ -391,7 +418,9 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context) ([]*entity
 		 FROM risks
 		 WHERE is_current = TRUE
 		 GROUP BY 1
-		 ORDER BY count DESC, category ASC`)
+		 ORDER BY count DESC, category ASC`
+	}
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("dashboard category counts: %w", err)
 	}
@@ -408,12 +437,21 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context) ([]*entity
 	return counts, nil
 }
 
-// HeatmapData returns risk distribution for the 5x5 heatmap
-func (r *riskRepository) HeatmapData(ctx context.Context) ([]*entity.HeatmapCell, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT probability, impact, COUNT(*) as cnt
+// HeatmapData returns risk distribution for the 5x5 heatmap for a specific cycle (or all cycles if empty)
+func (r *riskRepository) HeatmapData(ctx context.Context, cycle string) ([]*entity.HeatmapCell, error) {
+	var query string
+	var args []interface{}
+	if cycle != "" {
+		query = `SELECT probability, impact, COUNT(*) as cnt
+		 FROM risks WHERE status IN ('final','approved') AND is_cycle_current = TRUE AND assessment_cycle = $1
+		 GROUP BY probability, impact`
+		args = []interface{}{cycle}
+	} else {
+		query = `SELECT probability, impact, COUNT(*) as cnt
 		 FROM risks WHERE status IN ('final','approved') AND is_current = TRUE
-		 GROUP BY probability, impact`)
+		 GROUP BY probability, impact`
+	}
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("heatmap query: %w", err)
 	}
@@ -430,15 +468,28 @@ func (r *riskRepository) HeatmapData(ctx context.Context) ([]*entity.HeatmapCell
 	return cells, nil
 }
 
-// TopRisks returns the highest-scoring risks
-func (r *riskRepository) TopRisks(ctx context.Context, limit int) ([]*entity.Risk, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.status,
+// TopRisks returns the highest-scoring risks for a specific cycle (or all cycles if empty)
+func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int) ([]*entity.Risk, error) {
+	var query string
+	var args []interface{}
+	if cycle != "" {
+		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.status,
+		        COALESCE(o.name, '') as org_name
+		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
+		 WHERE r.status IN ('final','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1
+		 ORDER BY r.inherent_score DESC, r.created_at DESC
+		 LIMIT $2`
+		args = []interface{}{cycle, limit}
+	} else {
+		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.status,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
 		 WHERE r.status IN ('final','approved') AND r.is_current = TRUE
 		 ORDER BY r.inherent_score DESC, r.created_at DESC
-		 LIMIT $1`, limit)
+		 LIMIT $1`
+		args = []interface{}{limit}
+	}
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("top risks: %w", err)
 	}

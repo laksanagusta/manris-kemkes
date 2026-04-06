@@ -19,11 +19,11 @@ type RiskRepository interface {
 	// ListApprovedRisks returns all approved risks for trend analysis (includes all versions)
 	ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Risk, error)
 
-	// Dashboard methods
-	DashboardSummary(ctx context.Context) (*entity.DashboardSummary, error)
-	DashboardCategoryCounts(ctx context.Context) ([]*entity.DashboardCategoryCount, error)
-	HeatmapData(ctx context.Context) ([]*entity.HeatmapCell, error)
-	TopRisks(ctx context.Context, limit int) ([]*entity.Risk, error)
+	// Dashboard methods - cycle parameter filters by assessment_cycle, empty string uses current global state
+	DashboardSummary(ctx context.Context, cycle string) (*entity.DashboardSummary, error)
+	DashboardCategoryCounts(ctx context.Context, cycle string) ([]*entity.DashboardCategoryCount, error)
+	HeatmapData(ctx context.Context, cycle string) ([]*entity.HeatmapCell, error)
+	TopRisks(ctx context.Context, cycle string, limit int) ([]*entity.Risk, error)
 	ListVersions(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.Risk, error)
 	ListCycleSnapshot(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error)
 	ActivateApprovedVersion(ctx context.Context, approvedRiskID uuid.UUID) error

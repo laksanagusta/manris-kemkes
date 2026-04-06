@@ -7,7 +7,14 @@ import (
 	"github.com/manris/backend/internal/domain/repository"
 )
 
-// DashboardSummaryUseCase retrieves dashboard KPI data
+type DashboardSummaryInput struct {
+	Cycle string
+}
+
+type DashboardSummaryOutput struct {
+	Summary *entity.DashboardSummary
+}
+
 type DashboardSummaryUseCase struct {
 	riskRepo repository.RiskRepository
 }
@@ -18,16 +25,23 @@ func NewDashboardSummaryUseCase(riskRepo repository.RiskRepository) *DashboardSu
 	}
 }
 
-func (uc *DashboardSummaryUseCase) Execute(ctx context.Context) (*entity.DashboardSummary, error) {
-	summary, err := uc.riskRepo.DashboardSummary(ctx)
+func (uc *DashboardSummaryUseCase) Execute(ctx context.Context, input DashboardSummaryInput) (*DashboardSummaryOutput, error) {
+	summary, err := uc.riskRepo.DashboardSummary(ctx, input.Cycle)
 	if err != nil {
 		return nil, err
 	}
 
-	return summary, nil
+	return &DashboardSummaryOutput{Summary: summary}, nil
 }
 
-// HeatmapDataUseCase retrieves risk distribution for heatmap
+type HeatmapDataInput struct {
+	Cycle string
+}
+
+type HeatmapDataOutput struct {
+	Data []*entity.HeatmapCell
+}
+
 type HeatmapDataUseCase struct {
 	riskRepo repository.RiskRepository
 }
@@ -38,16 +52,24 @@ func NewHeatmapDataUseCase(riskRepo repository.RiskRepository) *HeatmapDataUseCa
 	}
 }
 
-func (uc *HeatmapDataUseCase) Execute(ctx context.Context) ([]*entity.HeatmapCell, error) {
-	data, err := uc.riskRepo.HeatmapData(ctx)
+func (uc *HeatmapDataUseCase) Execute(ctx context.Context, input HeatmapDataInput) (*HeatmapDataOutput, error) {
+	data, err := uc.riskRepo.HeatmapData(ctx, input.Cycle)
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	return &HeatmapDataOutput{Data: data}, nil
 }
 
-// TopRisksUseCase retrieves highest-scoring risks
+type TopRisksInput struct {
+	Cycle string
+	Limit int
+}
+
+type TopRisksOutput struct {
+	Risks []*entity.Risk
+}
+
 type TopRisksUseCase struct {
 	riskRepo repository.RiskRepository
 }
@@ -58,19 +80,15 @@ func NewTopRisksUseCase(riskRepo repository.RiskRepository) *TopRisksUseCase {
 	}
 }
 
-type TopRisksInput struct {
-	Limit int
-}
-
-func (uc *TopRisksUseCase) Execute(ctx context.Context, input TopRisksInput) ([]*entity.Risk, error) {
+func (uc *TopRisksUseCase) Execute(ctx context.Context, input TopRisksInput) (*TopRisksOutput, error) {
 	if input.Limit <= 0 {
-		input.Limit = 10 // default limit
+		input.Limit = 10
 	}
 
-	risks, err := uc.riskRepo.TopRisks(ctx, input.Limit)
+	risks, err := uc.riskRepo.TopRisks(ctx, input.Cycle, input.Limit)
 	if err != nil {
 		return nil, err
 	}
 
-	return risks, nil
+	return &TopRisksOutput{Risks: risks}, nil
 }

@@ -8,7 +8,15 @@ import (
 )
 
 type dashboardCategoryRepo interface {
-	DashboardCategoryCounts(ctx context.Context) ([]*entity.DashboardCategoryCount, error)
+	DashboardCategoryCounts(ctx context.Context, cycle string) ([]*entity.DashboardCategoryCount, error)
+}
+
+type DashboardRiskCategoriesInput struct {
+	Cycle string
+}
+
+type DashboardRiskCategoriesOutput struct {
+	Counts []*entity.DashboardCategoryCount
 }
 
 type DashboardRiskCategoriesUseCase struct {
@@ -19,8 +27,8 @@ func NewDashboardRiskCategoriesUseCase(repo dashboardCategoryRepo) *DashboardRis
 	return &DashboardRiskCategoriesUseCase{repo: repo}
 }
 
-func (uc *DashboardRiskCategoriesUseCase) Execute(ctx context.Context) ([]*entity.DashboardCategoryCount, error) {
-	counts, err := uc.repo.DashboardCategoryCounts(ctx)
+func (uc *DashboardRiskCategoriesUseCase) Execute(ctx context.Context, input DashboardRiskCategoriesInput) (*DashboardRiskCategoriesOutput, error) {
+	counts, err := uc.repo.DashboardCategoryCounts(ctx, input.Cycle)
 	if err != nil {
 		return nil, err
 	}
@@ -38,5 +46,5 @@ func (uc *DashboardRiskCategoriesUseCase) Execute(ctx context.Context) ([]*entit
 		return counts[i].Category < counts[j].Category
 	})
 
-	return counts, nil
+	return &DashboardRiskCategoriesOutput{Counts: counts}, nil
 }
