@@ -31,13 +31,13 @@ func (r *fakeCycleSnapshotRiskRepo) ListMitigations(context.Context, []uuid.UUID
 	return nil, nil
 }
 func (r *fakeCycleSnapshotRiskRepo) NextRiskCode(context.Context) (string, error) { return "", nil }
-func (r *fakeCycleSnapshotRiskRepo) DashboardSummary(context.Context) (*entity.DashboardSummary, error) {
+func (r *fakeCycleSnapshotRiskRepo) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
 	return nil, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) HeatmapData(context.Context) ([]*entity.HeatmapCell, error) {
+func (r *fakeCycleSnapshotRiskRepo) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) TopRisks(context.Context, int) ([]*entity.Risk, error) {
+func (r *fakeCycleSnapshotRiskRepo) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
 	return nil, nil
 }
 func (r *fakeCycleSnapshotRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
@@ -59,7 +59,7 @@ func (r *fakeCycleSnapshotRiskRepo) CompareCycles(context.Context, string, strin
 func (r *fakeCycleSnapshotRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeCycleSnapshotRiskRepo) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
 	return nil, nil
 }
 func (r *fakeCycleSnapshotRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {

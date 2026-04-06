@@ -53,13 +53,15 @@ func (r *categoryRiskRepo) NextRiskCode(context.Context) (string, error) { retur
 func (r *categoryRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) DashboardSummary(context.Context) (*entity.DashboardSummary, error) {
+func (r *categoryRiskRepo) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) HeatmapData(context.Context) ([]*entity.HeatmapCell, error) {
+func (r *categoryRiskRepo) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) TopRisks(context.Context, int) ([]*entity.Risk, error) { return nil, nil }
+func (r *categoryRiskRepo) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
+	return nil, nil
+}
 func (r *categoryRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
@@ -76,7 +78,7 @@ func (r *categoryRiskRepo) CompareCycles(context.Context, string, string, []uuid
 func (r *categoryRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+func (r *categoryRiskRepo) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
 	return nil, nil
 }
 func (r *categoryRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {

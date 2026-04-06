@@ -41,13 +41,13 @@ func (r *fakeBatchRiskRepo) NextRiskCode(context.Context) (string, error) {
 	r.nextNum++
 	return "R-00" + string(rune('0'+r.nextNum)), nil
 }
-func (r *fakeBatchRiskRepo) DashboardSummary(context.Context) (*entity.DashboardSummary, error) {
+func (r *fakeBatchRiskRepo) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) HeatmapData(context.Context) ([]*entity.HeatmapCell, error) {
+func (r *fakeBatchRiskRepo) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) TopRisks(context.Context, int) ([]*entity.Risk, error) {
+func (r *fakeBatchRiskRepo) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
 	return nil, nil
 }
 func (r *fakeBatchRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
@@ -71,7 +71,7 @@ func (r *fakeBatchRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UU
 func (r *fakeBatchRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeBatchRiskRepo) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
 	return nil, nil
 }
 func (r *fakeBatchRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
