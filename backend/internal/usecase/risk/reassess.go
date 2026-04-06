@@ -57,6 +57,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 	reassessment := cloneRiskForReassessment(sourceRisk)
 	reassessment.PreviousRiskID = &sourceRisk.ID
 	reassessment.IsCurrent = false
+	reassessment.IsCycleCurrent = false
 	reassessment.Status = "draft"
 	reassessment.ArchivedAt = nil
 	reassessment.ArchivedReason = ""

@@ -236,6 +236,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testi
 				Status:            "approved",
 				VersionGroupID:    versionGroupID,
 				IsCurrent:         true,
+				IsCycleCurrent:    true,
 				Probability:       4,
 				Impact:            4,
 				Weight:            1,
@@ -291,6 +292,9 @@ func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testi
 	}
 	if repo.createdRisk.IsCurrent {
 		t.Fatal("expected reassessment draft to be non-current until approval")
+	}
+	if repo.createdRisk.IsCycleCurrent {
+		t.Fatal("expected reassessment draft to have IsCycleCurrent=false until approval")
 	}
 	if repo.createdRisk.AssessmentCycle != "2026-H1" {
 		t.Fatalf("expected assessment cycle 2026-H1, got %q", repo.createdRisk.AssessmentCycle)
