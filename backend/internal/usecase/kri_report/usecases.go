@@ -110,8 +110,22 @@ func (uc *SubmitReportUseCase) Execute(ctx context.Context, input SubmitReportIn
 		return nil, fmt.Errorf("report has already been submitted")
 	}
 
+	periodEnd, err := time.Parse("2006-01-02", report.PeriodEnd)
+	if err != nil {
+		return nil, fmt.Errorf("invalid period end date: %w", err)
+	}
+
+	loc, _ := time.LoadLocation("Asia/Jakarta")
+	now := time.Now().In(loc)
+
+	hPlus1Start := time.Date(periodEnd.Year(), periodEnd.Month(), periodEnd.Day()+1, 0, 0, 0, 0, loc)
+	hPlus3End := time.Date(periodEnd.Year(), periodEnd.Month(), periodEnd.Day()+3, 23, 59, 59, 0, loc)
+
+	if now.Before(hPlus1Start) || now.After(hPlus3End) {
+		return nil, domainerrors.ErrSubmissionWindowClosed
+	}
+
 	// 3. Update report fields
-	now := time.Now()
 	report.Value = &input.Value
 	report.Notes = notes
 	report.Status = "submitted"

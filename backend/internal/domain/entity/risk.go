@@ -165,7 +165,17 @@ func CalculateNilai(probability, impact int, weight float64) float64 {
 
 // GetInherentScore calculates inherent score
 func (r *Risk) GetInherentScore() int {
-	return r.Probability * r.Impact
+	return int(math.Round(float64(r.Probability) * float64(r.Impact) * r.Weight))
+}
+
+// CalculateInherentScore calculates and sets the inherent score
+func (r *Risk) CalculateInherentScore() {
+	r.InherentScore = int(math.Round(float64(r.Probability) * float64(r.Impact) * r.Weight))
+}
+
+// CalculateTargetScore calculates and sets the target score
+func (r *Risk) CalculateTargetScore() {
+	r.TargetScore = int(math.Round(float64(r.TargetProbability) * float64(r.TargetImpact) * r.TargetWeight))
 }
 
 // CalculateBobot calculates and sets the weight based on probability and impact
@@ -196,14 +206,15 @@ func (r *Risk) GetRiskLevel() string {
 
 // GetRiskLevelFromNilai returns Indonesian risk level based on nilai value
 func GetRiskLevelFromNilai(nilai float64) string {
+	rounded := math.Round(nilai)
 	switch {
-	case nilai >= 20:
+	case rounded >= 20:
 		return RiskLevelSangatTinggi
-	case nilai >= 15:
+	case rounded >= 15:
 		return RiskLevelTinggi
-	case nilai >= 10:
+	case rounded >= 10:
 		return RiskLevelSedang
-	case nilai >= 5:
+	case rounded >= 5:
 		return RiskLevelRendah
 	default:
 		return RiskLevelSangatRendah
@@ -252,10 +263,11 @@ func GetRiskLevelDisplay(level string) string {
 	}
 }
 
-// CalculateAll computes bobot, nilai, and updates risk priority
+// CalculateAll computes bobot, nilai, inherent score, and updates risk priority
 func (r *Risk) CalculateAll() {
 	r.CalculateBobot()
 	r.CalculateNilai()
+	r.CalculateInherentScore()
 	r.RiskPriority = r.GetRiskPriority()
 }
 

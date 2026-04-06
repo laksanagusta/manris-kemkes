@@ -11,89 +11,131 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
+type tableConfig struct {
+	rowHeight   float64
+	fontSize    float64
+	leftAligned map[int]bool
+}
+
+// TableOption configures RenderTable behavior.
+type TableOption func(*tableConfig)
+
+// WithRowHeight sets the row height for table rows.
+func WithRowHeight(h float64) TableOption {
+	return func(c *tableConfig) { c.rowHeight = h }
+}
+
+// WithFontSize sets the font size for body cells.
+func WithFontSize(sz float64) TableOption {
+	return func(c *tableConfig) { c.fontSize = sz }
+}
+
+// WithLeftAligned marks specific column indices as left-aligned.
+func WithLeftAligned(cols ...int) TableOption {
+	return func(c *tableConfig) {
+		if c.leftAligned == nil {
+			c.leftAligned = make(map[int]bool)
+		}
+		for _, idx := range cols {
+			c.leftAligned[idx] = true
+		}
+	}
+}
+
+// RenderTable renders a header row followed by data rows with full borders.
+// colWidths should ideally sum to gridSize (12) for exact column sizing.
 func RenderTable(header []string, rows [][]string, colWidths []uint, opts ...TableOption) []core.Row {
 	cfg := tableConfig{rowHeight: RowHeight, fontSize: FontSizeBody}
 	for _, o := range opts {
 		o(&cfg)
 	}
 
-	totalWidth := 0
-	for _, w := range colWidths {
-		totalWidth += int(w)
-	}
+	propWidths := normalizeWidths(colWidths)
 
 	var result []core.Row
 
+	// Header row.
 	headerRow := row.New(cfg.rowHeight)
-	headerRow.Add(col.New(gridSize))
 	for i, h := range header {
-		w := colWidths[i]
-		propWidth := uint(float64(w) / float64(totalWidth) * float64(gridSize))
-		cell := col.New(int(propWidth))
-		cell.Add(text.New(
-			h,
-			props.Text{
-				Size:   cfg.fontSize,
-				Align:  align.Center,
-				Color:  WhiteBg,
-				Style:  fontstyle.Bold,
-				Family: fontfamily.Helvetica,
-			},
-		))
-		cell.WithStyle(&props.Cell{BackgroundColor: HeaderBg})
+		cell := col.New(propWidths[i])
+		cell.Add(text.New(h, props.Text{
+			Size:   cfg.fontSize,
+			Align:  align.Center,
+			Color:  WhiteBg,
+			Style:  fontstyle.Bold,
+			Family: fontfamily.Helvetica,
+			Top:    2,
+			Left:   2,
+			Right:  2,
+		}))
+		cell.WithStyle(HeaderCellStyle())
 		headerRow.Add(cell)
 	}
-	headerRow.Add(col.New(gridSize))
 	result = append(result, headerRow)
 
+	// Data rows.
 	for rowIdx, rowData := range rows {
 		isAlt := rowIdx%2 == 1
 		dataRow := row.New(cfg.rowHeight)
-		dataRow.Add(col.New(gridSize))
 		for i, cellText := range rowData {
-			if i >= len(colWidths) {
+			if i >= len(propWidths) {
 				break
 			}
-			w := colWidths[i]
-			propWidth := uint(float64(w) / float64(totalWidth) * float64(gridSize))
-			cell := col.New(int(propWidth))
-			cell.Add(text.New(
-				cellText,
-				props.Text{
-					Size:   cfg.fontSize,
-					Align:  align.Center,
-					Color:  BlackColor,
-					Family: fontfamily.Helvetica,
-					Style:  fontstyle.Normal,
-				},
-			))
+			cellAlign := align.Center
+			if cfg.leftAligned[i] {
+				cellAlign = align.Left
+			}
+			cell := col.New(propWidths[i])
+			cell.Add(text.New(cellText, props.Text{
+				Size:   cfg.fontSize,
+				Align:  cellAlign,
+				Color:  BlackColor,
+				Family: fontfamily.Helvetica,
+				Style:  fontstyle.Normal,
+				Top:    2,
+				Left:   3,
+				Right:  3,
+			}))
 			if isAlt {
-				cell.WithStyle(&props.Cell{BackgroundColor: AltRowBg})
+				cell.WithStyle(CellBorderWithBg(AltRowBg))
+			} else {
+				cell.WithStyle(CellBorder())
 			}
 			dataRow.Add(cell)
 		}
-		dataRow.Add(col.New(gridSize))
 		result = append(result, dataRow)
 	}
 
 	return result
 }
 
-type tableConfig struct {
-	rowHeight float64
-	fontSize  float64
-}
-
-type TableOption func(*tableConfig)
-
-func WithRowHeight(h float64) TableOption {
-	return func(c *tableConfig) {
-		c.rowHeight = h
+// normalizeWidths converts proportional weights to grid-unit widths summing to gridSize.
+func normalizeWidths(colWidths []uint) []int {
+	total := 0
+	for _, w := range colWidths {
+		total += int(w)
 	}
-}
-
-func WithFontSize(sz float64) TableOption {
-	return func(c *tableConfig) {
-		c.fontSize = sz
+	if total == 0 {
+		return nil
 	}
+
+	result := make([]int, len(colWidths))
+	allocated := 0
+	for i, w := range colWidths {
+		if i == len(colWidths)-1 {
+			v := gridSize - allocated
+			if v < 1 {
+				v = 1
+			}
+			result[i] = v
+		} else {
+			v := int(float64(w)/float64(total)*float64(gridSize) + 0.5)
+			if v < 1 {
+				v = 1
+			}
+			result[i] = v
+		}
+		allocated += result[i]
+	}
+	return result
 }

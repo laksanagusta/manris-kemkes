@@ -37,16 +37,7 @@ func (k *KRI) Validate() error {
 	if k.Name == "" {
 		return errors.ErrInvalidName
 	}
-	if k.Metric == "" {
-		return errors.ErrInvalidMetric
-	}
 	if k.ThresholdMin >= k.ThresholdMax {
-		return errors.ErrInvalidThreshold
-	}
-	if k.Direction == "higher_worse" && k.AmberThresholdMax == nil {
-		return errors.ErrInvalidThreshold
-	}
-	if k.Direction == "lower_worse" && k.AmberThresholdMin == nil {
 		return errors.ErrInvalidThreshold
 	}
 	return nil

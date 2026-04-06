@@ -27,6 +27,7 @@ import (
 	cbauc "github.com/manris/backend/internal/usecase/cba"
 	commloguc "github.com/manris/backend/internal/usecase/communication_log"
 	controluc "github.com/manris/backend/internal/usecase/control"
+	externalextPICuc "github.com/manris/backend/internal/usecase/external_pic"
 	formusecase "github.com/manris/backend/internal/usecase/form"
 	incidentuc "github.com/manris/backend/internal/usecase/incident"
 	kriuc "github.com/manris/backend/internal/usecase/kri"
@@ -72,6 +73,7 @@ func main() {
 	domainFormRepo := postgresrepo.NewFormRepository(pool)
 	domainFormAssignmentRepo := postgresrepo.NewFormAssignmentRepository(pool)
 	domainFormResponseRepo := postgresrepo.NewFormResponseRepository(pool)
+	domainExternalPICRepo := postgresrepo.NewExternalPICRepository(pool)
 
 	// Domain services
 	orgHierarchySvc := domainsvc.NewOrganizationHierarchy(domainOrgRepo)
@@ -187,6 +189,11 @@ func main() {
 	orgUpdateUC := organizationuc.NewUpdateOrganizationUseCase(domainOrgRepo)
 	orgDeleteUC := organizationuc.NewDeleteOrganizationUseCase(domainOrgRepo)
 	orgListUC := organizationuc.NewListOrganizationsUseCase(domainOrgRepo)
+
+	// External PIC usecases
+	externalextPICGetOrCreateUC := externalextPICuc.NewGetOrCreateByNameUseCase(domainExternalPICRepo)
+	externalextPICListUC := externalextPICuc.NewListExternalPICsUseCase(domainExternalPICRepo)
+	externalextPICDeleteUC := externalextPICuc.NewDeleteExternalPICUseCase(domainExternalPICRepo)
 
 	// System usecases
 	systemSlowQueriesUC := systemuc.NewGetSlowQueriesUseCase(domainSystemRepo)
@@ -318,6 +325,11 @@ func main() {
 		formPublishUC, formCloseUC, formSubmitUC, formListResponsesUC, formAnalyticsUC,
 	)
 
+	// External PIC handler
+	cleanExternalPICHandler := httpHandler.NewExternalPICHandler(
+		externalextPICGetOrCreateUC, externalextPICListUC, externalextPICDeleteUC,
+	)
+
 	// Fiber app
 	app := fiber.New(fiber.Config{
 		AppName:   "MANRIS v2 API",
@@ -438,6 +450,11 @@ func main() {
 	protected.Get("/lessons/:id", cleanLessonHandler.GetLesson)
 	protected.Put("/lessons/:id", cleanLessonHandler.UpdateLesson)
 	protected.Delete("/lessons/:id", cleanLessonHandler.DeleteLesson)
+
+	// External PICs (Clean Architecture)
+	protected.Get("/external-pics", cleanExternalPICHandler.List)
+	protected.Post("/external-pics", cleanExternalPICHandler.Create)
+	protected.Delete("/external-pics/:id", cleanExternalPICHandler.Delete)
 
 	// AI Generator (Clean Architecture - 100%)
 	protected.Post("/ai/causes", cleanAIHandler.GenerateCause)

@@ -21,6 +21,9 @@ import (
 	"github.com/manris/backend/internal/domain/service"
 )
 
+// maxTitleLen is the maximum character length for risk/incident titles before truncation.
+const maxTitleLen = 60
+
 type pdfReportRenderer struct{}
 
 func NewPDFReportRenderer() service.ReportPDFRenderer {
@@ -34,7 +37,7 @@ func (r *pdfReportRenderer) Render(ctx context.Context, data *entity.ReportData)
 		WithLeftMargin(Margin).
 		WithRightMargin(Margin).
 		WithTopMargin(Margin).
-		WithBottomMargin(Margin).
+		WithBottomMargin(Margin + 8).
 		WithDefaultFont(&props.Font{
 			Family: fontfamily.Helvetica,
 			Size:   FontSizeBody,
@@ -52,6 +55,8 @@ func (r *pdfReportRenderer) Render(ctx context.Context, data *entity.ReportData)
 	r.addKRISection(m, data.KRIs)
 	r.addTrendSection(m, data.TrendData)
 
+	r.addPageNumbers(m)
+
 	doc, err := m.Generate()
 	if err != nil {
 		return nil, err
@@ -61,6 +66,7 @@ func (r *pdfReportRenderer) Render(ctx context.Context, data *entity.ReportData)
 
 func (r *pdfReportRenderer) addExecutiveSummary(m core.Maroto, data *entity.ReportData) {
 	summary := &data.Summary
+
 	titleRow := row.New(FontSizeH1 + 4)
 	titleRow.Add(col.New(gridSize).Add(text.New(
 		"Laporan Risiko / Risk Report — "+summary.Cycle,
@@ -80,15 +86,15 @@ func (r *pdfReportRenderer) addExecutiveSummary(m core.Maroto, data *entity.Repo
 		props.Text{
 			Size:   FontSizeBody,
 			Align:  align.Center,
-			Color:  BlackColor,
+			Color:  MutedText,
 			Family: fontfamily.Helvetica,
 		},
 	)))
 	m.AddRows(dateRow)
-	m.AddRows(row.New(4))
+	m.AddRows(row.New(6))
 
 	r.addKPIGrid(m, summary, data)
-	m.AddRows(row.New(6))
+	m.AddRows(row.New(SectionSpacing))
 }
 
 func (r *pdfReportRenderer) addKPIGrid(m core.Maroto, summary *entity.ReportSummary, data *entity.ReportData) {
@@ -96,19 +102,17 @@ func (r *pdfReportRenderer) addKPIGrid(m core.Maroto, summary *entity.ReportSumm
 		label string
 		value string
 	}{
-		{"Total Risiko / Total Risks", strconv.Itoa(summary.TotalRisks)},
-		{"Risiko Tinggi & Ekstrem / High & Extreme Risks", strconv.Itoa(summary.HighExtremeCount)},
-		{"Mitigasi Terlambat / Overdue Mitigations", strconv.Itoa(summary.OverdueMitigations)},
-		{"Jumlah Insiden Terkait / Related Incidents", strconv.Itoa(len(data.Incidents))},
-		{"Jumlah KRI / KRI Count", strconv.Itoa(len(data.KRIs))},
-		{"Skor Eksposur Rata-rata / Avg Exposure Score", fmt.Sprintf("%.1f", summary.AvgExposureScore)},
+		{"Total Risiko", strconv.Itoa(summary.TotalRisks)},
+		{"Tinggi & Ekstrem", strconv.Itoa(summary.HighExtremeCount)},
+		{"Mitigasi Terlambat", strconv.Itoa(summary.OverdueMitigations)},
+		{"Insiden Terkait", strconv.Itoa(len(data.Incidents))},
+		{"Jumlah KRI", strconv.Itoa(len(data.KRIs))},
+		{"Skor Eksposur Rata-rata", fmt.Sprintf("%.1f", summary.AvgExposureScore)},
 	}
 
-	for i := 0; i < len(kpis); i += 2 {
-		kpiRow := row.New(RowHeight + 4)
-		kpiRow.Add(col.New(gridSize))
-
-		for j := 0; j < 2 && i+j < len(kpis); j++ {
+	for i := 0; i < len(kpis); i += 3 {
+		kpiRow := row.New(RowHeight + 6)
+		for j := 0; j < 3 && i+j < len(kpis); j++ {
 			idx := i + j
 			kpi := kpis[idx]
 			innerCol := col.New(4)
@@ -117,49 +121,45 @@ func (r *pdfReportRenderer) addKPIGrid(m core.Maroto, summary *entity.ReportSumm
 				props.Text{
 					Size:   FontSizeSmall,
 					Align:  align.Center,
-					Color:  BlackColor,
+					Color:  MutedText,
 					Family: fontfamily.Helvetica,
-					Style:  fontstyle.Bold,
 				},
 			))
 			innerCol.Add(text.New(
 				kpi.value,
 				props.Text{
-					Size:   FontSizeH2,
+					Size:   FontSizeH1,
 					Align:  align.Center,
 					Color:  BlackColor,
 					Family: fontfamily.Helvetica,
 					Style:  fontstyle.Bold,
 				},
 			))
+			innerCol.WithStyle(CellBorder())
 			kpiRow.Add(innerCol)
 		}
-
-		remaining := 4 - ((i % 4) + 2)
-		if remaining > 0 && remaining < 4 {
-			kpiRow.Add(col.New(remaining))
-		}
-		kpiRow.Add(col.New(gridSize))
 		m.AddRows(kpiRow)
 	}
 
 	if len(summary.CategoryBreakdown) > 0 {
-		catRow := row.New(RowHeight + 2)
-		catRow.Add(col.New(gridSize))
-		catCol := col.New(gridSize - 2)
-		catCol.Add(text.New(
-			"Kategori / Category: ",
+		catRow := row.New(RowHeight)
+		catRow.Add(col.New(gridSize).Add(text.New(
+			"Kategori: ",
 			props.Text{
 				Size:   FontSizeSmall,
 				Align:  align.Left,
-				Color:  BlackColor,
+				Color:  MutedText,
 				Family: fontfamily.Helvetica,
 				Style:  fontstyle.Bold,
 			},
-		))
+		)))
+		m.AddRows(catRow)
+
+		catItemsRow := row.New(RowHeight)
+		catItemsCol := col.New(gridSize)
 		for cat, count := range summary.CategoryBreakdown {
-			catCol.Add(text.New(
-				fmt.Sprintf("%s(%d) ", cat, count),
+			catItemsCol.Add(text.New(
+				fmt.Sprintf("%s (%d)  ", cat, count),
 				props.Text{
 					Size:   FontSizeSmall,
 					Align:  align.Left,
@@ -168,9 +168,8 @@ func (r *pdfReportRenderer) addKPIGrid(m core.Maroto, summary *entity.ReportSumm
 				},
 			))
 		}
-		catRow.Add(catCol)
-		catRow.Add(col.New(gridSize))
-		m.AddRows(catRow)
+		catItemsRow.Add(catItemsCol)
+		m.AddRows(catItemsRow)
 	}
 }
 
@@ -188,7 +187,7 @@ func (r *pdfReportRenderer) addHeatmapSection(m core.Maroto, heatmap [5][5]int) 
 	)))
 	m.AddRows(headerRow)
 	m.AddRows(RenderHeatmapGrid(heatmap)...)
-	m.AddRows(row.New(4))
+	m.AddRows(row.New(SectionSpacing))
 }
 
 func (r *pdfReportRenderer) addRiskRegister(m core.Maroto, risks []*entity.Risk) {
@@ -205,8 +204,8 @@ func (r *pdfReportRenderer) addRiskRegister(m core.Maroto, risks []*entity.Risk)
 	)))
 	m.AddRows(headerRow)
 
-	header := []string{"No.", "Kode/Code", "Judul/Title", "Kategori/Category", "P", "D", "Skor/Score", "Level", "Status"}
-	colWidths := []uint{2, 4, 8, 5, 2, 2, 3, 3, 3}
+	header := []string{"No.", "Kode", "Judul / Title", "Kategori", "P", "D", "Skor", "Level", "Status"}
+	colWidths := []uint{2, 4, 10, 5, 2, 2, 3, 4, 4}
 
 	var tableRows [][]string
 	for i, risk := range risks {
@@ -214,8 +213,8 @@ func (r *pdfReportRenderer) addRiskRegister(m core.Maroto, risks []*entity.Risk)
 		tableRows = append(tableRows, []string{
 			strconv.Itoa(i + 1),
 			risk.Code,
-			truncate(risk.Title, 40),
-			truncate(risk.Category, 15),
+			truncate(risk.Title, maxTitleLen),
+			truncate(risk.Category, 20),
 			strconv.Itoa(risk.Probability),
 			strconv.Itoa(risk.Impact),
 			strconv.Itoa(risk.GetInherentScore()),
@@ -224,8 +223,8 @@ func (r *pdfReportRenderer) addRiskRegister(m core.Maroto, risks []*entity.Risk)
 		})
 	}
 
-	m.AddRows(RenderTable(header, tableRows, colWidths, WithFontSize(FontSizeSmall))...)
-	m.AddRows(row.New(6))
+	m.AddRows(RenderTable(header, tableRows, colWidths, WithFontSize(FontSizeSmall), WithLeftAligned(2, 3, 8))...)
+	m.AddRows(row.New(SectionSpacing))
 }
 
 func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
@@ -235,7 +234,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 
 	headerRow := row.New(FontSizeH2 + 4)
 	headerRow.Add(col.New(gridSize).Add(text.New(
-		"Top 10 Risiko Tertinggi / Top 10 Risks",
+		"Top 10 Risiko Tertinggi / Top 10 Highest Risks",
 		props.Text{
 			Size:   FontSizeH2,
 			Align:  align.Left,
@@ -253,11 +252,10 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 		level := risk.GetRiskLevel()
 		score := risk.GetInherentScore()
 
-		scoreRow := row.New(RowHeight + 2)
-		scoreRow.Add(col.New(1))
+		titleRow := row.New(RowHeight + 4)
 		badgeCol := col.New(2)
 		badgeCol.Add(text.New(
-			fmt.Sprintf("P×D = %d (%s)", score, level),
+			fmt.Sprintf("P×D=%d", score),
 			props.Text{
 				Size:   FontSizeSmall,
 				Align:  align.Center,
@@ -267,8 +265,8 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 			},
 		))
 		badgeCol.WithStyle(&props.Cell{BackgroundColor: GetRiskLevelColor(level)})
-		titleCol := col.New(9)
-		titleCol.Add(text.New(
+		titleTextCol := col.New(10)
+		titleTextCol.Add(text.New(
 			fmt.Sprintf("%d. [%s] %s", i+1, risk.Code, risk.Title),
 			props.Text{
 				Size:   FontSizeBody,
@@ -278,17 +276,26 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 				Style:  fontstyle.Bold,
 			},
 		))
-		scoreRow.Add(badgeCol)
-		scoreRow.Add(titleCol)
-		scoreRow.Add(col.New(gridSize))
-		m.AddRows(scoreRow)
+		titleRow.Add(badgeCol)
+		titleRow.Add(titleTextCol)
+		m.AddRows(titleRow)
 
 		if len(risk.Cause) > 0 {
-			causeRow := row.New(RowHeight)
-			causeRow.Add(col.New(1))
-			causeCol := col.New(gridSize - 2)
-			causeCol.Add(text.New(
-				"Penyebab / Causes: "+truncate(joinStrings(risk.Cause, ", "), 80),
+			causeRow := row.New(RowHeight + 2)
+			causeLabelCol := col.New(2)
+			causeLabelCol.Add(text.New(
+				"Penyebab:",
+				props.Text{
+					Size:   FontSizeSmall,
+					Align:  align.Left,
+					Color:  MutedText,
+					Family: fontfamily.Helvetica,
+					Style:  fontstyle.Bold,
+				},
+			))
+			causeValueCol := col.New(10)
+			causeValueCol.Add(text.New(
+				joinStrings(risk.Cause, ", "),
 				props.Text{
 					Size:   FontSizeSmall,
 					Align:  align.Left,
@@ -296,17 +303,27 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 					Family: fontfamily.Helvetica,
 				},
 			))
-			causeRow.Add(causeCol)
-			causeRow.Add(col.New(gridSize))
+			causeRow.Add(causeLabelCol)
+			causeRow.Add(causeValueCol)
 			m.AddRows(causeRow)
 		}
 
 		if risk.ExistingControl != "" {
-			ctrlRow := row.New(RowHeight)
-			ctrlRow.Add(col.New(1))
-			ctrlCol := col.New(gridSize - 2)
-			ctrlCol.Add(text.New(
-				"Kontrol Eksisting / Existing Control: "+truncate(risk.ExistingControl, 80),
+			ctrlRow := row.New(RowHeight + 2)
+			ctrlLabelCol := col.New(2)
+			ctrlLabelCol.Add(text.New(
+				"Kontrol:",
+				props.Text{
+					Size:   FontSizeSmall,
+					Align:  align.Left,
+					Color:  MutedText,
+					Family: fontfamily.Helvetica,
+					Style:  fontstyle.Bold,
+				},
+			))
+			ctrlValueCol := col.New(10)
+			ctrlValueCol.Add(text.New(
+				risk.ExistingControl,
 				props.Text{
 					Size:   FontSizeSmall,
 					Align:  align.Left,
@@ -314,17 +331,27 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 					Family: fontfamily.Helvetica,
 				},
 			))
-			ctrlRow.Add(ctrlCol)
-			ctrlRow.Add(col.New(gridSize))
+			ctrlRow.Add(ctrlLabelCol)
+			ctrlRow.Add(ctrlValueCol)
 			m.AddRows(ctrlRow)
 		}
 
 		if risk.TreatmentOption != "" {
-			treatRow := row.New(RowHeight)
-			treatRow.Add(col.New(1))
-			treatCol := col.New(gridSize - 2)
-			treatCol.Add(text.New(
-				"Opsi Penanganan / Treatment: "+truncate(risk.TreatmentOption, 80),
+			treatRow := row.New(RowHeight + 2)
+			treatLabelCol := col.New(2)
+			treatLabelCol.Add(text.New(
+				"Penanganan:",
+				props.Text{
+					Size:   FontSizeSmall,
+					Align:  align.Left,
+					Color:  MutedText,
+					Family: fontfamily.Helvetica,
+					Style:  fontstyle.Bold,
+				},
+			))
+			treatValueCol := col.New(10)
+			treatValueCol.Add(text.New(
+				risk.TreatmentOption,
 				props.Text{
 					Size:   FontSizeSmall,
 					Align:  align.Left,
@@ -332,41 +359,50 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 					Family: fontfamily.Helvetica,
 				},
 			))
-			treatRow.Add(treatCol)
-			treatRow.Add(col.New(gridSize))
+			treatRow.Add(treatLabelCol)
+			treatRow.Add(treatValueCol)
 			m.AddRows(treatRow)
 		}
 
 		if len(risk.Mitigations) > 0 {
+			mitHeaderRow := row.New(RowHeight)
+			mitHeaderRow.Add(col.New(2).Add(text.New(
+				"Mitigasi:",
+				props.Text{
+					Size:   FontSizeSmall,
+					Align:  align.Left,
+					Color:  MutedText,
+					Family: fontfamily.Helvetica,
+					Style:  fontstyle.Bold,
+				},
+			)))
+			m.AddRows(mitHeaderRow)
+
 			for mi, mit := range risk.Mitigations {
-				if mi >= 3 {
+				if mi >= 5 {
 					break
 				}
-				mitRow := row.New(RowHeight)
-				mitRow.Add(col.New(1))
-				mitCol := col.New(gridSize - 2)
 				dueDateStr := ""
 				if mit.DueDate != nil {
-					dueDateStr = " (due: " + *mit.DueDate + ")"
+					dueDateStr = " (tenggat: " + *mit.DueDate + ")"
 				}
-				mitCol.Add(text.New(
-					fmt.Sprintf("  %d. %s%s", mi+1, truncate(mit.Action, 70), dueDateStr),
+				mitRow := row.New(RowHeight + 2)
+				mitRow.Add(col.New(2).Add(text.New(
+					fmt.Sprintf("%d. %s%s", mi+1, mit.Action, dueDateStr),
 					props.Text{
 						Size:   FontSizeSmall,
 						Align:  align.Left,
 						Color:  BlackColor,
 						Family: fontfamily.Helvetica,
 					},
-				))
-				mitRow.Add(mitCol)
-				mitRow.Add(col.New(gridSize))
+				)))
 				m.AddRows(mitRow)
 			}
 		}
 
-		m.AddRows(row.New(2))
+		m.AddRows(row.New(4))
 	}
-	m.AddRows(row.New(6))
+	m.AddRows(row.New(SectionSpacing))
 }
 
 func (r *pdfReportRenderer) addIncidentSummary(m core.Maroto, incidents []*entity.Incident) {
@@ -390,17 +426,17 @@ func (r *pdfReportRenderer) addIncidentSummary(m core.Maroto, incidents []*entit
 			props.Text{
 				Size:   FontSizeBody,
 				Align:  align.Center,
-				Color:  BlackColor,
+				Color:  MutedText,
 				Family: fontfamily.Helvetica,
 			},
 		)))
 		m.AddRows(emptyRow)
-		m.AddRows(row.New(6))
+		m.AddRows(row.New(SectionSpacing))
 		return
 	}
 
-	header := []string{"No.", "Kode/Code", "Judul/Title", "Severity", "Status", "Tindakan Korektif/Corrective Action"}
-	colWidths := []uint{2, 4, 6, 3, 3, 6}
+	header := []string{"No.", "Kode", "Judul / Title", "Severity", "Status", "Tindakan Korektif / Corrective Action"}
+	colWidths := []uint{2, 4, 8, 3, 3, 8}
 
 	var tableRows [][]string
 	for i, inc := range incidents {
@@ -411,15 +447,15 @@ func (r *pdfReportRenderer) addIncidentSummary(m core.Maroto, incidents []*entit
 		tableRows = append(tableRows, []string{
 			strconv.Itoa(i + 1),
 			code,
-			truncate(inc.Title, 30),
+			truncate(inc.Title, maxTitleLen),
 			inc.Severity,
 			inc.Status,
-			truncate(inc.CorrectiveAction, 30),
+			truncate(inc.CorrectiveAction, 80),
 		})
 	}
 
-	m.AddRows(RenderTable(header, tableRows, colWidths, WithFontSize(FontSizeSmall))...)
-	m.AddRows(row.New(6))
+	m.AddRows(RenderTable(header, tableRows, colWidths, WithFontSize(FontSizeSmall), WithLeftAligned(2, 5))...)
+	m.AddRows(row.New(SectionSpacing))
 }
 
 func (r *pdfReportRenderer) addKRISection(m core.Maroto, kris []*entity.KRI) {
@@ -443,34 +479,34 @@ func (r *pdfReportRenderer) addKRISection(m core.Maroto, kris []*entity.KRI) {
 			props.Text{
 				Size:   FontSizeBody,
 				Align:  align.Center,
-				Color:  BlackColor,
+				Color:  MutedText,
 				Family: fontfamily.Helvetica,
 			},
 		)))
 		m.AddRows(emptyRow)
-		m.AddRows(row.New(6))
+		m.AddRows(row.New(SectionSpacing))
 		return
 	}
 
-	kriHeader := []string{"No.", "Nama KRI/KRI Name", "Threshold", "Nilai Aktual/Actual Value", "Status", "Risiko Terkait/Linked Risk"}
-	kriWidths := []uint{2, 6, 4, 4, 3, 5}
+	kriHeader := []string{"No.", "Nama KRI / KRI Name", "Batas Bawah", "Batas Atas", "Nilai Aktual", "Status", "Risiko"}
+	kriWidths := []uint{2, 6, 3, 3, 3, 3, 5}
 
 	var kriRows [][]string
 	for i, kri := range kris {
 		status := kri.GetStatus()
-		threshold := fmt.Sprintf("%.0f - %.0f", kri.ThresholdMin, kri.ThresholdMax)
 		kriRows = append(kriRows, []string{
 			strconv.Itoa(i + 1),
-			truncate(kri.Name, 30),
-			threshold,
+			truncate(kri.Name, 40),
+			fmt.Sprintf("%.2f", kri.ThresholdMin),
+			fmt.Sprintf("%.2f", kri.ThresholdMax),
 			fmt.Sprintf("%.2f", kri.CurrentValue),
 			status,
 			truncate(kri.RiskTitle, 25),
 		})
 	}
 
-	m.AddRows(RenderTable(kriHeader, kriRows, kriWidths, WithFontSize(FontSizeSmall))...)
-	m.AddRows(row.New(6))
+	m.AddRows(RenderTable(kriHeader, kriRows, kriWidths, WithFontSize(FontSizeSmall), WithLeftAligned(1, 6))...)
+	m.AddRows(row.New(SectionSpacing))
 }
 
 func (r *pdfReportRenderer) addTrendSection(m core.Maroto, trendData []entity.CycleTrendPoint) {
@@ -487,10 +523,22 @@ func (r *pdfReportRenderer) addTrendSection(m core.Maroto, trendData []entity.Cy
 	)))
 	m.AddRows(headerRow)
 
-	trendRow, err := RenderTrendChartRow(trendData)
-	if err == nil && trendRow != nil {
-		m.AddRows(trendRow)
+	if len(trendData) == 0 {
+		emptyRow := row.New(RowHeight + 2)
+		emptyRow.Add(col.New(gridSize).Add(text.New(
+			"Tidak ada data tren / No trend data available",
+			props.Text{
+				Size:   FontSizeBody,
+				Align:  align.Center,
+				Color:  MutedText,
+				Family: fontfamily.Helvetica,
+			},
+		)))
+		m.AddRows(emptyRow)
+		return
 	}
+
+	m.AddRows(RenderTrendChartRows(trendData)...)
 }
 
 func truncate(s string, maxLen int) string {
@@ -509,6 +557,38 @@ func joinStrings(strs []string, sep string) string {
 		result += sep + strs[i]
 	}
 	return result
+}
+
+func (r *pdfReportRenderer) addPageNumbers(m core.Maroto) {
+	footerRow := row.New(8)
+	footerRow.Add(col.New(gridSize).Add(text.New(
+		"Laporan Risiko - Manris v2",
+		props.Text{
+			Size:   FontSizeLabel,
+			Align:  align.Left,
+			Color:  MutedText,
+			Family: fontfamily.Helvetica,
+		},
+	)))
+	footerRow.Add(col.New().Add(text.New(
+		"Halaman: ",
+		props.Text{
+			Size:   FontSizeLabel,
+			Align:  align.Right,
+			Color:  MutedText,
+			Family: fontfamily.Helvetica,
+		},
+	)))
+	footerRow.Add(col.New().Add(text.New(
+		"{country}",
+		props.Text{
+			Size:   FontSizeLabel,
+			Align:  align.Left,
+			Color:  MutedText,
+			Family: fontfamily.Helvetica,
+		},
+	)))
+	m.AddRows(footerRow)
 }
 
 var _ service.ReportPDFRenderer = &pdfReportRenderer{}

@@ -45,7 +45,7 @@ func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateRepo
 	}
 
 	if len(risks) == 0 {
-		return nil, errors.ErrNotFound
+		return nil, errors.Wrap(errors.ErrNotFound, "no risks found for cycle "+input.Cycle+" with status approved")
 	}
 
 	riskIDs := make(map[uuid.UUID]struct{}, len(risks))
@@ -221,14 +221,16 @@ func (uc *GenerateReportUseCase) computeTrendData(ctx context.Context) ([]entity
 		for _, r := range risks {
 			score := r.GetInherentScore()
 			switch {
-			case score >= 15:
+			case score >= 20:
 				pt.Ekstrem++
-			case score >= 10:
+			case score >= 15:
 				pt.Tinggi++
-			case score >= 5:
+			case score >= 10:
 				pt.Sedang++
-			default:
+			case score >= 5:
 				pt.Rendah++
+			default:
+				pt.SangatRendah++
 			}
 		}
 		trend = append(trend, pt)

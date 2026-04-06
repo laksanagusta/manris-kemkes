@@ -1,9 +1,13 @@
 package pdfreport
 
 import (
+	"strconv"
+
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
 	"github.com/johnfercher/maroto/v2/pkg/components/image"
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
+	"github.com/johnfercher/maroto/v2/pkg/components/text"
+	"github.com/johnfercher/maroto/v2/pkg/consts/align"
 	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/props"
@@ -11,9 +15,12 @@ import (
 	"github.com/vicanso/go-charts/v2"
 )
 
-const chartWidth = 600
-const chartHeight = 300
+const (
+	chartWidth  = 800
+	chartHeight = 400
+)
 
+// RenderTrendChart generates a bar chart PNG from trend data.
 func RenderTrendChart(data []entity.CycleTrendPoint) ([]byte, error) {
 	if len(data) == 0 {
 		return nil, nil
@@ -61,22 +68,72 @@ func chartColor(r, g, b uint8) charts.Color {
 	return charts.Color{R: r, G: g, B: b}
 }
 
+// RenderTrendChartRow renders the trend chart as a single row (backward-compatible).
 func RenderTrendChartRow(data []entity.CycleTrendPoint) (core.Row, error) {
 	imgBytes, err := RenderTrendChart(data)
 	if err != nil {
 		return nil, err
 	}
 	if imgBytes == nil {
-		r := row.New(10)
-		r.Add(col.New(gridSize))
-		return r, nil
+		return row.New(10), nil
 	}
 
 	imgRow := row.New(float64(chartHeight) * 0.25)
-	imgRow.Add(col.New(gridSize))
 	img := image.NewFromBytes(imgBytes, extension.Png, props.Rect{})
-	imgCol := col.New(gridSize).Add(img)
-	imgRow.Add(imgCol)
-	imgRow.Add(col.New(gridSize))
+	imgRow.Add(col.New().Add(img))
 	return imgRow, nil
+}
+
+// RenderTrendChartRows renders the trend chart with a fallback table and caption.
+func RenderTrendChartRows(data []entity.CycleTrendPoint) []core.Row {
+	if len(data) == 0 {
+		return nil
+	}
+
+	imgBytes, err := RenderTrendChart(data)
+	if err != nil || imgBytes == nil {
+		return renderTrendFallbackTable(data)
+	}
+
+	var rows []core.Row
+
+	// Chart image.
+	imgRow := row.New(float64(chartHeight) * 0.25)
+	img := image.NewFromBytes(imgBytes, extension.Png, props.Rect{})
+	imgRow.Add(col.New().Add(img))
+	rows = append(rows, imgRow)
+
+	// Caption below chart.
+	captionRow := row.New(8)
+	captionRow.Add(col.New().Add(text.New(
+		"Grafik Tren Risiko per Siklus / Risk Trend Chart per Cycle",
+		props.Text{
+			Size:  FontSizeLabel,
+			Align: align.Center,
+			Color: MutedText,
+		},
+	)))
+	rows = append(rows, captionRow)
+
+	return rows
+}
+
+func renderTrendFallbackTable(data []entity.CycleTrendPoint) []core.Row {
+	header := []string{"Siklus", "Rendah", "Sedang", "Tinggi", "Ekstrem", "Total"}
+	colWidths := []uint{2, 2, 2, 2, 2, 2}
+
+	var tableRows [][]string
+	for _, d := range data {
+		total := d.Rendah + d.Sedang + d.Tinggi + d.Ekstrem
+		tableRows = append(tableRows, []string{
+			d.Cycle,
+			strconv.Itoa(d.Rendah),
+			strconv.Itoa(d.Sedang),
+			strconv.Itoa(d.Tinggi),
+			strconv.Itoa(d.Ekstrem),
+			strconv.Itoa(total),
+		})
+	}
+
+	return RenderTable(header, tableRows, colWidths, WithFontSize(FontSizeSmall))
 }

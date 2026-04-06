@@ -19,10 +19,10 @@ func TestGetDashboardRiskCategoriesUseCase_ExecuteReturnsSortedCounts(t *testing
 	repo := &fakeDashboardCategoryRepo{
 		dashboardCategoryCounts: func(_ context.Context) ([]*entity.DashboardCategoryCount, error) {
 			return []*entity.DashboardCategoryCount{
-				{Category: "operasional", Count: 3},
-				{Category: "strategis", Count: 5},
-				{Category: "kepatuhan", Count: 3},
-				{Category: "finansial", Count: 1},
+				{Category: "operasional", Count: 3, Rendah: 1, Sedang: 1, Tinggi: 1, Ekstrem: 0},
+				{Category: "strategis", Count: 5, Rendah: 0, Sedang: 2, Tinggi: 2, Ekstrem: 1},
+				{Category: "kepatuhan", Count: 3, Rendah: 2, Sedang: 1, Tinggi: 0, Ekstrem: 0},
+				{Category: "finansial", Count: 1, Rendah: 0, Sedang: 0, Tinggi: 0, Ekstrem: 1},
 			}, nil
 		},
 	}
@@ -40,6 +40,10 @@ func TestGetDashboardRiskCategoriesUseCase_ExecuteReturnsSortedCounts(t *testing
 	if result[0].Category != "strategis" || result[0].Count != 5 {
 		t.Fatalf("expected strategis with count 5 first, got %#v", result[0])
 	}
+	if result[0].Rendah != 0 || result[0].Sedang != 2 || result[0].Tinggi != 2 || result[0].Ekstrem != 1 {
+		t.Fatalf("expected strategis severity breakdown {0,2,2,1}, got rendah=%d sedang=%d tinggi=%d ekstrem=%d",
+			result[0].Rendah, result[0].Sedang, result[0].Tinggi, result[0].Ekstrem)
+	}
 	if result[1].Category != "kepatuhan" || result[1].Count != 3 {
 		t.Fatalf("expected kepatuhan with count 3 second, got %#v", result[1])
 	}
@@ -49,14 +53,17 @@ func TestGetDashboardRiskCategoriesUseCase_ExecuteReturnsSortedCounts(t *testing
 	if result[3].Category != "finansial" || result[3].Count != 1 {
 		t.Fatalf("expected finansial with count 1 last, got %#v", result[3])
 	}
+	if result[3].Ekstrem != 1 {
+		t.Fatalf("expected finansial to have 1 ekstrem, got %d", result[3].Ekstrem)
+	}
 }
 
 func TestGetDashboardRiskCategoriesUseCase_ExecuteMapsLegacyBlankToUncategorized(t *testing.T) {
 	repo := &fakeDashboardCategoryRepo{
 		dashboardCategoryCounts: func(_ context.Context) ([]*entity.DashboardCategoryCount, error) {
 			return []*entity.DashboardCategoryCount{
-				{Category: "", Count: 2},
-				{Category: "strategis", Count: 4},
+				{Category: "", Count: 2, Rendah: 1, Sedang: 1, Tinggi: 0, Ekstrem: 0},
+				{Category: "strategis", Count: 4, Rendah: 0, Sedang: 1, Tinggi: 2, Ekstrem: 1},
 			}, nil
 		},
 	}

@@ -32,10 +32,15 @@ type HeatmapCell struct {
 	Count       int `json:"count"`
 }
 
-// DashboardCategoryCount holds the count of risks per category
+// DashboardCategoryCount holds the count of risks per category with severity breakdown
 type DashboardCategoryCount struct {
-	Category string `json:"category"`
-	Count    int    `json:"count"`
+	Category     string `json:"category"`
+	Count        int    `json:"count"`
+	SangatRendah int    `json:"sangatRendah"`
+	Rendah       int    `json:"rendah"`
+	Sedang       int    `json:"sedang"`
+	Tinggi       int    `json:"tinggi"`
+	Ekstrem      int    `json:"ekstrem"`
 }
 
 // HeatmapVelocityCell extends HeatmapCell with movement direction counts

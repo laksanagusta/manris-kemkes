@@ -519,14 +519,16 @@ Aturan penting:
 func (r *aiRepository) buildPredictivePrompt(risks []entity.Risk) string {
 	riskSummary := ""
 	for _, r := range risks {
-		score := float64(r.Probability) * float64(r.Impact)
-		lvl := "Rendah"
-		if score >= 17 {
-			lvl = "Ekstrem"
-		} else if score >= 10 {
+		score := float64(r.Probability) * float64(r.Impact) * r.Weight
+		lvl := "Sangat Rendah"
+		if score >= 20 {
+			lvl = "Sangat Tinggi"
+		} else if score >= 15 {
 			lvl = "Tinggi"
-		} else if score >= 5 {
+		} else if score >= 10 {
 			lvl = "Sedang"
+		} else if score >= 5 {
+			lvl = "Rendah"
 		}
 		riskSummary += fmt.Sprintf("ID: %s | Title: %s | Level: %s\n", r.Code, r.Title, lvl)
 	}
@@ -539,8 +541,8 @@ Kembalikan HANYA array of JSON dengan struktur persis seperti ini:
   {
     "riskCode": "...",
     "title": "...",
-    "currentLevel": "Rendah|Sedang|Tinggi|Ekstrem",
-    "predictedLevel": "Rendah|Sedang|Tinggi|Ekstrem",
+    "currentLevel": "Sangat Rendah|Rendah|Sedang|Tinggi|Sangat Tinggi",
+    "predictedLevel": "Sangat Rendah|Rendah|Sedang|Tinggi|Sangat Tinggi",
     "trend": "up|down|stable",
     "confidence": 85,
     "reasoning": "..."

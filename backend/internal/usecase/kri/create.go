@@ -53,9 +53,6 @@ func (uc *CreateKRIUseCase) Execute(ctx context.Context, input CreateKRIInput) (
 	if input.Name == "" {
 		return nil, errors.ErrInvalidName
 	}
-	if input.Metric == "" {
-		return nil, errors.ErrInvalidMetric
-	}
 	if input.ThresholdMin >= input.ThresholdMax {
 		return nil, errors.ErrInvalidThreshold
 	}

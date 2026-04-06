@@ -88,7 +88,27 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 		return nil, fmt.Errorf("task not found: %w", err)
 	}
 
-	now := time.Now()
+	periodEnd, err := time.Parse("2006-01-02", task.PeriodEnd)
+	if err != nil {
+		return nil, fmt.Errorf("invalid period end date: %w", err)
+	}
+
+	dueDate, err := time.Parse("2006-01-02", task.DueDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid due date: %w", err)
+	}
+
+	loc, _ := time.LoadLocation("Asia/Jakarta")
+	now := time.Now().In(loc)
+
+	hPlus1Start := time.Date(periodEnd.Year(), periodEnd.Month(), periodEnd.Day()+1, 0, 0, 0, 0, loc)
+	dueDateEnd := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 23, 59, 59, 0, loc)
+
+	if now.Before(hPlus1Start) || now.After(dueDateEnd) {
+		return nil, domainerrors.ErrSubmissionWindowClosed
+	}
+
+	now = time.Now().In(loc)
 	task.ProgressPct = input.ProgressPct
 	task.ActualCost = input.ActualCost
 	task.EvidenceURL = evidenceURL

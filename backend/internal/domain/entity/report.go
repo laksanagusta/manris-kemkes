@@ -12,7 +12,7 @@ type ReportSummary struct {
 	Cycle              string
 	GeneratedAt        time.Time
 	TotalRisks         int
-	HighExtremeCount   int // risks with score >= 10
+	HighExtremeCount   int // risks with score >= 15
 	OverdueMitigations int
 	AvgExposureScore   float64
 	CategoryBreakdown  map[string]int
@@ -20,11 +20,12 @@ type ReportSummary struct {
 
 // CycleTrendPoint represents risk level counts for a single assessment cycle
 type CycleTrendPoint struct {
-	Cycle   string
-	Rendah  int // Low (score < 5)
-	Sedang  int // Medium (score 5-9)
-	Tinggi  int // High (score 10-14)
-	Ekstrem int // Extreme (score >= 15)
+	Cycle        string
+	SangatRendah int // Very Low (score < 5)
+	Rendah       int // Low (score 5-9)
+	Sedang       int // Medium (score 10-14)
+	Tinggi       int // High (score 15-19)
+	Ekstrem      int // Extreme (score >= 20)
 }
 
 // ReportData aggregates all data needed to render the full PDF report

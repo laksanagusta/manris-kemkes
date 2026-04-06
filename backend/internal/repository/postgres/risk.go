@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"time"
@@ -29,22 +30,23 @@ func (r *riskRepository) Create(ctx context.Context, risk *entity.Risk) error {
 	risk.CalculateAll()
 	risk.CalculateTargetBobot()
 	risk.CalculateTargetNilai()
+	risk.CalculateTargetScore()
 
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO risks (code, title, description, category, status, version_group_id, previous_risk_id, is_current, archived_at, archived_reason, organization_id, created_by,
 		  cause, risk_source, controllability, impact_description,
-		  existing_control, control_effectiveness, probability, impact, weight, nilai,
+		  existing_control, control_effectiveness, probability, impact, weight, nilai, inherent_score,
 		  risk_priority, risk_appetite, treatment_option,
-		  target_probability, target_impact, target_weight, target_nilai, next_review_date, assessment_cycle, review_type, change_reason, review_summary, review_started_at, review_submitted_at, review_approved_at, draft_approval_line)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38)
-		 RETURNING id, inherent_score, target_score, created_at, updated_at`,
+		  target_probability, target_impact, target_weight, target_nilai, target_score, next_review_date, assessment_cycle, review_type, change_reason, review_summary, review_started_at, review_submitted_at, review_approved_at, draft_approval_line)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40)
+		 RETURNING id, created_at, updated_at`,
 		risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID, risk.CreatedBy,
 		risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
-		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight, risk.Nilai,
+		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight, risk.Nilai, risk.InherentScore,
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
-		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.NextReviewDate,
+		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.TargetScore, risk.NextReviewDate,
 		risk.AssessmentCycle, risk.ReviewType, risk.ChangeReason, risk.ReviewSummary, risk.ReviewStartedAt, risk.ReviewSubmittedAt, risk.ReviewApprovedAt, mustJSON(risk.DraftApprovalLine),
-	).Scan(&risk.ID, &risk.InherentScore, &risk.TargetScore, &risk.CreatedAt, &risk.UpdatedAt)
+	).Scan(&risk.ID, &risk.CreatedAt, &risk.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create risk: %w", err)
 	}
@@ -127,21 +129,22 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 	risk.CalculateAll()
 	risk.CalculateTargetBobot()
 	risk.CalculateTargetNilai()
+	risk.CalculateTargetScore()
 
 	_, err := r.pool.Exec(ctx,
 		`UPDATE risks SET code=$2, title=$3, description=$4, category=$5, status=$6, version_group_id=$7, previous_risk_id=$8, is_current=$9, archived_at=$10, archived_reason=$11, organization_id=$12,
 		  cause=$13, risk_source=$14, controllability=$15, impact_description=$16,
-		  existing_control=$17, control_effectiveness=$18, probability=$19, impact=$20, weight=$21, nilai=$22,
-		  risk_priority=$23, risk_appetite=$24, treatment_option=$25,
-		  target_probability=$26, target_impact=$27, target_weight=$28, target_nilai=$29, next_review_date=$30,
-		  assessment_cycle=$31, review_type=$32, change_reason=$33, review_summary=$34, review_started_at=$35, review_submitted_at=$36, review_approved_at=$37,
-		  draft_approval_line=$38, updated_at=now()
+		  existing_control=$17, control_effectiveness=$18, probability=$19, impact=$20, weight=$21, nilai=$22, inherent_score=$23,
+		  risk_priority=$24, risk_appetite=$25, treatment_option=$26,
+		  target_probability=$27, target_impact=$28, target_weight=$29, target_nilai=$30, target_score=$31, next_review_date=$32,
+		  assessment_cycle=$33, review_type=$34, change_reason=$35, review_summary=$36, review_started_at=$37, review_submitted_at=$38, review_approved_at=$39,
+		  draft_approval_line=$40, updated_at=now()
 		 WHERE id=$1`,
 		risk.ID, risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID,
 		risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
-		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight, risk.Nilai,
+		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight, risk.Nilai, risk.InherentScore,
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
-		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.NextReviewDate,
+		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.TargetScore, risk.NextReviewDate,
 		risk.AssessmentCycle, risk.ReviewType, risk.ChangeReason, risk.ReviewSummary, risk.ReviewStartedAt, risk.ReviewSubmittedAt, risk.ReviewApprovedAt, mustJSON(risk.DraftApprovalLine),
 	)
 	if err != nil {
@@ -355,7 +358,7 @@ func (r *riskRepository) DashboardSummary(ctx context.Context) (*entity.Dashboar
 	if err != nil {
 		return nil, fmt.Errorf("count risks: %w", err)
 	}
-	err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_current = TRUE AND (probability * impact) >= 10").Scan(&s.HighExtreme)
+	err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_current = TRUE AND inherent_score >= 15").Scan(&s.HighExtreme)
 	if err != nil {
 		return nil, fmt.Errorf("count high/extreme: %w", err)
 	}
@@ -373,7 +376,13 @@ func (r *riskRepository) DashboardSummary(ctx context.Context) (*entity.Dashboar
 // DashboardCategoryCounts returns risk counts grouped by category
 func (r *riskRepository) DashboardCategoryCounts(ctx context.Context) ([]*entity.DashboardCategoryCount, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category, COUNT(*) as count
+		`SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category,
+		        COUNT(*) as count,
+		        COUNT(*) FILTER (WHERE inherent_score < 5) as sangat_rendah,
+		        COUNT(*) FILTER (WHERE inherent_score >= 5 AND inherent_score < 10) as rendah,
+		        COUNT(*) FILTER (WHERE inherent_score >= 10 AND inherent_score < 15) as sedang,
+		        COUNT(*) FILTER (WHERE inherent_score >= 15 AND inherent_score < 20) as tinggi,
+		        COUNT(*) FILTER (WHERE inherent_score >= 20) as ekstrem
 		 FROM risks
 		 WHERE is_current = TRUE
 		 GROUP BY 1
@@ -386,7 +395,7 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context) ([]*entity
 	var counts []*entity.DashboardCategoryCount
 	for rows.Next() {
 		var c entity.DashboardCategoryCount
-		if err := rows.Scan(&c.Category, &c.Count); err != nil {
+		if err := rows.Scan(&c.Category, &c.Count, &c.SangatRendah, &c.Rendah, &c.Sedang, &c.Tinggi, &c.Ekstrem); err != nil {
 			return nil, fmt.Errorf("scan category count: %w", err)
 		}
 		counts = append(counts, &c)
@@ -486,6 +495,20 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 
 // ListCycleSnapshot returns approved risks for one assessment cycle including mitigations.
 func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
+	// Debug: check what cycles exist in DB
+	var dbCycles []string
+	cycleRows, err := r.pool.Query(ctx, "SELECT DISTINCT assessment_cycle FROM risks WHERE assessment_cycle IS NOT NULL ORDER BY assessment_cycle DESC LIMIT 10")
+	if err == nil {
+		defer cycleRows.Close()
+		for cycleRows.Next() {
+			var c string
+			cycleRows.Scan(&c)
+			dbCycles = append(dbCycles, c)
+		}
+	}
+
+	log.Printf("[DEBUG] ListCycleSnapshot called with cycle=%q, orgIDs=%v, available_cycles=%v", cycle, orgIDs, dbCycles)
+
 	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
@@ -644,20 +667,22 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 		$1 AS assessment_cycle,
 		base.inherent_score,
 		CASE
-			WHEN base.inherent_score >= 15 THEN 'extreme'
-			WHEN base.inherent_score >= 10 THEN 'high'
-			WHEN base.inherent_score >= 5 THEN 'medium'
-			ELSE 'low'
+			WHEN base.inherent_score >= 20 THEN 'extreme'
+			WHEN base.inherent_score >= 15 THEN 'high'
+			WHEN base.inherent_score >= 10 THEN 'medium'
+			WHEN base.inherent_score >= 5 THEN 'low'
+			ELSE 'very_low'
 		END AS current_level,
 		candidate.id::text,
 		candidate.status,
 		candidate.inherent_score,
 		CASE
-			WHEN candidate.inherent_score >= 15 THEN 'extreme'
-			WHEN candidate.inherent_score >= 10 THEN 'high'
-			WHEN candidate.inherent_score >= 5 THEN 'medium'
+			WHEN candidate.inherent_score >= 20 THEN 'extreme'
+			WHEN candidate.inherent_score >= 15 THEN 'high'
+			WHEN candidate.inherent_score >= 10 THEN 'medium'
+			WHEN candidate.inherent_score >= 5 THEN 'low'
 			WHEN candidate.inherent_score IS NULL THEN NULL
-			ELSE 'low'
+			ELSE 'very_low'
 		END AS candidate_level,
 		base.next_review_date::text,
 		COALESCE(candidate.change_reason, ''),
@@ -746,16 +771,18 @@ func (r *riskRepository) CompareCycles(ctx context.Context, fromCycle string, to
 		prev.inherent_score,
 		curr.inherent_score,
 		CASE
-			WHEN prev.inherent_score >= 15 THEN 'extreme'
-			WHEN prev.inherent_score >= 10 THEN 'high'
-			WHEN prev.inherent_score >= 5 THEN 'medium'
-			ELSE 'low'
+			WHEN prev.inherent_score >= 20 THEN 'extreme'
+			WHEN prev.inherent_score >= 15 THEN 'high'
+			WHEN prev.inherent_score >= 10 THEN 'medium'
+			WHEN prev.inherent_score >= 5 THEN 'low'
+			ELSE 'very_low'
 		END AS previous_level,
 		CASE
-			WHEN curr.inherent_score >= 15 THEN 'extreme'
-			WHEN curr.inherent_score >= 10 THEN 'high'
-			WHEN curr.inherent_score >= 5 THEN 'medium'
-			ELSE 'low'
+			WHEN curr.inherent_score >= 20 THEN 'extreme'
+			WHEN curr.inherent_score >= 15 THEN 'high'
+			WHEN curr.inherent_score >= 10 THEN 'medium'
+			WHEN curr.inherent_score >= 5 THEN 'low'
+			ELSE 'very_low'
 		END AS current_level,
 		(curr.inherent_score - prev.inherent_score) AS score_delta,
 		CASE
