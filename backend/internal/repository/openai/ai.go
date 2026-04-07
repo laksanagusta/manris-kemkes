@@ -14,18 +14,24 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+type AIModelProvider interface {
+	GetModelForFeature(feature string) string
+}
+
 // aiRepository implements AIRepository using OpenAI API
 type aiRepository struct {
-	client   *openai.Client
-	riskRepo repository.RiskRepository
+	client        *openai.Client
+	riskRepo      repository.RiskRepository
+	modelProvider AIModelProvider
 }
 
 // NewAIRepository creates a new OpenAI-based AI repository
-func NewAIRepository(apiKey string, riskRepo repository.RiskRepository) repository.AIRepository {
+func NewAIRepository(apiKey string, riskRepo repository.RiskRepository, modelProvider AIModelProvider) repository.AIRepository {
 	client := openai.NewClient(apiKey)
 	return &aiRepository{
-		client:   client,
-		riskRepo: riskRepo,
+		client:        client,
+		riskRepo:      riskRepo,
+		modelProvider: modelProvider,
 	}
 }
 
@@ -44,7 +50,7 @@ func (r *aiRepository) GenerateFishbone(ctx context.Context, req entity.AIReques
 	prompt := r.buildFishbonePrompt(req.Title, req.Description)
 
 	// Call OpenAI API
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko profesional. Anda hanya merespons menggunakan JSON yang tersusun rapi dan valid.")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko profesional. Anda hanya merespons menggunakan JSON yang tersusun rapi dan valid.", "cause")
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +72,7 @@ func (r *aiRepository) GenerateImpact(ctx context.Context, req entity.AIRequest)
 
 	prompt := r.buildImpactPrompt(req.Title, req.Description)
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko andal. Berikan respon sesuai instruksi secara langsung tanpa basa-basi.")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko andal. Berikan respon sesuai instruksi secara langsung tanpa basa-basi.", "impact")
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +88,7 @@ func (r *aiRepository) GenerateMitigation(ctx context.Context, req entity.AIRequ
 
 	prompt := r.buildMitigationPrompt(req.Title, req.Description, req.Cause, req.Impact)
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah pakar manajemen resiko. Anda hanya merespons menggunakan JSON array yang berisi 5 (lima) baris aksi mitigasi.")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah pakar manajemen resiko. Anda hanya merespons menggunakan JSON array yang berisi 5 (lima) baris aksi mitigasi.", "mitigation")
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +113,7 @@ func (r *aiRepository) GenerateMeetingMinutes(ctx context.Context, transcript st
 
 	prompt := r.buildMinutesPrompt(transcript)
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah notulis profesional. Hanya merespons menggunakan JSON yang tersusun rapi.")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah notulis profesional. Hanya merespons menggunakan JSON yang tersusun rapi.", "minutes")
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +161,7 @@ func (r *aiRepository) AnalyzeTranscript(ctx context.Context, transcript string)
 	existingRisksJSON, _ := json.Marshal(candidates)
 	prompt := r.buildTranscriptPrompt(transcript, string(existingRisksJSON))
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko. Hanya merespons menggunakan JSON valid tanpa markdown.")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko. Hanya merespons menggunakan JSON valid tanpa markdown.", "transcript")
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +196,7 @@ func (r *aiRepository) GeneratePredictive(ctx context.Context, risks []entity.Ri
 
 	prompt := r.buildPredictivePrompt(risks[:limit])
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko AI. Hanya balas dengan valid array of JSON objects.")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko AI. Hanya balas dengan valid array of JSON objects.", "predictive")
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +243,7 @@ func (r *aiRepository) GenerateRiskSuggestions(ctx context.Context) (*entity.Ris
 	// Build prompt
 	prompt := r.buildRiskSuggestionPrompt(string(existingTitlesJSON))
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis risiko profesional di sektor kesehatan pemerintahan. Anda hanya merespons menggunakan JSON yang valid.")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis risiko profesional di sektor kesehatan pemerintahan. Anda hanya merespons menggunakan JSON yang valid.", "risk-suggestion")
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +272,7 @@ func (r *aiRepository) GenerateIncidentBatchExtraction(ctx context.Context, req 
 	}
 	prompt := r.buildIncidentBatchExtractionPrompt(req.DocumentText, string(riskCandidatesJSON))
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis insiden dan risiko di sektor kesehatan pemerintahan. Kembalikan JSON valid saja, tanpa markdown.")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis insiden dan risiko di sektor kesehatan pemerintahan. Kembalikan JSON valid saja, tanpa markdown.", "incident")
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +300,7 @@ func (r *aiRepository) GenerateManualIncidentRiskSuggestions(ctx context.Context
 	}
 
 	prompt := r.buildManualIncidentRiskSuggestionPrompt(req, string(riskCandidatesJSON))
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis insiden dan risiko di sektor kesehatan pemerintahan. Kembalikan JSON valid saja, tanpa markdown.")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis insiden dan risiko di sektor kesehatan pemerintahan. Kembalikan JSON valid saja, tanpa markdown.", "incident")
 	if err != nil {
 		return nil, err
 	}
@@ -318,11 +324,17 @@ func (r *aiRepository) GenerateManualIncidentRiskSuggestions(ctx context.Context
 
 // Helper methods
 
-func (r *aiRepository) callOpenAI(ctx context.Context, prompt string, systemMessage string) (string, error) {
+func (r *aiRepository) callOpenAI(ctx context.Context, prompt string, systemMessage string, feature string) (string, error) {
+	model := "gpt-4o-mini"
+	if r.modelProvider != nil {
+		model = r.modelProvider.GetModelForFeature(feature)
+	}
+
+	log.Println(model)
 	resp, err := r.client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model: "gpt-5.4-mini",
+			Model: model,
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleSystem,
@@ -576,8 +588,8 @@ Format respons JSON (hanya JSON, tanpa markdown):
 }
 
 PENTING:
-- Urutkan ke risiko yang paling berbahaya dan
-- utamakan risiko yang prioritas nasional pemerintah Indonesia tentang kesehatan
+- urutkan ke risiko yang paling berbahaya
+- utamakan risiko yang prioritas nasional pemerintah Indonesia
 - Judul harus berbeda dari daftar yang sudah ada
 - Jangan buat variasi kecil dari risiko yang sudah ada
 - Berikan konteks yang spesifik dan realistis`, existingTitlesJSON)
@@ -682,7 +694,7 @@ contoh: data insiden{
   "title": "Dugaan keracunan pangan massal pada pelaksanaan MBG di sekolah,
   "what": "Puluhan siswa dari beberapa sekolah mengalami mual, muntah, dan diare beberapa jam setelah mengonsumsi makanan dari program MBG. Investigasi awal menemukan indikasi masalah pada proses pengolahan makanan, menu tinggi gula/kalori pada beberapa hari sebelumnya, dan keterlambatan koordinasi respons dari unit teknis daerah.",
 }
- 
+
 hasilnya dia akan berkaitan dengan risiko Potensi Kejadian Luar Biasa (KLB) Keracunan Pangan terkait Program Makan Bergizi Gratis (MBG) dan Obesitas belum dianggap penting sebagai faktor risiko penyakit degeneratif.`,
 		riskCandidatesJSON,
 		req.Title,
@@ -747,7 +759,7 @@ func (r *aiRepository) GenerateKRI(ctx context.Context, req entity.AIRequest) (*
 
 	prompt := r.buildKRIPrompt(req.Title, req.Description)
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis risiko profesional di sektor kesehatan pemerintahan. Anda hanya merespons menggunakan JSON yang valid.")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis risiko profesional di sektor kesehatan pemerintahan. Anda hanya merespons menggunakan JSON yang valid.", "kri")
 	if err != nil {
 		return nil, err
 	}

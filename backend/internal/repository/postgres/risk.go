@@ -668,7 +668,6 @@ func (r *riskRepository) ActivateApprovedVersion(ctx context.Context, approvedRi
 	if _, err := tx.Exec(ctx,
 		`UPDATE risks
 		 SET is_current = FALSE,
-		     is_cycle_current = FALSE,
 		     archived_at = now(),
 		     archived_reason = CASE
 		       WHEN archived_reason = '' THEN 'superseded by periodic reassessment'
@@ -863,10 +862,11 @@ func (r *riskRepository) CompareCycles(ctx context.Context, fromCycle string, to
 		END AS movement,
 		COALESCE(curr.change_reason, '')
 	FROM risks curr
-	JOIN risks prev ON prev.version_group_id = curr.version_group_id
+	JOIN risks prev ON prev.id = curr.previous_risk_id
 	LEFT JOIN organizations org ON org.id = curr.organization_id
 	WHERE curr.assessment_cycle = $2
 	  AND curr.status = 'approved'
+	  AND curr.is_cycle_current = TRUE
 	  AND prev.assessment_cycle = $1
 	  AND prev.status = 'approved'`
 	args := []interface{}{fromCycle, toCycle}

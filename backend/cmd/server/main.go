@@ -39,6 +39,7 @@ import (
 	reportuc "github.com/manris/backend/internal/usecase/report"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 	systemuc "github.com/manris/backend/internal/usecase/system"
+	systemsettinguc "github.com/manris/backend/internal/usecase/system_setting"
 	useruc "github.com/manris/backend/internal/usecase/user"
 )
 
@@ -66,6 +67,7 @@ func main() {
 	domainLessonRepo := postgresrepo.NewLessonRepository(pool)
 	domainApprovalRepo := postgresrepo.NewApprovalRepository(pool)
 	domainSystemRepo := postgresrepo.NewSystemRepository(pool)
+	domainSystemSettingRepo := postgresrepo.NewSystemSettingRepository(pool)
 	domainMitigationTaskRepo := postgresrepo.NewMitigationTaskRepository(pool)
 	domainKRIReportRepo := postgresrepo.NewKRIReportRepository(pool)
 	domainCommLogRepo := postgresrepo.NewCommunicationLogRepository(pool)
@@ -78,8 +80,17 @@ func main() {
 	// Domain services
 	orgHierarchySvc := domainsvc.NewOrganizationHierarchy(domainOrgRepo)
 
+	// System settings services with shared cache
+	systemSettingGetUC := systemsettinguc.NewGetSettingService(domainSystemSettingRepo)
+	systemSettingCache := systemsettinguc.GetSharedCache(systemSettingGetUC)
+	systemSettingUpsertUC := systemsettinguc.NewUpsertSettingService(domainSystemSettingRepo, systemSettingCache)
+	systemSettingDeleteUC := systemsettinguc.NewDeleteSettingService(domainSystemSettingRepo, systemSettingCache)
+
+	// AI model provider (uses settings from database with in-memory cache)
+	modelProvider := openairepo.NewModelProviderAdapter(systemSettingGetUC)
+
 	// AI repository (OpenAI)
-	domainAIRepo := openairepo.NewAIRepository(cfg.OpenAIKey, domainRiskRepo)
+	domainAIRepo := openairepo.NewAIRepository(cfg.OpenAIKey, domainRiskRepo, modelProvider)
 
 	// CBA repository (OpenAI-backed)
 	domainCBARepo := openairepo.NewCBARepository(domainAIRepo)
@@ -297,6 +308,11 @@ func main() {
 	// System handlers (Clean Architecture)
 	cleanSystemHandler := httpHandler.NewSystemHandler(systemSlowQueriesUC)
 
+	// System Setting handlers
+	cleanSystemSettingHandler := httpHandler.NewSystemSettingHandler(
+		systemSettingGetUC, systemSettingUpsertUC, systemSettingDeleteUC,
+	)
+
 	// Mitigation Task handler
 	cleanMitigationTaskHandler := httpHandler.NewMitigationTaskHandler(
 		mtListUC, mtSubmitUC, mtGenerateUC, mtOverdueUC,
@@ -370,6 +386,14 @@ func main() {
 
 	// Auth
 	protected.Get("/auth/me", cleanAuthHandler.Me)
+
+	// System Settings (Super Admin only)
+	protected.Get("/system-settings", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.List)
+	protected.Get("/system-settings/ai-models", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.GetAIModels)
+	protected.Get("/system-settings/:key", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.Get)
+	protected.Put("/system-settings/:key", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.Upsert)
+	protected.Put("/system-settings/ai-models", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.UpdateAIModels)
+	protected.Delete("/system-settings/:key", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.Delete)
 
 	// Organizations (Clean Architecture)
 	protected.Get("/organizations", cleanOrgHandler.List)

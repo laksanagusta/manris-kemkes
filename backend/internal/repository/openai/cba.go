@@ -33,7 +33,7 @@ func (r *cbaRepository) RecommendVariables(ctx context.Context, riskDescription 
 
 	prompt := r.buildRecommendPrompt(riskDescription)
 
-	content, err := r.ai.callOpenAI(ctx, prompt, "Anda adalah ekonom kesehatan profesional yang ahli dalam Evaluasi Ekonomi Kesehatan (Health Economic Evaluation) menggunakan pendekatan Perspektif Sosial sesuai standar WHO. Anda hanya merespons menggunakan JSON yang valid.")
+	content, err := r.ai.callOpenAI(ctx, prompt, "Anda adalah ekonom kesehatan profesional yang ahli dalam Evaluasi Ekonomi Kesehatan (Health Economic Evaluation) menggunakan pendekatan Perspektif Sosial sesuai standar WHO. Anda hanya merespons menggunakan JSON yang valid.", "cba")
 	if err != nil {
 		return nil, err
 	}

@@ -137,7 +137,6 @@ func (r *mitigationTaskRepository) ListByUser(ctx context.Context, userID uuid.U
 	return r.queryTasks(ctx, query, args...)
 }
 
-
 func (r *mitigationTaskRepository) ListPendingOverdue(ctx context.Context, refDate time.Time) ([]*entity.MitigationTask, error) {
 	return r.queryTasks(ctx,
 		`SELECT t.id, t.mitigation_id, t.risk_id,
@@ -164,7 +163,9 @@ func (r *mitigationTaskRepository) GetRecurringMitigations(ctx context.Context) 
 		 JOIN risks r ON m.risk_id = r.id
 		 WHERE m.frequency = 'rutin'
 		   AND m.recurring_interval IS NOT NULL
-		   AND r.status IN ('final','approved')`)
+		   AND r.status IN ('final','approved')
+		   AND r.is_current = TRUE
+		   AND r.is_cycle_current = TRUE`)
 	if err != nil {
 		return nil, fmt.Errorf("get recurring mitigations: %w", err)
 	}
