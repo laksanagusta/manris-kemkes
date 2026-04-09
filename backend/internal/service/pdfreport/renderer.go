@@ -215,9 +215,9 @@ func (r *pdfReportRenderer) addRiskRegister(m core.Maroto, risks []*entity.Risk)
 			risk.Code,
 			truncate(risk.Title, maxTitleLen),
 			truncate(risk.Category, 20),
-			strconv.Itoa(risk.Probability),
-			strconv.Itoa(risk.Impact),
-			strconv.Itoa(risk.GetInherentScore()),
+			strconv.Itoa(risk.EffectiveProbability()),
+			strconv.Itoa(risk.EffectiveImpact()),
+			strconv.Itoa(risk.GetEffectiveScore()),
 			level,
 			risk.Status,
 		})
@@ -250,7 +250,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 			break
 		}
 		level := risk.GetRiskLevel()
-		score := risk.GetInherentScore()
+		score := risk.GetEffectiveScore()
 
 		titleRow := row.New(RowHeight + 4)
 		badgeCol := col.New(2)

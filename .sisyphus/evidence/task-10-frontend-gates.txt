@@ -1,0 +1,439 @@
+
+> frontend@0.1.0 test
+> node --test --experimental-specifier-resolution=node src/**/*.test.ts
+
+(node:36746) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/dashboard-insights.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ buildUnitExposureData ranks units by weighted exposure score (1.902ms)
+✔ buildUnitExposureData uses approved reviewed bundles for current-state exposure (0.309583ms)
+✔ buildUnitExposureData falls back to inherent semantics for approved partial reviewed bundles (0.1725ms)
+✔ buildUnitExposureData keeps non-approved rows on inherent semantics even with reviewed values present (0.122292ms)
+✔ buildUnitExposureData keeps explicit zero reviewed bundles instead of falling back to inherent (0.086333ms)
+✔ buildMovementChartData summarizes up down and stable comparison counts (0.077042ms)
+✔ buildExecutiveTrendData keeps only high and extreme counts plus weighted exposure (0.235458ms)
+✔ buildExecutiveTrendData uses approved reviewed bundles for current-state trends (0.059041ms)
+✔ buildExecutiveTrendData falls back to inherent semantics for approved partial reviewed bundles (0.060084ms)
+✔ buildExecutiveTrendData keeps non-approved rows on inherent semantics even with reviewed values present (0.089334ms)
+✔ buildTopRiskBadgeMap marks movement overdue and newly introduced cycle risks (1.731083ms)
+✔ movement helpers remain comparison-driven even when reviewed score fields differ (0.184292ms)
+✔ buildUnitExposureData and buildMovementChartData return empty-friendly arrays (0.119292ms)
+✔ buildExecutiveTrendData sorts semester output chronologically for overview charts (0.150791ms)
+✔ buildCriticalRiskRateTrendData uses approved reviewed bundles for current-state severity (0.48575ms)
+✔ buildCriticalRiskRateTrendData keeps non-approved reviewed drafts on inherent severity (0.104416ms)
+✔ buildInherentResidualTrendData preserves target score as residual even when reviewed values exist (0.277417ms)
+✔ buildMovementSnapshotData classifies new up down stable and removed risks (0.220667ms)
+(node:36747) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/kri-reporting.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ getKRIStatus evaluates explicit amber thresholds for higher-worse KRIs (0.764208ms)
+✔ getKRIStatus evaluates explicit amber thresholds for lower-worse KRIs (0.128625ms)
+✔ isReportOverdue only labels active draft states as overdue (1.225667ms)
+✔ formatKRIValue keeps the metric suffix deterministic (0.112459ms)
+✔ getKRIStatusFromReport accepts canonical accepted reports only (0.151667ms)
+✔ formatSemesterSummary formats accepted-only summary data (0.637667ms)
+✔ validateEvidenceURL and validateKRIReportForm enforce optional URL rules (0.125ms)
+✔ normalizeKRIReportPayload trims report fields and carries evidence url (0.053958ms)
+✔ validateKRISkipForm requires reason text (0.06525ms)
+✔ isKRIReviewAttentionOverdue maps overdue attention for submitted/revision states (0.106459ms)
+✔ filterKRIReviewQueueByState separates submitted, revision_requested, and overdue (0.107375ms)
+✔ validateKRIRevisionReviewNote requires non-empty reviewer note (0.040292ms)
+(node:36748) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/meeting-minutes-utils.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ normalizeMeetingMinuteDate keeps yyyy-mm-dd values (0.699542ms)
+✔ normalizeMeetingMinuteDate trims ISO datetime to date (0.265417ms)
+✔ normalizeMeetingMinuteDate falls back to today for invalid values (3.025417ms)
+✔ filterMeetingRiskOptions matches code and title locally (0.418625ms)
+(node:36749) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/organization-tree.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ flattenVisibleOrganizationTree keeps the full tree visible by default (13.751958ms)
+✔ flattenVisibleOrganizationTree hides descendants when a parent is collapsed (3.073083ms)
+(node:36750) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-approval-line.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ buildDraftApprovalLine keeps reviewer first and appends approvers (7.817542ms)
+✔ buildDraftApprovalLine includes currently selected approver before explicit add (0.100083ms)
+✔ buildSubmitApproverIds creates reviewer to approver chain without duplicates (0.076333ms)
+✔ buildTypedSubmitMembers creates review submission with typed members (0.096ms)
+✔ buildTypedSubmitMembers creates approval-only submission without reviewer (0.060583ms)
+(node:36751) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-cycle-detail-export.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ classifyRiskCycleDetailMovement uses effective score semantics (0.83425ms)
+✔ classifyRiskCycleDetailMovement keeps non-finalized reviewed drafts on inherent semantics (0.102208ms)
+✔ createRiskCycleDetailWorkbookBuffer persists top-bottom comparison trend, legend, freeze panes, autofilter, and styles (54.016959ms)
+(node:36752) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-export.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ buildRiskBulkExportRows uses bulk template columns and expands mitigations (0.696917ms)
+✔ createRiskBulkExportWorkbookBuffer creates worksheet with template headers (43.946166ms)
+(node:36753) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-history.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ buildVersionHistoryItem uses the complete reviewed bundle for current history snapshots (14.882958ms)
+✔ buildVersionHistoryItem falls back to inherent semantics when the reviewed bundle is incomplete (0.435625ms)
+✔ buildApprovedRiskHistoryItem uses current effective score and target baseline (0.288542ms)
+✔ buildVersionHistoryItem keeps non-finalized current snapshots on inherent semantics (0.322792ms)
+(node:36754) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-report-trend.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ buildRiskTrendData groups risks by semester assessment cycle instead of createdAt quarter (0.897875ms)
+✔ buildRiskTrendData promotes approved complete reviewed bundles to effective score buckets (0.288333ms)
+✔ buildRiskTrendData falls back to inherent semantics for approved partial reviewed bundles (0.157792ms)
+✔ buildRiskTrendData keeps explicit zero reviewed values in approved buckets (0.172875ms)
+✔ buildRiskTrendData keeps non-finalized reviewed drafts on inherent buckets (0.137042ms)
+✔ buildRiskTrendData falls back to createdAt-derived semester when assessmentCycle is missing (1.240625ms)
+✔ buildRiskTrendData limits trend rows by selected semester window (0.284083ms)
+(node:36760) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/dikalaksana/Engineering/manris-v2/frontend/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ resolveRiskScoreSemantics uses the complete reviewed bundle for approved risks (0.734667ms)
+✔ resolveRiskScoreSemantics falls back fully to the inherent bundle when approved reviewed data is partial (0.507542ms)
+✔ resolveRiskScoreSemantics ignores reviewed values when the risk is not approved (0.062083ms)
+✔ resolveRiskScoreSemantics derives matrix and level from the effective bundle (0.072333ms)
+✔ resolveRiskScoreSemantics keeps zero-like reviewed values when the approved bundle is complete (0.061125ms)
+ℹ tests 62
+ℹ suites 0
+ℹ pass 62
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 384.373084
+
+> frontend@0.1.0 lint
+> eslint
+
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/admin/forms/[id]/analytics/page.tsx
+  270:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/admin/forms/[id]/analytics/page.tsx:270:5
+  268 |     if (!token || !formId) return;
+  269 |
+> 270 |     setLoading(true);
+      |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  271 |     setError(null);
+  272 |
+  273 |     Promise.all([fetchForm(formId, token), fetchFormAnalytics(formId, token)])  react-hooks/set-state-in-effect
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/admin/forms/[id]/responses/page.tsx
+  118:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/admin/forms/[id]/responses/page.tsx:118:5
+  116 |     if (!token || !formId) return;
+  117 |
+> 118 |     setLoading(true);
+      |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  119 |     setError(null);
+  120 |
+  121 |     Promise.all([fetchForm(formId, token), fetchFormResponses(formId, token)])  react-hooks/set-state-in-effect
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/admin/settings/page.tsx
+   9:10  warning  'Separator' is defined but never used  @typescript-eslint/no-unused-vars
+  17:3   warning  'Shield' is defined but never used     @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/admin/users/page.tsx
+    5:29  warning  'CardHeader' is defined but never used    @typescript-eslint/no-unused-vars
+    5:41  warning  'CardTitle' is defined but never used     @typescript-eslint/no-unused-vars
+   17:10  warning  'Avatar' is defined but never used        @typescript-eslint/no-unused-vars
+   19:47  warning  'Shield' is defined but never used        @typescript-eslint/no-unused-vars
+   43:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   48:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   88:50  warning  'cls' is defined but never used           @typescript-eslint/no-unused-vars
+   89:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  133:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/compliance/_components/mitigation-monitoring-panel.tsx
+   67:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  130:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  130:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/compliance/_components/monitoring-reporting-workspace.tsx
+  41:10  warning  'isPending' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  44:9   warning  'activeMeta' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/compliance/controls/page.tsx
+    8:29  warning  'CardHeader' is defined but never used               @typescript-eslint/no-unused-vars
+    8:41  warning  'CardTitle' is defined but never used                @typescript-eslint/no-unused-vars
+   24:3   warning  'ChevronRight' is defined but never used             @typescript-eslint/no-unused-vars
+   26:3   warning  'XCircle' is defined but never used                  @typescript-eslint/no-unused-vars
+   34:44  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   41:13  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   84:17  warning  'lastTest' is assigned a value but never used        @typescript-eslint/no-unused-vars
+   85:17  warning  'effectiveCount' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   85:75  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  155:95  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/compliance/kri/[id]/kri-reports-list.tsx
+  70:6  warning  React Hook useEffect has a missing dependency: 'fetchReports'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/compliance/kri/[id]/page.tsx
+   14:10  warning  'Progress' is defined but never used                             @typescript-eslint/no-unused-vars
+   15:10  warning  'Separator' is defined but never used                            @typescript-eslint/no-unused-vars
+   45:34  warning  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+   53:15  warning  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+   92:28  warning  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  114:32  warning  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  175:66  warning  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  175:88  warning  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/incidents/lessons/[id]/page.tsx
+  31:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/incidents/lessons/page.tsx
+  15:3   warning  'BookOpen' is defined but never used      @typescript-eslint/no-unused-vars
+  24:3   warning  'ChevronRight' is defined but never used  @typescript-eslint/no-unused-vars
+  30:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/intelligence/cba/page.tsx
+   54:3    warning  'Legend' is defined but never used                               @typescript-eslint/no-unused-vars
+  396:9    warning  'breakdownChartData' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  710:92   warning  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  710:103  warning  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  710:106  warning  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  710:111  warning  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  733:92   warning  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  733:102  warning  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  733:105  warning  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  733:112  warning  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/intelligence/predictive/page.tsx
+   5:29  warning  'CardHeader' is defined but never used            @typescript-eslint/no-unused-vars
+   5:41  warning  'CardTitle' is defined but never used             @typescript-eslint/no-unused-vars
+  25:3   warning  'BarChart3' is defined but never used             @typescript-eslint/no-unused-vars
+  32:7   warning  'levelColors' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  64:18  warning  'user' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  66:50  warning  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  78:35  warning  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  81:37  warning  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/minutes/page.tsx
+  7:10  warning  'CalendarDays' is defined but never used  @typescript-eslint/no-unused-vars
+  7:65  warning  'Users' is defined but never used         @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/overview/_components/risk-heatmap.tsx
+  10:59  warning  'levelToColor' is defined but never used       @typescript-eslint/no-unused-vars
+  10:73  warning  'getRiskLevelLabel' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/overview/page.tsx
+   20:3   warning  'Cell' is defined but never used                          @typescript-eslint/no-unused-vars
+   23:3   warning  'Pie' is defined but never used                           @typescript-eslint/no-unused-vars
+   24:3   warning  'PieChart' is defined but never used                      @typescript-eslint/no-unused-vars
+  138:10  warning  'allRisksForExposure' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/risk/components/risk-nav-header.tsx
+   3:10  warning  'Card' is defined but never used         @typescript-eslint/no-unused-vars
+   3:16  warning  'CardContent' is defined but never used  @typescript-eslint/no-unused-vars
+   3:29  warning  'CardHeader' is defined but never used   @typescript-eslint/no-unused-vars
+   3:41  warning  'CardTitle' is defined but never used    @typescript-eslint/no-unused-vars
+   5:10  warning  'Button' is defined but never used       @typescript-eslint/no-unused-vars
+   7:3   warning  'Table' is defined but never used        @typescript-eslint/no-unused-vars
+   8:3   warning  'TableBody' is defined but never used    @typescript-eslint/no-unused-vars
+   9:3   warning  'TableCell' is defined but never used    @typescript-eslint/no-unused-vars
+  10:3   warning  'TableHead' is defined but never used    @typescript-eslint/no-unused-vars
+  11:3   warning  'TableHeader' is defined but never used  @typescript-eslint/no-unused-vars
+  12:3   warning  'TableRow' is defined but never used     @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/risk/history/page.tsx
+  19:3   warning  'Eye' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  20:3   warning  'ArrowRight' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  50:50  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+  54:5   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/risk/history/page.tsx:54:5
+  52 |   useEffect(() => {
+  53 |     if (!token) return;
+> 54 |     setLoading(true);
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  55 |     // Since there's no actual snapshot back-end yet, we simulate history by diffing Current vs Target score
+  56 |     api.get<any[]>("/risks?status=approved", token).then((risks) => {
+  57 |       const mapped = risks.map((r) => buildApprovedRiskHistoryItem(r));  react-hooks/set-state-in-effect
+  56:13  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/risk/register/new/page.tsx
+   74:3   warning  'buildSubmitApproverIds' is defined but never used  @typescript-eslint/no-unused-vars
+  764:37  warning  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  765:44  warning  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(app)/risk/register/page.tsx
+   70:3   warning  'Send' is defined but never used                        @typescript-eslint/no-unused-vars
+  155:10  warning  'getRiskLevel' is defined but never used                @typescript-eslint/no-unused-vars
+  385:9   warning  'handleSubmitDraft' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/(public)/login/page.tsx
+  36:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/app/page.tsx
+  36:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/components/app-header.tsx
+  13:3  warning  'Bell' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/components/app-sidebar.tsx
+  4:8  warning  'Image' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/components/risk/risk-log-timeline.tsx
+  141:16  warning  'getRiskVersions' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/components/shared/review-scoring-grid.tsx
+  17:3  warning  'getLevelBadgeClasses' is defined but never used     @typescript-eslint/no-unused-vars
+  18:3  warning  'getScoreBtnColorClasses' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/components/suppress-radix-warnings.tsx
+  20:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/contexts/auth-context.tsx
+   4:15  warning  'ApiError' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  44:7   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/contexts/auth-context.tsx:44:7
+  42 |     const savedToken = localStorage.getItem("manris_token");
+  43 |     if (savedToken) {
+> 44 |       setToken(savedToken);
+     |       ^^^^^^^^ Avoid calling setState() directly within an effect
+  45 |       // Verify token & load user
+  46 |       api.get<User>("/auth/me", savedToken)
+  47 |         .then((u) => setUser(u))  react-hooks/set-state-in-effect
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/dashboard-insights.test.ts
+  4:1  warning  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/dashboard-insights.ts
+  1:1  warning  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  3:1  warning  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-cycle-detail-export.test.ts
+    5:1   warning  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+   51:12  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   73:12  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   99:10  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  111:10  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  123:38  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-cycle-detail-export.ts
+  20:7  warning  'coreFieldOrder' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-history.test.ts
+  6:1  warning  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-history.ts
+  1:32  warning  'getRiskLevelFromNilai' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/lib/risk-report-trend.test.ts
+  4:1  warning  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/src/types/form.ts
+  142:18  warning  An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowInterfaces' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+
+/Users/dikalaksana/Engineering/manris-v2/frontend/test_endpoint.js
+  1:15  warning  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 116 problems (0 errors, 116 warnings)
+
+
+> frontend@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.5s
+  Running TypeScript ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/35) ...
+  Generating static pages using 9 workers (8/35) 
+  Generating static pages using 9 workers (17/35) 
+  Generating static pages using 9 workers (26/35) 
+✓ Generating static pages using 9 workers (35/35) in 245.0ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin/forms
+├ ƒ /admin/forms/[id]/analytics
+├ ƒ /admin/forms/[id]/edit
+├ ƒ /admin/forms/[id]/responses
+├ ○ /admin/forms/new
+├ ○ /admin/organizations
+├ ○ /admin/settings
+├ ○ /admin/users
+├ ○ /admin/users/new
+├ ○ /compliance/controls
+├ ○ /compliance/controls/new
+├ ○ /compliance/kri
+├ ƒ /compliance/kri/[id]
+├ ○ /compliance/kri/new
+├ ○ /compliance/monitoring
+├ ○ /forms
+├ ƒ /forms/[id]/fill
+├ ○ /inbox
+├ ○ /incidents
+├ ƒ /incidents/[id]
+├ ○ /incidents/lessons
+├ ƒ /incidents/lessons/[id]
+├ ○ /incidents/lessons/new
+├ ○ /incidents/new
+├ ○ /intelligence/cba
+├ ○ /intelligence/minutes
+├ ○ /intelligence/minutes/new
+├ ○ /intelligence/predictive
+├ ○ /intelligence/transcript
+├ ○ /login
+├ ○ /minutes
+├ ƒ /minutes/[id]
+├ ○ /minutes/new
+├ ○ /overview
+├ ○ /reports
+├ ○ /risk/history
+├ ○ /risk/register
+├ ƒ /risk/register/[id]
+├ ○ /risk/register/bulk
+└ ○ /risk/register/new
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

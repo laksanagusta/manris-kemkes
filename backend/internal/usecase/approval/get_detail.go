@@ -27,46 +27,47 @@ type GetApprovalDetailInput struct {
 
 // Output represents the output of getting approval detail
 type GetApprovalDetailOutput struct {
-	ID                    string
-	RequestType           string
-	EntityID              string
-	EntityCode            *string
-	EntityTitle           *string
-	EntityOrgName         *string
-	RequestedBy           string
-	RequestedByName       string
-	RequestedAt           string
-	CurrentStatus         string
-	CurrentApproverRole   string
-	CurrentApproverUserID *string
-	CurrentApproverName   *string
-	Notes                 string
-	CreatedAt             string
-	UpdatedAt             string
-	History               []HistoryOutput
-	Steps                 []StepOutput
+	ID                    string          `json:"id"`
+	RequestType           string          `json:"requestType"`
+	EntityID              string          `json:"entityId"`
+	EntityCode            *string         `json:"entityCode"`
+	EntityTitle           *string         `json:"entityTitle"`
+	EntityOrgName         *string         `json:"entityOrgName"`
+	RequestedBy           string          `json:"requestedBy"`
+	RequestedByName       string          `json:"requestedByName"`
+	RequestedAt           string          `json:"requestedAt"`
+	CurrentStatus         string          `json:"currentStatus"`
+	CurrentApproverRole   string          `json:"currentApproverRole"`
+	CurrentApproverUserID *string         `json:"currentApproverUserId"`
+	CurrentApproverName   *string         `json:"currentApproverName"`
+	Notes                 string          `json:"notes"`
+	CreatedAt             string          `json:"createdAt"`
+	UpdatedAt             string          `json:"updatedAt"`
+	History               []HistoryOutput `json:"history"`
+	Steps                 []StepOutput    `json:"steps"`
 }
 
 // HistoryOutput represents history in the output
 type HistoryOutput struct {
-	ID        string
-	Action    string
-	ActorID   string
-	ActorName string
-	ActorRole string
-	Comments  string
-	CreatedAt string
+	ID        string `json:"id"`
+	Action    string `json:"action"`
+	ActorID   string `json:"actorId"`
+	ActorName string `json:"actorName"`
+	ActorRole string `json:"actorRole"`
+	Comments  string `json:"comments"`
+	CreatedAt string `json:"createdAt"`
 }
 
 type StepOutput struct {
-	ID             string
-	SequenceNo     int
-	ApproverUserID string
-	ApproverName   string
-	ApproverRole   string
-	Status         string
-	ActedAt        *string
-	Comments       string
+	ID             string  `json:"id"`
+	SequenceNo     int     `json:"sequenceNo"`
+	ApproverUserID string  `json:"approverUserId"`
+	ApproverName   string  `json:"approverName"`
+	ApproverRole   string  `json:"approverRole"`
+	StepType       string  `json:"stepType"`
+	Status         string  `json:"status"`
+	ActedAt        *string `json:"actedAt"`
+	Comments       string  `json:"comments"`
 }
 
 // Execute executes the get approval detail usecase
@@ -109,6 +110,7 @@ func (uc *GetApprovalDetailUseCase) Execute(ctx context.Context, input GetApprov
 			ApproverUserID: step.ApproverUserID.String(),
 			ApproverName:   step.ApproverName,
 			ApproverRole:   step.ApproverRole,
+			StepType:       step.StepType,
 			Status:         step.Status,
 			ActedAt:        actedAt,
 			Comments:       step.Comments,

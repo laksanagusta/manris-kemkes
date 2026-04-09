@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 
 import type { RiskCycleDetailedComparisonItem, RiskCycleDetailedComparisonReport, RiskCycleSideBySideSnapshot } from "../types/risk";
-import { riskCategoryLabels } from "./risk";
+import { resolveRiskScoreSemantics, riskCategoryLabels } from "./risk.js";
 
 type ExportRow = Record<string, string | number>;
 
@@ -54,6 +54,31 @@ const exceljsFillAmber: Partial<ExcelJS.FillPattern> = { type: "pattern", patter
 const exceljsFontGreen: Partial<ExcelJS.Font> = { color: { argb: "FF2E7D32" }, bold: true };
 const exceljsFontRed: Partial<ExcelJS.Font> = { color: { argb: "FFC62828" }, bold: true };
 const exceljsFontAmber: Partial<ExcelJS.Font> = { color: { argb: "FFB26A00" }, bold: true };
+
+export type RiskCycleDetailMovement = "new" | "up" | "down" | "stable" | "removed";
+
+type RiskScoreSemanticInput = Parameters<typeof resolveRiskScoreSemantics>[0];
+
+function effectiveSnapshotScore(snapshot: RiskCycleSideBySideSnapshot | undefined): number | null {
+  if (!snapshot) return null;
+  const resolved = resolveRiskScoreSemantics({ weight: 1, ...snapshot } as RiskScoreSemanticInput);
+  return resolved.effective.score;
+}
+
+export function classifyRiskCycleDetailMovement(item: RiskCycleDetailedComparisonItem): RiskCycleDetailMovement | null {
+  if (item.changeCategory === "added") return "new";
+  if (item.changeCategory === "removed") return "removed";
+  if (item.changeCategory === "stable") return "stable";
+  if (item.changeCategory !== "changed") return null;
+
+  const beforeScore = effectiveSnapshotScore(item.fromSnapshot);
+  const afterScore = effectiveSnapshotScore(item.toSnapshot);
+
+  if (beforeScore === null || afterScore === null) return "stable";
+  if (afterScore > beforeScore) return "up";
+  if (afterScore < beforeScore) return "down";
+  return "stable";
+}
 
 function normalizeValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "";
@@ -221,25 +246,14 @@ function columnLetter(index: number) {
 }
 
 function classifyTrend(item: RiskCycleDetailedComparisonItem): "improved" | "worsened" | "stable" {
-  let improved = 0;
-  let worsened = 0;
+  const beforeScore = effectiveSnapshotScore(item.fromSnapshot);
+  const afterScore = effectiveSnapshotScore(item.toSnapshot);
 
-  for (const field of quantitativeFields) {
-    const fromValue = parseNumeric(sideBySideValue(item, "from", field));
-    const toValue = parseNumeric(sideBySideValue(item, "to", field));
-    if (fromValue === null || toValue === null || fromValue === toValue) {
-      continue;
-    }
-    if (toValue < fromValue) {
-      improved += 1;
-    } else {
-      worsened += 1;
-    }
+  if (beforeScore === null || afterScore === null || beforeScore === afterScore) {
+    return "stable";
   }
 
-  if (improved > worsened) return "improved";
-  if (worsened > improved) return "worsened";
-  return "stable";
+  return afterScore < beforeScore ? "improved" : "worsened";
 }
 
 function buildTopBottomRows(items: RiskCycleDetailedComparisonItem[]): ExportRow[] {

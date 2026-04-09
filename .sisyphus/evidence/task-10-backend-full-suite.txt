@@ -1,0 +1,348 @@
+?   	github.com/manris/backend/cmd/cron	[no test files]
+?   	github.com/manris/backend/cmd/server	[no test files]
+?   	github.com/manris/backend/internal/config	[no test files]
+?   	github.com/manris/backend/internal/database	[no test files]
+=== RUN   TestValidateForPublish
+=== RUN   TestValidateForPublish/0_sections_→_error
+=== RUN   TestValidateForPublish/1_section_with_0_fields_→_error
+=== RUN   TestValidateForPublish/radio_field_with_1_option_→_error
+=== RUN   TestValidateForPublish/checkbox_field_as_condition_source_→_error
+=== RUN   TestValidateForPublish/self-referencing_conditional_source_→_error
+=== RUN   TestValidateForPublish/conditional_source_referencing_non-existent_field_→_error
+=== RUN   TestValidateForPublish/valid_form:_1_section,_1_text_field_→_nil
+=== RUN   TestValidateForPublish/valid_form_with_radio_(2_options)_and_conditional_text_→_nil
+--- PASS: TestValidateForPublish (0.00s)
+    --- PASS: TestValidateForPublish/0_sections_→_error (0.00s)
+    --- PASS: TestValidateForPublish/1_section_with_0_fields_→_error (0.00s)
+    --- PASS: TestValidateForPublish/radio_field_with_1_option_→_error (0.00s)
+    --- PASS: TestValidateForPublish/checkbox_field_as_condition_source_→_error (0.00s)
+    --- PASS: TestValidateForPublish/self-referencing_conditional_source_→_error (0.00s)
+    --- PASS: TestValidateForPublish/conditional_source_referencing_non-existent_field_→_error (0.00s)
+    --- PASS: TestValidateForPublish/valid_form:_1_section,_1_text_field_→_nil (0.00s)
+    --- PASS: TestValidateForPublish/valid_form_with_radio_(2_options)_and_conditional_text_→_nil (0.00s)
+=== RUN   TestRiskCycleDetailedComparisonItem_MarshalIncludesEmptyDiffArrays
+--- PASS: TestRiskCycleDetailedComparisonItem_MarshalIncludesEmptyDiffArrays (0.00s)
+=== RUN   TestRiskCategoryAllowsConfiguredKeys
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/strategis
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/operasional
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/kepatuhan
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/finansial
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/reputasi
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/teknologi_informasi
+--- PASS: TestRiskCategoryAllowsConfiguredKeys (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/strategis (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/operasional (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/kepatuhan (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/finansial (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/reputasi (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/teknologi_informasi (0.00s)
+=== RUN   TestRiskCategoryRejectsUnknownKeys
+--- PASS: TestRiskCategoryRejectsUnknownKeys (0.00s)
+=== RUN   TestRiskCategoryAllowsLegacyBlankForReadOnlyRollout
+--- PASS: TestRiskCategoryAllowsLegacyBlankForReadOnlyRollout (0.00s)
+=== RUN   TestGetBobot
+--- PASS: TestGetBobot (0.00s)
+=== RUN   TestGetBobotOutOfRange
+--- PASS: TestGetBobotOutOfRange (0.00s)
+=== RUN   TestCalculateNilai
+--- PASS: TestCalculateNilai (0.00s)
+=== RUN   TestGetRiskLevelFromNilai
+--- PASS: TestGetRiskLevelFromNilai (0.00s)
+=== RUN   TestGetRiskPriorityFromLevel
+--- PASS: TestGetRiskPriorityFromLevel (0.00s)
+=== RUN   TestGetRiskLevelDisplay
+--- PASS: TestGetRiskLevelDisplay (0.00s)
+=== RUN   TestRiskCalculateAll
+--- PASS: TestRiskCalculateAll (0.00s)
+=== RUN   TestRiskCalculateTarget
+--- PASS: TestRiskCalculateTarget (0.00s)
+=== RUN   TestRiskEffectiveFieldsApprovedUsesReviewedBundleWhenComplete
+--- PASS: TestRiskEffectiveFieldsApprovedUsesReviewedBundleWhenComplete (0.00s)
+=== RUN   TestRiskEffectiveFieldsApprovedFallsBackWhenReviewedBundleIncomplete
+--- PASS: TestRiskEffectiveFieldsApprovedFallsBackWhenReviewedBundleIncomplete (0.00s)
+=== RUN   TestRiskEffectiveFieldsNonFinalizedIgnoreReviewedBundle
+--- PASS: TestRiskEffectiveFieldsNonFinalizedIgnoreReviewedBundle (0.00s)
+=== RUN   TestRiskEffectiveFieldsApprovedKeepsZeroLikeReviewedBundle
+--- PASS: TestRiskEffectiveFieldsApprovedKeepsZeroLikeReviewedBundle (0.00s)
+=== RUN   TestRiskEffectiveFieldsApprovedFallsBackWhenReviewedBundleHasFalsyPartialValues
+--- PASS: TestRiskEffectiveFieldsApprovedFallsBackWhenReviewedBundleHasFalsyPartialValues (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/domain/entity	(cached)
+?   	github.com/manris/backend/internal/domain/errors	[no test files]
+?   	github.com/manris/backend/internal/domain/repository	[no test files]
+=== RUN   TestOrganizationHierarchy_GetAccessibleOrgs
+=== RUN   TestOrganizationHierarchy_GetAccessibleOrgs/returns_descendants_for_user's_organization
+=== RUN   TestOrganizationHierarchy_GetAccessibleOrgs/handles_organization_with_no_children
+--- PASS: TestOrganizationHierarchy_GetAccessibleOrgs (0.00s)
+    --- PASS: TestOrganizationHierarchy_GetAccessibleOrgs/returns_descendants_for_user's_organization (0.00s)
+    --- PASS: TestOrganizationHierarchy_GetAccessibleOrgs/handles_organization_with_no_children (0.00s)
+=== RUN   TestOrganizationHierarchy_IsDescendantOf
+=== RUN   TestOrganizationHierarchy_IsDescendantOf/returns_true_for_descendant
+=== RUN   TestOrganizationHierarchy_IsDescendantOf/returns_false_for_non-descendant
+--- PASS: TestOrganizationHierarchy_IsDescendantOf (0.00s)
+    --- PASS: TestOrganizationHierarchy_IsDescendantOf/returns_true_for_descendant (0.00s)
+    --- PASS: TestOrganizationHierarchy_IsDescendantOf/returns_false_for_non-descendant (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/domain/service	(cached)
+?   	github.com/manris/backend/internal/handler/http	[no test files]
+?   	github.com/manris/backend/internal/middleware	[no test files]
+?   	github.com/manris/backend/internal/model	[no test files]
+?   	github.com/manris/backend/internal/repository	[no test files]
+=== RUN   TestMeetingMinutesExpandedSchemaUnmarshal
+--- PASS: TestMeetingMinutesExpandedSchemaUnmarshal (0.00s)
+=== RUN   TestBuildMinutesPromptRequestsOperationalFields
+--- PASS: TestBuildMinutesPromptRequestsOperationalFields (0.00s)
+=== RUN   TestTranscriptAnalysisUnmarshalSupportsArrayPayload
+--- PASS: TestTranscriptAnalysisUnmarshalSupportsArrayPayload (0.00s)
+=== RUN   TestBuildTranscriptPromptRequestsSuggestionsEnvelope
+--- PASS: TestBuildTranscriptPromptRequestsSuggestionsEnvelope (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/repository/openai	(cached)
+=== RUN   TestFinalizedScoreExprUsesApprovedReviewedBundleWithFallback
+--- PASS: TestFinalizedScoreExprUsesApprovedReviewedBundleWithFallback (0.00s)
+=== RUN   TestFinalizedProbabilityAndImpactExprUseReviewedBundleOnlyForApprovedRows
+--- PASS: TestFinalizedProbabilityAndImpactExprUseReviewedBundleOnlyForApprovedRows (0.00s)
+=== RUN   TestQueueExpressionsPreservePreviewCandidateSemantics
+--- PASS: TestQueueExpressionsPreservePreviewCandidateSemantics (0.00s)
+=== RUN   TestHeatmapVelocityQueryUsesFinalizedPlacementAndMovementSemantics
+--- PASS: TestHeatmapVelocityQueryUsesFinalizedPlacementAndMovementSemantics (0.00s)
+=== RUN   TestHeatmapVelocityQueryKeepsApprovedBundleFallbackCoherent
+--- PASS: TestHeatmapVelocityQueryKeepsApprovedBundleFallbackCoherent (0.00s)
+=== RUN   TestCompareCyclesPreservesHistoricalInherentScorePath
+--- PASS: TestCompareCyclesPreservesHistoricalInherentScorePath (0.00s)
+=== RUN   TestCurrentRiskQueriesUseFinalizedScoreSemanticsForRankingAndCounting
+--- PASS: TestCurrentRiskQueriesUseFinalizedScoreSemanticsForRankingAndCounting (0.00s)
+=== RUN   TestCurrentRiskQueriesKeepRankingAndBandCountsOnSameFinalizedScoreExpr
+--- PASS: TestCurrentRiskQueriesKeepRankingAndBandCountsOnSameFinalizedScoreExpr (0.00s)
+=== RUN   TestFormCreateGetByIDRoundtrip
+    form_test.go:188: PASS: Create + GetByID roundtrip verified
+    form_test.go:189:   Form ID: 1eac8fcb-c729-411b-82af-25b76a2c9497
+    form_test.go:190:   Sections: 2
+    form_test.go:191:   Section[0] fields: 2
+    form_test.go:192:   Section[1] fields: 1
+    form_test.go:193:   Radio options decoded: 2
+    form_test.go:194:   Dropdown options decoded: 3
+--- PASS: TestFormCreateGetByIDRoundtrip (0.04s)
+PASS
+ok  	github.com/manris/backend/internal/repository/postgres	(cached)
+=== RUN   TestRenderTrendChartPNG
+--- PASS: TestRenderTrendChartPNG (0.01s)
+=== RUN   TestPDFReportRenderer_AddRiskRegisterUsesEffectiveFields
+--- PASS: TestPDFReportRenderer_AddRiskRegisterUsesEffectiveFields (0.00s)
+=== RUN   TestPDFReportRenderer_AddTopRisksUsesEffectiveScoreAndLevelColor
+--- PASS: TestPDFReportRenderer_AddTopRisksUsesEffectiveScoreAndLevelColor (0.00s)
+=== RUN   TestPDFReportRenderer_AddRiskRegisterKeepsFallbackAndDraftIsolationCompatible
+--- PASS: TestPDFReportRenderer_AddRiskRegisterKeepsFallbackAndDraftIsolationCompatible (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/service/pdfreport	(cached)
+=== RUN   TestApplyTranscriptRiskChangesUpdatesDraftRisk
+--- PASS: TestApplyTranscriptRiskChangesUpdatesDraftRisk (0.00s)
+=== RUN   TestApplyTranscriptRiskChangesCreatesNewVersionForApprovedRisk
+--- PASS: TestApplyTranscriptRiskChangesCreatesNewVersionForApprovedRisk (0.00s)
+=== RUN   TestApplyTranscriptRiskChangesKeepsExistingValuesWhenSuggestedValuesAreEmpty
+--- PASS: TestApplyTranscriptRiskChangesKeepsExistingValuesWhenSuggestedValuesAreEmpty (0.00s)
+=== RUN   TestApplyTranscriptRiskChangesRejectsUnauthorizedRole
+--- PASS: TestApplyTranscriptRiskChangesRejectsUnauthorizedRole (0.00s)
+=== RUN   TestNormalizeIncidentSeverity
+=== RUN   TestNormalizeIncidentSeverity/critical_alias
+=== RUN   TestNormalizeIncidentSeverity/major_alias
+=== RUN   TestNormalizeIncidentSeverity/minor_alias
+=== RUN   TestNormalizeIncidentSeverity/insignificant_alias
+=== RUN   TestNormalizeIncidentSeverity/unknown_defaults_to_minor
+--- PASS: TestNormalizeIncidentSeverity (0.00s)
+    --- PASS: TestNormalizeIncidentSeverity/critical_alias (0.00s)
+    --- PASS: TestNormalizeIncidentSeverity/major_alias (0.00s)
+    --- PASS: TestNormalizeIncidentSeverity/minor_alias (0.00s)
+    --- PASS: TestNormalizeIncidentSeverity/insignificant_alias (0.00s)
+    --- PASS: TestNormalizeIncidentSeverity/unknown_defaults_to_minor (0.00s)
+=== RUN   TestGenerateManualIncidentRiskSuggestionsRejectsIncompleteInput
+--- PASS: TestGenerateManualIncidentRiskSuggestionsRejectsIncompleteInput (0.00s)
+=== RUN   TestGenerateManualIncidentRiskSuggestionsNormalizesSeverityAndPassesRequest
+--- PASS: TestGenerateManualIncidentRiskSuggestionsNormalizesSeverityAndPassesRequest (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/ai	(cached)
+=== RUN   TestApprovalActionUseCase_ApproveReassessmentActivatesNewCurrentVersion
+--- PASS: TestApprovalActionUseCase_ApproveReassessmentActivatesNewCurrentVersion (0.00s)
+=== RUN   TestApprovalActionUseCase_ReturnsErrorWhenRiskStatusUpdateFails
+--- PASS: TestApprovalActionUseCase_ReturnsErrorWhenRiskStatusUpdateFails (0.00s)
+=== RUN   TestApprovalActionUseCase_ReviewerApproves_SetsStatusToInApproval
+--- PASS: TestApprovalActionUseCase_ReviewerApproves_SetsStatusToInApproval (0.00s)
+=== RUN   TestApprovalActionUseCase_ReviewerApproves_WithNextApprovalStep_SetsStatusToInApproval
+--- PASS: TestApprovalActionUseCase_ReviewerApproves_WithNextApprovalStep_SetsStatusToInApproval (0.00s)
+=== RUN   TestApprovalActionUseCase_PimpinanApproves_SetsStatusToApproved
+--- PASS: TestApprovalActionUseCase_PimpinanApproves_SetsStatusToApproved (0.00s)
+=== RUN   TestApprovalActionUseCase_RejectFromInReview_SetsStatusToDraft
+--- PASS: TestApprovalActionUseCase_RejectFromInReview_SetsStatusToDraft (0.00s)
+=== RUN   TestApprovalActionUseCase_RejectFromInApproval_SetsStatusToDraft
+--- PASS: TestApprovalActionUseCase_RejectFromInApproval_SetsStatusToDraft (0.00s)
+=== RUN   TestApprovalActionUseCase_RejectsActorOutsideCurrentPendingStep
+--- PASS: TestApprovalActionUseCase_RejectsActorOutsideCurrentPendingStep (0.00s)
+=== RUN   TestApprovalActionUseCase_RejectsRoleMismatchForCurrentPendingStep
+--- PASS: TestApprovalActionUseCase_RejectsRoleMismatchForCurrentPendingStep (0.00s)
+=== RUN   TestGetApprovalByEntityUseCase_MapsStepType
+--- PASS: TestGetApprovalByEntityUseCase_MapsStepType (0.00s)
+=== RUN   TestSubmitApprovalUseCase_UnitSubmissionTargetsReviewer
+--- PASS: TestSubmitApprovalUseCase_UnitSubmissionTargetsReviewer (0.00s)
+=== RUN   TestSubmitApprovalUseCase_SubmitDraftRisk_UpdatesStatusToInReview
+--- PASS: TestSubmitApprovalUseCase_SubmitDraftRisk_UpdatesStatusToInReview (0.00s)
+=== RUN   TestSubmitApprovalUseCase_ReviewSubmission_CreatesReviewStepType
+--- PASS: TestSubmitApprovalUseCase_ReviewSubmission_CreatesReviewStepType (0.00s)
+=== RUN   TestSubmitApprovalUseCase_ApprovalOnlySubmission_CreatesApprovalStepTypes
+--- PASS: TestSubmitApprovalUseCase_ApprovalOnlySubmission_CreatesApprovalStepTypes (0.00s)
+=== RUN   TestSubmitApprovalUseCase_EmptySubmissionType_DefaultsToApproval
+--- PASS: TestSubmitApprovalUseCase_EmptySubmissionType_DefaultsToApproval (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/approval	(cached)
+?   	github.com/manris/backend/internal/usecase/auth	[no test files]
+?   	github.com/manris/backend/internal/usecase/cba	[no test files]
+?   	github.com/manris/backend/internal/usecase/communication_log	[no test files]
+?   	github.com/manris/backend/internal/usecase/control	[no test files]
+?   	github.com/manris/backend/internal/usecase/external_pic	[no test files]
+?   	github.com/manris/backend/internal/usecase/form	[no test files]
+=== RUN   TestParseLinkedRiskIDs
+=== RUN   TestParseLinkedRiskIDs/deduplicates_valid_ids
+=== RUN   TestParseLinkedRiskIDs/rejects_invalid_ids
+--- PASS: TestParseLinkedRiskIDs (0.00s)
+    --- PASS: TestParseLinkedRiskIDs/deduplicates_valid_ids (0.00s)
+    --- PASS: TestParseLinkedRiskIDs/rejects_invalid_ids (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/incident	(cached)
+=== RUN   TestArchiveKRI
+--- PASS: TestArchiveKRI (0.00s)
+=== RUN   TestKRIValidateRejectsMissingAmberThreshold
+--- PASS: TestKRIValidateRejectsMissingAmberThreshold (0.00s)
+=== RUN   TestListKRIExcludesArchived
+--- PASS: TestListKRIExcludesArchived (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/kri	(cached)
+=== RUN   TestAcceptKRIReportUpdatesCurrentValue
+--- PASS: TestAcceptKRIReportUpdatesCurrentValue (0.00s)
+=== RUN   TestAcceptKRIReportRollsBackWhenKRIUpdateFails
+--- PASS: TestAcceptKRIReportRollsBackWhenKRIUpdateFails (0.00s)
+=== RUN   TestSubmitDoesNotUpdateCurrentValue
+--- PASS: TestSubmitDoesNotUpdateCurrentValue (0.00s)
+=== RUN   TestGenerateReportsIsIdempotent
+Successfully created KRI report ID: be03075b-faa6-4999-947e-a1ad912ae76e for KRI: 08fcaa3e-9261-46ff-aa80-450ce8efd009
+--- PASS: TestGenerateReportsIsIdempotent (0.00s)
+=== RUN   TestGenerateReportsSkipsWhenPeriodNotOpen
+--- PASS: TestGenerateReportsSkipsWhenPeriodNotOpen (0.00s)
+=== RUN   TestSubmitRevisionRequestedReportSucceeds
+--- PASS: TestSubmitRevisionRequestedReportSucceeds (0.00s)
+=== RUN   TestAcceptKRIReportDoesNotMutateRisk
+--- PASS: TestAcceptKRIReportDoesNotMutateRisk (0.00s)
+=== RUN   TestListReportsComputesOverdueMetadata
+--- PASS: TestListReportsComputesOverdueMetadata (0.00s)
+=== RUN   TestAcceptSkippedKRIReportFails
+--- PASS: TestAcceptSkippedKRIReportFails (0.00s)
+=== RUN   TestRequestRevisionRequiresNote
+--- PASS: TestRequestRevisionRequiresNote (0.00s)
+=== RUN   TestSkipRequiresReason
+--- PASS: TestSkipRequiresReason (0.00s)
+=== RUN   TestRoleEnforcement
+--- PASS: TestRoleEnforcement (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/kri_report	(cached)
+?   	github.com/manris/backend/internal/usecase/lesson	[no test files]
+=== RUN   TestDeleteMeetingMinuteUseCase_ExecuteDeletesMeetingMinute
+--- PASS: TestDeleteMeetingMinuteUseCase_ExecuteDeletesMeetingMinute (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/meeting_minute	(cached)
+?   	github.com/manris/backend/internal/usecase/mitigation_task	[no test files]
+?   	github.com/manris/backend/internal/usecase/organization	[no test files]
+=== RUN   TestGenerateReportUseCase_ExecuteUsesEffectiveSemanticsForPrimaryOutputs
+--- PASS: TestGenerateReportUseCase_ExecuteUsesEffectiveSemanticsForPrimaryOutputs (0.00s)
+=== RUN   TestGenerateReportUseCase_ExecuteKeepsFallbackAndDraftIsolationCompatible
+--- PASS: TestGenerateReportUseCase_ExecuteKeepsFallbackAndDraftIsolationCompatible (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/report	(cached)
+=== RUN   TestBulkRiskSpreadsheetUseCase_Preview_ResolvesOrganizationByName
+--- PASS: TestBulkRiskSpreadsheetUseCase_Preview_ResolvesOrganizationByName (0.00s)
+=== RUN   TestBulkRiskSpreadsheetUseCase_Preview_UsesUploaderOrganizationForUnitRole
+--- PASS: TestBulkRiskSpreadsheetUseCase_Preview_UsesUploaderOrganizationForUnitRole (0.00s)
+=== RUN   TestBulkRiskSpreadsheetUseCase_TemplateIncludesCategoryColumn
+--- PASS: TestBulkRiskSpreadsheetUseCase_TemplateIncludesCategoryColumn (0.00s)
+=== RUN   TestBulkRiskSpreadsheetUseCase_PreviewMapsCategory
+--- PASS: TestBulkRiskSpreadsheetUseCase_PreviewMapsCategory (0.00s)
+=== RUN   TestBulkRiskSpreadsheetUseCase_PreviewAcceptsCategoryHeaderAliases
+=== RUN   TestBulkRiskSpreadsheetUseCase_PreviewAcceptsCategoryHeaderAliases/kategori_alias
+=== RUN   TestBulkRiskSpreadsheetUseCase_PreviewAcceptsCategoryHeaderAliases/kategoririsiko_alias
+--- PASS: TestBulkRiskSpreadsheetUseCase_PreviewAcceptsCategoryHeaderAliases (0.00s)
+    --- PASS: TestBulkRiskSpreadsheetUseCase_PreviewAcceptsCategoryHeaderAliases/kategori_alias (0.00s)
+    --- PASS: TestBulkRiskSpreadsheetUseCase_PreviewAcceptsCategoryHeaderAliases/kategoririsiko_alias (0.00s)
+=== RUN   TestBulkRiskSpreadsheetUseCase_PreviewRejectsInvalidCategory
+--- PASS: TestBulkRiskSpreadsheetUseCase_PreviewRejectsInvalidCategory (0.00s)
+=== RUN   TestBulkRiskSpreadsheetUseCase_PreviewRejectsMissingCategory
+--- PASS: TestBulkRiskSpreadsheetUseCase_PreviewRejectsMissingCategory (0.00s)
+=== RUN   TestCreateRiskUseCase_ExecutePersistsCategory
+--- PASS: TestCreateRiskUseCase_ExecutePersistsCategory (0.00s)
+=== RUN   TestCreateRiskUseCase_ExecuteRejectsInvalidCategory
+--- PASS: TestCreateRiskUseCase_ExecuteRejectsInvalidCategory (0.00s)
+=== RUN   TestUpdateRiskUseCase_ExecutePersistsCategory
+--- PASS: TestUpdateRiskUseCase_ExecutePersistsCategory (0.00s)
+=== RUN   TestUpdateRiskUseCase_ExecuteRejectsInvalidCategory
+--- PASS: TestUpdateRiskUseCase_ExecuteRejectsInvalidCategory (0.00s)
+=== RUN   TestListRisksUseCase_ExecutePassesCategoryFilter
+--- PASS: TestListRisksUseCase_ExecutePassesCategoryFilter (0.00s)
+=== RUN   TestCompareRiskCycleDetailsUseCase_ExecuteReturnsDetailedChanges
+--- PASS: TestCompareRiskCycleDetailsUseCase_ExecuteReturnsDetailedChanges (0.00s)
+=== RUN   TestCompareRiskCycleDetailsUseCase_ExecuteIncludesStableWhenRequested
+--- PASS: TestCompareRiskCycleDetailsUseCase_ExecuteIncludesStableWhenRequested (0.00s)
+=== RUN   TestCompareRiskCycleDetailsUseCase_ExecuteRejectsMissingCycles
+--- PASS: TestCompareRiskCycleDetailsUseCase_ExecuteRejectsMissingCycles (0.00s)
+=== RUN   TestCompareRiskCycleDetailsUseCase_ExecuteMatchesMitigationsBeforeSortOrder
+--- PASS: TestCompareRiskCycleDetailsUseCase_ExecuteMatchesMitigationsBeforeSortOrder (0.00s)
+=== RUN   TestCompareRiskCycleDetailsUseCase_ExecuteIncludesCategoryDiff
+--- PASS: TestCompareRiskCycleDetailsUseCase_ExecuteIncludesCategoryDiff (0.00s)
+=== RUN   TestCompareRiskCycleDetailsUseCase_ExecuteHandlesLegacyBlankCategory
+--- PASS: TestCompareRiskCycleDetailsUseCase_ExecuteHandlesLegacyBlankCategory (0.00s)
+=== RUN   TestCompareRiskCycleDetailsUseCase_ExecuteKeepsHistoricalSnapshotsWhenReviewedFieldsDiffer
+--- PASS: TestCompareRiskCycleDetailsUseCase_ExecuteKeepsHistoricalSnapshotsWhenReviewedFieldsDiffer (0.00s)
+=== RUN   TestCreateRiskBatchUseCase_Execute_PartialSuccess
+--- PASS: TestCreateRiskBatchUseCase_Execute_PartialSuccess (0.00s)
+=== RUN   TestCreateRiskBatchUseCase_Execute_RequiresMitigationOwner
+--- PASS: TestCreateRiskBatchUseCase_Execute_RequiresMitigationOwner (0.00s)
+=== RUN   TestCreateRiskBatchUseCase_ExecutePersistsCategory
+--- PASS: TestCreateRiskBatchUseCase_ExecutePersistsCategory (0.00s)
+=== RUN   TestCreateRiskBatchUseCase_ExecuteTrimsCategory
+--- PASS: TestCreateRiskBatchUseCase_ExecuteTrimsCategory (0.00s)
+=== RUN   TestNormalizeTreatmentOption
+=== RUN   TestNormalizeTreatmentOption/mitigasi_risiko
+=== RUN   TestNormalizeTreatmentOption/menerima_risiko
+=== RUN   TestNormalizeTreatmentOption/avoid_unchanged
+--- PASS: TestNormalizeTreatmentOption (0.00s)
+    --- PASS: TestNormalizeTreatmentOption/mitigasi_risiko (0.00s)
+    --- PASS: TestNormalizeTreatmentOption/menerima_risiko (0.00s)
+    --- PASS: TestNormalizeTreatmentOption/avoid_unchanged (0.00s)
+=== RUN   TestGetDashboardRiskCategoriesUseCase_ExecuteReturnsSortedCounts
+--- PASS: TestGetDashboardRiskCategoriesUseCase_ExecuteReturnsSortedCounts (0.00s)
+=== RUN   TestGetDashboardRiskCategoriesUseCase_ExecuteMapsLegacyBlankToUncategorized
+--- PASS: TestGetDashboardRiskCategoriesUseCase_ExecuteMapsLegacyBlankToUncategorized (0.00s)
+=== RUN   TestDashboardActionPressureUseCase_ExecuteBuildsMonthlySeries
+--- PASS: TestDashboardActionPressureUseCase_ExecuteBuildsMonthlySeries (0.00s)
+=== RUN   TestExecutiveAlertsUseCase_ExecuteBuildsRankedAlerts
+--- PASS: TestExecutiveAlertsUseCase_ExecuteBuildsRankedAlerts (0.00s)
+=== RUN   TestListCycleSnapshotUseCase_RejectsEmptyCycle
+--- PASS: TestListCycleSnapshotUseCase_RejectsEmptyCycle (0.00s)
+=== RUN   TestListCycleSnapshotUseCase_ReturnsSnapshotForCycle
+--- PASS: TestListCycleSnapshotUseCase_ReturnsSnapshotForCycle (0.00s)
+=== RUN   TestListRiskReviewQueueUseCase_ExecuteReturnsReviewItems
+--- PASS: TestListRiskReviewQueueUseCase_ExecuteReturnsReviewItems (0.00s)
+=== RUN   TestCompareRiskCyclesUseCase_ExecuteReturnsMovement
+--- PASS: TestCompareRiskCyclesUseCase_ExecuteReturnsMovement (0.00s)
+=== RUN   TestRiskReviewSummaryUseCase_ExecuteReturnsHeatmapAndCompletion
+--- PASS: TestRiskReviewSummaryUseCase_ExecuteReturnsHeatmapAndCompletion (0.00s)
+=== RUN   TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk
+--- PASS: TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk (0.00s)
+=== RUN   TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle
+--- PASS: TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle (0.00s)
+=== RUN   TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved
+--- PASS: TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved (0.00s)
+=== RUN   TestCreateRiskReassessmentUseCase_ExecuteKeepsDraftOnPreliminarySemanticsEvenWithReviewedSnapshot
+--- PASS: TestCreateRiskReassessmentUseCase_ExecuteKeepsDraftOnPreliminarySemanticsEvenWithReviewedSnapshot (0.00s)
+=== RUN   TestListRiskVersionsUseCase_ExecuteReturnsCategory
+--- PASS: TestListRiskVersionsUseCase_ExecuteReturnsCategory (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/risk	(cached)
+?   	github.com/manris/backend/internal/usecase/system	[no test files]
+?   	github.com/manris/backend/internal/usecase/system_setting	[no test files]
+?   	github.com/manris/backend/internal/usecase/user	[no test files]

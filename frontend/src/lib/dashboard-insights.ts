@@ -1,4 +1,9 @@
-type Severity = "Rendah" | "Sedang" | "Tinggi" | "Ekstrem";
+// @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
+import type { DashboardRiskCategoryItem } from "../types/risk.ts";
+// @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
+import { dashboardCategoryLabels, getBobot, resolveRiskScoreSemantics } from "./risk.ts";
+
+type Severity = "Sangat Rendah" | "Rendah" | "Sedang" | "Tinggi" | "Sangat Tinggi";
 
 type RiskLike = {
   code?: string;
@@ -8,6 +13,16 @@ type RiskLike = {
   createdAt?: string;
   probability?: number;
   impact?: number;
+  weight?: number;
+  nilai?: number | null;
+  inherentScore?: number;
+  status?: "draft" | "in_review" | "in_approval" | "approved" | "rejected";
+  reviewedProbability?: number | null;
+  reviewedImpact?: number | null;
+  reviewedWeight?: number | null;
+  reviewedNilai?: number | null;
+  reviewedScore?: number | null;
+  targetScore?: number;
   targetProbability?: number;
   targetImpact?: number;
 };
@@ -65,19 +80,21 @@ function semesterSortValue(period: string) {
   return Number(yearText) * 2 + (half === "H2" ? 1 : 0);
 }
 
-export function levelFromScore(probability?: number, impact?: number): Severity {
-  const score = (probability ?? 0) * (impact ?? 0);
-  if (score >= 17) return "Ekstrem";
-  if (score >= 10) return "Tinggi";
-  if (score >= 5) return "Sedang";
-  return "Rendah";
+export function levelFromScore(inherentScore?: number): Severity {
+  const score = inherentScore ?? 0;
+  if (score >= 20) return "Sangat Tinggi";
+  if (score >= 15) return "Tinggi";
+  if (score >= 10) return "Sedang";
+  if (score >= 5) return "Rendah";
+  return "Sangat Rendah";
 }
 
 export function weightFor(level: Severity) {
-  if (level === "Ekstrem") return 5;
+  if (level === "Sangat Tinggi") return 5;
   if (level === "Tinggi") return 3;
   if (level === "Sedang") return 2;
-  return 1;
+  if (level === "Rendah") return 1;
+  return 0;
 }
 
 function isOverdue(dateText?: string | null, now = new Date()) {
@@ -92,7 +109,21 @@ export function buildUnitExposureData(risks: RiskLike[], limit = 5): UnitExposur
 
   for (const risk of risks) {
     const orgName = risk.orgName?.trim() || "Tanpa Unit";
-    const level = levelFromScore(risk.probability, risk.impact);
+    const level = levelFromScore(
+      resolveRiskScoreSemantics({
+        status: risk.status ?? "draft",
+        probability: risk.probability ?? 1,
+        impact: risk.impact ?? 1,
+        weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
+        nilai: risk.nilai ?? undefined,
+        inherentScore: risk.inherentScore ?? 0,
+        reviewedProbability: risk.reviewedProbability,
+        reviewedImpact: risk.reviewedImpact,
+        reviewedWeight: risk.reviewedWeight,
+        reviewedNilai: risk.reviewedNilai,
+        reviewedScore: risk.reviewedScore,
+      }).effective.score,
+    );
     const row = grouped.get(orgName) ?? {
       orgName,
       exposureScore: 0,
@@ -106,7 +137,7 @@ export function buildUnitExposureData(risks: RiskLike[], limit = 5): UnitExposur
     if (level === "Rendah") row.low += 1;
     if (level === "Sedang") row.medium += 1;
     if (level === "Tinggi") row.high += 1;
-    if (level === "Ekstrem") row.extreme += 1;
+    if (level === "Sangat Tinggi") row.extreme += 1;
     grouped.set(orgName, row);
   }
 
@@ -138,10 +169,24 @@ export function buildExecutiveTrendData(risks: RiskLike[]): ExecutiveTrendDatum[
     const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
     if (!period) continue;
 
-    const level = levelFromScore(risk.probability, risk.impact);
+    const level = levelFromScore(
+      resolveRiskScoreSemantics({
+        status: risk.status ?? "draft",
+        probability: risk.probability ?? 1,
+        impact: risk.impact ?? 1,
+        weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
+        nilai: risk.nilai ?? undefined,
+        inherentScore: risk.inherentScore ?? 0,
+        reviewedProbability: risk.reviewedProbability,
+        reviewedImpact: risk.reviewedImpact,
+        reviewedWeight: risk.reviewedWeight,
+        reviewedNilai: risk.reviewedNilai,
+        reviewedScore: risk.reviewedScore,
+      }).effective.score,
+    );
     const row = grouped.get(period) ?? { period, high: 0, extreme: 0, exposureScore: 0 };
     if (level === "Tinggi") row.high += 1;
-    if (level === "Ekstrem") row.extreme += 1;
+    if (level === "Sangat Tinggi") row.extreme += 1;
     row.exposureScore += weightFor(level);
     grouped.set(period, row);
   }
@@ -210,9 +255,6 @@ export function buildTopRiskBadgeMap(input: {
   return result;
 }
 
-import type { DashboardRiskCategoryItem } from "@/types/risk";
-import { dashboardCategoryLabels } from "@/lib/risk";
-
 export function buildDashboardRiskCategoryData(
   items: DashboardRiskCategoryItem[]
 ): { label: string; count: number }[] {
@@ -239,8 +281,8 @@ export function buildInherentResidualTrendData(risks: RiskLike[]): InherentResid
     const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
     if (!period) continue;
 
-    const inherent = (risk.probability ?? 0) * (risk.impact ?? 0);
-    const residual = (risk.targetProbability ?? risk.probability ?? 0) * (risk.targetImpact ?? risk.impact ?? 0);
+    const inherent = risk.inherentScore ?? 0;
+    const residual = risk.targetScore ?? 0;
 
     const bucket = grouped.get(period) ?? { inherentSum: 0, residualSum: 0, count: 0 };
     bucket.inherentSum += inherent;
@@ -281,10 +323,24 @@ export function buildCriticalRiskRateTrendData(risks: RiskLike[]): CriticalRiskR
     const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
     if (!period) continue;
 
-    const level = levelFromScore(risk.probability, risk.impact);
+    const level = levelFromScore(
+      resolveRiskScoreSemantics({
+        status: risk.status ?? "draft",
+        probability: risk.probability ?? 1,
+        impact: risk.impact ?? 1,
+        weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
+        nilai: risk.nilai ?? undefined,
+        inherentScore: risk.inherentScore ?? 0,
+        reviewedProbability: risk.reviewedProbability,
+        reviewedImpact: risk.reviewedImpact,
+        reviewedWeight: risk.reviewedWeight,
+        reviewedNilai: risk.reviewedNilai,
+        reviewedScore: risk.reviewedScore,
+      }).effective.score,
+    );
     const bucket = grouped.get(period) ?? { high: 0, extreme: 0, total: 0 };
     if (level === "Tinggi") bucket.high += 1;
-    if (level === "Ekstrem") bucket.extreme += 1;
+    if (level === "Sangat Tinggi") bucket.extreme += 1;
     bucket.total += 1;
     grouped.set(period, bucket);
   }

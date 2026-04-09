@@ -34,13 +34,14 @@ func NewSubmitApprovalUseCase(
 
 // Input represents the input for submitting approval
 type SubmitApprovalInput struct {
-	RequestType string   // 'risk' or 'incident'
-	EntityID    string   // entity ID as string
-	RequestedBy string   // user ID who is submitting
-	ActorName   string   // user name who is submitting
-	Role        string   // user role (unit, reviewer, pimpinan, etc.)
-	ApproverIDs []string `json:"approverIds"`
-	Notes       string   // optional notes
+	RequestType    string   // 'risk' or 'incident'
+	EntityID       string   // entity ID as string
+	RequestedBy    string   // user ID who is submitting
+	ActorName      string   // user name who is submitting
+	Role           string   // user role (unit, reviewer, pimpinan, etc.)
+	ApproverIDs    []string `json:"approverIds"`
+	SubmissionType string   // 'review' (includes reviewer) or 'approval' (approval only)
+	Notes          string   // optional notes
 }
 
 // Output represents the output of submitting approval
@@ -90,9 +91,15 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 		return nil, domainerrors.ErrAlreadyPending
 	}
 
-	// Update entity status to pending_approval
-	if err := uc.updateEntityStatus(ctx, input.RequestType, entityID, "final"); err != nil {
-		return nil, err
+	if input.RequestType == "risk" {
+		risk, err := uc.riskRepo.GetByID(ctx, entityID)
+		if err != nil {
+			return nil, domainerrors.ErrRiskNotFound
+		}
+		risk.Status = entity.RiskStatusInReview
+		if err := uc.riskRepo.Update(ctx, risk); err != nil {
+			return nil, domainerrors.Wrap(err, "failed to update risk status")
+		}
 	}
 
 	approverIDs := input.ApproverIDs
@@ -130,7 +137,16 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 		if index == 0 {
 			firstApprover = approver
 		}
-		steps = append(steps, entity.ApprovalStep{SequenceNo: index + 1, ApproverUserID: approverID, Status: "pending"})
+		stepType := "approval"
+		if input.SubmissionType == "review" && index == 0 {
+			stepType = "review"
+		}
+		steps = append(steps, entity.ApprovalStep{
+			SequenceNo:     index + 1,
+			ApproverUserID: approverID,
+			StepType:       stepType,
+			Status:         "pending",
+		})
 	}
 	if firstApprover == nil {
 		return nil, domainerrors.ErrInvalidInput
@@ -204,23 +220,4 @@ func (uc *SubmitApprovalUseCase) validateIncident(ctx context.Context, incidentI
 	}
 
 	return nil
-}
-
-// updateEntityStatus updates the status of the entity (risk or incident)
-func (uc *SubmitApprovalUseCase) updateEntityStatus(ctx context.Context, requestType string, entityID uuid.UUID, status string) error {
-	if requestType == "risk" {
-		risk, err := uc.riskRepo.GetByID(ctx, entityID)
-		if err != nil {
-			return err
-		}
-		risk.Status = status
-		return uc.riskRepo.Update(ctx, risk)
-	} else {
-		incident, err := uc.incidentRepo.GetByID(ctx, entityID.String())
-		if err != nil {
-			return err
-		}
-		incident.Status = status
-		return uc.incidentRepo.Update(ctx, incident)
-	}
 }

@@ -72,7 +72,7 @@ func (uc *ApplyTranscriptRiskChangesUseCase) Execute(ctx context.Context, input 
 		}, nil
 	}
 
-	if existingRisk.IsFinal() {
+	if existingRisk.IsLocked() {
 		now := time.Now()
 		archivedRisk := cloneRisk(existingRisk)
 		archivedRisk.IsCurrent = false

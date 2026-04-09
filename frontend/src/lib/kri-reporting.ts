@@ -1,7 +1,16 @@
 export type KRIStatus = "safe" | "warning" | "breach";
 export type KRIDirection = "higher_worse" | "lower_worse";
-export type KRIReportStatus = "pending" | "submitted" | "accepted" | "revision_requested" | "skipped" | string;
-export type KRIReviewQueueFilter = "submitted" | "revision_requested" | "overdue";
+export type KRIReportStatus =
+  | "pending"
+  | "submitted"
+  | "accepted"
+  | "revision_requested"
+  | "skipped"
+  | string;
+export type KRIReviewQueueFilter =
+  | "submitted"
+  | "revision_requested"
+  | "overdue";
 
 export interface KRIThresholds {
   thresholdMin: number;
@@ -84,18 +93,26 @@ function normalizeDateOnly(value: string): number | null {
 export function getKRIStatus(
   currentValue: number,
   direction: KRIDirection,
-  thresholds: KRIThresholds
+  thresholds: KRIThresholds,
 ): KRIStatus {
   if (direction === "higher_worse") {
     if (currentValue > thresholds.thresholdMax) return "breach";
-    if (thresholds.amberThresholdMax !== undefined && thresholds.amberThresholdMax !== null && currentValue >= thresholds.amberThresholdMax) {
+    if (
+      thresholds.amberThresholdMax !== undefined &&
+      thresholds.amberThresholdMax !== null &&
+      currentValue >= thresholds.amberThresholdMax
+    ) {
       return "warning";
     }
     return "safe";
   }
 
   if (currentValue < thresholds.thresholdMin) return "breach";
-  if (thresholds.amberThresholdMin !== undefined && thresholds.amberThresholdMin !== null && currentValue <= thresholds.amberThresholdMin) {
+  if (
+    thresholds.amberThresholdMin !== undefined &&
+    thresholds.amberThresholdMin !== null &&
+    currentValue <= thresholds.amberThresholdMin
+  ) {
     return "warning";
   }
   return "safe";
@@ -104,38 +121,169 @@ export function getKRIStatus(
 export function isReportOverdue(
   dueDate: string,
   status: KRIReportStatus,
-  now: Date = new Date()
+  now: Date = new Date(),
 ): boolean {
   if (status !== "pending" && status !== "revision_requested") return false;
 
   const due = normalizeDateOnly(dueDate);
   if (due === null) return false;
 
-  const current = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const current = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
   return due < current;
+}
+
+export function isWithinSubmissionWindow(
+  periodEnd: string,
+  now: Date = new Date(),
+): { allowed: boolean; message?: string } {
+  const periodEndMs = normalizeDateOnly(periodEnd);
+  if (periodEndMs === null) {
+    return { allowed: false, message: "Invalid period end date" };
+  }
+
+  const periodEndDate = new Date(periodEndMs);
+  const hPlus1Ms = Date.UTC(
+    periodEndDate.getUTCFullYear(),
+    periodEndDate.getUTCMonth(),
+    periodEndDate.getUTCDate() + 1,
+  );
+  const hPlus3EndMs = Date.UTC(
+    periodEndDate.getUTCFullYear(),
+    periodEndDate.getUTCMonth(),
+    periodEndDate.getUTCDate() + 3,
+    23,
+    59,
+    59,
+  );
+
+  const currentMs = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
+
+  const hPlus1Date = new Date(hPlus1Ms);
+  const hPlus3Date = new Date(hPlus3EndMs);
+  const hPlus1Str = hPlus1Date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const hPlus3Str = hPlus3Date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  if (currentMs < hPlus1Ms) {
+    return {
+      allowed: false,
+      message: `Laporan dapat dikirim mulai ${hPlus1Str}`,
+    };
+  }
+
+  if (currentMs > hPlus3EndMs) {
+    return {
+      allowed: false,
+      message: `Periode pengiriman laporan telah berakhir pada ${hPlus3Str} (H+3)`,
+    };
+  }
+
+  return { allowed: true };
+}
+
+export function isWithinMitigationSubmissionWindow(
+  periodEnd: string,
+  dueDate: string,
+  now: Date = new Date(),
+): { allowed: boolean; message?: string } {
+  const periodEndMs = normalizeDateOnly(periodEnd);
+  const dueDateMs = normalizeDateOnly(dueDate);
+
+  if (periodEndMs === null || dueDateMs === null) {
+    return { allowed: false, message: "Invalid date" };
+  }
+
+  const periodEndDate = new Date(periodEndMs);
+  const dueDateObj = new Date(dueDateMs);
+
+  const hPlus1Ms = Date.UTC(
+    periodEndDate.getUTCFullYear(),
+    periodEndDate.getUTCMonth(),
+    periodEndDate.getUTCDate() + 1,
+  );
+  const dueDateEndMs = Date.UTC(
+    dueDateObj.getUTCFullYear(),
+    dueDateObj.getUTCMonth(),
+    dueDateObj.getUTCDate(),
+    23,
+    59,
+    59,
+  );
+
+  const currentMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
+  const hPlus1Date = new Date(hPlus1Ms);
+  const dueDateDisplay = new Date(dueDateEndMs);
+  const hPlus1Str = hPlus1Date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const dueDateStr = dueDateDisplay.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  if (currentMs < hPlus1Ms) {
+    return {
+      allowed: false,
+      message: `Laporan dapat dikirim mulai ${hPlus1Str} (H+1 setelah periode berakhir)`,
+    };
+  }
+
+  if (currentMs > dueDateEndMs) {
+    return {
+      allowed: false,
+      message: `Batas pengiriman laporan telah berakhir pada ${dueDateStr}`,
+    };
+  }
+
+  return { allowed: true };
 }
 
 export function isKRIReviewAttentionOverdue(
   dueDate: string,
   status: KRIReportStatus,
-  now: Date = new Date()
+  now: Date = new Date(),
 ): boolean {
   if (status !== "submitted" && status !== "revision_requested") return false;
 
   const due = normalizeDateOnly(dueDate);
   if (due === null) return false;
 
-  const current = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const current = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
   return due < current;
 }
 
 export function filterKRIReviewQueueByState<T extends KRIReviewQueueLike>(
   items: T[],
   filter: KRIReviewQueueFilter,
-  now: Date = new Date()
+  now: Date = new Date(),
 ): T[] {
   if (filter === "overdue") {
-    return items.filter((item) => isKRIReviewAttentionOverdue(item.dueDate, item.status, now));
+    return items.filter((item) =>
+      isKRIReviewAttentionOverdue(item.dueDate, item.status, now),
+    );
   }
 
   return items.filter((item) => item.status === filter);
@@ -166,14 +314,18 @@ export function validateEvidenceURL(url: string): boolean {
   }
 }
 
-export function getKRIStatusFromReport(report: KRIReportLike): KRIStatus | null {
+export function getKRIStatusFromReport(
+  report: KRIReportLike,
+): KRIStatus | null {
   if (report.status !== "accepted") return null;
   if (report.value === null || report.value === undefined) return null;
 
   return getKRIStatus(report.value, report.direction, report.thresholds);
 }
 
-export function formatSemesterSummary(summary: SemesterSummaryLike): SemesterSummaryDisplay {
+export function formatSemesterSummary(
+  summary: SemesterSummaryLike,
+): SemesterSummaryDisplay {
   const totals = summary.kris.reduce(
     (acc, item) => {
       acc.accepted += item.acceptedCount ?? 0;
@@ -182,7 +334,7 @@ export function formatSemesterSummary(summary: SemesterSummaryLike): SemesterSum
       acc.revision += item.revisionCount ?? 0;
       return acc;
     },
-    { accepted: 0, overdue: 0, skipped: 0, revision: 0 }
+    { accepted: 0, overdue: 0, skipped: 0, revision: 0 },
   );
 
   return {
@@ -191,7 +343,11 @@ export function formatSemesterSummary(summary: SemesterSummaryLike): SemesterSum
     totals: `${summary.kris.length} KRI • ${totals.accepted} accepted • ${totals.overdue} overdue • ${totals.revision} revision requested • ${totals.skipped} skipped`,
     items: summary.kris.map((item) => ({
       kriName: item.kriName,
-      value: item.latestAcceptedValue === null || item.latestAcceptedValue === undefined ? "—" : formatKRIValue(item.latestAcceptedValue, item.metric),
+      value:
+        item.latestAcceptedValue === null ||
+        item.latestAcceptedValue === undefined
+          ? "—"
+          : formatKRIValue(item.latestAcceptedValue, item.metric),
       trend: item.trend ?? "stable",
       counts: `${item.acceptedCount ?? 0} accepted • ${item.overdueCount ?? 0} overdue • ${item.revisionCount ?? 0} revision requested • ${item.skippedCount ?? 0} skipped`,
       isArchived: item.isArchived ?? false,

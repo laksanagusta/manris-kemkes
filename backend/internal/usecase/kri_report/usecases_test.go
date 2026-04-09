@@ -151,6 +151,17 @@ type fakeKRIRepo struct {
 	errOnUpdate error
 }
 
+func openSubmissionWindowPeriodEnd(t *testing.T) string {
+	t.Helper()
+
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		t.Fatalf("failed to load Asia/Jakarta timezone: %v", err)
+	}
+
+	return time.Now().In(loc).AddDate(0, 0, -2).Format("2006-01-02")
+}
+
 func (f *fakeKRIRepo) Create(ctx context.Context, kri *entity.KRI) error {
 	f.kris[kri.ID] = kri
 	return nil
@@ -276,10 +287,11 @@ func TestSubmitDoesNotUpdateCurrentValue(t *testing.T) {
 	reportID := uuid.New()
 	kriID := uuid.New()
 	submitterID := uuid.New()
+	periodEnd := openSubmissionWindowPeriodEnd(t)
 
 	repo := &fakeKRIReportRepo{reports: map[uuid.UUID]*entity.KRIReport{
 		reportID: {
-			ID: reportID, KRIID: kriID, Status: "pending", DueDate: "2026-04-01",
+			ID: reportID, KRIID: kriID, Status: "pending", DueDate: "2026-04-01", PeriodEnd: periodEnd,
 		},
 	}}
 	kriRepo := &fakeKRIRepo{kris: map[uuid.UUID]*entity.KRI{kriID: {ID: kriID, CurrentValue: 42.0}}}
@@ -366,6 +378,7 @@ func TestSubmitRevisionRequestedReportSucceeds(t *testing.T) {
 	reportID := uuid.New()
 	kriID := uuid.New()
 	submitterID := uuid.New()
+	periodEnd := openSubmissionWindowPeriodEnd(t)
 
 	reviewedBy := uuid.New()
 	reviewedAt := time.Now()
@@ -374,6 +387,7 @@ func TestSubmitRevisionRequestedReportSucceeds(t *testing.T) {
 			ID:         reportID,
 			KRIID:      kriID,
 			Status:     "revision_requested",
+			PeriodEnd:  periodEnd,
 			DueDate:    "2026-04-01",
 			ReviewedBy: &reviewedBy,
 			ReviewedAt: &reviewedAt,

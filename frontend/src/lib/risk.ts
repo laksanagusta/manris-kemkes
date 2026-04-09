@@ -1,4 +1,71 @@
-import type { RiskCategory, RiskLevel } from "@/types/risk";
+import type { Risk, RiskCategory, RiskLevel } from "@/types/risk";
+
+export interface RiskMatrixSnapshot {
+  probability: number;
+  impact: number;
+  cellKey: string;
+  probabilityLabel: string;
+  impactLabel: string;
+}
+
+export interface RiskScoreSnapshot {
+  probability: number;
+  impact: number;
+  weight: number;
+  nilai: number;
+  score: number;
+  level: RiskLevel;
+  priority: number;
+  matrix: RiskMatrixSnapshot;
+}
+
+export interface ResolvedRiskScoreSemantics {
+  source: "inherent" | "reviewed";
+  usesReviewed: boolean;
+  isFinalized: boolean;
+  effective: RiskScoreSnapshot;
+  primary: RiskScoreSnapshot;
+  inherent: RiskScoreSnapshot;
+}
+
+type RiskScoreBundleInput = {
+  probability: number;
+  impact: number;
+  weight: number;
+  nilai?: number | null;
+  score?: number | null;
+};
+
+type RiskScoreSemanticFields = Pick<
+  Risk,
+  | "status"
+  | "probability"
+  | "impact"
+  | "weight"
+  | "nilai"
+  | "inherentScore"
+  | "reviewedProbability"
+  | "reviewedImpact"
+  | "reviewedWeight"
+  | "reviewedNilai"
+  | "reviewedScore"
+>;
+
+export const PROBABILITY_LABELS: Record<number, string> = {
+  1: "Sangat Jarang",
+  2: "Jarang",
+  3: "Kadang-kadang",
+  4: "Sering",
+  5: "Hampir Pasti",
+};
+
+export const IMPACT_LABELS: Record<number, string> = {
+  1: "Sangat Ringan",
+  2: "Ringan",
+  3: "Sedang",
+  4: "Berat",
+  5: "Sangat Berat",
+};
 
 export const riskCategoryLabels: Record<RiskCategory, string> = {
   "": "Belum dikategorikan",
@@ -48,10 +115,11 @@ export function calculateNilai(probability: number, impact: number, weight: numb
 // Get risk level based on nilai (new Indonesian levels)
 // Sangat Rendah: < 5, Rendah: 5-9, Sedang: 10-14, Tinggi: 15-19, Sangat Tinggi: >= 20
 export function getRiskLevelFromNilai(nilai: number): RiskLevel {
-  if (nilai >= 20) return "sangat_tinggi";
-  if (nilai >= 15) return "tinggi";
-  if (nilai >= 10) return "sedang";
-  if (nilai >= 5) return "rendah";
+  const rounded = Math.round(nilai);
+  if (rounded >= 20) return "sangat_tinggi";
+  if (rounded >= 15) return "tinggi";
+  if (rounded >= 10) return "sedang";
+  if (rounded >= 5) return "rendah";
   return "sangat_rendah";
 }
 
@@ -99,17 +167,150 @@ export function levelToColor(level: RiskLevel): string {
   return colors[level] || "";
 }
 
+export function getRiskLevelDisplayLabel(level: RiskLevel): string {
+  const labels: Record<RiskLevel, string> = {
+    sangat_tinggi: "Ekstrem",
+    tinggi: "Tinggi",
+    sedang: "Sedang",
+    rendah: "Rendah",
+    sangat_rendah: "Sangat Rendah",
+  };
+  return labels[level] || level;
+}
+
+export function getLevelBadgeClasses(level: string): string {
+  switch (level) {
+    case "Ekstrem":
+    case "sangat_tinggi":
+      return "bg-red-500/15 text-red-700 border-red-500/30";
+    case "Tinggi":
+    case "tinggi":
+      return "bg-orange-500/15 text-orange-700 border-orange-500/30";
+    case "Sedang":
+    case "sedang":
+      return "bg-yellow-500/15 text-yellow-700 border-yellow-500/30";
+    case "Rendah":
+    case "rendah":
+      return "bg-blue-500/15 text-blue-700 border-blue-500/30";
+    default:
+      return "bg-emerald-500/15 text-emerald-700 border-emerald-500/30";
+  }
+}
+
+export function getScoreBtnColorClasses(score: number): string {
+  if (score >= 20) return "bg-red-500 text-white hover:bg-red-600";
+  if (score >= 15) return "bg-orange-500 text-white hover:bg-orange-600";
+  if (score >= 10) return "bg-yellow-500 text-white hover:bg-yellow-600";
+  if (score >= 5) return "bg-blue-500 text-white hover:bg-blue-600";
+  return "bg-emerald-500 text-white hover:bg-emerald-600";
+}
+
 // Calculate all risk metrics at once
 export function calculateRiskMetrics(probability: number, impact: number) {
   const weight = getBobot(probability, impact);
   const nilai = calculateNilai(probability, impact, weight);
+  const inherentScore = Math.round(nilai);
   const level = getRiskLevelFromNilai(nilai);
   const priority = getRiskPriority(level);
 
   return {
     weight,
     nilai,
+    inherentScore,
     level,
     priority,
+  };
+}
+
+function isExplicitNumber(value: number | null | undefined): value is number {
+  return value !== null && value !== undefined;
+}
+
+function buildRiskMatrixSnapshot(probability: number, impact: number): RiskMatrixSnapshot {
+  return {
+    probability,
+    impact,
+    cellKey: `${probability}-${impact}`,
+    probabilityLabel: PROBABILITY_LABELS[probability] ?? String(probability),
+    impactLabel: IMPACT_LABELS[impact] ?? String(impact),
+  };
+}
+
+function buildRiskScoreSnapshot(bundle: RiskScoreBundleInput): RiskScoreSnapshot {
+  const nilai = isExplicitNumber(bundle.nilai)
+    ? bundle.nilai
+    : calculateNilai(bundle.probability, bundle.impact, bundle.weight);
+  const score = isExplicitNumber(bundle.score) ? bundle.score : Math.round(nilai);
+  const level = getRiskLevelFromNilai(nilai);
+
+  return {
+    probability: bundle.probability,
+    impact: bundle.impact,
+    weight: bundle.weight,
+    nilai,
+    score,
+    level,
+    priority: getRiskPriority(level),
+    matrix: buildRiskMatrixSnapshot(bundle.probability, bundle.impact),
+  };
+}
+
+function hasCompleteReviewedRiskScoreBundle(risk: RiskScoreSemanticFields): boolean {
+  return (
+    isExplicitNumber(risk.reviewedProbability) &&
+    isExplicitNumber(risk.reviewedImpact) &&
+    isExplicitNumber(risk.reviewedWeight) &&
+    isExplicitNumber(risk.reviewedNilai) &&
+    isExplicitNumber(risk.reviewedScore)
+  );
+}
+
+function buildReviewedRiskScoreSnapshot(risk: RiskScoreSemanticFields): RiskScoreSnapshot | null {
+  const reviewedProbability = risk.reviewedProbability;
+  const reviewedImpact = risk.reviewedImpact;
+  const reviewedWeight = risk.reviewedWeight;
+  const reviewedNilai = risk.reviewedNilai;
+  const reviewedScore = risk.reviewedScore;
+
+  if (
+    !isExplicitNumber(reviewedProbability) ||
+    !isExplicitNumber(reviewedImpact) ||
+    !isExplicitNumber(reviewedWeight) ||
+    !isExplicitNumber(reviewedNilai) ||
+    !isExplicitNumber(reviewedScore)
+  ) {
+    return null;
+  }
+
+  return buildRiskScoreSnapshot({
+    probability: reviewedProbability,
+    impact: reviewedImpact,
+    weight: reviewedWeight,
+    nilai: reviewedNilai,
+    score: reviewedScore,
+  });
+}
+
+export function resolveRiskScoreSemantics(risk: RiskScoreSemanticFields): ResolvedRiskScoreSemantics {
+  const inherent = buildRiskScoreSnapshot({
+    probability: risk.probability,
+    impact: risk.impact,
+    weight: risk.weight,
+    nilai: risk.nilai,
+    score: risk.inherentScore,
+  });
+  const reviewed = risk.status === "approved" && hasCompleteReviewedRiskScoreBundle(risk)
+    ? buildReviewedRiskScoreSnapshot(risk)
+    : null;
+  const usesReviewed = reviewed !== null;
+  const effective = reviewed ?? inherent;
+
+  return {
+    source: usesReviewed ? "reviewed" : "inherent",
+    usesReviewed,
+    isFinalized: risk.status === "approved",
+    effective,
+    primary: effective,
+    inherent,
   };
 }

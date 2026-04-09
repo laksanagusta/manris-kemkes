@@ -13,6 +13,7 @@ import { CalendarDays, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { normalizeKRIReportPayload, validateKRIReportForm } from "@/lib/validation/reporting";
+import { isWithinSubmissionWindow } from "@/lib/kri-reporting";
 import { cn } from "@/lib/utils";
 
 interface KRIReport {
@@ -168,18 +169,40 @@ export function KRIReportsList({ kriId, metric }: { kriId: string; metric: strin
                   
                   <div className="shrink-0">
                     {(report.status === "pending" || report.status === "overdue") ? (
-                      <Button 
-                        size="sm" 
-                        variant={report.status === "overdue" ? "destructive" : "default"}
-                        onClick={() => {
-                          setReportToSubmit(report);
-                          setSubmitValue("");
-                          setSubmitNotes("");
-                          setShowValidationErrors(false);
-                        }}
-                      >
-                        Lapor Nilai
-                      </Button>
+                      (() => {
+                        const submissionCheck = isWithinSubmissionWindow(report.periodEnd);
+                        if (!submissionCheck.allowed) {
+                          return (
+                            <div className="flex flex-col items-end gap-1">
+                              <Button 
+                                size="sm" 
+                                variant={report.status === "overdue" ? "destructive" : "default"}
+                                disabled
+                                className="opacity-50 cursor-not-allowed"
+                              >
+                                Lapor Nilai
+                              </Button>
+                              <span className="text-[10px] text-muted-foreground text-right max-w-[200px]">
+                                {submissionCheck.message}
+                              </span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <Button 
+                            size="sm" 
+                            variant={report.status === "overdue" ? "destructive" : "default"}
+                            onClick={() => {
+                              setReportToSubmit(report);
+                              setSubmitValue("");
+                              setSubmitNotes("");
+                              setShowValidationErrors(false);
+                            }}
+                          >
+                            Lapor Nilai
+                          </Button>
+                        );
+                      })()
                     ) : report.status === "submitted" ? (
                       <div className="text-xs font-semibold text-amber-600 flex items-center gap-1 bg-amber-100 px-3 py-1.5 rounded-full">
                         <Clock className="size-3.5" /> Menunggu Review

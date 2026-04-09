@@ -20,6 +20,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Activity,
   CheckCircle2,
   Clock,
@@ -34,6 +40,7 @@ import {
   normalizeMitigationReportPayload,
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
+import { isWithinMitigationSubmissionWindow } from "@/lib/kri-reporting";
 
 interface MitigationProgressTabProps {
   riskId: string;
@@ -334,21 +341,56 @@ export function MitigationProgressTab({
                               </div>
                             )}
                           </div>
-                          {(task.status === "pending" ||
+{(task.status === "pending" ||
                             task.status === "overdue") && (
-                            <Button
-                              size="sm"
-                              variant={
-                                task.status === "overdue"
-                                  ? "destructive"
-                                  : "default"
-                              }
-                              className="gap-1.5 text-xs h-8 shrink-0"
-                              onClick={() => handleOpenSubmit(task)}
-                            >
-                              <Send className="size-3" /> Lapor
-                            </Button>
-                          )}
+                              (() => {
+                                const submissionCheck = isWithinMitigationSubmissionWindow(
+                                  task.periodEnd,
+                                  task.dueDate,
+                                );
+                                if (!submissionCheck.allowed) {
+                                  return (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-block cursor-not-allowed">
+                                            <Button
+                                              size="sm"
+                                              variant={
+                                                task.status === "overdue"
+                                                  ? "destructive"
+                                                  : "default"
+                                              }
+                                              disabled
+                                              className="opacity-50 pointer-events-none"
+                                            >
+                                              <Send className="size-3" /> Lapor
+                                            </Button>
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[220px] text-xs">
+                                          {submissionCheck.message}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  );
+                                }
+                                return (
+                                  <Button
+                                    size="sm"
+                                    variant={
+                                      task.status === "overdue"
+                                        ? "destructive"
+                                        : "default"
+                                    }
+                                    className="gap-1.5 text-xs h-8 shrink-0"
+                                    onClick={() => handleOpenSubmit(task)}
+                                  >
+                                    <Send className="size-3" /> Lapor
+                                  </Button>
+                                );
+                              })()
+                            )}
                         </div>
                       );
                     })}

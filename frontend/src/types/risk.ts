@@ -3,7 +3,7 @@ export type ControlEffectiveness = "" | "efektif" | "tidak_efektif";
 export type MitigationFrequency = "insidental" | "rutin";
 export type RecurringInterval = "harian" | "mingguan" | "bulanan" | "triwulan" | "semesteran" | "tahunan";
 export type TreatmentOption = "" | "menerima" | "mitigasi";
-export type RiskStatus = "draft" | "final" | "approved" | "rejected";
+export type RiskStatus = "draft" | "in_review" | "in_approval" | "approved" | "rejected";
 export type RiskCategory = "" | "strategis" | "operasional" | "kepatuhan" | "finansial" | "reputasi" | "teknologi_informasi";
 export type RiskSource = "" | "internal" | "eksternal";
 export type RiskAppetite = "" | "dalam_batas" | "di_atas_batas";
@@ -78,6 +78,11 @@ export interface RiskVersionTimelineItem {
   nilai?: number;
   targetScore?: number;
   targetNilai?: number;
+  reviewedProbability?: number | null;
+  reviewedImpact?: number | null;
+  reviewedWeight?: number | null;
+  reviewedNilai?: number | null;
+  reviewedScore?: number | null;
   assessmentCycle?: string;
   reviewType?: RiskReviewType | "";
   changeReason?: string;
@@ -260,6 +265,7 @@ export interface Risk {
   impact: number;
   weight: number;
   nilai?: number;
+  inherentScore: number;
   riskPriority: number;
   riskAppetite: RiskAppetite;
   treatmentOption: TreatmentOption;
@@ -268,6 +274,7 @@ export interface Risk {
   targetImpact: number;
   targetWeight: number;
   targetNilai?: number;
+  targetScore: number;
   nextReviewDate: string;
   status: RiskStatus;
   versionGroupId?: string;
@@ -280,13 +287,28 @@ export interface Risk {
   orgName?: string;
   createdByName?: string;
   updatedAt?: string;
-  inherentScore?: number;
   fishboneDraft?: import("./fishbone").FishboneDraft | null;
+
+  // Skor Penilaian (assessed by reviewer)
+  reviewedProbability?: number | null;
+  reviewedImpact?: number | null;
+  reviewedWeight?: number | null;
+  reviewedNilai?: number | null;
+  reviewedScore?: number | null;
+  scoreChangeLabel?: string;
+  effectivenessLabel?: string;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
 }
 
 export interface DashboardRiskCategoryItem {
   category: string;
   count: number;
+  sangatRendah: number;
+  rendah: number;
+  sedang: number;
+  tinggi: number;
+  ekstrem: number;
 }
 
 // ── Dashboard Analytics (Phase 2) ──────────────────────────────────
@@ -343,6 +365,11 @@ export interface TopRiskItem {
   impact: number;
   inherentScore: number;
   nilai?: number;
+  reviewedProbability?: number | null;
+  reviewedImpact?: number | null;
+  reviewedWeight?: number | null;
+  reviewedNilai?: number | null;
+  reviewedScore?: number | null;
   treatmentOption: TreatmentOption;
   assessmentCycle?: string;
   createdAt: string;

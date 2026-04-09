@@ -3,6 +3,7 @@
 import { ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getBobot, resolveRiskScoreSemantics } from "@/lib/risk";
 import { cn } from "@/lib/utils";
 import type { TopRiskItem } from "@/types/risk";
 
@@ -10,6 +11,14 @@ interface TopRisksPanelProps {
   risks: TopRiskItem[];
   loading?: boolean;
 }
+
+type TopRiskScoreSemanticsInput = TopRiskItem & {
+  reviewedProbability?: number | null;
+  reviewedImpact?: number | null;
+  reviewedWeight?: number | null;
+  reviewedNilai?: number | null;
+  reviewedScore?: number | null;
+};
 
 function scoreColor(score: number) {
   if (score >= 17) return "bg-risk-extreme text-white";
@@ -57,7 +66,19 @@ export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
         ) : (
           <div className="space-y-2">
             {risks.slice(0, 7).map((risk) => {
-              const score = risk.probability * risk.impact;
+              const score = resolveRiskScoreSemantics({
+                status: risk.status,
+                probability: risk.probability,
+                impact: risk.impact,
+                weight: getBobot(risk.probability, risk.impact),
+                nilai: risk.nilai,
+                inherentScore: risk.inherentScore,
+                reviewedProbability: (risk as TopRiskScoreSemanticsInput).reviewedProbability,
+                reviewedImpact: (risk as TopRiskScoreSemanticsInput).reviewedImpact,
+                reviewedWeight: (risk as TopRiskScoreSemanticsInput).reviewedWeight,
+                reviewedNilai: (risk as TopRiskScoreSemanticsInput).reviewedNilai,
+                reviewedScore: (risk as TopRiskScoreSemanticsInput).reviewedScore,
+              }).primary.score;
               return (
                 <div
                   key={risk.id}

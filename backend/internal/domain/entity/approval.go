@@ -40,6 +40,7 @@ type ApprovalStep struct {
 	ApproverUserID    uuid.UUID
 	ApproverName      string
 	ApproverRole      string
+	StepType          string // 'review' or 'approval' - distinguishes reviewer stage from approver stage
 	Status            string
 	ActedAt           *time.Time
 	Comments          string

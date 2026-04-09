@@ -31,12 +31,16 @@ func NewApprovalActionUseCase(
 
 // Input represents the input for approval action
 type ApprovalActionInput struct {
-	ApprovalID string // approval request ID
-	Action     string // 'approve' or 'reject'
-	ActorID    string // user ID performing the action
-	ActorName  string // user name
-	ActorRole  string // user role
-	Comments   string // optional comments
+	ApprovalID string `json:"approvalID"`
+	Action     string `json:"action"` // 'approve' or 'reject'
+	ActorID    string // user ID performing the action (set by handler)
+	ActorName  string // user name (set by handler)
+	ActorRole  string // user role (set by handler)
+	Comments   string `json:"comments"` // optional comments
+
+	// Reviewer scoring (only required when role is reviewer and action is approve on a risk)
+	ReviewedProbability *int `json:"reviewedProbability,omitempty"`
+	ReviewedImpact      *int `json:"reviewedImpact,omitempty"`
 }
 
 // Output represents the output of approval action
@@ -64,11 +68,18 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 		return nil, domainerrors.ErrApprovalNotFound
 	}
 
-	actorID := uuid.MustParse(input.ActorID)
+	actorID, err := uuid.Parse(input.ActorID)
+	if err != nil {
+		return nil, domainerrors.ErrInvalidInput
+	}
 
 	// Check if request is still pending
 	if !approvalReq.IsPending() {
 		return nil, domainerrors.ErrNotPending
+	}
+
+	if err := validateCurrentApprover(approvalReq, actorID, input.ActorRole); err != nil {
+		return nil, err
 	}
 
 	// Process the action
@@ -80,19 +91,27 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 		historyAction = "approved"
 	} else {
 		newStatus = "rejected"
-		newEntityStatus = "draft"
+		newEntityStatus = entity.RiskStatusDraft
 		historyAction = "rejected"
 	}
 
 	if input.Action == "approve" {
-		_, nextStep, err := uc.approvalRepo.ApproveCurrentStep(ctx, approvalID, actorID, input.Comments)
+		currentStep, nextStep, err := uc.approvalRepo.ApproveCurrentStep(ctx, approvalID, actorID, input.Comments)
 		if err != nil {
 			return nil, domainerrors.Wrap(err, "failed to approve current step")
 		}
 		if nextStep == nil {
 			newStatus = "approved"
-			newEntityStatus = "approved"
-			if err := uc.updateEntityStatus(ctx, approvalReq.RequestType, approvalReq.EntityID, newEntityStatus); err != nil {
+			if approvalReq.RequestType == "risk" {
+				if currentStep.StepType == "review" {
+					newEntityStatus = entity.RiskStatusInApproval
+				} else {
+					newEntityStatus = entity.RiskStatusApproved
+				}
+			} else {
+				newEntityStatus = "final"
+			}
+			if err := uc.updateEntityStatus(ctx, approvalReq, newEntityStatus, input); err != nil {
 				return nil, domainerrors.Wrap(err, "failed to update entity status")
 			}
 			if err := uc.approvalRepo.UpdateStatus(ctx, approvalID, newStatus); err != nil {
@@ -100,12 +119,18 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 			}
 		} else {
 			newStatus = "pending"
+			if approvalReq.RequestType == "risk" && currentStep.StepType == "review" {
+				newEntityStatus = entity.RiskStatusInApproval
+				if err := uc.updateEntityStatus(ctx, approvalReq, newEntityStatus, input); err != nil {
+					return nil, domainerrors.Wrap(err, "failed to update entity status")
+				}
+			}
 		}
 	} else {
 		if err := uc.approvalRepo.RejectCurrentStep(ctx, approvalID, actorID, input.Comments); err != nil {
 			return nil, domainerrors.Wrap(err, "failed to reject current step")
 		}
-		if err := uc.updateEntityStatus(ctx, approvalReq.RequestType, approvalReq.EntityID, newEntityStatus); err != nil {
+		if err := uc.updateEntityStatus(ctx, approvalReq, newEntityStatus, input); err != nil {
 			return nil, domainerrors.Wrap(err, "failed to update entity status")
 		}
 		if err := uc.approvalRepo.UpdateStatus(ctx, approvalID, newStatus); err != nil {
@@ -133,21 +158,48 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 	}, nil
 }
 
+func validateCurrentApprover(approvalReq *entity.ApprovalRequest, actorID uuid.UUID, actorRole string) error {
+	if approvalReq.CurrentApproverRole != "" && actorRole != approvalReq.CurrentApproverRole {
+		return domainerrors.ErrForbidden
+	}
+
+	if approvalReq.CurrentApproverUserID != nil && *approvalReq.CurrentApproverUserID != actorID {
+		return domainerrors.ErrForbidden
+	}
+
+	return nil
+}
+
 // updateEntityStatus updates the status of the entity (risk or incident)
-func (uc *ApprovalActionUseCase) updateEntityStatus(ctx context.Context, requestType string, entityID uuid.UUID, status string) error {
-	if requestType == "risk" {
-		risk, err := uc.riskRepo.GetByID(ctx, entityID)
+// For risks, it also applies reviewer scoring if provided.
+func (uc *ApprovalActionUseCase) updateEntityStatus(ctx context.Context, approvalReq *entity.ApprovalRequest, status string, input ApprovalActionInput) error {
+	if approvalReq.RequestType == "risk" {
+		risk, err := uc.riskRepo.GetByID(ctx, approvalReq.EntityID)
 		if err != nil {
 			return err
 		}
 
-		if status == "approved" && risk.PreviousRiskID != nil {
-			return uc.riskRepo.ActivateApprovedVersion(ctx, entityID)
+		// Apply reviewer scoring if this is a reviewer approval and scoring is provided
+		if (status == entity.RiskStatusInApproval || status == entity.RiskStatusApproved) && input.Action == "approve" &&
+			input.ReviewedProbability != nil && input.ReviewedImpact != nil {
+			actorID := uuid.MustParse(input.ActorID)
+			risk.ApplyReviewerScore(*input.ReviewedProbability, *input.ReviewedImpact, actorID)
+		}
+
+		if status == entity.RiskStatusApproved && risk.PreviousRiskID != nil {
+			// Save reviewed fields before activating the version
+			if risk.ReviewedProbability != nil {
+				risk.Status = status
+				if err := uc.riskRepo.Update(ctx, risk); err != nil {
+					return err
+				}
+			}
+			return uc.riskRepo.ActivateApprovedVersion(ctx, approvalReq.EntityID)
 		}
 		risk.Status = status
 		return uc.riskRepo.Update(ctx, risk)
 	} else {
-		incident, err := uc.incidentRepo.GetByID(ctx, entityID.String())
+		incident, err := uc.incidentRepo.GetByID(ctx, approvalReq.EntityID.String())
 		if err != nil {
 			return err
 		}

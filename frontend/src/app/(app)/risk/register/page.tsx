@@ -5,7 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-import type { RiskCategory, RiskVersionTimelineItem } from "@/types/risk";
+import type {
+  RiskCategory,
+  RiskStatus,
+  RiskVersionTimelineItem,
+} from "@/types/risk";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,9 +39,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { riskCategoryLabels, getRiskLevelFromNilai, getRiskLevelLabel, levelToColor, calculateRiskMetrics } from "@/lib/risk";
+import {
+  calculateRiskMetrics,
+  getRiskLevelLabel,
+  resolveRiskScoreSemantics,
+  riskCategoryLabels,
+} from "@/lib/risk";
+import { buildVersionHistoryItem } from "@/lib/risk-history";
 import {
   Plus,
   Search,
@@ -69,7 +89,8 @@ const levelBadgeVariant: Record<string, string> = {
 
 const statusVariant: Record<string, string> = {
   draft: "bg-muted text-muted-foreground border-border",
-  final: "bg-primary/15 text-primary border-primary/20",
+  in_review: "bg-blue-500/15 text-blue-600 border-blue-500/20",
+  in_approval: "bg-primary/15 text-primary border-primary/20",
   approved: "bg-success/15 text-success border-success/20",
   rejected: "bg-destructive/15 text-destructive border-destructive/20",
 };
@@ -80,7 +101,7 @@ type RiskListItem = {
   title?: string;
   description?: string;
   category?: RiskCategory | "";
-  status?: string;
+  status?: RiskStatus;
   orgName?: string;
   createdByName?: string;
   updatedAt?: string;
@@ -93,6 +114,11 @@ type RiskListItem = {
   targetImpact?: number;
   targetWeight?: number;
   targetNilai?: number;
+  reviewedProbability?: number | null;
+  reviewedImpact?: number | null;
+  reviewedWeight?: number | null;
+  reviewedNilai?: number | null;
+  reviewedScore?: number | null;
   cause?: string[];
   impactDesc?: string[];
   existingControl?: string;
@@ -135,6 +161,26 @@ function getRiskLevel(nilai: number | undefined): string {
   return "Sangat Rendah";
 }
 
+function resolveListItemScoreSemantics(risk: RiskListItem) {
+  const probability = risk.probability ?? 1;
+  const impact = risk.impact ?? 1;
+  const fallbackMetrics = calculateRiskMetrics(probability, impact);
+
+  return resolveRiskScoreSemantics({
+    status: risk.status ?? "draft",
+    probability,
+    impact,
+    weight: risk.weight ?? fallbackMetrics.weight,
+    nilai: risk.nilai ?? fallbackMetrics.nilai,
+    inherentScore: risk.inherentScore ?? fallbackMetrics.inherentScore,
+    reviewedProbability: risk.reviewedProbability,
+    reviewedImpact: risk.reviewedImpact,
+    reviewedWeight: risk.reviewedWeight,
+    reviewedNilai: risk.reviewedNilai,
+    reviewedScore: risk.reviewedScore,
+  });
+}
+
 function computeCompleteness(draft: RiskListItem) {
   let score = 0;
   const total = 6;
@@ -160,28 +206,6 @@ function formatCycleLabel(cycle?: string, createdAt?: string) {
   return `Baseline ${new Date(createdAt).toLocaleDateString("id-ID", { year: "numeric", month: "short" })}`;
 }
 
-function buildHistoryItem(version: RiskVersionTimelineItem, current: RiskVersionTimelineItem): HistoryItem {
-  const previousScore = version.inherentScore ?? ((version.probability ?? 1) * (version.impact ?? 1));
-  const currentScore = current.inherentScore ?? ((current.probability ?? 1) * (current.impact ?? 1));
-
-  let trend: HistoryItem["trend"] = "stable";
-  if (currentScore > previousScore) trend = "up";
-  if (currentScore < previousScore) trend = "down";
-
-  return {
-    id: version.id,
-    riskId: version.code || current.code || "-",
-    title: version.title || current.title || "-",
-    unit: current.orgName || version.orgName || "—",
-    cycle: formatCycleLabel(version.assessmentCycle, version.createdAt),
-    previousLevel: getRiskLevel(version.nilai),
-    currentLevel: getRiskLevel(current.nilai),
-    trend,
-    changeReason: version.changeReason || `Skor ${previousScore} dibanding current ${currentScore}`,
-    isCurrent: version.isCurrent,
-  };
-}
-
 export default function RiskRegisterPage() {
   const router = useRouter();
   const { token } = useAuth();
@@ -197,6 +221,8 @@ export default function RiskRegisterPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [selectedVersion, setSelectedVersion] = useState("");
   const [activeTab, setActiveTab] = useState("all-risks");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [selectedRiskForReassessment, setSelectedRiskForReassessment] = useState<RiskListItem | null>(null);
   const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
 
   const refreshRisks = async (activeToken: string) => {
@@ -312,7 +338,7 @@ export default function RiskRegisterPage() {
           if (currentId && versionOptions.some((option) => option.id === currentId)) return currentId;
           return versionOptions.find((option) => !option.isCurrent)?.id || currentVersion.id;
         });
-        setHistoryData(versionItems.map((item) => buildHistoryItem(item, currentVersion)));
+        setHistoryData(versionItems.map((item) => buildVersionHistoryItem(item, currentVersion)));
       } catch (err) {
         console.error(err);
         setVersions([]);
@@ -334,6 +360,14 @@ export default function RiskRegisterPage() {
     });
   }, [risks, search]);
 
+  const riskLevelCounts = useMemo(() => {
+    return risks.reduce<Record<string, number>>((counts, risk) => {
+      const level = resolveListItemScoreSemantics(risk).effective.level;
+      counts[level] = (counts[level] ?? 0) + 1;
+      return counts;
+    }, {});
+  }, [risks]);
+
   const handleDeleteDraft = async (id: string) => {
     toast.promise(
       (async () => {
@@ -352,27 +386,34 @@ export default function RiskRegisterPage() {
     toast.promise(
       (async () => {
         const fullRisk = await api.get<RiskListItem>(`/risks/${draft.id}`, token || undefined);
-        await api.put(`/risks/${draft.id}`, { ...fullRisk, status: "final" }, token || undefined);
+        await api.put(`/risks/${draft.id}`, { ...fullRisk, status: "in_review" }, token || undefined);
         if (token) await refreshRisks(token);
       })(),
       {
         loading: "Mengajukan draft...",
-        success: "Draft berhasil diajukan menjadi final.",
+        success: "Draft berhasil diajukan menjadi ditinjau.",
         error: (err) => err instanceof Error ? err.message : "Draft belum berhasil diajukan.",
       }
     );
   };
 
-  const handleCreateReassessment = async (risk: RiskListItem) => {
-    if (!token) {
+  const handleOpenConfirmDialog = (risk: RiskListItem) => {
+    setSelectedRiskForReassessment(risk);
+    setConfirmDialogOpen(true);
+  };
+
+  const handleCreateReassessment = async () => {
+    if (!token || !selectedRiskForReassessment) {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
 
+    setConfirmDialogOpen(false);
     const cycle = currentGlobalCycle();
+
     toast.promise(
       (async () => {
-        const result = await api.post<{ id: string }>(`/risks/${risk.id}/reassess`, { cycle }, token);
+        const result = await api.post<{ id: string }>(`/risks/${selectedRiskForReassessment.id}/reassess`, { cycle }, token);
         await refreshRisks(token);
         setActiveTab("my-drafts");
         router.push(`/risk/register/${result.id}`);
@@ -460,14 +501,14 @@ export default function RiskRegisterPage() {
         {/* TAB 1: ALL RISKS */}
         <TabsContent value="all-risks" className="space-y-6 mt-6">
           {/* Summary badges */}
-          <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               {[
                 { label: `Total: ${risks.length}`, variant: "outline" as const },
-              { label: `Sangat Tinggi: ${risks.filter(r => getRiskLevel(r.nilai) === 'Sangat Tinggi').length}`, cls: levelBadgeVariant["Sangat Tinggi"] },
-              { label: `Tinggi: ${risks.filter(r => getRiskLevel(r.nilai) === 'Tinggi').length}`, cls: levelBadgeVariant.Tinggi },
-              { label: `Sedang: ${risks.filter(r => getRiskLevel(r.nilai) === 'Sedang').length}`, cls: levelBadgeVariant.Sedang },
-              { label: `Rendah: ${risks.filter(r => getRiskLevel(r.nilai) === 'Rendah').length}`, cls: levelBadgeVariant.Rendah },
-              { label: `Sangat Rendah: ${risks.filter(r => getRiskLevel(r.nilai) === 'Sangat Rendah').length}`, cls: levelBadgeVariant["Sangat Rendah"] },
+              { label: `Sangat Tinggi: ${riskLevelCounts.sangat_tinggi ?? 0}`, cls: levelBadgeVariant["Sangat Tinggi"] },
+              { label: `Tinggi: ${riskLevelCounts.tinggi ?? 0}`, cls: levelBadgeVariant.Tinggi },
+              { label: `Sedang: ${riskLevelCounts.sedang ?? 0}`, cls: levelBadgeVariant.Sedang },
+              { label: `Rendah: ${riskLevelCounts.rendah ?? 0}`, cls: levelBadgeVariant.Rendah },
+              { label: `Sangat Rendah: ${riskLevelCounts.sangat_rendah ?? 0}`, cls: levelBadgeVariant["Sangat Rendah"] },
             ].filter(b => b.cls !== undefined).map((b) => (
               <Badge
                 key={b.label}
@@ -524,7 +565,8 @@ export default function RiskRegisterPage() {
                   <SelectContent>
                     <SelectItem value="all">Semua Status</SelectItem>
                     <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="final">Final</SelectItem>
+                    <SelectItem value="in_review">Sedang Ditinjau</SelectItem>
+                    <SelectItem value="in_approval">Menunggu Approval</SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
                   </SelectContent>
                 </Select>
@@ -571,7 +613,8 @@ export default function RiskRegisterPage() {
                     </TableCell>
                   </TableRow>
                 ) : filteredRisks.map((risk) => {
-                  const levelLabel = getRiskLevel(risk.nilai);
+                  const scoreSemantics = resolveListItemScoreSemantics(risk);
+                  const levelLabel = getRiskLevelLabel(scoreSemantics.effective.level);
                   const canReassess = risk.status === "approved" && risk.isCurrent;
                   return (
                   <TableRow
@@ -599,7 +642,7 @@ export default function RiskRegisterPage() {
                       {risk.orgName || "-"}
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="text-xs font-bold">{risk.nilai?.toFixed(2) ?? "-"}</span>
+                      <span className="text-xs font-bold">{scoreSemantics.effective.score}</span>
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -631,7 +674,7 @@ export default function RiskRegisterPage() {
                             variant="outline"
                             size="sm"
                             className="h-7 gap-1.5 px-2 text-xs"
-                            onClick={() => handleCreateReassessment(risk)}
+                            onClick={() => handleOpenConfirmDialog(risk)}
                           >
                             <RefreshCcw className="size-3" />
                             Reassessment
@@ -880,7 +923,7 @@ export default function RiskRegisterPage() {
           <DialogHeader>
             <DialogTitle>Hapus Draft Risiko?</DialogTitle>
             <DialogDescription>
-              Draft yang dihapus tidak bisa dikembalikan. Risiko dengan status final harus dikembalikan ke draft terlebih dahulu sebelum dapat dihapus.
+              Draft yang dihapus tidak bisa dikembalikan. Risiko yang sudah ditinjau harus dikembalikan ke draft terlebih dahulu sebelum dapat dihapus.
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
@@ -905,6 +948,45 @@ export default function RiskRegisterPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Reassessment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda akan memulai reassessment untuk risiko berikut. Tindakan ini akan membuat draft reassessment baru yang dapat Anda edit sebelum diajukan untuk persetujuan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-sm">
+              <span className="font-medium text-foreground">Kode: </span>
+              <span className="font-mono text-xs text-muted-foreground">{selectedRiskForReassessment?.code || "-"}</span>
+            </div>
+            <div className="text-sm">
+              <span className="font-medium text-foreground">Judul: </span>
+              <span className="text-muted-foreground">{selectedRiskForReassessment?.title || "-"}</span>
+            </div>
+            <div className="text-sm">
+              <span className="font-medium text-foreground">Cycle: </span>
+              <span className="text-muted-foreground">{currentGlobalCycle()}</span>
+            </div>
+            <div className="text-sm">
+              <span className="font-medium text-foreground">Score: </span>
+              <span className="text-muted-foreground">
+                {selectedRiskForReassessment
+                  ? resolveListItemScoreSemantics(selectedRiskForReassessment).effective.score
+                  : "-"}
+              </span>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCreateReassessment}>
+              Lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

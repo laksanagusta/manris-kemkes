@@ -15,12 +15,11 @@ import {
 import Link from "next/link";
 import {
   Bar,
+  BarChart,
   CartesianGrid,
-  Cell,
   ComposedChart,
+  LabelList,
   Line,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
@@ -50,12 +49,17 @@ import {
   levelFromScore,
   weightFor,
 } from "@/lib/dashboard-insights";
+import { resolveRiskScoreSemantics } from "@/lib/risk";
 import { cn } from "@/lib/utils";
 
 const executiveTrendLegend = [
-  { key: "high", color: "oklch(0.70 0.18 40)", label: "High", type: "bar" },
-  { key: "extreme", color: "oklch(0.62 0.22 27)", label: "Extreme", type: "bar" },
-  { key: "exposureScore", color: "oklch(0.60 0.16 270)", label: "Exposure Score", type: "line" },
+  { key: "high", color: "oklch(0.70 0.18 40)", label: "High" },
+  { key: "extreme", color: "oklch(0.62 0.22 27)", label: "Extreme" },
+  {
+    key: "exposureScore",
+    color: "oklch(0.55 0.05 260 / 35%)",
+    label: "Exposure Score",
+  },
 ];
 
 type DashboardSummary = {
@@ -76,17 +80,6 @@ type KpiCard = {
   description: string;
 };
 
-const CATEGORY_COLORS = [
-  "oklch(0.65 0.20 265)", // violet
-  "oklch(0.70 0.18 40)",  // orange
-  "oklch(0.72 0.17 155)", // green
-  "oklch(0.62 0.22 27)",  // red-orange
-  "oklch(0.68 0.15 200)", // teal
-  "oklch(0.60 0.16 330)", // pink
-  "oklch(0.75 0.12 80)",  // yellow
-  "oklch(0.55 0.18 290)", // deep purple
-];
-
 function currentGlobalCycle() {
   const now = new Date();
   const year = now.getFullYear();
@@ -105,14 +98,27 @@ export default function DashboardPage() {
   const { token } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [heatmapData, setHeatmapData] = useState<number[][]>([]);
-  const [trendData, setTrendData] = useState<Array<{ period: string; high: number; extreme: number; exposureScore: number }>>([]);
-  const [actionPressureData, setActionPressureData] = useState<DashboardActionPressurePoint[]>([]);
-  const [riskCategoryData, setRiskCategoryData] = useState<{ label: string; count: number }[]>([]);
+  const [trendData, setTrendData] = useState<
+    Array<{
+      period: string;
+      high: number;
+      extreme: number;
+      exposureScore: number;
+    }>
+  >([]);
+  const [actionPressureData, setActionPressureData] = useState<
+    DashboardActionPressurePoint[]
+  >([]);
+  const [riskCategoryData, setRiskCategoryData] = useState<
+    { label: string; count: number }[]
+  >([]);
   const [isRiskCategoryLoading, setIsRiskCategoryLoading] = useState(true);
   const [riskCategoryError, setRiskCategoryError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [topRisks, setTopRisks] = useState<TopRiskItem[]>([]);
-  const [movementSnapshot, setMovementSnapshot] = useState<ReturnType<typeof buildMovementSnapshotData>>([]);
+  const [movementSnapshot, setMovementSnapshot] = useState<
+    ReturnType<typeof buildMovementSnapshotData>
+  >([]);
   const [allRisksForExposure, setAllRisksForExposure] = useState<Risk[]>([]);
   const [exposureScore, setExposureScore] = useState(0);
   const [velocityData, setVelocityData] = useState<HeatmapVelocityCell[]>([]);
@@ -129,81 +135,117 @@ export default function DashboardPage() {
     if (!token) return;
 
     Promise.allSettled([
-      api.get<DashboardSummary>("/dashboard/summary", token),
-      api.get<number[][]>("/dashboard/heatmap", token),
+      api.get<DashboardSummary>(
+        `/dashboard/summary?cycle=${currentCycle}`,
+        token,
+      ),
+      api.get<number[][]>(`/dashboard/heatmap?cycle=${currentCycle}`, token),
       api.get<Risk[]>("/risks/trend", token),
-      api.get<DashboardActionPressurePoint[]>("/dashboard/action-pressure?interval=month&window=6", token),
-      api.get<DashboardRiskCategoryItem[]>("/dashboard/risk-categories", token),
-      api.get<TopRiskItem[]>("/dashboard/top-risks", token),
-      api.get<RiskCycleComparisonItem[]>(`/risks/compare?from=${previousCycle}&to=${currentCycle}`, token),
-      api.get<HeatmapVelocityCell[]>(`/dashboard/heatmap-velocity?from=${previousCycle}&to=${currentCycle}`, token),
-    ]).then(([
-      summaryResult,
-      heatmapResult,
-      risksResult,
-      actionPressureResult,
-      riskCategoryResult,
-      topRisksResult,
-      compareResult,
-      velocityResult,
-    ]) => {
-      if (summaryResult.status === "fulfilled") setSummary(summaryResult.value);
-      else console.error(summaryResult.reason);
+      api.get<DashboardActionPressurePoint[]>(
+        "/dashboard/action-pressure?interval=month&window=6",
+        token,
+      ),
+      api.get<DashboardRiskCategoryItem[]>(
+        `/dashboard/risk-categories?cycle=${currentCycle}`,
+        token,
+      ),
+      api.get<TopRiskItem[]>(
+        `/dashboard/top-risks?cycle=${currentCycle}`,
+        token,
+      ),
+      api.get<RiskCycleComparisonItem[]>(
+        `/risks/compare?from=${previousCycle}&to=${currentCycle}`,
+        token,
+      ),
+      api.get<HeatmapVelocityCell[]>(
+        `/dashboard/heatmap-velocity?from=${previousCycle}&to=${currentCycle}`,
+        token,
+      ),
+    ]).then(
+      ([
+        summaryResult,
+        heatmapResult,
+        risksResult,
+        actionPressureResult,
+        riskCategoryResult,
+        topRisksResult,
+        compareResult,
+        velocityResult,
+      ]) => {
+        if (summaryResult.status === "fulfilled")
+          setSummary(summaryResult.value);
+        else console.error(summaryResult.reason);
 
-      if (heatmapResult.status === "fulfilled") setHeatmapData(heatmapResult.value);
-      else console.error(heatmapResult.reason);
+        if (heatmapResult.status === "fulfilled")
+          setHeatmapData(heatmapResult.value);
+        else console.error(heatmapResult.reason);
 
-      if (risksResult.status === "fulfilled") {
-        const risks = risksResult.value;
-        setAllRisksForExposure(risks);
-        setTrendData(buildExecutiveTrendData(risks));
-        const score = risks.reduce((sum, r) => {
-          const lvl = levelFromScore(r.probability, r.impact);
-          return sum + weightFor(lvl);
-        }, 0);
-        setExposureScore(score);
-      } else {
-        console.error(risksResult.reason);
-        setTrendData([]);
-      }
+        if (risksResult.status === "fulfilled") {
+          const risks = risksResult.value;
+          setAllRisksForExposure(risks);
+          setTrendData(buildExecutiveTrendData(risks));
+          const score = risks.reduce((sum, r) => {
+            const lvl = levelFromScore(resolveRiskScoreSemantics(r).effective.score);
+            return sum + weightFor(lvl);
+          }, 0);
+          setExposureScore(score);
+        } else {
+          console.error(risksResult.reason);
+          setTrendData([]);
+        }
 
-      if (actionPressureResult.status === "fulfilled") setActionPressureData(actionPressureResult.value);
-      else {
-        console.error(actionPressureResult.reason);
-        setActionPressureData([]);
-      }
+        if (actionPressureResult.status === "fulfilled")
+          setActionPressureData(actionPressureResult.value);
+        else {
+          console.error(actionPressureResult.reason);
+          setActionPressureData([]);
+        }
 
-      if (riskCategoryResult.status === "fulfilled") {
-        setRiskCategoryData(buildDashboardRiskCategoryData(riskCategoryResult.value));
-        setRiskCategoryError(false);
-      } else {
-        console.error(riskCategoryResult.reason);
-        setRiskCategoryData([]);
-        setRiskCategoryError(true);
-      }
-      setIsRiskCategoryLoading(false);
+        if (riskCategoryResult.status === "fulfilled") {
+          setRiskCategoryData(
+            buildDashboardRiskCategoryData(riskCategoryResult.value),
+          );
+          setRiskCategoryError(false);
+        } else {
+          console.error(riskCategoryResult.reason);
+          setRiskCategoryData([]);
+          setRiskCategoryError(true);
+        }
+        setIsRiskCategoryLoading(false);
 
-      if (topRisksResult.status === "fulfilled") setTopRisks(topRisksResult.value);
-      else { console.error(topRisksResult.reason); setTopRisks([]); }
+        if (topRisksResult.status === "fulfilled")
+          setTopRisks(topRisksResult.value);
+        else {
+          console.error(topRisksResult.reason);
+          setTopRisks([]);
+        }
 
-      if (compareResult.status === "fulfilled") {
-        const comparisons = compareResult.value;
-        const risks = risksResult.status === "fulfilled" ? risksResult.value : [];
-        setMovementSnapshot(buildMovementSnapshotData({
-          currentRisks: risks,
-          previousRisks: [],
-          comparisons,
-        }));
-      } else {
-        console.error(compareResult.reason);
-        setMovementSnapshot([]);
-      }
+        if (compareResult.status === "fulfilled") {
+          const comparisons = compareResult.value;
+          const risks =
+            risksResult.status === "fulfilled" ? risksResult.value : [];
+          setMovementSnapshot(
+            buildMovementSnapshotData({
+              currentRisks: risks,
+              previousRisks: [],
+              comparisons,
+            }),
+          );
+        } else {
+          console.error(compareResult.reason);
+          setMovementSnapshot([]);
+        }
 
-      if (velocityResult.status === "fulfilled") setVelocityData(velocityResult.value);
-      else { console.error(velocityResult.reason); setVelocityData([]); }
+        if (velocityResult.status === "fulfilled")
+          setVelocityData(velocityResult.value);
+        else {
+          console.error(velocityResult.reason);
+          setVelocityData([]);
+        }
 
-      setLoading(false);
-    });
+        setLoading(false);
+      },
+    );
   }, [token, currentCycle, previousCycle]);
 
   const kpiCards: KpiCard[] = summary
@@ -262,7 +304,11 @@ export default function DashboardPage() {
     : [];
 
   if (loading) {
-    return <div className="animate-pulse p-8 text-center text-muted-foreground">Memuat dashboard...</div>;
+    return (
+      <div className="animate-pulse p-8 text-center text-muted-foreground">
+        Memuat dashboard...
+      </div>
+    );
   }
 
   return (
@@ -270,14 +316,18 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Gambaran keseluruhan kondisi risiko organisasi</p>
+          <p className="text-sm text-muted-foreground">
+            Gambaran keseluruhan kondisi risiko organisasi
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="gap-1.5 text-xs">
             <span className="size-1.5 rounded-full bg-success animate-pulse" />
             Live
           </Badge>
-          <span className="text-xs text-muted-foreground">Terakhir diperbarui: 10 Mar 2026, 23:45</span>
+          <span className="text-xs text-muted-foreground">
+            Terakhir diperbarui: 10 Mar 2026, 23:45
+          </span>
         </div>
       </div>
 
@@ -291,9 +341,13 @@ export default function DashboardPage() {
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">{kpi.title}</p>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {kpi.title}
+                  </p>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold tracking-tight">{kpi.value}</span>
+                    <span className="text-3xl font-bold tracking-tight">
+                      {kpi.value}
+                    </span>
                     <div
                       className={cn(
                         "flex items-center gap-0.5 text-xs font-medium",
@@ -305,11 +359,15 @@ export default function DashboardPage() {
                       )}
                     >
                       {kpi.trend === "up" && <TrendingUp className="size-3" />}
-                      {kpi.trend === "down" && <TrendingDown className="size-3" />}
+                      {kpi.trend === "down" && (
+                        <TrendingDown className="size-3" />
+                      )}
                       {kpi.change}
                     </div>
                   </div>
-                  <p className="text-[11px] text-muted-foreground/70">{kpi.description}</p>
+                  <p className="text-[11px] text-muted-foreground/70">
+                    {kpi.description}
+                  </p>
                 </div>
                 <div
                   className={cn(
@@ -326,7 +384,11 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <RiskHeatmap data={heatmapData} loading={loading} velocityData={velocityData} />
+        <RiskHeatmap
+          data={heatmapData}
+          loading={loading}
+          velocityData={velocityData}
+        />
         <TopRisksPanel risks={topRisks} loading={loading} />
       </div>
 
@@ -336,8 +398,12 @@ export default function DashboardPage() {
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <div>
-              <CardTitle className="text-base font-semibold">Distribusi Kategori Risiko</CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">Jumlah risiko per kategori dalam portofolio saat ini.</p>
+              <CardTitle className="text-base font-semibold">
+                Distribusi Kategori Risiko
+              </CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Jumlah risiko per kategori dalam portofolio saat ini.
+              </p>
             </div>
           </CardHeader>
           <CardContent>
@@ -354,51 +420,57 @@ export default function DashboardPage() {
                 Belum ada data kategori risiko.
               </div>
             ) : (
-              <div className="flex h-64 items-center">
-                <div className="w-1/2">
-                  <ResponsiveContainer width="100%" height={240}>
-                    <PieChart>
-                      <Pie
-                        data={riskCategoryData}
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={riskCategoryData}
+                    layout="vertical"
+                    margin={{ top: 4, right: 40, left: 8, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="oklch(0.5 0 0 / 8%)"
+                      horizontal={false}
+                    />
+                    <XAxis
+                      type="number"
+                      allowDecimals={false}
+                      tick={{ fill: "oklch(0.6 0 0)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="label"
+                      width={110}
+                      tick={{ fill: "oklch(0.6 0 0)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <RechartsTooltip
+                      formatter={(value) => [`${value} risiko`]}
+                      contentStyle={{
+                        background: "oklch(0.15 0.02 265 / 95%)",
+                        border: "1px solid oklch(0.3 0.03 265)",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        color: "oklch(0.9 0 0)",
+                        backdropFilter: "blur(8px)",
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="oklch(0.55 0.18 265)"
+                      radius={[0, 4, 4, 0]}
+                    >
+                      <LabelList
                         dataKey="count"
-                        nameKey="label"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={90}
-                        paddingAngle={0}
-                        strokeWidth={0}
-                      >
-                        {riskCategoryData.map((_, idx) => (
-                          <Cell key={idx} fill={CATEGORY_COLORS[idx % CATEGORY_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip
-                        formatter={(value) => [`${value} risiko`]}
-                        contentStyle={{
-                          background: "oklch(0.15 0.02 265 / 95%)",
-                          border: "1px solid oklch(0.3 0.03 265)",
-                          borderRadius: "8px",
-                          fontSize: "12px",
-                          color: "oklch(0.9 0 0)",
-                          backdropFilter: "blur(8px)",
-                        }}
+                        position="right"
+                        style={{ fill: "oklch(0.7 0 0)", fontSize: 11 }}
                       />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex w-1/2 flex-col gap-2 pl-4">
-                  {riskCategoryData.map((item, idx) => (
-                    <div key={item.label} className="flex items-center gap-2">
-                      <span
-                        className="inline-block size-2.5 shrink-0 rounded-full"
-                        style={{ background: CATEGORY_COLORS[idx % CATEGORY_COLORS.length] }}
-                      />
-                      <span className="flex-1 truncate text-xs text-muted-foreground">{item.label}</span>
-                      <span className="text-xs font-semibold tabular-nums">{item.count}</span>
-                    </div>
-                  ))}
-                </div>
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             )}
           </CardContent>
@@ -410,18 +482,23 @@ export default function DashboardPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-semibold">Risk Trend</CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">Eksposur high/extreme per semester</p>
+                <CardTitle className="text-base font-semibold">
+                  Risk Trend
+                </CardTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Eksposur high/extreme per semester
+                </p>
               </div>
               <div className="flex items-center gap-4">
                 {executiveTrendLegend.map((item) => (
                   <div key={item.key} className="flex items-center gap-1.5">
-                    {item.type === "line" ? (
-                      <div className="h-0.5 w-4 rounded-full" style={{ background: item.color }} />
-                    ) : (
-                      <div className="size-2.5 rounded-full" style={{ background: item.color }} />
-                    )}
-                    <span className="text-[11px] text-muted-foreground">{item.label}</span>
+                    <div
+                      className="size-2.5 rounded-full"
+                      style={{ background: item.color }}
+                    />
+                    <span className="text-[11px] text-muted-foreground">
+                      {item.label}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -431,8 +508,15 @@ export default function DashboardPage() {
             {trendData.length > 0 ? (
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={trendData} margin={{ top: 4, right: 12, left: -12, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" vertical={false} />
+                  <BarChart
+                    data={trendData}
+                    margin={{ top: 4, right: 12, left: -12, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="oklch(0.5 0 0 / 8%)"
+                      vertical={false}
+                    />
                     <XAxis
                       dataKey="period"
                       tick={{ fontSize: 11, fill: "oklch(0.6 0.02 265)" }}
@@ -462,23 +546,31 @@ export default function DashboardPage() {
                         backdropFilter: "blur(8px)",
                       }}
                     />
-                    <Bar yAxisId="left" dataKey="high" fill="oklch(0.70 0.18 40)" radius={[4, 4, 0, 0]} />
-                    <Bar yAxisId="left" dataKey="extreme" fill="oklch(0.62 0.22 27)" radius={[4, 4, 0, 0]} />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="exposureScore"
-                      stroke="oklch(0.60 0.16 270)"
-                      strokeWidth={2.5}
-                      dot={{ r: 4, fill: "oklch(0.60 0.16 270)", strokeWidth: 2, stroke: "#fff" }}
-                      activeDot={{ r: 6 }}
+                    <Bar
+                      yAxisId="left"
+                      dataKey="high"
+                      fill="oklch(0.70 0.18 40)"
+                      radius={[4, 4, 0, 0]}
                     />
-                  </ComposedChart>
+                    <Bar
+                      yAxisId="left"
+                      dataKey="extreme"
+                      fill="oklch(0.62 0.22 27)"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      yAxisId="right"
+                      dataKey="exposureScore"
+                      fill="oklch(0.55 0.05 260 / 35%)"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             ) : (
               <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Belum ada data semester untuk menghitung eksposur high dan extreme.
+                Belum ada data semester untuk menghitung eksposur high dan
+                extreme.
               </div>
             )}
           </CardContent>
@@ -487,8 +579,13 @@ export default function DashboardPage() {
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2">
           <CardHeader>
             <div>
-              <CardTitle className="text-base font-semibold">Incident vs Mitigation Closure</CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">Perbandingan insiden baru, mitigasi selesai, dan overdue per bulan.</p>
+              <CardTitle className="text-base font-semibold">
+                Incident vs Mitigation Closure
+              </CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Perbandingan insiden baru, mitigasi selesai, dan overdue per
+                bulan.
+              </p>
             </div>
           </CardHeader>
           <CardContent>
@@ -496,8 +593,15 @@ export default function DashboardPage() {
               <>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={actionPressureData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" vertical={false} />
+                    <ComposedChart
+                      data={actionPressureData}
+                      margin={{ top: 4, right: 8, left: -16, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="oklch(0.5 0 0 / 8%)"
+                        vertical={false}
+                      />
                       <XAxis
                         dataKey="period"
                         tickFormatter={formatMonthPeriod}
@@ -505,9 +609,16 @@ export default function DashboardPage() {
                         axisLine={false}
                         tickLine={false}
                       />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
                       <RechartsTooltip
-                        labelFormatter={(value) => formatMonthPeriod(String(value))}
+                        labelFormatter={(value) =>
+                          formatMonthPeriod(String(value))
+                        }
                         contentStyle={{
                           background: "oklch(0.98 0.003 170 / 95%)",
                           border: "1px solid oklch(0.91 0.008 170)",
@@ -515,8 +626,18 @@ export default function DashboardPage() {
                           fontSize: "11px",
                         }}
                       />
-                      <Bar dataKey="incidentsCreated" name="Insiden dibuat" fill="oklch(0.70 0.18 40)" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="mitigationsCompleted" name="Mitigasi selesai" fill="oklch(0.72 0.17 155)" radius={[4, 4, 0, 0]} />
+                      <Bar
+                        dataKey="incidentsCreated"
+                        name="Insiden dibuat"
+                        fill="oklch(0.70 0.18 40)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="mitigationsCompleted"
+                        name="Mitigasi selesai"
+                        fill="oklch(0.72 0.17 155)"
+                        radius={[4, 4, 0, 0]}
+                      />
                       <Line
                         type="monotone"
                         dataKey="overdueMitigations"
@@ -532,26 +653,36 @@ export default function DashboardPage() {
                   <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
                     <p className="text-[10px] text-muted-foreground">Insiden</p>
                     <p className="mt-1 font-semibold text-foreground">
-                      {actionPressureData.reduce((sum, item) => sum + item.incidentsCreated, 0)}
+                      {actionPressureData.reduce(
+                        (sum, item) => sum + item.incidentsCreated,
+                        0,
+                      )}
                     </p>
                   </div>
                   <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
                     <p className="text-[10px] text-muted-foreground">Closed</p>
                     <p className="mt-1 font-semibold text-foreground">
-                      {actionPressureData.reduce((sum, item) => sum + item.mitigationsCompleted, 0)}
+                      {actionPressureData.reduce(
+                        (sum, item) => sum + item.mitigationsCompleted,
+                        0,
+                      )}
                     </p>
                   </div>
                   <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
                     <p className="text-[10px] text-muted-foreground">Overdue</p>
                     <p className="mt-1 font-semibold text-foreground">
-                      {actionPressureData.reduce((sum, item) => sum + item.overdueMitigations, 0)}
+                      {actionPressureData.reduce(
+                        (sum, item) => sum + item.overdueMitigations,
+                        0,
+                      )}
                     </p>
                   </div>
                 </div>
               </>
             ) : (
               <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Data incident dan closure mitigasi belum tersedia untuk periode ini.
+                Data incident dan closure mitigasi belum tersedia untuk periode
+                ini.
               </div>
             )}
           </CardContent>
@@ -561,8 +692,13 @@ export default function DashboardPage() {
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">Lanjutkan ke Halaman Detail</p>
-            <p className="text-xs text-muted-foreground">Pindah ke monitoring lanjutan atau ekspor laporan jika perlu analisis lebih dalam.</p>
+            <p className="text-sm font-semibold text-foreground">
+              Lanjutkan ke Halaman Detail
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Pindah ke monitoring lanjutan atau ekspor laporan jika perlu
+              analisis lebih dalam.
+            </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button asChild variant="outline" className="gap-2">

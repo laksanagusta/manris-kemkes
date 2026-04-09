@@ -28,6 +28,14 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   createMeetingIntelligencePrefillToken,
   MEETING_INTELLIGENCE_PREFILL_PARAM,
   saveMeetingIntelligencePrefill,
@@ -278,13 +286,15 @@ const suggestionTypeConfig: Record<
 const lowConfidenceThreshold = 70;
 
 function isLockedRiskStatus(status?: string) {
-  return status === "final" || status === "approved" || status === "rejected";
+  return status === "in_review" || status === "in_approval" || status === "approved" || status === "rejected";
 }
 
 function getRiskStatusLabel(status?: string) {
   switch (status) {
-    case "final":
-      return "Final";
+    case "in_review":
+      return "Sedang Ditinjau";
+    case "in_approval":
+      return "Menunggu Approval";
     case "approved":
       return "Approved";
     case "rejected":
@@ -661,16 +671,20 @@ export function MeetingIntelligenceWorkspace({
   };
 
   const handleOpenSaveDialog = async () => {
-    if (!token) return;
+    if (!token) {
+      toast.error("Sesi login belum valid.");
+      return;
+    }
     setShowSaveDialog(true);
     setRiskSearchQuery("");
     setIsLoadingRisks(true);
     try {
       const results = await api.get<RiskSummary[]>("/risks?status=all", token);
-      setAllRisks(results);
-      setAvailableRisks(results);
+      console.log("[SaveDialog] Loaded risks:", results?.length ?? 0);
+      setAllRisks(results || []);
+      setAvailableRisks(results || []);
     } catch (error) {
-      console.error(error);
+      console.error("[SaveDialog] Failed to load risks:", error);
       setAllRisks([]);
       setAvailableRisks([]);
       toast.error("Daftar risiko belum berhasil dimuat.");
@@ -680,11 +694,18 @@ export function MeetingIntelligenceWorkspace({
   };
 
   const handleSaveMinutes = async () => {
-    if (!generatedMinutes || !token) return;
+    if (!generatedMinutes) {
+      toast.error("Belum ada notulen yang digenerate.");
+      return;
+    }
+    if (!token) {
+      toast.error("Sesi login belum valid.");
+      return;
+    }
     
     setIsSavingMinutes(true);
     try {
-      const result = await createMeetingMinute({
+      const payload = {
         title: generatedMinutes.title,
         date: normalizeMeetingMinuteDate(generatedMinutes.date),
         participants: generatedMinutes.participants,
@@ -697,15 +718,20 @@ export function MeetingIntelligenceWorkspace({
         nextCheckIn: generatedMinutes.nextCheckIn,
         transcript: transcript,
         riskIds: selectedRiskIds,
-      }, token);
+      };
+      console.log("[SaveMinutes] Payload:", JSON.stringify(payload, null, 2));
+      
+      const result = await createMeetingMinute(payload, token);
+      console.log("[SaveMinutes] Result:", result);
       
       setSavedMinutesId(result.id);
       toast.success("Notulen berhasil disimpan");
       setShowSaveDialog(false);
       router.push(`/minutes/${result.id}`);
     } catch (error) {
-      console.error(error);
-      toast.error(error instanceof Error ? error.message : "Gagal menyimpan notulen");
+      console.error("[SaveMinutes] Error:", error);
+      const msg = error instanceof Error ? error.message : "Gagal menyimpan notulen";
+      toast.error(msg);
     } finally {
       setIsSavingMinutes(false);
     }
@@ -918,68 +944,70 @@ export function MeetingIntelligenceWorkspace({
                     </div>
                     <div className="space-y-3">
                       {generatedMinutes.actionItems.length > 0 ? (
-                        generatedMinutes.actionItems.map((item, index) => {
-                          const itemPriority = normalizePriority(item.priority);
-                          const itemStatus = normalizeStatus(item.status);
-                          const missingPic = needsConfirmation(item, "pic");
-                          const missingDeadline = needsConfirmation(item, "deadline");
-                          const isReady = !missingPic && !missingDeadline;
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-border/50 hover:bg-transparent">
+                              <TableHead className="text-xs max-w-[280px]">Tindak Lanjut</TableHead>
+                              <TableHead className="text-xs max-w-[140px]">PIC</TableHead>
+                              <TableHead className="text-xs max-w-[120px]">Deadline</TableHead>
+                              <TableHead className="text-xs w-[100px]">Prioritas</TableHead>
+                              <TableHead className="text-xs w-[100px]">Status</TableHead>
+                              <TableHead className="text-xs max-w-[200px]">Catatan</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {generatedMinutes.actionItems.map((item, index) => {
+                              const itemPriority = normalizePriority(item.priority);
+                              const itemStatus = normalizeStatus(item.status);
+                              const missingPic = needsConfirmation(item, "pic");
+                              const missingDeadline = needsConfirmation(item, "deadline");
 
-                          return (
-                            <div key={`${item.task}-${index}`} className="border border-border/60 bg-background px-4 py-4">
-                              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                                <div className="space-y-2">
-                                  <p className="text-sm font-medium text-foreground">{item.task}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    PIC: {item.pic || "Belum ditentukan"} • Deadline: {item.deadline || "Belum ditentukan"}
-                                    {item.ownerUnit ? ` • Unit: ${item.ownerUnit}` : ""}
-                                  </p>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  <Badge className={cn("w-fit border text-[10px]", priorityVariant[itemPriority])}>
-                                    {itemPriority}
-                                  </Badge>
-                                  <Badge className={cn("w-fit border text-[10px]", statusVariant[itemStatus])}>
-                                    {statusLabel[itemStatus]}
-                                  </Badge>
-                                  {missingPic ? (
-                                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/5 text-[10px] text-amber-700">
-                                      Perlu PIC
+                              return (
+                                <TableRow key={`${item.task}-${index}`} className="border-border/30 hover:bg-muted/30">
+                                  <TableCell className="max-w-[280px]">
+                                    <p className="truncate text-xs font-medium" title={item.task}>{item.task}</p>
+                                    {item.ownerUnit && (
+                                      <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={item.ownerUnit}>Unit: {item.ownerUnit}</p>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="max-w-[140px] text-xs">
+                                    {item.pic ? (
+                                      <span className="truncate block" title={item.pic}>{item.pic}</span>
+                                    ) : (
+                                      <span className="text-muted-foreground">
+                                        {missingPic && <Badge variant="outline" className="border-amber-500/30 bg-amber-500/5 text-[9px] text-amber-700">Perlu PIC</Badge>}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="max-w-[120px] text-xs">
+                                    {item.deadline ? (
+                                      <span className="truncate block" title={item.deadline}>{item.deadline}</span>
+                                    ) : (
+                                      <span className="text-muted-foreground">
+                                        {missingDeadline && <Badge variant="outline" className="border-amber-500/30 bg-amber-500/5 text-[9px] text-amber-700">Perlu deadline</Badge>}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="w-[100px] text-center">
+                                    <Badge className={cn("w-fit border text-[9px]", priorityVariant[itemPriority])}>
+                                      {itemPriority}
                                     </Badge>
-                                  ) : null}
-                                  {missingDeadline ? (
-                                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/5 text-[10px] text-amber-700">
-                                      Perlu deadline
+                                  </TableCell>
+                                  <TableCell className="w-[100px] text-center">
+                                    <Badge className={cn("w-fit border text-[9px]", statusVariant[itemStatus])}>
+                                      {statusLabel[itemStatus]}
                                     </Badge>
-                                  ) : null}
-                                  {isReady ? (
-                                    <Badge variant="outline" className="border-success/30 bg-success/5 text-[10px] text-success">
-                                      <Check className="mr-1 size-3" />
-                                      Siap ditindaklanjuti
-                                    </Badge>
-                                  ) : null}
-                                </div>
-                              </div>
-
-                              {(item.notes || item.relatedDecision) ? (
-                                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                                  <div className="border border-border/60 bg-muted/[0.14] px-3 py-3">
-                                    <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Catatan</p>
-                                    <p className="mt-2 text-sm leading-6 text-foreground">
-                                      {item.notes || "Belum ada catatan tambahan."}
-                                    </p>
-                                  </div>
-                                  <div className="border border-border/60 bg-muted/[0.14] px-3 py-3">
-                                    <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Terkait keputusan</p>
-                                    <p className="mt-2 text-sm leading-6 text-foreground">
-                                      {item.relatedDecision || "Belum terhubung ke keputusan tertentu."}
-                                    </p>
-                                  </div>
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })
+                                  </TableCell>
+                                  <TableCell className="max-w-[200px] text-xs text-muted-foreground">
+                                    <span className="block truncate" title={item.notes || item.relatedDecision}>
+                                      {item.notes || item.relatedDecision || "-"}
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
                       ) : (
                         <p className="text-sm text-muted-foreground">Belum ada tindak lanjut yang terdeteksi.</p>
                       )}
@@ -1491,7 +1519,7 @@ export function MeetingIntelligenceWorkspace({
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {reviewTargetIsLocked
-                              ? "Risk final akan tetap terkunci dan sistem membuat draft versi baru."
+                              ? "Risk yang sudah ditinjau akan tetap terkunci dan sistem membuat draft versi baru."
                               : "Perubahan terpilih akan diterapkan ke draft current yang sama."}
                           </p>
                         </div>
@@ -1530,194 +1558,6 @@ export function MeetingIntelligenceWorkspace({
                   ) : null}
                 </DialogContent>
               </Dialog>
-              
-              <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-                <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:max-w-2xl">
-                  <DialogHeader className="shrink-0 border-b border-border/60 bg-background px-6 py-4">
-                    <DialogTitle className="text-lg">Simpan Notulen</DialogTitle>
-                    <DialogDescription className="mt-1 text-sm text-muted-foreground">
-                      Simpan notulen ini dan hubungkan dengan risiko terkait.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="min-h-0 flex-1 overflow-y-auto bg-background px-6 py-5">
-                    <div className="space-y-5">
-                      <div className="space-y-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          Ringkasan Notulen
-                        </p>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-muted-foreground">Judul</span>
-                            <span className="font-medium text-foreground">{generatedMinutes?.title}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-muted-foreground">Tanggal</span>
-                            <span className="font-medium text-foreground">{generatedMinutes?.date}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-muted-foreground">Peserta</span>
-                            <span className="text-right font-medium text-foreground">
-                              {generatedMinutes?.participants.length || 0} orang
-                            </span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-muted-foreground">Tindak Lanjut</span>
-                            <span className="font-medium text-foreground">
-                              {generatedMinutes?.actionItems.length || 0} item
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                          <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                              Hubungkan Risiko
-                            </p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              Cari dan pilih risiko yang relevan dengan notulen ini.
-                            </p>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {selectedRiskIds.length} risiko dipilih
-                          </p>
-                        </div>
-
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            placeholder="Cari risiko berdasarkan kode atau judul..."
-                            value={riskSearchQuery}
-                            onChange={(e) => handleSearchRisks(e.target.value)}
-                            className="pl-9"
-                          />
-                          {isLoadingRisks && (
-                            <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-                          )}
-                        </div>
-
-                        {availableRisks.length > 0 && (
-                          <div className="max-h-[200px] overflow-y-auto rounded-lg border border-border/60 bg-muted/[0.16]">
-                            {availableRisks.map((risk) => {
-                              const isSelected = selectedRiskIds.includes(risk.id);
-                              return (
-                                <button
-                                  key={risk.id}
-                                  type="button"
-                                  onClick={() => handleToggleRisk(risk.id)}
-                                  className={cn(
-                                    "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/[0.36]",
-                                    isSelected && "bg-primary/[0.12]"
-                                  )}
-                                >
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate font-medium text-foreground">
-                                      {risk.code} • {risk.title}
-                                    </p>
-                                    {risk.status && (
-                                      <p className="mt-0.5 text-xs text-muted-foreground capitalize">
-                                        {risk.status}
-                                      </p>
-                                    )}
-                                  </div>
-                                  {isSelected && (
-                                    <Check className="size-4 shrink-0 text-primary" />
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {selectedRiskIds.length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-xs text-muted-foreground">Risiko terpilih:</p>
-                            <div className="flex flex-wrap gap-2">
-                              {selectedRiskIds.map((riskId) => {
-                                const risk = allRisks.find((r) => r.id === riskId) || availableRisks.find((r) => r.id === riskId);
-                                return (
-                                  <Badge
-                                    key={riskId}
-                                    variant="outline"
-                                    className="gap-1 border-primary/30 bg-primary/5"
-                                  >
-                                    {risk ? `${risk.code} • ${risk.title}` : riskId}
-                                    <button
-                                      type="button"
-                                      onClick={() => handleToggleRisk(riskId)}
-                                      className="ml-1 hover:text-destructive"
-                                    >
-                                      <X className="size-3" />
-                                    </button>
-                                  </Badge>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {suggestions.length > 0 && (
-                          <div className="space-y-2 border-t border-border/60 pt-3">
-                            <p className="text-xs text-muted-foreground">
-                              Saran risiko dari analisis transkrip:
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {suggestions
-                                .filter((s) => s.targetType === "existing" && s.targetRiskId)
-                                .map((s) => {
-                                  const riskId = s.targetRiskId!;
-                                  const isSelected = selectedRiskIds.includes(riskId);
-                                  return (
-                                    <Badge
-                                      key={riskId}
-                                      variant={isSelected ? "default" : "outline"}
-                                      className={cn(
-                                        "cursor-pointer",
-                                        isSelected && "bg-primary/10 border-primary/30"
-                                      )}
-                                      onClick={() => handleToggleRisk(riskId)}
-                                    >
-                                      {s.targetRiskCode} • {s.targetRiskTitle}
-                                      {isSelected ? (
-                                        <Check className="ml-1 size-3" />
-                                      ) : null}
-                                    </Badge>
-                                  );
-                                })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <DialogFooter className="shrink-0 border-t border-border/60 bg-muted/[0.18] px-6 py-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowSaveDialog(false)}
-                    >
-                      Batal
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={handleSaveMinutes}
-                      disabled={isSavingMinutes}
-                    >
-                      {isSavingMinutes ? (
-                        <>
-                          <Loader2 className="mr-2 size-4 animate-spin" />
-                          Menyimpan...
-                        </>
-                      ) : (
-                        "Simpan Notulen"
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
             </>
           ) : (
             <Card className="border-dashed border-border/70 bg-muted/[0.12]">
@@ -1729,6 +1569,200 @@ export function MeetingIntelligenceWorkspace({
             </Card>
           )}
       </section>
+
+      {/* Save Dialog - moved to root level to avoid nested Dialog interaction issues */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:max-w-2xl">
+          <DialogHeader className="shrink-0 border-b border-border/60 bg-background px-6 py-4">
+            <DialogTitle className="text-lg">Simpan Notulen</DialogTitle>
+            <DialogDescription className="mt-1 text-sm text-muted-foreground">
+              Simpan notulen ini dan hubungkan dengan risiko terkait.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="min-h-0 flex-1 overflow-y-auto bg-background px-6 py-5">
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Ringkasan Notulen
+                </p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-muted-foreground">Judul</span>
+                    <span className="font-medium text-foreground">{generatedMinutes?.title}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-muted-foreground">Tanggal</span>
+                    <span className="font-medium text-foreground">{generatedMinutes?.date}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-muted-foreground">Peserta</span>
+                    <span className="text-right font-medium text-foreground">
+                      {generatedMinutes?.participants.length || 0} orang
+                    </span>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-muted-foreground">Tindak Lanjut</span>
+                    <span className="font-medium text-foreground">
+                      {generatedMinutes?.actionItems.length || 0} item
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Hubungkan Risiko
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Cari dan pilih risiko yang relevan dengan notulen ini.
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedRiskIds.length} risiko dipilih
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari risiko berdasarkan kode atau judul..."
+                    value={riskSearchQuery}
+                    onChange={(e) => handleSearchRisks(e.target.value)}
+                    className="pl-9"
+                  />
+                  {isLoadingRisks && (
+                    <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+
+                {availableRisks.length > 0 && (
+                  <div className="max-h-[200px] overflow-y-auto rounded-lg border border-border/60 bg-muted/[0.16]">
+                    {availableRisks.map((risk) => {
+                      const isSelected = selectedRiskIds.includes(risk.id);
+                      return (
+                        <button
+                          key={risk.id}
+                          type="button"
+                          onClick={() => handleToggleRisk(risk.id)}
+                          className={cn(
+                            "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/[0.36]",
+                            isSelected && "bg-primary/[0.12]"
+                          )}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium text-foreground">
+                              {risk.code} • {risk.title}
+                            </p>
+                            {risk.status && (
+                              <p className="mt-0.5 text-xs text-muted-foreground capitalize">
+                                {risk.status}
+                              </p>
+                            )}
+                          </div>
+                          {isSelected && (
+                            <Check className="size-4 shrink-0 text-primary" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {selectedRiskIds.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">Risiko terpilih:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedRiskIds.map((riskId) => {
+                        const risk = allRisks.find((r) => r.id === riskId) || availableRisks.find((r) => r.id === riskId);
+                        return (
+                          <Badge
+                            key={riskId}
+                            variant="outline"
+                            className="max-w-[240px] gap-1 border-primary/30 bg-primary/5"
+                          >
+                            <span className="truncate">
+                              {risk ? `${risk.code} • ${risk.title}` : riskId}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleRisk(riskId)}
+                              className="ml-0.5 rounded-full p-0.5 hover:bg-primary/20"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {suggestions.length > 0 && (
+                  <div className="space-y-2 border-t border-border/60 pt-3">
+                    <p className="text-xs text-muted-foreground">
+                      Saran risiko dari analisis transkrip:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestions
+                        .filter((s) => s.targetType === "existing" && s.targetRiskId)
+                        .map((s) => {
+                          const riskId = s.targetRiskId!;
+                          const isSelected = selectedRiskIds.includes(riskId);
+                          return (
+                            <Badge
+                              key={riskId}
+                              variant={isSelected ? "default" : "outline"}
+                              className={cn(
+                                "cursor-pointer",
+                                isSelected && "bg-primary/10 border-primary/30"
+                              )}
+                              onClick={() => handleToggleRisk(riskId)}
+                            >
+                              {s.targetRiskCode} • {s.targetRiskTitle}
+                              {isSelected ? (
+                                <Check className="ml-1 size-3" />
+                              ) : null}
+                            </Badge>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="!-mx-0 !-mb-0 shrink-0 border-t border-border/60 bg-muted/[0.18] px-6 py-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowSaveDialog(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                console.log("[SaveButton] Clicked!");
+                handleSaveMinutes();
+              }}
+              disabled={isSavingMinutes}
+            >
+              {isSavingMinutes ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Notulen"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "manajemen-risiko-v2",
+  title: "Manris",
   description:
     "Platform SaaS untuk mendigitalisasi seluruh siklus manajemen risiko dan pelaporan insiden berbasis ISO 31000:2018 dengan integrasi kecerdasan buatan.",
 };
@@ -29,10 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="id"
-      className={`${dmSans.variable} ${geistMono.variable}`}
-    >
+    <html lang="id" className={`${dmSans.variable} ${geistMono.variable}`}>
       <body className="antialiased">
         <AuthProvider>
           {children}

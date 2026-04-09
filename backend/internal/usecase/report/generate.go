@@ -59,7 +59,7 @@ func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateRepo
 	sortedRisks := make([]*entity.Risk, len(risks))
 	copy(sortedRisks, risks)
 	sort.Slice(sortedRisks, func(i, j int) bool {
-		return sortedRisks[i].GetInherentScore() > sortedRisks[j].GetInherentScore()
+		return sortedRisks[i].GetEffectiveScore() > sortedRisks[j].GetEffectiveScore()
 	})
 
 	topRisks := sortedRisks
@@ -101,7 +101,7 @@ func (uc *GenerateReportUseCase) computeSummary(risks []*entity.Risk, cycle stri
 	now := time.Now()
 
 	for _, r := range risks {
-		score := r.GetInherentScore()
+		score := r.GetEffectiveScore()
 		totalScore += float64(score)
 
 		if score >= 10 {
@@ -141,8 +141,8 @@ func (uc *GenerateReportUseCase) computeSummary(risks []*entity.Risk, cycle stri
 func (uc *GenerateReportUseCase) buildHeatmap(risks []*entity.Risk) [5][5]int {
 	var heatmap [5][5]int
 	for _, r := range risks {
-		p := r.Probability - 1
-		i := r.Impact - 1
+		p := r.EffectiveProbability() - 1
+		i := r.EffectiveImpact() - 1
 		if p >= 0 && p < 5 && i >= 0 && i < 5 {
 			heatmap[p][i]++
 		}
@@ -219,7 +219,7 @@ func (uc *GenerateReportUseCase) computeTrendData(ctx context.Context) ([]entity
 		risks := cycleMap[cycle]
 		pt := entity.CycleTrendPoint{Cycle: cycle}
 		for _, r := range risks {
-			score := r.GetInherentScore()
+			score := r.GetEffectiveScore()
 			switch {
 			case score >= 20:
 				pt.Ekstrem++

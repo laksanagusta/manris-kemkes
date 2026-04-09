@@ -160,13 +160,13 @@ func TestGetRiskLevelFromNilai(t *testing.T) {
 		expected string
 	}{
 		{1.0, RiskLevelSangatRendah},
-		{4.9, RiskLevelSangatRendah},
+		{4.9, RiskLevelRendah},
 		{5.0, RiskLevelRendah},
-		{9.9, RiskLevelRendah},
+		{9.9, RiskLevelSedang},
 		{10.0, RiskLevelSedang},
-		{14.9, RiskLevelSedang},
+		{14.9, RiskLevelTinggi},
 		{15.0, RiskLevelTinggi},
-		{19.9, RiskLevelTinggi},
+		{19.9, RiskLevelSangatTinggi},
 		{20.0, RiskLevelSangatTinggi},
 		{25.0, RiskLevelSangatTinggi},
 	}
@@ -258,5 +258,196 @@ func TestRiskCalculateTarget(t *testing.T) {
 	expectedNilai := 2.0 * 3.0 * 1.83
 	if risk.TargetNilai != expectedNilai {
 		t.Errorf("Expected target nilai %v, got %v", expectedNilai, risk.TargetNilai)
+	}
+}
+
+func TestRiskEffectiveFieldsApprovedUsesReviewedBundleWhenComplete(t *testing.T) {
+	reviewedProbability := 2
+	reviewedImpact := 2
+	reviewedWeight := 1.8
+	reviewedNilai := 7.2
+	reviewedScore := 7
+
+	risk := &Risk{
+		Status:              RiskStatusApproved,
+		Probability:         5,
+		Impact:              4,
+		Weight:              1.15,
+		Nilai:               23,
+		ReviewedProbability: &reviewedProbability,
+		ReviewedImpact:      &reviewedImpact,
+		ReviewedWeight:      &reviewedWeight,
+		ReviewedNilai:       &reviewedNilai,
+		ReviewedScore:       &reviewedScore,
+	}
+
+	if got := risk.EffectiveProbability(); got != reviewedProbability {
+		t.Fatalf("EffectiveProbability() = %d, want %d", got, reviewedProbability)
+	}
+	if got := risk.EffectiveImpact(); got != reviewedImpact {
+		t.Fatalf("EffectiveImpact() = %d, want %d", got, reviewedImpact)
+	}
+	if got := risk.EffectiveNilai(); got != reviewedNilai {
+		t.Fatalf("EffectiveNilai() = %v, want %v", got, reviewedNilai)
+	}
+	if got := risk.GetEffectiveScore(); got != reviewedScore {
+		t.Fatalf("GetEffectiveScore() = %d, want %d", got, reviewedScore)
+	}
+	if got := risk.GetRiskLevel(); got != RiskLevelRendah {
+		t.Fatalf("GetRiskLevel() = %q, want %q", got, RiskLevelRendah)
+	}
+	if got := risk.GetRiskPriority(); got != 4 {
+		t.Fatalf("GetRiskPriority() = %d, want 4", got)
+	}
+}
+
+func TestRiskEffectiveFieldsApprovedFallsBackWhenReviewedBundleIncomplete(t *testing.T) {
+	reviewedProbability := 2
+	reviewedImpact := 2
+	reviewedNilai := 7.2
+	reviewedScore := 7
+
+	risk := &Risk{
+		Status:              RiskStatusApproved,
+		Probability:         5,
+		Impact:              4,
+		Weight:              1.15,
+		Nilai:               23,
+		ReviewedProbability: &reviewedProbability,
+		ReviewedImpact:      &reviewedImpact,
+		ReviewedNilai:       &reviewedNilai,
+		ReviewedScore:       &reviewedScore,
+	}
+
+	if got := risk.EffectiveProbability(); got != 5 {
+		t.Fatalf("EffectiveProbability() = %d, want 5", got)
+	}
+	if got := risk.EffectiveImpact(); got != 4 {
+		t.Fatalf("EffectiveImpact() = %d, want 4", got)
+	}
+	if got := risk.EffectiveNilai(); got != 23 {
+		t.Fatalf("EffectiveNilai() = %v, want 23", got)
+	}
+	if got := risk.GetEffectiveScore(); got != 23 {
+		t.Fatalf("GetEffectiveScore() = %d, want 23", got)
+	}
+	if got := risk.GetRiskLevel(); got != RiskLevelSangatTinggi {
+		t.Fatalf("GetRiskLevel() = %q, want %q", got, RiskLevelSangatTinggi)
+	}
+	if got := risk.GetRiskPriority(); got != 1 {
+		t.Fatalf("GetRiskPriority() = %d, want 1", got)
+	}
+}
+
+func TestRiskEffectiveFieldsNonFinalizedIgnoreReviewedBundle(t *testing.T) {
+	reviewedProbability := 2
+	reviewedImpact := 2
+	reviewedWeight := 1.8
+	reviewedNilai := 7.2
+	reviewedScore := 7
+
+	risk := &Risk{
+		Status:              RiskStatusInApproval,
+		Probability:         5,
+		Impact:              4,
+		Weight:              1.15,
+		Nilai:               23,
+		ReviewedProbability: &reviewedProbability,
+		ReviewedImpact:      &reviewedImpact,
+		ReviewedWeight:      &reviewedWeight,
+		ReviewedNilai:       &reviewedNilai,
+		ReviewedScore:       &reviewedScore,
+	}
+
+	if got := risk.EffectiveProbability(); got != 5 {
+		t.Fatalf("EffectiveProbability() = %d, want 5", got)
+	}
+	if got := risk.EffectiveImpact(); got != 4 {
+		t.Fatalf("EffectiveImpact() = %d, want 4", got)
+	}
+	if got := risk.EffectiveNilai(); got != 23 {
+		t.Fatalf("EffectiveNilai() = %v, want 23", got)
+	}
+	if got := risk.GetEffectiveScore(); got != 23 {
+		t.Fatalf("GetEffectiveScore() = %d, want 23", got)
+	}
+	if got := risk.GetRiskLevel(); got != RiskLevelSangatTinggi {
+		t.Fatalf("GetRiskLevel() = %q, want %q", got, RiskLevelSangatTinggi)
+	}
+	if got := risk.GetRiskPriority(); got != 1 {
+		t.Fatalf("GetRiskPriority() = %d, want 1", got)
+	}
+}
+
+func TestRiskEffectiveFieldsApprovedKeepsZeroLikeReviewedBundle(t *testing.T) {
+	reviewedProbability := 1
+	reviewedImpact := 1
+	reviewedWeight := 0.0
+	reviewedNilai := 0.0
+	reviewedScore := 0
+
+	risk := &Risk{
+		Status:              RiskStatusApproved,
+		Probability:         5,
+		Impact:              4,
+		Weight:              1.15,
+		Nilai:               23,
+		ReviewedProbability: &reviewedProbability,
+		ReviewedImpact:      &reviewedImpact,
+		ReviewedWeight:      &reviewedWeight,
+		ReviewedNilai:       &reviewedNilai,
+		ReviewedScore:       &reviewedScore,
+	}
+
+	if got := risk.EffectiveProbability(); got != reviewedProbability {
+		t.Fatalf("EffectiveProbability() = %d, want %d", got, reviewedProbability)
+	}
+	if got := risk.EffectiveImpact(); got != reviewedImpact {
+		t.Fatalf("EffectiveImpact() = %d, want %d", got, reviewedImpact)
+	}
+	if got := risk.EffectiveNilai(); got != reviewedNilai {
+		t.Fatalf("EffectiveNilai() = %v, want %v", got, reviewedNilai)
+	}
+	if got := risk.GetEffectiveScore(); got != reviewedScore {
+		t.Fatalf("GetEffectiveScore() = %d, want %d", got, reviewedScore)
+	}
+	if got := risk.GetRiskLevel(); got != RiskLevelSangatRendah {
+		t.Fatalf("GetRiskLevel() = %q, want %q", got, RiskLevelSangatRendah)
+	}
+	if got := risk.GetRiskPriority(); got != 5 {
+		t.Fatalf("GetRiskPriority() = %d, want 5", got)
+	}
+}
+
+func TestRiskEffectiveFieldsApprovedFallsBackWhenReviewedBundleHasFalsyPartialValues(t *testing.T) {
+	reviewedProbability := 1
+	reviewedImpact := 1
+	reviewedWeight := 0.0
+	reviewedNilai := 0.0
+
+	risk := &Risk{
+		Status:              RiskStatusApproved,
+		Probability:         5,
+		Impact:              4,
+		Weight:              1.15,
+		Nilai:               23,
+		InherentScore:       23,
+		ReviewedProbability: &reviewedProbability,
+		ReviewedImpact:      &reviewedImpact,
+		ReviewedWeight:      &reviewedWeight,
+		ReviewedNilai:       &reviewedNilai,
+	}
+
+	if got := risk.EffectiveProbability(); got != 5 {
+		t.Fatalf("EffectiveProbability() = %d, want 5", got)
+	}
+	if got := risk.EffectiveImpact(); got != 4 {
+		t.Fatalf("EffectiveImpact() = %d, want 4", got)
+	}
+	if got := risk.EffectiveNilai(); got != 23 {
+		t.Fatalf("EffectiveNilai() = %v, want 23", got)
+	}
+	if got := risk.GetEffectiveScore(); got != 23 {
+		t.Fatalf("GetEffectiveScore() = %d, want 23", got)
 	}
 }

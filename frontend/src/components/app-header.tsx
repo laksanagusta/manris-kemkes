@@ -82,7 +82,18 @@ export function AppHeader({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  // Get initials from user name (e.g., "Dr. Farah Indah" -> "FI")
+  const getInitials = (name: string | undefined): string => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .filter((part) => part.length > 0 && !part.endsWith("."))
+      .map((part) => part[0]?.toUpperCase())
+      .slice(0, 2)
+      .join("");
+  };
   const breadcrumbs = getBreadcrumbs(pathname);
   const [isDark, setIsDark] = useState(false);
 
@@ -116,7 +127,7 @@ export function AppHeader({
         {!collapsed && (
           <div className="flex flex-col overflow-hidden whitespace-nowrap">
             <span className="text-sm font-bold tracking-tight text-foreground">
-              MANRIS
+              MR-V0
             </span>
           </div>
         )}
@@ -184,9 +195,11 @@ export function AppHeader({
               className="gap-2 text-muted-foreground"
             >
               <div className="flex size-6 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
-                DA
+                {getInitials(user?.name)}
               </div>
-              <span className="hidden text-xs font-medium md:inline">Dika</span>
+              <span className="hidden text-xs font-medium md:inline">
+                {user?.name || "User"}
+              </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">

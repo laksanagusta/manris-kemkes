@@ -366,6 +366,101 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteHandlesLegacyBlankCategory(t *tes
 	}
 }
 
+func TestCompareRiskCycleDetailsUseCase_ExecuteKeepsHistoricalSnapshotsWhenReviewedFieldsDiffer(t *testing.T) {
+	groupID := uuid.New()
+	repo := &fakeReassessRiskRepo{}
+	repo.listCycleSnapshot = func(_ context.Context, cycle string, _ []uuid.UUID) ([]*entity.Risk, error) {
+		switch cycle {
+		case "2025-H2":
+			return []*entity.Risk{{
+				ID:                  uuid.New(),
+				VersionGroupID:      groupID,
+				Code:                "R-040",
+				Title:               "Risiko skor historis",
+				Status:              entity.RiskStatusApproved,
+				Probability:         2,
+				Impact:              3,
+				InherentScore:       6,
+				TargetProbability:   1,
+				TargetImpact:        2,
+				TargetScore:         2,
+				ReviewedProbability: intPtr(5),
+				ReviewedImpact:      intPtr(5),
+				ReviewedWeight:      floatPtr(1),
+				ReviewedNilai:       floatPtr(25),
+				ReviewedScore:       intPtr(25),
+			}}, nil
+		case "2026-H1":
+			return []*entity.Risk{{
+				ID:                  uuid.New(),
+				VersionGroupID:      groupID,
+				Code:                "R-040",
+				Title:               "Risiko skor historis",
+				Status:              entity.RiskStatusApproved,
+				Probability:         4,
+				Impact:              2,
+				InherentScore:       8,
+				TargetProbability:   2,
+				TargetImpact:        2,
+				TargetScore:         4,
+				ReviewedProbability: intPtr(1),
+				ReviewedImpact:      intPtr(1),
+				ReviewedWeight:      floatPtr(1),
+				ReviewedNilai:       floatPtr(1),
+				ReviewedScore:       intPtr(1),
+			}}, nil
+		default:
+			return nil, nil
+		}
+	}
+
+	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
+	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-H2", ToCycle: "2026-H1"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(report.Items) != 1 {
+		t.Fatalf("expected 1 changed item, got %d", len(report.Items))
+	}
+
+	item := report.Items[0]
+	if item.ChangeCategory != "changed" {
+		t.Fatalf("ChangeCategory = %q, want changed", item.ChangeCategory)
+	}
+	if item.FromSnapshot == nil || item.ToSnapshot == nil {
+		t.Fatal("expected side-by-side snapshots")
+	}
+	if item.FromSnapshot.Probability != 2 || item.ToSnapshot.Probability != 4 {
+		t.Fatalf("snapshot probability = %d->%d, want stored historical values 2->4", item.FromSnapshot.Probability, item.ToSnapshot.Probability)
+	}
+	if item.FromSnapshot.Impact != 3 || item.ToSnapshot.Impact != 2 {
+		t.Fatalf("snapshot impact = %d->%d, want stored historical values 3->2", item.FromSnapshot.Impact, item.ToSnapshot.Impact)
+	}
+	if item.FromSnapshot.InherentScore != 6 || item.ToSnapshot.InherentScore != 8 {
+		t.Fatalf("snapshot inherent score = %d->%d, want stored historical values 6->8", item.FromSnapshot.InherentScore, item.ToSnapshot.InherentScore)
+	}
+	if item.FromSnapshot.TargetScore != 2 || item.ToSnapshot.TargetScore != 4 {
+		t.Fatalf("snapshot target score = %d->%d, want stored target values 2->4", item.FromSnapshot.TargetScore, item.ToSnapshot.TargetScore)
+	}
+	if !hasFieldDiff(item.FieldDiffs, "probability", "modified") {
+		t.Fatal("expected probability diff from stored historical values")
+	}
+	if !hasFieldDiff(item.FieldDiffs, "inherentScore", "modified") {
+		t.Fatal("expected inherentScore diff from stored historical values")
+	}
+	if !hasFieldDiff(item.FieldDiffs, "targetScore", "modified") {
+		t.Fatal("expected targetScore diff from stored target values")
+	}
+}
+
+func intPtr(value int) *int {
+	return &value
+}
+
+func floatPtr(value float64) *float64 {
+	return &value
+}
+
 func hasFieldDiff(diffs []*entity.RiskFieldDiff, field string, changeType string) bool {
 	for _, diff := range diffs {
 		if diff.Field == field && diff.ChangeType == changeType {

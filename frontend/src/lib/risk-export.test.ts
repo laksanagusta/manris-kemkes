@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { RiskExportItem } from "./risk-export";
 import {
   BULK_RISK_EXPORT_COLUMNS,
   buildRiskBulkExportRows,
   createRiskBulkExportWorkbookBuffer,
-} from "./risk-export";
+} from "./risk-export.mjs";
 
-const sampleRisks = [
+const sampleRisks: RiskExportItem[] = [
   {
     id: "risk-1",
     title: "Gangguan distribusi vaksin",

@@ -17,6 +17,15 @@ const (
 	RiskLevelSangatTinggi = "sangat_tinggi"
 )
 
+// RiskStatus constants for risk workflow states
+const (
+	RiskStatusDraft      = "draft"
+	RiskStatusInReview   = "in_review"
+	RiskStatusInApproval = "in_approval"
+	RiskStatusApproved   = "approved"
+	RiskStatusRejected   = "rejected"
+)
+
 // BobotMatrix is the 5x5 weight matrix based on Probability (rows) and Impact (columns)
 // Rows: Probability 1-5 (Jarang to Hampir Pasti Terjadi)
 // Cols: Impact 1-5 (Tdk Signifikan to Katastropik)
@@ -89,6 +98,17 @@ type Risk struct {
 	ReviewApprovedAt  *time.Time           `json:"reviewApprovedAt,omitempty"`
 	DraftApprovalLine []ApprovalLineMember `json:"draftApprovalLine,omitempty"`
 
+	// Skor Penilaian (assessed by reviewer)
+	ReviewedProbability *int       `json:"reviewedProbability,omitempty"`
+	ReviewedImpact      *int       `json:"reviewedImpact,omitempty"`
+	ReviewedWeight      *float64   `json:"reviewedWeight,omitempty"`
+	ReviewedNilai       *float64   `json:"reviewedNilai,omitempty"`
+	ReviewedScore       *int       `json:"reviewedScore,omitempty"`
+	ScoreChangeLabel    string     `json:"scoreChangeLabel,omitempty"`
+	EffectivenessLabel  string     `json:"effectivenessLabel,omitempty"`
+	ReviewedBy          *uuid.UUID `json:"reviewedBy,omitempty"`
+	ReviewedAt          *time.Time `json:"reviewedAt,omitempty"`
+
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -96,6 +116,7 @@ type Risk struct {
 type ApprovalLineMember struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+	Type string `json:"type,omitempty"` // 'review' or 'approval' - distinguishes reviewer from approver
 }
 
 const (
@@ -147,7 +168,7 @@ func (r *Risk) Validate() error {
 
 // CanBeSubmittedForApproval checks if risk can be submitted for approval
 func (r *Risk) CanBeSubmittedForApproval() bool {
-	return r.Status == "draft" || r.Status == "rejected"
+	return r.Status == RiskStatusDraft || r.Status == RiskStatusRejected
 }
 
 // GetBobot returns the weight from the matrix based on probability and impact
@@ -202,7 +223,7 @@ func (r *Risk) CalculateTargetNilai() {
 // GetRiskLevel returns Indonesian risk level based on nilai
 // Sangat Rendah: nilai < 5, Rendah: 5-9, Sedang: 10-14, Tinggi: 15-19, Sangat Tinggi: >= 20
 func (r *Risk) GetRiskLevel() string {
-	return GetRiskLevelFromNilai(r.Nilai)
+	return GetRiskLevelFromNilai(r.EffectiveNilai())
 }
 
 // GetRiskLevelFromNilai returns Indonesian risk level based on nilai value
@@ -272,14 +293,14 @@ func (r *Risk) CalculateAll() {
 	r.RiskPriority = r.GetRiskPriority()
 }
 
-// IsFinal checks if risk is in final status
-func (r *Risk) IsFinal() bool {
-	return r.Status == "final" || r.Status == "approved" || r.Status == "rejected"
+// IsLocked checks if risk is in a locked (non-editable) status
+func (r *Risk) IsLocked() bool {
+	return r.Status == RiskStatusInReview || r.Status == RiskStatusInApproval || r.Status == RiskStatusApproved || r.Status == RiskStatusRejected
 }
 
 // IsApprovedCurrent returns whether this risk is the active approved version.
 func (r *Risk) IsApprovedCurrent() bool {
-	return r.Status == "approved" && r.IsCurrent
+	return r.Status == RiskStatusApproved && r.IsCurrent
 }
 
 // CanBeReassessed returns whether the risk can start a periodic reassessment.
@@ -290,4 +311,107 @@ func (r *Risk) CanBeReassessed() bool {
 // AddMitigation adds a mitigation to the risk
 func (r *Risk) AddMitigation(mitigation Mitigation) {
 	r.Mitigations = append(r.Mitigations, mitigation)
+}
+
+func (r *Risk) hasCompleteReviewedScoreBundle() bool {
+	return r.Status == RiskStatusApproved &&
+		r.ReviewedProbability != nil &&
+		r.ReviewedImpact != nil &&
+		r.ReviewedWeight != nil &&
+		r.ReviewedNilai != nil &&
+		r.ReviewedScore != nil
+}
+
+func (r *Risk) effectivePreliminaryScore() int {
+	if r.InherentScore > 0 {
+		return r.InherentScore
+	}
+	if r.Nilai > 0 {
+		return int(math.Round(r.Nilai))
+	}
+	weight := r.Weight
+	if weight == 0 {
+		weight = GetBobot(r.Probability, r.Impact)
+	}
+	return int(math.Round(float64(r.Probability) * float64(r.Impact) * weight))
+}
+
+func (r *Risk) EffectiveProbability() int {
+	if r.hasCompleteReviewedScoreBundle() {
+		return *r.ReviewedProbability
+	}
+	return r.Probability
+}
+
+func (r *Risk) EffectiveImpact() int {
+	if r.hasCompleteReviewedScoreBundle() {
+		return *r.ReviewedImpact
+	}
+	return r.Impact
+}
+
+func (r *Risk) EffectiveNilai() float64 {
+	if r.hasCompleteReviewedScoreBundle() {
+		return *r.ReviewedNilai
+	}
+	return r.Nilai
+}
+
+func (r *Risk) GetEffectiveScore() int {
+	if r.hasCompleteReviewedScoreBundle() {
+		return *r.ReviewedScore
+	}
+	return r.effectivePreliminaryScore()
+}
+
+// ApplyReviewerScore sets the reviewed scoring fields, auto-computes derived labels.
+// probability and impact are the reviewer's assessed values (1-5).
+func (r *Risk) ApplyReviewerScore(probability, impact int, reviewerID uuid.UUID) {
+	r.ReviewedProbability = &probability
+	r.ReviewedImpact = &impact
+
+	weight := GetBobot(probability, impact)
+	r.ReviewedWeight = &weight
+
+	nilai := CalculateNilai(probability, impact, weight)
+	r.ReviewedNilai = &nilai
+
+	score := int(math.Round(nilai))
+	r.ReviewedScore = &score
+
+	r.ReviewedBy = &reviewerID
+	now := time.Now()
+	r.ReviewedAt = &now
+
+	// Auto-compute derived labels
+	preliminaryScore := r.GetInherentScore()
+	r.ScoreChangeLabel = computeScoreChangeLabel(preliminaryScore, score)
+	r.EffectivenessLabel = computeEffectivenessLabel(preliminaryScore, score)
+}
+
+// computeScoreChangeLabel determines the score change label.
+// =IF(skor_sementara=skor_reviewer, "Tidak ada penurunan tingkat risiko",
+//
+//	IF(skor_sementara>skor_reviewer, "Tingkat risiko mengalami penurunan",
+//	   "Tingkat risiko mengalami peningkatan"))
+func computeScoreChangeLabel(preliminaryScore, reviewedScore int) string {
+	switch {
+	case preliminaryScore == reviewedScore:
+		return "Tidak ada penurunan tingkat risiko"
+	case preliminaryScore > reviewedScore:
+		return "Tingkat risiko mengalami penurunan"
+	default:
+		return "Tingkat risiko mengalami peningkatan"
+	}
+}
+
+// computeEffectivenessLabel determines the effectiveness label.
+// =IF(skor_sementara>skor_reviewer, "Efektif",
+//
+//	IF(skor_sementara<=skor_reviewer, "Tidak Efektif"))
+func computeEffectivenessLabel(preliminaryScore, reviewedScore int) string {
+	if preliminaryScore > reviewedScore {
+		return "Efektif"
+	}
+	return "Tidak Efektif"
 }

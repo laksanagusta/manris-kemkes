@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { RiskCycleDetailedComparisonReport } from "@/types/risk";
-import { createRiskCycleDetailWorkbookBuffer } from "./risk-cycle-detail-export";
+// @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
+import { classifyRiskCycleDetailMovement, createRiskCycleDetailWorkbookBuffer } from "./risk-cycle-detail-export.ts";
 
 const sampleReport: RiskCycleDetailedComparisonReport = {
   summary: {
@@ -34,6 +35,12 @@ const sampleReport: RiskCycleDetailedComparisonReport = {
         probability: 4,
         impact: 4,
         inherentScore: 16,
+        status: "approved",
+        reviewedProbability: 4,
+        reviewedImpact: 5,
+        reviewedWeight: 1,
+        reviewedNilai: 20,
+        reviewedScore: 20,
         riskPriority: 1,
         treatmentOption: "mitigate",
         targetProbability: 3,
@@ -41,7 +48,7 @@ const sampleReport: RiskCycleDetailedComparisonReport = {
         targetScore: 12,
         nextReviewDate: "2026-06-30",
         mitigations: ["1. Koordinasi vendor A | PIC: Tim Logistik | Frek: rutin"],
-      },
+      } as any,
       toSnapshot: {
         description: "Versi revisi",
         category: "strategis",
@@ -50,6 +57,12 @@ const sampleReport: RiskCycleDetailedComparisonReport = {
         probability: 3,
         impact: 4,
         inherentScore: 12,
+        status: "approved",
+        reviewedProbability: 5,
+        reviewedImpact: 5,
+        reviewedWeight: 1,
+        reviewedNilai: 25,
+        reviewedScore: 25,
         riskPriority: 1,
         treatmentOption: "mitigate",
         targetProbability: 2,
@@ -57,7 +70,7 @@ const sampleReport: RiskCycleDetailedComparisonReport = {
         targetScore: 6,
         nextReviewDate: "2026-12-31",
         mitigations: ["1. Koordinasi vendor A dan B | PIC: Tim Logistik | Frek: rutin"],
-      },
+      } as any,
       fieldDiffs: [],
       mitigationDiffs: [],
       changeReason: "Semester baru",
@@ -65,6 +78,41 @@ const sampleReport: RiskCycleDetailedComparisonReport = {
     },
   ],
 };
+
+test("classifyRiskCycleDetailMovement uses effective score semantics", () => {
+  const item = sampleReport.items[0];
+  assert.equal(classifyRiskCycleDetailMovement(item), "up");
+});
+
+test("classifyRiskCycleDetailMovement keeps non-finalized reviewed drafts on inherent semantics", () => {
+  const item: RiskCycleDetailedComparisonReport["items"][number] = {
+    ...sampleReport.items[0],
+    fromSnapshot: {
+      ...sampleReport.items[0].fromSnapshot,
+      status: "approved",
+      inherentScore: 20,
+      reviewedProbability: 5,
+      reviewedImpact: 4,
+      reviewedWeight: 1,
+      reviewedNilai: 20,
+      reviewedScore: 20,
+    } as any,
+    toSnapshot: {
+      ...sampleReport.items[0].toSnapshot,
+      status: "in_approval",
+      probability: 5,
+      impact: 4,
+      inherentScore: 20,
+      reviewedProbability: 1,
+      reviewedImpact: 1,
+      reviewedWeight: 0,
+      reviewedNilai: 0,
+      reviewedScore: 0,
+    } as any,
+  };
+
+  assert.equal(classifyRiskCycleDetailMovement(item), "stable");
+});
 
 test("createRiskCycleDetailWorkbookBuffer persists top-bottom comparison trend, legend, freeze panes, autofilter, and styles", async () => {
   const ExcelJSImport = await import("exceljs");
@@ -84,14 +132,18 @@ test("createRiskCycleDetailWorkbookBuffer persists top-bottom comparison trend, 
     headerIndex.set(String(cell.value), colNumber);
   });
 
-  assert.equal(comparisonSheet.getRow(2).getCell("A").value, "improved");
+  assert.equal(comparisonSheet.getRow(2).getCell("A").value, "worsened");
   assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("version") || 0).value, "Before");
   assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("description") || 0).value, "Versi awal");
   assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("category") || 0).value, "Operasional");
-  assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("probability") ||0).value, "4");
+  assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("probability") || 0).value, "4");
+  assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("inherentScore") || 0).value, "16");
+  assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("targetScore") || 0).value, "12");
   assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("version") || 0).value, "After");
   assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("category") || 0).value, "Strategis");
   assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("probability") || 0).value, "3");
+  assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("inherentScore") || 0).value, "12");
+  assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("targetScore") || 0).value, "6");
   assert.equal(comparisonSheet.views[0]?.state, "frozen");
   assert.equal(comparisonSheet.views[0]?.ySplit, 1);
   assert.ok(comparisonSheet.autoFilter);
@@ -100,7 +152,7 @@ test("createRiskCycleDetailWorkbookBuffer persists top-bottom comparison trend, 
   assert.equal(comparisonSheet.getCell(2, legendColumn).value, "improved");
 
   const trendFill = comparisonSheet.getCell("A2").fill;
-  assert.equal(trendFill && "fgColor" in trendFill ? trendFill.fgColor?.argb : undefined, "FFE8F5E9");
+  assert.equal(trendFill && "fgColor" in trendFill ? trendFill.fgColor?.argb : undefined, "FFFDECEC");
 
   const summarySheet = workbook.getWorksheet("Summary");
   assert.ok(summarySheet?.autoFilter);

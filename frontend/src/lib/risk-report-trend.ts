@@ -1,12 +1,24 @@
-type RiskTrendLevel = "Rendah" | "Sedang" | "Tinggi" | "Ekstrem";
+import { resolveRiskScoreSemantics } from "./risk.js";
+
+type RiskTrendLevel = "Rendah" | "Sedang" | "Tinggi" | "Sangat Tinggi";
+
+type RiskScoreSemanticInput = Parameters<typeof resolveRiskScoreSemantics>[0];
 
 export type RiskTrendSourceItem = {
   assessmentCycle?: string;
   createdAt?: string;
   probability: number;
   impact: number;
+  inherentScore: number;
+  status?: RiskScoreSemanticInput["status"];
+  reviewedProbability?: number | null;
+  reviewedImpact?: number | null;
+  reviewedWeight?: number | null;
+  reviewedNilai?: number | null;
+  reviewedScore?: number | null;
   targetProbability?: number;
   targetImpact?: number;
+  targetScore?: number;
 };
 
 export type RiskTrendPoint = { period: string } & Record<RiskTrendLevel, number>;
@@ -35,10 +47,15 @@ function semesterSortValue(period: string) {
 }
 
 function levelFromScore(score: number): RiskTrendLevel {
-  if (score >= 17) return "Ekstrem";
-  if (score >= 10) return "Tinggi";
-  if (score >= 5) return "Sedang";
+  if (score >= 20) return "Sangat Tinggi";
+  if (score >= 15) return "Tinggi";
+  if (score >= 10) return "Sedang";
   return "Rendah";
+}
+
+function effectiveTrendScore(risk: RiskTrendSourceItem) {
+  const semantics = resolveRiskScoreSemantics({ weight: 1, ...risk } as RiskScoreSemanticInput);
+  return semantics.effective.score;
 }
 
 export function buildRiskTrendData(
@@ -48,21 +65,21 @@ export function buildRiskTrendData(
     Rendah: "",
     Sedang: "",
     Tinggi: "",
-    Ekstrem: "",
+    "Sangat Tinggi": "",
   }
 ) {
   const trends: Record<string, RiskTrendPoint> = {};
-  const pieCounts: Record<RiskTrendLevel, number> = { Rendah: 0, Sedang: 0, Tinggi: 0, Ekstrem: 0 };
+  const pieCounts: Record<RiskTrendLevel, number> = { Rendah: 0, Sedang: 0, Tinggi: 0, "Sangat Tinggi": 0 };
 
   for (const risk of risks) {
     const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
     if (!period) continue;
 
     if (!trends[period]) {
-      trends[period] = { period, Rendah: 0, Sedang: 0, Tinggi: 0, Ekstrem: 0 };
+      trends[period] = { period, Rendah: 0, Sedang: 0, Tinggi: 0, "Sangat Tinggi": 0 };
     }
 
-    const level = levelFromScore(risk.probability * risk.impact);
+    const level = levelFromScore(effectiveTrendScore(risk));
     trends[period][level] += 1;
     pieCounts[level] += 1;
   }
@@ -77,7 +94,7 @@ export function buildRiskTrendData(
     { name: "Rendah", value: pieCounts.Rendah, color: trendColors.Rendah },
     { name: "Sedang", value: pieCounts.Sedang, color: trendColors.Sedang },
     { name: "Tinggi", value: pieCounts.Tinggi, color: trendColors.Tinggi },
-    { name: "Ekstrem", value: pieCounts.Ekstrem, color: trendColors.Ekstrem },
+    { name: "Sangat Tinggi", value: pieCounts["Sangat Tinggi"], color: trendColors["Sangat Tinggi"] },
   ];
 
   return { trendData, pieData };

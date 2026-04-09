@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 
 import type { RiskCategory } from "../types/risk";
-import { riskCategoryLabels } from "./risk";
+import { riskCategoryLabels } from "./risk.js";
 
 export const BULK_RISK_EXPORT_COLUMNS = [
   "Risiko",

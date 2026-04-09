@@ -163,7 +163,7 @@ func (r *mitigationTaskRepository) GetRecurringMitigations(ctx context.Context) 
 		 JOIN risks r ON m.risk_id = r.id
 		 WHERE m.frequency = 'rutin'
 		   AND m.recurring_interval IS NOT NULL
-		   AND r.status IN ('final','approved')
+		   AND r.status IN ('in_approval','approved')
 		   AND r.is_current = TRUE
 		   AND r.is_cycle_current = TRUE`)
 	if err != nil {

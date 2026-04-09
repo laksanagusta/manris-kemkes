@@ -54,15 +54,15 @@ func (r *fakeRiskRepository) NextRiskCode(context.Context) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-func (r *fakeRiskRepository) DashboardSummary(context.Context) (*entity.DashboardSummary, error) {
+func (r *fakeRiskRepository) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeRiskRepository) HeatmapData(context.Context) ([]*entity.HeatmapCell, error) {
+func (r *fakeRiskRepository) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeRiskRepository) TopRisks(context.Context, int) ([]*entity.Risk, error) {
+func (r *fakeRiskRepository) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeRiskRepository) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
@@ -86,7 +86,7 @@ func (r *fakeRiskRepository) RiskReviewSummary(context.Context, string, []uuid.U
 func (r *fakeRiskRepository) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeRiskRepository) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeRiskRepository) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeRiskRepository) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {

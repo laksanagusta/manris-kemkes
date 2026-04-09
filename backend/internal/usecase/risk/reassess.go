@@ -48,7 +48,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 		return nil, errors.Wrap(err, "failed to load risk versions")
 	}
 	for _, version := range versions {
-		if version.AssessmentCycle == input.Cycle && (version.Status == "draft" || version.Status == "final") {
+		if version.AssessmentCycle == input.Cycle && (version.Status == "draft" || version.Status == "reviewed") {
 			return nil, errors.Wrap(errors.ErrInvalidStatus, "an in-progress reassessment already exists for this cycle")
 		}
 	}

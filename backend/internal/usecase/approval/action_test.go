@@ -15,6 +15,8 @@ type fakeApprovalRepo struct {
 	request       *entity.ApprovalRequest
 	updatedStatus string
 	histories     []*entity.ApprovalHistory
+	currentStep   *entity.ApprovalStep
+	nextStep      *entity.ApprovalStep
 }
 
 func (r *fakeApprovalRepo) List(context.Context, string, string, *uuid.UUID) ([]*entity.ApprovalRequest, error) {
@@ -56,7 +58,10 @@ func (r *fakeApprovalRepo) GetSteps(context.Context, uuid.UUID) ([]*entity.Appro
 	return nil, errors.New("not implemented")
 }
 func (r *fakeApprovalRepo) ApproveCurrentStep(context.Context, uuid.UUID, uuid.UUID, string) (*entity.ApprovalStep, *entity.ApprovalStep, error) {
-	return &entity.ApprovalStep{}, nil, nil
+	if r.currentStep != nil {
+		return r.currentStep, r.nextStep, nil
+	}
+	return &entity.ApprovalStep{StepType: "approval"}, nil, nil
 }
 func (r *fakeApprovalRepo) RejectCurrentStep(context.Context, uuid.UUID, uuid.UUID, string) error {
 	return nil
@@ -100,13 +105,13 @@ func (r *fakeApprovalRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]
 func (r *fakeApprovalRiskRepo) NextRiskCode(context.Context) (string, error) {
 	return "", errors.New("not implemented")
 }
-func (r *fakeApprovalRiskRepo) DashboardSummary(context.Context) (*entity.DashboardSummary, error) {
+func (r *fakeApprovalRiskRepo) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeApprovalRiskRepo) HeatmapData(context.Context) ([]*entity.HeatmapCell, error) {
+func (r *fakeApprovalRiskRepo) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeApprovalRiskRepo) TopRisks(context.Context, int) ([]*entity.Risk, error) {
+func (r *fakeApprovalRiskRepo) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeApprovalRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
@@ -131,7 +136,7 @@ func (r *fakeApprovalRiskRepo) RiskReviewSummary(context.Context, string, []uuid
 func (r *fakeApprovalRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeApprovalRiskRepo) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeApprovalRiskRepo) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeApprovalRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
@@ -176,17 +181,18 @@ func TestApprovalActionUseCase_ApproveReassessmentActivatesNewCurrentVersion(t *
 	approvalID := uuid.New()
 	riskID := uuid.New()
 	previousRiskID := uuid.New()
+	reviewerID := uuid.MustParse("10000000-0000-0000-0000-000000000004")
 	approvalRepo := &fakeApprovalRepo{request: &entity.ApprovalRequest{
 		ID:                    approvalID,
 		RequestType:           "risk",
 		EntityID:              riskID,
 		CurrentStatus:         "pending",
 		CurrentApproverRole:   "reviewer",
-		CurrentApproverUserID: uuidPtrApprovalTest(uuid.MustParse("10000000-0000-0000-0000-000000000004")),
+		CurrentApproverUserID: &reviewerID,
 	}}
 	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
 		ID:             riskID,
-		Status:         "final",
+		Status:         "reviewed",
 		PreviousRiskID: &previousRiskID,
 	}}
 
@@ -194,9 +200,9 @@ func TestApprovalActionUseCase_ApproveReassessmentActivatesNewCurrentVersion(t *
 	_, err := uc.Execute(context.Background(), ApprovalActionInput{
 		ApprovalID: approvalID.String(),
 		Action:     "approve",
-		ActorID:    uuid.New().String(),
+		ActorID:    reviewerID.String(),
 		ActorName:  "Testing User",
-		ActorRole:  "unit",
+		ActorRole:  "reviewer",
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -212,26 +218,27 @@ func TestApprovalActionUseCase_ApproveReassessmentActivatesNewCurrentVersion(t *
 func TestApprovalActionUseCase_ReturnsErrorWhenRiskStatusUpdateFails(t *testing.T) {
 	approvalID := uuid.New()
 	riskID := uuid.New()
+	reviewerID := uuid.MustParse("10000000-0000-0000-0000-000000000004")
 	approvalRepo := &fakeApprovalRepo{request: &entity.ApprovalRequest{
 		ID:                    approvalID,
 		RequestType:           "risk",
 		EntityID:              riskID,
 		CurrentStatus:         "pending",
 		CurrentApproverRole:   "reviewer",
-		CurrentApproverUserID: uuidPtrApprovalTest(uuid.MustParse("10000000-0000-0000-0000-000000000004")),
+		CurrentApproverUserID: &reviewerID,
 	}}
 	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
 		ID:     riskID,
-		Status: "final",
+		Status: "reviewed",
 	}, updateErr: errors.New("db write failed")}
 
 	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
 	_, err := uc.Execute(context.Background(), ApprovalActionInput{
 		ApprovalID: approvalID.String(),
 		Action:     "approve",
-		ActorID:    uuid.New().String(),
+		ActorID:    reviewerID.String(),
 		ActorName:  "Testing User",
-		ActorRole:  "unit",
+		ActorRole:  "reviewer",
 	})
 	if err == nil {
 		t.Fatal("expected error when entity status update fails")
@@ -244,4 +251,298 @@ func TestApprovalActionUseCase_ReturnsErrorWhenRiskStatusUpdateFails(t *testing.
 	}
 }
 
-func uuidPtrApprovalTest(value uuid.UUID) *uuid.UUID { return &value }
+// Tests for new status flow: draft -> in_review -> in_approval -> approved
+
+func TestApprovalActionUseCase_ReviewerApproves_SetsStatusToInApproval(t *testing.T) {
+	approvalID := uuid.New()
+	riskID := uuid.New()
+	reviewerID := uuid.MustParse("10000000-0000-0000-0000-000000000004")
+
+	approvalRepo := &fakeApprovalRepo{
+		request: &entity.ApprovalRequest{
+			ID:                    approvalID,
+			RequestType:           "risk",
+			EntityID:              riskID,
+			CurrentStatus:         "pending",
+			CurrentApproverRole:   "reviewer",
+			CurrentApproverUserID: &reviewerID,
+		},
+		currentStep: &entity.ApprovalStep{
+			ID:             uuid.New(),
+			StepType:       "review",
+			ApproverUserID: reviewerID,
+		},
+	}
+	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
+		ID:     riskID,
+		Status: "in_review", // Risk is in_review when reviewer approves
+	}}
+
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	_, err := uc.Execute(context.Background(), ApprovalActionInput{
+		ApprovalID: approvalID.String(),
+		Action:     "approve",
+		ActorID:    reviewerID.String(),
+		ActorName:  "Reviewer User",
+		ActorRole:  "reviewer",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if riskRepo.updatedRiskStatus != "in_approval" {
+		t.Fatalf("expected risk status 'in_approval', got %q", riskRepo.updatedRiskStatus)
+	}
+}
+
+func TestApprovalActionUseCase_ReviewerApproves_WithNextApprovalStep_SetsStatusToInApproval(t *testing.T) {
+	approvalID := uuid.New()
+	riskID := uuid.New()
+	reviewerID := uuid.MustParse("10000000-0000-0000-0000-000000000004")
+	pimpinanID := uuid.MustParse("10000000-0000-0000-0000-000000000006")
+
+	approvalRepo := &fakeApprovalRepo{
+		request: &entity.ApprovalRequest{
+			ID:                    approvalID,
+			RequestType:           "risk",
+			EntityID:              riskID,
+			CurrentStatus:         "pending",
+			CurrentApproverRole:   "reviewer",
+			CurrentApproverUserID: &reviewerID,
+		},
+		currentStep: &entity.ApprovalStep{
+			ID:             uuid.New(),
+			StepType:       "review",
+			ApproverUserID: reviewerID,
+		},
+		nextStep: &entity.ApprovalStep{
+			ID:             uuid.New(),
+			StepType:       "approval",
+			ApproverUserID: pimpinanID,
+		},
+	}
+	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
+		ID:     riskID,
+		Status: "in_review",
+	}}
+
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	_, err := uc.Execute(context.Background(), ApprovalActionInput{
+		ApprovalID: approvalID.String(),
+		Action:     "approve",
+		ActorID:    reviewerID.String(),
+		ActorName:  "Reviewer User",
+		ActorRole:  "reviewer",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if riskRepo.updatedRiskStatus != "in_approval" {
+		t.Fatalf("expected risk status 'in_approval', got %q", riskRepo.updatedRiskStatus)
+	}
+	if approvalRepo.updatedStatus != "" {
+		t.Fatalf("expected approval request to remain pending, got status update %q", approvalRepo.updatedStatus)
+	}
+}
+
+func TestApprovalActionUseCase_PimpinanApproves_SetsStatusToApproved(t *testing.T) {
+	approvalID := uuid.New()
+	riskID := uuid.New()
+	pimpinanID := uuid.MustParse("10000000-0000-0000-0000-000000000005")
+
+	approvalRepo := &fakeApprovalRepo{
+		request: &entity.ApprovalRequest{
+			ID:                    approvalID,
+			RequestType:           "risk",
+			EntityID:              riskID,
+			CurrentStatus:         "pending",
+			CurrentApproverRole:   "pimpinan",
+			CurrentApproverUserID: &pimpinanID,
+		},
+		currentStep: &entity.ApprovalStep{
+			ID:             uuid.New(),
+			StepType:       "approval",
+			ApproverUserID: pimpinanID,
+		},
+	}
+	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
+		ID:     riskID,
+		Status: "in_approval", // Risk is in_approval when pimpinan approves
+	}}
+
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	_, err := uc.Execute(context.Background(), ApprovalActionInput{
+		ApprovalID: approvalID.String(),
+		Action:     "approve",
+		ActorID:    pimpinanID.String(),
+		ActorName:  "Pimpinan User",
+		ActorRole:  "pimpinan",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if riskRepo.updatedRiskStatus != "approved" {
+		t.Fatalf("expected risk status 'approved', got %q", riskRepo.updatedRiskStatus)
+	}
+}
+
+func TestApprovalActionUseCase_RejectFromInReview_SetsStatusToDraft(t *testing.T) {
+	approvalID := uuid.New()
+	riskID := uuid.New()
+	reviewerID := uuid.MustParse("10000000-0000-0000-0000-000000000004")
+
+	approvalRepo := &fakeApprovalRepo{request: &entity.ApprovalRequest{
+		ID:                    approvalID,
+		RequestType:           "risk",
+		EntityID:              riskID,
+		CurrentStatus:         "pending",
+		CurrentApproverRole:   "reviewer",
+		CurrentApproverUserID: &reviewerID,
+	}}
+	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
+		ID:     riskID,
+		Status: "in_review",
+	}}
+
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	_, err := uc.Execute(context.Background(), ApprovalActionInput{
+		ApprovalID: approvalID.String(),
+		Action:     "reject",
+		ActorID:    reviewerID.String(),
+		ActorName:  "Reviewer User",
+		ActorRole:  "reviewer",
+		Comments:   "Needs more details",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if riskRepo.updatedRiskStatus != "draft" {
+		t.Fatalf("expected risk status 'draft' after rejection, got %q", riskRepo.updatedRiskStatus)
+	}
+}
+
+func TestApprovalActionUseCase_RejectFromInApproval_SetsStatusToDraft(t *testing.T) {
+	approvalID := uuid.New()
+	riskID := uuid.New()
+	pimpinanID := uuid.MustParse("10000000-0000-0000-0000-000000000005")
+
+	approvalRepo := &fakeApprovalRepo{request: &entity.ApprovalRequest{
+		ID:                    approvalID,
+		RequestType:           "risk",
+		EntityID:              riskID,
+		CurrentStatus:         "pending",
+		CurrentApproverRole:   "pimpinan",
+		CurrentApproverUserID: &pimpinanID,
+	}}
+	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
+		ID:     riskID,
+		Status: "in_approval",
+	}}
+
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	_, err := uc.Execute(context.Background(), ApprovalActionInput{
+		ApprovalID: approvalID.String(),
+		Action:     "reject",
+		ActorID:    pimpinanID.String(),
+		ActorName:  "Pimpinan User",
+		ActorRole:  "pimpinan",
+		Comments:   "Not approved",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if riskRepo.updatedRiskStatus != "draft" {
+		t.Fatalf("expected risk status 'draft' after rejection, got %q", riskRepo.updatedRiskStatus)
+	}
+}
+
+func TestApprovalActionUseCase_RejectsActorOutsideCurrentPendingStep(t *testing.T) {
+	approvalID := uuid.New()
+	riskID := uuid.New()
+	reviewerID := uuid.MustParse("10000000-0000-0000-0000-000000000004")
+	otherReviewerID := uuid.MustParse("10000000-0000-0000-0000-000000000009")
+
+	approvalRepo := &fakeApprovalRepo{
+		request: &entity.ApprovalRequest{
+			ID:                    approvalID,
+			RequestType:           "risk",
+			EntityID:              riskID,
+			CurrentStatus:         "pending",
+			CurrentApproverRole:   "reviewer",
+			CurrentApproverUserID: &reviewerID,
+		},
+		currentStep: &entity.ApprovalStep{
+			ID:             uuid.New(),
+			StepType:       "review",
+			ApproverUserID: reviewerID,
+		},
+	}
+	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
+		ID:     riskID,
+		Status: "in_review",
+	}}
+
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	_, err := uc.Execute(context.Background(), ApprovalActionInput{
+		ApprovalID: approvalID.String(),
+		Action:     "approve",
+		ActorID:    otherReviewerID.String(),
+		ActorName:  "Other Reviewer",
+		ActorRole:  "reviewer",
+	})
+	if !errors.Is(err, domainerrors.ErrForbidden) {
+		t.Fatalf("expected forbidden error for non-current approver, got %v", err)
+	}
+	if riskRepo.updatedRiskStatus != "" {
+		t.Fatalf("expected no risk status update, got %q", riskRepo.updatedRiskStatus)
+	}
+	if approvalRepo.updatedStatus != "" {
+		t.Fatalf("expected approval request status to remain unchanged, got %q", approvalRepo.updatedStatus)
+	}
+	if len(approvalRepo.histories) != 0 {
+		t.Fatalf("expected no approval history on forbidden action, got %d", len(approvalRepo.histories))
+	}
+}
+
+func TestApprovalActionUseCase_RejectsRoleMismatchForCurrentPendingStep(t *testing.T) {
+	approvalID := uuid.New()
+	riskID := uuid.New()
+	pimpinanID := uuid.MustParse("10000000-0000-0000-0000-000000000005")
+
+	approvalRepo := &fakeApprovalRepo{
+		request: &entity.ApprovalRequest{
+			ID:                    approvalID,
+			RequestType:           "risk",
+			EntityID:              riskID,
+			CurrentStatus:         "pending",
+			CurrentApproverRole:   "pimpinan",
+			CurrentApproverUserID: &pimpinanID,
+		},
+		currentStep: &entity.ApprovalStep{
+			ID:             uuid.New(),
+			StepType:       "approval",
+			ApproverUserID: pimpinanID,
+		},
+	}
+	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
+		ID:     riskID,
+		Status: "in_approval",
+	}}
+
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	_, err := uc.Execute(context.Background(), ApprovalActionInput{
+		ApprovalID: approvalID.String(),
+		Action:     "approve",
+		ActorID:    pimpinanID.String(),
+		ActorName:  "Pimpinan User",
+		ActorRole:  "reviewer",
+	})
+	if !errors.Is(err, domainerrors.ErrForbidden) {
+		t.Fatalf("expected forbidden error for role mismatch, got %v", err)
+	}
+	if riskRepo.updatedRiskStatus != "" {
+		t.Fatalf("expected no risk status update, got %q", riskRepo.updatedRiskStatus)
+	}
+	if approvalRepo.updatedStatus != "" {
+		t.Fatalf("expected approval request status to remain unchanged, got %q", approvalRepo.updatedStatus)
+	}
+}

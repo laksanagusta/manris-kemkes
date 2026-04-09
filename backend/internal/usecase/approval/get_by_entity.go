@@ -70,6 +70,7 @@ func (uc *GetApprovalByEntityUseCase) Execute(ctx context.Context, input GetAppr
 			ApproverUserID: step.ApproverUserID.String(),
 			ApproverName:   step.ApproverName,
 			ApproverRole:   step.ApproverRole,
+			StepType:       step.StepType,
 			Status:         step.Status,
 			ActedAt:        actedAt,
 			Comments:       step.Comments,

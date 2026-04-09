@@ -170,7 +170,7 @@ export function OrganizationFormDialog({
                 <SelectValue placeholder="Pilih parent unit" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__ROOT__">
+                <SelectItem key="__ROOT__" value="__ROOT__">
                   <span className="text-muted-foreground">Tanpa parent (unit induk)</span>
                 </SelectItem>
                 {availableParents.map((org) => (

@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X, Loader2 } from "lucide-react";
+import { Check, X, Loader2, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ReviewScoringGrid } from "@/components/shared/review-scoring-grid";
 
 interface ApprovalModalProps {
   open: boolean;
@@ -21,6 +23,8 @@ interface ApprovalModalProps {
   approvalId: string | null;
   approvalType: "approve" | "reject";
   entityTitle?: string;
+  requestType?: string;
+  approverRole?: string;
   onSuccess?: () => void;
   token?: string;
 }
@@ -31,16 +35,30 @@ export function ApprovalModal({
   approvalId,
   approvalType,
   entityTitle,
+  requestType,
+  approverRole,
   onSuccess,
   token,
 }: ApprovalModalProps) {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewedProbability, setReviewedProbability] = useState<number | null>(null);
+  const [reviewedImpact, setReviewedImpact] = useState<number | null>(null);
 
   const isApprove = approvalType === "approve";
-  const title = isApprove ? "Setujui Risiko" : "Tolak Risiko";
+  const isRisk = requestType === "risk";
+  const isReviewer = approverRole === "reviewer";
+  const showScoring = isApprove && isRisk && isReviewer;
+
+  const title = isApprove
+    ? isReviewer
+      ? "Setujui Review"
+      : "Setujui Approval"
+    : "Tolak Risiko";
   const description = isApprove
-    ? "Apakah Anda yakin ingin menyetujui risiko ini?"
+    ? isReviewer
+      ? "Setujui hasil review risiko ini dan berikan skor penilaian Anda."
+      : "Apakah Anda yakin ingin menyetujui risiko ini?"
     : "Apakah Anda yakin ingin menolak risiko ini?";
 
   const handleSubmit = async () => {
@@ -49,34 +67,50 @@ export function ApprovalModal({
       return;
     }
 
+    if (showScoring && (!reviewedProbability || !reviewedImpact)) {
+      toast.error("Silakan tentukan skor probabilitas dan dampak penilaian.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
+      const payload: Record<string, unknown> = {
+        action: approvalType,
+        comments: message,
+      };
+
+      if (showScoring && reviewedProbability && reviewedImpact) {
+        payload.reviewedProbability = reviewedProbability;
+        payload.reviewedImpact = reviewedImpact;
+      }
+
       await api.post(
         `/approvals/${approvalId}/action`,
-        {
-          action: approvalType,
-          comments: message,
-        },
+        payload,
         token
       );
 
       toast.success(
         isApprove
-          ? "Risiko berhasil disetujui"
+          ? isReviewer
+            ? "Review berhasil disetujui"
+            : "Risiko berhasil disetujui"
           : "Risiko berhasil ditolak"
       );
 
-      // Reset form
       setMessage("");
+      setReviewedProbability(null);
+      setReviewedImpact(null);
       onOpenChange(false);
 
-      // Trigger success callback
       onSuccess?.();
     } catch (err) {
       console.error("Failed to process approval", err);
       toast.error(
         isApprove
-          ? "Gagal menyetujui risiko. Silakan coba lagi."
+          ? isReviewer
+            ? "Gagal menyetujui review. Silakan coba lagi."
+            : "Gagal menyetujui risiko. Silakan coba lagi."
           : "Gagal menolak risiko. Silakan coba lagi."
       );
     } finally {
@@ -86,15 +120,16 @@ export function ApprovalModal({
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      // Reset form when closing
       setMessage("");
+      setReviewedProbability(null);
+      setReviewedImpact(null);
     }
     onOpenChange(newOpen);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md" showCloseButton={!isSubmitting}>
+      <DialogContent className={cn("sm:max-w-md", showScoring && "sm:max-w-lg")} showCloseButton={!isSubmitting}>
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div
@@ -116,37 +151,58 @@ export function ApprovalModal({
             {description}
             {entityTitle && (
               <span className="block mt-1 font-medium text-foreground">
-                "{entityTitle}"
+                &quot;{entityTitle}&quot;
               </span>
             )}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 py-4">
-          <label
-            htmlFor="approval-message"
-            className="text-sm font-medium leading-none"
-          >
-            Pesan {isApprove ? "Persetujuan" : "Penolakan"}
-            <span className="text-muted-foreground font-normal ml-1">
-              (Opsional)
-            </span>
-          </label>
-          <Textarea
-            id="approval-message"
-            placeholder={
-              isApprove
-                ? "Tambahkan pesan atau alasan persetujuan..."
-                : "Jelaskan alasan penolakan..."
-            }
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            disabled={isSubmitting}
-            className="min-h-[100px] resize-none"
-          />
-          <p className="text-[11px] text-muted-foreground">
-            Pesan ini akan dicatat dalam riwayat persetujuan.
-          </p>
+        <div className="space-y-4 py-4">
+          {showScoring && (
+            <div className="space-y-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="size-4 text-primary" />
+                <h4 className="text-sm font-semibold text-primary">Skor Penilaian Reviewer</h4>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Tentukan skor probabilitas dan dampak berdasarkan hasil penilaian Anda sebagai reviewer.
+              </p>
+
+              <ReviewScoringGrid
+                reviewedProbability={reviewedProbability}
+                reviewedImpact={reviewedImpact}
+                onProbabilityChange={setReviewedProbability}
+                onImpactChange={setReviewedImpact}
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label
+              htmlFor="approval-message"
+              className="text-sm font-medium leading-none"
+            >
+              Pesan {isApprove ? "Persetujuan" : "Penolakan"}
+              <span className="text-muted-foreground font-normal ml-1">
+                (Opsional)
+              </span>
+            </label>
+            <Textarea
+              id="approval-message"
+              placeholder={
+                isApprove
+                  ? "Tambahkan pesan atau alasan persetujuan..."
+                  : "Jelaskan alasan penolakan..."
+              }
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              disabled={isSubmitting}
+              className="min-h-[80px] resize-none"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Pesan ini akan dicatat dalam riwayat persetujuan.
+            </p>
+          </div>
         </div>
 
         <DialogFooter>
@@ -162,7 +218,7 @@ export function ApprovalModal({
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || (showScoring && (!reviewedProbability || !reviewedImpact))}
             className={isApprove ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
           >
             {isSubmitting ? (
@@ -177,7 +233,11 @@ export function ApprovalModal({
                 ) : (
                   <X className="mr-2 size-4" />
                 )}
-                {isApprove ? "Setuju" : "Tolak"}
+                {isApprove
+                  ? isReviewer
+                    ? "Setujui Review"
+                    : "Setujui Approval"
+                  : "Tolak"}
               </>
             )}
           </Button>

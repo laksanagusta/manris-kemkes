@@ -31,6 +31,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
 
 interface NavItem {
   label: string;
@@ -195,9 +196,21 @@ export function AppSidebar({
   collapsed?: boolean;
   inboxBadge?: number;
 }) {
+  const { user } = useAuth();
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     new Set(),
   );
+
+  // Get initials from user name (e.g., "Dr. Farah Indah" -> "FI")
+  const getInitials = (name: string | undefined): string => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .filter((part) => part.length > 0 && !part.endsWith("."))
+      .map((part) => part[0]?.toUpperCase())
+      .slice(0, 2)
+      .join("");
+  };
 
   const toggleGroup = (title: string) => {
     setCollapsedGroups((prev) => {
@@ -268,14 +281,14 @@ export function AppSidebar({
         {!collapsed ? (
           <div className="flex items-center gap-3 rounded-lg px-3 py-2">
             <div className="flex size-8 items-center justify-center rounded-full bg-sidebar-primary/20 text-xs font-bold text-sidebar-primary">
-              DA
+              {getInitials(user?.name)}
             </div>
             <div className="flex flex-col">
               <span className="text-xs font-medium text-sidebar-foreground">
-                Dika Laksana
+                {user?.name || "User"}
               </span>
               <span className="text-[10px] text-sidebar-foreground/50">
-                Super Admin
+                {user?.role || "Unknown"}
               </span>
             </div>
           </div>
@@ -283,10 +296,12 @@ export function AppSidebar({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="mx-auto flex size-8 items-center justify-center rounded-full bg-sidebar-primary/20 text-xs font-bold text-sidebar-primary cursor-pointer">
-                DA
+                {getInitials(user?.name)}
               </div>
             </TooltipTrigger>
-            <TooltipContent side="right">Dika Laksana</TooltipContent>
+            <TooltipContent side="right">
+              {user?.name || "User"}
+            </TooltipContent>
           </Tooltip>
         )}
       </div>

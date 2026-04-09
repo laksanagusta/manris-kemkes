@@ -232,9 +232,9 @@ func (r *approvalRepository) Create(ctx context.Context, req *entity.ApprovalReq
 func (r *approvalRepository) CreateSteps(ctx context.Context, approvalRequestID uuid.UUID, steps []entity.ApprovalStep) error {
 	for _, step := range steps {
 		_, err := r.pool.Exec(ctx,
-			`INSERT INTO approval_steps (approval_request_id, sequence_no, approver_user_id, status, comments)
-			 VALUES ($1,$2,$3,$4,$5)`,
-			approvalRequestID, step.SequenceNo, step.ApproverUserID, step.Status, step.Comments,
+			`INSERT INTO approval_steps (approval_request_id, sequence_no, approver_user_id, step_type, status, comments)
+			 VALUES ($1,$2,$3,$4,$5,$6)`,
+			approvalRequestID, step.SequenceNo, step.ApproverUserID, step.StepType, step.Status, step.Comments,
 		)
 		if err != nil {
 			return fmt.Errorf("create approval step: %w", err)
@@ -306,7 +306,7 @@ func (r *approvalRepository) GetSteps(ctx context.Context, approvalRequestID uui
 	rows, err := r.pool.Query(ctx,
 		`SELECT s.id, s.approval_request_id, s.sequence_no, s.approver_user_id,
 		        COALESCE(u.name, '') as approver_name, COALESCE(u.role, '') as approver_role,
-		        s.status, s.acted_at, COALESCE(s.comments, ''), s.created_at, s.updated_at
+		        s.step_type, s.status, s.acted_at, COALESCE(s.comments, ''), s.created_at, s.updated_at
 		 FROM approval_steps s
 		 LEFT JOIN users u ON s.approver_user_id = u.id
 		 WHERE s.approval_request_id = $1
@@ -319,7 +319,7 @@ func (r *approvalRepository) GetSteps(ctx context.Context, approvalRequestID uui
 	var steps []*entity.ApprovalStep
 	for rows.Next() {
 		var step entity.ApprovalStep
-		if err := rows.Scan(&step.ID, &step.ApprovalRequestID, &step.SequenceNo, &step.ApproverUserID, &step.ApproverName, &step.ApproverRole, &step.Status, &step.ActedAt, &step.Comments, &step.CreatedAt, &step.UpdatedAt); err != nil {
+		if err := rows.Scan(&step.ID, &step.ApprovalRequestID, &step.SequenceNo, &step.ApproverUserID, &step.ApproverName, &step.ApproverRole, &step.StepType, &step.Status, &step.ActedAt, &step.Comments, &step.CreatedAt, &step.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan approval step: %w", err)
 		}
 		steps = append(steps, &step)
@@ -336,12 +336,12 @@ func (r *approvalRepository) ApproveCurrentStep(ctx context.Context, approvalReq
 
 	current := &entity.ApprovalStep{}
 	err = tx.QueryRow(ctx,
-		`SELECT s.id, s.approval_request_id, s.sequence_no, s.approver_user_id, COALESCE(u.name, ''), COALESCE(u.role, ''), s.status, s.acted_at, COALESCE(s.comments, ''), s.created_at, s.updated_at
+		`SELECT s.id, s.approval_request_id, s.sequence_no, s.approver_user_id, COALESCE(u.name, ''), COALESCE(u.role, ''), s.step_type, s.status, s.acted_at, COALESCE(s.comments, ''), s.created_at, s.updated_at
 		 FROM approval_steps s
 		 LEFT JOIN users u ON s.approver_user_id = u.id
 		 WHERE s.approval_request_id = $1 AND s.status = 'pending'
 		 ORDER BY s.sequence_no ASC LIMIT 1`, approvalRequestID,
-	).Scan(&current.ID, &current.ApprovalRequestID, &current.SequenceNo, &current.ApproverUserID, &current.ApproverName, &current.ApproverRole, &current.Status, &current.ActedAt, &current.Comments, &current.CreatedAt, &current.UpdatedAt)
+	).Scan(&current.ID, &current.ApprovalRequestID, &current.SequenceNo, &current.ApproverUserID, &current.ApproverName, &current.ApproverRole, &current.StepType, &current.Status, &current.ActedAt, &current.Comments, &current.CreatedAt, &current.UpdatedAt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("find current approval step: %w", err)
 	}
@@ -353,12 +353,12 @@ func (r *approvalRepository) ApproveCurrentStep(ctx context.Context, approvalReq
 
 	next := &entity.ApprovalStep{}
 	err = tx.QueryRow(ctx,
-		`SELECT s.id, s.approval_request_id, s.sequence_no, s.approver_user_id, COALESCE(u.name, ''), COALESCE(u.role, ''), s.status, s.acted_at, COALESCE(s.comments, ''), s.created_at, s.updated_at
+		`SELECT s.id, s.approval_request_id, s.sequence_no, s.approver_user_id, COALESCE(u.name, ''), COALESCE(u.role, ''), s.step_type, s.status, s.acted_at, COALESCE(s.comments, ''), s.created_at, s.updated_at
 		 FROM approval_steps s
 		 LEFT JOIN users u ON s.approver_user_id = u.id
 		 WHERE s.approval_request_id = $1 AND s.sequence_no > $2 AND s.status = 'pending'
 		 ORDER BY s.sequence_no ASC LIMIT 1`, approvalRequestID, current.SequenceNo,
-	).Scan(&next.ID, &next.ApprovalRequestID, &next.SequenceNo, &next.ApproverUserID, &next.ApproverName, &next.ApproverRole, &next.Status, &next.ActedAt, &next.Comments, &next.CreatedAt, &next.UpdatedAt)
+	).Scan(&next.ID, &next.ApprovalRequestID, &next.SequenceNo, &next.ApproverUserID, &next.ApproverName, &next.ApproverRole, &next.StepType, &next.Status, &next.ActedAt, &next.Comments, &next.CreatedAt, &next.UpdatedAt)
 	if err != nil {
 		next = nil
 	}

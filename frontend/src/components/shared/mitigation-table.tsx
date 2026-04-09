@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, UserCircle2, Building2 } from "lucide-react";
 import type { MitigationFrequency, RecurringInterval } from "@/types/risk";
 
 export interface MitigationItem {
@@ -18,11 +18,12 @@ export interface MitigationItem {
   action: string;
   owner: string;
   treatmentOwnerId?: string;
+  externalPicId?: string;
   dueDate: string;
   frequency: MitigationFrequency;
   recurringInterval?: RecurringInterval;
-  reportDay?: number;   // 0=Sun..6=Sat
-  reportDate?: number;  // 1-31
+  reportDay?: number;
+  reportDate?: number;
   executionScheduleText?: string;
 }
 
@@ -31,14 +32,23 @@ interface MitigationTableProps {
   onChange: (items: MitigationItem[]) => void;
   disabled?: boolean;
   users?: { id: string; name: string }[];
+  externalPics?: { id: string; name: string }[];
+  onSaveExternalPic?: (name: string) => Promise<{ id: string; name: string } | null>;
 }
 
-export function MitigationTable({ items, onChange, disabled, users = [] }: MitigationTableProps) {
+export function MitigationTable({ 
+  items, 
+  onChange, 
+  disabled, 
+  users = [],
+  externalPics = [],
+  onSaveExternalPic 
+}: MitigationTableProps) {
   const addItem = () => {
     onChange([...items, { action: "", owner: "", dueDate: "", frequency: "insidental" }]);
   };
 
-  const updateItem = (index: number, field: keyof MitigationItem, value: string) => {
+  const updateItem = (index: number, field: keyof MitigationItem, value: string | number | undefined) => {
     const updated = [...items];
     updated[index] = { ...updated[index], [field]: value };
     onChange(updated);
@@ -48,24 +58,104 @@ export function MitigationTable({ items, onChange, disabled, users = [] }: Mitig
     onChange(items.filter((_, i) => i !== index));
   };
 
-  const updatePic = (index: number, userId: string) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
+  const allOptions = [
+    ...users.map(u => ({ ...u, type: 'internal' as const })),
+    ...externalPics.map(e => ({ ...e, type: 'external' as const })),
+  ];
+
+  const handlePicSelect = (index: number, selectedId: string) => {
+    const updated = [...items];
+    if (selectedId === "__manual__") {
+      updated[index] = {
+        ...updated[index],
+        treatmentOwnerId: undefined,
+        externalPicId: undefined,
+        owner: "",
+      };
+    } else {
+      const selectedOption = allOptions.find(o => o.id === selectedId);
+      if (selectedOption) {
+        if (selectedOption.type === 'internal') {
+          updated[index] = {
+            ...updated[index],
+            treatmentOwnerId: selectedId,
+            externalPicId: undefined,
+            owner: selectedOption.name,
+          };
+        } else {
+          updated[index] = {
+            ...updated[index],
+            treatmentOwnerId: undefined,
+            externalPicId: selectedId,
+            owner: selectedOption.name,
+          };
+        }
+      }
+    }
+    onChange(updated);
+  };
+
+  const handleOwnerBlur = async (index: number, name: string) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    const matchingUser = users.find(u => u.name.toLowerCase() === trimmedName.toLowerCase());
+    if (matchingUser) {
+      const updated = [...items];
+      updated[index] = {
+        ...updated[index],
+        treatmentOwnerId: matchingUser.id,
+        owner: matchingUser.name,
+      };
+      onChange(updated);
+      return;
+    }
+
+    const matchingExternal = externalPics.find(e => e.name.toLowerCase() === trimmedName.toLowerCase());
+    if (matchingExternal) {
+      const updated = [...items];
+      updated[index] = {
+        ...updated[index],
+        treatmentOwnerId: undefined,
+        externalPicId: matchingExternal.id,
+        owner: matchingExternal.name,
+      };
+      onChange(updated);
+      return;
+    }
+
+    if (onSaveExternalPic && trimmedName.length > 0) {
+      const newPic = await onSaveExternalPic(trimmedName);
+      if (newPic) {
+        const updated = [...items];
+        updated[index] = {
+          ...updated[index],
+          treatmentOwnerId: undefined,
+          externalPicId: newPic.id,
+          owner: newPic.name,
+        };
+        onChange(updated);
+      }
+    }
+  };
+
+  const handleOwnerChange = (index: number, name: string) => {
     const updated = [...items];
     updated[index] = { 
       ...updated[index], 
-      treatmentOwnerId: userId, 
-      owner: user.name 
+      owner: name 
     };
     onChange(updated);
   };
+
+  const hasOptions = users.length > 0 || externalPics.length > 0;
 
   return (
     <div className="space-y-3">
       {items.map((item, index) => (
         <div key={index} className="rounded-lg border border-border/50 bg-muted/10 p-3 space-y-3">
           <div className="flex items-start justify-between gap-2">
-            <span className="shrink-0 mt-1 text-[10px] font-bold text-primary bg-primary/10 rounded-full w-5 h-5 flex items-center justify-center">
+            <span className="shrink-0 mt-1 text-xs font-bold text-primary bg-primary/10 rounded-full w-5 h-5 flex items-center justify-center">
               {index + 1}
             </span>
             <div className="flex-1">
@@ -73,7 +163,7 @@ export function MitigationTable({ items, onChange, disabled, users = [] }: Mitig
                 value={item.action || ""}
                 onChange={(e) => updateItem(index, "action", e.target.value)}
                 placeholder="Uraian rencana penanganan..."
-                className="text-xs bg-background border-border/50"
+                className="text-sm bg-background border-border/50"
                 disabled={disabled}
               />
             </div>
@@ -84,70 +174,113 @@ export function MitigationTable({ items, onChange, disabled, users = [] }: Mitig
               onClick={() => removeItem(index)}
               disabled={disabled}
             >
-              <Trash2 className="size-3.5" />
+              <Trash2 className="size-4" />
             </Button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pl-7">
             <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">PIC</Label>
-              {users.length > 0 ? (
-                <Select value={item.treatmentOwnerId || ""} onValueChange={(v) => updatePic(index, v)}>
-                  <SelectTrigger size="sm" className="w-full text-[10px] bg-background"><SelectValue placeholder="Pilih PIC" /></SelectTrigger>
-                  <SelectContent>
-                    {users.map((u) => (
-                      <SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <Label className="text-xs text-muted-foreground">PIC</Label>
+              {hasOptions ? (
+                <div className="space-y-1.5">
+                  <Select 
+                    value={item.treatmentOwnerId || item.externalPicId || "__manual__"} 
+                    onValueChange={(v) => handlePicSelect(index, v)}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger className="w-full text-sm bg-background">
+                      <SelectValue placeholder="Pilih PIC" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__manual__" className="text-sm">
+                        <span className="flex items-center gap-1.5">
+                          <UserCircle2 className="size-3.5" />
+                          Ketik Manual...
+                        </span>
+                      </SelectItem>
+                      {users.length > 0 && (
+                        <SelectItem value="__users__" disabled className="text-sm text-muted-foreground font-semibold">
+                          PIC Internal
+                        </SelectItem>
+                      )}
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.id} className="text-sm">{u.name}</SelectItem>
+                      ))}
+                      {externalPics.length > 0 && (
+                        <SelectItem value="__external__" disabled className="text-sm text-muted-foreground font-semibold">
+                          PIC Eksternal
+                        </SelectItem>
+                      )}
+                      {externalPics.map((e) => (
+                        <SelectItem key={e.id} value={e.id} className="text-sm">
+                          <span className="flex items-center gap-1.5">
+                            <Building2 className="size-3.5" />
+                            {e.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!item.treatmentOwnerId && !item.externalPicId && (
+                    <Input
+                      value={item.owner || ""}
+                      onChange={(e) => handleOwnerChange(index, e.target.value)}
+                      onBlur={(e) => handleOwnerBlur(index, e.target.value)}
+                      placeholder="Nama PIC (tersimpan otomatis)"
+                      className="h-8 text-sm bg-background border-border/50"
+                      disabled={disabled}
+                    />
+                  )}
+                </div>
               ) : (
                 <Input
                   value={item.owner || ""}
-                  onChange={(e) => updateItem(index, "owner", e.target.value)}
+                  onChange={(e) => handleOwnerChange(index, e.target.value)}
+                  onBlur={(e) => handleOwnerBlur(index, e.target.value)}
                   placeholder="Nama PIC"
-                  className="h-7 text-[10px] bg-background border-border/50"
+                  className="h-8 text-sm bg-background border-border/50"
                   disabled={disabled}
                 />
               )}
             </div>
             {item.frequency !== "rutin" && (
               <div className="space-y-1">
-                <Label className="text-[10px] text-muted-foreground">Target Waktu</Label>
+                <Label className="text-xs text-muted-foreground">Target Waktu</Label>
                 <Input
                   type="date"
                   value={item.dueDate || ""}
                   onChange={(e) => updateItem(index, "dueDate", e.target.value)}
-                  className="h-7 text-[10px] bg-background border-border/50"
+                  className="h-8 text-sm bg-background border-border/50"
                   disabled={disabled}
                 />
               </div>
             )}
             <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">Frekuensi</Label>
+              <Label className="text-xs text-muted-foreground">Frekuensi</Label>
               <Select value={item.frequency} onValueChange={(v) => updateItem(index, "frequency", v)} disabled={disabled}>
-                <SelectTrigger size="sm" className="w-full text-[10px] bg-background"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full text-sm bg-background"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="insidental" className="text-xs">Insidental</SelectItem>
-                  <SelectItem value="rutin" className="text-xs">Rutin</SelectItem>
+                  <SelectItem value="insidental" className="text-sm">Insidental</SelectItem>
+                  <SelectItem value="rutin" className="text-sm">Rutin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {item.frequency === "rutin" && (
               <div className="space-y-1">
-                <Label className="text-[10px] text-muted-foreground">Interval</Label>
+                <Label className="text-xs text-muted-foreground">Interval</Label>
                 <Select value={item.recurringInterval || "mingguan"} onValueChange={(v) => updateItem(index, "recurringInterval", v)} disabled={disabled}>
-                  <SelectTrigger size="sm" className="w-full text-[10px] bg-background"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-full text-sm bg-background"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="harian" className="text-xs">Harian</SelectItem>
-                    <SelectItem value="mingguan" className="text-xs">Mingguan</SelectItem>
-                    <SelectItem value="bulanan" className="text-xs">Bulanan</SelectItem>
-                    <SelectItem value="triwulan" className="text-xs">Triwulan</SelectItem>
+                    <SelectItem value="harian" className="text-sm">Harian</SelectItem>
+                    <SelectItem value="mingguan" className="text-sm">Mingguan</SelectItem>
+                    <SelectItem value="bulanan" className="text-sm">Bulanan</SelectItem>
+                    <SelectItem value="triwulan" className="text-sm">Triwulan</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             )}
             {item.frequency === "rutin" && (item.recurringInterval === "mingguan" || (!item.recurringInterval)) && (
               <div className="space-y-1">
-                <Label className="text-[10px] text-muted-foreground">Tenggat Hari</Label>
+                <Label className="text-xs text-muted-foreground">Tenggat Hari</Label>
                 <Select 
                   value={String(item.reportDay ?? 5)} 
                   onValueChange={(v) => {
@@ -157,22 +290,22 @@ export function MitigationTable({ items, onChange, disabled, users = [] }: Mitig
                   }}
                   disabled={disabled}
                 >
-                  <SelectTrigger size="sm" className="w-full text-[10px] bg-background"><SelectValue placeholder="Pilih Hari" /></SelectTrigger>
+                  <SelectTrigger className="w-full text-sm bg-background"><SelectValue placeholder="Pilih Hari" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1" className="text-xs">Senin</SelectItem>
-                    <SelectItem value="2" className="text-xs">Selasa</SelectItem>
-                    <SelectItem value="3" className="text-xs">Rabu</SelectItem>
-                    <SelectItem value="4" className="text-xs">Kamis</SelectItem>
-                    <SelectItem value="5" className="text-xs">Jumat</SelectItem>
-                    <SelectItem value="6" className="text-xs">Sabtu</SelectItem>
-                    <SelectItem value="0" className="text-xs">Minggu</SelectItem>
+                    <SelectItem value="1" className="text-sm">Senin</SelectItem>
+                    <SelectItem value="2" className="text-sm">Selasa</SelectItem>
+                    <SelectItem value="3" className="text-sm">Rabu</SelectItem>
+                    <SelectItem value="4" className="text-sm">Kamis</SelectItem>
+                    <SelectItem value="5" className="text-sm">Jumat</SelectItem>
+                    <SelectItem value="6" className="text-sm">Sabtu</SelectItem>
+                    <SelectItem value="0" className="text-sm">Minggu</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             )}
             {item.frequency === "rutin" && (item.recurringInterval === "bulanan" || item.recurringInterval === "triwulan") && (
               <div className="space-y-1">
-                <Label className="text-[10px] text-muted-foreground">Tenggat Tanggal</Label>
+                <Label className="text-xs text-muted-foreground">Tenggat Tanggal</Label>
                 <Select 
                   value={String(item.reportDate ?? 5)} 
                   onValueChange={(v) => {
@@ -182,10 +315,10 @@ export function MitigationTable({ items, onChange, disabled, users = [] }: Mitig
                   }}
                   disabled={disabled}
                 >
-                  <SelectTrigger size="sm" className="w-full text-[10px] bg-background"><SelectValue placeholder="Tanggal" /></SelectTrigger>
+                  <SelectTrigger className="w-full text-sm bg-background"><SelectValue placeholder="Tanggal" /></SelectTrigger>
                   <SelectContent>
                     {Array.from({ length: 28 }, (_, i) => (
-                      <SelectItem key={i + 1} value={String(i + 1)} className="text-xs">Tgl {i + 1}</SelectItem>
+                      <SelectItem key={i + 1} value={String(i + 1)} className="text-sm">Tgl {i + 1}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { HeatmapVelocityCell } from "@/types/risk";
-import { BobotMatrix, getRiskLevelFromNilai, levelToColor, getRiskLevelLabel } from "@/lib/risk";
+import { getBobot, calculateNilai, getRiskLevelFromNilai, levelToColor, getRiskLevelLabel } from "@/lib/risk";
 
 const impactLabels = ["Tdk Signifikan", "Kecil", "Sedang", "Besar", "Katastropik"];
 const likelihoodLabels = ["Jarang", "Kemungkinan Kecil", "Kemungkinan Sedang", "Kemungkinan Besar", "Hampir Pasti"];
@@ -20,9 +20,11 @@ const heatmapLevelColors: Record<string, string> = {
   sangat_tinggi: "heatmap-sangat-tinggi",
 };
 
-function getRiskLevelFromMatrix(prob: number, impact: number): string {
-  const bobot = BobotMatrix[prob]?.[impact] ?? 1.0;
-  const nilai = prob * impact * bobot;
+function getRiskLevelFromMatrix(probIndex: number, impactIndex: number): string {
+  const prob = probIndex + 1;
+  const impact = impactIndex + 1;
+  const bobot = getBobot(prob, impact);
+  const nilai = calculateNilai(prob, impact, bobot);
   return getRiskLevelFromNilai(nilai);
 }
 

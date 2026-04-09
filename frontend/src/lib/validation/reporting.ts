@@ -8,6 +8,11 @@ export interface MitigationReportFormValues {
 export interface KRIReportFormValues {
   value: string;
   notes: string;
+  evidenceUrl?: string;
+}
+
+export interface KRISkipFormValues {
+  reason: string;
 }
 
 type FieldErrors<T extends string> = Partial<Record<T, string>>;
@@ -99,6 +104,11 @@ export function validateKRIReportForm(
     errors.notes = `Catatan maksimal ${MAX_NOTES_LENGTH} karakter.`;
   }
 
+  const evidenceUrl = values.evidenceUrl?.trim() || "";
+  if (evidenceUrl && !isValidHttpUrl(evidenceUrl)) {
+    errors.evidenceUrl = "Link bukti harus berupa URL http:// atau https:// yang valid.";
+  }
+
   return errors;
 }
 
@@ -106,5 +116,23 @@ export function normalizeKRIReportPayload(values: KRIReportFormValues) {
   return {
     value: Number(values.value.trim()),
     notes: values.notes.trim(),
+    evidenceUrl: values.evidenceUrl?.trim() || undefined,
   };
+}
+
+export function validateKRISkipForm(
+  values: KRISkipFormValues
+): FieldErrors<keyof KRISkipFormValues> {
+  const errors: FieldErrors<keyof KRISkipFormValues> = {};
+  const reason = values.reason.trim();
+
+  if (!reason) {
+    errors.reason = "Alasan skip wajib diisi.";
+  } else if (reason.length < 5) {
+    errors.reason = "Alasan skip minimal 5 karakter.";
+  } else if (reason.length > MAX_NOTES_LENGTH) {
+    errors.reason = `Alasan skip maksimal ${MAX_NOTES_LENGTH} karakter.`;
+  }
+
+  return errors;
 }

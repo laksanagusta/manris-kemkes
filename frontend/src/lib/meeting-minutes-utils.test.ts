@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   filterMeetingRiskOptions,
   normalizeMeetingMinuteDate,
-} from "./meeting-minutes-utils";
+} from "./meeting-minutes-utils.mjs";
 
 test("normalizeMeetingMinuteDate keeps yyyy-mm-dd values", () => {
   assert.equal(normalizeMeetingMinuteDate("2026-04-02"), "2026-04-02");

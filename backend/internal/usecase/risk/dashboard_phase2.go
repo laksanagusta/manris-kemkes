@@ -170,7 +170,7 @@ func (uc *ExecutiveAlertsUseCase) Execute(ctx context.Context, input ExecutiveAl
 
 	alerts := make([]rankedAlert, 0)
 	for _, risk := range currentRisks {
-		if risk.GetInherentScore() < 17 {
+		if risk.GetEffectiveScore() < 17 {
 			continue
 		}
 		if _, ok := comparisonByCode[risk.Code]; ok {

@@ -32,6 +32,17 @@ type KRI struct {
 	CreatedAt         time.Time  `json:"createdAt"`
 }
 
+func (k *KRI) normalizedDirection() string {
+	switch k.Direction {
+	case "higher_worse", "increasing":
+		return "higher_worse"
+	case "lower_worse", "decreasing":
+		return "lower_worse"
+	default:
+		return k.Direction
+	}
+}
+
 // Validate performs domain validation on KRI
 func (k *KRI) Validate() error {
 	if k.Name == "" {
@@ -40,19 +51,30 @@ func (k *KRI) Validate() error {
 	if k.ThresholdMin >= k.ThresholdMax {
 		return errors.ErrInvalidThreshold
 	}
+	switch k.normalizedDirection() {
+	case "higher_worse":
+		if k.AmberThresholdMax == nil {
+			return errors.ErrInvalidThreshold
+		}
+	case "lower_worse":
+		if k.AmberThresholdMin == nil {
+			return errors.ErrInvalidThreshold
+		}
+	}
 	return nil
 }
 
 // IsThresholdBreached checks if current value breaches threshold
 func (k *KRI) IsThresholdBreached() bool {
-	if k.Direction == "increasing" {
+	switch k.normalizedDirection() {
+	case "higher_worse":
 		return k.CurrentValue > k.ThresholdMax
-	}
-	if k.Direction == "decreasing" {
+	case "lower_worse":
 		return k.CurrentValue < k.ThresholdMin
+	default:
+		// For bidirectional or no direction
+		return k.CurrentValue < k.ThresholdMin || k.CurrentValue > k.ThresholdMax
 	}
-	// For bidirectional or no direction
-	return k.CurrentValue < k.ThresholdMin || k.CurrentValue > k.ThresholdMax
 }
 
 // GetStatus returns the status of KRI based on current value
@@ -60,12 +82,21 @@ func (k *KRI) GetStatus() string {
 	if k.IsThresholdBreached() {
 		return "breached"
 	}
-	if k.Direction == "increasing" {
-		if k.CurrentValue >= (k.ThresholdMax * 0.9) {
+	switch k.normalizedDirection() {
+	case "higher_worse":
+		if k.AmberThresholdMax != nil {
+			if k.CurrentValue >= *k.AmberThresholdMax {
+				return "warning"
+			}
+		} else if k.CurrentValue >= (k.ThresholdMax * 0.9) {
 			return "warning"
 		}
-	} else if k.Direction == "decreasing" {
-		if k.CurrentValue <= (k.ThresholdMin * 1.1) {
+	case "lower_worse":
+		if k.AmberThresholdMin != nil {
+			if k.CurrentValue <= *k.AmberThresholdMin {
+				return "warning"
+			}
+		} else if k.CurrentValue <= (k.ThresholdMin * 1.1) {
 			return "warning"
 		}
 	}

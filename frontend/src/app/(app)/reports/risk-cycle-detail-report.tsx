@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
-import { exportRiskCycleDetailCSV, exportRiskCycleDetailXLSX } from "@/lib/risk-cycle-detail-export";
+import { classifyRiskCycleDetailMovement, exportRiskCycleDetailCSV, exportRiskCycleDetailXLSX } from "@/lib/risk-cycle-detail-export";
 import { cn } from "@/lib/utils";
 import type {
   RiskCycleDetailedComparisonItem,
@@ -152,17 +152,7 @@ function buildFilteredSummary(report: RiskCycleDetailedComparisonReport, items: 
 }
 
 function deriveMovementFromDetailItem(item: RiskCycleDetailedComparisonItem): MovementFilter | null {
-  if (item.changeCategory === "added") return "new";
-  if (item.changeCategory === "removed") return "removed";
-  if (item.changeCategory === "stable") return "stable";
-  if (item.changeCategory !== "changed") return null;
-
-  const beforeScore = item.fromSnapshot?.nilai ?? ((item.fromSnapshot?.probability ?? 0) * (item.fromSnapshot?.impact ?? 0));
-  const afterScore = item.toSnapshot?.nilai ?? ((item.toSnapshot?.probability ?? 0) * (item.toSnapshot?.impact ?? 0));
-
-  if (afterScore > beforeScore) return "up";
-  if (afterScore < beforeScore) return "down";
-  return "stable";
+  return classifyRiskCycleDetailMovement(item);
 }
 
 function FieldDiffTable({ diffs }: { diffs: RiskFieldDiff[] }) {
@@ -177,8 +167,8 @@ function FieldDiffTable({ diffs }: { diffs: RiskFieldDiff[] }) {
           <TableRow>
             <TableHead className="w-36">Kolom</TableHead>
             <TableHead className="w-28">Status</TableHead>
-            <TableHead>Sebelum</TableHead>
-            <TableHead>Sesudah</TableHead>
+            <TableHead className="min-w-[200px] max-w-[400px]">Sebelum</TableHead>
+            <TableHead className="min-w-[200px] max-w-[400px]">Sesudah</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -195,8 +185,16 @@ function FieldDiffTable({ diffs }: { diffs: RiskFieldDiff[] }) {
                   {diff.changeType}
                 </Badge>
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">{formatValue(diff.before)}</TableCell>
-              <TableCell className="text-sm text-foreground">{formatValue(diff.after)}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                <div className="break-words whitespace-pre-wrap py-1">
+                  {formatValue(diff.before)}
+                </div>
+              </TableCell>
+              <TableCell className="text-sm text-foreground">
+                <div className="break-words whitespace-pre-wrap py-1">
+                  {formatValue(diff.after)}
+                </div>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -220,7 +218,7 @@ function MitigationDiffTable({ diffs }: { diffs: RiskMitigationDiff[] }) {
             </Badge>
             <span className="text-sm font-medium text-foreground">Mitigasi #{diff.rowKey}</span>
             {(diff.afterLabel || diff.beforeLabel) ? (
-              <span className="text-xs text-muted-foreground">{diff.beforeLabel || diff.afterLabel}</span>
+              <span className="break-words text-xs text-muted-foreground">{diff.beforeLabel || diff.afterLabel}</span>
             ) : null}
           </div>
           <FieldDiffTable diffs={diff.fieldDiffs} />
@@ -548,8 +546,8 @@ export function RiskCycleDetailReport({
                                   </div>
                                   <div className="rounded-lg border border-border/60 bg-card p-3 text-sm">
                                     <p className="text-xs uppercase tracking-wider text-muted-foreground">Versi Risiko</p>
-                                    <p className="mt-1 text-foreground">From: {item.fromRiskId || "-"}</p>
-                                    <p className="text-foreground">To: {item.toRiskId || "-"}</p>
+                                    <p className="mt-1 break-words text-foreground">From: {item.fromRiskId || "-"}</p>
+                                    <p className="break-words text-foreground">To: {item.toRiskId || "-"}</p>
                                   </div>
                                 </div>
                                 <div className="space-y-2">

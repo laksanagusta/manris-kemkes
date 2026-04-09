@@ -133,7 +133,7 @@ export default function KRIDetailPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-4xl mx-auto pb-20">
+    <div className="space-y-6 animate-fade-in max-w-6xl mx-auto pb-20">
       {/* Header */}
       <FormHeader
         title={kri.name}
@@ -186,9 +186,9 @@ export default function KRIDetailPage() {
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-4">
         {/* Main Stats */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="md:col-span-3 space-y-6">
           <Card className="border-border/50 bg-card/80">
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">

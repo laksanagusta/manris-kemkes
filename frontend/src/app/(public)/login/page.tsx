@@ -63,10 +63,16 @@ export default function LoginPage() {
         {/* Logo & title */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 p-2.5">
-            <Image src="/logo.svg" alt="MANRIS logo" width={44} height={44} className="object-contain" />
+            <Image
+              src="/logo.svg"
+              alt="MANRIS logo"
+              width={44}
+              height={44}
+              className="object-contain"
+            />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">
-            <span className="gradient-text">MANRIS</span>
+            <span className="gradient-text">Manris</span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             AI-Driven Risk & Incident Management

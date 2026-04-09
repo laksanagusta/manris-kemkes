@@ -33,14 +33,14 @@ const levelColors: Record<string, string> = {
   Rendah: "text-risk-low",
   Sedang: "text-risk-medium",
   Tinggi: "text-risk-high",
-  Ekstrem: "text-risk-extreme",
+  "Sangat Tinggi": "text-risk-extreme",
 };
 
 const levelBadgeVariant: Record<string, string> = {
   Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
   Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
   Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  Ekstrem: "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+  "Sangat Tinggi": "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
 };
 
 function ConfidenceBar({ value }: { value: number }) {

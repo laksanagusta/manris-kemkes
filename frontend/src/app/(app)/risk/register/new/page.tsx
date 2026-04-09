@@ -43,6 +43,7 @@ import {
   MessageSquare,
   Activity,
   Plus,
+  Check,
   CheckCircle2,
   CircleDot,
   WandSparkles,
@@ -59,7 +60,7 @@ import {
   getBobot,
   calculateNilai,
   getRiskPriority,
-  calculateRiskMetrics,
+  resolveRiskScoreSemantics,
 } from "@/lib/risk";
 import { EditableList } from "@/components/shared/editable-list";
 import { EditableItemsTable } from "@/components/shared/editable-items-table";
@@ -74,6 +75,7 @@ import type {
   MitigationFrequency,
   RecurringInterval,
   RiskCategory,
+  RiskStatus,
 } from "@/types/risk";
 import {
   consumeMeetingIntelligencePrefill,
@@ -81,6 +83,10 @@ import {
   MEETING_INTELLIGENCE_PREFILL_KEY,
   type RiskDraftPrefill,
 } from "@/lib/meeting-intelligence";
+import {
+  ReviewSidePanel,
+  type RiskWorkflowState,
+} from "@/components/risk/review-side-panel";
 
 const RiskLogTimeline = dynamic(
   () =>
@@ -144,7 +150,7 @@ type RiskApiResponse = {
   organizationId?: string;
   code?: string;
   assessmentCycle?: string;
-  draftApprovalLine?: { id: string; name: string }[];
+  draftApprovalLine?: { id: string; name: string; type?: string }[];
   cause?: string[] | string;
   riskSource?: string;
   controllability?: "C" | "UC";
@@ -162,6 +168,16 @@ type RiskApiResponse = {
   targetImpact?: number;
   targetWeight?: number;
   nextReviewDate?: string;
+  // Reviewed scoring fields
+  reviewedProbability?: number | null;
+  reviewedImpact?: number | null;
+  reviewedWeight?: number | null;
+  reviewedNilai?: number | null;
+  reviewedScore?: number | null;
+  scoreChangeLabel?: string;
+  effectivenessLabel?: string;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
 };
 
 const riskCategoryValues: RiskCategory[] = [
@@ -324,7 +340,7 @@ const formSchema = z.object({
 
   riskPriority: z.number().min(0).default(0),
   riskAppetite: z.enum(["dalam_batas", "di_atas_batas"]).default("dalam_batas"),
-  treatmentOption: z.enum(["menerima", "mitigasi"]).default(""),
+  treatmentOption: z.enum(["menerima", "mitigasi"]).optional(),
 
   mitigations: z
     .array(
@@ -333,6 +349,7 @@ const formSchema = z.object({
         action: z.string(),
         owner: z.string().default(""),
         treatmentOwnerId: z.string().optional(),
+        externalPicId: z.string().optional(),
         dueDate: z.string().optional(),
         frequency: z.string().default("insidental"),
         recurringInterval: z.string().optional(),
@@ -389,9 +406,10 @@ function normalizeFormValues(values: FormInput): FormValues {
     probability: values.probability ?? 3,
     impact: values.impact ?? 3,
     weight: values.weight ?? 1,
+    nilai: values.nilai ?? 0,
     riskPriority: values.riskPriority ?? 0,
     riskAppetite: values.riskAppetite ?? "dalam_batas",
-    treatmentOption: values.treatmentOption ?? "",
+    treatmentOption: values.treatmentOption,
     mitigations: (values.mitigations ?? []).map((mitigation) => ({
       ...mitigation,
       owner: mitigation.owner ?? "",
@@ -400,8 +418,13 @@ function normalizeFormValues(values: FormInput): FormValues {
     targetProbability: values.targetProbability ?? 1,
     targetImpact: values.targetImpact ?? 1,
     targetWeight: values.targetWeight ?? 1,
+    targetNilai: values.targetNilai ?? 0,
     nextReviewDate: values.nextReviewDate ?? "",
   };
+}
+
+function dedupeApproverIds(ids: Array<string | undefined>) {
+  return [...new Set(ids.filter((id): id is string => Boolean(id)))];
 }
 
 export default function RiskInputPage() {
@@ -410,23 +433,34 @@ export default function RiskInputPage() {
 
   const [riskId, setRiskId] = useState<string | null>(null);
   const [riskStatus, setRiskStatus] = useState<string>("draft");
+  const [reviewerScoreData, setReviewerScoreData] = useState<{
+    reviewedProbability: number | null;
+    reviewedImpact: number | null;
+    reviewedWeight: number | null;
+    reviewedScore: number | null;
+    reviewedNilai: number | null;
+    scoreChangeLabel: string;
+    effectivenessLabel: string;
+  } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<
     { id: string; name: string }[]
   >([]);
   const [availableUsers, setAvailableUsers] = useState<
-    { id: string; name: string }[]
+    { id: string; name: string; role?: string }[]
   >([]);
+  const [reviewerId, setReviewerId] = useState<string>("");
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
   const [approvalLine, setApprovalLine] = useState<
-    { id: string; name: string }[]
+    { id: string; name: string; role?: string }[]
   >([]);
+  const [approvalId, setApprovalId] = useState<string | null>(null);
+  const [approvalWorkflow, setApprovalWorkflow] = useState<RiskWorkflowState | null>(null);
   const [assessmentCycleDisplay, setAssessmentCycleDisplay] = useState(
     currentAssessmentCycle(),
   );
-  const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const submitTarget = useRef<"draft" | "finalize">("draft");
+  const submitTarget = useRef<"draft" | "review">("draft");
 
   const form = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(formSchema),
@@ -447,7 +481,7 @@ export default function RiskInputPage() {
       weight: 1.0,
       riskPriority: 0,
       riskAppetite: "dalam_batas",
-      treatmentOption: "",
+      treatmentOption: undefined,
       mitigations: [],
       targetProbability: 1,
       targetImpact: 1,
@@ -551,7 +585,7 @@ export default function RiskInputPage() {
           riskCode: risk.code || "",
           causes: loadedCauses,
           impacts: loadedImpacts,
-          riskSource: risk.riskSource || "internal",
+          riskSource: (risk.riskSource === "eksternal" ? "eksternal" : "internal") as "internal" | "eksternal",
           controllability: risk.controllability === "UC" ? "UC" : "C",
           existingControl: risk.existingControl || "",
           controlEffectiveness: risk.controlEffectiveness || "",
@@ -559,8 +593,8 @@ export default function RiskInputPage() {
           impact: risk.impact || 3,
           weight: risk.weight || 1.0,
           riskPriority: risk.riskPriority || 0,
-          riskAppetite: risk.riskAppetite || "dalam_batas",
-          treatmentOption: risk.treatmentOption || "",
+          riskAppetite: (risk.riskAppetite === "di_atas_batas" ? "di_atas_batas" : "dalam_batas") as "dalam_batas" | "di_atas_batas",
+          treatmentOption: risk.treatmentOption as "menerima" | "mitigasi" | undefined,
           mitigations: Array.isArray(risk.mitigations)
             ? risk.mitigations.map((mitigation) => ({
                 ...mitigation,
@@ -577,28 +611,93 @@ export default function RiskInputPage() {
         setAssessmentCycleDisplay(
           risk.assessmentCycle || currentAssessmentCycle(),
         );
-        setApprovalLine(
-          Array.isArray(risk.draftApprovalLine) ? risk.draftApprovalLine : [],
-        );
 
-        if (risk.status && risk.status !== "draft") {
+        // Load reviewer score data
+        if (risk.reviewedProbability && risk.reviewedImpact) {
+          setReviewerScoreData({
+            reviewedProbability: risk.reviewedProbability,
+            reviewedImpact: risk.reviewedImpact,
+            reviewedWeight: risk.reviewedWeight ?? null,
+            reviewedScore: risk.reviewedScore ?? null,
+            reviewedNilai: risk.reviewedNilai ?? null,
+            scoreChangeLabel: risk.scoreChangeLabel || "",
+            effectivenessLabel: risk.effectivenessLabel || "",
+          });
+        } else {
+          setReviewerScoreData(null);
+        }
+        if (Array.isArray(risk.draftApprovalLine) && risk.draftApprovalLine.length > 0) {
+          const hasTypedMembers = risk.draftApprovalLine.some((member) => member.type);
+          if (hasTypedMembers) {
+            const reviewer = risk.draftApprovalLine.find(
+              (member: { type?: string }) => member.type === "review",
+            );
+            const approvers = risk.draftApprovalLine.filter(
+              (member: { type?: string }) => member.type === "approval",
+            );
+            setReviewerId(reviewer?.id || "");
+            setApprovalLine(approvers);
+          } else {
+            setReviewerId("");
+            setApprovalLine(risk.draftApprovalLine);
+          }
+        } else {
+          setReviewerId("");
+          setApprovalLine([]);
+        }
+
+        if (risk.status) {
+          setApprovalId(null);
+          setApprovalWorkflow(null);
           try {
             const approvalResult = await api.get<{
-              steps?: { approverUserId?: string; approverName?: string }[];
+              id?: string;
+              currentStatus?: string;
+              currentApproverRole?: string;
+              currentApproverUserId?: string;
+              steps?: {
+                approverUserId?: string;
+                approverName?: string;
+                stepType?: string;
+                status?: string;
+              }[];
             } | null>(
               `/approvals/by-entity?request_type=risk&entity_id=${id}`,
               token ?? undefined,
             );
+            setApprovalId(approvalResult?.id ?? null);
+            setApprovalWorkflow(
+              approvalResult
+                ? {
+                    currentStatus: approvalResult.currentStatus ?? null,
+                    currentApproverRole: approvalResult.currentApproverRole ?? null,
+                    currentApproverUserId: approvalResult.currentApproverUserId ?? null,
+                    steps:
+                      approvalResult.steps?.map((step) => ({
+                        approverUserId: step.approverUserId ?? null,
+                        approverName: step.approverName ?? null,
+                        stepType: step.stepType ?? null,
+                        status: step.status ?? null,
+                      })) ?? [],
+                  }
+                : null,
+            );
             if (approvalResult?.steps && Array.isArray(approvalResult.steps)) {
+              const reviewerStep = approvalResult.steps.find((s) => s.stepType === 'review');
               const approvalSteps = approvalResult.steps
-                .filter((step) => step.approverUserId && step.approverName)
+                .filter((step) => step.stepType === 'approval' && step.approverUserId && step.approverName)
                 .map((step) => ({
                   id: step.approverUserId!,
                   name: step.approverName!,
                 }));
+              if (reviewerStep?.approverUserId) {
+                setReviewerId(reviewerStep.approverUserId);
+              }
               setApprovalLine(approvalSteps);
             }
           } catch (approvalError) {
+            setApprovalId(null);
+            setApprovalWorkflow(null);
             if (
               approvalError instanceof ApiError &&
               approvalError.status !== 404
@@ -606,6 +705,9 @@ export default function RiskInputPage() {
               console.error("Failed to load approval line:", approvalError);
             }
           }
+        } else {
+          setApprovalId(null);
+          setApprovalWorkflow(null);
         }
       } catch (error) {
         console.error("Failed to load risk data:", error);
@@ -650,21 +752,21 @@ export default function RiskInputPage() {
           console.error(err);
         }
 
-        api
-          .get<RoleUser[]>("/users", token)
-          .then((res) => {
-            const mappedUsers = res
-              .filter(
-                (u) =>
-                  u.role === "unit" ||
-                  u.role === "reviewer" ||
-                  u.role === "pimpinan" ||
-                  u.role === "superadmin",
-              )
-              .map((u) => ({ id: u.id, name: u.name }));
-            setAvailableUsers(mappedUsers);
-          })
-          .catch(console.error);
+        try {
+          const usersRes = await api.get<RoleUser[]>("/users", token);
+          const mappedUsers = usersRes
+            .filter(
+              (u) =>
+                u.role === "unit" ||
+                u.role === "reviewer" ||
+                u.role === "pimpinan" ||
+                u.role === "superadmin",
+            )
+            .map((u) => ({ id: u.id, name: u.name, role: u.role }));
+          setAvailableUsers(mappedUsers);
+        } catch (err) {
+          console.error(err);
+        }
       }
 
       const searchParams = new URLSearchParams(window.location.search);
@@ -786,6 +888,39 @@ export default function RiskInputPage() {
   const targetNilai = useMemo(() => calculateNilai(targetProbability, targetImpact, targetWeight), [targetProbability, targetImpact, targetWeight]);
   const targetLevel = useMemo(() => getRiskLevelFromNilai(targetNilai), [targetNilai]);
   const targetPriority = useMemo(() => getRiskPriority(targetLevel), [targetLevel]);
+  const currentScoreSemantics = useMemo(
+    () =>
+      resolveRiskScoreSemantics({
+        status: riskStatus as RiskStatus,
+        probability,
+        impact,
+        weight,
+        nilai,
+        inherentScore: Math.round(nilai),
+        reviewedProbability: reviewerScoreData?.reviewedProbability,
+        reviewedImpact: reviewerScoreData?.reviewedImpact,
+        reviewedWeight: reviewerScoreData?.reviewedWeight,
+        reviewedNilai: reviewerScoreData?.reviewedNilai,
+        reviewedScore: reviewerScoreData?.reviewedScore,
+      }),
+    [
+      impact,
+      nilai,
+      probability,
+      reviewerScoreData?.reviewedImpact,
+      reviewerScoreData?.reviewedNilai,
+      reviewerScoreData?.reviewedProbability,
+      reviewerScoreData?.reviewedScore,
+      reviewerScoreData?.reviewedWeight,
+      riskStatus,
+      weight,
+    ],
+  );
+  const currentPrimarySnapshot = currentScoreSemantics.effective;
+  const currentScoreLabel =
+    currentScoreSemantics.isFinalized && currentScoreSemantics.usesReviewed
+      ? "Skor Final"
+      : "Skor Inherent";
   const canUseAiAssist =
     title.trim().length > 0 && description.trim().length > 0;
 
@@ -860,7 +995,8 @@ export default function RiskInputPage() {
   const missingSections = sectionStatuses.filter((section) => !section.done);
   const isFinalizeReady = missingSections.length === 0;
   const isRiskLocked =
-    riskStatus === "final" ||
+    riskStatus === "in_review" ||
+    riskStatus === "in_approval" ||
     riskStatus === "approved" ||
     riskStatus === "rejected";
 
@@ -931,15 +1067,33 @@ export default function RiskInputPage() {
       orgId = data.organizationId;
     }
 
-    console.log("orgId", orgId);
-
     return {
       title: data.title,
       description: data.description,
       category: data.category,
       status,
       organizationId: orgId,
-      draftApprovalLine: approvalLine,
+      draftApprovalLine: [
+        ...(reviewerId
+          ? [
+              {
+                id: reviewerId,
+                name:
+                  availableUsers.find((userOption) => userOption.id === reviewerId)
+                    ?.name || "Reviewer",
+                type: "review" as const,
+              },
+            ]
+          : []),
+        ...approvalLine
+          .filter((member) => member.id && member.id !== reviewerId)
+          .map((member) => ({
+            id: member.id,
+            name: member.name,
+            role: member.role,
+            type: "approval" as const,
+          })),
+      ],
       cause: (data.causes || [])
         .map((cause) => cause.text)
         .filter((text) => text.trim()),
@@ -1037,11 +1191,18 @@ export default function RiskInputPage() {
           return;
         }
       } else {
-        if (approvalLine.length === 0) {
-          toast.error("Pilih minimal 1 approver sebelum mengajukan approval.");
+        if (!reviewerId) {
+          toast.error("Pilih Reviewer sebelum mengajukan review.");
           return;
         }
-        // Finalize
+        const approverIds = dedupeApproverIds([
+          reviewerId,
+          ...approvalLine.map((member) => member.id),
+        ]);
+        if (approverIds.length === 0) {
+          toast.error("Susun reviewer dan approval line terlebih dahulu.");
+          return;
+        }
         try {
           await api.post(
             "/approvals/submit",
@@ -1049,15 +1210,16 @@ export default function RiskInputPage() {
               requestType: "risk",
               entityId: currentRiskId,
               notes: "",
-              approverIds: approvalLine.map((item) => item.id),
+              approverIds,
+              submissionType: "review",
             },
             token || undefined,
           );
-          toast.success("Risk berhasil disimpan dan diajukan untuk approval!");
+          toast.success("Risk berhasil disimpan dan diajukan untuk review!");
           router.push("/risk/register");
         } catch (approvalErr: unknown) {
           const errorMsg = getErrorMessage(approvalErr, "Unknown error");
-          toast.success(`Risk disimpan, namun gagal diajukan: ${errorMsg}`);
+          toast.error(`Risk disimpan, namun gagal diajukan: ${errorMsg}`);
           router.push("/risk/register");
         }
       }
@@ -1317,7 +1479,8 @@ export default function RiskInputPage() {
         actions={
           <>
             {riskId &&
-              (riskStatus === "final" ||
+              (riskStatus === "in_review" ||
+                riskStatus === "in_approval" ||
                 riskStatus === "approved" ||
                 riskStatus === "rejected") && (
                 <Button
@@ -1373,26 +1536,26 @@ export default function RiskInputPage() {
                 <Button
                   className="gap-2 text-xs"
                   onClick={() => {
-                    submitTarget.current = "finalize";
+                    submitTarget.current = "review";
                     clearErrors();
-                    if (approvalLine.length === 0) {
-                      toast.error("Susun approval line terlebih dahulu.");
+                    if (!reviewerId) {
+                      toast.error("Pilih Reviewer terlebih dahulu.");
                       return;
                     }
                     if (!isFinalizeReady) {
                       scrollToSection(missingSections[0]?.id ?? "identifikasi");
                       return;
                     }
-                    setShowApprovalConfirm(true);
+                    handleSubmit(onSubmit, onValidationError)();
                   }}
                   disabled={isSubmitting || !isFinalizeReady}
                 >
-                  {isSubmitting && submitTarget.current === "finalize" ? (
+                  {isSubmitting && submitTarget.current === "review" ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Send className="size-3.5" />
                   )}{" "}
-                  Ajukan approval
+                  Ajukan review
                 </Button>
               </>
             )}
@@ -1897,22 +2060,88 @@ export default function RiskInputPage() {
                 <div
                   className={cn(
                     "flex items-center justify-between rounded-lg border p-4",
-                    levelToColor(level),
+                    levelToColor(currentPrimarySnapshot.level),
                   )}
                 >
                   <div className="text-left">
                     <p className="text-xs font-semibold">Hasil Asesmen</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Bobot: {weight.toFixed(2)} | Prioritas: {riskPriority}
+                      Bobot: {currentPrimarySnapshot.weight.toFixed(2)} | Prioritas: {currentPrimarySnapshot.priority}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold">
-                      {getRiskLevelLabel(level)}
+                      {getRiskLevelLabel(currentPrimarySnapshot.level)}
                     </p>
-                    <p className="text-xs font-mono">Nilai: {Math.round(nilai)}</p>
+                    <p className="text-xs font-mono">
+                      {currentScoreLabel}: {currentPrimarySnapshot.score}
+                    </p>
                   </div>
                 </div>
+
+                {/* Reviewer Score Card — shown when approved with reviewer scores */}
+                {reviewerScoreData && riskStatus === "approved" && (
+                  <div className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary/5 p-4 animate-in slide-in-from-top-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex size-6 items-center justify-center rounded-md bg-primary/15">
+                        <Check className="size-3.5 text-primary" />
+                      </div>
+                      <h4 className="text-sm font-semibold text-primary">Skor Penilaian Reviewer</h4>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Skor Sementara */}
+                      <div className="rounded-md border border-border/50 bg-card p-3 space-y-1">
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Skor Sementara</p>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-2xl font-bold">{Math.round(nilai)}</span>
+                          <span className="text-xs text-muted-foreground">P{probability} × D{impact}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{getRiskLevelLabel(level)}</p>
+                      </div>
+
+                      {/* Skor Penilaian */}
+                      <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
+                        <p className="text-[10px] font-medium text-primary uppercase tracking-wider">Skor Penilaian</p>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-2xl font-bold text-primary">
+                            {reviewerScoreData.reviewedNilai ? Math.round(reviewerScoreData.reviewedNilai) : (reviewerScoreData.reviewedScore ?? "—")}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            P{reviewerScoreData.reviewedProbability} × D{reviewerScoreData.reviewedImpact}
+                          </span>
+                        </div>
+                        <p className="text-xs text-primary/80">Skor Resmi</p>
+                      </div>
+                    </div>
+
+                    {/* Labels */}
+                    <div className="flex flex-wrap gap-2">
+                      {reviewerScoreData.scoreChangeLabel && (
+                        <span className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium border",
+                          reviewerScoreData.scoreChangeLabel.includes("penurunan")
+                            ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                            : reviewerScoreData.scoreChangeLabel.includes("peningkatan")
+                              ? "bg-red-500/10 text-red-700 border-red-500/20"
+                              : "bg-muted text-muted-foreground border-border/50"
+                        )}>
+                          {reviewerScoreData.scoreChangeLabel}
+                        </span>
+                      )}
+                      {reviewerScoreData.effectivenessLabel && (
+                        <span className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium border",
+                          reviewerScoreData.effectivenessLabel === "Efektif"
+                            ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                            : "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                        )}>
+                          {reviewerScoreData.effectivenessLabel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -2019,6 +2248,7 @@ export default function RiskInputPage() {
                           action: mitigation.action,
                           owner: mitigation.owner ?? "",
                           treatmentOwnerId: mitigation.treatmentOwnerId,
+                          externalPicId: mitigation.externalPicId,
                           dueDate: mitigation.dueDate ?? "",
                           frequency:
                             (mitigation.frequency as
@@ -2153,7 +2383,7 @@ export default function RiskInputPage() {
                     <p className="text-lg font-bold">
                       {getRiskLevelLabel(targetLevel)}
                     </p>
-                    <p className="text-xs font-mono">Nilai: {Math.round(targetNilai)}</p>
+                    <p className="text-xs font-mono">Skor Target: {Math.round(targetNilai)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -2169,10 +2399,43 @@ export default function RiskInputPage() {
                 ready={approvalLine.length > 0}
               />
               <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Pilih urutan user yang akan approve risk ini. Approver pertama
-                  harus approve dulu sebelum approver berikutnya aktif.
-                </p>
+                <div className="space-y-1.5 pb-4 border-b border-border/20">
+                  <Label className="text-sm font-medium">
+                    Reviewer (Pemeriksa)
+                    <span className="text-destructive ml-0.5">*</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Pilih reviewer yang akan memeriksa dan memberikan skor penilaian sebelum risk ini disetujui.
+                  </p>
+                  <Select
+                    value={reviewerId}
+                    onValueChange={setReviewerId}
+                    disabled={isRiskLocked}
+                  >
+                    <SelectTrigger className="h-9 text-sm md:w-[320px]">
+                      <SelectValue placeholder="Pilih reviewer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableUsers
+                        .filter((u) => u.role === "reviewer")
+                        .map((u) => (
+                          <SelectItem key={u.id} value={u.id} className="text-sm">
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="pt-6">
+                  <Label className="text-sm font-medium">
+                    Approval Line (Pimpinan)
+                    <span className="text-destructive ml-0.5">*</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-3 mt-1">
+                    Pilih urutan user yang akan approve risk ini. Approver pertama
+                    harus approve dulu sebelum approver berikutnya aktif.
+                  </p>
 
                 <div className="flex flex-col gap-3 md:flex-row">
                   <Select
@@ -2212,7 +2475,7 @@ export default function RiskInputPage() {
                   </Button>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 pt-4">
                   {approvalLine.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
                       Belum ada approver. Tambahkan minimal satu user sebelum
@@ -2267,6 +2530,7 @@ export default function RiskInputPage() {
                     ))
                   )}
                 </div>
+                </div>
               </CardContent>
             </Card>
           </form>
@@ -2309,6 +2573,24 @@ export default function RiskInputPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <ReviewSidePanel
+              approvalId={approvalId}
+              approvalWorkflow={approvalWorkflow}
+              currentUserId={user?.id || ""}
+              riskStatus={riskStatus}
+              userRole={user?.role || ""}
+              inherentScore={currentScoreSemantics.inherent.score}
+              reviewedScore={reviewerScoreData?.reviewedScore}
+              reviewedProbability={reviewerScoreData?.reviewedProbability}
+              reviewedImpact={reviewerScoreData?.reviewedImpact}
+              token={token || undefined}
+              onActionComplete={() => {
+                if (riskId) {
+                  loadRiskData(riskId);
+                }
+              }}
+            />
           </div>
         </div>
       )}
@@ -2323,60 +2605,12 @@ export default function RiskInputPage() {
         <RiskLogTimeline riskId={riskId} token={token || ""} />
       )}
 
-      <Dialog open={showApprovalConfirm} onOpenChange={setShowApprovalConfirm}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Konfirmasi Pengajuan Approval</DialogTitle>
-            <DialogDescription>
-              Anda akan mengajukan risiko ini untuk persetujuan. Risk akan
-              dikirim ke approver berikut:
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            {approvalLine.map((approver, index) => (
-              <div
-                key={approver.id}
-                className="flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2"
-              >
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
-                  {index + 1}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{approver.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Approver #{index + 1}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowApprovalConfirm(false)}
-            >
-              Batal
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                setShowApprovalConfirm(false);
-                handleSubmit(onSubmit, onValidationError)();
-              }}
-            >
-              <CheckCircle2 className="size-3.5" /> Ya, Ajukan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Hapus Draft Risiko?</DialogTitle>
             <DialogDescription>
-              Draft yang dihapus tidak bisa dikembalikan. Risiko berstatus final
+              Draft yang dihapus tidak bisa dikembalikan. Risiko berstatus ditinjau
               harus dikembalikan ke draft terlebih dahulu sebelum dapat dihapus.
             </DialogDescription>
           </DialogHeader>

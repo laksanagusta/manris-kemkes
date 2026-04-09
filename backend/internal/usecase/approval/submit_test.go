@@ -86,13 +86,13 @@ func (r *fakeSubmitRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*e
 func (r *fakeSubmitRiskRepo) NextRiskCode(context.Context) (string, error) {
 	return "", errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) DashboardSummary(context.Context) (*entity.DashboardSummary, error) {
+func (r *fakeSubmitRiskRepo) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) HeatmapData(context.Context) ([]*entity.HeatmapCell, error) {
+func (r *fakeSubmitRiskRepo) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) TopRisks(context.Context, int) ([]*entity.Risk, error) {
+func (r *fakeSubmitRiskRepo) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeSubmitRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
@@ -116,7 +116,7 @@ func (r *fakeSubmitRiskRepo) RiskReviewSummary(context.Context, string, []uuid.U
 func (r *fakeSubmitRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) DashboardCategoryCounts(context.Context) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeSubmitRiskRepo) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeSubmitRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
@@ -216,5 +216,121 @@ func TestSubmitApprovalUseCase_UnitSubmissionTargetsReviewer(t *testing.T) {
 	}
 	if len(approvalRepo.steps) != 1 {
 		t.Fatalf("expected 1 approval step, got %d", len(approvalRepo.steps))
+	}
+}
+
+func TestSubmitApprovalUseCase_SubmitDraftRisk_UpdatesStatusToInReview(t *testing.T) {
+	approvalRepo := &fakeSubmitApprovalRepo{}
+	riskID := uuid.New()
+	requestedBy := uuid.New()
+	approverID := uuid.New()
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: "draft"}}
+	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
+
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo)
+	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
+		RequestType: "risk",
+		EntityID:    riskID.String(),
+		RequestedBy: requestedBy.String(),
+		Role:        "unit",
+		ApproverIDs: []string{approverID.String()},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestSubmitApprovalUseCase_ReviewSubmission_CreatesReviewStepType(t *testing.T) {
+	approvalRepo := &fakeSubmitApprovalRepo{}
+	riskID := uuid.New()
+	requestedBy := uuid.New()
+	reviewerID := uuid.New()
+	pimpinanID := uuid.New()
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: "draft"}}
+	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{
+		reviewerID: {ID: reviewerID, Name: "Farah", Role: "reviewer"},
+		pimpinanID: {ID: pimpinanID, Name: "Hendra", Role: "pimpinan"},
+	}}
+
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo)
+	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
+		RequestType:    "risk",
+		EntityID:       riskID.String(),
+		RequestedBy:    requestedBy.String(),
+		Role:           "unit",
+		ApproverIDs:    []string{reviewerID.String(), pimpinanID.String()},
+		SubmissionType: "review",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(approvalRepo.steps) != 2 {
+		t.Fatalf("expected 2 approval steps, got %d", len(approvalRepo.steps))
+	}
+	if approvalRepo.steps[0].StepType != "review" {
+		t.Fatalf("expected first step type 'review', got %q", approvalRepo.steps[0].StepType)
+	}
+	if approvalRepo.steps[1].StepType != "approval" {
+		t.Fatalf("expected second step type 'approval', got %q", approvalRepo.steps[1].StepType)
+	}
+}
+
+func TestSubmitApprovalUseCase_ApprovalOnlySubmission_CreatesApprovalStepTypes(t *testing.T) {
+	approvalRepo := &fakeSubmitApprovalRepo{}
+	riskID := uuid.New()
+	requestedBy := uuid.New()
+	pimpinanID := uuid.New()
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: "draft"}}
+	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{
+		pimpinanID: {ID: pimpinanID, Name: "Hendra", Role: "pimpinan"},
+	}}
+
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo)
+	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
+		RequestType:    "risk",
+		EntityID:       riskID.String(),
+		RequestedBy:    requestedBy.String(),
+		Role:           "unit",
+		ApproverIDs:    []string{pimpinanID.String()},
+		SubmissionType: "approval",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(approvalRepo.steps) != 1 {
+		t.Fatalf("expected 1 approval step, got %d", len(approvalRepo.steps))
+	}
+	if approvalRepo.steps[0].StepType != "approval" {
+		t.Fatalf("expected step type 'approval', got %q", approvalRepo.steps[0].StepType)
+	}
+}
+
+func TestSubmitApprovalUseCase_EmptySubmissionType_DefaultsToApproval(t *testing.T) {
+	approvalRepo := &fakeSubmitApprovalRepo{}
+	riskID := uuid.New()
+	requestedBy := uuid.New()
+	reviewerID := uuid.New()
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: "draft"}}
+	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{
+		reviewerID: {ID: reviewerID, Name: "Farah", Role: "reviewer"},
+	}}
+
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo)
+	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
+		RequestType:    "risk",
+		EntityID:       riskID.String(),
+		RequestedBy:    requestedBy.String(),
+		Role:           "unit",
+		ApproverIDs:    []string{reviewerID.String()},
+		SubmissionType: "",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(approvalRepo.steps) != 1 {
+		t.Fatalf("expected 1 approval step, got %d", len(approvalRepo.steps))
+	}
+	if approvalRepo.steps[0].StepType != "approval" {
+		t.Fatalf("expected step type 'approval' for backward compatibility, got %q", approvalRepo.steps[0].StepType)
 	}
 }

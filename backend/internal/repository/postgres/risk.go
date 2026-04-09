@@ -37,8 +37,9 @@ func (r *riskRepository) Create(ctx context.Context, risk *entity.Risk) error {
 		  cause, risk_source, controllability, impact_description,
 		  existing_control, control_effectiveness, probability, impact, weight, nilai, inherent_score,
 		  risk_priority, risk_appetite, treatment_option,
-		  target_probability, target_impact, target_weight, target_nilai, target_score, next_review_date, assessment_cycle, review_type, change_reason, review_summary, review_started_at, review_submitted_at, review_approved_at, draft_approval_line)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41)
+		  target_probability, target_impact, target_weight, target_nilai, target_score, next_review_date, assessment_cycle, review_type, change_reason, review_summary, review_started_at, review_submitted_at, review_approved_at, draft_approval_line,
+		  reviewed_probability, reviewed_impact, reviewed_weight, reviewed_nilai, reviewed_score, score_change_label, effectiveness_label, reviewed_by, reviewed_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50)
 		 RETURNING id, created_at, updated_at`,
 		risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID, risk.CreatedBy,
 		risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
@@ -46,6 +47,7 @@ func (r *riskRepository) Create(ctx context.Context, risk *entity.Risk) error {
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
 		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.TargetScore, risk.NextReviewDate,
 		risk.AssessmentCycle, risk.ReviewType, risk.ChangeReason, risk.ReviewSummary, risk.ReviewStartedAt, risk.ReviewSubmittedAt, risk.ReviewApprovedAt, mustJSON(risk.DraftApprovalLine),
+		risk.ReviewedProbability, risk.ReviewedImpact, risk.ReviewedWeight, risk.ReviewedNilai, risk.ReviewedScore, risk.ScoreChangeLabel, risk.EffectivenessLabel, risk.ReviewedBy, risk.ReviewedAt,
 	).Scan(&risk.ID, &risk.CreatedAt, &risk.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create risk: %w", err)
@@ -77,6 +79,9 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Ris
 		        r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 		        r.review_started_at, r.review_submitted_at, r.review_approved_at,
 		        COALESCE(r.draft_approval_line, '[]'::jsonb),
+		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
+		        COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
+		        r.reviewed_by, r.reviewed_at,
 		        r.created_at, r.updated_at,
 		        COALESCE(o.name, '') as org_name,
 		        COALESCE(u.name, '') as created_by_name
@@ -92,6 +97,9 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Ris
 		&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
 		&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
 		&draftApprovalLineRaw,
+		&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
+		&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
+		&risk.ReviewedBy, &risk.ReviewedAt,
 		&risk.CreatedAt, &risk.UpdatedAt,
 		&risk.OrgName, &risk.CreatedByName,
 	)
@@ -138,7 +146,10 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 		  risk_priority=$25, risk_appetite=$26, treatment_option=$27,
 		  target_probability=$28, target_impact=$29, target_weight=$30, target_nilai=$31, target_score=$32, next_review_date=$33,
 		  assessment_cycle=$34, review_type=$35, change_reason=$36, review_summary=$37, review_started_at=$38, review_submitted_at=$39, review_approved_at=$40,
-		  draft_approval_line=$41, updated_at=now()
+		  draft_approval_line=$41,
+		  reviewed_probability=$42, reviewed_impact=$43, reviewed_weight=$44, reviewed_nilai=$45, reviewed_score=$46,
+		  score_change_label=$47, effectiveness_label=$48, reviewed_by=$49, reviewed_at=$50,
+		  updated_at=now()
 		 WHERE id=$1`,
 		risk.ID, risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID,
 		risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
@@ -146,6 +157,8 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
 		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.TargetScore, risk.NextReviewDate,
 		risk.AssessmentCycle, risk.ReviewType, risk.ChangeReason, risk.ReviewSummary, risk.ReviewStartedAt, risk.ReviewSubmittedAt, risk.ReviewApprovedAt, mustJSON(risk.DraftApprovalLine),
+		risk.ReviewedProbability, risk.ReviewedImpact, risk.ReviewedWeight, risk.ReviewedNilai, risk.ReviewedScore,
+		risk.ScoreChangeLabel, risk.EffectivenessLabel, risk.ReviewedBy, risk.ReviewedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("update risk: %w", err)
@@ -173,6 +186,48 @@ func mustJSON(value any) []byte {
 	return encoded
 }
 
+func finalizedScoreExpr(alias string) string {
+	return fmt.Sprintf(`CASE
+		WHEN %[1]s.status = 'approved'
+			AND %[1]s.reviewed_probability IS NOT NULL
+			AND %[1]s.reviewed_impact IS NOT NULL
+			AND %[1]s.reviewed_weight IS NOT NULL
+			AND %[1]s.reviewed_nilai IS NOT NULL
+			AND %[1]s.reviewed_score IS NOT NULL
+		THEN %[1]s.reviewed_score
+		ELSE COALESCE(
+			%[1]s.inherent_score,
+			ROUND(COALESCE(%[1]s.nilai, %[1]s.probability * %[1]s.impact * COALESCE(%[1]s.weight, 1.0)))::int
+		)
+	END`, alias)
+}
+
+func finalizedProbabilityExpr(alias string) string {
+	return fmt.Sprintf(`CASE
+		WHEN %[1]s.status = 'approved'
+			AND %[1]s.reviewed_probability IS NOT NULL
+			AND %[1]s.reviewed_impact IS NOT NULL
+			AND %[1]s.reviewed_weight IS NOT NULL
+			AND %[1]s.reviewed_nilai IS NOT NULL
+			AND %[1]s.reviewed_score IS NOT NULL
+		THEN %[1]s.reviewed_probability
+		ELSE %[1]s.probability
+	END`, alias)
+}
+
+func finalizedImpactExpr(alias string) string {
+	return fmt.Sprintf(`CASE
+		WHEN %[1]s.status = 'approved'
+			AND %[1]s.reviewed_probability IS NOT NULL
+			AND %[1]s.reviewed_impact IS NOT NULL
+			AND %[1]s.reviewed_weight IS NOT NULL
+			AND %[1]s.reviewed_nilai IS NOT NULL
+			AND %[1]s.reviewed_score IS NOT NULL
+		THEN %[1]s.reviewed_impact
+		ELSE %[1]s.impact
+	END`, alias)
+}
+
 // Delete deletes a risk
 func (r *riskRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := r.pool.Exec(ctx, "DELETE FROM risks WHERE id = $1", id)
@@ -191,6 +246,9 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
 	                  r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
+	                  r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
+	                  COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
+	                  r.reviewed_by, r.reviewed_at,
 	                  r.created_at, r.updated_at,
 	                  COALESCE(o.name, '') as org_name,
 	                  COALESCE(u.name, '') as created_by_name
@@ -239,6 +297,9 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
 			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
 			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
+			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
+			&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
+			&risk.ReviewedBy, &risk.ReviewedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 		); err != nil {
@@ -258,6 +319,9 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
 	                  r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
+	                  r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
+	                  COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
+	                  r.reviewed_by, r.reviewed_at,
 	                  r.created_at, r.updated_at,
 	                  COALESCE(o.name, '') as org_name,
 	                  COALESCE(u.name, '') as created_by_name
@@ -291,6 +355,9 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
 			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
 			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
+			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
+			&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
+			&risk.ReviewedBy, &risk.ReviewedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 		); err != nil {
@@ -359,22 +426,23 @@ func (r *riskRepository) NextRiskCode(ctx context.Context) (string, error) {
 // DashboardSummary returns KPI card data for a specific cycle (or all cycles if empty)
 func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string) (*entity.DashboardSummary, error) {
 	s := &entity.DashboardSummary{}
+	scoreExpr := finalizedScoreExpr("r")
 	var baseQuery string
 	if cycle != "" {
-		baseQuery = "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_cycle_current = TRUE AND assessment_cycle = $1"
+		baseQuery = fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1")
 		if err := r.pool.QueryRow(ctx, baseQuery, cycle).Scan(&s.TotalRisks); err != nil {
 			return nil, fmt.Errorf("count risks: %w", err)
 		}
-		baseQuery = "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_cycle_current = TRUE AND assessment_cycle = $1 AND inherent_score >= 15"
+		baseQuery = fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1 AND (%s) >= 15", scoreExpr)
 		if err := r.pool.QueryRow(ctx, baseQuery, cycle).Scan(&s.HighExtreme); err != nil {
 			return nil, fmt.Errorf("count high/extreme: %w", err)
 		}
 	} else {
-		baseQuery = "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_current = TRUE"
+		baseQuery = fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_current = TRUE")
 		if err := r.pool.QueryRow(ctx, baseQuery).Scan(&s.TotalRisks); err != nil {
 			return nil, fmt.Errorf("count risks: %w", err)
 		}
-		baseQuery = "SELECT COUNT(*) FROM risks WHERE status != 'draft' AND is_current = TRUE AND inherent_score >= 15"
+		baseQuery = fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_current = TRUE AND (%s) >= 15", scoreExpr)
 		if err := r.pool.QueryRow(ctx, baseQuery).Scan(&s.HighExtreme); err != nil {
 			return nil, fmt.Errorf("count high/extreme: %w", err)
 		}
@@ -394,31 +462,32 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string) (*e
 func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle string) ([]*entity.DashboardCategoryCount, error) {
 	var query string
 	var args []interface{}
+	scoreExpr := finalizedScoreExpr("r")
 	if cycle != "" {
-		query = `SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category,
+		query = fmt.Sprintf(`SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category,
 		        COUNT(*) as count,
-		        COUNT(*) FILTER (WHERE inherent_score < 5) as sangat_rendah,
-		        COUNT(*) FILTER (WHERE inherent_score >= 5 AND inherent_score < 10) as rendah,
-		        COUNT(*) FILTER (WHERE inherent_score >= 10 AND inherent_score < 15) as sedang,
-		        COUNT(*) FILTER (WHERE inherent_score >= 15 AND inherent_score < 20) as tinggi,
-		        COUNT(*) FILTER (WHERE inherent_score >= 20) as ekstrem
-		 FROM risks
-		 WHERE is_cycle_current = TRUE AND assessment_cycle = $1
+		        COUNT(*) FILTER (WHERE (%[1]s) < 5) as sangat_rendah,
+		        COUNT(*) FILTER (WHERE (%[1]s) >= 5 AND (%[1]s) < 10) as rendah,
+		        COUNT(*) FILTER (WHERE (%[1]s) >= 10 AND (%[1]s) < 15) as sedang,
+		        COUNT(*) FILTER (WHERE (%[1]s) >= 15 AND (%[1]s) < 20) as tinggi,
+		        COUNT(*) FILTER (WHERE (%[1]s) >= 20) as ekstrem
+		 FROM risks r
+		 WHERE r.is_cycle_current = TRUE AND r.assessment_cycle = $1
 		 GROUP BY 1
-		 ORDER BY count DESC, category ASC`
+		 ORDER BY count DESC, category ASC`, scoreExpr)
 		args = []interface{}{cycle}
 	} else {
-		query = `SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category,
+		query = fmt.Sprintf(`SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category,
 		        COUNT(*) as count,
-		        COUNT(*) FILTER (WHERE inherent_score < 5) as sangat_rendah,
-		        COUNT(*) FILTER (WHERE inherent_score >= 5 AND inherent_score < 10) as rendah,
-		        COUNT(*) FILTER (WHERE inherent_score >= 10 AND inherent_score < 15) as sedang,
-		        COUNT(*) FILTER (WHERE inherent_score >= 15 AND inherent_score < 20) as tinggi,
-		        COUNT(*) FILTER (WHERE inherent_score >= 20) as ekstrem
-		 FROM risks
-		 WHERE is_current = TRUE
+		        COUNT(*) FILTER (WHERE (%[1]s) < 5) as sangat_rendah,
+		        COUNT(*) FILTER (WHERE (%[1]s) >= 5 AND (%[1]s) < 10) as rendah,
+		        COUNT(*) FILTER (WHERE (%[1]s) >= 10 AND (%[1]s) < 15) as sedang,
+		        COUNT(*) FILTER (WHERE (%[1]s) >= 15 AND (%[1]s) < 20) as tinggi,
+		        COUNT(*) FILTER (WHERE (%[1]s) >= 20) as ekstrem
+		 FROM risks r
+		 WHERE r.is_current = TRUE
 		 GROUP BY 1
-		 ORDER BY count DESC, category ASC`
+		 ORDER BY count DESC, category ASC`, scoreExpr)
 	}
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -442,14 +511,14 @@ func (r *riskRepository) HeatmapData(ctx context.Context, cycle string) ([]*enti
 	var query string
 	var args []interface{}
 	if cycle != "" {
-		query = `SELECT probability, impact, COUNT(*) as cnt
-		 FROM risks WHERE status IN ('final','approved') AND is_cycle_current = TRUE AND assessment_cycle = $1
-		 GROUP BY probability, impact`
+		query = fmt.Sprintf(`SELECT %s AS probability, %s AS impact, COUNT(*) as cnt
+		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1
+		 GROUP BY 1, 2`, finalizedProbabilityExpr("r"), finalizedImpactExpr("r"))
 		args = []interface{}{cycle}
 	} else {
-		query = `SELECT probability, impact, COUNT(*) as cnt
-		 FROM risks WHERE status IN ('final','approved') AND is_current = TRUE
-		 GROUP BY probability, impact`
+		query = fmt.Sprintf(`SELECT %s AS probability, %s AS impact, COUNT(*) as cnt
+		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE
+		 GROUP BY 1, 2`, finalizedProbabilityExpr("r"), finalizedImpactExpr("r"))
 	}
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -473,20 +542,22 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int) 
 	var query string
 	var args []interface{}
 	if cycle != "" {
-		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.status,
+		query = fmt.Sprintf(`SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
+		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
-		 WHERE r.status IN ('final','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1
-		 ORDER BY r.inherent_score DESC, r.created_at DESC
-		 LIMIT $2`
+		 WHERE r.status IN ('in_approval','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1
+		 ORDER BY (%s) DESC, r.created_at DESC
+		 LIMIT $2`, finalizedScoreExpr("r"))
 		args = []interface{}{cycle, limit}
 	} else {
-		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.status,
+		query = fmt.Sprintf(`SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
+		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
-		 WHERE r.status IN ('final','approved') AND r.is_current = TRUE
-		 ORDER BY r.inherent_score DESC, r.created_at DESC
-		 LIMIT $1`
+		 WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE
+		 ORDER BY (%s) DESC, r.created_at DESC
+		 LIMIT $1`, finalizedScoreExpr("r"))
 		args = []interface{}{limit}
 	}
 	rows, err := r.pool.Query(ctx, query, args...)
@@ -498,7 +569,11 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int) 
 	var risks []*entity.Risk
 	for rows.Next() {
 		var risk entity.Risk
-		if err := rows.Scan(&risk.ID, &risk.Code, &risk.Title, &risk.Category, &risk.Probability, &risk.Impact, &risk.InherentScore, &risk.Status, &risk.OrgName); err != nil {
+		if err := rows.Scan(
+			&risk.ID, &risk.Code, &risk.Title, &risk.Category, &risk.Probability, &risk.Impact, &risk.InherentScore, &risk.Nilai, &risk.Status,
+			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
+			&risk.OrgName,
+		); err != nil {
 			return nil, fmt.Errorf("scan top risk: %w", err)
 		}
 		risks = append(risks, &risk)
@@ -516,6 +591,9 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
 		        r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 		        r.review_started_at, r.review_submitted_at, r.review_approved_at,
+		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
+		        COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
+		        r.reviewed_by, r.reviewed_at,
 		        r.created_at, r.updated_at,
 		        COALESCE(o.name, '') as org_name,
 		        COALESCE(u.name, '') as created_by_name
@@ -539,6 +617,9 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
 			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
 			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
+			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
+			&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
+			&risk.ReviewedBy, &risk.ReviewedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 		); err != nil {
@@ -572,6 +653,9 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
 		        r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 		        r.review_started_at, r.review_submitted_at, r.review_approved_at,
+		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
+		        COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
+		        r.reviewed_by, r.reviewed_at,
 		        r.created_at, r.updated_at,
 		        COALESCE(o.name, '') AS org_name,
 		        COALESCE(u.name, '') AS created_by_name
@@ -606,6 +690,9 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
 			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
 			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
+			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
+			&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
+			&risk.ReviewedBy, &risk.ReviewedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 		); err != nil {
@@ -717,7 +804,9 @@ func (r *riskRepository) ActivateApprovedVersion(ctx context.Context, approvedRi
 
 // ListReviewQueue returns current risks and their reassessment progress for a cycle.
 func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgIDs []uuid.UUID, status string) ([]*entity.RiskReviewQueueItem, error) {
-	query := `SELECT
+	currentScoreExpr := finalizedScoreExpr("base")
+	candidateScoreExpr := finalizedScoreExpr("candidate")
+	query := fmt.Sprintf(`SELECT
 		base.id::text,
 		base.version_group_id::text,
 		base.code,
@@ -729,29 +818,30 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 			WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date < CURRENT_DATE THEN 'overdue'
 			WHEN candidate.id IS NULL THEN 'due'
 			WHEN candidate.status = 'draft' THEN 'in_draft'
-			WHEN candidate.status = 'final' THEN 'pending_approval'
+			WHEN candidate.status = 'in_review' THEN 'in_review'
+			WHEN candidate.status = 'in_approval' THEN 'pending_approval'
 			WHEN candidate.status = 'approved' THEN 'approved'
 			WHEN candidate.status = 'rejected' THEN 'rejected'
 			ELSE 'due'
 		END AS review_status,
 		$1 AS assessment_cycle,
-		base.inherent_score,
+		(%[1]s) AS current_score,
 		CASE
-			WHEN base.inherent_score >= 20 THEN 'extreme'
-			WHEN base.inherent_score >= 15 THEN 'high'
-			WHEN base.inherent_score >= 10 THEN 'medium'
-			WHEN base.inherent_score >= 5 THEN 'low'
+			WHEN (%[1]s) >= 20 THEN 'extreme'
+			WHEN (%[1]s) >= 15 THEN 'high'
+			WHEN (%[1]s) >= 10 THEN 'medium'
+			WHEN (%[1]s) >= 5 THEN 'low'
 			ELSE 'very_low'
 		END AS current_level,
 		candidate.id::text,
 		candidate.status,
-		candidate.inherent_score,
+		(%[2]s) AS candidate_score,
 		CASE
-			WHEN candidate.inherent_score >= 20 THEN 'extreme'
-			WHEN candidate.inherent_score >= 15 THEN 'high'
-			WHEN candidate.inherent_score >= 10 THEN 'medium'
-			WHEN candidate.inherent_score >= 5 THEN 'low'
-			WHEN candidate.inherent_score IS NULL THEN NULL
+			WHEN candidate.id IS NULL THEN NULL
+			WHEN (%[2]s) >= 20 THEN 'extreme'
+			WHEN (%[2]s) >= 15 THEN 'high'
+			WHEN (%[2]s) >= 10 THEN 'medium'
+			WHEN (%[2]s) >= 5 THEN 'low'
 			ELSE 'very_low'
 		END AS candidate_level,
 		base.next_review_date::text,
@@ -761,14 +851,14 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 	FROM risks base
 	LEFT JOIN organizations org ON org.id = base.organization_id
 	LEFT JOIN LATERAL (
-		SELECT c.id, c.status, c.inherent_score, c.change_reason, c.review_summary, c.updated_at
+		SELECT c.id, c.status, c.inherent_score, c.probability, c.impact, c.weight, c.nilai, c.reviewed_probability, c.reviewed_impact, c.reviewed_weight, c.reviewed_nilai, c.reviewed_score, c.change_reason, c.review_summary, c.updated_at
 		FROM risks c
 		WHERE c.version_group_id = base.version_group_id
 		  AND c.assessment_cycle = $1
 		ORDER BY c.created_at DESC
 		LIMIT 1
 	) candidate ON TRUE
-	WHERE base.is_current = TRUE AND base.status = 'approved'`
+	WHERE base.is_current = TRUE AND base.status = 'approved'`, currentScoreExpr, candidateScoreExpr)
 
 	args := []interface{}{cycle}
 	if len(orgIDs) > 0 {
@@ -782,7 +872,8 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 				WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date < CURRENT_DATE THEN 'overdue'
 				WHEN candidate.id IS NULL THEN 'due'
 				WHEN candidate.status = 'draft' THEN 'in_draft'
-				WHEN candidate.status = 'final' THEN 'pending_approval'
+				WHEN candidate.status = 'in_review' THEN 'in_review'
+				WHEN candidate.status = 'in_approval' THEN 'pending_approval'
 				WHEN candidate.status = 'approved' THEN 'approved'
 				WHEN candidate.status = 'rejected' THEN 'rejected'
 				ELSE 'due'
@@ -831,50 +922,67 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 
 // CompareCycles returns approved risk movement between two cycles.
 func (r *riskRepository) CompareCycles(ctx context.Context, fromCycle string, toCycle string, orgIDs []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {
-	query := `SELECT
-		curr.version_group_id::text,
-		curr.code,
-		curr.title,
-		COALESCE(org.name, '') AS org_name,
+	prevScore := finalizedScoreExpr("prev")
+	currScore := finalizedScoreExpr("curr")
+
+	cteQuery := fmt.Sprintf(`WITH scored AS (
+		SELECT
+			curr.version_group_id,
+			curr.code,
+			curr.title,
+			COALESCE(org.name, '') AS org_name,
+			(%s) AS prev_score,
+			(%s) AS curr_score,
+			COALESCE(curr.change_reason, '') AS change_reason
+		FROM risks curr
+		JOIN risks prev ON prev.id = curr.previous_risk_id
+		LEFT JOIN organizations org ON org.id = curr.organization_id
+		WHERE curr.assessment_cycle = $2
+		  AND curr.status = 'approved'
+		  AND curr.is_cycle_current = TRUE
+		  AND prev.assessment_cycle = $1
+		  AND prev.status = 'approved'
+		  AND prev.is_cycle_current = TRUE`, prevScore, currScore)
+
+	args := []interface{}{fromCycle, toCycle}
+	if len(orgIDs) > 0 {
+		cteQuery += fmt.Sprintf(" AND curr.organization_id = ANY($%d)", len(args)+1)
+		args = append(args, orgIDs)
+	}
+
+	query := cteQuery + `)
+	SELECT
+		version_group_id::text,
+		code,
+		title,
+		org_name,
 		$1 AS from_cycle,
 		$2 AS to_cycle,
-		prev.inherent_score,
-		curr.inherent_score,
+		prev_score,
+		curr_score,
 		CASE
-			WHEN prev.inherent_score >= 20 THEN 'extreme'
-			WHEN prev.inherent_score >= 15 THEN 'high'
-			WHEN prev.inherent_score >= 10 THEN 'medium'
-			WHEN prev.inherent_score >= 5 THEN 'low'
+			WHEN prev_score >= 20 THEN 'extreme'
+			WHEN prev_score >= 15 THEN 'high'
+			WHEN prev_score >= 10 THEN 'medium'
+			WHEN prev_score >= 5 THEN 'low'
 			ELSE 'very_low'
 		END AS previous_level,
 		CASE
-			WHEN curr.inherent_score >= 20 THEN 'extreme'
-			WHEN curr.inherent_score >= 15 THEN 'high'
-			WHEN curr.inherent_score >= 10 THEN 'medium'
-			WHEN curr.inherent_score >= 5 THEN 'low'
+			WHEN curr_score >= 20 THEN 'extreme'
+			WHEN curr_score >= 15 THEN 'high'
+			WHEN curr_score >= 10 THEN 'medium'
+			WHEN curr_score >= 5 THEN 'low'
 			ELSE 'very_low'
 		END AS current_level,
-		(curr.inherent_score - prev.inherent_score) AS score_delta,
+		(curr_score - prev_score) AS score_delta,
 		CASE
-			WHEN curr.inherent_score > prev.inherent_score THEN 'up'
-			WHEN curr.inherent_score < prev.inherent_score THEN 'down'
+			WHEN curr_score > prev_score THEN 'up'
+			WHEN curr_score < prev_score THEN 'down'
 			ELSE 'stable'
 		END AS movement,
-		COALESCE(curr.change_reason, '')
-	FROM risks curr
-	JOIN risks prev ON prev.id = curr.previous_risk_id
-	LEFT JOIN organizations org ON org.id = curr.organization_id
-	WHERE curr.assessment_cycle = $2
-	  AND curr.status = 'approved'
-	  AND curr.is_cycle_current = TRUE
-	  AND prev.assessment_cycle = $1
-	  AND prev.status = 'approved'`
-	args := []interface{}{fromCycle, toCycle}
-	if len(orgIDs) > 0 {
-		query += fmt.Sprintf(" AND curr.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
-	}
-	query += " ORDER BY ABS(curr.inherent_score - prev.inherent_score) DESC, curr.inherent_score DESC, curr.title ASC"
+		change_reason
+	FROM scored
+	ORDER BY ABS(curr_score - prev_score) DESC, curr_score DESC, title ASC`
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -973,13 +1081,13 @@ func (r *riskRepository) RiskReviewSummary(ctx context.Context, cycle string, or
 	})
 
 	loadHeatmap := func(targetCycle string) ([]*entity.HeatmapCell, error) {
-		query := `SELECT probability, impact, COUNT(*) as cnt FROM risks WHERE assessment_cycle = $1 AND status = 'approved' AND is_cycle_current = TRUE`
+		query := fmt.Sprintf(`SELECT %s AS probability, %s AS impact, COUNT(*) as cnt FROM risks r WHERE r.assessment_cycle = $1 AND r.status = 'approved' AND r.is_cycle_current = TRUE`, finalizedProbabilityExpr("r"), finalizedImpactExpr("r"))
 		args := []interface{}{targetCycle}
 		if len(orgIDs) > 0 {
 			query += fmt.Sprintf(" AND organization_id = ANY($%d)", len(args)+1)
 			args = append(args, orgIDs)
 		}
-		query += " GROUP BY probability, impact"
+		query += " GROUP BY 1, 2"
 		rows, err := r.pool.Query(ctx, query, args...)
 		if err != nil {
 			return nil, err
@@ -1010,16 +1118,21 @@ func (r *riskRepository) RiskReviewSummary(ctx context.Context, cycle string, or
 	return summary, nil
 }
 
-func (r *riskRepository) GetHeatmapVelocity(ctx context.Context, fromCycle, toCycle string) ([]entity.HeatmapVelocityCell, error) {
-	query := `
+func heatmapVelocityQuery() string {
+	currentProbabilityExpr := finalizedProbabilityExpr("curr")
+	currentImpactExpr := finalizedImpactExpr("curr")
+	previousScoreExpr := finalizedScoreExpr("prev")
+	currentScoreExpr := finalizedScoreExpr("curr")
+
+	return fmt.Sprintf(`
 	WITH cycle_compare AS (
 		SELECT
-			curr.probability,
-			curr.impact,
+			%s AS probability,
+			%s AS impact,
 			CASE
-				WHEN prev.inherent_score IS NULL THEN 'new'
-				WHEN curr.inherent_score > prev.inherent_score THEN 'up'
-				WHEN curr.inherent_score < prev.inherent_score THEN 'down'
+				WHEN (%s) IS NULL THEN 'new'
+				WHEN (%s) > (%s) THEN 'up'
+				WHEN (%s) < (%s) THEN 'down'
 				ELSE 'stable'
 			END AS movement
 		FROM risks curr
@@ -1041,9 +1154,11 @@ func (r *riskRepository) GetHeatmapVelocity(ctx context.Context, fromCycle, toCy
 		COUNT(*) FILTER (WHERE movement = 'new') AS new_count
 	FROM cycle_compare
 	GROUP BY probability, impact
-	ORDER BY probability DESC, impact DESC`
+	ORDER BY probability DESC, impact DESC`, currentProbabilityExpr, currentImpactExpr, previousScoreExpr, currentScoreExpr, previousScoreExpr, currentScoreExpr, previousScoreExpr)
+}
 
-	rows, err := r.pool.Query(ctx, query, fromCycle, toCycle)
+func (r *riskRepository) GetHeatmapVelocity(ctx context.Context, fromCycle, toCycle string) ([]entity.HeatmapVelocityCell, error) {
+	rows, err := r.pool.Query(ctx, heatmapVelocityQuery(), fromCycle, toCycle)
 	if err != nil {
 		return nil, fmt.Errorf("heatmap velocity: %w", err)
 	}

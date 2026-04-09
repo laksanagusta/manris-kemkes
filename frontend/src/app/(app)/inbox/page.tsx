@@ -140,9 +140,12 @@ async function getKRIReportReviewQueue(token: string): Promise<KRIReportReview[]
 export default function InboxPage() {
   const searchParams = useSearchParams();
   const { token } = useAuth();
-  const [filter, setFilter] = useState<"all" | ApprovalRequest["currentStatus"]>(() => {
+  const [filter, setFilter] = useState<"all" | "pending_review" | "pending_approval" | "approved" | "rejected">(() => {
     const value = searchParams.get("status");
-    return value === "all" || value === "approved" || value === "rejected" ? value : "pending";
+    if (value === "all" || value === "approved" || value === "rejected" || value === "pending_review" || value === "pending_approval") {
+      return value;
+    }
+    return "all";
   });
   const [typeFilter, setTypeFilter] = useState<"all" | "risk" | "incident" | "kri_report">(() => {
     const value = searchParams.get("type");
@@ -157,6 +160,8 @@ export default function InboxPage() {
   const [selectedApproval, setSelectedApproval] = useState<{
     id: string;
     title: string;
+    requestType: string;
+    approverRole: string;
   } | null>(null);
   const [kriModalOpen, setKriModalOpen] = useState(false);
   const [kriModalAction, setKriModalAction] = useState<"accept" | "revision">("accept");
@@ -191,7 +196,11 @@ export default function InboxPage() {
     const queryType = searchParams.get("type");
     const querySearch = searchParams.get("search");
 
-    setFilter(queryStatus === "all" || queryStatus === "approved" || queryStatus === "rejected" ? queryStatus : "pending");
+    if (queryStatus === "all" || queryStatus === "approved" || queryStatus === "rejected" || queryStatus === "pending_review" || queryStatus === "pending_approval") {
+      setFilter(queryStatus);
+    } else {
+      setFilter("all");
+    }
     setTypeFilter(queryType === "risk" || queryType === "incident" || queryType === "kri_report" ? queryType : "all");
     setSearch(querySearch ?? "");
   }, [searchParams]);
@@ -223,61 +232,93 @@ export default function InboxPage() {
   }, [token]);
 
   const getStatus = (item: InboxItem): string => {
-    return item.requestType === "kri_report" ? item.status : item.currentStatus;
+    if (item.requestType === "kri_report") {
+      return (item as KRIReportReview).status;
+    }
+    return (item as ApprovalRequest).currentStatus;
   };
 
   const counts = useMemo(
     () => ({
       all: requests.length,
-      pending: requests.filter((item) => item.requestType !== "kri_report" && item.currentStatus === "pending").length + requests.filter((item) => item.requestType === "kri_report" && item.status === "submitted").length,
-      approved: requests.filter((item) => item.requestType !== "kri_report" && item.currentStatus === "approved").length,
-      rejected: requests.filter((item) => item.requestType !== "kri_report" && item.currentStatus === "rejected").length,
+      pendingReview: requests.filter((item) => {
+        if (item.requestType === "kri_report") {
+          const kriItem = item as KRIReportReview;
+          return kriItem.status === "submitted";
+        }
+        const approvalItem = item as ApprovalRequest;
+        return approvalItem.currentStatus === "pending" && approvalItem.currentApproverRole === "reviewer";
+      }).length,
+      pendingApproval: requests.filter((item) => {
+        if (item.requestType === "kri_report") return false;
+        const approvalItem = item as ApprovalRequest;
+        return approvalItem.currentStatus === "pending" && approvalItem.currentApproverRole === "pimpinan";
+      }).length,
+      pending: requests.filter((item) => item.requestType !== "kri_report" && (item as ApprovalRequest).currentStatus === "pending").length + requests.filter((item) => item.requestType === "kri_report" && (item as KRIReportReview).status === "submitted").length,
+      approved: requests.filter((item) => item.requestType !== "kri_report" && (item as ApprovalRequest).currentStatus === "approved").length,
+      rejected: requests.filter((item) => item.requestType !== "kri_report" && (item as ApprovalRequest).currentStatus === "rejected").length,
     }),
     [requests]
   );
 
   const filteredRequests = useMemo(() => {
     return requests.filter((item) => {
-      const status = getStatus(item);
-      if (filter !== "all") {
+      // Filter by status tab
+      if (filter === "pending_review") {
         if (item.requestType === "kri_report") {
-          if (filter === "pending" && item.status !== "submitted") return false;
-          if (filter !== "pending") return false;
+          const kriItem = item as KRIReportReview;
+          if (kriItem.status !== "submitted") return false;
         } else {
-          if (item.currentStatus !== filter) return false;
+          const approvalItem = item as ApprovalRequest;
+          if (approvalItem.currentStatus !== "pending" || approvalItem.currentApproverRole !== "reviewer") return false;
         }
+      } else if (filter === "pending_approval") {
+        if (item.requestType === "kri_report") return false;
+        const approvalItem = item as ApprovalRequest;
+        if (approvalItem.currentStatus !== "pending" || approvalItem.currentApproverRole !== "pimpinan") return false;
+      } else if (filter === "approved") {
+        if (item.requestType === "kri_report") return false;
+        if ((item as ApprovalRequest).currentStatus !== filter) return false;
+      } else if (filter === "rejected") {
+        if (item.requestType === "kri_report") return false;
+        if ((item as ApprovalRequest).currentStatus !== filter) return false;
       }
+
+      // Filter by type
       if (typeFilter !== "all" && item.requestType !== typeFilter) return false;
 
+      // Filter by search
       const keyword = search.trim().toLowerCase();
       if (!keyword) return true;
 
       if (item.requestType === "kri_report") {
+        const kriItem = item as KRIReportReview;
         return [
-          item.kriName,
-          item.riskCode,
-          item.riskTitle,
-          item.periodLabel,
-          item.submittedByName,
+          kriItem.kriName,
+          kriItem.riskCode,
+          kriItem.riskTitle,
+          kriItem.periodLabel,
+          kriItem.submittedByName,
         ]
           .filter(Boolean)
           .some((value) => value!.toLowerCase().includes(keyword));
       }
 
+      const approvalItem = item as ApprovalRequest;
       return [
-        item.entityCode,
-        item.entityTitle,
-        item.entityOrgName,
-        item.requestedByName,
-        item.currentApproverRole,
+        approvalItem.entityCode,
+        approvalItem.entityTitle,
+        approvalItem.entityOrgName,
+        approvalItem.requestedByName,
+        approvalItem.currentApproverRole,
       ]
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(keyword));
     });
   }, [filter, requests, search, typeFilter]);
 
-  const openApprovalModal = (id: string, title: string, type: "approve" | "reject") => {
-    setSelectedApproval({ id, title });
+  const openApprovalModal = (id: string, title: string, type: "approve" | "reject", reqType: string, approverRole: string) => {
+    setSelectedApproval({ id, title, requestType: reqType, approverRole });
     setModalType(type);
     setModalOpen(true);
   };
@@ -353,11 +394,19 @@ export default function InboxPage() {
       <Tabs value={filter} onValueChange={(value) => setFilter(value as typeof filter)}>
         <TabsList className="bg-muted/40 border border-border/50">
           <TabsTrigger value="all">Semua</TabsTrigger>
-          <TabsTrigger value="pending" className="gap-2">
-            Menunggu
-            {counts.pending > 0 && (
+          <TabsTrigger value="pending_review" className="gap-2">
+            Menunggu Review
+            {counts.pendingReview > 0 && (
               <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
-                {counts.pending}
+                {counts.pendingReview}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="pending_approval" className="gap-2">
+            Menunggu Approval
+            {counts.pendingApproval > 0 && (
+              <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
+                {counts.pendingApproval}
               </Badge>
             )}
           </TabsTrigger>
@@ -371,7 +420,10 @@ export default function InboxPage() {
           Total: {counts.all}
         </Badge>
         <Badge className={cn("text-xs font-medium border", statusVariant.pending)}>
-          Menunggu: {counts.pending}
+          Menunggu Review: {counts.pendingReview}
+        </Badge>
+        <Badge className={cn("text-xs font-medium border", statusVariant.pending)}>
+          Menunggu Approval: {counts.pendingApproval}
         </Badge>
         <Badge className={cn("text-xs font-medium border", statusVariant.approved)}>
           Disetujui: {counts.approved}
@@ -439,10 +491,12 @@ export default function InboxPage() {
                 const Icon = typeConfig.icon;
                 const status = getStatus(item);
                 const isKRIReport = item.requestType === "kri_report";
-                const canAction = isKRIReport ? item.status === "submitted" : item.currentStatus === "pending";
-
                 const kriItem = isKRIReport ? item as KRIReportReview : null;
                 const approvalItem = !isKRIReport ? item as ApprovalRequest : null;
+                const isRisk = item.requestType === "risk";
+const canAction = isKRIReport 
+  ? kriItem!.status === "submitted" 
+  : (approvalItem!.currentStatus === "pending" && !isRisk);
 
                 const displayCode = isKRIReport ? kriItem!.riskCode : approvalItem!.entityCode;
                 const displayTitle = isKRIReport ? kriItem!.kriName : approvalItem!.entityTitle;
@@ -553,7 +607,9 @@ export default function InboxPage() {
                                   openApprovalModal(
                                     item.id,
                                     displayTitle || "Tanpa judul",
-                                    "approve"
+                                    "approve",
+                                    item.requestType,
+                                    approvalItem!.currentApproverRole
                                   )
                                 }
                                 className="h-7 gap-1.5 px-2 text-xs"
@@ -568,7 +624,9 @@ export default function InboxPage() {
                                   openApprovalModal(
                                     item.id,
                                     displayTitle || "Tanpa judul",
-                                    "reject"
+                                    "reject",
+                                    item.requestType,
+                                    approvalItem!.currentApproverRole
                                   )
                                 }
                                 className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
@@ -580,7 +638,7 @@ export default function InboxPage() {
                           )
                         ) : (
                           <span className="px-2 text-[10px] text-muted-foreground">
-                            {isKRIReport ? "Menunggu review" : "Tidak ada aksi"}
+                            {isKRIReport ? "Menunggu review" : isRisk ? "Klik judul untuk review" : "Tidak ada aksi"}
                           </span>
                         )}
                       </div>
@@ -608,6 +666,8 @@ export default function InboxPage() {
         approvalId={selectedApproval?.id || null}
         approvalType={modalType}
         entityTitle={selectedApproval?.title}
+        requestType={selectedApproval?.requestType}
+        approverRole={selectedApproval?.approverRole}
         onSuccess={() => refreshRequests()}
         token={token || undefined}
       />

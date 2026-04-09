@@ -25,6 +25,7 @@ import {
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { buildApprovedRiskHistoryItem } from "@/lib/risk-history";
 
 const versions = [
   { id: "v4", name: "Q1 2026 Snapshot", date: "2026-03-01", isCurrent: true },
@@ -35,10 +36,11 @@ const versions = [
 
 
 const levelBadgeVariant: Record<string, string> = {
+  "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
   Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
   Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
   Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  Ekstrem: "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+  "Sangat Tinggi": "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
 };
 
 export default function RiskHistoryPage() {
@@ -52,34 +54,7 @@ export default function RiskHistoryPage() {
     setLoading(true);
     // Since there's no actual snapshot back-end yet, we simulate history by diffing Current vs Target score
     api.get<any[]>("/risks?status=approved", token).then((risks) => {
-      const mapped = risks.map((r) => {
-        const score = r.probability * r.impact;
-        const target = (r.targetProbability || r.probability) * (r.targetImpact || r.impact);
-        
-        let currentLevel = "Rendah";
-        if (score >= 17) currentLevel = "Ekstrem";
-        else if (score >= 10) currentLevel = "Tinggi";
-        else if (score >= 5) currentLevel = "Sedang";
-
-        let previousLevel = "Rendah";
-        if (target >= 17) previousLevel = "Ekstrem";
-        else if (target >= 10) previousLevel = "Tinggi";
-        else if (target >= 5) previousLevel = "Sedang";
-
-        let trend = "stable";
-        if (score > target) trend = "up";
-        else if (score < target) trend = "down";
-
-        return {
-          riskId: r.code,
-          title: r.title,
-          unit: r.orgName || "—",
-          currentLevel,
-          previousLevel,
-          trend,
-          changeReason: `Skor awal (Inherent): ${score}, Skor Target: ${target}`,
-        };
-      });
+      const mapped = risks.map((r) => buildApprovedRiskHistoryItem(r));
       setHistoryData(mapped.slice(0, 10)); // Just show recent
     }).finally(() => setLoading(false));
   }, [token, selectedVersion]);

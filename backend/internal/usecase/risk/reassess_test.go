@@ -396,6 +396,66 @@ func TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved(t 
 	}
 }
 
+func TestCreateRiskReassessmentUseCase_ExecuteKeepsDraftOnPreliminarySemanticsEvenWithReviewedSnapshot(t *testing.T) {
+	sourceID := uuid.New()
+	versionGroupID := uuid.New()
+	reviewedProbability := 1
+	reviewedImpact := 1
+	reviewedWeight := 0.0
+	reviewedNilai := 0.0
+	reviewedScore := 0
+
+	repo := &fakeReassessRiskRepo{
+		risks: map[uuid.UUID]*entity.Risk{
+			sourceID: {
+				ID:                  sourceID,
+				Code:                "R-004",
+				Title:               "Risk dengan reviewed snapshot",
+				Status:              entity.RiskStatusApproved,
+				VersionGroupID:      versionGroupID,
+				IsCurrent:           true,
+				IsCycleCurrent:      true,
+				Probability:         5,
+				Impact:              4,
+				Weight:              1.15,
+				Nilai:               23,
+				InherentScore:       23,
+				ReviewedProbability: &reviewedProbability,
+				ReviewedImpact:      &reviewedImpact,
+				ReviewedWeight:      &reviewedWeight,
+				ReviewedNilai:       &reviewedNilai,
+				ReviewedScore:       &reviewedScore,
+			},
+		},
+		versions: []*entity.Risk{{
+			ID:              sourceID,
+			VersionGroupID:  versionGroupID,
+			Status:          entity.RiskStatusApproved,
+			AssessmentCycle: "2025-H2",
+			IsCurrent:       true,
+			IsCycleCurrent:  true,
+		}},
+	}
+
+	uc := NewCreateRiskReassessmentUseCase(repo)
+	_, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if repo.createdRisk == nil {
+		t.Fatal("expected reassessment draft to be created")
+	}
+	if repo.createdRisk.Status != entity.RiskStatusDraft {
+		t.Fatalf("expected draft status, got %q", repo.createdRisk.Status)
+	}
+	if repo.createdRisk.ReviewedScore == nil || *repo.createdRisk.ReviewedScore != 0 {
+		t.Fatalf("expected reviewed snapshot to be cloned for compatibility, got %v", repo.createdRisk.ReviewedScore)
+	}
+	if got := repo.createdRisk.GetEffectiveScore(); got != 23 {
+		t.Fatalf("draft GetEffectiveScore() = %d, want preliminary inherent 23", got)
+	}
+}
+
 func TestListRiskVersionsUseCase_ExecuteReturnsCategory(t *testing.T) {
 	sourceID := uuid.New()
 	versionGroupID := uuid.New()

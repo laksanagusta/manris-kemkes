@@ -16,6 +16,12 @@ export interface OrganizationTreeNode extends Organization {
   children: OrganizationTreeNode[];
 }
 
+export interface VisibleOrganizationTreeNode extends OrganizationTreeNode {
+  level: number;
+  hasChildren: boolean;
+  isExpanded: boolean;
+}
+
 export interface OrganizationParentOption {
   id: string;
   name: string;
@@ -59,6 +65,32 @@ export function buildOrganizationTree(
   }
 
   return roots;
+}
+
+export function flattenVisibleOrganizationTree(
+  nodes: OrganizationTreeNode[],
+  collapsedIds: ReadonlySet<string>,
+  level = 0,
+): VisibleOrganizationTreeNode[] {
+  const result: VisibleOrganizationTreeNode[] = [];
+
+  for (const node of nodes) {
+    const hasChildren = node.children.length > 0;
+    const isExpanded = hasChildren ? !collapsedIds.has(node.id) : false;
+
+    result.push({
+      ...node,
+      level,
+      hasChildren,
+      isExpanded,
+    });
+
+    if (hasChildren && isExpanded) {
+      result.push(...flattenVisibleOrganizationTree(node.children, collapsedIds, level + 1));
+    }
+  }
+
+  return result;
 }
 
 export function getBlockedParentIds(

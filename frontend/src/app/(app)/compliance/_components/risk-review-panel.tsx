@@ -13,6 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 type OrganizationOption = {
@@ -46,7 +56,7 @@ function previousGlobalCycle(cycle: string) {
 function formatRiskLevel(level?: string | null) {
   if (!level) return "-";
   return level === "extreme"
-    ? "Ekstrem"
+    ? "Sangat Tinggi"
     : level === "high"
       ? "Tinggi"
       : level === "medium"
@@ -92,6 +102,8 @@ export function RiskReviewPanel() {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [status, setStatus] = useState<RiskReviewStatus | "all">("all");
   const [orgFilter, setOrgFilter] = useState<string>("all");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [selectedRisk, setSelectedRisk] = useState<RiskReviewQueueItem | null>(null);
   const cycle = useMemo(() => currentGlobalCycle(), []);
   const previousCycle = useMemo(() => previousGlobalCycle(cycle), [cycle]);
 
@@ -203,15 +215,22 @@ export function RiskReviewPanel() {
   const previousHeatmapGrid = useMemo(() => buildHeatmapGrid(summaryData?.previousHeatmap ?? []), [summaryData]);
   const currentHeatmapGrid = useMemo(() => buildHeatmapGrid(summaryData?.currentHeatmap ?? []), [summaryData]);
 
-  const handleCreateReassessment = async (item: RiskReviewQueueItem) => {
-    if (!token) {
+  const handleOpenConfirmDialog = (item: RiskReviewQueueItem) => {
+    setSelectedRisk(item);
+    setConfirmDialogOpen(true);
+  };
+
+  const handleCreateReassessment = async () => {
+    if (!token || !selectedRisk) {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
 
+    setConfirmDialogOpen(false);
+
     toast.promise(
       (async () => {
-        const result = await api.post<{ id: string }>(`/risks/${item.riskId}/reassess`, { cycle }, token);
+        const result = await api.post<{ id: string }>(`/risks/${selectedRisk.riskId}/reassess`, { cycle }, token);
         router.push(`/risk/register/${result.id}`);
       })(),
       {
@@ -333,7 +352,7 @@ export function RiskReviewPanel() {
                       <TableCell>
                         <div className="flex justify-end gap-2">
                           {item.reviewStatus === "due" || item.reviewStatus === "overdue" ? (
-                            <Button variant="default" size="sm" className="h-8 gap-1 text-xs" onClick={() => handleCreateReassessment(item)}>
+                            <Button variant="default" size="sm" className="h-8 gap-1 text-xs" onClick={() => handleOpenConfirmDialog(item)}>
                               <RefreshCcw className="size-3.5" />
                               Reassessment
                             </Button>
@@ -498,7 +517,7 @@ export function RiskReviewPanel() {
                     <TableCell colSpan={8} className="h-28 text-center text-sm text-muted-foreground">Belum ada pasangan data approved antara {previousCycle} dan {cycle}.</TableCell>
                   </TableRow>
                 ) : comparisons.slice(0, 12).map((item) => (
-                  <TableRow key={item.versionGroupId}>
+                  <TableRow key={`${item.versionGroupId}-${item.code}`}>
                     <TableCell className="font-mono text-xs text-muted-foreground">{item.code}</TableCell>
                     <TableCell className="max-w-[300px]">
                       <div className="space-y-1">
@@ -523,6 +542,37 @@ export function RiskReviewPanel() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Reassessment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda akan memulai reassessment untuk risiko berikut. Tindakan ini akan membuat draft reassessment baru yang dapat Anda edit sebelum diajukan untuk persetujuan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-sm">
+              <span className="font-medium text-foreground">Kode: </span>
+              <span className="font-mono text-xs text-muted-foreground">{selectedRisk?.code || "-"}</span>
+            </div>
+            <div className="text-sm">
+              <span className="font-medium text-foreground">Judul: </span>
+              <span className="text-muted-foreground">{selectedRisk?.title || "-"}</span>
+            </div>
+            <div className="text-sm">
+              <span className="font-medium text-foreground">Cycle: </span>
+              <span className="text-muted-foreground">{cycle}</span>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCreateReassessment}>
+              Lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
