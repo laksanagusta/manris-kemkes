@@ -1,0 +1,125 @@
+--- a/frontend/src/app/(app)/risk/register/new/page.tsx
++++ b/frontend/src/app/(app)/risk/register/new/page.tsx
+@@ -1479,7 +1479,7 @@
+         onBack={() => router.push("/risk/register")}
+         actions={
+-          <>
++          <div className="flex items-center gap-3">
+             {riskId &&
+               (riskStatus === "in_review" ||
+                 riskStatus === "in_approval" ||
+                 riskStatus === "approved" ||
+                 riskStatus === "rejected") && (
+                 <Button
+                   variant="outline"
+                   className="gap-2 text-xs text-destructive hover:bg-destructive/10"
+                   onClick={handleRevertToDraft}
+                   disabled={isSubmitting}
+                 >
+                   {isSubmitting ? (
+                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                   ) : (
+                     <ArrowLeft className="size-3.5 rounded-full border border-current p-0.5" />
+                   )}{" "}
+                   Kembalikan ke draft
+                 </Button>
+               )}
+ 
+             {riskId && (
+-              <Button
+-                variant="outline"
+-                className="gap-2 text-xs"
+-                onClick={() => showUnavailableFeatureToast("Riwayat versi")}
+-              >
+-                <History className="size-3.5" /> Riwayat versi
+-              </Button>
++              <TooltipProvider>
++                <Tooltip>
++                  <TooltipTrigger asChild>
++                    <Button
++                      variant="ghost"
++                      size="icon"
++                      className="text-muted-foreground hover:text-foreground"
++                      onClick={() => showUnavailableFeatureToast("Riwayat versi")}
++                    >
++                      <History className="size-4" />
++                    </Button>
++                  </TooltipTrigger>
++                  <TooltipContent>Riwayat versi</TooltipContent>
++                </Tooltip>
++              </TooltipProvider>
+             )}
+ 
+             {(riskStatus === "draft" || !riskId) && (
+-              <>
++              <div className="flex items-center gap-2 border-l border-border/40 pl-3 ml-1">
+                 {riskId && (
+-                  <Button
+-                    variant="outline"
+-                    className="gap-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+-                    onClick={() => setShowDeleteConfirm(true)}
+-                    disabled={isSubmitting}
+-                  >
+-                    <Trash2 className="size-3.5" /> Hapus draft
+-                  </Button>
++                  <TooltipProvider>
++                    <Tooltip>
++                      <TooltipTrigger asChild>
++                        <Button
++                          variant="ghost"
++                          size="icon"
++                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
++                          onClick={() => setShowDeleteConfirm(true)}
++                          disabled={isSubmitting}
++                        >
++                          <Trash2 className="size-4" />
++                        </Button>
++                      </TooltipTrigger>
++                      <TooltipContent>Hapus draft</TooltipContent>
++                    </Tooltip>
++                  </TooltipProvider>
+                 )}
+                 <Button
+                   variant="outline"
+-                  className="gap-2 text-xs"
++                  className="gap-2 text-xs font-medium"
+                   onClick={handleSaveDraft}
+                   disabled={isSubmitting}
+                 >
+                   {isSubmitting && submitTarget.current === "draft" ? (
+                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                   ) : (
+                     <Save className="size-3.5" />
+                   )}{" "}
+                   Simpan draft
+                 </Button>
+                 <Button
+-                  className="gap-2 text-xs"
++                  className="gap-2 text-sm font-semibold px-5"
+                   onClick={() => {
+                     submitTarget.current = "review";
+                     clearErrors();
+                     if (!reviewerId) {
+                       toast.error("Pilih Reviewer terlebih dahulu.");
+                       return;
+                     }
+                     if (!isFinalizeReady) {
+                       scrollToSection(missingSections[0]?.id ?? "identifikasi");
+                       return;
+                     }
+                     handleSubmit(onSubmit, onValidationError)();
+                   }}
+                   disabled={isSubmitting || !isFinalizeReady}
+                 >
+                   {isSubmitting && submitTarget.current === "review" ? (
+                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                   ) : (
+                     <Send className="size-4" />
+                   )}{" "}
+                   Ajukan review
+                 </Button>
+-              </>
++              </div>
+             )}
+-          </>
++          </div>

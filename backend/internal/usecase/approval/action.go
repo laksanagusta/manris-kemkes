@@ -160,11 +160,11 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 }
 
 func validateCurrentApprover(approvalReq *entity.ApprovalRequest, actorID uuid.UUID, actorRole string) error {
-	if approvalReq.CurrentApproverRole != "" && actorRole != approvalReq.CurrentApproverRole {
+	if approvalReq.CurrentApproverUserID != nil && *approvalReq.CurrentApproverUserID != actorID {
 		return domainerrors.ErrForbidden
 	}
 
-	if approvalReq.CurrentApproverUserID != nil && *approvalReq.CurrentApproverUserID != actorID {
+	if approvalReq.CurrentApproverUserID == nil && approvalReq.CurrentApproverRole != "" && actorRole != approvalReq.CurrentApproverRole {
 		return domainerrors.ErrForbidden
 	}
 

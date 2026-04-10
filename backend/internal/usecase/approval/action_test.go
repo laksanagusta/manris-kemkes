@@ -503,7 +503,7 @@ func TestApprovalActionUseCase_RejectsActorOutsideCurrentPendingStep(t *testing.
 	}
 }
 
-func TestApprovalActionUseCase_RejectsRoleMismatchForCurrentPendingStep(t *testing.T) {
+func TestApprovalActionUseCase_AllowsCurrentPendingStepDespiteRoleMismatch(t *testing.T) {
 	approvalID := uuid.New()
 	riskID := uuid.New()
 	pimpinanID := uuid.MustParse("10000000-0000-0000-0000-000000000005")
@@ -536,13 +536,19 @@ func TestApprovalActionUseCase_RejectsRoleMismatchForCurrentPendingStep(t *testi
 		ActorName:  "Pimpinan User",
 		ActorRole:  "reviewer",
 	})
-	if !errors.Is(err, domainerrors.ErrForbidden) {
-		t.Fatalf("expected forbidden error for role mismatch, got %v", err)
+	if err != nil {
+		t.Fatalf("expected no error for current approver role mismatch, got %v", err)
 	}
-	if riskRepo.updatedRiskStatus != "" {
-		t.Fatalf("expected no risk status update, got %q", riskRepo.updatedRiskStatus)
+	if riskRepo.updatedRiskStatus != "approved" {
+		t.Fatalf("expected risk status 'approved', got %q", riskRepo.updatedRiskStatus)
 	}
-	if approvalRepo.updatedStatus != "" {
-		t.Fatalf("expected approval request status to remain unchanged, got %q", approvalRepo.updatedStatus)
+	if approvalRepo.updatedStatus != "approved" {
+		t.Fatalf("expected approval request status 'approved', got %q", approvalRepo.updatedStatus)
+	}
+	if len(approvalRepo.histories) != 1 {
+		t.Fatalf("expected one approval history entry, got %d", len(approvalRepo.histories))
+	}
+	if approvalRepo.histories[0].ActorRole != "reviewer" {
+		t.Fatalf("expected actor role to be recorded as reviewer, got %q", approvalRepo.histories[0].ActorRole)
 	}
 }

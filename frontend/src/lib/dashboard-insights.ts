@@ -320,7 +320,7 @@ export type CriticalRiskRateDatum = {
 };
 
 export function buildCriticalRiskRateTrendData(risks: RiskLike[]): CriticalRiskRateDatum[] {
-  const grouped = new Map<string, { high: number; extreme: number; total: number }>();
+  const grouped = new Map<string, { medium: number; high: number; extreme: number; total: number }>();
 
   for (const risk of risks) {
     const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);

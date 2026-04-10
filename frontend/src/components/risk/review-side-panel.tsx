@@ -25,6 +25,11 @@ import {
   calculateNilai,
   getRiskLevelFromNilai,
 } from "@/lib/risk";
+import {
+  canActivateApprovalPanel,
+  canActivateReviewerPanel,
+  type ReviewWorkflowStage,
+} from "@/lib/review-side-panel-access";
 
 export interface RiskWorkflowState {
   currentStatus?: string | null;
@@ -38,7 +43,7 @@ export interface RiskWorkflowState {
   }[];
 }
 
-type WorkflowStage = "review" | "approval" | "final" | "unknown";
+type WorkflowStage = ReviewWorkflowStage;
 type ActionStage = "review" | "approval";
 
 interface ReviewSidePanelProps {
@@ -116,16 +121,17 @@ export function ReviewSidePanel({
     return "unknown";
   })();
 
-  const canActForCurrentStep = (expectedRole: "reviewer" | "pimpinan") => {
-    if (userRole !== expectedRole) return false;
-    if (!currentApproverUserId) return true;
-    return currentApproverUserId === currentUserId;
-  };
-
-  const reviewerIsActive =
-    workflowStage === "review" && canActForCurrentStep("reviewer");
-  const approvalIsActive =
-    workflowStage === "approval" && canActForCurrentStep("pimpinan");
+  const reviewerIsActive = canActivateReviewerPanel({
+    workflowStage,
+    currentApproverUserId,
+    currentUserId,
+    userRole,
+  });
+  const approvalIsActive = canActivateApprovalPanel({
+    workflowStage,
+    currentApproverUserId,
+    currentUserId,
+  });
 
   if (!hasApproval) {
     return null;
@@ -554,7 +560,7 @@ export function ReviewSidePanel({
         <>
           {renderPimpinanPreview()}
           {renderInfoNotice(
-            "Panel ini hanya aktif untuk pimpinan yang sedang mendapat giliran pada workflow.",
+            "Panel ini hanya aktif untuk pengguna yang sedang mendapat giliran pada workflow approval.",
           )}
         </>
       );
@@ -613,10 +619,10 @@ export function ReviewSidePanel({
               </div>
               <div className="space-y-1">
                 <CardTitle className="text-sm font-semibold">
-                  Persetujuan Pimpinan
+                  Persetujuan Risiko
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  Pimpinan menyetujui atau menolak risiko setelah tahap review selesai.
+                  Pengguna yang sedang mendapat giliran dapat menyetujui atau menolak risiko setelah tahap review selesai.
                 </p>
               </div>
             </div>

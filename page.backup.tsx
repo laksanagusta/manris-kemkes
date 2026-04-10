@@ -33,9 +33,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
 import { cn } from "@/lib/utils";
 import {
   Loader2,
@@ -65,8 +62,6 @@ import {
   calculateNilai,
   getRiskPriority,
   resolveRiskScoreSemantics,
-  PROBABILITY_LABELS,
-  IMPACT_LABELS,
 } from "@/lib/risk";
 import { EditableList } from "@/components/shared/editable-list";
 import { EditableItemsTable } from "@/components/shared/editable-items-table";
@@ -253,7 +248,7 @@ function AiFieldButton({
       size="xs"
       onClick={onClick}
       disabled={disabled || loading}
-      className="h-7 gap-2 border-primary/20 bg-primary/[0.03] px-2.5 text-xs text-primary hover:bg-primary/10 hover:text-primary"
+      className="h-7 gap-2 border-primary/20 bg-primary/[0.03] px-2.5 text-[11px] text-primary hover:bg-primary/10 hover:text-primary"
     >
       {loading ? (
         <Loader2 className="size-3 animate-spin" />
@@ -462,7 +457,6 @@ export default function RiskInputPage() {
   >([]);
   const [approvalId, setApprovalId] = useState<string | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] = useState<RiskWorkflowState | null>(null);
-  const [openSections, setOpenSections] = useState<string[]>(["identifikasi"]);
   const [assessmentCycleDisplay, setAssessmentCycleDisplay] = useState(
     currentAssessmentCycle(),
   );
@@ -1010,18 +1004,8 @@ export default function RiskInputPage() {
 
   const scrollToSection = (sectionId: SectionId) => {
     if (typeof document === "undefined") return;
-    setOpenSections((prev) => Array.from(new Set([...prev, sectionId])));
-    setTimeout(() => {
-      const element = document.getElementById(sectionId);
-      if (element) {
-        const offset = 120;
-        const bodyRect = document.body.getBoundingClientRect().top;
-        const elementRect = element.getBoundingClientRect().top;
-        const elementPosition = elementRect - bodyRect;
-        const offsetPosition = elementPosition - offset;
-        window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-      }
-    }, 100);
+    const element = document.getElementById(sectionId);
+    element?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const getSectionIdFromField = (fieldName?: string): SectionId | undefined => {
@@ -1360,7 +1344,7 @@ export default function RiskInputPage() {
     const message = typeof error === "string" ? error : error?.message;
     if (!message) return null;
     return (
-      <span className="mt-1 text-xs font-medium text-destructive">
+      <span className="mt-1 text-[10px] font-medium text-destructive">
         {message}
       </span>
     );
@@ -1461,7 +1445,6 @@ export default function RiskInputPage() {
   }
 
   return (
-    <TooltipProvider>
     <div className="animate-fade-in pb-20">
       <FormHeader
         title="Form registrasi risiko"
@@ -1496,7 +1479,7 @@ export default function RiskInputPage() {
         backLabel="Kembali ke register risiko"
         onBack={() => router.push("/risk/register")}
         actions={
-          <div className="flex items-center gap-2 sm:gap-3">
+          <>
             {riskId &&
               (riskStatus === "in_review" ||
                 riskStatus === "in_approval" ||
@@ -1509,63 +1492,51 @@ export default function RiskInputPage() {
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
-                    <Loader2 className="size-3.5 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <ArrowLeft className="size-3.5 rounded-full border border-current p-0.5" />
                   )}{" "}
-                  <span className="hidden sm:inline">Kembalikan ke draft</span>
+                  Kembalikan ke draft
                 </Button>
               )}
 
             {riskId && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 text-muted-foreground hover:text-foreground"
-                      onClick={() => showUnavailableFeatureToast("Riwayat versi")}
-                    >
-                      <History className="size-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Riwayat versi</TooltipContent>
-                </Tooltip>
+              <Button
+                variant="outline"
+                className="gap-2 text-xs"
+                onClick={() => showUnavailableFeatureToast("Riwayat versi")}
+              >
+                <History className="size-3.5" /> Riwayat versi
+              </Button>
             )}
 
             {(riskStatus === "draft" || !riskId) && (
-              <div className="flex items-center gap-2 border-l border-border/40 pl-2 sm:pl-3 ml-1 sm:ml-2">
+              <>
                 {riskId && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => setShowDeleteConfirm(true)}
-                          disabled={isSubmitting}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Hapus draft</TooltipContent>
-                    </Tooltip>
+                  <Button
+                    variant="outline"
+                    className="gap-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={isSubmitting}
+                  >
+                    <Trash2 className="size-3.5" /> Hapus draft
+                  </Button>
                 )}
                 <Button
                   variant="outline"
-                  className="gap-2 text-xs font-medium border-primary/20 hover:bg-primary/5 hover:text-primary"
+                  className="gap-2 text-xs"
                   onClick={handleSaveDraft}
                   disabled={isSubmitting}
                 >
                   {isSubmitting && submitTarget.current === "draft" ? (
-                    <Loader2 className="size-3.5 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Save className="size-3.5" />
                   )}{" "}
                   Simpan draft
                 </Button>
                 <Button
-                  className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="gap-2 text-xs"
                   onClick={() => {
                     submitTarget.current = "review";
                     clearErrors();
@@ -1574,30 +1545,29 @@ export default function RiskInputPage() {
                       return;
                     }
                     if (!isFinalizeReady) {
-                       const firstMissing = missingSections[0]?.id ?? "identifikasi";
-                       scrollToSection(firstMissing);
-                       return;
+                      scrollToSection(missingSections[0]?.id ?? "identifikasi");
+                      return;
                     }
                     handleSubmit(onSubmit, onValidationError)();
                   }}
                   disabled={isSubmitting || !isFinalizeReady}
                 >
                   {isSubmitting && submitTarget.current === "review" ? (
-                    <Loader2 className="size-4 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <Send className="size-4" />
+                    <Send className="size-3.5" />
                   )}{" "}
                   Ajukan review
                 </Button>
-              </div>
+              </>
             )}
-          </div>
+          </>
         }
       />
 
       <div className="mb-6 max-w-4xl space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Ruang kerja
           </p>
           {riskId && (
@@ -1658,31 +1628,18 @@ export default function RiskInputPage() {
         <div className="flex flex-col items-start gap-6 xl:flex-row">
           <form
             onSubmit={(e) => e.preventDefault()}
-            className="w-full xl:w-2/3"
+            className="w-full space-y-6 xl:w-2/3"
           >
-            <Accordion type="multiple" value={openSections} onValueChange={setOpenSections} className="space-y-6">
-            <AccordionItem value="identifikasi" id="identifikasi" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">1</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Identifikasi Risiko</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      sectionStatuses[0].done
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {sectionStatuses[0].done ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{sectionStatuses[0].done ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+            <Card
+              id="identifikasi"
+              className="scroll-mt-28 border-border/20 bg-card"
+            >
+              <SectionHeader
+                step="1"
+                title="Identifikasi Risiko"
+                ready={sectionStatuses[0].done}
+              />
+              <CardContent className="space-y-5">
                 <div className="relative space-y-1.5">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <Label className="text-sm font-medium">
@@ -1715,7 +1672,7 @@ export default function RiskInputPage() {
                   {showRiskSuggestions && riskSuggestions.length > 0 && (
                     <div className="absolute z-50 mt-2 w-full rounded-lg border border-border bg-background shadow-lg">
                       <div className="border-b border-border/60 px-3 py-2">
-                        <p className="text-xs font-semibold text-foreground">
+                        <p className="text-[11px] font-semibold text-foreground">
                           Saran AI untuk judul risiko
                         </p>
                       </div>
@@ -1734,7 +1691,7 @@ export default function RiskInputPage() {
                             <p className="text-sm font-medium text-foreground">
                               {suggestion.title}
                             </p>
-                            <p className="mt-1 text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
                               {suggestion.description}
                             </p>
                           </button>
@@ -1831,7 +1788,7 @@ export default function RiskInputPage() {
                       disabled
                       className="text-sm"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       Diisi otomatis mengikuti siklus aktif.
                     </p>
                   </div>
@@ -1983,31 +1940,19 @@ export default function RiskInputPage() {
                   />
                   <FormErrorMessage error={errors.impacts?.message} />
                 </div>
-              </AccordionContent>
-            </AccordionItem>
+              </CardContent>
+            </Card>
 
-            <AccordionItem value="analisis" id="analisis" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">2</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Analisis Risiko</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      sectionStatuses[1].done
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {sectionStatuses[1].done ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{sectionStatuses[1].done ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+            <Card
+              id="analisis"
+              className="scroll-mt-28 border-border/20 bg-card"
+            >
+              <SectionHeader
+                step="2"
+                title="Analisis Risiko"
+                ready={sectionStatuses[1].done}
+              />
+              <CardContent className="space-y-5">
                 <div className="space-y-1.5">
                   <Label className="text-sm font-medium">
                     Pengendalian yang Ada
@@ -2064,32 +2009,26 @@ export default function RiskInputPage() {
                     <Label className="text-sm font-medium">Probabilitas</Label>
                     <div className="grid grid-cols-5 gap-1.5">
                       {[1, 2, 3, 4, 5].map((val) => (
-                        <Tooltip key={val}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              disabled={isRiskLocked}
-                              onClick={() =>
-                                setValue("probability", val, {
-                                  shouldValidate: true,
-                                })
-                              }
-                              className={cn(
-                                "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                val === probability
-                                  ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, impact, getBobot(val, impact))))} ring-1 font-bold`
-                                  : "bg-muted/30 hover:bg-muted/50",
-                                isRiskLocked &&
-                                  "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                              )}
-                            >
-                              {val}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            {PROBABILITY_LABELS[val]}
-                          </TooltipContent>
-                        </Tooltip>
+                        <button
+                          key={val}
+                          type="button"
+                          disabled={isRiskLocked}
+                          onClick={() =>
+                            setValue("probability", val, {
+                              shouldValidate: true,
+                            })
+                          }
+                          className={cn(
+                            "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                            val === probability
+                              ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, impact, getBobot(val, impact))))} ring-1 font-bold`
+                              : "bg-muted/30 hover:bg-muted/50",
+                            isRiskLocked &&
+                              "cursor-not-allowed opacity-70 hover:bg-muted/30",
+                          )}
+                        >
+                          {val}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -2097,30 +2036,24 @@ export default function RiskInputPage() {
                     <Label className="text-sm font-medium">Dampak</Label>
                     <div className="grid grid-cols-5 gap-1.5">
                       {[1, 2, 3, 4, 5].map((val) => (
-                        <Tooltip key={val}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              disabled={isRiskLocked}
-                              onClick={() =>
-                                setValue("impact", val, { shouldValidate: true })
-                              }
-                              className={cn(
-                                "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                val === impact
-                                  ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(probability, val, getBobot(probability, val))))} ring-1 font-bold`
-                                  : "bg-muted/30 hover:bg-muted/50",
-                                isRiskLocked &&
-                                  "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                              )}
-                            >
-                              {val}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            {IMPACT_LABELS[val]}
-                          </TooltipContent>
-                        </Tooltip>
+                        <button
+                          key={val}
+                          type="button"
+                          disabled={isRiskLocked}
+                          onClick={() =>
+                            setValue("impact", val, { shouldValidate: true })
+                          }
+                          className={cn(
+                            "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                            val === impact
+                              ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(probability, val, getBobot(probability, val))))} ring-1 font-bold`
+                              : "bg-muted/30 hover:bg-muted/50",
+                            isRiskLocked &&
+                              "cursor-not-allowed opacity-70 hover:bg-muted/30",
+                          )}
+                        >
+                          {val}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -2161,7 +2094,7 @@ export default function RiskInputPage() {
                     <div className="grid grid-cols-2 gap-3">
                       {/* Skor Sementara */}
                       <div className="rounded-md border border-border/50 bg-card p-3 space-y-1">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Skor Sementara</p>
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Skor Sementara</p>
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-2xl font-bold">{Math.round(nilai)}</span>
                           <span className="text-xs text-muted-foreground">P{probability} × D{impact}</span>
@@ -2171,7 +2104,7 @@ export default function RiskInputPage() {
 
                       {/* Skor Penilaian */}
                       <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
-                        <p className="text-xs font-medium text-primary uppercase tracking-wider">Skor Penilaian</p>
+                        <p className="text-[10px] font-medium text-primary uppercase tracking-wider">Skor Penilaian</p>
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-2xl font-bold text-primary">
                             {reviewerScoreData.reviewedNilai ? Math.round(reviewerScoreData.reviewedNilai) : (reviewerScoreData.reviewedScore ?? "—")}
@@ -2188,7 +2121,7 @@ export default function RiskInputPage() {
                     <div className="flex flex-wrap gap-2">
                       {reviewerScoreData.scoreChangeLabel && (
                         <span className={cn(
-                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border",
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium border",
                           reviewerScoreData.scoreChangeLabel.includes("penurunan")
                             ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
                             : reviewerScoreData.scoreChangeLabel.includes("peningkatan")
@@ -2200,7 +2133,7 @@ export default function RiskInputPage() {
                       )}
                       {reviewerScoreData.effectivenessLabel && (
                         <span className={cn(
-                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border",
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium border",
                           reviewerScoreData.effectivenessLabel === "Efektif"
                             ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
                             : "bg-amber-500/10 text-amber-700 border-amber-500/20"
@@ -2211,31 +2144,19 @@ export default function RiskInputPage() {
                     </div>
                   </div>
                 )}
-              </AccordionContent>
-            </AccordionItem>
+              </CardContent>
+            </Card>
 
-            <AccordionItem value="evaluasi" id="evaluasi" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">3</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Evaluasi Risiko</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      sectionStatuses[2].done
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {sectionStatuses[2].done ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{sectionStatuses[2].done ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+            <Card
+              id="evaluasi"
+              className="scroll-mt-28 border-border/20 bg-card"
+            >
+              <SectionHeader
+                step="3"
+                title="Evaluasi Risiko"
+                ready={sectionStatuses[2].done}
+              />
+              <CardContent className="space-y-5">
                 <div className="grid gap-5 md:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">
@@ -2305,31 +2226,19 @@ export default function RiskInputPage() {
                     )}
                   />
                 </div>
-              </AccordionContent>
-            </AccordionItem>
+              </CardContent>
+            </Card>
 
-            <AccordionItem value="penanganan" id="penanganan" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">4</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Rencana Penanganan</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      sectionStatuses[3].done
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {sectionStatuses[3].done ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{sectionStatuses[3].done ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
+            <Card
+              id="penanganan"
+              className="scroll-mt-28 border-border/20 bg-card"
+            >
+              <SectionHeader
+                step="4"
+                title="Rencana Penanganan"
+                ready={sectionStatuses[3].done}
+              />
+              <CardContent className="space-y-4">
                 <Controller
                   name="mitigations"
                   control={control}
@@ -2385,58 +2294,37 @@ export default function RiskInputPage() {
                   )}
                   disabled={isRiskLocked}
                 />
-              </AccordionContent>
-            </AccordionItem>
+              </CardContent>
+            </Card>
 
-            <AccordionItem value="target" id="target" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">5</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Target Penurunan</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      sectionStatuses[4].done && sectionStatuses[5].done
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {sectionStatuses[4].done && sectionStatuses[5].done ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{sectionStatuses[4].done && sectionStatuses[5].done ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+            <Card id="target" className="scroll-mt-28 border-border/20 bg-card">
+              <SectionHeader
+                step="5"
+                title="Target Penurunan"
+                ready={sectionStatuses[4].done && sectionStatuses[5].done}
+              />
+              <CardContent className="space-y-5">
                 <div className="grid gap-5 md:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">Probabilitas</Label>
                     <div className="grid grid-cols-5 gap-1.5">
                       {[1, 2, 3, 4, 5].map((val) => (
-                        <Tooltip key={val}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              disabled={isRiskLocked}
-                              onClick={() => setValue("targetProbability", val)}
-                              className={cn(
-                                "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                val === targetProbability
-                                  ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, targetImpact, getBobot(val, targetImpact))))} ring-1 font-bold`
-                                  : "bg-muted/30 hover:bg-muted/50",
-                                isRiskLocked &&
-                                  "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                              )}
-                            >
-                              {val}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            {PROBABILITY_LABELS[val]}
-                          </TooltipContent>
-                        </Tooltip>
+                        <button
+                          key={val}
+                          type="button"
+                          disabled={isRiskLocked}
+                          onClick={() => setValue("targetProbability", val)}
+                          className={cn(
+                            "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                            val === targetProbability
+                              ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, targetImpact, getBobot(val, targetImpact))))} ring-1 font-bold`
+                              : "bg-muted/30 hover:bg-muted/50",
+                            isRiskLocked &&
+                              "cursor-not-allowed opacity-70 hover:bg-muted/30",
+                          )}
+                        >
+                          {val}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -2444,28 +2332,22 @@ export default function RiskInputPage() {
                     <Label className="text-sm font-medium">Dampak</Label>
                     <div className="grid grid-cols-5 gap-1.5">
                       {[1, 2, 3, 4, 5].map((val) => (
-                        <Tooltip key={val}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              disabled={isRiskLocked}
-                              onClick={() => setValue("targetImpact", val)}
-                              className={cn(
-                                "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                val === targetImpact
-                                  ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(targetProbability, val, getBobot(targetProbability, val))))} ring-1 font-bold`
-                                  : "bg-muted/30 hover:bg-muted/50",
-                                isRiskLocked &&
-                                  "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                              )}
-                            >
-                              {val}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            {IMPACT_LABELS[val]}
-                          </TooltipContent>
-                        </Tooltip>
+                        <button
+                          key={val}
+                          type="button"
+                          disabled={isRiskLocked}
+                          onClick={() => setValue("targetImpact", val)}
+                          className={cn(
+                            "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                            val === targetImpact
+                              ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(targetProbability, val, getBobot(targetProbability, val))))} ring-1 font-bold`
+                              : "bg-muted/30 hover:bg-muted/50",
+                            isRiskLocked &&
+                              "cursor-not-allowed opacity-70 hover:bg-muted/30",
+                          )}
+                        >
+                          {val}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -2506,47 +2388,33 @@ export default function RiskInputPage() {
                     <p className="text-xs font-mono">Skor Target: {Math.round(targetNilai)}</p>
                   </div>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
+              </CardContent>
+            </Card>
 
-            <AccordionItem value="approval-line" id="approval-line" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">6</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Approval Line</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      approvalLine.length > 0
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {approvalLine.length > 0 ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{approvalLine.length > 0 ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
-                <div className="rounded-xl border border-border/60 bg-muted/10 p-5 space-y-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-foreground">
-                      1. Reviewer (Pemeriksa)
-                      <span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Pilih reviewer yang akan memeriksa dan memberikan skor penilaian resmi sebelum risiko ini diajukan ke pimpinan.
-                    </p>
-                  </div>
+            <Card
+              id="approval-line"
+              className="scroll-mt-28 border-border/20 bg-card"
+            >
+              <SectionHeader
+                step="6"
+                title="Approval Line"
+                ready={approvalLine.length > 0}
+              />
+              <CardContent className="space-y-4">
+                <div className="space-y-1.5 pb-4 border-b border-border/20">
+                  <Label className="text-sm font-medium">
+                    Reviewer (Pemeriksa)
+                    <span className="text-destructive ml-0.5">*</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Pilih reviewer yang akan memeriksa dan memberikan skor penilaian sebelum risk ini disetujui.
+                  </p>
                   <Select
                     value={reviewerId}
                     onValueChange={setReviewerId}
                     disabled={isRiskLocked}
                   >
-                    <SelectTrigger className="h-10 text-sm md:w-[360px] bg-background">
+                    <SelectTrigger className="h-9 text-sm md:w-[320px]">
                       <SelectValue placeholder="Pilih reviewer" />
                     </SelectTrigger>
                     <SelectContent>
@@ -2561,16 +2429,15 @@ export default function RiskInputPage() {
                   </Select>
                 </div>
 
-                <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-5 space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-foreground">
-                      2. Approval Line (Pimpinan)
-                      <span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Susun rantai persetujuan pimpinan. Persetujuan dilakukan secara berurutan.
-                    </p>
-                  </div>
+                <div className="pt-6">
+                  <Label className="text-sm font-medium">
+                    Approval Line (Pimpinan)
+                    <span className="text-destructive ml-0.5">*</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-3 mt-1">
+                    Pilih urutan user yang akan approve risk ini. Approver pertama
+                    harus approve dulu sebelum approver berikutnya aktif.
+                  </p>
 
                 <div className="flex flex-col gap-3 md:flex-row">
                   <Select
@@ -2614,7 +2481,7 @@ export default function RiskInputPage() {
                   {approvalLine.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
                       Belum ada approver. Tambahkan minimal satu user sebelum
-                      klik <span className="font-medium text-foreground">Ajukan approval</span>.
+                      klik `Ajukan approval`.
                     </div>
                   ) : (
                     approvalLine.map((approver, index) => (
@@ -2626,7 +2493,7 @@ export default function RiskInputPage() {
                           <p className="text-sm font-medium text-foreground">
                             {index + 1}. {approver.name}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground">
                             Urutan approval ke-{index + 1}
                           </p>
                         </div>
@@ -2666,9 +2533,8 @@ export default function RiskInputPage() {
                   )}
                 </div>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
-            </Accordion>
+              </CardContent>
+            </Card>
           </form>
 
           <div className="w-full space-y-4 xl:sticky xl:top-24 xl:w-1/3">
@@ -2771,6 +2637,5 @@ export default function RiskInputPage() {
         </DialogContent>
       </Dialog>
     </div>
-    </TooltipProvider>
   );
 }
