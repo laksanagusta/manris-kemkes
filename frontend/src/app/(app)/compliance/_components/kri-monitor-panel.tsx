@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ interface KRI {
   direction: "higher_worse" | "lower_worse";
   trend: "up" | "down" | "stable";
   lastUpdated?: string;
+  organizationId?: string;
 }
 
 interface KRISummary {
@@ -70,7 +72,7 @@ const emptySummary: KRISummary = {
 
 export function KRIMonitorPanel() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [kris, setKris] = useState<KRI[]>([]);
   const [summary, setSummary] = useState<KRISummary>(emptySummary);
   const [loading, setLoading] = useState(true);
@@ -211,12 +213,14 @@ export function KRIMonitorPanel() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Link href="/compliance/kri/new">
-            <Button className="h-9 gap-2 shadow-sm">
-              <Plus className="size-4" />
-              Key Risk Indicator
-            </Button>
-          </Link>
+          {(!token || (user?.isGlobal || !!user?.organizationId)) && (
+            <Link href="/compliance/kri/new">
+              <Button className="h-9 gap-2 shadow-sm">
+                <Plus className="size-4" />
+                Key Risk Indicator
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -351,6 +355,7 @@ export function KRIMonitorPanel() {
                   filteredKris.map((kri) => {
                     const status = getKRIStatus(kri);
                     const config = statusConfig[status];
+                    const isReadOnly = isReadOnlyForOrg(user, kri.organizationId || "");
 
                     return (
                       <TableRow
@@ -363,23 +368,30 @@ export function KRIMonitorPanel() {
                         </TableCell>
                         <TableCell className="max-w-[300px]">
                           <div className="space-y-1">
-                            <Link
-                              href={`/compliance/kri/${kri.id}`}
-                              onClick={(event) => event.stopPropagation()}
-                              className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-                            >
-                              <span className="truncate">{kri.name}</span>
-                              <span
-                                className={cn(
-                                  "shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                                  config.bg,
-                                  config.border,
-                                  config.color
-                                )}
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/compliance/kri/${kri.id}`}
+                                onClick={(event) => event.stopPropagation()}
+                                className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                               >
-                                {config.label}
-                              </span>
-                            </Link>
+                                <span className="truncate">{kri.name}</span>
+                                <span
+                                  className={cn(
+                                    "shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                                    config.bg,
+                                    config.border,
+                                    config.color
+                                  )}
+                                >
+                                  {config.label}
+                                </span>
+                              </Link>
+                              {isReadOnly && (
+                                <span className="inline-flex items-center rounded-full border border-secondary/50 bg-secondary/10 px-1.5 py-0.5 text-[9px] font-semibold text-secondary-foreground" title="Read-only access">
+                                  RO
+                                </span>
+                              )}
+                            </div>
                             <p className="truncate text-xs text-muted-foreground">
                               {kri.description || kri.riskTitle || "Belum ada deskripsi indikator"}
                             </p>

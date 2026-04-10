@@ -10,6 +10,7 @@ import type {
   RiskStatus,
   RiskVersionTimelineItem,
 } from "@/types/risk";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,6 +103,7 @@ type RiskListItem = {
   description?: string;
   category?: RiskCategory | "";
   status?: RiskStatus;
+  organizationId?: string;
   orgName?: string;
   createdByName?: string;
   updatedAt?: string;
@@ -208,7 +210,7 @@ function formatCycleLabel(cycle?: string, createdAt?: string) {
 
 export default function RiskRegisterPage() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
   const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
@@ -460,20 +462,22 @@ export default function RiskRegisterPage() {
             Kelola seluruh risiko organisasi sesuai ISO 31000:2018
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/risk/register/bulk">
-            <Button variant="outline" className="gap-2">
-              <Upload className="size-4" />
-              Bulk Create
-            </Button>
-          </Link>
-          <Link href="/risk/register/new">
-            <Button className="gap-2 shadow-lg shadow-primary/20">
-              <Plus className="size-4" />
-              Tambah Risiko
-            </Button>
-          </Link>
-        </div>
+        {(!token || (user?.isGlobal || !!user?.organizationId)) && (
+          <div className="flex flex-wrap gap-2">
+            <Link href="/risk/register/bulk">
+              <Button variant="outline" className="gap-2">
+                <Upload className="size-4" />
+                Bulk Create
+              </Button>
+            </Link>
+            <Link href="/risk/register/new">
+              <Button className="gap-2 shadow-lg shadow-primary/20">
+                <Plus className="size-4" />
+                Tambah Risiko
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -615,7 +619,8 @@ export default function RiskRegisterPage() {
                 ) : filteredRisks.map((risk) => {
                   const scoreSemantics = resolveListItemScoreSemantics(risk);
                   const levelLabel = getRiskLevelLabel(scoreSemantics.effective.level);
-                  const canReassess = risk.status === "approved" && risk.isCurrent;
+                  const isReadOnly = isReadOnlyForOrg(user, risk.organizationId || "");
+                  const canReassess = risk.status === "approved" && risk.isCurrent && !isReadOnly;
                   return (
                   <TableRow
                     key={risk.id}
@@ -639,7 +644,12 @@ export default function RiskRegisterPage() {
                       {formatCycleLabel(risk.assessmentCycle, risk.updatedAt)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {risk.orgName || "-"}
+                      <div className="flex items-center gap-1">
+                        {risk.orgName || "-"}
+                        {isReadOnly && (
+                          <Badge variant="secondary" className="text-[9px] h-4 px-1" title="Read-only access">RO</Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <span className="text-xs font-bold">{scoreSemantics.effective.score}</span>
@@ -737,6 +747,7 @@ export default function RiskRegisterPage() {
                   </TableRow>
                 ) : drafts.map((draft) => {
                   const completeness = computeCompleteness(draft);
+                  const isReadOnly = isReadOnlyForOrg(user, draft.organizationId || "");
                   const date = draft.updatedAt ? new Date(draft.updatedAt).toLocaleDateString("id-ID", {
                     year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
                   }) : "-";
@@ -745,9 +756,14 @@ export default function RiskRegisterPage() {
                   <TableRow key={draft.id} className="border-border/30 hover:bg-muted/30">
                     <TableCell className="text-xs font-mono text-muted-foreground">{draft.code || (draft.id ? draft.id.substring(0,8) : "-")}</TableCell>
                     <TableCell className="max-w-[300px]">
-                      <Link href={`/risk/register/${draft.id}`} className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline">
-                        {draft.title || "Tanpa Judul"}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link href={`/risk/register/${draft.id}`} className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline">
+                          {draft.title || "Tanpa Judul"}
+                        </Link>
+                        {isReadOnly && (
+                          <Badge variant="secondary" className="text-[9px] h-4 px-1" title="Read-only access">RO</Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {formatCycleLabel(draft.assessmentCycle, draft.updatedAt)}
@@ -776,7 +792,7 @@ export default function RiskRegisterPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        {draft.status === 'draft' && (
+                        {draft.status === 'draft' && !isReadOnly && (
                           <Button
                             variant="outline"
                             size="sm"

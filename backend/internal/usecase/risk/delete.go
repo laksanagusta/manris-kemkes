@@ -23,9 +23,9 @@ type DeleteRiskOutput struct {
 	Message string
 }
 
-func (uc *DeleteRiskUseCase) Execute(ctx context.Context, id uuid.UUID) (*DeleteRiskOutput, error) {
+func (uc *DeleteRiskUseCase) Execute(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*DeleteRiskOutput, error) {
 	// 1. Get existing risk to check if it exists
-	risk, err := uc.riskRepo.GetByID(ctx, id)
+	risk, err := uc.riskRepo.GetByID(ctx, id, orgIDs)
 	if err != nil {
 		return nil, errors.ErrRiskNotFound
 	}

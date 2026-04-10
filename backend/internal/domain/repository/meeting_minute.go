@@ -9,7 +9,7 @@ import (
 
 type MeetingMinuteRepository interface {
 	Create(ctx context.Context, input entity.CreateMeetingMinuteInput) (*entity.MeetingMinute, error)
-	GetByID(ctx context.Context, id uuid.UUID) (*entity.MeetingMinuteWithRisks, error)
+	GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.MeetingMinuteWithRisks, error)
 	List(ctx context.Context, opts ListMeetingMinutesOptions) ([]entity.MeetingMinute, int, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByRiskID(ctx context.Context, riskID uuid.UUID) ([]entity.MeetingMinutesRisk, error)
@@ -18,9 +18,9 @@ type MeetingMinuteRepository interface {
 }
 
 type ListMeetingMinutesOptions struct {
-	OrganizationID *uuid.UUID
-	CreatedBy      *uuid.UUID
-	RiskID         *uuid.UUID
-	Limit          int
-	Offset         int
+	OrgIDs    []uuid.UUID
+	CreatedBy *uuid.UUID
+	RiskID    *uuid.UUID
+	Limit     int
+	Offset    int
 }

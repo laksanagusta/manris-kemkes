@@ -22,8 +22,8 @@ func NewGetKRIUseCase(kriRepo repository.KRIRepository) *GetKRIUseCase {
 	}
 }
 
-func (uc *GetKRIUseCase) Execute(ctx context.Context, id uuid.UUID) (*entity.KRI, error) {
-	kri, err := uc.kriRepo.GetByID(ctx, id)
+func (uc *GetKRIUseCase) Execute(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.KRI, error) {
+	kri, err := uc.kriRepo.GetByID(ctx, id, orgIDs)
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
@@ -34,32 +34,20 @@ func (uc *GetKRIUseCase) Execute(ctx context.Context, id uuid.UUID) (*entity.KRI
 // ListKRIsUseCase retrieves KRIs with optional filters
 type ListKRIsUseCase struct {
 	kriRepo repository.KRIRepository
-	orgSvc  *service.OrganizationHierarchy
 }
 
 func NewListKRIsUseCase(kriRepo repository.KRIRepository, orgSvc *service.OrganizationHierarchy) *ListKRIsUseCase {
 	return &ListKRIsUseCase{
 		kriRepo: kriRepo,
-		orgSvc:  orgSvc,
 	}
 }
 
 type ListKRIsInput struct {
-	OrgID *uuid.UUID
+	OrgIDs []uuid.UUID
 }
 
 func (uc *ListKRIsUseCase) Execute(ctx context.Context, input ListKRIsInput) ([]*entity.KRI, error) {
-	var orgIDs []uuid.UUID
-	var err error
-
-	if input.OrgID != nil {
-		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	kris, err := uc.kriRepo.List(ctx, orgIDs, false)
+	kris, err := uc.kriRepo.List(ctx, input.OrgIDs, false)
 	if err != nil {
 		return nil, err
 	}
@@ -106,15 +94,19 @@ type UpdateKRIOutput struct {
 	LastUpdated time.Time
 }
 
-func (uc *UpdateKRIUseCase) Execute(ctx context.Context, input UpdateKRIInput) (*UpdateKRIOutput, error) {
+func (uc *UpdateKRIUseCase) Execute(ctx context.Context, input UpdateKRIInput, orgIDs []uuid.UUID, scope *entity.AccessScope) (*UpdateKRIOutput, error) {
 	// 1. Get existing KRI
-	existingKRI, err := uc.kriRepo.GetByID(ctx, input.ID)
+	existingKRI, err := uc.kriRepo.GetByID(ctx, input.ID, orgIDs)
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
 
+	if scope != nil && existingKRI.OrganizationID != nil && !scope.CanWrite(*existingKRI.OrganizationID) {
+		return nil, errors.ErrForbidden
+	}
+
 	// 2. Validate linked risk
-	_, err = uc.riskRepo.GetByID(ctx, input.RiskID)
+	_, err = uc.riskRepo.GetByID(ctx, input.RiskID, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "linked risk not found")
 	}
@@ -171,10 +163,14 @@ type DeleteKRIOutput struct {
 	Message string
 }
 
-func (uc *DeleteKRIUseCase) Execute(ctx context.Context, id uuid.UUID) (*DeleteKRIOutput, error) {
-	_, err := uc.kriRepo.GetByID(ctx, id)
+func (uc *DeleteKRIUseCase) Execute(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID, scope *entity.AccessScope) (*DeleteKRIOutput, error) {
+	kri, err := uc.kriRepo.GetByID(ctx, id, orgIDs)
 	if err != nil {
 		return nil, errors.ErrNotFound
+	}
+
+	if scope != nil && kri.OrganizationID != nil && !scope.CanWrite(*kri.OrganizationID) {
+		return nil, errors.ErrForbidden
 	}
 
 	if err := uc.kriRepo.Delete(ctx, id); err != nil {
@@ -206,17 +202,21 @@ type ArchiveKRIOutput struct {
 	ArchivedReason string
 }
 
-func (uc *ArchiveKRIUseCase) Execute(ctx context.Context, input ArchiveKRIInput) (*ArchiveKRIOutput, error) {
-	_, err := uc.kriRepo.GetByID(ctx, input.ID)
+func (uc *ArchiveKRIUseCase) Execute(ctx context.Context, input ArchiveKRIInput, orgIDs []uuid.UUID, scope *entity.AccessScope) (*ArchiveKRIOutput, error) {
+	kri, err := uc.kriRepo.GetByID(ctx, input.ID, orgIDs)
 	if err != nil {
 		return nil, errors.ErrNotFound
+	}
+
+	if scope != nil && kri.OrganizationID != nil && !scope.CanWrite(*kri.OrganizationID) {
+		return nil, errors.ErrForbidden
 	}
 
 	if err := uc.kriRepo.Archive(ctx, input.ID, input.Reason); err != nil {
 		return nil, errors.Wrap(err, "failed to archive KRI")
 	}
 
-	archived, err := uc.kriRepo.GetByID(ctx, input.ID)
+	archived, err := uc.kriRepo.GetByID(ctx, input.ID, orgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fetch archived KRI")
 	}
@@ -232,32 +232,20 @@ func (uc *ArchiveKRIUseCase) Execute(ctx context.Context, input ArchiveKRIInput)
 // KRIDashboardUseCase retrieves dashboard metrics for KRIs
 type KRIDashboardUseCase struct {
 	kriRepo repository.KRIRepository
-	orgSvc  *service.OrganizationHierarchy
 }
 
 func NewKRIDashboardUseCase(kriRepo repository.KRIRepository, orgSvc *service.OrganizationHierarchy) *KRIDashboardUseCase {
 	return &KRIDashboardUseCase{
 		kriRepo: kriRepo,
-		orgSvc:  orgSvc,
 	}
 }
 
 type KRIDashboardInput struct {
-	OrgID *uuid.UUID
+	OrgIDs []uuid.UUID
 }
 
 func (uc *KRIDashboardUseCase) Execute(ctx context.Context, input KRIDashboardInput) (map[string]interface{}, error) {
-	var orgIDs []uuid.UUID
-	var err error
-
-	if input.OrgID != nil {
-		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	metrics, err := uc.kriRepo.GetDashboard(ctx, orgIDs)
+	metrics, err := uc.kriRepo.GetDashboard(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, err
 	}

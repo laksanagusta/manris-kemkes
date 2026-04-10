@@ -7,6 +7,23 @@ import (
 	"github.com/manris/backend/internal/domain/errors"
 )
 
+const (
+	RoleSuperAdmin = "superadmin"
+	RoleUnit       = "unit"
+	RoleReviewer   = "reviewer"
+	RolePimpinan   = "pimpinan"
+)
+
+// NormalizeRole maps role aliases to the canonical form.
+func NormalizeRole(role string) string {
+	switch role {
+	case "super_admin", "admin":
+		return RoleSuperAdmin
+	default:
+		return role
+	}
+}
+
 // User represents an application user
 type User struct {
 	ID             uuid.UUID  `json:"id"`

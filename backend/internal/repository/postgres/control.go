@@ -38,15 +38,19 @@ func (r *controlRepository) Create(ctx context.Context, control *entity.Control)
 }
 
 // GetByID retrieves a control by ID
-func (r *controlRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Control, error) {
+func (r *controlRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Control, error) {
 	control := &entity.Control{}
-	err := r.pool.QueryRow(ctx,
-		`SELECT c.id, c.name, c.description, c.control_type, c.frequency,
+	query := `SELECT c.id, c.name, c.description, c.control_type, c.frequency,
 		        c.owner, c.organization_id, COALESCE(o.name, '') as org_name, c.created_at
 		FROM controls c
 		LEFT JOIN organizations o ON c.organization_id = o.id
-		WHERE c.id = $1`, id,
-	).Scan(
+		WHERE c.id = $1`
+	args := []interface{}{id}
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND c.organization_id = ANY($%d)", len(args)+1)
+		args = append(args, orgIDs)
+	}
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&control.ID, &control.Name, &control.Description, &control.Type, &control.Frequency,
 		&control.Owner, &control.OrganizationID, &control.OrgName, &control.CreatedAt,
 	)

@@ -37,6 +37,7 @@ type ApprovalActionInput struct {
 	ActorName  string // user name (set by handler)
 	ActorRole  string // user role (set by handler)
 	Comments   string `json:"comments"` // optional comments
+	OrgIDs     []uuid.UUID
 
 	// Reviewer scoring (only required when role is reviewer and action is approve on a risk)
 	ReviewedProbability *int `json:"reviewedProbability,omitempty"`
@@ -63,7 +64,7 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 	}
 
 	// Get approval request
-	approvalReq, err := uc.approvalRepo.FindByID(ctx, approvalID)
+	approvalReq, err := uc.approvalRepo.FindByID(ctx, approvalID, input.OrgIDs)
 	if err != nil {
 		return nil, domainerrors.ErrApprovalNotFound
 	}
@@ -174,7 +175,7 @@ func validateCurrentApprover(approvalReq *entity.ApprovalRequest, actorID uuid.U
 // For risks, it also applies reviewer scoring if provided.
 func (uc *ApprovalActionUseCase) updateEntityStatus(ctx context.Context, approvalReq *entity.ApprovalRequest, status string, input ApprovalActionInput) error {
 	if approvalReq.RequestType == "risk" {
-		risk, err := uc.riskRepo.GetByID(ctx, approvalReq.EntityID)
+		risk, err := uc.riskRepo.GetByID(ctx, approvalReq.EntityID, input.OrgIDs)
 		if err != nil {
 			return err
 		}
@@ -199,7 +200,7 @@ func (uc *ApprovalActionUseCase) updateEntityStatus(ctx context.Context, approva
 		risk.Status = status
 		return uc.riskRepo.Update(ctx, risk)
 	} else {
-		incident, err := uc.incidentRepo.GetByID(ctx, approvalReq.EntityID.String())
+		incident, err := uc.incidentRepo.GetByID(ctx, approvalReq.EntityID.String(), input.OrgIDs)
 		if err != nil {
 			return err
 		}

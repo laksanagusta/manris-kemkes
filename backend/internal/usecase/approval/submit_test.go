@@ -16,13 +16,13 @@ type fakeSubmitApprovalRepo struct {
 	steps   []entity.ApprovalStep
 }
 
-func (r *fakeSubmitApprovalRepo) List(context.Context, string, string, *uuid.UUID) ([]*entity.ApprovalRequest, error) {
+func (r *fakeSubmitApprovalRepo) List(context.Context, string, string, *uuid.UUID, []uuid.UUID) ([]*entity.ApprovalRequest, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitApprovalRepo) FindByID(context.Context, uuid.UUID) (*entity.ApprovalRequest, error) {
+func (r *fakeSubmitApprovalRepo) FindByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.ApprovalRequest, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitApprovalRepo) FindByEntity(context.Context, string, uuid.UUID) (*entity.ApprovalRequest, error) {
+func (r *fakeSubmitApprovalRepo) FindByEntity(context.Context, string, uuid.UUID, []uuid.UUID) (*entity.ApprovalRequest, error) {
 	return nil, nil
 }
 func (r *fakeSubmitApprovalRepo) GetHistoryByEntity(context.Context, string, uuid.UUID) ([]*entity.ApprovalHistory, error) {
@@ -42,7 +42,7 @@ func (r *fakeSubmitApprovalRepo) AddHistory(context.Context, *entity.ApprovalHis
 func (r *fakeSubmitApprovalRepo) GetHistory(context.Context, uuid.UUID) ([]*entity.ApprovalHistory, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitApprovalRepo) GetPendingCount(context.Context, string, *uuid.UUID) (int, error) {
+func (r *fakeSubmitApprovalRepo) GetPendingCount(context.Context, string, *uuid.UUID, []uuid.UUID) (int, error) {
 	return 0, errors.New("not implemented")
 }
 func (r *fakeSubmitApprovalRepo) CreateSteps(_ context.Context, _ uuid.UUID, steps []entity.ApprovalStep) error {
@@ -66,7 +66,7 @@ type fakeSubmitRiskRepo struct{ risk *entity.Risk }
 func (r *fakeSubmitRiskRepo) Create(context.Context, *entity.Risk) error {
 	return errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) GetByID(context.Context, uuid.UUID) (*entity.Risk, error) {
+func (r *fakeSubmitRiskRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (*entity.Risk, error) {
 	if r.risk == nil {
 		return nil, domainerrors.ErrRiskNotFound
 	}
@@ -86,13 +86,13 @@ func (r *fakeSubmitRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*e
 func (r *fakeSubmitRiskRepo) NextRiskCode(context.Context) (string, error) {
 	return "", errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
+func (r *fakeSubmitRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
+func (r *fakeSubmitRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
+func (r *fakeSubmitRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeSubmitRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
@@ -116,19 +116,19 @@ func (r *fakeSubmitRiskRepo) RiskReviewSummary(context.Context, string, []uuid.U
 func (r *fakeSubmitRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeSubmitRiskRepo) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+func (r *fakeSubmitRiskRepo) GetHeatmapVelocity(context.Context, string, string, []uuid.UUID) ([]entity.HeatmapVelocityCell, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+func (r *fakeSubmitRiskRepo) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+func (r *fakeSubmitRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+func (r *fakeSubmitRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -168,7 +168,7 @@ type fakeSubmitIncidentRepo struct{}
 func (r *fakeSubmitIncidentRepo) Create(context.Context, *entity.Incident) error {
 	return errors.New("not implemented")
 }
-func (r *fakeSubmitIncidentRepo) GetByID(context.Context, string) (*entity.Incident, error) {
+func (r *fakeSubmitIncidentRepo) GetByID(_ context.Context, _ string, _ []uuid.UUID) (*entity.Incident, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeSubmitIncidentRepo) Update(context.Context, *entity.Incident) error {
@@ -180,7 +180,7 @@ func (r *fakeSubmitIncidentRepo) Delete(context.Context, string) error {
 func (r *fakeSubmitIncidentRepo) List(context.Context, []uuid.UUID) ([]*entity.Incident, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitIncidentRepo) GetSummary(context.Context, string) (map[string]interface{}, error) {
+func (r *fakeSubmitIncidentRepo) GetSummary(context.Context, []uuid.UUID) (map[string]interface{}, error) {
 	return nil, errors.New("not implemented")
 }
 

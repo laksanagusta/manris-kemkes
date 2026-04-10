@@ -1,0 +1,108 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - img "MANRIS logo" [ref=e6]
+        - generic [ref=e8]: MR-V0
+      - button [ref=e9]:
+        - img
+      - navigation [ref=e10]:
+        - generic [ref=e12]: overview
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - textbox "Search..." [ref=e18]
+        - button [ref=e19]:
+          - img
+        - button "FI Dr. Farah Indah" [ref=e20]:
+          - generic [ref=e21]: FI
+          - generic [ref=e22]: Dr. Farah Indah
+    - generic [ref=e23]:
+      - complementary [ref=e24]:
+        - navigation [ref=e28]:
+          - generic [ref=e29]:
+            - button "MAIN MENU" [ref=e30]:
+              - generic [ref=e31]: MAIN MENU
+              - img [ref=e32]
+            - generic [ref=e34]:
+              - link "Dashboard" [ref=e35] [cursor=pointer]:
+                - /url: /overview
+                - img [ref=e36]
+                - generic [ref=e41]: Dashboard
+              - link "Approval" [ref=e42] [cursor=pointer]:
+                - /url: /inbox
+                - img [ref=e43]
+                - generic [ref=e46]: Approval
+              - link "Risk Register" [ref=e47] [cursor=pointer]:
+                - /url: /risk/register
+                - img [ref=e48]
+                - generic [ref=e50]: Risk Register
+              - link "Monitoring & Updates" [ref=e51] [cursor=pointer]:
+                - /url: /compliance/monitoring
+                - img [ref=e52]
+                - generic [ref=e56]: Monitoring & Updates
+              - link "Reports & Export" [ref=e57] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e58]
+                - generic [ref=e61]: Reports & Export
+              - link "Insiden" [ref=e62] [cursor=pointer]:
+                - /url: /incidents
+                - img [ref=e63]
+                - generic [ref=e65]: Insiden
+              - link "My Forms" [ref=e66] [cursor=pointer]:
+                - /url: /forms
+                - img [ref=e67]
+                - generic [ref=e70]: My Forms
+          - generic [ref=e71]:
+            - button "AI & Automation" [ref=e72]:
+              - generic [ref=e73]:
+                - img [ref=e74]
+                - text: AI & Automation
+              - img [ref=e77]
+            - generic [ref=e79]:
+              - link "Meeting" [ref=e80] [cursor=pointer]:
+                - /url: /minutes
+                - img [ref=e81]
+                - generic [ref=e84]: Meeting
+              - link "Predictive Scoring" [ref=e85] [cursor=pointer]:
+                - /url: /intelligence/predictive
+                - img [ref=e86]
+                - generic [ref=e89]: Predictive Scoring
+              - link "Cost Benefit Analysis" [ref=e90] [cursor=pointer]:
+                - /url: /intelligence/cba
+                - img [ref=e91]
+                - generic [ref=e93]: Cost Benefit Analysis
+          - generic [ref=e94]:
+            - button "ADMINISTRATION" [ref=e95]:
+              - generic [ref=e96]:
+                - img [ref=e97]
+                - text: ADMINISTRATION
+              - img [ref=e100]
+            - generic [ref=e102]:
+              - link "Users" [ref=e103] [cursor=pointer]:
+                - /url: /admin/users
+                - img [ref=e104]
+                - generic [ref=e109]: Users
+              - link "Organizations" [ref=e110] [cursor=pointer]:
+                - /url: /admin/organizations
+                - img [ref=e111]
+                - generic [ref=e115]: Organizations
+              - link "Form Builder" [ref=e116] [cursor=pointer]:
+                - /url: /admin/forms
+                - img [ref=e117]
+                - generic [ref=e120]: Form Builder
+              - link "Settings" [ref=e121] [cursor=pointer]:
+                - /url: /admin/settings
+                - img [ref=e122]
+                - generic [ref=e125]: Settings
+        - generic [ref=e127]:
+          - generic [ref=e128]: FI
+          - generic [ref=e129]:
+            - generic [ref=e130]: Dr. Farah Indah
+            - generic [ref=e131]: reviewer
+      - main [ref=e132]:
+        - generic [ref=e133]: Memuat dashboard...
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e139] [cursor=pointer]:
+    - img [ref=e140]
+  - alert [ref=e143]

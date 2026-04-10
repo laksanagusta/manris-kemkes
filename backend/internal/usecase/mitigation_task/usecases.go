@@ -16,10 +16,11 @@ import (
 // ListTasksUseCase lists mitigation tasks for a risk
 type ListTasksUseCase struct {
 	taskRepo repository.MitigationTaskRepository
+	riskRepo repository.RiskRepository
 }
 
-func NewListTasksUseCase(taskRepo repository.MitigationTaskRepository) *ListTasksUseCase {
-	return &ListTasksUseCase{taskRepo: taskRepo}
+func NewListTasksUseCase(taskRepo repository.MitigationTaskRepository, riskRepo repository.RiskRepository) *ListTasksUseCase {
+	return &ListTasksUseCase{taskRepo: taskRepo, riskRepo: riskRepo}
 }
 
 type ListTasksInput struct {
@@ -27,29 +28,34 @@ type ListTasksInput struct {
 	MitigationID *uuid.UUID
 	UserID       *uuid.UUID
 	Status       string
+	OrgIDs       []uuid.UUID
 }
 
 func (uc *ListTasksUseCase) Execute(ctx context.Context, input ListTasksInput) ([]*entity.MitigationTask, error) {
 	if input.RiskID != nil {
-		return uc.taskRepo.ListByRisk(ctx, *input.RiskID)
+		if _, err := uc.riskRepo.GetByID(ctx, *input.RiskID, input.OrgIDs); err != nil {
+			return nil, fmt.Errorf("risk not found or not accessible: %w", err)
+		}
+		return uc.taskRepo.ListByRisk(ctx, *input.RiskID, input.OrgIDs)
 	}
 	if input.MitigationID != nil {
-		return uc.taskRepo.ListByMitigation(ctx, *input.MitigationID)
+		return uc.taskRepo.ListByMitigation(ctx, *input.MitigationID, input.OrgIDs)
 	}
 	if input.UserID != nil {
-		return uc.taskRepo.ListByUser(ctx, *input.UserID, input.Status)
+		return uc.taskRepo.ListByUser(ctx, *input.UserID, input.Status, input.OrgIDs)
 	}
 	// No filter: return all tasks (for compliance monitoring dashboard)
-	return uc.taskRepo.ListAll(ctx)
+	return uc.taskRepo.ListAll(ctx, input.OrgIDs)
 }
 
 // SubmitProgressUseCase handles a PIC submitting progress for a task
 type SubmitProgressUseCase struct {
 	taskRepo repository.MitigationTaskRepository
+	riskRepo repository.RiskRepository
 }
 
-func NewSubmitProgressUseCase(taskRepo repository.MitigationTaskRepository) *SubmitProgressUseCase {
-	return &SubmitProgressUseCase{taskRepo: taskRepo}
+func NewSubmitProgressUseCase(taskRepo repository.MitigationTaskRepository, riskRepo repository.RiskRepository) *SubmitProgressUseCase {
+	return &SubmitProgressUseCase{taskRepo: taskRepo, riskRepo: riskRepo}
 }
 
 type SubmitProgressInput struct {
@@ -59,6 +65,7 @@ type SubmitProgressInput struct {
 	EvidenceURL string    `json:"evidenceUrl"`
 	Notes       string    `json:"notes"`
 	ReportedBy  uuid.UUID `json:"-"`
+	OrgIDs      []uuid.UUID
 }
 
 func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgressInput) (*entity.MitigationTask, error) {
@@ -83,9 +90,13 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 		return nil, domainerrors.ErrInvalidNotes
 	}
 
-	task, err := uc.taskRepo.GetByID(ctx, input.TaskID)
+	task, err := uc.taskRepo.GetByID(ctx, input.TaskID, input.OrgIDs)
 	if err != nil {
 		return nil, fmt.Errorf("task not found: %w", err)
+	}
+
+	if _, err := uc.riskRepo.GetByID(ctx, task.RiskID, input.OrgIDs); err != nil {
+		return nil, domainerrors.ErrForbidden
 	}
 
 	periodEnd, err := time.Parse("2006-01-02", task.PeriodEnd)
@@ -122,7 +133,7 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 	}
 
 	// Re-fetch to get joined fields
-	return uc.taskRepo.GetByID(ctx, task.ID)
+	return uc.taskRepo.GetByID(ctx, task.ID, input.OrgIDs)
 }
 
 // GenerateTasksUseCase generates tasks for recurring mitigations (called by cron)

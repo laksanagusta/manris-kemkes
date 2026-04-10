@@ -49,6 +49,7 @@ type Form struct {
 	Status         string        `json:"status"`
 	TargetAudience string        `json:"targetAudience"`
 	CreatedBy      uuid.UUID     `json:"createdBy"`
+	OrganizationID *uuid.UUID    `json:"organizationId,omitempty"` // derived from creator's user.organization_id
 	Sections       []FormSection `json:"sections,omitempty"`
 	CreatedAt      time.Time     `json:"createdAt"`
 	UpdatedAt      time.Time     `json:"updatedAt"`

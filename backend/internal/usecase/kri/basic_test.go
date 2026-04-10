@@ -23,7 +23,7 @@ func (r *fakeKRIRepository) Create(_ context.Context, kri *entity.KRI) error {
 	return nil
 }
 
-func (r *fakeKRIRepository) GetByID(_ context.Context, id uuid.UUID) (*entity.KRI, error) {
+func (r *fakeKRIRepository) GetByID(_ context.Context, id uuid.UUID, _ []uuid.UUID) (*entity.KRI, error) {
 	kri, ok := r.items[id]
 	if !ok {
 		return nil, errors.New("not found")
@@ -87,7 +87,7 @@ func TestArchiveKRI(t *testing.T) {
 	}}
 
 	uc := NewArchiveKRIUseCase(repo)
-	result, err := uc.Execute(context.Background(), ArchiveKRIInput{ID: id, Reason: "obsolete definition"})
+	result, err := uc.Execute(context.Background(), ArchiveKRIInput{ID: id, Reason: "obsolete definition"}, nil, nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -102,7 +102,7 @@ func TestArchiveKRI(t *testing.T) {
 		t.Fatalf("expected archive reason to be preserved")
 	}
 
-	preserved, err := repo.GetByID(context.Background(), id)
+	preserved, err := repo.GetByID(context.Background(), id, nil)
 	if err != nil {
 		t.Fatalf("expected archived row to remain retrievable, got %v", err)
 	}

@@ -12,37 +12,26 @@ import (
 
 type CompareRiskCyclesUseCase struct {
 	riskRepo repository.RiskRepository
-	orgSvc   *service.OrganizationHierarchy
 }
 
 func NewCompareRiskCyclesUseCase(riskRepo repository.RiskRepository, orgSvc *service.OrganizationHierarchy) *CompareRiskCyclesUseCase {
 	return &CompareRiskCyclesUseCase{
 		riskRepo: riskRepo,
-		orgSvc:   orgSvc,
 	}
 }
 
 type CompareRiskCyclesInput struct {
 	FromCycle string
 	ToCycle   string
-	OrgID     *uuid.UUID
+	OrgIDs    []uuid.UUID
 }
 
 func (uc *CompareRiskCyclesUseCase) Execute(ctx context.Context, input CompareRiskCyclesInput) ([]*entity.RiskCycleComparisonItem, error) {
 	if input.FromCycle == "" || input.ToCycle == "" {
 		return nil, errors.ErrInvalidInput
 	}
-	var orgIDs []uuid.UUID
-	var err error
 
-	if input.OrgID != nil {
-		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	items, err := uc.riskRepo.CompareCycles(ctx, input.FromCycle, input.ToCycle, orgIDs)
+	items, err := uc.riskRepo.CompareCycles(ctx, input.FromCycle, input.ToCycle, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compare risk cycles")
 	}

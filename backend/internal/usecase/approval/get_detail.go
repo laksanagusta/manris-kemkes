@@ -23,6 +23,7 @@ func NewGetApprovalDetailUseCase(approvalRepo repository.ApprovalRepository) *Ge
 // Input represents the input for getting approval detail
 type GetApprovalDetailInput struct {
 	ApprovalID string
+	OrgIDs     []uuid.UUID
 }
 
 // Output represents the output of getting approval detail
@@ -79,7 +80,7 @@ func (uc *GetApprovalDetailUseCase) Execute(ctx context.Context, input GetApprov
 	}
 
 	// Get approval request
-	req, err := uc.approvalRepo.FindByID(ctx, approvalID)
+	req, err := uc.approvalRepo.FindByID(ctx, approvalID, input.OrgIDs)
 	if err != nil {
 		return nil, domainerrors.ErrApprovalNotFound
 	}

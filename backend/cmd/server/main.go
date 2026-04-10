@@ -174,8 +174,8 @@ func main() {
 	approvalGetByEntityUC := approvaluc.NewGetApprovalByEntityUseCase(domainApprovalRepo)
 
 	// Auth usecases
-	authLoginUC := authuc.NewLoginUseCase(domainUserRepo, cfg.JWTSecret, cfg.JWTExpiry)
-	authMeUC := authuc.NewGetCurrentUserUseCase(domainUserRepo)
+	authLoginUC := authuc.NewLoginUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry)
+	authMeUC := authuc.NewGetCurrentUserUseCase(domainUserRepo, orgHierarchySvc)
 
 	// AI usecases
 	aiFishboneUC := aiuc.NewGenerateFishboneUseCase(domainAIRepo)
@@ -210,24 +210,24 @@ func main() {
 	systemSlowQueriesUC := systemuc.NewGetSlowQueriesUseCase(domainSystemRepo)
 
 	// Mitigation Task usecases
-	mtListUC := mtuc.NewListTasksUseCase(domainMitigationTaskRepo)
-	mtSubmitUC := mtuc.NewSubmitProgressUseCase(domainMitigationTaskRepo)
+	mtListUC := mtuc.NewListTasksUseCase(domainMitigationTaskRepo, domainRiskRepo)
+	mtSubmitUC := mtuc.NewSubmitProgressUseCase(domainMitigationTaskRepo, domainRiskRepo)
 	mtGenerateUC := mtuc.NewGenerateTasksUseCase(domainMitigationTaskRepo)
 	mtOverdueUC := mtuc.NewMarkOverdueUseCase(domainMitigationTaskRepo)
 
 	// KRI Report usecases
-	kriReportListUC := krireportuc.NewListReportsUseCase(domainKRIReportRepo)
+	kriReportListUC := krireportuc.NewListReportsUseCase(domainKRIReportRepo, domainKRiRepo)
 	kriReportSubmitUC := krireportuc.NewSubmitReportUseCase(domainKRIReportRepo, domainKRiRepo)
 	kriReportAcceptUC := krireportuc.NewAcceptReportUseCase(domainKRIReportRepo, domainKRiRepo)
-	kriReportRevisionUC := krireportuc.NewRequestRevisionUseCase(domainKRIReportRepo)
-	kriReportSkipUC := krireportuc.NewSkipReportUseCase(domainKRIReportRepo)
+	kriReportRevisionUC := krireportuc.NewRequestRevisionUseCase(domainKRIReportRepo, domainKRiRepo)
+	kriReportSkipUC := krireportuc.NewSkipReportUseCase(domainKRIReportRepo, domainKRiRepo)
 	kriReportGenerateUC := krireportuc.NewGenerateReportsUseCase(domainKRIReportRepo)
 	kriReportOverdueUC := krireportuc.NewMarkOverdueUseCase(domainKRIReportRepo)
 
 	// Communication Log usecases
 	commLogCreateUC := commloguc.NewCreateCommunicationLogUseCase(domainCommLogRepo, domainRiskRepo, domainUserRepo)
-	commLogListUC := commloguc.NewListCommunicationLogsUseCase(domainCommLogRepo)
-	commLogDeleteUC := commloguc.NewDeleteCommunicationLogUseCase(domainCommLogRepo)
+	commLogListUC := commloguc.NewListCommunicationLogsUseCase(domainCommLogRepo, domainRiskRepo)
+	commLogDeleteUC := commloguc.NewDeleteCommunicationLogUseCase(domainCommLogRepo, domainRiskRepo)
 
 	// Meeting Minute usecases
 	mmCreateUC := mmuc.NewCreateMeetingMinuteUseCase(domainMMRepo, domainUserRepo)
@@ -382,7 +382,7 @@ func main() {
 	api.Get("/system/slow-queries", middleware.AuthRequired(cfg.JWTSecret), cleanSystemHandler.GetSlowQueries)
 
 	// Protected routes
-	protected := api.Group("", middleware.AuthRequired(cfg.JWTSecret))
+	protected := api.Group("", middleware.AuthRequired(cfg.JWTSecret), middleware.ResolveOrgScope(orgHierarchySvc))
 
 	// Auth
 	protected.Get("/auth/me", cleanAuthHandler.Me)

@@ -12,19 +12,17 @@ import (
 
 type ListRiskCycleSnapshotUseCase struct {
 	riskRepo repository.RiskRepository
-	orgSvc   *service.OrganizationHierarchy
 }
 
 func NewListRiskCycleSnapshotUseCase(riskRepo repository.RiskRepository, orgSvc *service.OrganizationHierarchy) *ListRiskCycleSnapshotUseCase {
 	return &ListRiskCycleSnapshotUseCase{
 		riskRepo: riskRepo,
-		orgSvc:   orgSvc,
 	}
 }
 
 type ListRiskCycleSnapshotInput struct {
-	Cycle string
-	OrgID *uuid.UUID
+	Cycle  string
+	OrgIDs []uuid.UUID
 }
 
 func (uc *ListRiskCycleSnapshotUseCase) Execute(ctx context.Context, input ListRiskCycleSnapshotInput) ([]*entity.Risk, error) {
@@ -32,16 +30,7 @@ func (uc *ListRiskCycleSnapshotUseCase) Execute(ctx context.Context, input ListR
 		return nil, errors.ErrInvalidInput
 	}
 
-	var orgIDs []uuid.UUID
-	var err error
-	if input.OrgID != nil && uc.orgSvc != nil {
-		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	items, err := uc.riskRepo.ListCycleSnapshot(ctx, input.Cycle, orgIDs)
+	items, err := uc.riskRepo.ListCycleSnapshot(ctx, input.Cycle, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load risk cycle snapshot")
 	}

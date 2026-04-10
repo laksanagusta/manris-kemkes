@@ -11,13 +11,13 @@ import (
 // This interface belongs to the domain layer - implementation is in infrastructure layer.
 type ApprovalRepository interface {
 	// List retrieves approval requests with optional filters
-	List(ctx context.Context, status string, approverRole string, approverUserID *uuid.UUID) ([]*entity.ApprovalRequest, error)
+	List(ctx context.Context, status string, approverRole string, approverUserID *uuid.UUID, orgIDs []uuid.UUID) ([]*entity.ApprovalRequest, error)
 
 	// FindByID retrieves a single approval request by ID
-	FindByID(ctx context.Context, id uuid.UUID) (*entity.ApprovalRequest, error)
+	FindByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.ApprovalRequest, error)
 
 	// FindByEntity retrieves an approval request by entity type and ID
-	FindByEntity(ctx context.Context, requestType string, entityID uuid.UUID) (*entity.ApprovalRequest, error)
+	FindByEntity(ctx context.Context, requestType string, entityID uuid.UUID, orgIDs []uuid.UUID) (*entity.ApprovalRequest, error)
 	GetHistoryByEntity(ctx context.Context, requestType string, entityID uuid.UUID) ([]*entity.ApprovalHistory, error)
 
 	// Create inserts a new approval request
@@ -37,5 +37,5 @@ type ApprovalRepository interface {
 	RejectCurrentStep(ctx context.Context, approvalRequestID uuid.UUID, actorID uuid.UUID, comments string) error
 
 	// GetPendingCount returns the count of pending approval requests for a user/role filter
-	GetPendingCount(ctx context.Context, approverRole string, approverUserID *uuid.UUID) (int, error)
+	GetPendingCount(ctx context.Context, approverRole string, approverUserID *uuid.UUID, orgIDs []uuid.UUID) (int, error)
 }

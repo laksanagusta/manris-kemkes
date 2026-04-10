@@ -18,7 +18,7 @@ type dashboardIncidentRepo interface {
 }
 
 type dashboardTaskRepo interface {
-	ListAll(ctx context.Context) ([]*entity.MitigationTask, error)
+	ListAll(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error)
 }
 
 type dashboardRiskRepo interface {
@@ -50,6 +50,7 @@ func NewDashboardActionPressureUseCase(incidentRepo dashboardIncidentRepo, taskR
 type DashboardActionPressureInput struct {
 	Interval string
 	Window   int
+	OrgIDs   []uuid.UUID
 }
 
 func (uc *DashboardActionPressureUseCase) Execute(ctx context.Context, input DashboardActionPressureInput) ([]*entity.DashboardActionPressurePoint, error) {
@@ -67,11 +68,11 @@ func (uc *DashboardActionPressureUseCase) Execute(ctx context.Context, input Das
 	now := uc.now().UTC()
 	points, pointIndex := buildMonthlyPressureWindow(now, input.Window)
 
-	incidents, err := uc.incidentRepo.List(ctx, nil)
+	incidents, err := uc.incidentRepo.List(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list incidents for action pressure")
 	}
-	tasks, err := uc.taskRepo.ListAll(ctx)
+	tasks, err := uc.taskRepo.ListAll(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list mitigation tasks for action pressure")
 	}
@@ -119,8 +120,9 @@ func NewExecutiveAlertsUseCase(riskRepo dashboardRiskRepo, taskRepo dashboardTas
 }
 
 type ExecutiveAlertsInput struct {
-	Cycle string
-	Limit int
+	Cycle  string
+	Limit  int
+	OrgIDs []uuid.UUID
 }
 
 func (uc *ExecutiveAlertsUseCase) Execute(ctx context.Context, input ExecutiveAlertsInput) ([]*entity.ExecutiveAlert, error) {
@@ -132,23 +134,23 @@ func (uc *ExecutiveAlertsUseCase) Execute(ctx context.Context, input ExecutiveAl
 	}
 	previousCycle := previousGlobalCycle(input.Cycle)
 
-	currentRisks, err := uc.riskRepo.ListCycleSnapshot(ctx, input.Cycle, nil)
+	currentRisks, err := uc.riskRepo.ListCycleSnapshot(ctx, input.Cycle, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load current cycle snapshot")
 	}
-	previousRisks, err := uc.riskRepo.ListCycleSnapshot(ctx, previousCycle, nil)
+	previousRisks, err := uc.riskRepo.ListCycleSnapshot(ctx, previousCycle, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load previous cycle snapshot")
 	}
-	comparisons, err := uc.riskRepo.CompareCycles(ctx, previousCycle, input.Cycle, nil)
+	comparisons, err := uc.riskRepo.CompareCycles(ctx, previousCycle, input.Cycle, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compare cycles for executive alerts")
 	}
-	approvedRisks, err := uc.riskRepo.List(ctx, nil, "approved", "")
+	approvedRisks, err := uc.riskRepo.List(ctx, input.OrgIDs, "approved", "")
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load approved risks for executive alerts")
 	}
-	tasks, err := uc.taskRepo.ListAll(ctx)
+	tasks, err := uc.taskRepo.ListAll(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load mitigation tasks for executive alerts")
 	}

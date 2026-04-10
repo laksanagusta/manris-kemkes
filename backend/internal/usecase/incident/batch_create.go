@@ -36,6 +36,7 @@ type CreateIncidentBatchItemInput struct {
 type CreateIncidentBatchInput struct {
 	Items      []CreateIncidentBatchItemInput
 	ReporterID *uuid.UUID
+	OrgIDs     []uuid.UUID
 }
 
 type CreateIncidentBatchItemOutput struct {
@@ -70,6 +71,7 @@ func (uc *CreateIncidentBatchUseCase) Execute(ctx context.Context, input CreateI
 			LinkedRiskIDs:    item.LinkedRiskIDs,
 			ReporterID:       input.ReporterID,
 			OrganizationID:   item.OrganizationID,
+			OrgIDs:           input.OrgIDs,
 		})
 		if err != nil {
 			output.Items = append(output.Items, CreateIncidentBatchItemOutput{

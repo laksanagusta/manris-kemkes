@@ -25,8 +25,8 @@ func NewListResponsesUseCase(
 }
 
 type ListResponsesInput struct {
-	FormID     uuid.UUID
-	CallerRole string
+	FormID uuid.UUID
+	Scope  *entity.AccessScope
 }
 
 type ListResponsesOutput struct {
@@ -34,12 +34,19 @@ type ListResponsesOutput struct {
 }
 
 func (uc *ListResponsesUseCase) Execute(ctx context.Context, input ListResponsesInput) (*ListResponsesOutput, error) {
-	if input.CallerRole != "super_admin" {
+	if input.Scope == nil {
 		return nil, domainerrors.ErrForbidden
 	}
 
-	if _, err := uc.formRepo.GetByID(ctx, input.FormID); err != nil {
+	form, err := uc.formRepo.GetByID(ctx, input.FormID)
+	if err != nil {
 		return nil, err
+	}
+
+	if !input.Scope.IsGlobal {
+		if form.OrganizationID == nil || !input.Scope.CanRead(*form.OrganizationID) {
+			return nil, domainerrors.ErrForbidden
+		}
 	}
 
 	responses, err := uc.responseRepo.GetByFormID(ctx, input.FormID)

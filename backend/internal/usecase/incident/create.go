@@ -45,6 +45,7 @@ type CreateIncidentInput struct {
 	LinkedRiskIDs    []string
 	ReporterID       *uuid.UUID
 	OrganizationID   *uuid.UUID
+	OrgIDs           []uuid.UUID
 }
 
 type CreateIncidentOutput struct {
@@ -90,7 +91,7 @@ func (uc *CreateIncidentUseCase) Execute(ctx context.Context, input CreateIncide
 
 	// 4. Validate linked risk if provided
 	for _, riskID := range linkedRiskIDs {
-		_, err := uc.riskRepo.GetByID(ctx, riskID)
+		_, err := uc.riskRepo.GetByID(ctx, riskID, input.OrgIDs)
 		if err != nil {
 			return nil, errors.Wrap(err, "linked risk not found")
 		}

@@ -83,7 +83,7 @@ func (r *incidentRepository) Create(ctx context.Context, incident *entity.Incide
 }
 
 // GetByID retrieves an incident by ID.
-func (r *incidentRepository) GetByID(ctx context.Context, id string) (*entity.Incident, error) {
+func (r *incidentRepository) GetByID(ctx context.Context, id string, orgIDs []uuid.UUID) (*entity.Incident, error) {
 	query := `
 		SELECT i.id, i.code, i.title, i.what, i.who, i."when", i."where", i.why_how,
 		       i.severity, i.status, i.corrective_action, i.preventive_action,
@@ -94,9 +94,14 @@ func (r *incidentRepository) GetByID(ctx context.Context, id string) (*entity.In
 		LEFT JOIN users u ON i.reporter_id = u.id
 		WHERE i.id = $1
 	`
+	args := []interface{}{id}
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND i.organization_id = ANY($%d)", len(args)+1)
+		args = append(args, orgIDs)
+	}
 
 	var incident entity.Incident
-	if err := r.pool.QueryRow(ctx, query, id).Scan(
+	if err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&incident.ID, &incident.Code, &incident.Title, &incident.What, &incident.Who, &incident.When, &incident.Where, &incident.WhyHow,
 		&incident.Severity, &incident.Status, &incident.CorrectiveAction, &incident.PreventiveAction,
 		&incident.LinkedRiskID, &incident.LinkedRiskCode, &incident.ReporterID, &incident.ReporterName, &incident.OrganizationID, &incident.CreatedAt, &incident.UpdatedAt,
@@ -235,8 +240,19 @@ func (r *incidentRepository) List(ctx context.Context, orgIDs []uuid.UUID) ([]*e
 }
 
 // GetSummary returns incident summary statistics.
-func (r *incidentRepository) GetSummary(ctx context.Context, orgID string) (map[string]interface{}, error) {
-	query := `
+func (r *incidentRepository) GetSummary(ctx context.Context, orgIDs []uuid.UUID) (map[string]interface{}, error) {
+	whereClause := "WHERE 1=1"
+	var args []interface{}
+	argIdx := 1
+
+	if len(orgIDs) > 0 {
+		whereClause += fmt.Sprintf(" AND organization_id = ANY($%d)", argIdx)
+		args = append(args, orgIDs)
+		argIdx++
+	}
+	_ = argIdx
+
+	query := fmt.Sprintf(`
 		SELECT
 			COUNT(*) as total,
 			COUNT(*) FILTER (WHERE status = 'draft') as draft_count,
@@ -248,11 +264,11 @@ func (r *incidentRepository) GetSummary(ctx context.Context, orgID string) (map[
 			COUNT(*) FILTER (WHERE status = 'resolved') as resolved_count,
 			COUNT(*) FILTER (WHERE status = 'closed') as closed_count
 		FROM incidents
-		WHERE ($1 = '' OR organization_id = $1::uuid)
-	`
+		%s
+	`, whereClause)
 
 	var total, draft, final, approved, rejected, open, investigating, resolved, closed int
-	if err := r.pool.QueryRow(ctx, query, orgID).Scan(
+	if err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&total, &draft, &final, &approved, &rejected, &open, &investigating, &resolved, &closed,
 	); err != nil {
 		return nil, fmt.Errorf("incident summary: %w", err)

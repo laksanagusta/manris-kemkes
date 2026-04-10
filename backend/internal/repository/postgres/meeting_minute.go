@@ -75,18 +75,22 @@ func (r *meetingMinuteRepository) Create(ctx context.Context, input entity.Creat
 	return mm, nil
 }
 
-func (r *meetingMinuteRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.MeetingMinuteWithRisks, error) {
+func (r *meetingMinuteRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.MeetingMinuteWithRisks, error) {
 	mm := &entity.MeetingMinute{}
 	var actionItemsJSON []byte
 
-	err := r.pool.QueryRow(ctx,
-		`SELECT mm.id, mm.title, mm.date, mm.participants, mm.agenda, mm.summary, mm.key_points, mm.decisions, mm.open_issues, mm.action_items, mm.next_check_in, mm.transcript, mm.organization_id, mm.created_by, mm.created_at, mm.updated_at,
+	query := `SELECT mm.id, mm.title, mm.date, mm.participants, mm.agenda, mm.summary, mm.key_points, mm.decisions, mm.open_issues, mm.action_items, mm.next_check_in, mm.transcript, mm.organization_id, mm.created_by, mm.created_at, mm.updated_at,
 		        COALESCE(u.name, '') as created_by_name
 		 FROM meeting_minutes mm
 		 LEFT JOIN users u ON mm.created_by = u.id
-		 WHERE mm.id = $1`,
-		id,
-	).Scan(&mm.ID, &mm.Title, &mm.Date, &mm.Participants, &mm.Agenda, &mm.Summary, &mm.KeyPoints, &mm.Decisions, &mm.OpenIssues, &actionItemsJSON, &mm.NextCheckIn, &mm.Transcript, &mm.OrganizationID, &mm.CreatedBy, &mm.CreatedAt, &mm.UpdatedAt, &mm.CreatedByName)
+		 WHERE mm.id = $1`
+	args := []interface{}{id}
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND mm.organization_id = ANY($%d)", len(args)+1)
+		args = append(args, orgIDs)
+	}
+
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&mm.ID, &mm.Title, &mm.Date, &mm.Participants, &mm.Agenda, &mm.Summary, &mm.KeyPoints, &mm.Decisions, &mm.OpenIssues, &actionItemsJSON, &mm.NextCheckIn, &mm.Transcript, &mm.OrganizationID, &mm.CreatedBy, &mm.CreatedAt, &mm.UpdatedAt, &mm.CreatedByName)
 	if err != nil {
 		return nil, fmt.Errorf("get meeting minute by id: %w", err)
 	}
@@ -134,9 +138,9 @@ func (r *meetingMinuteRepository) List(ctx context.Context, opts repository.List
 	var args []interface{}
 	argIdx := 1
 
-	if opts.OrganizationID != nil {
-		whereClause += fmt.Sprintf(" AND mm.organization_id = $%d", argIdx)
-		args = append(args, *opts.OrganizationID)
+	if len(opts.OrgIDs) > 0 {
+		whereClause += fmt.Sprintf(" AND mm.organization_id = ANY($%d)", argIdx)
+		args = append(args, opts.OrgIDs)
 		argIdx++
 	}
 	if opts.CreatedBy != nil {

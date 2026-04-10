@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/middleware"
 	kruc "github.com/manris/backend/internal/usecase/kri_report"
 )
 
@@ -44,7 +45,13 @@ func (h *KRIReportHandler) ListByKRI(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid KRI ID")
 	}
 
-	input := kruc.ListReportsInput{KRIID: &kriID}
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	input := kruc.ListReportsInput{KRIID: &kriID, OrgIDs: orgIDs}
 	reports, err := h.listUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
@@ -62,8 +69,14 @@ func (h *KRIReportHandler) ListMyReports(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	status := c.Query("status", "all")
-	input := kruc.ListReportsInput{UserID: &userID, Status: status}
+	input := kruc.ListReportsInput{UserID: &userID, Status: status, OrgIDs: orgIDs}
 	reports, err := h.listUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
@@ -76,7 +89,13 @@ func (h *KRIReportHandler) ListMyReports(c *fiber.Ctx) error {
 }
 
 func (h *KRIReportHandler) ListReviewQueue(c *fiber.Ctx) error {
-	input := kruc.ListReportsInput{Status: "submitted"}
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	input := kruc.ListReportsInput{Status: "submitted", OrgIDs: orgIDs}
 	reports, err := h.listUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
@@ -99,6 +118,12 @@ func (h *KRIReportHandler) SubmitReport(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	var input kruc.SubmitReportInput
 	if err := c.BodyParser(&input); err != nil {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
@@ -106,6 +131,7 @@ func (h *KRIReportHandler) SubmitReport(c *fiber.Ctx) error {
 
 	input.ReportID = reportID
 	input.SubmittedBy = userID
+	input.OrgIDs = orgIDs
 
 	report, err := h.submitUC.Execute(c.Context(), input)
 	if err != nil {
@@ -126,6 +152,12 @@ func (h *KRIReportHandler) AcceptReport(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	var body struct {
 		ReviewNote string `json:"review_note"`
 	}
@@ -135,6 +167,7 @@ func (h *KRIReportHandler) AcceptReport(c *fiber.Ctx) error {
 		ReportID:   reportID,
 		ReviewedBy: userID,
 		ReviewNote: body.ReviewNote,
+		OrgIDs:     orgIDs,
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -154,6 +187,12 @@ func (h *KRIReportHandler) RequestRevision(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	var input kruc.RequestRevisionInput
 	if err := c.BodyParser(&input); err != nil {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
@@ -161,6 +200,7 @@ func (h *KRIReportHandler) RequestRevision(c *fiber.Ctx) error {
 
 	input.ReportID = reportID
 	input.ReviewedBy = userID
+	input.OrgIDs = orgIDs
 
 	report, err := h.revisionUC.Execute(c.Context(), input)
 	if err != nil {
@@ -181,6 +221,12 @@ func (h *KRIReportHandler) SkipReport(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	var input kruc.SkipReportInput
 	if err := c.BodyParser(&input); err != nil {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
@@ -188,6 +234,7 @@ func (h *KRIReportHandler) SkipReport(c *fiber.Ctx) error {
 
 	input.ReportID = reportID
 	input.SubmittedBy = userID
+	input.OrgIDs = orgIDs
 
 	report, err := h.skipUC.Execute(c.Context(), input)
 	if err != nil {

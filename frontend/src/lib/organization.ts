@@ -125,6 +125,10 @@ export function getBlockedParentIds(
   return blocked;
 }
 
+export function filterToAccessibleOrgs(orgs: Organization[], accessibleOrgIds: string[]): Organization[] {
+  return orgs.filter(org => accessibleOrgIds.includes(org.id));
+}
+
 export function getAvailableParentOptions(
   organizations: Organization[],
   currentOrgId: string,

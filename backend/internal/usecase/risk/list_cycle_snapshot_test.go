@@ -16,7 +16,7 @@ type fakeCycleSnapshotRiskRepo struct {
 }
 
 func (r *fakeCycleSnapshotRiskRepo) Create(context.Context, *entity.Risk) error { return nil }
-func (r *fakeCycleSnapshotRiskRepo) GetByID(context.Context, uuid.UUID) (*entity.Risk, error) {
+func (r *fakeCycleSnapshotRiskRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (*entity.Risk, error) {
 	return nil, domainerrors.ErrRiskNotFound
 }
 func (r *fakeCycleSnapshotRiskRepo) Update(context.Context, *entity.Risk) error { return nil }
@@ -31,13 +31,13 @@ func (r *fakeCycleSnapshotRiskRepo) ListMitigations(context.Context, []uuid.UUID
 	return nil, nil
 }
 func (r *fakeCycleSnapshotRiskRepo) NextRiskCode(context.Context) (string, error) { return "", nil }
-func (r *fakeCycleSnapshotRiskRepo) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
+func (r *fakeCycleSnapshotRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
+func (r *fakeCycleSnapshotRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
+func (r *fakeCycleSnapshotRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
 func (r *fakeCycleSnapshotRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
@@ -59,19 +59,19 @@ func (r *fakeCycleSnapshotRiskRepo) CompareCycles(context.Context, string, strin
 func (r *fakeCycleSnapshotRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeCycleSnapshotRiskRepo) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return nil, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+func (r *fakeCycleSnapshotRiskRepo) GetHeatmapVelocity(context.Context, string, string, []uuid.UUID) ([]entity.HeatmapVelocityCell, error) {
 	return nil, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+func (r *fakeCycleSnapshotRiskRepo) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+func (r *fakeCycleSnapshotRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
 	return nil, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+func (r *fakeCycleSnapshotRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, nil
 }
 

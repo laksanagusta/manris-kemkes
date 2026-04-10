@@ -34,7 +34,7 @@ func (r *mitigationTaskRepository) Create(ctx context.Context, task *entity.Miti
 	return nil
 }
 
-func (r *mitigationTaskRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.MitigationTask, error) {
+func (r *mitigationTaskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.MitigationTask, error) {
 	task := &entity.MitigationTask{}
 	err := r.pool.QueryRow(ctx,
 		`SELECT t.id, t.mitigation_id, t.risk_id,
@@ -48,7 +48,7 @@ func (r *mitigationTaskRepository) GetByID(ctx context.Context, id uuid.UUID) (*
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
 		 LEFT JOIN users u ON t.reported_by = u.id
-		 WHERE t.id = $1`, id,
+		 WHERE t.id = $1 AND (cardinality($2::uuid[]) = 0 OR r.org_id = ANY($2::uuid[]))`, id, orgIDs,
 	).Scan(
 		&task.ID, &task.MitigationID, &task.RiskID,
 		&task.PeriodLabel, &task.PeriodStart, &task.PeriodEnd, &task.DueDate,
@@ -79,7 +79,7 @@ func (r *mitigationTaskRepository) Update(ctx context.Context, task *entity.Miti
 	return nil
 }
 
-func (r *mitigationTaskRepository) ListByRisk(ctx context.Context, riskID uuid.UUID) ([]*entity.MitigationTask, error) {
+func (r *mitigationTaskRepository) ListByRisk(ctx context.Context, riskID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
 	return r.queryTasks(ctx,
 		`SELECT t.id, t.mitigation_id, t.risk_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
@@ -92,11 +92,11 @@ func (r *mitigationTaskRepository) ListByRisk(ctx context.Context, riskID uuid.U
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
 		 LEFT JOIN users u ON t.reported_by = u.id
-		 WHERE t.risk_id = $1
-		 ORDER BY t.due_date DESC`, riskID)
+		 WHERE t.risk_id = $1 AND (cardinality($2::uuid[]) = 0 OR r.org_id = ANY($2::uuid[]))
+		 ORDER BY t.due_date DESC`, riskID, orgIDs)
 }
 
-func (r *mitigationTaskRepository) ListByMitigation(ctx context.Context, mitigationID uuid.UUID) ([]*entity.MitigationTask, error) {
+func (r *mitigationTaskRepository) ListByMitigation(ctx context.Context, mitigationID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
 	return r.queryTasks(ctx,
 		`SELECT t.id, t.mitigation_id, t.risk_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
@@ -109,11 +109,11 @@ func (r *mitigationTaskRepository) ListByMitigation(ctx context.Context, mitigat
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
 		 LEFT JOIN users u ON t.reported_by = u.id
-		 WHERE t.mitigation_id = $1
-		 ORDER BY t.due_date DESC`, mitigationID)
+		 WHERE t.mitigation_id = $1 AND (cardinality($2::uuid[]) = 0 OR r.org_id = ANY($2::uuid[]))
+		 ORDER BY t.due_date DESC`, mitigationID, orgIDs)
 }
 
-func (r *mitigationTaskRepository) ListByUser(ctx context.Context, userID uuid.UUID, status string) ([]*entity.MitigationTask, error) {
+func (r *mitigationTaskRepository) ListByUser(ctx context.Context, userID uuid.UUID, status string, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
 	query := `SELECT t.id, t.mitigation_id, t.risk_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
 		        t.status, t.progress_pct, t.actual_cost, t.evidence_url, t.notes,
@@ -125,11 +125,11 @@ func (r *mitigationTaskRepository) ListByUser(ctx context.Context, userID uuid.U
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
 		 LEFT JOIN users u ON t.reported_by = u.id
-		 WHERE m.owner_user_id = $1`
+		 WHERE m.owner_user_id = $1 AND (cardinality($2::uuid[]) = 0 OR r.org_id = ANY($2::uuid[]))`
 
-	args := []interface{}{userID}
+	args := []interface{}{userID, orgIDs}
 	if status != "" && status != "all" {
-		query += ` AND t.status = $2`
+		query += ` AND t.status = $3`
 		args = append(args, status)
 	}
 	query += ` ORDER BY t.due_date ASC`
@@ -186,9 +186,8 @@ func (r *mitigationTaskRepository) GetRecurringMitigations(ctx context.Context) 
 	return result, nil
 }
 
-func (r *mitigationTaskRepository) ListAll(ctx context.Context) ([]*entity.MitigationTask, error) {
-	return r.queryTasks(ctx,
-		`SELECT t.id, t.mitigation_id, t.risk_id,
+func (r *mitigationTaskRepository) ListAll(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
+	baseQuery := `SELECT t.id, t.mitigation_id, t.risk_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
 		        t.status, t.progress_pct, t.actual_cost, t.evidence_url, t.notes,
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
@@ -198,8 +197,12 @@ func (r *mitigationTaskRepository) ListAll(ctx context.Context) ([]*entity.Mitig
 		 FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
-		 LEFT JOIN users u ON t.reported_by = u.id
-		 ORDER BY t.due_date DESC`)
+		 LEFT JOIN users u ON t.reported_by = u.id`
+
+	if len(orgIDs) > 0 {
+		return r.queryTasks(ctx, baseQuery+" WHERE r.org_id = ANY($1) ORDER BY t.due_date DESC", orgIDs)
+	}
+	return r.queryTasks(ctx, baseQuery+" ORDER BY t.due_date DESC")
 }
 
 func (r *mitigationTaskRepository) TaskExistsForPeriod(ctx context.Context, mitigationID uuid.UUID, periodStart, periodEnd string) (bool, error) {

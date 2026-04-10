@@ -1,0 +1,309 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - img "MANRIS logo" [ref=e6]
+        - generic [ref=e8]: MR-V0
+      - button [ref=e9]:
+        - img
+      - navigation [ref=e10]:
+        - generic [ref=e12]: overview
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - textbox "Search..." [ref=e18]
+        - button [ref=e19]:
+          - img
+        - button "FI Dr. Farah Indah" [ref=e20]:
+          - generic [ref=e21]: FI
+          - generic [ref=e22]: Dr. Farah Indah
+    - generic [ref=e23]:
+      - complementary [ref=e24]:
+        - navigation [ref=e28]:
+          - generic [ref=e29]:
+            - button "MAIN MENU" [ref=e30]:
+              - generic [ref=e31]: MAIN MENU
+              - img [ref=e32]
+            - generic [ref=e34]:
+              - link "Dashboard" [ref=e35] [cursor=pointer]:
+                - /url: /overview
+                - img [ref=e36]
+                - generic [ref=e41]: Dashboard
+              - link "Approval" [ref=e42] [cursor=pointer]:
+                - /url: /inbox
+                - img [ref=e43]
+                - generic [ref=e46]: Approval
+              - link "Risk Register" [ref=e47] [cursor=pointer]:
+                - /url: /risk/register
+                - img [ref=e48]
+                - generic [ref=e50]: Risk Register
+              - link "Monitoring & Updates" [ref=e51] [cursor=pointer]:
+                - /url: /compliance/monitoring
+                - img [ref=e52]
+                - generic [ref=e56]: Monitoring & Updates
+              - link "Reports & Export" [ref=e57] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e58]
+                - generic [ref=e61]: Reports & Export
+              - link "Insiden" [ref=e62] [cursor=pointer]:
+                - /url: /incidents
+                - img [ref=e63]
+                - generic [ref=e65]: Insiden
+              - link "My Forms" [ref=e66] [cursor=pointer]:
+                - /url: /forms
+                - img [ref=e67]
+                - generic [ref=e70]: My Forms
+          - generic [ref=e71]:
+            - button "AI & Automation" [ref=e72]:
+              - generic [ref=e73]:
+                - img [ref=e74]
+                - text: AI & Automation
+              - img [ref=e77]
+            - generic [ref=e79]:
+              - link "Meeting" [ref=e80] [cursor=pointer]:
+                - /url: /minutes
+                - img [ref=e81]
+                - generic [ref=e84]: Meeting
+              - link "Predictive Scoring" [ref=e85] [cursor=pointer]:
+                - /url: /intelligence/predictive
+                - img [ref=e86]
+                - generic [ref=e89]: Predictive Scoring
+              - link "Cost Benefit Analysis" [ref=e90] [cursor=pointer]:
+                - /url: /intelligence/cba
+                - img [ref=e91]
+                - generic [ref=e93]: Cost Benefit Analysis
+          - generic [ref=e94]:
+            - button "ADMINISTRATION" [ref=e95]:
+              - generic [ref=e96]:
+                - img [ref=e97]
+                - text: ADMINISTRATION
+              - img [ref=e100]
+            - generic [ref=e102]:
+              - link "Users" [ref=e103] [cursor=pointer]:
+                - /url: /admin/users
+                - img [ref=e104]
+                - generic [ref=e109]: Users
+              - link "Organizations" [ref=e110] [cursor=pointer]:
+                - /url: /admin/organizations
+                - img [ref=e111]
+                - generic [ref=e115]: Organizations
+              - link "Form Builder" [ref=e116] [cursor=pointer]:
+                - /url: /admin/forms
+                - img [ref=e117]
+                - generic [ref=e120]: Form Builder
+              - link "Settings" [ref=e121] [cursor=pointer]:
+                - /url: /admin/settings
+                - img [ref=e122]
+                - generic [ref=e125]: Settings
+        - generic [ref=e127]:
+          - generic [ref=e128]: FI
+          - generic [ref=e129]:
+            - generic [ref=e130]: Dr. Farah Indah
+            - generic [ref=e131]: reviewer
+      - main [ref=e132]:
+        - generic [ref=e133]:
+          - generic [ref=e144]:
+            - generic [ref=e145]:
+              - heading "Dashboard" [level=1] [ref=e146]
+              - paragraph [ref=e147]: Gambaran keseluruhan kondisi risiko organisasi
+            - generic [ref=e148]:
+              - generic [ref=e149]: Live
+              - generic [ref=e151]: "Terakhir diperbarui: 10 Mar 2026, 23:45"
+          - generic [ref=e152]:
+            - generic [ref=e156]:
+              - generic [ref=e157]:
+                - paragraph [ref=e158]: Total Risiko
+                - generic [ref=e160]: "--"
+                - paragraph [ref=e161]: risiko terdaftar
+              - img [ref=e163]
+            - generic [ref=e168]:
+              - generic [ref=e169]:
+                - paragraph [ref=e170]: Risiko Tinggi & Ekstrem
+                - generic [ref=e172]: "--"
+                - paragraph [ref=e173]: memerlukan perhatian
+              - img [ref=e175]
+            - generic [ref=e180]:
+              - generic [ref=e181]:
+                - paragraph [ref=e182]: Mitigasi Overdue
+                - generic [ref=e184]: "--"
+                - paragraph [ref=e185]: melewati tenggat
+              - img [ref=e187]
+            - generic [ref=e193]:
+              - generic [ref=e194]:
+                - paragraph [ref=e195]: Insiden Bulan Ini
+                - generic [ref=e197]: "--"
+                - paragraph [ref=e198]: dilaporkan
+              - img [ref=e200]
+            - generic [ref=e205]:
+              - generic [ref=e206]:
+                - paragraph [ref=e207]: Risk Exposure
+                - generic [ref=e208]:
+                  - generic [ref=e209]: "5"
+                  - generic [ref=e210]: "--"
+                - paragraph [ref=e211]: skor eksposur tertimbang
+              - img [ref=e213]
+          - generic [ref=e216]:
+            - generic [ref=e217]:
+              - generic [ref=e219]:
+                - generic [ref=e220]:
+                  - generic [ref=e221]: Heatmap Risiko
+                  - paragraph [ref=e222]: Distribusi risiko berdasarkan Probabilitas × Dampak
+                - button "Detail" [ref=e223]:
+                  - text: Detail
+                  - img
+              - generic [ref=e224]:
+                - generic [ref=e225]:
+                  - generic [ref=e227]: PROBABILITAS
+                  - generic [ref=e228]:
+                    - generic [ref=e230]: Hampir Pasti
+                    - generic [ref=e232]: Kemungkinan Besar
+                    - generic [ref=e234]: Kemungkinan Sedang
+                    - generic [ref=e236]: Kemungkinan Kecil
+                    - generic [ref=e238]: Jarang
+                  - generic [ref=e239]:
+                    - generic [ref=e246] [cursor=pointer]: "1"
+                    - generic [ref=e271]:
+                      - generic [ref=e272]: Tdk Signifikan
+                      - generic [ref=e273]: Kecil
+                      - generic [ref=e274]: Sedang
+                      - generic [ref=e275]: Besar
+                      - generic [ref=e276]: Katastropik
+                    - generic [ref=e277]: DAMPAK →
+                - generic [ref=e278]:
+                  - generic [ref=e281]: Sangat Rendah
+                  - generic [ref=e284]: Rendah
+                  - generic [ref=e287]: Sedang
+                  - generic [ref=e290]: Tinggi
+                  - generic [ref=e293]: Sangat Tinggi
+            - generic [ref=e294]:
+              - generic [ref=e296]:
+                - generic [ref=e297]:
+                  - generic [ref=e298]: Top Risks
+                  - paragraph [ref=e299]: Risiko dengan skor tertinggi pada cycle ini.
+                - generic [ref=e300]: 1 risiko
+              - generic [ref=e303]:
+                - generic [ref=e304]:
+                  - generic [ref=e305]:
+                    - generic [ref=e306]: R-001
+                    - generic [ref=e307]: "19"
+                  - paragraph [ref=e308]: Keterlambatan Implementasi Integrasi SATUSEHAT dengan Rumah Sakit Daerah Menghambat Pelaporan Surveilans Nasional
+                  - paragraph [ref=e309]: Ditjen P2P
+                - img [ref=e310]
+          - generic [ref=e312]:
+            - generic [ref=e313]:
+              - generic [ref=e314]:
+                - generic [ref=e315]: Gerakan Risiko
+                - paragraph [ref=e316]: Perubahan portofolio risiko vs cycle sebelumnya.
+              - generic [ref=e318]:
+                - generic [ref=e319]:
+                  - generic [ref=e320]:
+                    - img [ref=e321]
+                    - generic [ref=e322]: Baru
+                  - generic [ref=e323]: "1"
+                - generic [ref=e324]:
+                  - generic [ref=e325]:
+                    - img [ref=e326]
+                    - generic [ref=e328]: Naik
+                  - generic [ref=e329]: "0"
+                - generic [ref=e330]:
+                  - generic [ref=e331]:
+                    - img [ref=e332]
+                    - generic [ref=e334]: Turun
+                  - generic [ref=e335]: "0"
+                - generic [ref=e336]:
+                  - generic [ref=e337]:
+                    - img [ref=e338]
+                    - generic [ref=e339]: Stabil
+                  - generic [ref=e340]: "0"
+                - generic [ref=e341]:
+                  - generic [ref=e342]:
+                    - img [ref=e343]
+                    - generic [ref=e346]: Keluar
+                  - generic [ref=e347]: "0"
+            - generic [ref=e348]:
+              - generic [ref=e350]:
+                - generic [ref=e351]: Distribusi Kategori Risiko
+                - paragraph [ref=e352]: Jumlah risiko per kategori dalam portofolio saat ini.
+              - application [ref=e357]:
+                - generic [ref=e368]:
+                  - generic [ref=e369]:
+                    - generic [ref=e371]: "0"
+                    - generic [ref=e373]: "1"
+                    - generic [ref=e375]: "2"
+                    - generic [ref=e377]: "3"
+                    - generic [ref=e379]: "4"
+                  - generic [ref=e382]: teknologi_informasi
+                  - generic [ref=e384]: "1"
+          - generic [ref=e385]:
+            - generic [ref=e386]:
+              - generic [ref=e388]:
+                - generic [ref=e389]:
+                  - generic [ref=e390]: Risk Trend
+                  - paragraph [ref=e391]: Eksposur high/extreme per semester
+                - generic [ref=e392]:
+                  - generic [ref=e395]: High
+                  - generic [ref=e398]: Extreme
+                  - generic [ref=e401]: Exposure Score
+              - application [ref=e406]:
+                - generic [ref=e423]:
+                  - generic [ref=e426]: 2026-H1
+                  - generic [ref=e427]:
+                    - generic [ref=e429]: "0"
+                    - generic [ref=e431]: "0.25"
+                    - generic [ref=e433]: "0.5"
+                    - generic [ref=e435]: "0.75"
+                    - generic [ref=e437]: "1"
+                  - generic [ref=e438]:
+                    - generic [ref=e440]: "0"
+                    - generic [ref=e442]: "2"
+                    - generic [ref=e444]: "4"
+                    - generic [ref=e446]: "6"
+                    - generic [ref=e448]: "8"
+            - generic [ref=e449]:
+              - generic [ref=e451]:
+                - generic [ref=e452]: Incident vs Mitigation Closure
+                - paragraph [ref=e453]: Perbandingan insiden baru, mitigasi selesai, dan overdue per bulan.
+              - generic [ref=e454]:
+                - application [ref=e458]:
+                  - generic [ref=e470]:
+                    - generic [ref=e471]:
+                      - generic [ref=e473]: Nov
+                      - generic [ref=e475]: Des
+                      - generic [ref=e477]: Jan
+                      - generic [ref=e479]: Feb
+                      - generic [ref=e481]: Mar
+                      - generic [ref=e483]: Apr
+                    - generic [ref=e484]:
+                      - generic [ref=e486]: "0"
+                      - generic [ref=e488]: "1"
+                      - generic [ref=e490]: "2"
+                      - generic [ref=e492]: "3"
+                      - generic [ref=e494]: "4"
+                - generic [ref=e495]:
+                  - generic [ref=e496]:
+                    - paragraph [ref=e497]: Insiden
+                    - paragraph [ref=e498]: "0"
+                  - generic [ref=e499]:
+                    - paragraph [ref=e500]: Closed
+                    - paragraph [ref=e501]: "0"
+                  - generic [ref=e502]:
+                    - paragraph [ref=e503]: Overdue
+                    - paragraph [ref=e504]: "0"
+          - generic [ref=e506]:
+            - generic [ref=e507]:
+              - paragraph [ref=e508]: Lanjutkan ke Halaman Detail
+              - paragraph [ref=e509]: Pindah ke monitoring lanjutan atau ekspor laporan jika perlu analisis lebih dalam.
+            - generic [ref=e510]:
+              - link "Buka Monitoring & Updates" [ref=e511] [cursor=pointer]:
+                - /url: /compliance/monitoring
+                - img
+                - text: Buka Monitoring & Updates
+              - link "Buka Reports & Export" [ref=e512] [cursor=pointer]:
+                - /url: /reports
+                - img
+                - text: Buka Reports & Export
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e139] [cursor=pointer]:
+    - img [ref=e140]
+  - alert [ref=e143]
+  - generic [ref=e513]: "0"

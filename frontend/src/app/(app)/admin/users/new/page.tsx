@@ -22,7 +22,7 @@ import {
 
 export default function NewUserPage() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -38,9 +38,12 @@ export default function NewUserPage() {
 
     api
       .get<{ id: string; name: string }[]>("/organizations", token)
-      .then((res) => setOrganizations(res))
+      .then((res) => {
+        const filtered = user?.isGlobal ? res : res.filter(org => user?.accessibleOrgIds?.includes(org.id));
+        setOrganizations(filtered);
+      })
       .catch(console.error);
-  }, [token]);
+  }, [token, user]);
 
   const handleSave = async () => {
     if (!name || !username || !email || !password) {

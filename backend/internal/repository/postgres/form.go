@@ -85,10 +85,14 @@ func (r *formRepository) Create(ctx context.Context, form *entity.Form) (*entity
 func (r *formRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Form, error) {
 	form := &entity.Form{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, title, description, status, target_audience, created_by, created_at, updated_at
-		 FROM forms WHERE id = $1`, id,
+		`SELECT f.id, f.title, f.description, f.status, f.target_audience, f.created_by,
+		        f.created_at, f.updated_at, u.organization_id
+		 FROM forms f
+		 LEFT JOIN users u ON f.created_by = u.id
+		 WHERE f.id = $1`, id,
 	).Scan(&form.ID, &form.Title, &form.Description, &form.Status,
-		&form.TargetAudience, &form.CreatedBy, &form.CreatedAt, &form.UpdatedAt)
+		&form.TargetAudience, &form.CreatedBy, &form.CreatedAt, &form.UpdatedAt,
+		&form.OrganizationID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domainerrors.ErrFormNotFound
@@ -234,22 +238,30 @@ func (r *formRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 // List returns forms matching the given filter without nested sections/fields.
 func (r *formRepository) List(ctx context.Context, filter repository.FormListFilter) ([]*entity.Form, error) {
-	query := `SELECT id, title, description, status, target_audience, created_by, created_at, updated_at
-	          FROM forms WHERE 1=1`
+	query := `SELECT f.id, f.title, f.description, f.status, f.target_audience, f.created_by,
+	                 f.created_at, f.updated_at, u.organization_id
+	          FROM forms f
+	          LEFT JOIN users u ON f.created_by = u.id
+	          WHERE 1=1`
 	var args []interface{}
 	argIdx := 1
 
 	if filter.Status != nil {
-		query += fmt.Sprintf(" AND status = $%d", argIdx)
+		query += fmt.Sprintf(" AND f.status = $%d", argIdx)
 		args = append(args, *filter.Status)
 		argIdx++
 	}
 	if filter.CreatedBy != nil {
-		query += fmt.Sprintf(" AND created_by = $%d", argIdx)
+		query += fmt.Sprintf(" AND f.created_by = $%d", argIdx)
 		args = append(args, *filter.CreatedBy)
 		argIdx++
 	}
-	query += " ORDER BY created_at DESC"
+	if len(filter.OrganizationIDs) > 0 {
+		query += fmt.Sprintf(" AND u.organization_id = ANY($%d)", argIdx)
+		args = append(args, filter.OrganizationIDs)
+		argIdx++
+	}
+	query += " ORDER BY f.created_at DESC"
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -260,7 +272,8 @@ func (r *formRepository) List(ctx context.Context, filter repository.FormListFil
 	var forms []*entity.Form
 	for rows.Next() {
 		f := &entity.Form{}
-		if err := rows.Scan(&f.ID, &f.Title, &f.Description, &f.Status, &f.TargetAudience, &f.CreatedBy, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Title, &f.Description, &f.Status, &f.TargetAudience,
+			&f.CreatedBy, &f.CreatedAt, &f.UpdatedAt, &f.OrganizationID); err != nil {
 			return nil, fmt.Errorf("formRepository.List: scan: %w", err)
 		}
 		forms = append(forms, f)

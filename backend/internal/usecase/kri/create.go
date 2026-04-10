@@ -40,6 +40,7 @@ type CreateKRIInput struct {
 	Direction      string
 	Frequency      string
 	OrganizationID *uuid.UUID
+	OrgIDs         []uuid.UUID
 }
 
 type CreateKRIOutput struct {
@@ -61,7 +62,7 @@ func (uc *CreateKRIUseCase) Execute(ctx context.Context, input CreateKRIInput) (
 	}
 
 	// 2. Validate linked risk
-	_, err := uc.riskRepo.GetByID(ctx, input.RiskID)
+	_, err := uc.riskRepo.GetByID(ctx, input.RiskID, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "linked risk not found")
 	}

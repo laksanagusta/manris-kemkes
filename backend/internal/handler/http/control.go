@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/middleware"
 	controluc "github.com/manris/backend/internal/usecase/control"
 )
 
@@ -60,6 +61,13 @@ func (h *ControlHandler) CreateControl(c *fiber.Ctx) error {
 		input.OrganizationID = &orgID
 	}
 
+	// Get access scope for linked-risk validation
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+	input.OrgIDs = scope.AccessibleOrgIDs
+
 	result, err := h.createUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
@@ -75,7 +83,13 @@ func (h *ControlHandler) GetControl(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid control ID")
 	}
 
-	control, err := h.getUC.Execute(c.Context(), id)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	control, err := h.getUC.Execute(c.Context(), id, orgIDs)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -97,7 +111,13 @@ func (h *ControlHandler) UpdateControl(c *fiber.Ctx) error {
 
 	input.ID = id
 
-	result, err := h.updateUC.Execute(c.Context(), input)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.updateUC.Execute(c.Context(), input, orgIDs, scope)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -112,7 +132,13 @@ func (h *ControlHandler) DeleteControl(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid control ID")
 	}
 
-	result, err := h.deleteUC.Execute(c.Context(), id)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.deleteUC.Execute(c.Context(), id, orgIDs, scope)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -122,15 +148,30 @@ func (h *ControlHandler) DeleteControl(c *fiber.Ctx) error {
 
 // ListControls handles GET /api/controls
 func (h *ControlHandler) ListControls(c *fiber.Ctx) error {
-	var input controluc.ListControlsInput
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
 
-	// Parse optional org_id filter
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := controluc.ListControlsInput{
+		OrgIDs: orgIDs,
 	}
 
 	controls, err := h.listUC.Execute(c.Context(), input)
@@ -146,15 +187,30 @@ func (h *ControlHandler) ListControls(c *fiber.Ctx) error {
 
 // ControlDashboard handles GET /api/controls/dashboard
 func (h *ControlHandler) ControlDashboard(c *fiber.Ctx) error {
-	var input controluc.ControlDashboardInput
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
 
-	// Parse optional org_id filter
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := controluc.ControlDashboardInput{
+		OrgIDs: orgIDs,
 	}
 
 	metrics, err := h.dashboardUC.Execute(c.Context(), input)

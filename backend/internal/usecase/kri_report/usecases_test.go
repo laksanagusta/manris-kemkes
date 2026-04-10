@@ -29,7 +29,7 @@ func (f *fakeKRIReportRepo) Create(ctx context.Context, report *entity.KRIReport
 	return nil
 }
 
-func (f *fakeKRIReportRepo) GetByID(ctx context.Context, id uuid.UUID) (*entity.KRIReport, error) {
+func (f *fakeKRIReportRepo) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.KRIReport, error) {
 	report, ok := f.reports[id]
 	if !ok {
 		return nil, context.Canceled
@@ -44,7 +44,7 @@ func (f *fakeKRIReportRepo) Update(ctx context.Context, report *entity.KRIReport
 	return nil
 }
 
-func (f *fakeKRIReportRepo) ListByKRI(ctx context.Context, kriID uuid.UUID) ([]*entity.KRIReport, error) {
+func (f *fakeKRIReportRepo) ListByKRI(ctx context.Context, kriID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.KRIReport, error) {
 	var out []*entity.KRIReport
 	for _, rpt := range f.reports {
 		if rpt.KRIID == kriID {
@@ -55,7 +55,7 @@ func (f *fakeKRIReportRepo) ListByKRI(ctx context.Context, kriID uuid.UUID) ([]*
 	return out, nil
 }
 
-func (f *fakeKRIReportRepo) ListByUser(ctx context.Context, userID uuid.UUID, status string) ([]*entity.KRIReport, error) {
+func (f *fakeKRIReportRepo) ListByUser(ctx context.Context, userID uuid.UUID, status string, orgIDs []uuid.UUID) ([]*entity.KRIReport, error) {
 	var out []*entity.KRIReport
 	for _, rpt := range f.reports {
 		if rpt.SubmittedBy != nil && *rpt.SubmittedBy == userID {
@@ -68,7 +68,7 @@ func (f *fakeKRIReportRepo) ListByUser(ctx context.Context, userID uuid.UUID, st
 	return out, nil
 }
 
-func (f *fakeKRIReportRepo) ListByStatus(ctx context.Context, status string) ([]*entity.KRIReport, error) {
+func (f *fakeKRIReportRepo) ListByStatus(ctx context.Context, status string, orgIDs []uuid.UUID) ([]*entity.KRIReport, error) {
 	var out []*entity.KRIReport
 	for _, rpt := range f.reports {
 		if status == "" || status == "all" || rpt.Status == status {
@@ -167,7 +167,7 @@ func (f *fakeKRIRepo) Create(ctx context.Context, kri *entity.KRI) error {
 	return nil
 }
 
-func (f *fakeKRIRepo) GetByID(ctx context.Context, id uuid.UUID) (*entity.KRI, error) {
+func (f *fakeKRIRepo) GetByID(ctx context.Context, id uuid.UUID, _ []uuid.UUID) (*entity.KRI, error) {
 	if f.errOnGet != nil {
 		return nil, f.errOnGet
 	}
@@ -238,7 +238,7 @@ func TestAcceptKRIReportUpdatesCurrentValue(t *testing.T) {
 	if out.ReviewedAt == nil {
 		t.Fatalf("expected reviewed_at set")
 	}
-	updatedKRI, _ := kriRepo.GetByID(context.Background(), kriID)
+	updatedKRI, _ := kriRepo.GetByID(context.Background(), kriID, nil)
 	if updatedKRI.CurrentValue != 15.3 {
 		t.Fatalf("expected KRI current value updated to 15.3, got %v", updatedKRI.CurrentValue)
 	}
@@ -271,7 +271,7 @@ func TestAcceptKRIReportRollsBackWhenKRIUpdateFails(t *testing.T) {
 		t.Fatalf("expected KRI update error, got %v", err)
 	}
 
-	stored, getErr := repo.GetByID(context.Background(), reportID)
+	stored, getErr := repo.GetByID(context.Background(), reportID, nil)
 	if getErr != nil {
 		t.Fatalf("expected report to remain retrievable, got %v", getErr)
 	}
@@ -311,7 +311,7 @@ func TestSubmitDoesNotUpdateCurrentValue(t *testing.T) {
 		t.Fatalf("expected submitted status, got %s", out.Status)
 	}
 
-	updatedKRI, _ := kriRepo.GetByID(context.Background(), kriID)
+	updatedKRI, _ := kriRepo.GetByID(context.Background(), kriID, nil)
 	if updatedKRI.CurrentValue != 42.0 {
 		t.Fatalf("expected KRI current value unchanged after submit, got %v", updatedKRI.CurrentValue)
 	}
@@ -438,12 +438,12 @@ func TestAcceptKRIReportDoesNotMutateRisk(t *testing.T) {
 		IsArchived: false,
 	}}}
 
-	before, _ := kriRepo.GetByID(context.Background(), kriID)
+	before, _ := kriRepo.GetByID(context.Background(), kriID, nil)
 	_, err := NewAcceptReportUseCase(repo, kriRepo).Execute(context.Background(), AcceptReportInput{ReportID: reportID, ReviewedBy: reviewerID})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	after, _ := kriRepo.GetByID(context.Background(), kriID)
+	after, _ := kriRepo.GetByID(context.Background(), kriID, nil)
 
 	if before.RiskID != after.RiskID || before.RiskCode != after.RiskCode || before.RiskTitle != after.RiskTitle {
 		t.Fatalf("expected accept to not mutate linked risk metadata")
@@ -467,7 +467,7 @@ func TestListReportsComputesOverdueMetadata(t *testing.T) {
 		},
 	}}
 
-	uc := NewListReportsUseCase(repo)
+	uc := NewListReportsUseCase(repo, &fakeKRIRepo{kris: map[uuid.UUID]*entity.KRI{kriID: {ID: kriID}}})
 	reports, err := uc.Execute(context.Background(), ListReportsInput{KRIID: &kriID})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -516,7 +516,7 @@ func TestAcceptSkippedKRIReportFails(t *testing.T) {
 		t.Fatalf("expected explicit transition error, got %v", err)
 	}
 
-	stored, _ := repo.GetByID(context.Background(), reportID)
+	stored, _ := repo.GetByID(context.Background(), reportID, nil)
 	if stored.Status != "skipped" {
 		t.Fatalf("expected status unchanged, got %s", stored.Status)
 	}
@@ -528,7 +528,7 @@ func TestRequestRevisionRequiresNote(t *testing.T) {
 		reportID: {ID: reportID, KRIID: uuid.New(), Status: "submitted", DueDate: "2026-04-01"},
 	}}
 
-	uc := NewRequestRevisionUseCase(repo)
+	uc := NewRequestRevisionUseCase(repo, &fakeKRIRepo{kris: map[uuid.UUID]*entity.KRI{}})
 	_, err := uc.Execute(context.Background(), RequestRevisionInput{ReportID: reportID, ReviewedBy: uuid.New(), ReviewNote: "   "})
 	if err == nil {
 		t.Fatalf("expected error")
@@ -544,7 +544,7 @@ func TestSkipRequiresReason(t *testing.T) {
 		reportID: {ID: reportID, KRIID: uuid.New(), Status: "pending", DueDate: "2026-04-01"},
 	}}
 
-	uc := NewSkipReportUseCase(repo)
+	uc := NewSkipReportUseCase(repo, &fakeKRIRepo{kris: map[uuid.UUID]*entity.KRI{}})
 	_, err := uc.Execute(context.Background(), SkipReportInput{ReportID: reportID, SubmittedBy: uuid.New(), SkipReason: "   "})
 	if err == nil {
 		t.Fatalf("expected error")

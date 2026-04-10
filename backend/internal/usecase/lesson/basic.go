@@ -22,8 +22,8 @@ func NewGetLessonUseCase(lessonRepo repository.LessonRepository) *GetLessonUseCa
 	}
 }
 
-func (uc *GetLessonUseCase) Execute(ctx context.Context, id uuid.UUID) (*entity.Lesson, error) {
-	lesson, err := uc.lessonRepo.GetByID(ctx, id)
+func (uc *GetLessonUseCase) Execute(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Lesson, error) {
+	lesson, err := uc.lessonRepo.GetByID(ctx, id, orgIDs)
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
@@ -34,32 +34,20 @@ func (uc *GetLessonUseCase) Execute(ctx context.Context, id uuid.UUID) (*entity.
 // ListLessonsUseCase retrieves lessons with optional filters
 type ListLessonsUseCase struct {
 	lessonRepo repository.LessonRepository
-	orgSvc     *service.OrganizationHierarchy
 }
 
 func NewListLessonsUseCase(lessonRepo repository.LessonRepository, orgSvc *service.OrganizationHierarchy) *ListLessonsUseCase {
 	return &ListLessonsUseCase{
 		lessonRepo: lessonRepo,
-		orgSvc:     orgSvc,
 	}
 }
 
 type ListLessonsInput struct {
-	OrgID *uuid.UUID
+	OrgIDs []uuid.UUID
 }
 
 func (uc *ListLessonsUseCase) Execute(ctx context.Context, input ListLessonsInput) ([]*entity.Lesson, error) {
-	var orgIDs []uuid.UUID
-	var err error
-
-	if input.OrgID != nil {
-		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	lessons, err := uc.lessonRepo.List(ctx, orgIDs)
+	lessons, err := uc.lessonRepo.List(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -105,11 +93,15 @@ type UpdateLessonOutput struct {
 	UpdatedAt time.Time
 }
 
-func (uc *UpdateLessonUseCase) Execute(ctx context.Context, input UpdateLessonInput) (*UpdateLessonOutput, error) {
+func (uc *UpdateLessonUseCase) Execute(ctx context.Context, input UpdateLessonInput, orgIDs []uuid.UUID, scope *entity.AccessScope) (*UpdateLessonOutput, error) {
 	// 1. Get existing lesson
-	existingLesson, err := uc.lessonRepo.GetByID(ctx, input.ID)
+	existingLesson, err := uc.lessonRepo.GetByID(ctx, input.ID, orgIDs)
 	if err != nil {
 		return nil, errors.ErrNotFound
+	}
+
+	if scope != nil && existingLesson.OrganizationID != nil && !scope.CanWrite(*existingLesson.OrganizationID) {
+		return nil, errors.ErrForbidden
 	}
 
 	// 2. Validate organization if changed
@@ -164,11 +156,15 @@ type DeleteLessonOutput struct {
 	Message string
 }
 
-func (uc *DeleteLessonUseCase) Execute(ctx context.Context, id uuid.UUID) (*DeleteLessonOutput, error) {
+func (uc *DeleteLessonUseCase) Execute(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID, scope *entity.AccessScope) (*DeleteLessonOutput, error) {
 	// 1. Get existing lesson to check if it exists
-	_, err := uc.lessonRepo.GetByID(ctx, id)
+	lesson, err := uc.lessonRepo.GetByID(ctx, id, orgIDs)
 	if err != nil {
 		return nil, errors.ErrNotFound
+	}
+
+	if scope != nil && lesson.OrganizationID != nil && !scope.CanWrite(*lesson.OrganizationID) {
+		return nil, errors.ErrForbidden
 	}
 
 	// 2. Delete from database
@@ -184,32 +180,20 @@ func (uc *DeleteLessonUseCase) Execute(ctx context.Context, id uuid.UUID) (*Dele
 // LessonDashboardUseCase retrieves dashboard metrics for lessons
 type LessonDashboardUseCase struct {
 	lessonRepo repository.LessonRepository
-	orgSvc     *service.OrganizationHierarchy
 }
 
 func NewLessonDashboardUseCase(lessonRepo repository.LessonRepository, orgSvc *service.OrganizationHierarchy) *LessonDashboardUseCase {
 	return &LessonDashboardUseCase{
 		lessonRepo: lessonRepo,
-		orgSvc:     orgSvc,
 	}
 }
 
 type LessonDashboardInput struct {
-	OrgID *uuid.UUID
+	OrgIDs []uuid.UUID
 }
 
 func (uc *LessonDashboardUseCase) Execute(ctx context.Context, input LessonDashboardInput) (map[string]interface{}, error) {
-	var orgIDs []uuid.UUID
-	var err error
-
-	if input.OrgID != nil {
-		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	metrics, err := uc.lessonRepo.GetDashboard(ctx, orgIDs)
+	metrics, err := uc.lessonRepo.GetDashboard(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, err
 	}

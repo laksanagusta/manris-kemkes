@@ -25,7 +25,7 @@ func (r *fakeBatchRiskRepo) Create(_ context.Context, risk *entity.Risk) error {
 	return nil
 }
 
-func (r *fakeBatchRiskRepo) GetByID(context.Context, uuid.UUID) (*entity.Risk, error) {
+func (r *fakeBatchRiskRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -41,13 +41,13 @@ func (r *fakeBatchRiskRepo) NextRiskCode(context.Context) (string, error) {
 	r.nextNum++
 	return "R-00" + string(rune('0'+r.nextNum)), nil
 }
-func (r *fakeBatchRiskRepo) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
+func (r *fakeBatchRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
+func (r *fakeBatchRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
+func (r *fakeBatchRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
 func (r *fakeBatchRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
@@ -71,19 +71,19 @@ func (r *fakeBatchRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UU
 func (r *fakeBatchRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeBatchRiskRepo) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+func (r *fakeBatchRiskRepo) GetHeatmapVelocity(context.Context, string, string, []uuid.UUID) ([]entity.HeatmapVelocityCell, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+func (r *fakeBatchRiskRepo) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+func (r *fakeBatchRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+func (r *fakeBatchRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, nil
 }
 

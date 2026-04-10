@@ -40,16 +40,20 @@ func (r *lessonRepository) Create(ctx context.Context, lesson *entity.Lesson) er
 }
 
 // GetByID retrieves a lesson by ID
-func (r *lessonRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Lesson, error) {
+func (r *lessonRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Lesson, error) {
 	lesson := &entity.Lesson{}
-	err := r.pool.QueryRow(ctx,
-		`SELECT l.id, l.title, l.description, l.source_type, l.source_ref,
+	query := `SELECT l.id, l.title, l.description, l.source_type, l.source_ref,
 		       l.success_factors, l.failure_factors, l.recommendations, l.tags,
 		       l.author_id, u.name as author_name, l.organization_id, l.created_at
 		FROM lessons_learned l
 		LEFT JOIN users u ON l.author_id = u.id
-		WHERE l.id = $1`, id,
-	).Scan(
+		WHERE l.id = $1`
+	args := []interface{}{id}
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND l.organization_id = ANY($%d)", len(args)+1)
+		args = append(args, orgIDs)
+	}
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&lesson.ID, &lesson.Title, &lesson.Description, &lesson.SourceType,
 		&lesson.SourceRef, &lesson.SuccessFactors, &lesson.FailureFactors,
 		&lesson.Recommendations, &lesson.Tags, &lesson.AuthorID,

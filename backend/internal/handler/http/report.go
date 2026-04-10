@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/service"
+	"github.com/manris/backend/internal/middleware"
 	reportuc "github.com/manris/backend/internal/usecase/report"
 )
 
@@ -28,19 +29,31 @@ func (h *ReportHandler) GenerateRiskPDF(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle query parameter is required")
 	}
 
-	// Optional org ID filter from query param
-	var orgID *uuid.UUID
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		parsed, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		orgID = &parsed
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(parsed)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{parsed}
+		}
 	}
 
 	input := reportuc.GenerateReportInput{
-		Cycle: cycle,
-		OrgID: orgID,
+		Cycle:  cycle,
+		OrgIDs: orgIDs,
 	}
 
 	reportData, err := h.generateUC.Execute(c.Context(), input)

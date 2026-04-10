@@ -21,7 +21,7 @@ func NewApprovalRepository(pool *pgxpool.Pool) repository.ApprovalRepository {
 }
 
 // List retrieves approval requests with optional filters
-func (r *approvalRepository) List(ctx context.Context, status string, approverRole string, approverUserID *uuid.UUID) ([]*entity.ApprovalRequest, error) {
+func (r *approvalRepository) List(ctx context.Context, status string, approverRole string, approverUserID *uuid.UUID, orgIDs []uuid.UUID) ([]*entity.ApprovalRequest, error) {
 	query := `
 		SELECT ar.id, ar.request_type, ar.entity_id, ar.requested_by, ar.requested_at,
 		       ar.current_status, ar.current_approver_role, ar.current_approver_user_id, ar.notes,
@@ -46,6 +46,20 @@ func (r *approvalRepository) List(ctx context.Context, status string, approverRo
 	args := []interface{}{}
 	argIdx := 1
 
+	if len(orgIDs) > 0 {
+		query += ` AND (
+			(ar.request_type = 'risk' AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.org_id = ANY($1)))
+			OR 
+			(ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.org_id = ANY($1)))
+			OR 
+			(ar.request_type NOT IN ('risk', 'incident'))
+		)`
+		args = append(args, orgIDs)
+		argIdx++
+	}
+
+
+
 	if status != "" && status != "all" {
 		query += fmt.Sprintf(" AND ar.current_status = $%d", argIdx)
 		args = append(args, status)
@@ -57,6 +71,15 @@ func (r *approvalRepository) List(ctx context.Context, status string, approverRo
 		args = append(args, approverRole)
 		argIdx++
 	}
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND (\n" +
+			"(ar.request_type = 'risk' AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.org_id = ANY($%d)))\n" +
+			"OR (ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.org_id = ANY($%d)))\n" +
+			"OR (ar.request_type NOT IN ('risk', 'incident'))\n" +
+			")", len(args)+1, len(args)+1)
+		args = append(args, orgIDs)
+	}
+
 	if approverUserID != nil {
 		query += fmt.Sprintf(" AND ar.current_approver_user_id = $%d", argIdx)
 		args = append(args, *approverUserID)
@@ -89,7 +112,7 @@ func (r *approvalRepository) List(ctx context.Context, status string, approverRo
 }
 
 // FindByID retrieves a single approval request by ID
-func (r *approvalRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.ApprovalRequest, error) {
+func (r *approvalRepository) FindByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.ApprovalRequest, error) {
 	req := &entity.ApprovalRequest{}
 	err := r.pool.QueryRow(ctx,
 		`SELECT ar.id, ar.request_type, ar.entity_id, ar.requested_by, ar.requested_at,
@@ -110,7 +133,13 @@ func (r *approvalRepository) FindByID(ctx context.Context, id uuid.UUID) (*entit
 		FROM approval_requests ar
 		LEFT JOIN users u ON ar.requested_by = u.id
 		LEFT JOIN users cu ON ar.current_approver_user_id = cu.id
-		WHERE ar.id = $1`, id,
+		WHERE ar.id = $1 AND (cardinality($2::uuid[]) = 0 OR (
+			(ar.request_type = 'risk' AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.org_id = ANY($2::uuid[])))
+			OR
+			(ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.org_id = ANY($2::uuid[])))
+			OR
+			(ar.request_type NOT IN ('risk', 'incident'))
+		))`, id, orgIDs,
 	).Scan(
 		&req.ID, &req.RequestType, &req.EntityID, &req.RequestedBy, &req.RequestedAt,
 		&req.CurrentStatus, &req.CurrentApproverRole, &req.CurrentApproverUserID, &req.Notes,
@@ -134,7 +163,7 @@ func (r *approvalRepository) FindByID(ctx context.Context, id uuid.UUID) (*entit
 }
 
 // FindByEntity retrieves an approval request by entity type and ID
-func (r *approvalRepository) FindByEntity(ctx context.Context, requestType string, entityID uuid.UUID) (*entity.ApprovalRequest, error) {
+func (r *approvalRepository) FindByEntity(ctx context.Context, requestType string, entityID uuid.UUID, orgIDs []uuid.UUID) (*entity.ApprovalRequest, error) {
 	req := &entity.ApprovalRequest{}
 	err := r.pool.QueryRow(ctx,
 		`SELECT ar.id, ar.request_type, ar.entity_id, ar.requested_by, ar.requested_at,
@@ -390,16 +419,25 @@ func (r *approvalRepository) RejectCurrentStep(ctx context.Context, approvalRequ
 }
 
 // GetPendingCount returns the count of pending approval requests for a role/user.
-func (r *approvalRepository) GetPendingCount(ctx context.Context, approverRole string, approverUserID *uuid.UUID) (int, error) {
+func (r *approvalRepository) GetPendingCount(ctx context.Context, approverRole string, approverUserID *uuid.UUID, orgIDs []uuid.UUID) (int, error) {
 	var count int
-	query := `SELECT COUNT(*) FROM approval_requests WHERE current_status='pending'`
+	query := `SELECT COUNT(*) FROM approval_requests ar WHERE ar.current_status='pending'`
 	args := make([]interface{}, 0)
 	if approverRole != "" {
-		query += fmt.Sprintf(" AND current_approver_role=$%d", len(args)+1)
+		query += fmt.Sprintf(" AND ar.current_approver_role=$%d", len(args)+1)
 		args = append(args, approverRole)
 	}
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND (\n" +
+			"(ar.request_type = 'risk' AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.org_id = ANY($%d)))\n" +
+			"OR (ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.org_id = ANY($%d)))\n" +
+			"OR (ar.request_type NOT IN ('risk', 'incident'))\n" +
+			")", len(args)+1, len(args)+1)
+		args = append(args, orgIDs)
+	}
+
 	if approverUserID != nil {
-		query += fmt.Sprintf(" AND current_approver_user_id=$%d", len(args)+1)
+		query += fmt.Sprintf(" AND ar.current_approver_user_id=$%d", len(args)+1)
 		args = append(args, *approverUserID)
 	}
 	err := r.pool.QueryRow(ctx, query, args...).Scan(&count)

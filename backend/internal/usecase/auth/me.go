@@ -7,50 +7,54 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/domain/service"
 )
 
-// GetCurrentUserInput represents the input for get current user use case
 type GetCurrentUserInput struct {
 	UserID uuid.UUID
 }
 
-// GetCurrentUserUseCase handles retrieving the current authenticated user
 type GetCurrentUserUseCase struct {
-	userRepo repository.UserRepository
+	userRepo     repository.UserRepository
+	hierarchySvc *service.OrganizationHierarchy
 }
 
-// NewGetCurrentUserUseCase creates a new get current user use case
 func NewGetCurrentUserUseCase(
 	userRepo repository.UserRepository,
+	hierarchySvc *service.OrganizationHierarchy,
 ) *GetCurrentUserUseCase {
 	return &GetCurrentUserUseCase{
-		userRepo: userRepo,
+		userRepo:     userRepo,
+		hierarchySvc: hierarchySvc,
 	}
 }
 
-// Execute retrieves the current user by ID
 func (uc *GetCurrentUserUseCase) Execute(ctx context.Context, input GetCurrentUserInput) (*entity.UserProfile, error) {
-	// 1. Validate input
 	if input.UserID == uuid.Nil {
 		return nil, errors.ErrInvalidInput
 	}
 
-	// 2. Get user from repository
 	user, err := uc.userRepo.GetByID(ctx, input.UserID)
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
 
-	// 3. Build user profile
+	scope, err := uc.hierarchySvc.ResolveAccessScope(ctx, user.ID, user.Role, user.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+
 	userProfile := &entity.UserProfile{
-		ID:             user.ID,
-		Username:       user.Username,
-		Name:           user.Name,
-		Role:           user.Role,
-		OrganizationID: user.OrganizationID,
-		Status:         user.Status,
-		CreatedAt:      user.CreatedAt,
-		UpdatedAt:      user.UpdatedAt,
+		ID:               user.ID,
+		Username:         user.Username,
+		Name:             user.Name,
+		Role:             user.Role,
+		OrganizationID:   user.OrganizationID,
+		AccessibleOrgIDs: scope.AccessibleOrgIDs,
+		IsGlobal:         scope.IsGlobal,
+		Status:           user.Status,
+		CreatedAt:        user.CreatedAt,
+		UpdatedAt:        user.UpdatedAt,
 	}
 
 	return userProfile, nil

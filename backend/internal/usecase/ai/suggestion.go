@@ -3,13 +3,14 @@ package ai
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
 // GenerateRiskSuggestionsInput represents input for risk suggestions
 type GenerateRiskSuggestionsInput struct {
-	// No input needed - fetches existing risks internally
+	OrgIDs []uuid.UUID
 }
 
 // GenerateRiskSuggestionsUseCase handles risk suggestion generation

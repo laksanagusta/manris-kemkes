@@ -23,7 +23,7 @@ func (r *fakeRiskRepository) Create(_ context.Context, risk *entity.Risk) error 
 	return nil
 }
 
-func (r *fakeRiskRepository) GetByID(_ context.Context, id uuid.UUID) (*entity.Risk, error) {
+func (r *fakeRiskRepository) GetByID(_ context.Context, id uuid.UUID, _ []uuid.UUID) (*entity.Risk, error) {
 	risk, ok := r.risks[id]
 	if !ok {
 		return nil, domainerrors.ErrRiskNotFound
@@ -54,15 +54,15 @@ func (r *fakeRiskRepository) NextRiskCode(context.Context) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-func (r *fakeRiskRepository) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
+func (r *fakeRiskRepository) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeRiskRepository) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
+func (r *fakeRiskRepository) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeRiskRepository) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
+func (r *fakeRiskRepository) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeRiskRepository) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
@@ -86,19 +86,19 @@ func (r *fakeRiskRepository) RiskReviewSummary(context.Context, string, []uuid.U
 func (r *fakeRiskRepository) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeRiskRepository) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeRiskRepository) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeRiskRepository) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+func (r *fakeRiskRepository) GetHeatmapVelocity(context.Context, string, string, []uuid.UUID) ([]entity.HeatmapVelocityCell, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeRiskRepository) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+func (r *fakeRiskRepository) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeRiskRepository) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+func (r *fakeRiskRepository) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeRiskRepository) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+func (r *fakeRiskRepository) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, errors.New("not implemented")
 }
 

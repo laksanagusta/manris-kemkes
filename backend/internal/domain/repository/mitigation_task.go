@@ -14,19 +14,19 @@ type MitigationTaskRepository interface {
 	Create(ctx context.Context, task *entity.MitigationTask) error
 
 	// GetByID retrieves a task by ID
-	GetByID(ctx context.Context, id uuid.UUID) (*entity.MitigationTask, error)
+	GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.MitigationTask, error)
 
 	// Update updates an existing task (progress submission)
 	Update(ctx context.Context, task *entity.MitigationTask) error
 
 	// ListByRisk returns all tasks for a given risk
-	ListByRisk(ctx context.Context, riskID uuid.UUID) ([]*entity.MitigationTask, error)
+	ListByRisk(ctx context.Context, riskID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error)
 
 	// ListByMitigation returns all tasks for a given mitigation plan
-	ListByMitigation(ctx context.Context, mitigationID uuid.UUID) ([]*entity.MitigationTask, error)
+	ListByMitigation(ctx context.Context, mitigationID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error)
 
 	// ListByUser returns all tasks assigned to a specific user (via mitigation owner)
-	ListByUser(ctx context.Context, userID uuid.UUID, status string) ([]*entity.MitigationTask, error)
+	ListByUser(ctx context.Context, userID uuid.UUID, status string, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error)
 
 	// ListPendingOverdue returns tasks that are past due_date but status is still pending
 	ListPendingOverdue(ctx context.Context, referenceDate time.Time) ([]*entity.MitigationTask, error)
@@ -35,7 +35,7 @@ type MitigationTaskRepository interface {
 	GetRecurringMitigations(ctx context.Context) ([]*entity.Mitigation, error)
 
 	// ListAll returns all mitigation tasks (for compliance monitoring dashboard)
-	ListAll(ctx context.Context) ([]*entity.MitigationTask, error)
+	ListAll(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error)
 
 	// TaskExistsForPeriod checks if a task already exists for a mitigation in a given period
 	TaskExistsForPeriod(ctx context.Context, mitigationID uuid.UUID, periodStart, periodEnd string) (bool, error)

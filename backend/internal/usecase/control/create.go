@@ -39,6 +39,7 @@ type CreateControlInput struct {
 	Method         string
 	Owner          string
 	OrganizationID *uuid.UUID
+	OrgIDs         []uuid.UUID
 }
 
 type CreateControlOutput struct {
@@ -61,7 +62,7 @@ func (uc *CreateControlUseCase) Execute(ctx context.Context, input CreateControl
 
 	// 2. Validate linked risk if provided
 	if input.RiskID != nil {
-		_, err := uc.riskRepo.GetByID(ctx, *input.RiskID)
+		_, err := uc.riskRepo.GetByID(ctx, *input.RiskID, input.OrgIDs)
 		if err != nil {
 			return nil, errors.Wrap(err, "linked risk not found")
 		}

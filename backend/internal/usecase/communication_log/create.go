@@ -38,6 +38,7 @@ type CreateCommunicationLogInput struct {
 	Stakeholder string
 	Notes       string
 	CreatedBy   string
+	OrgIDs      []uuid.UUID
 }
 
 // Output represents the created communication log
@@ -66,7 +67,7 @@ func (uc *CreateCommunicationLogUseCase) Execute(ctx context.Context, input Crea
 	}
 
 	// Validate risk exists
-	_, err = uc.riskRepo.GetByID(ctx, riskID)
+	_, err = uc.riskRepo.GetByID(ctx, riskID, input.OrgIDs)
 	if err != nil {
 		return nil, domainerrors.ErrRiskNotFound
 	}

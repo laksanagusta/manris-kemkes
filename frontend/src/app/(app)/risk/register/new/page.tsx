@@ -747,7 +747,8 @@ export default function RiskInputPage() {
             id: org.id || org.ID,
             name: org.name || org.Name,
           }));
-          setOrganizations(normalized);
+          const filtered = user?.isGlobal ? normalized : normalized.filter(org => user?.accessibleOrgIds?.includes(org.id));
+          setOrganizations(filtered);
         } catch (err) {
           console.error(err);
         }

@@ -12,19 +12,17 @@ import (
 
 type ListRiskReviewQueueUseCase struct {
 	riskRepo repository.RiskRepository
-	orgSvc   *service.OrganizationHierarchy
 }
 
 func NewListRiskReviewQueueUseCase(riskRepo repository.RiskRepository, orgSvc *service.OrganizationHierarchy) *ListRiskReviewQueueUseCase {
 	return &ListRiskReviewQueueUseCase{
 		riskRepo: riskRepo,
-		orgSvc:   orgSvc,
 	}
 }
 
 type ListRiskReviewQueueInput struct {
 	Cycle  string
-	OrgID  *uuid.UUID
+	OrgIDs []uuid.UUID
 	Status string
 }
 
@@ -35,17 +33,8 @@ func (uc *ListRiskReviewQueueUseCase) Execute(ctx context.Context, input ListRis
 	if input.Status == "" {
 		input.Status = "all"
 	}
-	var orgIDs []uuid.UUID
-	var err error
 
-	if input.OrgID != nil {
-		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	items, err := uc.riskRepo.ListReviewQueue(ctx, input.Cycle, orgIDs, input.Status)
+	items, err := uc.riskRepo.ListReviewQueue(ctx, input.Cycle, input.OrgIDs, input.Status)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load risk review queue")
 	}

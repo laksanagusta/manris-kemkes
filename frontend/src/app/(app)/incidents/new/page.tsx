@@ -5,6 +5,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import type {
   IncidentBatchCreateItem,
@@ -188,8 +189,10 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
   const [manualSuggestionInputKey, setManualSuggestionInputKey] = useState<string | null>(null);
   const [showManualFollowUp, setShowManualFollowUp] = useState(false);
   const [showBatchUpload, setShowBatchUpload] = useState(false);
+  const [manualOrganizationId, setManualOrganizationId] = useState<string | null>(null);
 
   const isEditMode = Boolean(currentIncidentId);
+  const isReadOnly = isEditMode && isReadOnlyForOrg(user, manualOrganizationId || "");
 
   const deferredRiskSearch = useDeferredValue(riskSearch);
   const deferredManualRiskSearch = useDeferredValue(manualRiskQuery);
@@ -258,6 +261,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
 		setManualLinkedRiskIds((incident.linkedRisks || []).map((risk) => risk.id));
 		setManualRiskSuggestions([]);
 		setManualSuggestionInputKey(null);
+        setManualOrganizationId(incident.organizationId || null);
 		setShowManualFollowUp(Boolean(incident.whyHow || incident.correctiveAction || incident.preventiveAction));
 	  })
 	  .catch((error) => {
@@ -724,9 +728,16 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
               : "Mulai dari fakta inti terlebih dahulu. Jika punya dokumen narasi, pindah ke mode upload PDF dari tombol di samping."
         }
         badges={
-          <Badge variant="outline" className="border-primary/15 bg-primary/[0.04] text-primary">
-            {showBatchUpload ? "Ekstraksi AI" : isEditMode ? "Mode edit" : "Input manual"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="border-primary/15 bg-primary/[0.04] text-primary">
+              {showBatchUpload ? "Ekstraksi AI" : isEditMode ? "Mode edit" : "Input manual"}
+            </Badge>
+            {isReadOnly && (
+              <Badge variant="secondary" title="Read-only access">
+                Read-only
+              </Badge>
+            )}
+          </div>
         }
         backLabel="Kembali ke register insiden"
         onBack={() => router.push("/incidents")}
@@ -774,7 +785,8 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
               <Button
                 className="gap-2 text-xs"
                 onClick={handleSaveManual}
-                disabled={isManualSaving}
+                disabled={isManualSaving || isReadOnly}
+                title={isReadOnly ? "Read-only access" : undefined}
               >
                 {isManualSaving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
                 {isManualSaving ? "Menyimpan..." : isEditMode ? "Update insiden" : "Simpan insiden"}

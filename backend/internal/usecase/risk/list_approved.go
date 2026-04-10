@@ -12,32 +12,20 @@ import (
 // ListApprovedRisksUseCase retrieves all approved risks for trend analysis
 type ListApprovedRisksUseCase struct {
 	riskRepo repository.RiskRepository
-	orgSvc   *service.OrganizationHierarchy
 }
 
 func NewListApprovedRisksUseCase(riskRepo repository.RiskRepository, orgSvc *service.OrganizationHierarchy) *ListApprovedRisksUseCase {
 	return &ListApprovedRisksUseCase{
 		riskRepo: riskRepo,
-		orgSvc:   orgSvc,
 	}
 }
 
 type ListApprovedRisksInput struct {
-	OrgID *uuid.UUID
+	OrgIDs []uuid.UUID
 }
 
 func (uc *ListApprovedRisksUseCase) Execute(ctx context.Context, input ListApprovedRisksInput) ([]*entity.Risk, error) {
-	var orgIDs []uuid.UUID
-	var err error
-
-	if input.OrgID != nil {
-		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	risks, err := uc.riskRepo.ListApprovedRisks(ctx, orgIDs)
+	risks, err := uc.riskRepo.ListApprovedRisks(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, err
 	}

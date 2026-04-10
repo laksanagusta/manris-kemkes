@@ -20,6 +20,6 @@ type GetInput struct {
 	ID uuid.UUID
 }
 
-func (uc *GetMeetingMinuteUseCase) Execute(ctx context.Context, input GetInput) (*entity.MeetingMinuteWithRisks, error) {
-	return uc.mmRepo.GetByID(ctx, input.ID)
+func (uc *GetMeetingMinuteUseCase) Execute(ctx context.Context, input GetInput, orgIDs []uuid.UUID) (*entity.MeetingMinuteWithRisks, error) {
+	return uc.mmRepo.GetByID(ctx, input.ID, orgIDs)
 }

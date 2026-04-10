@@ -14,33 +14,44 @@ import (
 )
 
 // ============================================================================
-// ListReportsUseCase — list KRI reports by KRI or by user
+// ListReportsUseCase
 // ============================================================================
 
 type ListReportsUseCase struct {
 	reportRepo repository.KRIReportRepository
+	kriRepo    repository.KRIRepository
 }
 
-func NewListReportsUseCase(reportRepo repository.KRIReportRepository) *ListReportsUseCase {
-	return &ListReportsUseCase{reportRepo: reportRepo}
+func NewListReportsUseCase(
+	reportRepo repository.KRIReportRepository,
+	kriRepo repository.KRIRepository,
+) *ListReportsUseCase {
+	return &ListReportsUseCase{reportRepo: reportRepo, kriRepo: kriRepo}
 }
 
 type ListReportsInput struct {
 	KRIID  *uuid.UUID
 	UserID *uuid.UUID
 	Status string
+	OrgIDs []uuid.UUID
 }
 
 func (uc *ListReportsUseCase) Execute(ctx context.Context, input ListReportsInput) ([]*entity.KRIReport, error) {
+	if input.KRIID != nil {
+		if _, err := uc.kriRepo.GetByID(ctx, *input.KRIID, input.OrgIDs); err != nil {
+			return nil, fmt.Errorf("KRI not found or not accessible: %w", err)
+		}
+	}
+
 	var reports []*entity.KRIReport
 	var err error
 
 	if input.KRIID != nil {
-		reports, err = uc.reportRepo.ListByKRI(ctx, *input.KRIID)
+		reports, err = uc.reportRepo.ListByKRI(ctx, *input.KRIID, input.OrgIDs)
 	} else if input.UserID != nil {
-		reports, err = uc.reportRepo.ListByUser(ctx, *input.UserID, input.Status)
+		reports, err = uc.reportRepo.ListByUser(ctx, *input.UserID, input.Status, input.OrgIDs)
 	} else if input.Status != "" {
-		reports, err = uc.reportRepo.ListByStatus(ctx, input.Status)
+		reports, err = uc.reportRepo.ListByStatus(ctx, input.Status, input.OrgIDs)
 	} else {
 		return nil, fmt.Errorf("one of kriID, userID, or status is required")
 	}
@@ -63,7 +74,7 @@ func (uc *ListReportsUseCase) Execute(ctx context.Context, input ListReportsInpu
 }
 
 // ============================================================================
-// SubmitReportUseCase — user submits a KRI report value
+// SubmitReportUseCase
 // ============================================================================
 
 type SubmitReportUseCase struct {
@@ -87,6 +98,7 @@ type SubmitReportInput struct {
 	Notes       string    `json:"notes"`
 	EvidenceURL string    `json:"evidenceUrl"`
 	SubmittedBy uuid.UUID `json:"-"`
+	OrgIDs      []uuid.UUID
 }
 
 func (uc *SubmitReportUseCase) Execute(ctx context.Context, input SubmitReportInput) (*entity.KRIReport, error) {
@@ -99,13 +111,15 @@ func (uc *SubmitReportUseCase) Execute(ctx context.Context, input SubmitReportIn
 		return nil, domainerrors.ErrInvalidNotes
 	}
 
-	// 1. Get the report
-	report, err := uc.reportRepo.GetByID(ctx, input.ReportID)
+	report, err := uc.reportRepo.GetByID(ctx, input.ReportID, input.OrgIDs)
 	if err != nil {
 		return nil, fmt.Errorf("report not found: %w", err)
 	}
 
-	// 2. Validate status
+	if _, err := uc.kriRepo.GetByID(ctx, report.KRIID, input.OrgIDs); err != nil {
+		return nil, domainerrors.ErrForbidden
+	}
+
 	if report.Status == "submitted" {
 		return nil, fmt.Errorf("report has already been submitted")
 	}
@@ -125,7 +139,6 @@ func (uc *SubmitReportUseCase) Execute(ctx context.Context, input SubmitReportIn
 		return nil, domainerrors.ErrSubmissionWindowClosed
 	}
 
-	// 3. Update report fields
 	report.Value = &input.Value
 	report.Notes = notes
 	report.Status = "submitted"
@@ -133,7 +146,6 @@ func (uc *SubmitReportUseCase) Execute(ctx context.Context, input SubmitReportIn
 	report.SubmittedAt = &now
 	report.EvidenceURL = input.EvidenceURL
 
-	// Reset review metadata on resubmit
 	report.ReviewedBy = nil
 	report.ReviewedAt = nil
 	report.ReviewNote = ""
@@ -142,8 +154,7 @@ func (uc *SubmitReportUseCase) Execute(ctx context.Context, input SubmitReportIn
 		return nil, fmt.Errorf("update report: %w", err)
 	}
 
-	// 5. Re-fetch to get joined fields
-	return uc.reportRepo.GetByID(ctx, report.ID)
+	return uc.reportRepo.GetByID(ctx, report.ID, input.OrgIDs)
 }
 
 // ============================================================================
@@ -184,14 +195,13 @@ func (uc *GenerateReportsUseCase) Execute(ctx context.Context, now time.Time) (i
 			}
 			periodStart = now.AddDate(0, 0, -(weekday - 1)).Truncate(24 * time.Hour)
 			periodEnd = periodStart.AddDate(0, 0, 6)
-			dueDate = periodEnd // Due at end of week
+			dueDate = periodEnd
 			_, weekNum := now.ISOWeek()
 			periodLabel = fmt.Sprintf("Minggu %d, %s", weekNum, now.Format("Jan 2006"))
 
 		case "bulanan":
 			periodStart = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 			periodEnd = periodStart.AddDate(0, 1, -1)
-			// Due date = 5th of the NEXT month
 			dueMonth := periodStart.AddDate(0, 1, 0)
 			reportDate := 5
 			maxDay := time.Date(dueMonth.Year(), dueMonth.Month()+1, 0, 0, 0, 0, 0, now.Location()).Day()
@@ -213,7 +223,6 @@ func (uc *GenerateReportsUseCase) Execute(ctx context.Context, now time.Time) (i
 		pStart := periodStart.Format("2006-01-02")
 		pEnd := periodEnd.Format("2006-01-02")
 
-		// Check if report already exists for this period
 		exists, err := uc.reportRepo.ReportExistsForPeriod(ctx, kri.ID, pStart, pEnd)
 		if err != nil {
 			continue
@@ -245,7 +254,7 @@ func (uc *GenerateReportsUseCase) Execute(ctx context.Context, now time.Time) (i
 }
 
 // ============================================================================
-// MarkOverdueUseCase — marks pending reports past due_date as overdue
+// MarkOverdueUseCase
 // ============================================================================
 
 type MarkOverdueUseCase struct {
@@ -274,7 +283,7 @@ func (uc *MarkOverdueUseCase) Execute(ctx context.Context, refDate time.Time) (i
 }
 
 // ============================================================================
-// AcceptReportUseCase — reviewer accepts a submitted report
+// AcceptReportUseCase
 // ============================================================================
 
 type AcceptReportUseCase struct {
@@ -293,10 +302,11 @@ type AcceptReportInput struct {
 	ReportID   uuid.UUID
 	ReviewedBy uuid.UUID
 	ReviewNote string
+	OrgIDs     []uuid.UUID
 }
 
 func (uc *AcceptReportUseCase) Execute(ctx context.Context, input AcceptReportInput) (*entity.KRIReport, error) {
-	report, err := uc.reportRepo.GetByID(ctx, input.ReportID)
+	report, err := uc.reportRepo.GetByID(ctx, input.ReportID, input.OrgIDs)
 	if err != nil {
 		return nil, fmt.Errorf("report not found: %w", err)
 	}
@@ -316,7 +326,7 @@ func (uc *AcceptReportUseCase) Execute(ctx context.Context, input AcceptReportIn
 	}
 
 	if report.Value != nil {
-		kri, err := uc.kriRepo.GetByID(ctx, report.KRIID)
+		kri, err := uc.kriRepo.GetByID(ctx, report.KRIID, input.OrgIDs)
 		if err == nil {
 			kri.CurrentValue = *report.Value
 			if updateErr := uc.kriRepo.Update(ctx, kri); updateErr != nil {
@@ -334,21 +344,26 @@ func (uc *AcceptReportUseCase) Execute(ctx context.Context, input AcceptReportIn
 }
 
 // ============================================================================
-// RequestRevisionUseCase — reviewer requests revision on a submitted report
+// RequestRevisionUseCase
 // ============================================================================
 
 type RequestRevisionUseCase struct {
 	reportRepo repository.KRIReportRepository
+	kriRepo    repository.KRIRepository
 }
 
-func NewRequestRevisionUseCase(reportRepo repository.KRIReportRepository) *RequestRevisionUseCase {
-	return &RequestRevisionUseCase{reportRepo: reportRepo}
+func NewRequestRevisionUseCase(
+	reportRepo repository.KRIReportRepository,
+	kriRepo repository.KRIRepository,
+) *RequestRevisionUseCase {
+	return &RequestRevisionUseCase{reportRepo: reportRepo, kriRepo: kriRepo}
 }
 
 type RequestRevisionInput struct {
 	ReportID   uuid.UUID `json:"-"`
 	ReviewedBy uuid.UUID `json:"-"`
 	ReviewNote string    `json:"review_note"`
+	OrgIDs     []uuid.UUID
 }
 
 func (uc *RequestRevisionUseCase) Execute(ctx context.Context, input RequestRevisionInput) (*entity.KRIReport, error) {
@@ -356,9 +371,13 @@ func (uc *RequestRevisionUseCase) Execute(ctx context.Context, input RequestRevi
 		return nil, fmt.Errorf("review_note is required for revision request")
 	}
 
-	report, err := uc.reportRepo.GetByID(ctx, input.ReportID)
+	report, err := uc.reportRepo.GetByID(ctx, input.ReportID, input.OrgIDs)
 	if err != nil {
 		return nil, fmt.Errorf("report not found: %w", err)
+	}
+
+	if _, err := uc.kriRepo.GetByID(ctx, report.KRIID, input.OrgIDs); err != nil {
+		return nil, domainerrors.ErrForbidden
 	}
 
 	if report.Status != "submitted" {
@@ -375,25 +394,30 @@ func (uc *RequestRevisionUseCase) Execute(ctx context.Context, input RequestRevi
 		return nil, fmt.Errorf("update report: %w", err)
 	}
 
-	return uc.reportRepo.GetByID(ctx, report.ID)
+	return uc.reportRepo.GetByID(ctx, report.ID, input.OrgIDs)
 }
 
 // ============================================================================
-// SkipReportUseCase — skip a pending report
+// SkipReportUseCase
 // ============================================================================
 
 type SkipReportUseCase struct {
 	reportRepo repository.KRIReportRepository
+	kriRepo    repository.KRIRepository
 }
 
-func NewSkipReportUseCase(reportRepo repository.KRIReportRepository) *SkipReportUseCase {
-	return &SkipReportUseCase{reportRepo: reportRepo}
+func NewSkipReportUseCase(
+	reportRepo repository.KRIReportRepository,
+	kriRepo repository.KRIRepository,
+) *SkipReportUseCase {
+	return &SkipReportUseCase{reportRepo: reportRepo, kriRepo: kriRepo}
 }
 
 type SkipReportInput struct {
 	ReportID    uuid.UUID `json:"-"`
 	SubmittedBy uuid.UUID `json:"-"`
 	SkipReason  string    `json:"skip_reason"`
+	OrgIDs      []uuid.UUID
 }
 
 func (uc *SkipReportUseCase) Execute(ctx context.Context, input SkipReportInput) (*entity.KRIReport, error) {
@@ -401,9 +425,13 @@ func (uc *SkipReportUseCase) Execute(ctx context.Context, input SkipReportInput)
 		return nil, fmt.Errorf("skip_reason is required")
 	}
 
-	report, err := uc.reportRepo.GetByID(ctx, input.ReportID)
+	report, err := uc.reportRepo.GetByID(ctx, input.ReportID, input.OrgIDs)
 	if err != nil {
 		return nil, fmt.Errorf("report not found: %w", err)
+	}
+
+	if _, err := uc.kriRepo.GetByID(ctx, report.KRIID, input.OrgIDs); err != nil {
+		return nil, domainerrors.ErrForbidden
 	}
 
 	if report.Status != "pending" && report.Status != "overdue" {
@@ -416,7 +444,7 @@ func (uc *SkipReportUseCase) Execute(ctx context.Context, input SkipReportInput)
 		return nil, fmt.Errorf("update report: %w", err)
 	}
 
-	return uc.reportRepo.GetByID(ctx, report.ID)
+	return uc.reportRepo.GetByID(ctx, report.ID, input.OrgIDs)
 }
 
 // ============================================================================

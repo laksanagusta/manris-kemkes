@@ -30,8 +30,8 @@ func NewGenerateReportUseCase(
 }
 
 type GenerateReportInput struct {
-	Cycle string
-	OrgID *uuid.UUID
+	Cycle  string
+	OrgIDs []uuid.UUID
 }
 
 func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateReportInput) (*entity.ReportData, error) {
@@ -39,7 +39,7 @@ func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateRepo
 		return nil, errors.ErrInvalidInput
 	}
 
-	risks, err := uc.riskRepo.ListCycleSnapshot(ctx, input.Cycle, nil)
+	risks, err := uc.riskRepo.ListCycleSnapshot(ctx, input.Cycle, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load cycle risks")
 	}
@@ -77,7 +77,7 @@ func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateRepo
 		return nil, errors.Wrap(err, "failed to load kris")
 	}
 
-	trendData, err := uc.computeTrendData(ctx)
+	trendData, err := uc.computeTrendData(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compute trend data")
 	}
@@ -189,8 +189,8 @@ func (uc *GenerateReportUseCase) filterKRIsByRiskIDs(ctx context.Context, riskID
 	return filtered, nil
 }
 
-func (uc *GenerateReportUseCase) computeTrendData(ctx context.Context) ([]entity.CycleTrendPoint, error) {
-	allRisks, err := uc.riskRepo.ListApprovedRisks(ctx, nil)
+func (uc *GenerateReportUseCase) computeTrendData(ctx context.Context, orgIDs []uuid.UUID) ([]entity.CycleTrendPoint, error) {
+	allRisks, err := uc.riskRepo.ListApprovedRisks(ctx, orgIDs)
 	if err != nil {
 		return nil, err
 	}

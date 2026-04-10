@@ -28,6 +28,7 @@ func NewUpdateFormUseCase(
 type UpdateFormInput struct {
 	FormID          uuid.UUID
 	UpdaterID       uuid.UUID
+	Scope           *entity.AccessScope
 	Title           string
 	Description     *string
 	Sections        []SectionInput
@@ -42,9 +43,19 @@ type UpdateFormOutput struct {
 }
 
 func (uc *UpdateFormUseCase) Execute(ctx context.Context, input UpdateFormInput) (*UpdateFormOutput, error) {
+	if input.Scope == nil {
+		return nil, domainerrors.ErrForbidden
+	}
+
 	existing, err := uc.formRepo.GetByID(ctx, input.FormID)
 	if err != nil {
 		return nil, domainerrors.ErrFormNotFound
+	}
+
+	if !input.Scope.IsGlobal {
+		if existing.OrganizationID == nil || !input.Scope.CanWrite(*existing.OrganizationID) {
+			return nil, domainerrors.ErrForbidden
+		}
 	}
 
 	if existing.Status != entity.FormStatusDraft {

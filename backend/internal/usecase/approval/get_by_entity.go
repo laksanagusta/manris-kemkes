@@ -24,6 +24,7 @@ func NewGetApprovalByEntityUseCase(approvalRepo repository.ApprovalRepository) *
 type GetApprovalByEntityInput struct {
 	RequestType string
 	EntityID    string
+	OrgIDs      []uuid.UUID
 }
 
 // Execute executes the get approval by entity usecase
@@ -33,7 +34,7 @@ func (uc *GetApprovalByEntityUseCase) Execute(ctx context.Context, input GetAppr
 		return nil, domainerrors.ErrInvalidInput
 	}
 
-	req, err := uc.approvalRepo.FindByEntity(ctx, input.RequestType, entityID)
+	req, err := uc.approvalRepo.FindByEntity(ctx, input.RequestType, entityID, input.OrgIDs)
 	if err != nil {
 		return nil, domainerrors.ErrNotFound
 	}

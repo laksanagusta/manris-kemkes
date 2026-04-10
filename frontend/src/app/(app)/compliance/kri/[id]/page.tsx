@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { cn } from "@/lib/utils";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +41,7 @@ interface KRIReport {
 export default function KRIDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   
   const [kri, setKri] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -145,18 +146,25 @@ export default function KRIDetailPage() {
               <StatusIcon className="size-3" />
               {statusConfig.label}
             </Badge>
+            {isReadOnlyForOrg(user, kri.organizationId) && (
+              <Badge variant="secondary" className="text-[10px]">RO</Badge>
+            )}
           </>
         }
         backLabel="Kembali ke tab KRI"
         onBack={() => router.push("/compliance/monitoring?tab=kri")}
         actions={
           <>
-            <Button variant="outline" size="sm" className="gap-2 shrink-0">
-              <Pencil className="size-3.5" /> Edit
-            </Button>
-            <Button variant="outline" size="icon" className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20" onClick={handleDelete}>
-              <Trash2 className="size-4" />
-            </Button>
+            {!isReadOnlyForOrg(user, kri.organizationId) && (
+              <>
+                <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                  <Pencil className="size-3.5" /> Edit
+                </Button>
+                <Button variant="outline" size="icon" className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20" onClick={handleDelete}>
+                  <Trash2 className="size-4" />
+                </Button>
+              </>
+            )}
           </>
         }
       />
@@ -252,7 +260,7 @@ export default function KRIDetailPage() {
             </CardContent>
           </Card>
           
-          <KRIReportsList kriId={kri.id} metric={kri.metric} />
+          <KRIReportsList kriId={kri.id} metric={kri.metric} organizationId={kri.organizationId} />
         </div>
 
         {/* Sidebar Info */}

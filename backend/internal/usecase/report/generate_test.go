@@ -18,7 +18,7 @@ func (r *fakeReportRiskRepo) Create(context.Context, *entity.Risk) error {
 	return errors.New("not implemented")
 }
 
-func (r *fakeReportRiskRepo) GetByID(context.Context, uuid.UUID) (*entity.Risk, error) {
+func (r *fakeReportRiskRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -49,19 +49,19 @@ func (r *fakeReportRiskRepo) ListApprovedRisks(ctx context.Context, orgIDs []uui
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeReportRiskRepo) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
+func (r *fakeReportRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeReportRiskRepo) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeReportRiskRepo) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeReportRiskRepo) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
+func (r *fakeReportRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeReportRiskRepo) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
+func (r *fakeReportRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -92,19 +92,19 @@ func (r *fakeReportRiskRepo) RiskReviewSummary(context.Context, string, []uuid.U
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeReportRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+func (r *fakeReportRiskRepo) GetHeatmapVelocity(context.Context, string, string, []uuid.UUID) ([]entity.HeatmapVelocityCell, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeReportRiskRepo) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+func (r *fakeReportRiskRepo) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeReportRiskRepo) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+func (r *fakeReportRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeReportRiskRepo) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+func (r *fakeReportRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -116,7 +116,7 @@ func (r *fakeReportIncidentRepo) Create(context.Context, *entity.Incident) error
 	return errors.New("not implemented")
 }
 
-func (r *fakeReportIncidentRepo) GetByID(context.Context, string) (*entity.Incident, error) {
+func (r *fakeReportIncidentRepo) GetByID(_ context.Context, _ string, _ []uuid.UUID) (*entity.Incident, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -135,7 +135,7 @@ func (r *fakeReportIncidentRepo) List(ctx context.Context, orgIDs []uuid.UUID) (
 	return nil, nil
 }
 
-func (r *fakeReportIncidentRepo) GetSummary(context.Context, string) (map[string]interface{}, error) {
+func (r *fakeReportIncidentRepo) GetSummary(context.Context, []uuid.UUID) (map[string]interface{}, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -147,7 +147,7 @@ func (r *fakeReportKRIRepo) Create(context.Context, *entity.KRI) error {
 	return errors.New("not implemented")
 }
 
-func (r *fakeReportKRIRepo) GetByID(context.Context, uuid.UUID) (*entity.KRI, error) {
+func (r *fakeReportKRIRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (*entity.KRI, error) {
 	return nil, errors.New("not implemented")
 }
 

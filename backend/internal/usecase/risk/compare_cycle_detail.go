@@ -16,20 +16,18 @@ import (
 
 type CompareRiskCycleDetailsUseCase struct {
 	riskRepo repository.RiskRepository
-	orgSvc   *service.OrganizationHierarchy
 }
 
 func NewCompareRiskCycleDetailsUseCase(riskRepo repository.RiskRepository, orgSvc *service.OrganizationHierarchy) *CompareRiskCycleDetailsUseCase {
 	return &CompareRiskCycleDetailsUseCase{
 		riskRepo: riskRepo,
-		orgSvc:   orgSvc,
 	}
 }
 
 type CompareRiskCycleDetailsInput struct {
 	FromCycle     string
 	ToCycle       string
-	OrgID         *uuid.UUID
+	OrgIDs        []uuid.UUID
 	IncludeStable bool
 }
 
@@ -38,21 +36,11 @@ func (uc *CompareRiskCycleDetailsUseCase) Execute(ctx context.Context, input Com
 		return nil, errors.ErrInvalidInput
 	}
 
-	var orgIDs []uuid.UUID
-	var err error
-
-	if input.OrgID != nil {
-		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	fromSnapshot, err := uc.riskRepo.ListCycleSnapshot(ctx, input.FromCycle, orgIDs)
+	fromSnapshot, err := uc.riskRepo.ListCycleSnapshot(ctx, input.FromCycle, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load source risk snapshot")
 	}
-	toSnapshot, err := uc.riskRepo.ListCycleSnapshot(ctx, input.ToCycle, orgIDs)
+	toSnapshot, err := uc.riskRepo.ListCycleSnapshot(ctx, input.ToCycle, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load target risk snapshot")
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/middleware"
 	formusecase "github.com/manris/backend/internal/usecase/form"
 )
 
@@ -57,11 +58,6 @@ func extractFormUserID(c *fiber.Ctx) (uuid.UUID, error) {
 		return uuid.Nil, fmt.Errorf("user ID not found in context")
 	}
 	return uid, nil
-}
-
-func extractFormRole(c *fiber.Ctx) string {
-	role, _ := c.Locals("role").(string)
-	return role
 }
 
 func extractFormOrgID(c *fiber.Ctx) *uuid.UUID {
@@ -250,6 +246,19 @@ func (h *FormHandler) CreateForm(c *fiber.Ctx) error {
 			"https://api.manris.com/errors/bad-request", err.Error())
 	}
 
+	// Enforce org scope — user must have write access to every target org
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden",
+			"https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+	for _, orgID := range orgIDs {
+		if !scope.CanWrite(orgID) {
+			return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden",
+				"https://api.manris.com/errors/forbidden", "cannot create form for organization "+orgID.String())
+		}
+	}
+
 	result, err := h.createUC.Execute(c.Context(), formusecase.CreateFormInput{
 		Title:           req.Title,
 		Description:     req.Description,
@@ -266,8 +275,11 @@ func (h *FormHandler) CreateForm(c *fiber.Ctx) error {
 }
 
 func (h *FormHandler) ListForms(c *fiber.Ctx) error {
-	role := extractFormRole(c)
-	orgID := extractFormOrgID(c)
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden",
+			"https://api.manris.com/errors/forbidden", "missing access scope")
+	}
 
 	var statusFilter *string
 	if s := c.Query("status"); s != "" {
@@ -275,8 +287,7 @@ func (h *FormHandler) ListForms(c *fiber.Ctx) error {
 	}
 
 	result, err := h.listUC.Execute(c.Context(), formusecase.ListFormsInput{
-		UserRole:     role,
-		UserOrgID:    orgID,
+		Scope:        scope,
 		StatusFilter: statusFilter,
 	})
 	if err != nil {
@@ -290,7 +301,11 @@ func (h *FormHandler) ListForms(c *fiber.Ctx) error {
 }
 
 func (h *FormHandler) ListMyForms(c *fiber.Ctx) error {
-	orgID := extractFormOrgID(c)
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden",
+			"https://api.manris.com/errors/forbidden", "missing access scope")
+	}
 
 	var statusFilter *string
 	if s := c.Query("status"); s != "" {
@@ -298,8 +313,7 @@ func (h *FormHandler) ListMyForms(c *fiber.Ctx) error {
 	}
 
 	result, err := h.listUC.Execute(c.Context(), formusecase.ListFormsInput{
-		UserRole:     "unit",
-		UserOrgID:    orgID,
+		Scope:        scope,
 		StatusFilter: statusFilter,
 	})
 	if err != nil {
@@ -319,17 +333,15 @@ func (h *FormHandler) GetForm(c *fiber.Ctx) error {
 			"https://api.manris.com/errors/bad-request", "invalid form ID")
 	}
 
-	userID, err := extractFormUserID(c)
-	if err != nil {
-		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized",
-			"https://api.manris.com/errors/unauthorized", err.Error())
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden",
+			"https://api.manris.com/errors/forbidden", "missing access scope")
 	}
 
 	result, err := h.getUC.Execute(c.Context(), formusecase.GetFormInput{
-		FormID:    formID,
-		UserID:    userID,
-		UserRole:  extractFormRole(c),
-		UserOrgID: extractFormOrgID(c),
+		FormID: formID,
+		Scope:  scope,
 	})
 	if err != nil {
 		return mapFormError(c, err)
@@ -349,6 +361,12 @@ func (h *FormHandler) UpdateForm(c *fiber.Ctx) error {
 	if err != nil {
 		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized",
 			"https://api.manris.com/errors/unauthorized", err.Error())
+	}
+
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden",
+			"https://api.manris.com/errors/forbidden", "missing access scope")
 	}
 
 	var req updateFormRequest
@@ -372,6 +390,7 @@ func (h *FormHandler) UpdateForm(c *fiber.Ctx) error {
 	result, err := h.updateUC.Execute(c.Context(), formusecase.UpdateFormInput{
 		FormID:          formID,
 		UpdaterID:       userID,
+		Scope:           scope,
 		Title:           req.Title,
 		Description:     req.Description,
 		Sections:        sections,
@@ -392,7 +411,16 @@ func (h *FormHandler) DeleteForm(c *fiber.Ctx) error {
 			"https://api.manris.com/errors/bad-request", "invalid form ID")
 	}
 
-	result, err := h.deleteUC.Execute(c.Context(), formID)
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden",
+			"https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+
+	result, err := h.deleteUC.Execute(c.Context(), formusecase.DeleteFormInput{
+		FormID: formID,
+		Scope:  scope,
+	})
 	if err != nil {
 		return mapFormError(c, err)
 	}
@@ -407,7 +435,16 @@ func (h *FormHandler) PublishForm(c *fiber.Ctx) error {
 			"https://api.manris.com/errors/bad-request", "invalid form ID")
 	}
 
-	result, err := h.publishUC.Execute(c.Context(), formID)
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden",
+			"https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+
+	result, err := h.publishUC.Execute(c.Context(), formusecase.PublishFormInput{
+		FormID: formID,
+		Scope:  scope,
+	})
 	if err != nil {
 		return mapFormError(c, err)
 	}
@@ -422,7 +459,16 @@ func (h *FormHandler) CloseForm(c *fiber.Ctx) error {
 			"https://api.manris.com/errors/bad-request", "invalid form ID")
 	}
 
-	result, err := h.closeUC.Execute(c.Context(), formID)
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden",
+			"https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+
+	result, err := h.closeUC.Execute(c.Context(), formusecase.CloseFormInput{
+		FormID: formID,
+		Scope:  scope,
+	})
 	if err != nil {
 		return mapFormError(c, err)
 	}
@@ -475,11 +521,15 @@ func (h *FormHandler) ListResponses(c *fiber.Ctx) error {
 			"https://api.manris.com/errors/bad-request", "invalid form ID")
 	}
 
-	role := extractFormRole(c)
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden",
+			"https://api.manris.com/errors/forbidden", "missing access scope")
+	}
 
 	result, err := h.listResponsesUC.Execute(c.Context(), formusecase.ListResponsesInput{
-		FormID:     formID,
-		CallerRole: role,
+		FormID: formID,
+		Scope:  scope,
 	})
 	if err != nil {
 		return mapFormError(c, err)
@@ -499,8 +549,15 @@ func (h *FormHandler) Analytics(c *fiber.Ctx) error {
 			"https://api.manris.com/errors/bad-request", "invalid form ID")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden",
+			"https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+
 	result, err := h.analyticsUC.Execute(c.Context(), formusecase.FormAnalyticsInput{
 		FormID: formID,
+		Scope:  scope,
 	})
 	if err != nil {
 		return mapFormError(c, err)

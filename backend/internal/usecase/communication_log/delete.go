@@ -8,34 +8,39 @@ import (
 	"github.com/manris/backend/internal/domain/repository"
 )
 
-// DeleteCommunicationLogUseCase handles deleting communication logs
 type DeleteCommunicationLogUseCase struct {
 	commLogRepo repository.CommunicationLogRepository
+	riskRepo    repository.RiskRepository
 }
 
-// NewDeleteCommunicationLogUseCase creates a new usecase
-func NewDeleteCommunicationLogUseCase(commLogRepo repository.CommunicationLogRepository) *DeleteCommunicationLogUseCase {
+func NewDeleteCommunicationLogUseCase(
+	commLogRepo repository.CommunicationLogRepository,
+	riskRepo repository.RiskRepository,
+) *DeleteCommunicationLogUseCase {
 	return &DeleteCommunicationLogUseCase{
 		commLogRepo: commLogRepo,
+		riskRepo:    riskRepo,
 	}
 }
 
-// Input represents the input for deleting a communication log
 type DeleteCommunicationLogInput struct {
-	ID string
+	ID     string
+	OrgIDs []uuid.UUID
 }
 
-// Execute deletes a communication log
 func (uc *DeleteCommunicationLogUseCase) Execute(ctx context.Context, input DeleteCommunicationLogInput) error {
 	id, err := uuid.Parse(input.ID)
 	if err != nil {
 		return domainerrors.ErrInvalidInput
 	}
 
-	// Verify log exists
-	_, err = uc.commLogRepo.FindByID(ctx, id)
+	commLog, err := uc.commLogRepo.FindByID(ctx, id)
 	if err != nil {
 		return domainerrors.ErrNotFound
+	}
+
+	if _, err := uc.riskRepo.GetByID(ctx, commLog.RiskID, input.OrgIDs); err != nil {
+		return domainerrors.ErrForbidden
 	}
 
 	return uc.commLogRepo.Delete(ctx, id)

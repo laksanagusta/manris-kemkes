@@ -39,18 +39,22 @@ func (r *kriRepository) Create(ctx context.Context, kri *entity.KRI) error {
 }
 
 // GetByID retrieves a KRI by ID
-func (r *kriRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.KRI, error) {
+func (r *kriRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.KRI, error) {
 	kri := &entity.KRI{}
-	err := r.pool.QueryRow(ctx,
-		`SELECT k.id, k.risk_id, r.code as risk_code, r.title as risk_title,
+	query := `SELECT k.id, k.risk_id, r.code as risk_code, r.title as risk_title,
 		       k.name, k.description, k.metric, k.threshold_min, k.threshold_max, k.amber_threshold_min, k.amber_threshold_max,
 		       k.current_value, k.direction, k.frequency,
 		       k.organization_id, COALESCE(o.name, '') as org_name, k.is_archived, k.archived_at, COALESCE(k.archived_reason, ''), k.last_updated, k.created_at
 		FROM kris k
 		LEFT JOIN risks r ON k.risk_id = r.id
 		LEFT JOIN organizations o ON k.organization_id = o.id
-		WHERE k.id = $1`, id,
-	).Scan(
+		WHERE k.id = $1`
+	args := []interface{}{id}
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND k.organization_id = ANY($%d)", len(args)+1)
+		args = append(args, orgIDs)
+	}
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&kri.ID, &kri.RiskID, &kri.RiskCode, &kri.RiskTitle,
 		&kri.Name, &kri.Description, &kri.Metric, &kri.ThresholdMin,
 		&kri.ThresholdMax, &kri.AmberThresholdMin, &kri.AmberThresholdMax, &kri.CurrentValue, &kri.Direction, &kri.Frequency,

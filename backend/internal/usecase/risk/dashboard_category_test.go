@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 )
 
@@ -11,7 +12,7 @@ type fakeDashboardCategoryRepo struct {
 	dashboardCategoryCounts func(context.Context, string) ([]*entity.DashboardCategoryCount, error)
 }
 
-func (r *fakeDashboardCategoryRepo) DashboardCategoryCounts(ctx context.Context, cycle string) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeDashboardCategoryRepo) DashboardCategoryCounts(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return r.dashboardCategoryCounts(ctx, cycle)
 }
 

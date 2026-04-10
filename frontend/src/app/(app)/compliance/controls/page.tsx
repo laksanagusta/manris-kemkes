@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 export default function ControlsPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [controls, setControls] = useState<any[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,12 +60,14 @@ export default function ControlsPage() {
             Pustaka pengendalian risiko dan pencatatan hasil testing
           </p>
         </div>
-        <Link href="/compliance/controls/new">
-          <Button className="gap-2 shadow-lg shadow-primary/20">
-            <Plus className="size-4" />
-            Tambah Kontrol
-          </Button>
-        </Link>
+        {(!user?.isGlobal && !user?.organizationId) ? null : (
+          <Link href="/compliance/controls/new">
+            <Button className="gap-2 shadow-lg shadow-primary/20">
+              <Plus className="size-4" />
+              Tambah Kontrol
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Search */}
@@ -103,6 +106,11 @@ export default function ControlsPage() {
                       <Badge variant="outline" className="text-[9px] h-4 px-1.5">
                         {control.frequency}
                       </Badge>
+                      {isReadOnlyForOrg(user, control.organizationId) && (
+                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5">
+                          RO
+                        </Badge>
+                      )}
                     </div>
                     <h3 className="text-sm font-semibold">{control.name}</h3>
                     <p className="text-[11px] text-muted-foreground mt-0.5">{control.description}</p>
@@ -137,10 +145,12 @@ export default function ControlsPage() {
                   <div className="border-t border-border/30 px-4 pb-4">
                     <div className="flex items-center justify-between py-3">
                       <h4 className="text-xs font-semibold">Testing Records</h4>
-                      <Button variant="outline" size="xs" className="text-[10px] h-6 gap-1">
-                        <Plus className="size-2.5" />
-                        Tambah Testing
-                      </Button>
+                      {!isReadOnlyForOrg(user, control.organizationId) && (
+                        <Button variant="outline" size="xs" className="text-[10px] h-6 gap-1">
+                          <Plus className="size-2.5" />
+                          Tambah Testing
+                        </Button>
+                      )}
                     </div>
                     <Table>
                       <TableHeader>

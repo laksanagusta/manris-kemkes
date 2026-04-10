@@ -67,11 +67,11 @@ func (r *riskRepository) Create(ctx context.Context, risk *entity.Risk) error {
 }
 
 // GetByID retrieves a risk by ID including mitigations
-func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Risk, error) {
+func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Risk, error) {
 	risk := &entity.Risk{}
 	var draftApprovalLineRaw []byte
-	err := r.pool.QueryRow(ctx,
-		`SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
+
+	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -88,8 +88,14 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Ris
 		 FROM risks r
 		 LEFT JOIN organizations o ON r.organization_id = o.id
 		 LEFT JOIN users u ON r.created_by = u.id
-		 WHERE r.id = $1`, id,
-	).Scan(
+		 WHERE r.id = $1`
+	args := []interface{}{id}
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(args)+1)
+		args = append(args, orgIDs)
+	}
+
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
 		&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 		&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
@@ -424,42 +430,87 @@ func (r *riskRepository) NextRiskCode(ctx context.Context) (string, error) {
 }
 
 // DashboardSummary returns KPI card data for a specific cycle (or all cycles if empty)
-func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string) (*entity.DashboardSummary, error) {
+func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, orgIDs []uuid.UUID) (*entity.DashboardSummary, error) {
 	s := &entity.DashboardSummary{}
 	scoreExpr := finalizedScoreExpr("r")
-	var baseQuery string
+	var orgFilter string
+	var orgArgs []interface{}
+	if len(orgIDs) > 0 {
+		orgFilter = " AND r.organization_id = ANY($%d)"
+		orgArgs = []interface{}{orgIDs}
+	}
 	if cycle != "" {
-		baseQuery = fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1")
-		if err := r.pool.QueryRow(ctx, baseQuery, cycle).Scan(&s.TotalRisks); err != nil {
+		args := []interface{}{cycle}
+		argIdx := 2
+		q := "SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1"
+		if len(orgIDs) > 0 {
+			q += fmt.Sprintf(orgFilter, argIdx)
+			args = append(args, orgArgs...)
+		}
+		if err := r.pool.QueryRow(ctx, q, args...).Scan(&s.TotalRisks); err != nil {
 			return nil, fmt.Errorf("count risks: %w", err)
 		}
-		baseQuery = fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1 AND (%s) >= 15", scoreExpr)
-		if err := r.pool.QueryRow(ctx, baseQuery, cycle).Scan(&s.HighExtreme); err != nil {
+		args2 := []interface{}{cycle}
+		q2 := fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1 AND (%s) >= 15", scoreExpr)
+		if len(orgIDs) > 0 {
+			q2 += fmt.Sprintf(orgFilter, argIdx)
+			args2 = append(args2, orgArgs...)
+		}
+		if err := r.pool.QueryRow(ctx, q2, args2...).Scan(&s.HighExtreme); err != nil {
 			return nil, fmt.Errorf("count high/extreme: %w", err)
 		}
 	} else {
-		baseQuery = fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_current = TRUE")
-		if err := r.pool.QueryRow(ctx, baseQuery).Scan(&s.TotalRisks); err != nil {
+		var args []interface{}
+		argIdx := 1
+		q := "SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_current = TRUE"
+		if len(orgIDs) > 0 {
+			q += fmt.Sprintf(orgFilter, argIdx)
+			args = append(args, orgArgs...)
+		}
+		if err := r.pool.QueryRow(ctx, q, args...).Scan(&s.TotalRisks); err != nil {
 			return nil, fmt.Errorf("count risks: %w", err)
 		}
-		baseQuery = fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_current = TRUE AND (%s) >= 15", scoreExpr)
-		if err := r.pool.QueryRow(ctx, baseQuery).Scan(&s.HighExtreme); err != nil {
+		var args2 []interface{}
+		q2 := fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_current = TRUE AND (%s) >= 15", scoreExpr)
+		if len(orgIDs) > 0 {
+			q2 += fmt.Sprintf(orgFilter, argIdx)
+			args2 = append(args2, orgArgs...)
+		}
+		if err := r.pool.QueryRow(ctx, q2, args2...).Scan(&s.HighExtreme); err != nil {
 			return nil, fmt.Errorf("count high/extreme: %w", err)
 		}
 	}
-	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigations WHERE due_date < CURRENT_DATE").Scan(&s.OverdueMitig)
-	if err != nil {
-		return nil, fmt.Errorf("count overdue: %w", err)
+	if len(orgIDs) > 0 {
+		err := r.pool.QueryRow(ctx,
+			"SELECT COUNT(*) FROM mitigations m JOIN risks r ON r.id = m.risk_id WHERE m.due_date < CURRENT_DATE AND r.organization_id = ANY($1)",
+			orgIDs).Scan(&s.OverdueMitig)
+		if err != nil {
+			return nil, fmt.Errorf("count overdue: %w", err)
+		}
+	} else {
+		err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigations WHERE due_date < CURRENT_DATE").Scan(&s.OverdueMitig)
+		if err != nil {
+			return nil, fmt.Errorf("count overdue: %w", err)
+		}
 	}
-	err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM incidents WHERE created_at >= date_trunc('month', CURRENT_DATE)").Scan(&s.IncidentsMonth)
-	if err != nil {
-		return nil, fmt.Errorf("count incidents: %w", err)
+	if len(orgIDs) > 0 {
+		err := r.pool.QueryRow(ctx,
+			"SELECT COUNT(*) FROM incidents WHERE created_at >= date_trunc('month', CURRENT_DATE) AND organization_id = ANY($1)",
+			orgIDs).Scan(&s.IncidentsMonth)
+		if err != nil {
+			return nil, fmt.Errorf("count incidents: %w", err)
+		}
+	} else {
+		err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM incidents WHERE created_at >= date_trunc('month', CURRENT_DATE)").Scan(&s.IncidentsMonth)
+		if err != nil {
+			return nil, fmt.Errorf("count incidents: %w", err)
+		}
 	}
 	return s, nil
 }
 
 // DashboardCategoryCounts returns risk counts grouped by category for a specific cycle (or all cycles if empty)
-func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle string) ([]*entity.DashboardCategoryCount, error) {
+func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	var query string
 	var args []interface{}
 	scoreExpr := finalizedScoreExpr("r")
@@ -472,10 +523,15 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle stri
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 15 AND (%[1]s) < 20) as tinggi,
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 20) as ekstrem
 		 FROM risks r
-		 WHERE r.is_cycle_current = TRUE AND r.assessment_cycle = $1
-		 GROUP BY 1
-		 ORDER BY count DESC, category ASC`, scoreExpr)
+		 WHERE r.is_cycle_current = TRUE AND r.assessment_cycle = $1`, scoreExpr)
 		args = []interface{}{cycle}
+		if len(orgIDs) > 0 {
+			query += " AND r.organization_id = ANY($2)"
+			args = append(args, orgIDs)
+		}
+		query += `
+		 GROUP BY 1
+		 ORDER BY count DESC, category ASC`
 	} else {
 		query = fmt.Sprintf(`SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category,
 		        COUNT(*) as count,
@@ -485,9 +541,14 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle stri
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 15 AND (%[1]s) < 20) as tinggi,
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 20) as ekstrem
 		 FROM risks r
-		 WHERE r.is_current = TRUE
+		 WHERE r.is_current = TRUE`, scoreExpr)
+		if len(orgIDs) > 0 {
+			query += " AND r.organization_id = ANY($1)"
+			args = append(args, orgIDs)
+		}
+		query += `
 		 GROUP BY 1
-		 ORDER BY count DESC, category ASC`, scoreExpr)
+		 ORDER BY count DESC, category ASC`
 	}
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -507,18 +568,28 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle stri
 }
 
 // HeatmapData returns risk distribution for the 5x5 heatmap for a specific cycle (or all cycles if empty)
-func (r *riskRepository) HeatmapData(ctx context.Context, cycle string) ([]*entity.HeatmapCell, error) {
+func (r *riskRepository) HeatmapData(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	var query string
 	var args []interface{}
 	if cycle != "" {
 		query = fmt.Sprintf(`SELECT %s AS probability, %s AS impact, COUNT(*) as cnt
-		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1
-		 GROUP BY 1, 2`, finalizedProbabilityExpr("r"), finalizedImpactExpr("r"))
+		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1`,
+			finalizedProbabilityExpr("r"), finalizedImpactExpr("r"))
 		args = []interface{}{cycle}
+		if len(orgIDs) > 0 {
+			query += " AND r.organization_id = ANY($2)"
+			args = append(args, orgIDs)
+		}
+		query += " GROUP BY 1, 2"
 	} else {
 		query = fmt.Sprintf(`SELECT %s AS probability, %s AS impact, COUNT(*) as cnt
-		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE
-		 GROUP BY 1, 2`, finalizedProbabilityExpr("r"), finalizedImpactExpr("r"))
+		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE`,
+			finalizedProbabilityExpr("r"), finalizedImpactExpr("r"))
+		if len(orgIDs) > 0 {
+			query += " AND r.organization_id = ANY($1)"
+			args = append(args, orgIDs)
+		}
+		query += " GROUP BY 1, 2"
 	}
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -538,27 +609,42 @@ func (r *riskRepository) HeatmapData(ctx context.Context, cycle string) ([]*enti
 }
 
 // TopRisks returns the highest-scoring risks for a specific cycle (or all cycles if empty)
-func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int) ([]*entity.Risk, error) {
+func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
 	var query string
 	var args []interface{}
 	if cycle != "" {
-		query = fmt.Sprintf(`SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
+		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
 		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
-		 WHERE r.status IN ('in_approval','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1
+		 WHERE r.status IN ('in_approval','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1`
+		args = []interface{}{cycle}
+		argIdx := 2
+		if len(orgIDs) > 0 {
+			query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
+			args = append(args, orgIDs)
+			argIdx++
+		}
+		query += fmt.Sprintf(`
 		 ORDER BY (%s) DESC, r.created_at DESC
-		 LIMIT $2`, finalizedScoreExpr("r"))
-		args = []interface{}{cycle, limit}
+		 LIMIT $%d`, finalizedScoreExpr("r"), argIdx)
+		args = append(args, limit)
 	} else {
 		query = fmt.Sprintf(`SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
 		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
-		 WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE
+		 WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE`)
+		argIdx := 1
+		if len(orgIDs) > 0 {
+			query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
+			args = append(args, orgIDs)
+			argIdx++
+		}
+		query += fmt.Sprintf(`
 		 ORDER BY (%s) DESC, r.created_at DESC
-		 LIMIT $1`, finalizedScoreExpr("r"))
-		args = []interface{}{limit}
+		 LIMIT $%d`, finalizedScoreExpr("r"), argIdx)
+		args = append(args, limit)
 	}
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -1157,8 +1243,54 @@ func heatmapVelocityQuery() string {
 	ORDER BY probability DESC, impact DESC`, currentProbabilityExpr, currentImpactExpr, previousScoreExpr, currentScoreExpr, previousScoreExpr, currentScoreExpr, previousScoreExpr)
 }
 
-func (r *riskRepository) GetHeatmapVelocity(ctx context.Context, fromCycle, toCycle string) ([]entity.HeatmapVelocityCell, error) {
-	rows, err := r.pool.Query(ctx, heatmapVelocityQuery(), fromCycle, toCycle)
+func heatmapVelocityQueryScoped() string {
+	currentProbabilityExpr := finalizedProbabilityExpr("curr")
+	currentImpactExpr := finalizedImpactExpr("curr")
+	previousScoreExpr := finalizedScoreExpr("prev")
+	currentScoreExpr := finalizedScoreExpr("curr")
+
+	return fmt.Sprintf(`
+	WITH cycle_compare AS (
+		SELECT
+			%s AS probability,
+			%s AS impact,
+			CASE
+				WHEN (%s) IS NULL THEN 'new'
+				WHEN (%s) > (%s) THEN 'up'
+				WHEN (%s) < (%s) THEN 'down'
+				ELSE 'stable'
+			END AS movement
+		FROM risks curr
+		LEFT JOIN risks prev ON prev.version_group_id = curr.version_group_id
+			AND prev.assessment_cycle = $1
+			AND prev.status = 'approved'
+			AND prev.is_cycle_current = TRUE
+		WHERE curr.assessment_cycle = $2
+			AND curr.status = 'approved'
+			AND curr.is_cycle_current = TRUE
+			AND curr.organization_id = ANY($3)
+	)
+	SELECT
+		probability,
+		impact,
+		COUNT(*) AS count,
+		COUNT(*) FILTER (WHERE movement = 'up') AS up_count,
+		COUNT(*) FILTER (WHERE movement = 'down') AS down_count,
+		COUNT(*) FILTER (WHERE movement = 'stable') AS stable_count,
+		COUNT(*) FILTER (WHERE movement = 'new') AS new_count
+	FROM cycle_compare
+	GROUP BY probability, impact
+	ORDER BY probability DESC, impact DESC`, currentProbabilityExpr, currentImpactExpr, previousScoreExpr, currentScoreExpr, previousScoreExpr, currentScoreExpr, previousScoreExpr)
+}
+
+func (r *riskRepository) GetHeatmapVelocity(ctx context.Context, fromCycle, toCycle string, orgIDs []uuid.UUID) ([]entity.HeatmapVelocityCell, error) {
+	query := heatmapVelocityQuery()
+	args := []interface{}{fromCycle, toCycle}
+	if len(orgIDs) > 0 {
+		query = heatmapVelocityQueryScoped()
+		args = append(args, orgIDs)
+	}
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("heatmap velocity: %w", err)
 	}
@@ -1175,7 +1307,7 @@ func (r *riskRepository) GetHeatmapVelocity(ctx context.Context, fromCycle, toCy
 	return cells, nil
 }
 
-func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context, orgIDs []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	query := `
 	SELECT
 		COALESCE(org.id::text, '') AS org_id,
@@ -1204,11 +1336,16 @@ func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context) ([]en
 	FROM mitigation_tasks mt
 	JOIN mitigations m ON m.id = mt.mitigation_id
 	JOIN risks r ON r.id = mt.risk_id
-	LEFT JOIN organizations org ON org.id = r.organization_id
-	GROUP BY org.id, org.name
+	LEFT JOIN organizations org ON org.id = r.organization_id`
+	args := []interface{}{}
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" WHERE r.organization_id = ANY($%d)", len(args)+1)
+		args = append(args, orgIDs)
+	}
+	query += ` GROUP BY org.id, org.name
 	ORDER BY org.name ASC`
 
-	rows, err := r.pool.Query(ctx, query)
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("overdue mitigation timeline: %w", err)
 	}
@@ -1229,7 +1366,7 @@ func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context) ([]en
 	return items, nil
 }
 
-func (r *riskRepository) GetKRIBreachSummary(ctx context.Context) ([]entity.KRIBreachItem, error) {
+func (r *riskRepository) GetKRIBreachSummary(ctx context.Context, orgIDs []uuid.UUID) ([]entity.KRIBreachItem, error) {
 	query := `
 	SELECT
 		k.id::text AS kri_id,
@@ -1261,7 +1398,13 @@ func (r *riskRepository) GetKRIBreachSummary(ctx context.Context) ([]entity.KRIB
 	  AND (
 	    (k.direction = 'higher_worse' AND k.current_value >= k.threshold_max * 0.8)
 	    OR (k.direction = 'lower_worse' AND k.current_value <= k.threshold_min * 1.2)
-	  )
+	  )`
+	args := []interface{}{}
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND k.organization_id = ANY($%d)", len(args)+1)
+		args = append(args, orgIDs)
+	}
+	query += `
 	ORDER BY
 		CASE
 			WHEN k.direction = 'higher_worse' AND k.current_value > k.threshold_max THEN 0
@@ -1270,7 +1413,7 @@ func (r *riskRepository) GetKRIBreachSummary(ctx context.Context) ([]entity.KRIB
 		END,
 		k.name ASC`
 
-	rows, err := r.pool.Query(ctx, query)
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("kri breach summary: %w", err)
 	}
@@ -1290,8 +1433,14 @@ func (r *riskRepository) GetKRIBreachSummary(ctx context.Context) ([]entity.KRIB
 	return items, nil
 }
 
-func (r *riskRepository) GetUnitResponseTime(ctx context.Context) ([]entity.UnitResponseTime, error) {
-	query := `
+func (r *riskRepository) GetUnitResponseTime(ctx context.Context, orgIDs []uuid.UUID) ([]entity.UnitResponseTime, error) {
+	orgFilter := ""
+	args := []interface{}{}
+	if len(orgIDs) > 0 {
+		orgFilter = fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(args)+1)
+		args = append(args, orgIDs)
+	}
+	query := fmt.Sprintf(`
 	WITH approval_timing AS (
 		SELECT
 			r.organization_id,
@@ -1299,7 +1448,7 @@ func (r *riskRepository) GetUnitResponseTime(ctx context.Context) ([]entity.Unit
 		FROM approval_requests ar
 		JOIN approval_histories ah ON ah.approval_request_id = ar.id
 		JOIN risks r ON r.id = ar.entity_id AND ar.request_type = 'risk'
-		WHERE ah.created_at > ar.requested_at
+		WHERE ah.created_at > ar.requested_at%s
 		GROUP BY r.organization_id
 	),
 	mitigation_timing AS (
@@ -1309,7 +1458,7 @@ func (r *riskRepository) GetUnitResponseTime(ctx context.Context) ([]entity.Unit
 			COUNT(*) AS task_count
 		FROM mitigation_tasks mt
 		JOIN risks r ON r.id = mt.risk_id
-		WHERE mt.status = 'done' AND mt.reported_at IS NOT NULL
+		WHERE mt.status = 'done' AND mt.reported_at IS NOT NULL%s
 		GROUP BY r.organization_id
 	)
 	SELECT
@@ -1320,10 +1469,13 @@ func (r *riskRepository) GetUnitResponseTime(ctx context.Context) ([]entity.Unit
 		COALESCE(mt.task_count, 0) AS task_count
 	FROM organizations org
 	LEFT JOIN mitigation_timing mt ON mt.organization_id = org.id
-	LEFT JOIN approval_timing at ON at.organization_id = org.id
-	ORDER BY org.name ASC`
+	LEFT JOIN approval_timing at ON at.organization_id = org.id`, orgFilter, orgFilter)
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" WHERE org.id = ANY($%d)", 1)
+	}
+	query += ` ORDER BY org.name ASC`
 
-	rows, err := r.pool.Query(ctx, query)
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("unit response time: %w", err)
 	}

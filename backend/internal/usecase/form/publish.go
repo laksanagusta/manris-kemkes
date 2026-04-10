@@ -25,15 +25,30 @@ func NewPublishFormUseCase(
 	}
 }
 
+type PublishFormInput struct {
+	FormID uuid.UUID
+	Scope  *entity.AccessScope
+}
+
 type PublishFormOutput struct {
 	ID     uuid.UUID
 	Status string
 }
 
-func (uc *PublishFormUseCase) Execute(ctx context.Context, formID uuid.UUID) (*PublishFormOutput, error) {
-	form, err := uc.formRepo.GetByID(ctx, formID)
+func (uc *PublishFormUseCase) Execute(ctx context.Context, input PublishFormInput) (*PublishFormOutput, error) {
+	if input.Scope == nil {
+		return nil, domainerrors.ErrForbidden
+	}
+
+	form, err := uc.formRepo.GetByID(ctx, input.FormID)
 	if err != nil {
 		return nil, domainerrors.ErrFormNotFound
+	}
+
+	if !input.Scope.IsGlobal {
+		if form.OrganizationID == nil || !input.Scope.CanWrite(*form.OrganizationID) {
+			return nil, domainerrors.ErrForbidden
+		}
 	}
 
 	switch form.Status {
@@ -54,7 +69,7 @@ func (uc *PublishFormUseCase) Execute(ctx context.Context, formID uuid.UUID) (*P
 	}
 
 	if form.TargetAudience == "specific" {
-		assignments, err := uc.assignmentRepo.GetByFormID(ctx, formID)
+		assignments, err := uc.assignmentRepo.GetByFormID(ctx, input.FormID)
 		if err != nil {
 			return nil, domainerrors.Wrap(err, "failed to check assignments")
 		}
@@ -66,12 +81,12 @@ func (uc *PublishFormUseCase) Execute(ctx context.Context, formID uuid.UUID) (*P
 		}
 	}
 
-	if err := uc.formRepo.UpdateStatus(ctx, formID, entity.FormStatusPublished); err != nil {
+	if err := uc.formRepo.UpdateStatus(ctx, input.FormID, entity.FormStatusPublished); err != nil {
 		return nil, domainerrors.Wrap(err, "failed to publish form")
 	}
 
 	return &PublishFormOutput{
-		ID:     formID,
+		ID:     input.FormID,
 		Status: entity.FormStatusPublished,
 	}, nil
 }

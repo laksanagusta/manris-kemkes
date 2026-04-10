@@ -9,21 +9,24 @@ import (
 	"github.com/manris/backend/internal/domain/repository"
 )
 
-// ListCommunicationLogsUseCase handles listing communication logs
 type ListCommunicationLogsUseCase struct {
 	commLogRepo repository.CommunicationLogRepository
+	riskRepo    repository.RiskRepository
 }
 
-// NewListCommunicationLogsUseCase creates a new usecase
-func NewListCommunicationLogsUseCase(commLogRepo repository.CommunicationLogRepository) *ListCommunicationLogsUseCase {
+func NewListCommunicationLogsUseCase(
+	commLogRepo repository.CommunicationLogRepository,
+	riskRepo repository.RiskRepository,
+) *ListCommunicationLogsUseCase {
 	return &ListCommunicationLogsUseCase{
 		commLogRepo: commLogRepo,
+		riskRepo:    riskRepo,
 	}
 }
 
-// Input represents the input for listing communication logs
 type ListCommunicationLogsInput struct {
 	RiskID string
+	OrgIDs []uuid.UUID
 }
 
 // Output represents a single communication log in the list
@@ -44,6 +47,10 @@ func (uc *ListCommunicationLogsUseCase) Execute(ctx context.Context, input ListC
 	riskID, err := uuid.Parse(input.RiskID)
 	if err != nil {
 		return nil, domainerrors.ErrInvalidInput
+	}
+
+	if _, err := uc.riskRepo.GetByID(ctx, riskID, input.OrgIDs); err != nil {
+		return nil, domainerrors.ErrRiskNotFound
 	}
 
 	logs, err := uc.commLogRepo.ListByRiskID(ctx, riskID)

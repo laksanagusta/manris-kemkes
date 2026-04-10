@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,7 @@ import { cn } from "@/lib/utils";
 export default function LessonDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   
   const [lesson, setLesson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -102,15 +103,20 @@ export default function LessonDetailPage() {
               >
                 {lesson.sourceType.charAt(0).toUpperCase() + lesson.sourceType.slice(1)}
               </Badge>
+              {isReadOnlyForOrg(user, lesson.organizationId) && (
+                <Badge variant="secondary" className="text-[10px]">RO</Badge>
+              )}
             </div>
             <h1 className="text-2xl font-bold tracking-tight">{lesson.title}</h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-2xl leading-relaxed">{lesson.description}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="icon" className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20" onClick={handleDelete}>
-            <Trash2 className="size-4" />
-          </Button>
+          {!isReadOnlyForOrg(user, lesson.organizationId) && (
+            <Button variant="outline" size="icon" className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20" onClick={handleDelete}>
+              <Trash2 className="size-4" />
+            </Button>
+          )}
         </div>
       </div>
 

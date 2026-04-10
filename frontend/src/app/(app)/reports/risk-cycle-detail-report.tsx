@@ -241,7 +241,7 @@ export function RiskCycleDetailReport({
   externalOrgName,
   externalMovement,
 }: RiskCycleDetailReportProps) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const cycleOptions = useMemo(() => buildCycleOptions(), []);
   const defaultToCycle = useMemo(() => currentGlobalCycle(), []);
   const defaultFromCycle = useMemo(() => previousGlobalCycle(defaultToCycle), [defaultToCycle]);
@@ -290,7 +290,11 @@ export function RiskCycleDetailReport({
     const loadOrganizations = async () => {
       try {
         const data = await api.get<OrganizationOption[]>("/organizations", token);
-        setOrganizations(dedupeOrganizations(data));
+        const uniqueOrgs = dedupeOrganizations(data);
+        const filteredOrgs = user?.isGlobal 
+          ? uniqueOrgs 
+          : uniqueOrgs.filter(org => user?.accessibleOrgIds?.includes(org.id));
+        setOrganizations(filteredOrgs);
       } catch (error) {
         console.error(error);
       }

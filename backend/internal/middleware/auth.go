@@ -2,13 +2,23 @@
 package middleware
 
 import (
+	"context"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/entity"
 )
+
+const AccessScopeKey = "accessScope"
+
+// ScopeResolver resolves an AccessScope from raw JWT identity claims.
+// OrganizationHierarchy satisfies this interface.
+type ScopeResolver interface {
+	ResolveAccessScope(ctx context.Context, userID uuid.UUID, rawRole string, orgID *uuid.UUID) (*entity.AccessScope, error)
+}
 
 // JWTClaims are custom claims for the JWT.
 type JWTClaims struct {
@@ -77,4 +87,36 @@ func RoleGuard(allowed ...string) fiber.Handler {
 		}
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "insufficient permissions"})
 	}
+}
+
+// ResolveOrgScope is a middleware that builds an AccessScope from JWT locals
+// and stores it in Fiber locals under AccessScopeKey.
+func ResolveOrgScope(resolver ScopeResolver) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userID, _ := c.Locals("userId").(uuid.UUID)
+		rawRole, _ := c.Locals("role").(string)
+
+		var orgID *uuid.UUID
+		if raw, ok := c.Locals("organizationId").(string); ok && raw != "" {
+			parsed, err := uuid.Parse(raw)
+			if err == nil {
+				orgID = &parsed
+			}
+		}
+
+		scope, err := resolver.ResolveAccessScope(c.Context(), userID, rawRole, orgID)
+		if err != nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "insufficient permissions"})
+		}
+
+		c.Locals(AccessScopeKey, scope)
+		return c.Next()
+	}
+}
+
+// GetAccessScope retrieves the resolved AccessScope from Fiber locals.
+// Returns nil if no scope has been resolved (middleware not applied).
+func GetAccessScope(c *fiber.Ctx) *entity.AccessScope {
+	scope, _ := c.Locals(AccessScopeKey).(*entity.AccessScope)
+	return scope
 }

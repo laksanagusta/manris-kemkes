@@ -19,7 +19,7 @@ func (r *fakeDeleteMeetingMinuteRepo) Create(context.Context, entity.CreateMeeti
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeDeleteMeetingMinuteRepo) GetByID(context.Context, uuid.UUID) (*entity.MeetingMinuteWithRisks, error) {
+func (r *fakeDeleteMeetingMinuteRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (*entity.MeetingMinuteWithRisks, error) {
 	return nil, errors.New("not implemented")
 }
 

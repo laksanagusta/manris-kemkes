@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/middleware"
 	lessonuc "github.com/manris/backend/internal/usecase/lesson"
 )
 
@@ -50,6 +51,15 @@ func (h *LessonHandler) CreateLesson(c *fiber.Ctx) error {
 	}
 	input.AuthorID = &userID
 
+	// Enforce org scope write gate
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+	if input.OrganizationID != nil && !scope.CanWrite(*input.OrganizationID) {
+		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "cannot create lesson in this organization")
+	}
+
 	// Parse source_ref if provided
 	if sourceRefStr := c.Query("source_ref"); sourceRefStr != "" {
 		input.SourceRef = sourceRefStr
@@ -70,7 +80,13 @@ func (h *LessonHandler) GetLesson(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid lesson ID")
 	}
 
-	lesson, err := h.getUC.Execute(c.Context(), id)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	lesson, err := h.getUC.Execute(c.Context(), id, orgIDs)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -92,7 +108,13 @@ func (h *LessonHandler) UpdateLesson(c *fiber.Ctx) error {
 
 	input.ID = id
 
-	result, err := h.updateUC.Execute(c.Context(), input)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.updateUC.Execute(c.Context(), input, orgIDs, scope)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -107,7 +129,13 @@ func (h *LessonHandler) DeleteLesson(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid lesson ID")
 	}
 
-	result, err := h.deleteUC.Execute(c.Context(), id)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.deleteUC.Execute(c.Context(), id, orgIDs, scope)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -117,15 +145,30 @@ func (h *LessonHandler) DeleteLesson(c *fiber.Ctx) error {
 
 // ListLessons handles GET /api/lessons
 func (h *LessonHandler) ListLessons(c *fiber.Ctx) error {
-	var input lessonuc.ListLessonsInput
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
 
-	// Parse optional org_id filter
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := lessonuc.ListLessonsInput{
+		OrgIDs: orgIDs,
 	}
 
 	lessons, err := h.listUC.Execute(c.Context(), input)
@@ -141,15 +184,30 @@ func (h *LessonHandler) ListLessons(c *fiber.Ctx) error {
 
 // LessonDashboard handles GET /api/lessons/dashboard
 func (h *LessonHandler) LessonDashboard(c *fiber.Ctx) error {
-	var input lessonuc.LessonDashboardInput
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
 
-	// Parse optional org_id filter
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := lessonuc.LessonDashboardInput{
+		OrgIDs: orgIDs,
 	}
 
 	metrics, err := h.dashboardUC.Execute(c.Context(), input)

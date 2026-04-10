@@ -117,3 +117,76 @@ func TestOrganizationHierarchy_IsDescendantOf(t *testing.T) {
 		}
 	})
 }
+
+func TestResolveAccessScopeIncludesDescendants(t *testing.T) {
+	orgID := uuid.New()
+	child := uuid.New()
+	userID := uuid.New()
+
+	svc := NewOrganizationHierarchy(&mockOrgRepo{descendants: []uuid.UUID{orgID, child}})
+
+	scope, err := svc.ResolveAccessScope(context.Background(), userID, "unit", &orgID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if scope.IsGlobal {
+		t.Error("expected IsGlobal = false for unit role")
+	}
+	if len(scope.AccessibleOrgIDs) != 2 {
+		t.Fatalf("expected 2 accessible orgs, got %d", len(scope.AccessibleOrgIDs))
+	}
+
+	found := false
+	for _, id := range scope.AccessibleOrgIDs {
+		if id == child {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected child org in accessible orgs")
+	}
+}
+
+func TestResolveAccessScopeSuperadminIsGlobal(t *testing.T) {
+	userID := uuid.New()
+	svc := NewOrganizationHierarchy(&mockOrgRepo{})
+
+	scope, err := svc.ResolveAccessScope(context.Background(), userID, "superadmin", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !scope.IsGlobal {
+		t.Error("expected IsGlobal = true for superadmin")
+	}
+	if scope.AccessibleOrgIDs != nil {
+		t.Error("expected nil AccessibleOrgIDs for global scope")
+	}
+}
+
+func TestResolveAccessScopeNormalizesRole(t *testing.T) {
+	orgID := uuid.New()
+	userID := uuid.New()
+
+	svc := NewOrganizationHierarchy(&mockOrgRepo{descendants: []uuid.UUID{orgID}})
+
+	scope, err := svc.ResolveAccessScope(context.Background(), userID, "super_admin", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if scope.Role != "superadmin" {
+		t.Errorf("expected role 'superadmin', got %q", scope.Role)
+	}
+	if !scope.IsGlobal {
+		t.Error("expected IsGlobal = true for normalized superadmin")
+	}
+}
+
+func TestResolveAccessScopeRejectsMissingProtectedOrg(t *testing.T) {
+	userID := uuid.New()
+	svc := NewOrganizationHierarchy(&mockOrgRepo{})
+
+	_, err := svc.ResolveAccessScope(context.Background(), userID, "unit", nil)
+	if err == nil {
+		t.Fatal("expected error for non-superadmin with nil orgID")
+	}
+}

@@ -20,8 +20,8 @@ func NewGetRiskUseCase(riskRepo repository.RiskRepository) *GetRiskUseCase {
 	}
 }
 
-func (uc *GetRiskUseCase) Execute(ctx context.Context, id uuid.UUID) (*entity.Risk, error) {
-	risk, err := uc.riskRepo.GetByID(ctx, id)
+func (uc *GetRiskUseCase) Execute(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Risk, error) {
+	risk, err := uc.riskRepo.GetByID(ctx, id, orgIDs)
 	if err != nil {
 		return nil, errors.ErrRiskNotFound
 	}

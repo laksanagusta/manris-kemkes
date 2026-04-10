@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,7 @@ import {
 
 export default function LessonsPage() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [lessons, setLessons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,12 +54,14 @@ export default function LessonsPage() {
             Repository pembelajaran berharga dari risiko dan insiden
           </p>
         </div>
-        <Link href="/incidents/lessons/new">
-          <Button className="gap-2 shadow-lg shadow-primary/20">
-            <Plus className="size-4" />
-            Tambah Lesson
-          </Button>
-        </Link>
+        {(!token || (user?.isGlobal || !!user?.organizationId)) && (
+          <Link href="/incidents/lessons/new">
+            <Button className="gap-2 shadow-lg shadow-primary/20">
+              <Plus className="size-4" />
+              Tambah Lesson
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Search */}
@@ -76,7 +79,9 @@ export default function LessonsPage() {
              <div className="md:col-span-2 py-10 text-center text-sm text-muted-foreground">Memuat data lessons learned...</div>
           ) : lessons.length === 0 ? (
              <div className="md:col-span-2 py-10 text-center text-sm text-muted-foreground">Tidak ada lessons learned yang ditemukan.</div>
-          ) : lessons.map((lesson) => (
+          ) : lessons.map((lesson) => {
+            const isReadOnly = isReadOnlyForOrg(user, lesson.organizationId || "");
+            return (
           <Card
             key={lesson.id}
             onClick={() => router.push(`/incidents/lessons/${lesson.id}`)}
@@ -101,6 +106,9 @@ export default function LessonsPage() {
                       <Link2 className="size-2.5 inline mr-0.5" />
                       {lesson.sourceRef}
                     </span>
+                    {isReadOnly && (
+                      <Badge variant="secondary" className="text-[9px] h-4 px-1.5" title="Read-only access">RO</Badge>
+                    )}
                   </div>
                   <CardTitle className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors">
                     {lesson.title}
@@ -164,7 +172,8 @@ export default function LessonsPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

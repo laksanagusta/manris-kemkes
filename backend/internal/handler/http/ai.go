@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/middleware"
 	aiuc "github.com/manris/backend/internal/usecase/ai"
 )
 
@@ -227,11 +228,21 @@ func (h *AIHandler) ApplyTranscriptRiskChange(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+	var orgIDs []uuid.UUID
+	if !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	result, err := h.applyRiskChangeUC.Execute(c.Context(), aiuc.ApplyTranscriptRiskChangesInput{
 		TargetRiskID:    targetRiskID,
 		ActorID:         actorID,
 		ActorRole:       role,
 		SelectedChanges: req.SelectedChanges,
+		OrgIDs:          orgIDs,
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -262,13 +273,22 @@ func (h *AIHandler) GeneratePredictive(c *fiber.Ctx) error {
 
 // GenerateRiskSuggestion handles POST /api/v1/ai/risk-suggestions
 func (h *AIHandler) GenerateRiskSuggestion(c *fiber.Ctx) error {
-	// 1. Execute use case (no input needed)
-	result, err := h.riskSuggestionUC.Execute(c.Context(), aiuc.GenerateRiskSuggestionsInput{})
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+	var orgIDs []uuid.UUID
+	if !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.riskSuggestionUC.Execute(c.Context(), aiuc.GenerateRiskSuggestionsInput{
+		OrgIDs: orgIDs,
+	})
 	if err != nil {
 		return handleError(c, err)
 	}
 
-	// 2. Return response
 	return c.JSON(fiber.Map{"data": result})
 }
 

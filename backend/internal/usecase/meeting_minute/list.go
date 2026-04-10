@@ -17,11 +17,11 @@ func NewListMeetingMinutesUseCase(mmRepo repository.MeetingMinuteRepository) *Li
 }
 
 type ListInput struct {
-	OrganizationID *uuid.UUID
-	CreatedBy      *uuid.UUID
-	RiskID         *uuid.UUID
-	Limit          int
-	Offset         int
+	OrgIDs    []uuid.UUID
+	CreatedBy *uuid.UUID
+	RiskID    *uuid.UUID
+	Limit     int
+	Offset    int
 }
 
 type ListOutput struct {
@@ -31,11 +31,11 @@ type ListOutput struct {
 
 func (uc *ListMeetingMinutesUseCase) Execute(ctx context.Context, input ListInput) (*ListOutput, error) {
 	items, total, err := uc.mmRepo.List(ctx, repository.ListMeetingMinutesOptions{
-		OrganizationID: input.OrganizationID,
-		CreatedBy:      input.CreatedBy,
-		RiskID:         input.RiskID,
-		Limit:          input.Limit,
-		Offset:         input.Offset,
+		OrgIDs:    input.OrgIDs,
+		CreatedBy: input.CreatedBy,
+		RiskID:    input.RiskID,
+		Limit:     input.Limit,
+		Offset:    input.Offset,
 	})
 	if err != nil {
 		return nil, err

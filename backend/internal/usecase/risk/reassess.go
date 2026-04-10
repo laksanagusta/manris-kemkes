@@ -21,6 +21,7 @@ func NewCreateRiskReassessmentUseCase(riskRepo repository.RiskRepository) *Creat
 type CreateRiskReassessmentInput struct {
 	RiskID uuid.UUID
 	Cycle  string
+	OrgIDs []uuid.UUID
 }
 
 type CreateRiskReassessmentOutput struct {
@@ -35,7 +36,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 		return nil, errors.ErrInvalidInput
 	}
 
-	sourceRisk, err := uc.riskRepo.GetByID(ctx, input.RiskID)
+	sourceRisk, err := uc.riskRepo.GetByID(ctx, input.RiskID, input.OrgIDs)
 	if err != nil {
 		return nil, errors.ErrRiskNotFound
 	}
@@ -103,8 +104,8 @@ func NewListRiskVersionsUseCase(riskRepo repository.RiskRepository) *ListRiskVer
 	return &ListRiskVersionsUseCase{riskRepo: riskRepo}
 }
 
-func (uc *ListRiskVersionsUseCase) Execute(ctx context.Context, riskID uuid.UUID) ([]*entity.Risk, error) {
-	risk, err := uc.riskRepo.GetByID(ctx, riskID)
+func (uc *ListRiskVersionsUseCase) Execute(ctx context.Context, riskID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
+	risk, err := uc.riskRepo.GetByID(ctx, riskID, orgIDs)
 	if err != nil {
 		return nil, errors.ErrRiskNotFound
 	}

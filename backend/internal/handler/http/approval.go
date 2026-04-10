@@ -3,6 +3,7 @@ package http
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/middleware"
 	approvaluc "github.com/manris/backend/internal/usecase/approval"
 )
 
@@ -37,7 +38,6 @@ func NewApprovalHandler(
 
 // List handles GET /api/approvals
 func (h *ApprovalHandler) List(c *fiber.Ctx) error {
-	// Parse query parameters
 	status := c.Query("status", "all")
 	approverRole := c.Query("approver_role", "")
 	userRole, _ := c.Locals("role").(string)
@@ -48,10 +48,17 @@ func (h *ApprovalHandler) List(c *fiber.Ctx) error {
 		}
 	}
 
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	input := approvaluc.ListApprovalInput{
 		Status:         status,
 		ApproverRole:   approverRole,
 		ApproverUserID: approverUserID,
+		OrgIDs:         orgIDs,
 	}
 
 	result, err := h.listUC.Execute(c.Context(), input)
@@ -69,8 +76,15 @@ func (h *ApprovalHandler) GetDetail(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "approval ID is required")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	input := approvaluc.GetApprovalDetailInput{
 		ApprovalID: id,
+		OrgIDs:     orgIDs,
 	}
 
 	result, err := h.getDetailUC.Execute(c.Context(), input)
@@ -88,29 +102,32 @@ func (h *ApprovalHandler) Submit(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
 	}
 
-	// Get user info from context (set by auth middleware)
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
-	// Get user role from context
 	userRole, ok := c.Locals("role").(string)
 	if !ok {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
-	// Get user name from context
 	userName, ok := c.Locals("username").(string)
 	if !ok {
 		userName = ""
 	}
 
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	input.RequestedBy = userID.String()
 	input.ActorName = userName
 	input.Role = userRole
+	input.OrgIDs = orgIDs
 
-	// Set notes if not provided
 	if input.Notes == "" {
 		input.Notes = "Submitted for approval by " + userName
 	}
@@ -135,28 +152,32 @@ func (h *ApprovalHandler) Action(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
 	}
 
-	// Get user info from context (set by auth middleware)
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
-	// Get user role from context
 	userRole, ok := c.Locals("role").(string)
 	if !ok {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
-	// Get user name from context
 	userName, ok := c.Locals("username").(string)
 	if !ok {
 		userName = ""
+	}
+
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
 	}
 
 	input.ApprovalID = approvalID
 	input.ActorID = userID.String()
 	input.ActorRole = userRole
 	input.ActorName = userName
+	input.OrgIDs = orgIDs
 
 	result, err := h.actionUC.Execute(c.Context(), input)
 	if err != nil {
@@ -168,14 +189,20 @@ func (h *ApprovalHandler) Action(c *fiber.Ctx) error {
 
 // GetPendingCount handles GET /api/approvals/pending-count
 func (h *ApprovalHandler) GetPendingCount(c *fiber.Ctx) error {
-	// Get user role from context
 	userRole, ok := c.Locals("role").(string)
 	if !ok {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	input := approvaluc.GetPendingCountInput{
-		Role: userRole,
+		Role:   userRole,
+		OrgIDs: orgIDs,
 	}
 	if userID, ok := c.Locals("userId").(uuid.UUID); ok {
 		input.UserID = &userID
@@ -198,9 +225,16 @@ func (h *ApprovalHandler) GetByEntity(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "request_type and entity_id are required")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	result, err := h.getByEntityUC.Execute(c.Context(), approvaluc.GetApprovalByEntityInput{
 		RequestType: requestType,
 		EntityID:    entityID,
+		OrgIDs:      orgIDs,
 	})
 	if err != nil {
 		return handleError(c, err)

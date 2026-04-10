@@ -25,6 +25,7 @@ type ListApprovalInput struct {
 	Status         string // filter by status: all, pending, approved, rejected
 	ApproverRole   string // filter by approver role
 	ApproverUserID *uuid.UUID
+	OrgIDs         []uuid.UUID
 }
 
 // Output represents the output of listing approvals
@@ -51,7 +52,7 @@ type ApprovalOutput struct {
 // Execute executes the list approval usecase
 func (uc *ListApprovalUseCase) Execute(ctx context.Context, input ListApprovalInput) (*ListApprovalOutput, error) {
 	// Fetch approvals from repository
-	requests, err := uc.approvalRepo.List(ctx, input.Status, input.ApproverRole, input.ApproverUserID)
+	requests, err := uc.approvalRepo.List(ctx, input.Status, input.ApproverRole, input.ApproverUserID, input.OrgIDs)
 	if err != nil {
 		return nil, domainerrors.Wrap(err, "failed to list approvals")
 	}

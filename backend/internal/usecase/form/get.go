@@ -25,20 +25,30 @@ func NewGetFormUseCase(
 }
 
 type GetFormInput struct {
-	FormID    uuid.UUID
-	UserID    uuid.UUID
-	UserRole  string
-	UserOrgID *uuid.UUID
+	FormID uuid.UUID
+	Scope  *entity.AccessScope
 }
 
 func (uc *GetFormUseCase) Execute(ctx context.Context, input GetFormInput) (*entity.Form, error) {
+	if input.Scope == nil {
+		return nil, domainerrors.ErrForbidden
+	}
+
 	form, err := uc.formRepo.GetByID(ctx, input.FormID)
 	if err != nil {
 		return nil, domainerrors.ErrFormNotFound
 	}
 
-	if input.UserRole == "super_admin" || input.UserRole == "admin" {
+	if input.Scope.IsGlobal {
 		return form, nil
+	}
+
+	if form.OrganizationID != nil {
+		for _, orgID := range input.Scope.AccessibleOrgIDs {
+			if *form.OrganizationID == orgID {
+				return form, nil
+			}
+		}
 	}
 
 	if form.Status != entity.FormStatusPublished {
@@ -49,18 +59,19 @@ func (uc *GetFormUseCase) Execute(ctx context.Context, input GetFormInput) (*ent
 		return form, nil
 	}
 
-	if input.UserOrgID == nil {
+	if input.Scope.OrganizationID == nil {
 		return nil, domainerrors.ErrFormNotAssigned
 	}
 
-	assignedFormIDs, err := uc.assignmentRepo.GetFormIDsForOrganization(ctx, *input.UserOrgID)
-	if err != nil {
-		return nil, domainerrors.Wrap(err, "failed to check form assignments")
-	}
-
-	for _, fid := range assignedFormIDs {
-		if fid == input.FormID {
-			return form, nil
+	for _, orgID := range input.Scope.AccessibleOrgIDs {
+		assignedFormIDs, err := uc.assignmentRepo.GetFormIDsForOrganization(ctx, orgID)
+		if err != nil {
+			return nil, domainerrors.Wrap(err, "failed to check form assignments")
+		}
+		for _, fid := range assignedFormIDs {
+			if fid == input.FormID {
+				return form, nil
+			}
 		}
 	}
 

@@ -49,12 +49,12 @@ func (r *fakeDashboardIncidentRepo) List(ctx context.Context, orgIDs []uuid.UUID
 }
 
 type fakeDashboardTaskRepo struct {
-	listAll func(context.Context) ([]*entity.MitigationTask, error)
+	listAll func(context.Context, []uuid.UUID) ([]*entity.MitigationTask, error)
 }
 
-func (r *fakeDashboardTaskRepo) ListAll(ctx context.Context) ([]*entity.MitigationTask, error) {
+func (r *fakeDashboardTaskRepo) ListAll(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
 	if r.listAll != nil {
-		return r.listAll(ctx)
+		return r.listAll(ctx, orgIDs)
 	}
 	return nil, errors.New("not implemented")
 }
@@ -72,7 +72,7 @@ func TestDashboardActionPressureUseCase_ExecuteBuildsMonthlySeries(t *testing.T)
 		},
 	}
 	taskRepo := &fakeDashboardTaskRepo{
-		listAll: func(_ context.Context) ([]*entity.MitigationTask, error) {
+		listAll: func(_ context.Context, _ []uuid.UUID) ([]*entity.MitigationTask, error) {
 			reportedAt := time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC)
 			return []*entity.MitigationTask{
 				{Status: "done", ReportedAt: &reportedAt, DueDate: "2026-03-10"},
@@ -158,7 +158,7 @@ func TestExecutiveAlertsUseCase_ExecuteBuildsRankedAlerts(t *testing.T) {
 		},
 	}
 	taskRepo := &fakeDashboardTaskRepo{
-		listAll: func(_ context.Context) ([]*entity.MitigationTask, error) {
+		listAll: func(_ context.Context, _ []uuid.UUID) ([]*entity.MitigationTask, error) {
 			return []*entity.MitigationTask{{
 				RiskID:           riskOverdueID,
 				RiskCode:         "R-003",

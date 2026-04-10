@@ -5,17 +5,16 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/middleware"
 	commloguc "github.com/manris/backend/internal/usecase/communication_log"
 )
 
-// CommunicationLogHandler handles HTTP requests for Communication Log operations
 type CommunicationLogHandler struct {
 	createUC *commloguc.CreateCommunicationLogUseCase
 	listUC   *commloguc.ListCommunicationLogsUseCase
 	deleteUC *commloguc.DeleteCommunicationLogUseCase
 }
 
-// NewCommunicationLogHandler creates a new communication log handler
 func NewCommunicationLogHandler(
 	createUC *commloguc.CreateCommunicationLogUseCase,
 	listUC *commloguc.ListCommunicationLogsUseCase,
@@ -28,7 +27,6 @@ func NewCommunicationLogHandler(
 	}
 }
 
-// Create handles POST /api/v1/risks/:riskId/communication-logs
 func (h *CommunicationLogHandler) Create(c *fiber.Ctx) error {
 	riskID := c.Params("riskId")
 	if riskID == "" {
@@ -46,10 +44,18 @@ func (h *CommunicationLogHandler) Create(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
 	}
 
-	// Get user info from context (set by auth middleware)
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+	var orgIDs []uuid.UUID
+	if !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
 	}
 
 	result, err := h.createUC.Execute(c.Context(), commloguc.CreateCommunicationLogInput{
@@ -59,6 +65,7 @@ func (h *CommunicationLogHandler) Create(c *fiber.Ctx) error {
 		Stakeholder: input.Stakeholder,
 		Notes:       input.Notes,
 		CreatedBy:   userID.String(),
+		OrgIDs:      orgIDs,
 	})
 
 	if err != nil {
@@ -68,15 +75,24 @@ func (h *CommunicationLogHandler) Create(c *fiber.Ctx) error {
 	return c.Status(201).JSON(fiber.Map{"data": result})
 }
 
-// List handles GET /api/v1/risks/:riskId/communication-logs
 func (h *CommunicationLogHandler) List(c *fiber.Ctx) error {
 	riskID := c.Params("riskId")
 	if riskID == "" {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "risk ID is required")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+	var orgIDs []uuid.UUID
+	if !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	result, err := h.listUC.Execute(c.Context(), commloguc.ListCommunicationLogsInput{
 		RiskID: riskID,
+		OrgIDs: orgIDs,
 	})
 
 	if err != nil {
@@ -86,15 +102,24 @@ func (h *CommunicationLogHandler) List(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": result})
 }
 
-// Delete handles DELETE /api/v1/communication-logs/:id
 func (h *CommunicationLogHandler) Delete(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "communication log ID is required")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+	var orgIDs []uuid.UUID
+	if !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	err := h.deleteUC.Execute(c.Context(), commloguc.DeleteCommunicationLogInput{
-		ID: id,
+		ID:     id,
+		OrgIDs: orgIDs,
 	})
 
 	if err != nil {

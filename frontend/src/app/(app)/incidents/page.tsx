@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import type { IncidentRecord, IncidentSummary } from "@/types/incident";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,7 +76,7 @@ function getStatusLabel(status: string) {
 }
 
 export default function IncidentPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [incidents, setIncidents] = useState<IncidentRecord[]>([]);
   const [summary, setSummary] = useState<IncidentSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,12 +142,14 @@ export default function IncidentPage() {
             multi-risk.
           </p>
         </div>
-        <Link href="/incidents/new">
-          <Button className="gap-2 shadow-lg shadow-primary/20">
-            <Plus className="size-4" />
-            Incident
-          </Button>
-        </Link>
+        {(!token || (user?.isGlobal || !!user?.organizationId)) && (
+          <Link href="/incidents/new">
+            <Button className="gap-2 shadow-lg shadow-primary/20">
+              <Plus className="size-4" />
+              Incident
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -263,7 +266,9 @@ export default function IncidentPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredIncidents.map((incident) => (
+              filteredIncidents.map((incident) => {
+                const isReadOnly = isReadOnlyForOrg(user, incident.organizationId || "");
+                return (
                 <TableRow
                   key={incident.id}
                   className="border-border/30 transition-colors hover:bg-muted/30"
@@ -272,13 +277,16 @@ export default function IncidentPage() {
                     {incident.code || incident.id.slice(0, 8)}
                   </TableCell>
                   <TableCell className="max-w-[300px]">
-                    <div className="min-w-0 text-xs">
+                    <div className="flex min-w-0 items-center gap-2 text-xs">
                       <Link
                         href={`/incidents/${incident.id}`}
                         className="block truncate font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
                       >
                         {incident.title}
                       </Link>
+                      {isReadOnly && (
+                        <Badge variant="secondary" className="text-[9px] h-4 px-1" title="Read-only access">RO</Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -343,7 +351,8 @@ export default function IncidentPage() {
                     )}
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>

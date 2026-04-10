@@ -11,11 +11,11 @@ import (
 // KRIReportRepository defines the interface for KRI report data access
 type KRIReportRepository interface {
 	Create(ctx context.Context, report *entity.KRIReport) error
-	GetByID(ctx context.Context, id uuid.UUID) (*entity.KRIReport, error)
+	GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.KRIReport, error)
 	Update(ctx context.Context, report *entity.KRIReport) error
-	ListByKRI(ctx context.Context, kriID uuid.UUID) ([]*entity.KRIReport, error)
-	ListByUser(ctx context.Context, userID uuid.UUID, status string) ([]*entity.KRIReport, error)
-	ListByStatus(ctx context.Context, status string) ([]*entity.KRIReport, error)
+	ListByKRI(ctx context.Context, kriID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.KRIReport, error)
+	ListByUser(ctx context.Context, userID uuid.UUID, status string, orgIDs []uuid.UUID) ([]*entity.KRIReport, error)
+	ListByStatus(ctx context.Context, status string, orgIDs []uuid.UUID) ([]*entity.KRIReport, error)
 	ListPendingOverdue(ctx context.Context, referenceDate time.Time) ([]*entity.KRIReport, error)
 	ReportExistsForPeriod(ctx context.Context, kriID uuid.UUID, periodStart, periodEnd string) (bool, error)
 	GetAllKRIs(ctx context.Context) ([]*entity.KRI, error)

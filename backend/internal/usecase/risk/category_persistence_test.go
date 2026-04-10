@@ -27,7 +27,7 @@ func (r *categoryRiskRepo) Create(_ context.Context, risk *entity.Risk) error {
 	return nil
 }
 
-func (r *categoryRiskRepo) GetByID(_ context.Context, _ uuid.UUID) (*entity.Risk, error) {
+func (r *categoryRiskRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (*entity.Risk, error) {
 	if r.byID == nil {
 		return nil, domainerrors.ErrRiskNotFound
 	}
@@ -53,13 +53,13 @@ func (r *categoryRiskRepo) NextRiskCode(context.Context) (string, error) { retur
 func (r *categoryRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
+func (r *categoryRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
+func (r *categoryRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
+func (r *categoryRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
 func (r *categoryRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
@@ -78,19 +78,19 @@ func (r *categoryRiskRepo) CompareCycles(context.Context, string, string, []uuid
 func (r *categoryRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
+func (r *categoryRiskRepo) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+func (r *categoryRiskRepo) GetHeatmapVelocity(context.Context, string, string, []uuid.UUID) ([]entity.HeatmapVelocityCell, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+func (r *categoryRiskRepo) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+func (r *categoryRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
 	return nil, nil
 }
-func (r *categoryRiskRepo) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+func (r *categoryRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, nil
 }
 
@@ -192,7 +192,7 @@ func TestUpdateRiskUseCase_ExecutePersistsCategory(t *testing.T) {
 		OrganizationID: riskRepo.byID.OrganizationID,
 		Probability:    3,
 		Impact:         3,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -228,7 +228,7 @@ func TestUpdateRiskUseCase_ExecuteRejectsInvalidCategory(t *testing.T) {
 		OrganizationID: riskRepo.byID.OrganizationID,
 		Probability:    3,
 		Impact:         3,
-	})
+	}, nil)
 	if !errors.Is(err, domainerrors.ErrInvalidRiskCategory) {
 		t.Fatalf("expected invalid risk category error, got %v", err)
 	}
@@ -241,7 +241,7 @@ func TestListRisksUseCase_ExecutePassesCategoryFilter(t *testing.T) {
 	orgID := uuid.New()
 
 	_, err := uc.Execute(context.Background(), ListRisksInput{
-		OrgID:    &orgID,
+		OrgIDs:   []uuid.UUID{orgID},
 		Status:   "approved",
 		Category: entity.RiskCategoryKepatuhan,
 	})

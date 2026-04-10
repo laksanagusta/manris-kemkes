@@ -25,8 +25,7 @@ func NewListFormsUseCase(
 }
 
 type ListFormsInput struct {
-	UserRole     string
-	UserOrgID    *uuid.UUID
+	Scope        *entity.AccessScope
 	StatusFilter *string
 }
 
@@ -39,13 +38,16 @@ type FormSummary struct {
 }
 
 func (uc *ListFormsUseCase) Execute(ctx context.Context, input ListFormsInput) ([]FormSummary, error) {
-	if input.UserRole == "super_admin" || input.UserRole == "admin" {
-		return uc.listForAdmin(ctx, input.StatusFilter)
+	if input.Scope == nil {
+		return nil, domainerrors.ErrForbidden
 	}
-	return uc.listForNonAdmin(ctx, input.UserOrgID)
+	if input.Scope.IsGlobal {
+		return uc.listGlobal(ctx, input.StatusFilter)
+	}
+	return uc.listScoped(ctx, input.Scope.AccessibleOrgIDs, input.StatusFilter)
 }
 
-func (uc *ListFormsUseCase) listForAdmin(ctx context.Context, statusFilter *string) ([]FormSummary, error) {
+func (uc *ListFormsUseCase) listGlobal(ctx context.Context, statusFilter *string) ([]FormSummary, error) {
 	filter := repository.FormListFilter{Status: statusFilter}
 	forms, err := uc.formRepo.List(ctx, filter)
 	if err != nil {
@@ -54,35 +56,54 @@ func (uc *ListFormsUseCase) listForAdmin(ctx context.Context, statusFilter *stri
 	return uc.toSummaries(ctx, forms), nil
 }
 
-func (uc *ListFormsUseCase) listForNonAdmin(ctx context.Context, userOrgID *uuid.UUID) ([]FormSummary, error) {
-	if userOrgID == nil {
+func (uc *ListFormsUseCase) listScoped(ctx context.Context, orgIDs []uuid.UUID, statusFilter *string) ([]FormSummary, error) {
+	if len(orgIDs) == 0 {
 		return []FormSummary{}, nil
 	}
 
-	assignedFormIDs, err := uc.assignmentRepo.GetFormIDsForOrganization(ctx, *userOrgID)
+	ownedFilter := repository.FormListFilter{
+		Status:          statusFilter,
+		OrganizationIDs: orgIDs,
+	}
+	ownedForms, err := uc.formRepo.List(ctx, ownedFilter)
 	if err != nil {
-		return nil, domainerrors.Wrap(err, "failed to get assigned form IDs")
+		return nil, domainerrors.Wrap(err, "failed to list owned forms")
+	}
+
+	seen := make(map[uuid.UUID]struct{}, len(ownedForms))
+	var result []*entity.Form
+	for _, f := range ownedForms {
+		seen[f.ID] = struct{}{}
+		result = append(result, f)
+	}
+
+	assignedSet := make(map[uuid.UUID]struct{})
+	for _, orgID := range orgIDs {
+		ids, err := uc.assignmentRepo.GetFormIDsForOrganization(ctx, orgID)
+		if err != nil {
+			return nil, domainerrors.Wrap(err, "failed to get assigned form IDs")
+		}
+		for _, id := range ids {
+			assignedSet[id] = struct{}{}
+		}
 	}
 
 	published := entity.FormStatusPublished
-	filter := repository.FormListFilter{Status: &published}
-	allPublished, err := uc.formRepo.List(ctx, filter)
+	pubFilter := repository.FormListFilter{Status: &published}
+	publishedForms, err := uc.formRepo.List(ctx, pubFilter)
 	if err != nil {
 		return nil, domainerrors.Wrap(err, "failed to list published forms")
 	}
 
-	assignedSet := make(map[uuid.UUID]struct{}, len(assignedFormIDs))
-	for _, id := range assignedFormIDs {
-		assignedSet[id] = struct{}{}
-	}
-
-	var result []*entity.Form
-	for _, f := range allPublished {
+	for _, f := range publishedForms {
+		if _, ok := seen[f.ID]; ok {
+			continue
+		}
 		if f.TargetAudience == "all" {
 			result = append(result, f)
 			continue
 		}
-		if _, ok := assignedSet[f.ID]; ok {
+		if _, assigned := assignedSet[f.ID]; assigned {
 			result = append(result, f)
 		}
 	}

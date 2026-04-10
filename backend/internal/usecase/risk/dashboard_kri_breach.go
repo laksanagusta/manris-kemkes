@@ -3,6 +3,7 @@ package risk
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
 )
@@ -15,6 +16,10 @@ func NewKRIBreachSummaryUseCase(riskRepo repository.RiskRepository) *KRIBreachSu
 	return &KRIBreachSummaryUseCase{riskRepo: riskRepo}
 }
 
-func (uc *KRIBreachSummaryUseCase) Execute(ctx context.Context) ([]entity.KRIBreachItem, error) {
-	return uc.riskRepo.GetKRIBreachSummary(ctx)
+type KRIBreachSummaryInput struct {
+	OrgIDs []uuid.UUID
+}
+
+func (uc *KRIBreachSummaryUseCase) Execute(ctx context.Context, input KRIBreachSummaryInput) ([]entity.KRIBreachItem, error) {
+	return uc.riskRepo.GetKRIBreachSummary(ctx, input.OrgIDs)
 }

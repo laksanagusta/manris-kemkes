@@ -24,6 +24,7 @@ func NewGetPendingCountUseCase(approvalRepo repository.ApprovalRepository) *GetP
 type GetPendingCountInput struct {
 	Role   string
 	UserID *uuid.UUID
+	OrgIDs []uuid.UUID
 }
 
 // Output represents the output of getting pending count
@@ -49,7 +50,7 @@ func (uc *GetPendingCountUseCase) Execute(ctx context.Context, input GetPendingC
 		return &GetPendingCountOutput{Count: 0}, nil
 	}
 
-	count, err := uc.approvalRepo.GetPendingCount(ctx, approverRole, input.UserID)
+	count, err := uc.approvalRepo.GetPendingCount(ctx, approverRole, input.UserID, input.OrgIDs)
 	if err != nil {
 		return nil, domainerrors.Wrap(err, "failed to get pending count")
 	}

@@ -27,7 +27,7 @@ func (r *fakeReassessRiskRepo) Create(_ context.Context, risk *entity.Risk) erro
 	return nil
 }
 
-func (r *fakeReassessRiskRepo) GetByID(_ context.Context, id uuid.UUID) (*entity.Risk, error) {
+func (r *fakeReassessRiskRepo) GetByID(_ context.Context, id uuid.UUID, _ []uuid.UUID) (*entity.Risk, error) {
 	risk, ok := r.risks[id]
 	if !ok {
 		return nil, domainerrors.ErrRiskNotFound
@@ -50,13 +50,13 @@ func (r *fakeReassessRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]
 func (r *fakeReassessRiskRepo) NextRiskCode(context.Context) (string, error) {
 	return "", errors.New("not implemented")
 }
-func (r *fakeReassessRiskRepo) DashboardSummary(context.Context, string) (*entity.DashboardSummary, error) {
+func (r *fakeReassessRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeReassessRiskRepo) HeatmapData(context.Context, string) ([]*entity.HeatmapCell, error) {
+func (r *fakeReassessRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeReassessRiskRepo) TopRisks(context.Context, string, int) ([]*entity.Risk, error) {
+func (r *fakeReassessRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeReassessRiskRepo) ListVersions(_ context.Context, versionGroupID uuid.UUID) ([]*entity.Risk, error) {
@@ -98,19 +98,19 @@ func (r *fakeReassessRiskRepo) RiskReviewSummary(ctx context.Context, cycle stri
 func (r *fakeReassessRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeReassessRiskRepo) DashboardCategoryCounts(context.Context, string) ([]*entity.DashboardCategoryCount, error) {
+func (r *fakeReassessRiskRepo) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeReassessRiskRepo) GetHeatmapVelocity(context.Context, string, string) ([]entity.HeatmapVelocityCell, error) {
+func (r *fakeReassessRiskRepo) GetHeatmapVelocity(context.Context, string, string, []uuid.UUID) ([]entity.HeatmapVelocityCell, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeReassessRiskRepo) GetOverdueMitigationTimeline(context.Context) ([]entity.OverdueMitigationTimelineItem, error) {
+func (r *fakeReassessRiskRepo) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeReassessRiskRepo) GetKRIBreachSummary(context.Context) ([]entity.KRIBreachItem, error) {
+func (r *fakeReassessRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeReassessRiskRepo) GetUnitResponseTime(context.Context) ([]entity.UnitResponseTime, error) {
+func (r *fakeReassessRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -483,7 +483,7 @@ func TestListRiskVersionsUseCase_ExecuteReturnsCategory(t *testing.T) {
 	}
 
 	uc := NewListRiskVersionsUseCase(repo)
-	versions, err := uc.Execute(context.Background(), sourceID)
+	versions, err := uc.Execute(context.Background(), sourceID, nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

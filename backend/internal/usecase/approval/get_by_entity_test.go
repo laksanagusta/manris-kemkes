@@ -17,13 +17,13 @@ type fakeGetByEntityApprovalRepo struct {
 	histories []*entity.ApprovalHistory
 }
 
-func (r *fakeGetByEntityApprovalRepo) List(context.Context, string, string, *uuid.UUID) ([]*entity.ApprovalRequest, error) {
+func (r *fakeGetByEntityApprovalRepo) List(context.Context, string, string, *uuid.UUID, []uuid.UUID) ([]*entity.ApprovalRequest, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeGetByEntityApprovalRepo) FindByID(context.Context, uuid.UUID) (*entity.ApprovalRequest, error) {
+func (r *fakeGetByEntityApprovalRepo) FindByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.ApprovalRequest, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeGetByEntityApprovalRepo) FindByEntity(context.Context, string, uuid.UUID) (*entity.ApprovalRequest, error) {
+func (r *fakeGetByEntityApprovalRepo) FindByEntity(context.Context, string, uuid.UUID, []uuid.UUID) (*entity.ApprovalRequest, error) {
 	if r.request == nil {
 		return nil, domainerrors.ErrNotFound
 	}
@@ -44,7 +44,7 @@ func (r *fakeGetByEntityApprovalRepo) AddHistory(context.Context, *entity.Approv
 func (r *fakeGetByEntityApprovalRepo) GetHistory(context.Context, uuid.UUID) ([]*entity.ApprovalHistory, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeGetByEntityApprovalRepo) GetPendingCount(context.Context, string, *uuid.UUID) (int, error) {
+func (r *fakeGetByEntityApprovalRepo) GetPendingCount(context.Context, string, *uuid.UUID, []uuid.UUID) (int, error) {
 	return 0, errors.New("not implemented")
 }
 func (r *fakeGetByEntityApprovalRepo) CreateSteps(context.Context, uuid.UUID, []entity.ApprovalStep) error {

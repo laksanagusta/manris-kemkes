@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -41,12 +42,23 @@ func NewFormAnalyticsUseCase(
 
 type FormAnalyticsInput struct {
 	FormID uuid.UUID
+	Scope  *entity.AccessScope
 }
 
 func (uc *FormAnalyticsUseCase) Execute(ctx context.Context, input FormAnalyticsInput) (*FormAnalyticsSummary, error) {
+	if input.Scope == nil {
+		return nil, domainerrors.ErrForbidden
+	}
+
 	form, err := uc.formRepo.GetByID(ctx, input.FormID)
 	if err != nil {
 		return nil, err
+	}
+
+	if !input.Scope.IsGlobal {
+		if form.OrganizationID == nil || !input.Scope.CanRead(*form.OrganizationID) {
+			return nil, domainerrors.ErrForbidden
+		}
 	}
 
 	allFields := collectAllFields(form)

@@ -15,11 +15,13 @@ type AuthToken struct {
 
 // UserPublic represents user information that can be exposed publicly
 type UserPublic struct {
-	ID             uuid.UUID  `json:"id"`
-	Username       string     `json:"username"`
-	Name           string     `json:"name"`
-	Role           string     `json:"role"`
-	OrganizationID *uuid.UUID `json:"organizationId,omitempty"`
+	ID               uuid.UUID   `json:"id"`
+	Username         string      `json:"username"`
+	Name             string      `json:"name"`
+	Role             string      `json:"role"`
+	OrganizationID   *uuid.UUID  `json:"organizationId,omitempty"`
+	AccessibleOrgIDs []uuid.UUID `json:"accessibleOrgIds,omitempty"`
+	IsGlobal         bool        `json:"isGlobal"`
 }
 
 // LoginCredentials represents user login input
@@ -41,23 +43,27 @@ func (c *LoginCredentials) Validate() error {
 
 // UserProfile represents detailed user profile information
 type UserProfile struct {
-	ID             uuid.UUID  `json:"id"`
-	Username       string     `json:"username"`
-	Name           string     `json:"name"`
-	Role           string     `json:"role"`
-	OrganizationID *uuid.UUID `json:"organizationId,omitempty"`
-	Status         string     `json:"status"`
-	CreatedAt      time.Time  `json:"createdAt"`
-	UpdatedAt      time.Time  `json:"updatedAt"`
+	ID               uuid.UUID   `json:"id"`
+	Username         string      `json:"username"`
+	Name             string      `json:"name"`
+	Role             string      `json:"role"`
+	OrganizationID   *uuid.UUID  `json:"organizationId,omitempty"`
+	AccessibleOrgIDs []uuid.UUID `json:"accessibleOrgIds,omitempty"`
+	IsGlobal         bool        `json:"isGlobal"`
+	Status           string      `json:"status"`
+	CreatedAt        time.Time   `json:"createdAt"`
+	UpdatedAt        time.Time   `json:"updatedAt"`
 }
 
 // ToPublic converts UserProfile to UserPublic
 func (u *UserProfile) ToPublic() *UserPublic {
 	return &UserPublic{
-		ID:             u.ID,
-		Username:       u.Username,
-		Name:           u.Name,
-		Role:           u.Role,
-		OrganizationID: u.OrganizationID,
+		ID:               u.ID,
+		Username:         u.Username,
+		Name:             u.Name,
+		Role:             u.Role,
+		OrganizationID:   u.OrganizationID,
+		AccessibleOrgIDs: u.AccessibleOrgIDs,
+		IsGlobal:         u.IsGlobal,
 	}
 }

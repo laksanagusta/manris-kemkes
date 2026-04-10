@@ -22,8 +22,8 @@ func NewGetControlUseCase(controlRepo repository.ControlRepository) *GetControlU
 	}
 }
 
-func (uc *GetControlUseCase) Execute(ctx context.Context, id uuid.UUID) (*entity.Control, error) {
-	control, err := uc.controlRepo.GetByID(ctx, id)
+func (uc *GetControlUseCase) Execute(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Control, error) {
+	control, err := uc.controlRepo.GetByID(ctx, id, orgIDs)
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
@@ -34,32 +34,20 @@ func (uc *GetControlUseCase) Execute(ctx context.Context, id uuid.UUID) (*entity
 // ListControlsUseCase retrieves controls with optional filters
 type ListControlsUseCase struct {
 	controlRepo repository.ControlRepository
-	orgSvc      *service.OrganizationHierarchy
 }
 
 func NewListControlsUseCase(controlRepo repository.ControlRepository, orgSvc *service.OrganizationHierarchy) *ListControlsUseCase {
 	return &ListControlsUseCase{
 		controlRepo: controlRepo,
-		orgSvc:      orgSvc,
 	}
 }
 
 type ListControlsInput struct {
-	OrgID *uuid.UUID
+	OrgIDs []uuid.UUID
 }
 
 func (uc *ListControlsUseCase) Execute(ctx context.Context, input ListControlsInput) ([]*entity.Control, error) {
-	var orgIDs []uuid.UUID
-	var err error
-
-	if input.OrgID != nil {
-		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	controls, err := uc.controlRepo.List(ctx, orgIDs)
+	controls, err := uc.controlRepo.List(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -107,16 +95,21 @@ type UpdateControlOutput struct {
 	UpdatedAt time.Time
 }
 
-func (uc *UpdateControlUseCase) Execute(ctx context.Context, input UpdateControlInput) (*UpdateControlOutput, error) {
+func (uc *UpdateControlUseCase) Execute(ctx context.Context, input UpdateControlInput, orgIDs []uuid.UUID, scope *entity.AccessScope) (*UpdateControlOutput, error) {
 	// 1. Get existing control
-	existingControl, err := uc.controlRepo.GetByID(ctx, input.ID)
+	existingControl, err := uc.controlRepo.GetByID(ctx, input.ID, orgIDs)
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
 
+	// 1b. Enforce write scope
+	if scope != nil && existingControl.OrganizationID != nil && !scope.CanWrite(*existingControl.OrganizationID) {
+		return nil, errors.ErrForbidden
+	}
+
 	// 2. Validate linked risk if changed
 	if input.RiskID != nil {
-		_, err := uc.riskRepo.GetByID(ctx, *input.RiskID)
+		_, err := uc.riskRepo.GetByID(ctx, *input.RiskID, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "linked risk not found")
 		}
@@ -176,11 +169,15 @@ type DeleteControlOutput struct {
 	Message string
 }
 
-func (uc *DeleteControlUseCase) Execute(ctx context.Context, id uuid.UUID) (*DeleteControlOutput, error) {
+func (uc *DeleteControlUseCase) Execute(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID, scope *entity.AccessScope) (*DeleteControlOutput, error) {
 	// 1. Get existing control to check if it exists
-	_, err := uc.controlRepo.GetByID(ctx, id)
+	control, err := uc.controlRepo.GetByID(ctx, id, orgIDs)
 	if err != nil {
 		return nil, errors.ErrNotFound
+	}
+
+	if scope != nil && control.OrganizationID != nil && !scope.CanWrite(*control.OrganizationID) {
+		return nil, errors.ErrForbidden
 	}
 
 	// 2. Delete from database
@@ -196,32 +193,20 @@ func (uc *DeleteControlUseCase) Execute(ctx context.Context, id uuid.UUID) (*Del
 // ControlDashboardUseCase retrieves dashboard metrics for controls
 type ControlDashboardUseCase struct {
 	controlRepo repository.ControlRepository
-	orgSvc      *service.OrganizationHierarchy
 }
 
 func NewControlDashboardUseCase(controlRepo repository.ControlRepository, orgSvc *service.OrganizationHierarchy) *ControlDashboardUseCase {
 	return &ControlDashboardUseCase{
 		controlRepo: controlRepo,
-		orgSvc:      orgSvc,
 	}
 }
 
 type ControlDashboardInput struct {
-	OrgID *uuid.UUID
+	OrgIDs []uuid.UUID
 }
 
 func (uc *ControlDashboardUseCase) Execute(ctx context.Context, input ControlDashboardInput) (map[string]interface{}, error) {
-	var orgIDs []uuid.UUID
-	var err error
-
-	if input.OrgID != nil {
-		orgIDs, err = uc.orgSvc.GetAccessibleOrgs(ctx, *input.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	metrics, err := uc.controlRepo.GetDashboard(ctx, orgIDs)
+	metrics, err := uc.controlRepo.GetDashboard(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,7 @@ package risk
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
 )
@@ -15,6 +16,10 @@ func NewUnitResponseTimeUseCase(riskRepo repository.RiskRepository) *UnitRespons
 	return &UnitResponseTimeUseCase{riskRepo: riskRepo}
 }
 
-func (uc *UnitResponseTimeUseCase) Execute(ctx context.Context) ([]entity.UnitResponseTime, error) {
-	return uc.riskRepo.GetUnitResponseTime(ctx)
+type UnitResponseTimeInput struct {
+	OrgIDs []uuid.UUID
+}
+
+func (uc *UnitResponseTimeUseCase) Execute(ctx context.Context, input UnitResponseTimeInput) ([]entity.UnitResponseTime, error) {
+	return uc.riskRepo.GetUnitResponseTime(ctx, input.OrgIDs)
 }

@@ -1,0 +1,140 @@
+=== RUN   TestAccessScope_CanRead
+=== RUN   TestAccessScope_CanRead/own_org_is_readable
+=== RUN   TestAccessScope_CanRead/descendant_org_is_readable
+=== RUN   TestAccessScope_CanRead/sibling_org_is_not_readable
+--- PASS: TestAccessScope_CanRead (0.00s)
+    --- PASS: TestAccessScope_CanRead/own_org_is_readable (0.00s)
+    --- PASS: TestAccessScope_CanRead/descendant_org_is_readable (0.00s)
+    --- PASS: TestAccessScope_CanRead/sibling_org_is_not_readable (0.00s)
+=== RUN   TestAccessScope_CanWrite
+=== RUN   TestAccessScope_CanWrite/own_org_is_writable
+=== RUN   TestAccessScope_CanWrite/descendant_org_is_not_writable_in_phase_1
+=== RUN   TestAccessScope_CanWrite/nil_org_means_no_write
+--- PASS: TestAccessScope_CanWrite (0.00s)
+    --- PASS: TestAccessScope_CanWrite/own_org_is_writable (0.00s)
+    --- PASS: TestAccessScope_CanWrite/descendant_org_is_not_writable_in_phase_1 (0.00s)
+    --- PASS: TestAccessScope_CanWrite/nil_org_means_no_write (0.00s)
+=== RUN   TestAccessScope_NarrowToOrg
+=== RUN   TestAccessScope_NarrowToOrg/narrowing_to_accessible_org_succeeds
+=== RUN   TestAccessScope_NarrowToOrg/narrowing_to_inaccessible_org_fails
+--- PASS: TestAccessScope_NarrowToOrg (0.00s)
+    --- PASS: TestAccessScope_NarrowToOrg/narrowing_to_accessible_org_succeeds (0.00s)
+    --- PASS: TestAccessScope_NarrowToOrg/narrowing_to_inaccessible_org_fails (0.00s)
+=== RUN   TestAccessScope_GlobalScope
+=== RUN   TestAccessScope_GlobalScope/superadmin_can_read_any_org
+=== RUN   TestAccessScope_GlobalScope/superadmin_can_write_any_org
+=== RUN   TestAccessScope_GlobalScope/superadmin_can_narrow_to_any_org
+--- PASS: TestAccessScope_GlobalScope (0.00s)
+    --- PASS: TestAccessScope_GlobalScope/superadmin_can_read_any_org (0.00s)
+    --- PASS: TestAccessScope_GlobalScope/superadmin_can_write_any_org (0.00s)
+    --- PASS: TestAccessScope_GlobalScope/superadmin_can_narrow_to_any_org (0.00s)
+=== RUN   TestNormalizeRoleAliases
+=== RUN   TestNormalizeRoleAliases/superadmin
+=== RUN   TestNormalizeRoleAliases/super_admin
+=== RUN   TestNormalizeRoleAliases/admin
+=== RUN   TestNormalizeRoleAliases/unit
+=== RUN   TestNormalizeRoleAliases/reviewer
+=== RUN   TestNormalizeRoleAliases/pimpinan
+=== RUN   TestNormalizeRoleAliases/unknown
+--- PASS: TestNormalizeRoleAliases (0.00s)
+    --- PASS: TestNormalizeRoleAliases/superadmin (0.00s)
+    --- PASS: TestNormalizeRoleAliases/super_admin (0.00s)
+    --- PASS: TestNormalizeRoleAliases/admin (0.00s)
+    --- PASS: TestNormalizeRoleAliases/unit (0.00s)
+    --- PASS: TestNormalizeRoleAliases/reviewer (0.00s)
+    --- PASS: TestNormalizeRoleAliases/pimpinan (0.00s)
+    --- PASS: TestNormalizeRoleAliases/unknown (0.00s)
+=== RUN   TestValidateForPublish
+=== RUN   TestValidateForPublish/0_sections_→_error
+=== RUN   TestValidateForPublish/1_section_with_0_fields_→_error
+=== RUN   TestValidateForPublish/radio_field_with_1_option_→_error
+=== RUN   TestValidateForPublish/checkbox_field_as_condition_source_→_error
+=== RUN   TestValidateForPublish/self-referencing_conditional_source_→_error
+=== RUN   TestValidateForPublish/conditional_source_referencing_non-existent_field_→_error
+=== RUN   TestValidateForPublish/valid_form:_1_section,_1_text_field_→_nil
+=== RUN   TestValidateForPublish/valid_form_with_radio_(2_options)_and_conditional_text_→_nil
+--- PASS: TestValidateForPublish (0.00s)
+    --- PASS: TestValidateForPublish/0_sections_→_error (0.00s)
+    --- PASS: TestValidateForPublish/1_section_with_0_fields_→_error (0.00s)
+    --- PASS: TestValidateForPublish/radio_field_with_1_option_→_error (0.00s)
+    --- PASS: TestValidateForPublish/checkbox_field_as_condition_source_→_error (0.00s)
+    --- PASS: TestValidateForPublish/self-referencing_conditional_source_→_error (0.00s)
+    --- PASS: TestValidateForPublish/conditional_source_referencing_non-existent_field_→_error (0.00s)
+    --- PASS: TestValidateForPublish/valid_form:_1_section,_1_text_field_→_nil (0.00s)
+    --- PASS: TestValidateForPublish/valid_form_with_radio_(2_options)_and_conditional_text_→_nil (0.00s)
+=== RUN   TestRiskCycleDetailedComparisonItem_MarshalIncludesEmptyDiffArrays
+--- PASS: TestRiskCycleDetailedComparisonItem_MarshalIncludesEmptyDiffArrays (0.00s)
+=== RUN   TestRiskCategoryAllowsConfiguredKeys
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/strategis
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/operasional
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/kepatuhan
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/finansial
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/reputasi
+=== RUN   TestRiskCategoryAllowsConfiguredKeys/teknologi_informasi
+--- PASS: TestRiskCategoryAllowsConfiguredKeys (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/strategis (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/operasional (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/kepatuhan (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/finansial (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/reputasi (0.00s)
+    --- PASS: TestRiskCategoryAllowsConfiguredKeys/teknologi_informasi (0.00s)
+=== RUN   TestRiskCategoryRejectsUnknownKeys
+--- PASS: TestRiskCategoryRejectsUnknownKeys (0.00s)
+=== RUN   TestRiskCategoryAllowsLegacyBlankForReadOnlyRollout
+--- PASS: TestRiskCategoryAllowsLegacyBlankForReadOnlyRollout (0.00s)
+=== RUN   TestGetBobot
+--- PASS: TestGetBobot (0.00s)
+=== RUN   TestGetBobotOutOfRange
+--- PASS: TestGetBobotOutOfRange (0.00s)
+=== RUN   TestCalculateNilai
+--- PASS: TestCalculateNilai (0.00s)
+=== RUN   TestGetRiskLevelFromNilai
+--- PASS: TestGetRiskLevelFromNilai (0.00s)
+=== RUN   TestGetRiskPriorityFromLevel
+--- PASS: TestGetRiskPriorityFromLevel (0.00s)
+=== RUN   TestGetRiskLevelDisplay
+--- PASS: TestGetRiskLevelDisplay (0.00s)
+=== RUN   TestRiskCalculateAll
+--- PASS: TestRiskCalculateAll (0.00s)
+=== RUN   TestRiskCalculateTarget
+--- PASS: TestRiskCalculateTarget (0.00s)
+=== RUN   TestRiskEffectiveFieldsApprovedUsesReviewedBundleWhenComplete
+--- PASS: TestRiskEffectiveFieldsApprovedUsesReviewedBundleWhenComplete (0.00s)
+=== RUN   TestRiskEffectiveFieldsApprovedFallsBackWhenReviewedBundleIncomplete
+--- PASS: TestRiskEffectiveFieldsApprovedFallsBackWhenReviewedBundleIncomplete (0.00s)
+=== RUN   TestRiskEffectiveFieldsNonFinalizedIgnoreReviewedBundle
+--- PASS: TestRiskEffectiveFieldsNonFinalizedIgnoreReviewedBundle (0.00s)
+=== RUN   TestRiskEffectiveFieldsApprovedKeepsZeroLikeReviewedBundle
+--- PASS: TestRiskEffectiveFieldsApprovedKeepsZeroLikeReviewedBundle (0.00s)
+=== RUN   TestRiskEffectiveFieldsApprovedFallsBackWhenReviewedBundleHasFalsyPartialValues
+--- PASS: TestRiskEffectiveFieldsApprovedFallsBackWhenReviewedBundleHasFalsyPartialValues (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/domain/entity	0.264s
+=== RUN   TestOrganizationHierarchy_GetAccessibleOrgs
+=== RUN   TestOrganizationHierarchy_GetAccessibleOrgs/returns_descendants_for_user's_organization
+=== RUN   TestOrganizationHierarchy_GetAccessibleOrgs/handles_organization_with_no_children
+--- PASS: TestOrganizationHierarchy_GetAccessibleOrgs (0.00s)
+    --- PASS: TestOrganizationHierarchy_GetAccessibleOrgs/returns_descendants_for_user's_organization (0.00s)
+    --- PASS: TestOrganizationHierarchy_GetAccessibleOrgs/handles_organization_with_no_children (0.00s)
+=== RUN   TestOrganizationHierarchy_IsDescendantOf
+=== RUN   TestOrganizationHierarchy_IsDescendantOf/returns_true_for_descendant
+=== RUN   TestOrganizationHierarchy_IsDescendantOf/returns_false_for_non-descendant
+--- PASS: TestOrganizationHierarchy_IsDescendantOf (0.00s)
+    --- PASS: TestOrganizationHierarchy_IsDescendantOf/returns_true_for_descendant (0.00s)
+    --- PASS: TestOrganizationHierarchy_IsDescendantOf/returns_false_for_non-descendant (0.00s)
+=== RUN   TestResolveAccessScopeIncludesDescendants
+--- PASS: TestResolveAccessScopeIncludesDescendants (0.00s)
+=== RUN   TestResolveAccessScopeSuperadminIsGlobal
+--- PASS: TestResolveAccessScopeSuperadminIsGlobal (0.00s)
+=== RUN   TestResolveAccessScopeNormalizesRole
+--- PASS: TestResolveAccessScopeNormalizesRole (0.00s)
+=== RUN   TestResolveAccessScopeRejectsMissingProtectedOrg
+--- PASS: TestResolveAccessScopeRejectsMissingProtectedOrg (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/domain/service	0.150s
+=== RUN   TestGetCurrentUser_IncludesAccessibleOrgIDs
+--- PASS: TestGetCurrentUser_IncludesAccessibleOrgIDs (0.00s)
+=== RUN   TestGetCurrentUser_SuperadminIsGlobal
+--- PASS: TestGetCurrentUser_SuperadminIsGlobal (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/auth	0.264s

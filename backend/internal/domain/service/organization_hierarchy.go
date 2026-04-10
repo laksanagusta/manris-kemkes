@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -50,4 +52,31 @@ func (s *OrganizationHierarchy) IsDescendantOf(ctx context.Context, targetOrg, p
 	}
 
 	return false, nil
+}
+
+// ResolveAccessScope builds an AccessScope from raw JWT claims and the org hierarchy.
+func (s *OrganizationHierarchy) ResolveAccessScope(ctx context.Context, userID uuid.UUID, rawRole string, orgID *uuid.UUID) (*entity.AccessScope, error) {
+	normalizedRole := entity.NormalizeRole(rawRole)
+
+	scope := &entity.AccessScope{
+		UserID:         userID,
+		Role:           normalizedRole,
+		OrganizationID: orgID,
+	}
+
+	if normalizedRole == entity.RoleSuperAdmin {
+		scope.IsGlobal = true
+		return scope, nil
+	}
+
+	if orgID == nil {
+		return nil, errors.ErrForbidden
+	}
+
+	accessibleOrgs, err := s.GetAccessibleOrgs(ctx, *orgID)
+	if err != nil {
+		return nil, err
+	}
+	scope.AccessibleOrgIDs = accessibleOrgs
+	return scope, nil
 }

@@ -3,12 +3,14 @@ package risk
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
 type DashboardSummaryInput struct {
-	Cycle string
+	Cycle  string
+	OrgIDs []uuid.UUID
 }
 
 type DashboardSummaryOutput struct {
@@ -26,7 +28,7 @@ func NewDashboardSummaryUseCase(riskRepo repository.RiskRepository) *DashboardSu
 }
 
 func (uc *DashboardSummaryUseCase) Execute(ctx context.Context, input DashboardSummaryInput) (*DashboardSummaryOutput, error) {
-	summary, err := uc.riskRepo.DashboardSummary(ctx, input.Cycle)
+	summary, err := uc.riskRepo.DashboardSummary(ctx, input.Cycle, input.OrgIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +37,8 @@ func (uc *DashboardSummaryUseCase) Execute(ctx context.Context, input DashboardS
 }
 
 type HeatmapDataInput struct {
-	Cycle string
+	Cycle  string
+	OrgIDs []uuid.UUID
 }
 
 type HeatmapDataOutput struct {
@@ -53,7 +56,7 @@ func NewHeatmapDataUseCase(riskRepo repository.RiskRepository) *HeatmapDataUseCa
 }
 
 func (uc *HeatmapDataUseCase) Execute(ctx context.Context, input HeatmapDataInput) (*HeatmapDataOutput, error) {
-	data, err := uc.riskRepo.HeatmapData(ctx, input.Cycle)
+	data, err := uc.riskRepo.HeatmapData(ctx, input.Cycle, input.OrgIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +65,9 @@ func (uc *HeatmapDataUseCase) Execute(ctx context.Context, input HeatmapDataInpu
 }
 
 type TopRisksInput struct {
-	Cycle string
-	Limit int
+	Cycle  string
+	Limit  int
+	OrgIDs []uuid.UUID
 }
 
 type TopRisksOutput struct {
@@ -85,7 +89,7 @@ func (uc *TopRisksUseCase) Execute(ctx context.Context, input TopRisksInput) (*T
 		input.Limit = 10
 	}
 
-	risks, err := uc.riskRepo.TopRisks(ctx, input.Cycle, input.Limit)
+	risks, err := uc.riskRepo.TopRisks(ctx, input.Cycle, input.Limit, input.OrgIDs)
 	if err != nil {
 		return nil, err
 	}

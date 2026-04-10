@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/middleware"
 	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 )
 
@@ -60,6 +61,19 @@ func (h *MeetingMinuteHandler) Create(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+
+	orgID := req.OrganizationID
+	if orgID == nil {
+		orgID = scope.OrganizationID
+	}
+	if orgID != nil && !scope.CanWrite(*orgID) {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "cannot create meeting minute for this organization")
+	}
+
 	result, err := h.createUC.Execute(c.Context(), mmuc.CreateInput{
 		Title:          req.Title,
 		Date:           req.Date,
@@ -72,7 +86,7 @@ func (h *MeetingMinuteHandler) Create(c *fiber.Ctx) error {
 		ActionItems:    req.ActionItems,
 		NextCheckIn:    req.NextCheckIn,
 		Transcript:     req.Transcript,
-		OrganizationID: req.OrganizationID,
+		OrganizationID: orgID,
 		CreatedBy:      userID,
 		RiskIDs:        req.RiskIDs,
 	})
@@ -94,7 +108,13 @@ func (h *MeetingMinuteHandler) Get(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid meeting minute ID")
 	}
 
-	result, err := h.getUC.Execute(c.Context(), mmuc.GetInput{ID: id})
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.getUC.Execute(c.Context(), mmuc.GetInput{ID: id}, orgIDs)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -103,15 +123,30 @@ func (h *MeetingMinuteHandler) Get(c *fiber.Ctx) error {
 }
 
 func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
-	var input mmuc.ListInput
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
 
 	if orgIDStr := c.Query("organizationId"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrganizationID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
 	}
+
+	var input mmuc.ListInput
+	input.OrgIDs = orgIDs
 
 	if createdByIDStr := c.Query("createdBy"); createdByIDStr != "" {
 		createdBy, err := uuid.Parse(createdByIDStr)
@@ -163,6 +198,25 @@ func (h *MeetingMinuteHandler) Delete(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid meeting minute ID")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+
+	var orgIDs []uuid.UUID
+	if !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	mm, err := h.getUC.Execute(c.Context(), mmuc.GetInput{ID: id}, orgIDs)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	if mm.OrganizationID != nil && !scope.CanWrite(*mm.OrganizationID) {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "cannot delete meeting minute for this organization")
+	}
+
 	if err := h.deleteUC.Execute(c.Context(), mmuc.DeleteInput{ID: id}); err != nil {
 		return handleError(c, err)
 	}
@@ -197,6 +251,25 @@ func (h *MeetingMinuteHandler) LinkRisks(c *fiber.Ctx) error {
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
 		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+
+	var orgIDs []uuid.UUID
+	if !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	mm, err := h.getUC.Execute(c.Context(), mmuc.GetInput{ID: meetingID}, orgIDs)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	if mm.OrganizationID != nil && !scope.CanWrite(*mm.OrganizationID) {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "cannot modify meeting minute for this organization")
 	}
 
 	err = h.linkUC.Execute(c.Context(), mmuc.LinkRisksInput{
@@ -237,6 +310,25 @@ func (h *MeetingMinuteHandler) UnlinkRisks(c *fiber.Ctx) error {
 
 	if len(req.RiskIDs) == 0 {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "at least one risk ID is required")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+
+	var orgIDs []uuid.UUID
+	if !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	mm, err := h.getUC.Execute(c.Context(), mmuc.GetInput{ID: meetingID}, orgIDs)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	if mm.OrganizationID != nil && !scope.CanWrite(*mm.OrganizationID) {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "cannot modify meeting minute for this organization")
 	}
 
 	err = h.linkUC.Unlink(c.Context(), mmuc.UnlinkRisksInput{

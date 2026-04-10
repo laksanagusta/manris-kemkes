@@ -77,9 +77,9 @@ type UpdateRiskOutput struct {
 	UpdatedAt fmt.Stringer `json:"updatedAt"` // time.Time implements Stringer
 }
 
-func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput) (*UpdateRiskOutput, error) {
+func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput, orgIDs []uuid.UUID) (*UpdateRiskOutput, error) {
 	// 1. Get existing risk
-	existingRisk, err := uc.riskRepo.GetByID(ctx, input.ID)
+	existingRisk, err := uc.riskRepo.GetByID(ctx, input.ID, orgIDs)
 	if err != nil {
 		return nil, errors.ErrRiskNotFound
 	}

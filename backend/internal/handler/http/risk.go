@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/middleware"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
 
@@ -107,15 +108,31 @@ func (h *RiskHandler) ListCycleSnapshot(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
 	}
 
-	var input riskuc.ListRiskCycleSnapshotInput
-	input.Cycle = cycle
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
 
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := riskuc.ListRiskCycleSnapshotInput{
+		Cycle:  cycle,
+		OrgIDs: orgIDs,
 	}
 
 	risks, err := h.listCycleSnapshotUC.Execute(c.Context(), input)
@@ -130,16 +147,33 @@ func (h *RiskHandler) ListCycleSnapshot(c *fiber.Ctx) error {
 
 // CompareCyclesDetail handles GET /api/risks/compare/detail
 func (h *RiskHandler) CompareCyclesDetail(c *fiber.Ctx) error {
-	var input riskuc.CompareRiskCycleDetailsInput
-	input.FromCycle = c.Query("from")
-	input.ToCycle = c.Query("to")
-	input.IncludeStable = strings.EqualFold(c.Query("include_stable", "false"), "true")
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := riskuc.CompareRiskCycleDetailsInput{
+		FromCycle:     c.Query("from"),
+		ToCycle:       c.Query("to"),
+		OrgIDs:        orgIDs,
+		IncludeStable: strings.EqualFold(c.Query("include_stable", "false"), "true"),
 	}
 
 	report, err := h.compareDetailUC.Execute(c.Context(), input)
@@ -160,15 +194,32 @@ func (h *RiskHandler) CompareCyclesDetail(c *fiber.Ctx) error {
 
 // ListReviewQueue handles GET /api/risks/review-queue
 func (h *RiskHandler) ListReviewQueue(c *fiber.Ctx) error {
-	var input riskuc.ListRiskReviewQueueInput
-	input.Cycle = c.Query("cycle")
-	input.Status = c.Query("status", "all")
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := riskuc.ListRiskReviewQueueInput{
+		Cycle:  c.Query("cycle"),
+		OrgIDs: orgIDs,
+		Status: c.Query("status", "all"),
 	}
 
 	items, err := h.reviewQueueUC.Execute(c.Context(), input)
@@ -183,15 +234,32 @@ func (h *RiskHandler) ListReviewQueue(c *fiber.Ctx) error {
 
 // CompareCycles handles GET /api/risks/compare
 func (h *RiskHandler) CompareCycles(c *fiber.Ctx) error {
-	var input riskuc.CompareRiskCyclesInput
-	input.FromCycle = c.Query("from")
-	input.ToCycle = c.Query("to")
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := riskuc.CompareRiskCyclesInput{
+		FromCycle: c.Query("from"),
+		ToCycle:   c.Query("to"),
+		OrgIDs:    orgIDs,
 	}
 
 	items, err := h.compareCyclesUC.Execute(c.Context(), input)
@@ -206,14 +274,31 @@ func (h *RiskHandler) CompareCycles(c *fiber.Ctx) error {
 
 // ReviewSummary handles GET /api/dashboard/risk-review-summary
 func (h *RiskHandler) ReviewSummary(c *fiber.Ctx) error {
-	var input riskuc.RiskReviewSummaryInput
-	input.Cycle = c.Query("cycle")
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := riskuc.RiskReviewSummaryInput{
+		Cycle:  c.Query("cycle"),
+		OrgIDs: orgIDs,
 	}
 
 	summary, err := h.reviewSummaryUC.Execute(c.Context(), input)
@@ -287,6 +372,12 @@ func (h *RiskHandler) CreateRisk(c *fiber.Ctx) error {
 	}
 	input.CreatedBy = &userID
 
+	// Scope enforcement — user must have write access to the target org
+	scope := middleware.GetAccessScope(c)
+	if input.OrganizationID != nil && scope != nil && !scope.CanWrite(*input.OrganizationID) {
+		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "cannot create risk in this organization")
+	}
+
 	result, err := h.createUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
@@ -307,6 +398,15 @@ func (h *RiskHandler) CreateRiskBatch(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
 	}
 
+	// Scope enforcement — validate each item's org
+	scope := middleware.GetAccessScope(c)
+	for _, item := range req.Items {
+		if item.OrganizationID != nil && scope != nil && !scope.CanWrite(*item.OrganizationID) {
+			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden",
+				fmt.Sprintf("cannot create risk in organization %s", item.OrganizationID.String()))
+		}
+	}
+
 	result, err := h.createBatchUC.Execute(c.Context(), riskuc.CreateRiskBatchInput{
 		Items:     req.Items,
 		CreatedBy: &userID,
@@ -325,7 +425,13 @@ func (h *RiskHandler) GetRisk(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
 	}
 
-	risk, err := h.getUC.Execute(c.Context(), id)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	risk, err := h.getUC.Execute(c.Context(), id, orgIDs)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -345,7 +451,13 @@ func (h *RiskHandler) CreateReassessment(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
 	}
 
-	result, err := h.reassessUC.Execute(c.Context(), riskuc.CreateRiskReassessmentInput{RiskID: id, Cycle: req.Cycle})
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.reassessUC.Execute(c.Context(), riskuc.CreateRiskReassessmentInput{RiskID: id, Cycle: req.Cycle, OrgIDs: orgIDs})
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -367,7 +479,13 @@ func (h *RiskHandler) UpdateRisk(c *fiber.Ctx) error {
 
 	input.ID = id
 
-	result, err := h.updateUC.Execute(c.Context(), input)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.updateUC.Execute(c.Context(), input, orgIDs)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -382,7 +500,13 @@ func (h *RiskHandler) DeleteRisk(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
 	}
 
-	result, err := h.deleteUC.Execute(c.Context(), id)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.deleteUC.Execute(c.Context(), id, orgIDs)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -392,14 +516,30 @@ func (h *RiskHandler) DeleteRisk(c *fiber.Ctx) error {
 
 // ListApprovedRisks handles GET /api/risks/trend
 func (h *RiskHandler) ListApprovedRisks(c *fiber.Ctx) error {
-	var input riskuc.ListApprovedRisksInput
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
 
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := riskuc.ListApprovedRisksInput{
+		OrgIDs: orgIDs,
 	}
 
 	risks, err := h.listApprovedUC.Execute(c.Context(), input)
@@ -415,17 +555,30 @@ func (h *RiskHandler) ListApprovedRisks(c *fiber.Ctx) error {
 
 // ListRisks handles GET /api/risks
 func (h *RiskHandler) ListRisks(c *fiber.Ctx) error {
-	var input riskuc.ListRisksInput
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
 
-	// Parse optional org_id filter
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
 	}
 
+	var input riskuc.ListRisksInput
+	input.OrgIDs = orgIDs
 	input.Status = c.Query("status", "all")
 	if category := strings.TrimSpace(c.Query("category")); category != "" {
 		if !entity.IsValidRiskCategory(category) {
@@ -452,7 +605,13 @@ func (h *RiskHandler) ListVersions(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
 	}
 
-	versions, err := h.listVersionsUC.Execute(c.Context(), id)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	versions, err := h.listVersionsUC.Execute(c.Context(), id, orgIDs)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -465,7 +624,12 @@ func (h *RiskHandler) ListVersions(c *fiber.Ctx) error {
 // DashboardSummary handles GET /api/risks/dashboard/summary
 func (h *RiskHandler) DashboardSummary(c *fiber.Ctx) error {
 	cycle := c.Query("cycle")
-	summary, err := h.dashboardSummaryUC.Execute(c.Context(), riskuc.DashboardSummaryInput{Cycle: cycle})
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+	summary, err := h.dashboardSummaryUC.Execute(c.Context(), riskuc.DashboardSummaryInput{Cycle: cycle, OrgIDs: orgIDs})
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -475,9 +639,16 @@ func (h *RiskHandler) DashboardSummary(c *fiber.Ctx) error {
 
 // ActionPressure handles GET /api/dashboard/action-pressure
 func (h *RiskHandler) ActionPressure(c *fiber.Ctx) error {
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
 	points, err := h.actionPressureUC.Execute(c.Context(), riskuc.DashboardActionPressureInput{
 		Interval: c.Query("interval", "month"),
 		Window:   c.QueryInt("window", 6),
+		OrgIDs:   orgIDs,
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -490,9 +661,15 @@ func (h *RiskHandler) ActionPressure(c *fiber.Ctx) error {
 
 // ExecutiveAlerts handles GET /api/dashboard/executive-alerts
 func (h *RiskHandler) ExecutiveAlerts(c *fiber.Ctx) error {
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
 	alerts, err := h.executiveAlertsUC.Execute(c.Context(), riskuc.ExecutiveAlertsInput{
-		Cycle: c.Query("cycle"),
-		Limit: c.QueryInt("limit", 10),
+		Cycle:  c.Query("cycle"),
+		Limit:  c.QueryInt("limit", 10),
+		OrgIDs: orgIDs,
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -506,7 +683,12 @@ func (h *RiskHandler) ExecutiveAlerts(c *fiber.Ctx) error {
 // HeatmapData handles GET /api/risks/dashboard/heatmap
 func (h *RiskHandler) HeatmapData(c *fiber.Ctx) error {
 	cycle := c.Query("cycle")
-	data, err := h.heatmapDataUC.Execute(c.Context(), riskuc.HeatmapDataInput{Cycle: cycle})
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+	data, err := h.heatmapDataUC.Execute(c.Context(), riskuc.HeatmapDataInput{Cycle: cycle, OrgIDs: orgIDs})
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -531,7 +713,13 @@ func (h *RiskHandler) TopRisks(c *fiber.Ctx) error {
 		limit = l
 	}
 
-	input := riskuc.TopRisksInput{Cycle: cycle, Limit: limit}
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	input := riskuc.TopRisksInput{Cycle: cycle, Limit: limit, OrgIDs: orgIDs}
 
 	result, err := h.topRisksUC.Execute(c.Context(), input)
 	if err != nil {
@@ -547,7 +735,12 @@ func (h *RiskHandler) TopRisks(c *fiber.Ctx) error {
 
 func (h *RiskHandler) GetDashboardRiskCategories(c *fiber.Ctx) error {
 	cycle := c.Query("cycle")
-	result, err := h.dashboardCategoriesUC.Execute(c.Context(), riskuc.DashboardRiskCategoriesInput{Cycle: cycle})
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+	result, err := h.dashboardCategoriesUC.Execute(c.Context(), riskuc.DashboardRiskCategoriesInput{Cycle: cycle, OrgIDs: orgIDs})
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -564,6 +757,16 @@ func (h *RiskHandler) GetMeetingMinutes(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
 	}
 
+	// Scope enforcement — verify the parent risk belongs to user's accessible orgs
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+	if _, err := h.getUC.Execute(c.Context(), riskID, orgIDs); err != nil {
+		return handleError(c, err)
+	}
+
 	minutes, err := h.mmRepo.ListByRiskID(c.Context(), riskID)
 	if err != nil {
 		return handleError(c, err)
@@ -578,7 +781,12 @@ func (h *RiskHandler) GetMeetingMinutes(c *fiber.Ctx) error {
 func (h *RiskHandler) GetHeatmapVelocity(c *fiber.Ctx) error {
 	fromCycle := c.Query("from")
 	toCycle := c.Query("to")
-	input := riskuc.HeatmapVelocityInput{FromCycle: fromCycle, ToCycle: toCycle}
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+	input := riskuc.HeatmapVelocityInput{FromCycle: fromCycle, ToCycle: toCycle, OrgIDs: orgIDs}
 	data, err := h.heatmapVelocityUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
@@ -590,7 +798,12 @@ func (h *RiskHandler) GetHeatmapVelocity(c *fiber.Ctx) error {
 }
 
 func (h *RiskHandler) GetOverdueMitigationsTimeline(c *fiber.Ctx) error {
-	data, err := h.overdueTimelineUC.Execute(c.Context())
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+	data, err := h.overdueTimelineUC.Execute(c.Context(), riskuc.OverdueMitigationTimelineInput{OrgIDs: orgIDs})
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -601,7 +814,12 @@ func (h *RiskHandler) GetOverdueMitigationsTimeline(c *fiber.Ctx) error {
 }
 
 func (h *RiskHandler) GetKRIBreachSummary(c *fiber.Ctx) error {
-	data, err := h.kriBreachSummaryUC.Execute(c.Context())
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+	data, err := h.kriBreachSummaryUC.Execute(c.Context(), riskuc.KRIBreachSummaryInput{OrgIDs: orgIDs})
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -612,7 +830,12 @@ func (h *RiskHandler) GetKRIBreachSummary(c *fiber.Ctx) error {
 }
 
 func (h *RiskHandler) GetUnitResponseTime(c *fiber.Ctx) error {
-	data, err := h.unitResponseTimeUC.Execute(c.Context())
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+	data, err := h.unitResponseTimeUC.Execute(c.Context(), riskuc.UnitResponseTimeInput{OrgIDs: orgIDs})
 	if err != nil {
 		return handleError(c, err)
 	}

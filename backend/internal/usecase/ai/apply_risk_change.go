@@ -28,6 +28,7 @@ type ApplyTranscriptRiskChangesInput struct {
 	ActorID         uuid.UUID
 	ActorRole       string
 	SelectedChanges []entity.TranscriptRiskChange
+	OrgIDs          []uuid.UUID
 }
 
 type ApplyTranscriptRiskChangesOutput struct {
@@ -45,7 +46,7 @@ func (uc *ApplyTranscriptRiskChangesUseCase) Execute(ctx context.Context, input 
 		return nil, errors.ErrForbidden
 	}
 
-	existingRisk, err := uc.riskRepo.GetByID(ctx, input.TargetRiskID)
+	existingRisk, err := uc.riskRepo.GetByID(ctx, input.TargetRiskID, input.OrgIDs)
 	if err != nil {
 		return nil, err
 	}

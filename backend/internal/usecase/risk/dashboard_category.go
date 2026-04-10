@@ -4,15 +4,17 @@ import (
 	"context"
 	"sort"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 )
 
 type dashboardCategoryRepo interface {
-	DashboardCategoryCounts(ctx context.Context, cycle string) ([]*entity.DashboardCategoryCount, error)
+	DashboardCategoryCounts(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.DashboardCategoryCount, error)
 }
 
 type DashboardRiskCategoriesInput struct {
-	Cycle string
+	Cycle  string
+	OrgIDs []uuid.UUID
 }
 
 type DashboardRiskCategoriesOutput struct {
@@ -28,7 +30,7 @@ func NewDashboardRiskCategoriesUseCase(repo dashboardCategoryRepo) *DashboardRis
 }
 
 func (uc *DashboardRiskCategoriesUseCase) Execute(ctx context.Context, input DashboardRiskCategoriesInput) (*DashboardRiskCategoriesOutput, error) {
-	counts, err := uc.repo.DashboardCategoryCounts(ctx, input.Cycle)
+	counts, err := uc.repo.DashboardCategoryCounts(ctx, input.Cycle, input.OrgIDs)
 	if err != nil {
 		return nil, err
 	}

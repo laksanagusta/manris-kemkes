@@ -9,8 +9,9 @@ import (
 
 // FormListFilter constrains which forms are returned by List.
 type FormListFilter struct {
-	Status    *string
-	CreatedBy *uuid.UUID
+	Status          *string
+	CreatedBy       *uuid.UUID
+	OrganizationIDs []uuid.UUID // filter by the creator's organization
 }
 
 // FormRepository defines the data-access contract for forms and their structure.

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { normalizeKRIReportPayload, validateKRIReportForm } from "@/lib/validation/reporting";
 import { isWithinSubmissionWindow } from "@/lib/kri-reporting";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { cn } from "@/lib/utils";
 
 interface KRIReport {
@@ -30,8 +31,8 @@ interface KRIReport {
   submittedAt?: string;
 }
 
-export function KRIReportsList({ kriId, metric }: { kriId: string; metric: string }) {
-  const { token } = useAuth();
+export function KRIReportsList({ kriId, metric, organizationId }: { kriId: string; metric: string; organizationId: string }) {
+  const { token, user } = useAuth();
   const [reports, setReports] = useState<KRIReport[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -168,7 +169,9 @@ export function KRIReportsList({ kriId, metric }: { kriId: string; metric: strin
                   </div>
                   
                   <div className="shrink-0">
-                    {(report.status === "pending" || report.status === "overdue") ? (
+                    {isReadOnlyForOrg(user, organizationId) ? (
+                      <Badge variant="secondary" className="text-xs">Read Only</Badge>
+                    ) : (report.status === "pending" || report.status === "overdue") ? (
                       (() => {
                         const submissionCheck = isWithinSubmissionWindow(report.periodEnd);
                         if (!submissionCheck.allowed) {

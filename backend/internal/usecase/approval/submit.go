@@ -42,6 +42,7 @@ type SubmitApprovalInput struct {
 	ApproverIDs    []string `json:"approverIds"`
 	SubmissionType string   // 'review' (includes reviewer) or 'approval' (approval only)
 	Notes          string   // optional notes
+	OrgIDs         []uuid.UUID
 }
 
 // Output represents the output of submitting approval
@@ -76,23 +77,23 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 
 	// Check entity existence and permissions
 	if input.RequestType == "risk" {
-		if err := uc.validateRisk(ctx, entityID, requestedBy, input.Role); err != nil {
+		if err := uc.validateRisk(ctx, entityID, requestedBy, input.Role, input.OrgIDs); err != nil {
 			return nil, err
 		}
 	} else {
-		if err := uc.validateIncident(ctx, entityID, requestedBy, input.Role); err != nil {
+		if err := uc.validateIncident(ctx, entityID, requestedBy, input.Role, input.OrgIDs); err != nil {
 			return nil, err
 		}
 	}
 
 	// Check if already submitted
-	existingReq, _ := uc.approvalRepo.FindByEntity(ctx, input.RequestType, entityID)
+	existingReq, _ := uc.approvalRepo.FindByEntity(ctx, input.RequestType, entityID, input.OrgIDs)
 	if existingReq != nil && existingReq.IsPending() {
 		return nil, domainerrors.ErrAlreadyPending
 	}
 
 	if input.RequestType == "risk" {
-		risk, err := uc.riskRepo.GetByID(ctx, entityID)
+		risk, err := uc.riskRepo.GetByID(ctx, entityID, input.OrgIDs)
 		if err != nil {
 			return nil, domainerrors.ErrRiskNotFound
 		}
@@ -193,8 +194,8 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 }
 
 // validateRisk validates if risk can be submitted for approval
-func (uc *SubmitApprovalUseCase) validateRisk(ctx context.Context, riskID uuid.UUID, userID uuid.UUID, userRole string) error {
-	risk, err := uc.riskRepo.GetByID(ctx, riskID)
+func (uc *SubmitApprovalUseCase) validateRisk(ctx context.Context, riskID uuid.UUID, userID uuid.UUID, userRole string, orgIDs []uuid.UUID) error {
+	risk, err := uc.riskRepo.GetByID(ctx, riskID, orgIDs)
 	if err != nil {
 		return domainerrors.ErrRiskNotFound
 	}
@@ -208,8 +209,8 @@ func (uc *SubmitApprovalUseCase) validateRisk(ctx context.Context, riskID uuid.U
 }
 
 // validateIncident validates if incident can be submitted for approval
-func (uc *SubmitApprovalUseCase) validateIncident(ctx context.Context, incidentID uuid.UUID, userID uuid.UUID, userRole string) error {
-	incident, err := uc.incidentRepo.GetByID(ctx, incidentID.String())
+func (uc *SubmitApprovalUseCase) validateIncident(ctx context.Context, incidentID uuid.UUID, userID uuid.UUID, userRole string, orgIDs []uuid.UUID) error {
+	incident, err := uc.incidentRepo.GetByID(ctx, incidentID.String(), orgIDs)
 	if err != nil {
 		return domainerrors.ErrIncidentNotFound
 	}

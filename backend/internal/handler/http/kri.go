@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/middleware"
 	kriuc "github.com/manris/backend/internal/usecase/kri"
 )
 
@@ -56,6 +57,13 @@ func (h *KRIHandler) CreateKRI(c *fiber.Ctx) error {
 		input.OrganizationID = &orgID
 	}
 
+	// Get access scope for linked-risk validation
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+	input.OrgIDs = scope.AccessibleOrgIDs
+
 	result, err := h.createUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
@@ -70,7 +78,13 @@ func (h *KRIHandler) GetKRI(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid KRI ID")
 	}
 
-	kri, err := h.getUC.Execute(c.Context(), id)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	kri, err := h.getUC.Execute(c.Context(), id, orgIDs)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -91,7 +105,13 @@ func (h *KRIHandler) UpdateKRI(c *fiber.Ctx) error {
 
 	input.ID = id
 
-	result, err := h.updateUC.Execute(c.Context(), input)
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.updateUC.Execute(c.Context(), input, orgIDs, scope)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -111,7 +131,14 @@ func (h *KRIHandler) ArchiveKRI(c *fiber.Ctx) error {
 	}
 
 	input.ID = id
-	result, err := h.archiveUC.Execute(c.Context(), input)
+
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.archiveUC.Execute(c.Context(), input, orgIDs, scope)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -120,14 +147,30 @@ func (h *KRIHandler) ArchiveKRI(c *fiber.Ctx) error {
 }
 
 func (h *KRIHandler) ListKRIs(c *fiber.Ctx) error {
-	var input kriuc.ListKRIsInput
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
 
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := kriuc.ListKRIsInput{
+		OrgIDs: orgIDs,
 	}
 
 	kris, err := h.listUC.Execute(c.Context(), input)
@@ -142,14 +185,30 @@ func (h *KRIHandler) ListKRIs(c *fiber.Ctx) error {
 }
 
 func (h *KRIHandler) KRIDashboard(c *fiber.Ctx) error {
-	var input kriuc.KRIDashboardInput
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
 
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		input.OrgID = &orgID
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	input := kriuc.KRIDashboardInput{
+		OrgIDs: orgIDs,
 	}
 
 	metrics, err := h.dashboardUC.Execute(c.Context(), input)

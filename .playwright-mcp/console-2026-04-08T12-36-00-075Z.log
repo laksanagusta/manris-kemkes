@@ -1,0 +1,12 @@
+[     163ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[     174ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[     502ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/api/v1/risks/20000000-0000-0000-0000-000000000005:0
+[     502ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/api/v1/risks/20000000-0000-0000-0000-000000000005:0
+[     502ms] [ERROR] Failed to load risk data: ApiError: risk not found
+    at request (http://localhost:3000/_next/static/chunks/_ae16af47._.js:47:15)
+    at async RiskInputPage.useCallback[loadRiskData] (http://localhost:3000/_next/static/chunks/src_49a9a5f6._.js:5646:30)
+    at async RiskInputPage.useEffect.init (http://localhost:3000/_next/static/chunks/src_49a9a5f6._.js:5837:25) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[     505ms] [ERROR] Failed to load risk data: ApiError: risk not found
+    at request (http://localhost:3000/_next/static/chunks/_ae16af47._.js:47:15)
+    at async RiskInputPage.useCallback[loadRiskData] (http://localhost:3000/_next/static/chunks/src_49a9a5f6._.js:5646:30)
+    at async RiskInputPage.useEffect.init (http://localhost:3000/_next/static/chunks/src_49a9a5f6._.js:5837:25) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127

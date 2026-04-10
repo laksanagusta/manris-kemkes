@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, ApiError } from "@/lib/api";
 
-interface User {
+export interface User {
   id: string;
   name: string;
   username: string;
@@ -12,6 +12,24 @@ interface User {
   organizationId: string | null;
   orgName: string;
   status: string;
+  accessibleOrgIds: string[];
+  isGlobal: boolean;
+}
+
+function parseUser(raw: any): User {
+  if (!raw) return raw;
+  return {
+    id: raw.id,
+    name: raw.name,
+    username: raw.username,
+    email: raw.email,
+    role: raw.role,
+    organizationId: raw.organizationId || raw.organization_id || null,
+    orgName: raw.orgName || raw.org_name || "",
+    status: raw.status,
+    accessibleOrgIds: raw.accessibleOrgIds || raw.accessible_org_ids || [],
+    isGlobal: raw.isGlobal ?? raw.is_global ?? false,
+  };
 }
 
 interface AuthContextType {
@@ -43,8 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (savedToken) {
       setToken(savedToken);
       // Verify token & load user
-      api.get<User>("/auth/me", savedToken)
-        .then((u) => setUser(u))
+      api.get<any>("/auth/me", savedToken)
+        .then((u) => setUser(parseUser(u.user || u)))
         .catch(() => {
           localStorage.removeItem("manris_token");
           setToken(null);
@@ -56,12 +74,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
-    const res = await api.post<{ token: string; user: User }>("/auth/login", {
+    const res = await api.post<{ token: string; user: any }>("/auth/login", {
       username,
       password,
     });
     setToken(res.token);
-    setUser(res.user);
+    setUser(parseUser(res.user));
     localStorage.setItem("manris_token", res.token);
   }, []);
 

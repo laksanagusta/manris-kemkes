@@ -17,15 +17,30 @@ func NewCloseFormUseCase(formRepo repository.FormRepository) *CloseFormUseCase {
 	return &CloseFormUseCase{formRepo: formRepo}
 }
 
+type CloseFormInput struct {
+	FormID uuid.UUID
+	Scope  *entity.AccessScope
+}
+
 type CloseFormOutput struct {
 	ID     uuid.UUID
 	Status string
 }
 
-func (uc *CloseFormUseCase) Execute(ctx context.Context, formID uuid.UUID) (*CloseFormOutput, error) {
-	form, err := uc.formRepo.GetByID(ctx, formID)
+func (uc *CloseFormUseCase) Execute(ctx context.Context, input CloseFormInput) (*CloseFormOutput, error) {
+	if input.Scope == nil {
+		return nil, domainerrors.ErrForbidden
+	}
+
+	form, err := uc.formRepo.GetByID(ctx, input.FormID)
 	if err != nil {
 		return nil, domainerrors.ErrFormNotFound
+	}
+
+	if !input.Scope.IsGlobal {
+		if form.OrganizationID == nil || !input.Scope.CanWrite(*form.OrganizationID) {
+			return nil, domainerrors.ErrForbidden
+		}
 	}
 
 	switch form.Status {
@@ -38,12 +53,12 @@ func (uc *CloseFormUseCase) Execute(ctx context.Context, formID uuid.UUID) (*Clo
 		return nil, domainerrors.ErrInvalidStatus
 	}
 
-	if err := uc.formRepo.UpdateStatus(ctx, formID, entity.FormStatusClosed); err != nil {
+	if err := uc.formRepo.UpdateStatus(ctx, input.FormID, entity.FormStatusClosed); err != nil {
 		return nil, domainerrors.Wrap(err, "failed to close form")
 	}
 
 	return &CloseFormOutput{
-		ID:     formID,
+		ID:     input.FormID,
 		Status: entity.FormStatusClosed,
 	}, nil
 }
