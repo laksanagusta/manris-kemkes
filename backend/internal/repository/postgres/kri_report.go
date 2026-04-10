@@ -51,7 +51,7 @@ func (r *kriReportRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs 
 		 JOIN kris k ON rp.kri_id = k.id
 		 LEFT JOIN risks rs ON k.risk_id = rs.id
 		 LEFT JOIN users u ON rp.submitted_by = u.id
-		 WHERE rp.id = $1 AND (cardinality($2::uuid[]) = 0 OR rs.org_id = ANY($2::uuid[]))`, id, orgIDs,
+		 WHERE rp.id = $1 AND (cardinality($2::uuid[]) = 0 OR rs.organization_id = ANY($2::uuid[]))`, id, orgIDs,
 	).Scan(
 		&rpt.ID, &rpt.KRIID,
 		&rpt.PeriodLabel, &rpt.PeriodStart, &rpt.PeriodEnd, &rpt.DueDate,
@@ -97,7 +97,7 @@ func (r *kriReportRepository) ListByKRI(ctx context.Context, kriID uuid.UUID, or
 		 JOIN kris k ON rp.kri_id = k.id
 		 LEFT JOIN risks rs ON k.risk_id = rs.id
 		 LEFT JOIN users u ON rp.submitted_by = u.id
-		 WHERE rp.kri_id = $1 AND (cardinality($2::uuid[]) = 0 OR rs.org_id = ANY($2::uuid[]))
+		 WHERE rp.kri_id = $1 AND (cardinality($2::uuid[]) = 0 OR rs.organization_id = ANY($2::uuid[]))
 		 ORDER BY rp.due_date DESC`, kriID, orgIDs)
 }
 
@@ -114,7 +114,7 @@ func (r *kriReportRepository) ListByUser(ctx context.Context, userID uuid.UUID, 
 		 JOIN kris k ON rp.kri_id = k.id
 		 LEFT JOIN risks rs ON k.risk_id = rs.id
 		 LEFT JOIN users u ON rp.submitted_by = u.id
-		 WHERE 1=1 AND (cardinality($1::uuid[]) = 0 OR rs.org_id = ANY($1::uuid[]))`
+		 WHERE 1=1 AND (cardinality($1::uuid[]) = 0 OR rs.organization_id = ANY($1::uuid[]))`
 
 	args := []interface{}{orgIDs}
 	argIdx := 2
@@ -144,7 +144,7 @@ func (r *kriReportRepository) ListByStatus(ctx context.Context, status string, o
 		 JOIN kris k ON rp.kri_id = k.id
 		 LEFT JOIN risks rs ON k.risk_id = rs.id
 		 LEFT JOIN users u ON rp.submitted_by = u.id
-		 WHERE rp.status = $1 AND (cardinality($2::uuid[]) = 0 OR rs.org_id = ANY($2::uuid[]))
+		 WHERE rp.status = $1 AND (cardinality($2::uuid[]) = 0 OR rs.organization_id = ANY($2::uuid[]))
 		 ORDER BY rp.due_date ASC`, status, orgIDs)
 }
 

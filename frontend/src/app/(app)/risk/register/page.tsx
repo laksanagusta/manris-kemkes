@@ -85,7 +85,8 @@ const levelBadgeVariant: Record<string, string> = {
   Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
   Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
   Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi": "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+  "Sangat Tinggi":
+    "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
 };
 
 const statusVariant: Record<string, string> = {
@@ -224,7 +225,8 @@ export default function RiskRegisterPage() {
   const [selectedVersion, setSelectedVersion] = useState("");
   const [activeTab, setActiveTab] = useState("all-risks");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [selectedRiskForReassessment, setSelectedRiskForReassessment] = useState<RiskListItem | null>(null);
+  const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
+    useState<RiskListItem | null>(null);
   const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
 
   const refreshRisks = async (activeToken: string) => {
@@ -238,12 +240,17 @@ export default function RiskRegisterPage() {
 
     const riskQuery = risksQueryParams.toString();
     const [allRisks, draftRisks] = await Promise.all([
-      api.get<RiskListItem[]>(`/risks${riskQuery ? `?${riskQuery}` : ""}`, activeToken),
+      api.get<RiskListItem[]>(
+        `/risks${riskQuery ? `?${riskQuery}` : ""}`,
+        activeToken,
+      ),
       api.get<RiskListItem[]>("/risks?status=draft", activeToken),
     ]);
 
     const nonDraftRisks = allRisks.filter((risk) => risk.status !== "draft");
-    const approvedCurrentRisks = nonDraftRisks.filter((risk) => risk.status === "approved" && risk.isCurrent);
+    const approvedCurrentRisks = nonDraftRisks.filter(
+      (risk) => risk.status === "approved" && risk.isCurrent,
+    );
 
     setDrafts(draftRisks);
     setRisks(nonDraftRisks);
@@ -257,7 +264,11 @@ export default function RiskRegisterPage() {
     }
 
     setHistoryRiskId((currentId) => {
-      if (currentId && approvedCurrentRisks.some((risk) => risk.id === currentId)) return currentId;
+      if (
+        currentId &&
+        approvedCurrentRisks.some((risk) => risk.id === currentId)
+      )
+        return currentId;
       return approvedCurrentRisks[0].id;
     });
   };
@@ -280,12 +291,19 @@ export default function RiskRegisterPage() {
 
         const riskQuery = risksQueryParams.toString();
         const [allRisks, draftRisks] = await Promise.all([
-          api.get<RiskListItem[]>(`/risks${riskQuery ? `?${riskQuery}` : ""}`, token),
+          api.get<RiskListItem[]>(
+            `/risks${riskQuery ? `?${riskQuery}` : ""}`,
+            token,
+          ),
           api.get<RiskListItem[]>("/risks?status=draft", token),
         ]);
 
-        const nonDraftRisks = allRisks.filter((risk) => risk.status !== "draft");
-        const approvedCurrentRisks = nonDraftRisks.filter((risk) => risk.status === "approved" && risk.isCurrent);
+        const nonDraftRisks = allRisks.filter(
+          (risk) => risk.status !== "draft",
+        );
+        const approvedCurrentRisks = nonDraftRisks.filter(
+          (risk) => risk.status === "approved" && risk.isCurrent,
+        );
 
         setDrafts(draftRisks);
         setRisks(nonDraftRisks);
@@ -299,12 +317,20 @@ export default function RiskRegisterPage() {
         }
 
         setHistoryRiskId((currentId) => {
-          if (currentId && approvedCurrentRisks.some((risk) => risk.id === currentId)) return currentId;
+          if (
+            currentId &&
+            approvedCurrentRisks.some((risk) => risk.id === currentId)
+          )
+            return currentId;
           return approvedCurrentRisks[0].id;
         });
       } catch (err) {
         console.error(err);
-        setError(err instanceof Error ? err.message : "Gagal memuat data risiko. Silakan coba lagi.");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Gagal memuat data risiko. Silakan coba lagi.",
+        );
       } finally {
         setLoading(false);
       }
@@ -318,8 +344,12 @@ export default function RiskRegisterPage() {
 
     const fetchVersions = async () => {
       try {
-        const versionItems = await api.get<RiskVersionTimelineItem[]>(`/risks/${historyRiskId}/versions`, token);
-        const currentVersion = versionItems.find((item) => item.isCurrent) ?? versionItems[0];
+        const versionItems = await api.get<RiskVersionTimelineItem[]>(
+          `/risks/${historyRiskId}/versions`,
+          token,
+        );
+        const currentVersion =
+          versionItems.find((item) => item.isCurrent) ?? versionItems[0];
 
         if (!currentVersion) {
           setVersions([]);
@@ -331,22 +361,39 @@ export default function RiskRegisterPage() {
         const versionOptions = versionItems.map((item) => ({
           id: item.id,
           name: formatCycleLabel(item.assessmentCycle, item.createdAt),
-          date: item.createdAt ? new Date(item.createdAt).toLocaleDateString("id-ID") : "-",
+          date: item.createdAt
+            ? new Date(item.createdAt).toLocaleDateString("id-ID")
+            : "-",
           isCurrent: item.isCurrent,
         }));
 
         setVersions(versionOptions);
         setSelectedVersion((currentId) => {
-          if (currentId && versionOptions.some((option) => option.id === currentId)) return currentId;
-          return versionOptions.find((option) => !option.isCurrent)?.id || currentVersion.id;
+          if (
+            currentId &&
+            versionOptions.some((option) => option.id === currentId)
+          )
+            return currentId;
+          return (
+            versionOptions.find((option) => !option.isCurrent)?.id ||
+            currentVersion.id
+          );
         });
-        setHistoryData(versionItems.map((item) => buildVersionHistoryItem(item, currentVersion)));
+        setHistoryData(
+          versionItems.map((item) =>
+            buildVersionHistoryItem(item, currentVersion),
+          ),
+        );
       } catch (err) {
         console.error(err);
         setVersions([]);
         setSelectedVersion("");
         setHistoryData([]);
-        toast.error(err instanceof Error ? err.message : "Riwayat versi belum berhasil dimuat.");
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : "Riwayat versi belum berhasil dimuat.",
+        );
       }
     };
 
@@ -354,10 +401,15 @@ export default function RiskRegisterPage() {
   }, [historyRiskId, token]);
 
   const filteredRisks = useMemo(() => {
-    return risks.filter(r => {
+    return risks.filter((r) => {
       const title = (r.title ?? "").toLowerCase();
       const code = (r.code ?? "").toLowerCase();
-      if (search && !title.includes(search.toLowerCase()) && !code.includes(search.toLowerCase())) return false;
+      if (
+        search &&
+        !title.includes(search.toLowerCase()) &&
+        !code.includes(search.toLowerCase())
+      )
+        return false;
       return true;
     });
   }, [risks, search]);
@@ -379,23 +431,32 @@ export default function RiskRegisterPage() {
       {
         loading: "Menghapus draft...",
         success: "Draft berhasil dihapus.",
-        error: (err) => err instanceof Error ? err.message : "Draft belum berhasil dihapus.",
-      }
+        error: (err) =>
+          err instanceof Error ? err.message : "Draft belum berhasil dihapus.",
+      },
     );
   };
 
   const handleSubmitDraft = async (draft: RiskListItem) => {
     toast.promise(
       (async () => {
-        const fullRisk = await api.get<RiskListItem>(`/risks/${draft.id}`, token || undefined);
-        await api.put(`/risks/${draft.id}`, { ...fullRisk, status: "in_review" }, token || undefined);
+        const fullRisk = await api.get<RiskListItem>(
+          `/risks/${draft.id}`,
+          token || undefined,
+        );
+        await api.put(
+          `/risks/${draft.id}`,
+          { ...fullRisk, status: "in_review" },
+          token || undefined,
+        );
         if (token) await refreshRisks(token);
       })(),
       {
         loading: "Mengajukan draft...",
         success: "Draft berhasil diajukan menjadi ditinjau.",
-        error: (err) => err instanceof Error ? err.message : "Draft belum berhasil diajukan.",
-      }
+        error: (err) =>
+          err instanceof Error ? err.message : "Draft belum berhasil diajukan.",
+      },
     );
   };
 
@@ -415,7 +476,11 @@ export default function RiskRegisterPage() {
 
     toast.promise(
       (async () => {
-        const result = await api.post<{ id: string }>(`/risks/${selectedRiskForReassessment.id}/reassess`, { cycle }, token);
+        const result = await api.post<{ id: string }>(
+          `/risks/${selectedRiskForReassessment.id}/reassess`,
+          { cycle },
+          token,
+        );
         await refreshRisks(token);
         setActiveTab("my-drafts");
         router.push(`/risk/register/${result.id}`);
@@ -423,16 +488,27 @@ export default function RiskRegisterPage() {
       {
         loading: `Membuat draft reassessment ${cycle}...`,
         success: `Draft reassessment ${cycle} berhasil dibuat.`,
-        error: (err) => err instanceof Error ? err.message : "Draft reassessment belum berhasil dibuat.",
-      }
+        error: (err) =>
+          err instanceof Error
+            ? err.message
+            : "Draft reassessment belum berhasil dibuat.",
+      },
     );
   };
 
-  const selectedVersionMeta = versions.find((version) => version.id === selectedVersion);
-  const selectedHistory = historyData.find((history) => history.id === selectedVersion);
+  const selectedVersionMeta = versions.find(
+    (version) => version.id === selectedVersion,
+  );
+  const selectedHistory = historyData.find(
+    (history) => history.id === selectedVersion,
+  );
 
   if (loading) {
-    return <div className="p-8 text-center text-muted-foreground animate-pulse">Memuat daftar risiko...</div>;
+    return (
+      <div className="p-8 text-center text-muted-foreground animate-pulse">
+        Memuat daftar risiko...
+      </div>
+    );
   }
 
   if (error) {
@@ -444,7 +520,11 @@ export default function RiskRegisterPage() {
           </div>
           <h3 className="text-lg font-semibold mb-2">Gagal Memuat Data</h3>
           <p className="text-sm text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()} variant="outline" className="gap-2">
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
+            className="gap-2"
+          >
             <ArrowUpRight className="size-4" />
             Muat Ulang Halaman
           </Button>
@@ -462,7 +542,7 @@ export default function RiskRegisterPage() {
             Kelola seluruh risiko organisasi sesuai ISO 31000:2018
           </p>
         </div>
-        {(!token || (user?.isGlobal || !!user?.organizationId)) && (
+        {(!token || user?.isGlobal || !!user?.organizationId) && (
           <div className="flex flex-wrap gap-2">
             <Link href="/risk/register/bulk">
               <Button variant="outline" className="gap-2">
@@ -481,7 +561,11 @@ export default function RiskRegisterPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="all-risks" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs
+        defaultValue="all-risks"
+        value={activeTab}
+        onValueChange={setActiveTab}
+      >
         <TabsList className="bg-muted/40 border border-border/50">
           <TabsTrigger value="all-risks" className="gap-2">
             <GitBranch className="size-3.5" />
@@ -489,7 +573,7 @@ export default function RiskRegisterPage() {
           </TabsTrigger>
           <TabsTrigger value="my-drafts" className="gap-2">
             <Edit3 className="size-3.5" />
-            My Drafts
+            Draf
             {drafts.length > 0 && (
               <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
                 {drafts.length}
@@ -505,23 +589,40 @@ export default function RiskRegisterPage() {
         {/* TAB 1: ALL RISKS */}
         <TabsContent value="all-risks" className="space-y-6 mt-6">
           {/* Summary badges */}
-            <div className="flex flex-wrap gap-2">
-              {[
-                { label: `Total: ${risks.length}`, variant: "outline" as const },
-              { label: `Sangat Tinggi: ${riskLevelCounts.sangat_tinggi ?? 0}`, cls: levelBadgeVariant["Sangat Tinggi"] },
-              { label: `Tinggi: ${riskLevelCounts.tinggi ?? 0}`, cls: levelBadgeVariant.Tinggi },
-              { label: `Sedang: ${riskLevelCounts.sedang ?? 0}`, cls: levelBadgeVariant.Sedang },
-              { label: `Rendah: ${riskLevelCounts.rendah ?? 0}`, cls: levelBadgeVariant.Rendah },
-              { label: `Sangat Rendah: ${riskLevelCounts.sangat_rendah ?? 0}`, cls: levelBadgeVariant["Sangat Rendah"] },
-            ].filter(b => b.cls !== undefined).map((b) => (
-              <Badge
-                key={b.label}
-                variant={b.variant || "outline"}
-                className={cn("text-xs font-medium border", b.cls)}
-              >
-                {b.label}
-              </Badge>
-            ))}
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: `Total: ${risks.length}`, variant: "outline" as const },
+              {
+                label: `Sangat Tinggi: ${riskLevelCounts.sangat_tinggi ?? 0}`,
+                cls: levelBadgeVariant["Sangat Tinggi"],
+              },
+              {
+                label: `Tinggi: ${riskLevelCounts.tinggi ?? 0}`,
+                cls: levelBadgeVariant.Tinggi,
+              },
+              {
+                label: `Sedang: ${riskLevelCounts.sedang ?? 0}`,
+                cls: levelBadgeVariant.Sedang,
+              },
+              {
+                label: `Rendah: ${riskLevelCounts.rendah ?? 0}`,
+                cls: levelBadgeVariant.Rendah,
+              },
+              {
+                label: `Sangat Rendah: ${riskLevelCounts.sangat_rendah ?? 0}`,
+                cls: levelBadgeVariant["Sangat Rendah"],
+              },
+            ]
+              .filter((b) => b.cls !== undefined)
+              .map((b) => (
+                <Badge
+                  key={b.label}
+                  variant={b.variant || "outline"}
+                  className={cn("text-xs font-medium border", b.cls)}
+                >
+                  {b.label}
+                </Badge>
+              ))}
           </div>
 
           {/* Filters */}
@@ -533,7 +634,7 @@ export default function RiskRegisterPage() {
                   <Input
                     placeholder="Cari risiko..."
                     value={search}
-                    onChange={e => setSearch(e.target.value)}
+                    onChange={(e) => setSearch(e.target.value)}
                     className="h-8 pl-8 text-xs bg-muted/30 border-none"
                   />
                 </div>
@@ -570,22 +671,39 @@ export default function RiskRegisterPage() {
                     <SelectItem value="all">Semua Status</SelectItem>
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="in_review">Sedang Ditinjau</SelectItem>
-                    <SelectItem value="in_approval">Menunggu Approval</SelectItem>
+                    <SelectItem value="in_approval">
+                      Menunggu Approval
+                    </SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                >
                   <SelectTrigger className="h-8 w-44 text-xs bg-muted/30 border-none">
                     <SelectValue placeholder="Kategori" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Kategori</SelectItem>
-                    <SelectItem value="strategis">{riskCategoryLabels.strategis}</SelectItem>
-                    <SelectItem value="operasional">{riskCategoryLabels.operasional}</SelectItem>
-                    <SelectItem value="kepatuhan">{riskCategoryLabels.kepatuhan}</SelectItem>
-                    <SelectItem value="finansial">{riskCategoryLabels.finansial}</SelectItem>
-                    <SelectItem value="reputasi">{riskCategoryLabels.reputasi}</SelectItem>
-                    <SelectItem value="teknologi_informasi">{riskCategoryLabels.teknologi_informasi}</SelectItem>
+                    <SelectItem value="strategis">
+                      {riskCategoryLabels.strategis}
+                    </SelectItem>
+                    <SelectItem value="operasional">
+                      {riskCategoryLabels.operasional}
+                    </SelectItem>
+                    <SelectItem value="kepatuhan">
+                      {riskCategoryLabels.kepatuhan}
+                    </SelectItem>
+                    <SelectItem value="finansial">
+                      {riskCategoryLabels.finansial}
+                    </SelectItem>
+                    <SelectItem value="reputasi">
+                      {riskCategoryLabels.reputasi}
+                    </SelectItem>
+                    <SelectItem value="teknologi_informasi">
+                      {riskCategoryLabels.teknologi_informasi}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -602,98 +720,129 @@ export default function RiskRegisterPage() {
                   <TableHead className="text-xs w-32">Kategori</TableHead>
                   <TableHead className="text-xs w-28">Periode</TableHead>
                   <TableHead className="text-xs w-32">Unit Kerja</TableHead>
-                  <TableHead className="text-xs text-center w-16">Nilai</TableHead>
+                  <TableHead className="text-xs text-center w-16">
+                    Nilai
+                  </TableHead>
                   <TableHead className="text-xs w-24">Level</TableHead>
                   <TableHead className="text-xs w-24">Status</TableHead>
                   <TableHead className="text-xs w-28">Perlakuan</TableHead>
-                  <TableHead className="text-xs w-28 text-right">Aksi</TableHead>
+                  <TableHead className="text-xs w-28 text-right">
+                    Aksi
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredRisks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground text-xs">
+                    <TableCell
+                      colSpan={10}
+                      className="text-center py-8 text-muted-foreground text-xs"
+                    >
                       Tidak ada risiko yang ditemukan
                     </TableCell>
                   </TableRow>
-                ) : filteredRisks.map((risk) => {
-                  const scoreSemantics = resolveListItemScoreSemantics(risk);
-                  const levelLabel = getRiskLevelLabel(scoreSemantics.effective.level);
-                  const isReadOnly = isReadOnlyForOrg(user, risk.organizationId || "");
-                  const canReassess = risk.status === "approved" && risk.isCurrent && !isReadOnly;
-                  return (
-                  <TableRow
-                    key={risk.id}
-                    className="border-border/30 hover:bg-muted/30 transition-colors"
-                  >
-                    <TableCell className="text-xs font-mono text-muted-foreground">
-                      {risk.code || "-"}
-                    </TableCell>
-                    <TableCell className="max-w-[300px]">
-                      <Link
-                        href={`/risk/register/${risk.id}`}
-                        className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
+                ) : (
+                  filteredRisks.map((risk) => {
+                    const scoreSemantics = resolveListItemScoreSemantics(risk);
+                    const levelLabel = getRiskLevelLabel(
+                      scoreSemantics.effective.level,
+                    );
+                    const isReadOnly = isReadOnlyForOrg(
+                      user,
+                      risk.organizationId || "",
+                    );
+                    const canReassess =
+                      risk.status === "approved" &&
+                      risk.isCurrent &&
+                      !isReadOnly;
+                    return (
+                      <TableRow
+                        key={risk.id}
+                        className="border-border/30 hover:bg-muted/30 transition-colors"
                       >
-                        {risk.title || "-"}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {riskCategoryLabels[risk.category ?? ""]}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {formatCycleLabel(risk.assessmentCycle, risk.updatedAt)}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        {risk.orgName || "-"}
-                        {isReadOnly && (
-                          <Badge variant="secondary" className="text-[9px] h-4 px-1" title="Read-only access">RO</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="text-xs font-bold">{scoreSemantics.effective.score}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={cn(
-                          "text-[10px] font-semibold border h-5 px-1.5",
-                          levelBadgeVariant[levelLabel]
-                        )}
-                      >
-                        {levelLabel}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                          className={cn(
-                            "text-[10px] font-medium border h-5 px-1.5 capitalize",
-                          risk.status ? statusVariant[risk.status] : undefined
-                        )}
-                      >
-                        {risk.status || "-"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground capitalize">
-                      {risk.treatmentOption || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-1">
-                        {canReassess && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 gap-1.5 px-2 text-xs"
-                            onClick={() => handleOpenConfirmDialog(risk)}
+                        <TableCell className="text-xs font-mono text-muted-foreground">
+                          {risk.code || "-"}
+                        </TableCell>
+                        <TableCell className="max-w-[300px]">
+                          <Link
+                            href={`/risk/register/${risk.id}`}
+                            className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
                           >
-                            <RefreshCcw className="size-3" />
-                            Reassessment
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )})}
+                            {risk.title || "-"}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {riskCategoryLabels[risk.category ?? ""]}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {formatCycleLabel(
+                            risk.assessmentCycle,
+                            risk.updatedAt,
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            {risk.orgName || "-"}
+                            {isReadOnly && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[9px] h-4 px-1"
+                                title="Read-only access"
+                              >
+                                RO
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="text-xs font-bold">
+                            {scoreSemantics.effective.score}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              "text-[10px] font-semibold border h-5 px-1.5",
+                              levelBadgeVariant[levelLabel],
+                            )}
+                          >
+                            {levelLabel}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              "text-[10px] font-medium border h-5 px-1.5 capitalize",
+                              risk.status
+                                ? statusVariant[risk.status]
+                                : undefined,
+                            )}
+                          >
+                            {risk.status || "-"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground capitalize">
+                          {risk.treatmentOption || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            {canReassess && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1.5 px-2 text-xs"
+                                onClick={() => handleOpenConfirmDialog(risk)}
+                              >
+                                <RefreshCcw className="size-3" />
+                                Reassessment
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
 
@@ -703,19 +852,39 @@ export default function RiskRegisterPage() {
                 Menampilkan {filteredRisks.length} dari {risks.length} risiko
               </p>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon-xs" className="text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-muted-foreground"
+                >
                   <ChevronLeft className="size-3.5" />
                 </Button>
-                <Button variant="ghost" size="xs" className="text-xs font-medium bg-primary/10 text-primary">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="text-xs font-medium bg-primary/10 text-primary"
+                >
                   1
                 </Button>
-                <Button variant="ghost" size="xs" className="text-xs text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="text-xs text-muted-foreground"
+                >
                   2
                 </Button>
-                <Button variant="ghost" size="xs" className="text-xs text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="text-xs text-muted-foreground"
+                >
                   3
                 </Button>
-                <Button variant="ghost" size="icon-xs" className="text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-muted-foreground"
+                >
                   <ChevronRight className="size-3.5" />
                 </Button>
               </div>
@@ -734,79 +903,128 @@ export default function RiskRegisterPage() {
                   <TableHead className="text-xs w-28">Periode</TableHead>
                   <TableHead className="text-xs w-32">Status</TableHead>
                   <TableHead className="text-xs w-32">Pembaruan</TableHead>
-                  <TableHead className="text-xs w-28 text-center">Progres</TableHead>
+                  <TableHead className="text-xs w-28 text-center">
+                    Progres
+                  </TableHead>
                   <TableHead className="text-xs w-24"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {drafts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground text-xs">
+                    <TableCell
+                      colSpan={7}
+                      className="text-center py-8 text-muted-foreground text-xs"
+                    >
                       Belum ada draft.
                     </TableCell>
                   </TableRow>
-                ) : drafts.map((draft) => {
-                  const completeness = computeCompleteness(draft);
-                  const isReadOnly = isReadOnlyForOrg(user, draft.organizationId || "");
-                  const date = draft.updatedAt ? new Date(draft.updatedAt).toLocaleDateString("id-ID", {
-                    year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
-                  }) : "-";
+                ) : (
+                  drafts.map((draft) => {
+                    const completeness = computeCompleteness(draft);
+                    const isReadOnly = isReadOnlyForOrg(
+                      user,
+                      draft.organizationId || "",
+                    );
+                    const date = draft.updatedAt
+                      ? new Date(draft.updatedAt).toLocaleDateString("id-ID", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "-";
 
-                  return (
-                  <TableRow key={draft.id} className="border-border/30 hover:bg-muted/30">
-                    <TableCell className="text-xs font-mono text-muted-foreground">{draft.code || (draft.id ? draft.id.substring(0,8) : "-")}</TableCell>
-                    <TableCell className="max-w-[300px]">
-                      <div className="flex items-center gap-2">
-                        <Link href={`/risk/register/${draft.id}`} className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline">
-                          {draft.title || "Tanpa Judul"}
-                        </Link>
-                        {isReadOnly && (
-                          <Badge variant="secondary" className="text-[9px] h-4 px-1" title="Read-only access">RO</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {formatCycleLabel(draft.assessmentCycle, draft.updatedAt)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[10px] h-5 px-1.5",
-                          draft.status === 'draft' ? "text-muted-foreground" : "text-risk-medium border-risk-medium/50 bg-risk-medium/10"
-                        )}
+                    return (
+                      <TableRow
+                        key={draft.id}
+                        className="border-border/30 hover:bg-muted/30"
                       >
-                        Draft (WIP)
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1.5"><Clock className="size-3" /> {date}</span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden">
-                          <div className={cn("h-full", completeness === 100 ? "bg-success" : "bg-primary")} style={{ width: `${completeness}%` }} />
-                        </div>
-                        <span className="text-[10px] font-mono">{completeness}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-1">
-                        {draft.status === 'draft' && !isReadOnly && (
-                          <Button
+                        <TableCell className="text-xs font-mono text-muted-foreground">
+                          {draft.code ||
+                            (draft.id ? draft.id.substring(0, 8) : "-")}
+                        </TableCell>
+                        <TableCell className="max-w-[300px]">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/risk/register/${draft.id}`}
+                              className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
+                            >
+                              {draft.title || "Tanpa Judul"}
+                            </Link>
+                            {isReadOnly && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[9px] h-4 px-1"
+                                title="Read-only access"
+                              >
+                                RO
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {formatCycleLabel(
+                            draft.assessmentCycle,
+                            draft.updatedAt,
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
                             variant="outline"
-                            size="sm"
-                            className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            onClick={() => setDraftToDelete(draft)}
+                            className={cn(
+                              "text-[10px] h-5 px-1.5",
+                              draft.status === "draft"
+                                ? "text-muted-foreground"
+                                : "text-risk-medium border-risk-medium/50 bg-risk-medium/10",
+                            )}
                           >
-                            <Trash2 className="size-3" />
-                            Hapus
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )})}
+                            Draft (WIP)
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="size-3" /> {date}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className={cn(
+                                  "h-full",
+                                  completeness === 100
+                                    ? "bg-success"
+                                    : "bg-primary",
+                                )}
+                                style={{ width: `${completeness}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-mono">
+                              {completeness}%
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            {draft.status === "draft" && !isReadOnly && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => setDraftToDelete(draft)}
+                              >
+                                <Trash2 className="size-3" />
+                                Hapus
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </Card>
@@ -817,8 +1035,13 @@ export default function RiskRegisterPage() {
           <Card className="border-border/50 bg-card/80">
             <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Riwayat Versi Live</p>
-                <p className="mt-1 text-sm text-muted-foreground">Pilih satu risiko current approved untuk melihat timeline reassessment dan membandingkannya dengan versi aktif saat ini.</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Riwayat Versi Live
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Pilih satu risiko current approved untuk melihat timeline
+                  reassessment dan membandingkannya dengan versi aktif saat ini.
+                </p>
               </div>
               <Select value={historyRiskId} onValueChange={setHistoryRiskId}>
                 <SelectTrigger className="w-full md:w-[340px]">
@@ -826,10 +1049,14 @@ export default function RiskRegisterPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {risks
-                    .filter((risk) => risk.status === "approved" && risk.isCurrent)
+                    .filter(
+                      (risk) => risk.status === "approved" && risk.isCurrent,
+                    )
                     .map((risk) => (
                       <SelectItem key={risk.id} value={risk.id}>
-                        {(risk.code || "Risk") + " • " + (risk.title || "Tanpa judul")}
+                        {(risk.code || "Risk") +
+                          " • " +
+                          (risk.title || "Tanpa judul")}
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -840,7 +1067,9 @@ export default function RiskRegisterPage() {
           <div className="grid gap-6 lg:grid-cols-4">
             {/* Timeline Version Selector */}
             <div className="lg:col-span-1 border-r border-border/50 pr-4">
-              <h3 className="text-xs font-semibold mb-4 uppercase tracking-wider text-muted-foreground">Timeline Snapshot</h3>
+              <h3 className="text-xs font-semibold mb-4 uppercase tracking-wider text-muted-foreground">
+                Timeline Snapshot
+              </h3>
               <div className="space-y-3 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
                 {versions.map((ver) => (
                   <button
@@ -851,14 +1080,18 @@ export default function RiskRegisterPage() {
                       selectedVersion === ver.id
                         ? "bg-primary/10 border-primary/30 shadow-sm"
                         : "bg-card/80 border-border/50 hover:bg-muted/50",
-                      ver.isCurrent && "ring-1 ring-primary/50"
+                      ver.isCurrent && "ring-1 ring-primary/50",
                     )}
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">{ver.name}</span>
+                        <span className="font-semibold text-sm">
+                          {ver.name}
+                        </span>
                         {ver.isCurrent && (
-                          <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5 ml-1">Current</Badge>
+                          <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5 ml-1">
+                            Current
+                          </Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
@@ -877,7 +1110,9 @@ export default function RiskRegisterPage() {
                 <CardHeader className="pb-3 flex flex-row items-center justify-between">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <GitBranch className="size-4" />
-                    Perbandingan: {selectedVersionMeta?.name || "Pilih versi"} vs Current
+                    Perbandingan: {selectedVersionMeta?.name ||
+                      "Pilih versi"}{" "}
+                    vs Current
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -885,43 +1120,90 @@ export default function RiskRegisterPage() {
                     <TableHeader>
                       <TableRow className="border-border/50 hover:bg-transparent">
                         <TableHead className="w-20 text-xs">Kode</TableHead>
-                        <TableHead className="text-xs">Risiko & Alasan Perubahan</TableHead>
-                        <TableHead className="text-xs w-28">Versi Lama</TableHead>
-                        <TableHead className="text-xs text-center w-12">→</TableHead>
-                        <TableHead className="text-xs w-28">Versi Current</TableHead>
-                        <TableHead className="text-xs w-16 text-center">Tren</TableHead>
+                        <TableHead className="text-xs">
+                          Risiko & Alasan Perubahan
+                        </TableHead>
+                        <TableHead className="text-xs w-28">
+                          Versi Lama
+                        </TableHead>
+                        <TableHead className="text-xs text-center w-12">
+                          →
+                        </TableHead>
+                        <TableHead className="text-xs w-28">
+                          Versi Current
+                        </TableHead>
+                        <TableHead className="text-xs w-16 text-center">
+                          Tren
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {!selectedHistory ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                          <TableCell
+                            colSpan={6}
+                            className="text-center h-24 text-muted-foreground"
+                          >
                             Belum ada history untuk risiko ini.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        <TableRow key={selectedHistory.id} className="border-border/30 hover:bg-muted/30">
-                          <TableCell className="text-xs font-mono text-muted-foreground">{selectedHistory.riskId || "-"}</TableCell>
+                        <TableRow
+                          key={selectedHistory.id}
+                          className="border-border/30 hover:bg-muted/30"
+                        >
+                          <TableCell className="text-xs font-mono text-muted-foreground">
+                            {selectedHistory.riskId || "-"}
+                          </TableCell>
                           <TableCell className="max-w-[300px]">
-                            <p className="truncate text-xs font-medium leading-relaxed">{selectedHistory.title || "-"}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">{selectedHistory.cycle}</p>
-                            <p className="truncate text-[10px] text-muted-foreground mt-0.5 italic text-primary/70">{selectedHistory.changeReason || "-"}</p>
+                            <p className="truncate text-xs font-medium leading-relaxed">
+                              {selectedHistory.title || "-"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {selectedHistory.cycle}
+                            </p>
+                            <p className="truncate text-[10px] text-muted-foreground mt-0.5 italic text-primary/70">
+                              {selectedHistory.changeReason || "-"}
+                            </p>
                           </TableCell>
                           <TableCell>
-                            <Badge className={cn("text-[10px] font-semibold border h-5 px-1.5", levelBadgeVariant[selectedHistory.previousLevel] || levelBadgeVariant.Rendah)}>
+                            <Badge
+                              className={cn(
+                                "text-[10px] font-semibold border h-5 px-1.5",
+                                levelBadgeVariant[
+                                  selectedHistory.previousLevel
+                                ] || levelBadgeVariant.Rendah,
+                              )}
+                            >
                               {selectedHistory.previousLevel || "Rendah"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center text-muted-foreground">→</TableCell>
+                          <TableCell className="text-center text-muted-foreground">
+                            →
+                          </TableCell>
                           <TableCell>
-                            <Badge className={cn("text-[10px] font-semibold border h-5 px-1.5", levelBadgeVariant[selectedHistory.currentLevel] || levelBadgeVariant.Rendah)}>
+                            <Badge
+                              className={cn(
+                                "text-[10px] font-semibold border h-5 px-1.5",
+                                levelBadgeVariant[
+                                  selectedHistory.currentLevel
+                                ] || levelBadgeVariant.Rendah,
+                              )}
+                            >
                               {selectedHistory.currentLevel || "Rendah"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center">
-                            {selectedHistory.trend === "up" && <TrendingUp className="size-4 text-risk-extreme mx-auto" />}
-                            {selectedHistory.trend === "down" && <TrendingDown className="size-4 text-success mx-auto" />}
-                            {(selectedHistory.trend === "stable" || !selectedHistory.trend) && <Minus className="size-4 text-muted-foreground mx-auto" />}
+                            {selectedHistory.trend === "up" && (
+                              <TrendingUp className="size-4 text-risk-extreme mx-auto" />
+                            )}
+                            {selectedHistory.trend === "down" && (
+                              <TrendingDown className="size-4 text-success mx-auto" />
+                            )}
+                            {(selectedHistory.trend === "stable" ||
+                              !selectedHistory.trend) && (
+                              <Minus className="size-4 text-muted-foreground mx-auto" />
+                            )}
                           </TableCell>
                         </TableRow>
                       )}
@@ -934,17 +1216,26 @@ export default function RiskRegisterPage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!draftToDelete} onOpenChange={(open) => !open && setDraftToDelete(null)}>
+      <Dialog
+        open={!!draftToDelete}
+        onOpenChange={(open) => !open && setDraftToDelete(null)}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Hapus Draft Risiko?</DialogTitle>
             <DialogDescription>
-              Draft yang dihapus tidak bisa dikembalikan. Risiko yang sudah ditinjau harus dikembalikan ke draft terlebih dahulu sebelum dapat dihapus.
+              Draft yang dihapus tidak bisa dikembalikan. Risiko yang sudah
+              ditinjau harus dikembalikan ke draft terlebih dahulu sebelum dapat
+              dihapus.
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
-            <p className="font-medium">{draftToDelete?.title || "Tanpa judul"}</p>
-            <p className="text-xs text-muted-foreground">{draftToDelete?.code || draftToDelete?.id}</p>
+            <p className="font-medium">
+              {draftToDelete?.title || "Tanpa judul"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {draftToDelete?.code || draftToDelete?.id}
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDraftToDelete(null)}>
@@ -970,27 +1261,36 @@ export default function RiskRegisterPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Reassessment</AlertDialogTitle>
             <AlertDialogDescription>
-              Anda akan memulai reassessment untuk risiko berikut. Tindakan ini akan membuat draft reassessment baru yang dapat Anda edit sebelum diajukan untuk persetujuan.
+              Anda akan memulai reassessment untuk risiko berikut. Tindakan ini
+              akan membuat draft reassessment baru yang dapat Anda edit sebelum
+              diajukan untuk persetujuan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
             <div className="text-sm">
               <span className="font-medium text-foreground">Kode: </span>
-              <span className="font-mono text-xs text-muted-foreground">{selectedRiskForReassessment?.code || "-"}</span>
+              <span className="font-mono text-xs text-muted-foreground">
+                {selectedRiskForReassessment?.code || "-"}
+              </span>
             </div>
             <div className="text-sm">
               <span className="font-medium text-foreground">Judul: </span>
-              <span className="text-muted-foreground">{selectedRiskForReassessment?.title || "-"}</span>
+              <span className="text-muted-foreground">
+                {selectedRiskForReassessment?.title || "-"}
+              </span>
             </div>
             <div className="text-sm">
               <span className="font-medium text-foreground">Cycle: </span>
-              <span className="text-muted-foreground">{currentGlobalCycle()}</span>
+              <span className="text-muted-foreground">
+                {currentGlobalCycle()}
+              </span>
             </div>
             <div className="text-sm">
               <span className="font-medium text-foreground">Score: </span>
               <span className="text-muted-foreground">
                 {selectedRiskForReassessment
-                  ? resolveListItemScoreSemantics(selectedRiskForReassessment).effective.score
+                  ? resolveListItemScoreSemantics(selectedRiskForReassessment)
+                      .effective.score
                   : "-"}
               </span>
             </div>

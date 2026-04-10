@@ -1,0 +1,208 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e14]:
+    - banner [ref=e15]:
+      - generic [ref=e16]:
+        - img "MANRIS logo" [ref=e18]
+        - generic [ref=e20]: MR-V0
+      - button [ref=e21]:
+        - img
+      - navigation [ref=e22]:
+        - generic [ref=e24]: Risk Assessments
+        - generic [ref=e25]:
+          - img [ref=e26]
+          - generic [ref=e28]: Risk Register
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - img [ref=e31]
+          - textbox "Search..." [ref=e34]
+        - button [ref=e35]:
+          - img
+        - button "FI Dr. Farah Indah" [ref=e36]:
+          - generic [ref=e37]: FI
+          - generic [ref=e38]: Dr. Farah Indah
+    - generic [ref=e39]:
+      - complementary [ref=e40]:
+        - navigation [ref=e44]:
+          - generic [ref=e45]:
+            - button "MAIN MENU" [ref=e46]:
+              - generic [ref=e47]: MAIN MENU
+              - img [ref=e48]
+            - generic [ref=e50]:
+              - link "Dashboard" [ref=e51] [cursor=pointer]:
+                - /url: /overview
+                - img [ref=e52]
+                - generic [ref=e57]: Dashboard
+              - link "Approval" [ref=e58] [cursor=pointer]:
+                - /url: /inbox
+                - img [ref=e59]
+                - generic [ref=e62]: Approval
+              - link "Risk Register" [ref=e63] [cursor=pointer]:
+                - /url: /risk/register
+                - img [ref=e64]
+                - generic [ref=e66]: Risk Register
+              - link "Kertas Kerja" [ref=e67] [cursor=pointer]:
+                - /url: /risk/working-papers
+                - img [ref=e68]
+                - generic [ref=e72]: Kertas Kerja
+              - link "Monitoring & Updates" [ref=e73] [cursor=pointer]:
+                - /url: /compliance/monitoring
+                - img [ref=e74]
+                - generic [ref=e78]: Monitoring & Updates
+              - link "Reports & Export" [ref=e79] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e80]
+                - generic [ref=e83]: Reports & Export
+              - link "Insiden" [ref=e84] [cursor=pointer]:
+                - /url: /incidents
+                - img [ref=e85]
+                - generic [ref=e87]: Insiden
+              - link "My Forms" [ref=e88] [cursor=pointer]:
+                - /url: /forms
+                - img [ref=e89]
+                - generic [ref=e92]: My Forms
+          - generic [ref=e93]:
+            - button "AI & Automation" [ref=e94]:
+              - generic [ref=e95]:
+                - img [ref=e96]
+                - text: AI & Automation
+              - img [ref=e99]
+            - generic [ref=e101]:
+              - link "Meeting" [ref=e102] [cursor=pointer]:
+                - /url: /minutes
+                - img [ref=e103]
+                - generic [ref=e106]: Meeting
+              - link "Predictive Scoring" [ref=e107] [cursor=pointer]:
+                - /url: /intelligence/predictive
+                - img [ref=e108]
+                - generic [ref=e111]: Predictive Scoring
+              - link "Cost Benefit Analysis" [ref=e112] [cursor=pointer]:
+                - /url: /intelligence/cba
+                - img [ref=e113]
+                - generic [ref=e115]: Cost Benefit Analysis
+          - generic [ref=e116]:
+            - button "ADMINISTRATION" [ref=e117]:
+              - generic [ref=e118]:
+                - img [ref=e119]
+                - text: ADMINISTRATION
+              - img [ref=e122]
+            - generic [ref=e124]:
+              - link "Users" [ref=e125] [cursor=pointer]:
+                - /url: /admin/users
+                - img [ref=e126]
+                - generic [ref=e131]: Users
+              - link "Organizations" [ref=e132] [cursor=pointer]:
+                - /url: /admin/organizations
+                - img [ref=e133]
+                - generic [ref=e137]: Organizations
+              - link "Form Builder" [ref=e138] [cursor=pointer]:
+                - /url: /admin/forms
+                - img [ref=e139]
+                - generic [ref=e142]: Form Builder
+              - link "Settings" [ref=e143] [cursor=pointer]:
+                - /url: /admin/settings
+                - img [ref=e144]
+                - generic [ref=e147]: Settings
+        - generic [ref=e149]:
+          - generic [ref=e150]: FI
+          - generic [ref=e151]:
+            - generic [ref=e152]: Dr. Farah Indah
+            - generic [ref=e153]: reviewer
+      - main [ref=e154]:
+        - generic [ref=e155]:
+          - generic [ref=e156]:
+            - generic [ref=e157]:
+              - heading "Risk Register" [level=1] [ref=e158]
+              - paragraph [ref=e159]: Kelola seluruh risiko organisasi sesuai ISO 31000:2018
+            - generic [ref=e160]:
+              - link "Bulk Create" [ref=e161] [cursor=pointer]:
+                - /url: /risk/register/bulk
+                - button "Bulk Create" [ref=e162]:
+                  - img
+                  - text: Bulk Create
+              - link "Tambah Risiko" [ref=e163] [cursor=pointer]:
+                - /url: /risk/register/new
+                - button "Tambah Risiko" [ref=e164]:
+                  - img
+                  - text: Tambah Risiko
+          - generic [ref=e165]:
+            - tablist [ref=e166]:
+              - tab "All Risks" [selected] [ref=e167]:
+                - img
+                - text: All Risks
+              - tab "My Drafts" [ref=e168]:
+                - img
+                - text: My Drafts
+              - tab "Version History" [ref=e169]:
+                - img
+                - text: Version History
+            - tabpanel "All Risks" [ref=e170]:
+              - generic [ref=e171]:
+                - generic [ref=e172]: "Sangat Tinggi: 1"
+                - generic [ref=e173]: "Tinggi: 0"
+                - generic [ref=e174]: "Sedang: 0"
+                - generic [ref=e175]: "Rendah: 0"
+                - generic [ref=e176]: "Sangat Rendah: 0"
+              - generic [ref=e179]:
+                - generic [ref=e180]:
+                  - img [ref=e181]
+                  - textbox "Cari risiko..." [ref=e184]
+                - combobox [ref=e185]:
+                  - generic: Semua Unit
+                  - img
+                - combobox [ref=e186]:
+                  - generic: Semua Level
+                  - img
+                - combobox [ref=e187]:
+                  - generic: Semua Status
+                  - img
+                - combobox [ref=e188]:
+                  - generic: Semua Kategori
+                  - img
+              - generic [ref=e189]:
+                - table [ref=e191]:
+                  - rowgroup [ref=e192]:
+                    - row "Kode Judul Risiko Kategori Periode Unit Kerja Nilai Level Status Perlakuan Aksi" [ref=e193]:
+                      - columnheader "Kode" [ref=e194]
+                      - columnheader "Judul Risiko" [ref=e195]
+                      - columnheader "Kategori" [ref=e196]
+                      - columnheader "Periode" [ref=e197]
+                      - columnheader "Unit Kerja" [ref=e198]
+                      - columnheader "Nilai" [ref=e199]
+                      - columnheader "Level" [ref=e200]
+                      - columnheader "Status" [ref=e201]
+                      - columnheader "Perlakuan" [ref=e202]
+                      - columnheader "Aksi" [ref=e203]
+                  - rowgroup [ref=e204]:
+                    - row "R-001 Keterlambatan Implementasi Integrasi SATUSEHAT dengan Rumah Sakit Daerah Menghambat Pelaporan Surveilans Nasional Teknologi Informasi 2026-H1 Ditjen P2P 25 Sangat Tinggi approved mitigasi Reassessment" [ref=e205]:
+                      - cell "R-001" [ref=e206]
+                      - cell "Keterlambatan Implementasi Integrasi SATUSEHAT dengan Rumah Sakit Daerah Menghambat Pelaporan Surveilans Nasional" [ref=e207]:
+                        - link "Keterlambatan Implementasi Integrasi SATUSEHAT dengan Rumah Sakit Daerah Menghambat Pelaporan Surveilans Nasional" [ref=e208] [cursor=pointer]:
+                          - /url: /risk/register/42ed9090-71b6-4828-82cb-9f670f9263ee
+                      - cell "Teknologi Informasi" [ref=e209]
+                      - cell "2026-H1" [ref=e210]
+                      - cell "Ditjen P2P" [ref=e211]:
+                        - generic [ref=e212]: Ditjen P2P
+                      - cell "25" [ref=e213]
+                      - cell "Sangat Tinggi" [ref=e214]:
+                        - generic [ref=e215]: Sangat Tinggi
+                      - cell "approved" [ref=e216]:
+                        - generic [ref=e217]: approved
+                      - cell "mitigasi" [ref=e218]
+                      - cell "Reassessment" [ref=e219]:
+                        - button "Reassessment" [ref=e221]:
+                          - img
+                          - text: Reassessment
+                - generic [ref=e222]:
+                  - paragraph [ref=e223]: Menampilkan 1 dari 1 risiko
+                  - generic [ref=e224]:
+                    - button [ref=e225]:
+                      - img
+                    - button "1" [ref=e226]
+                    - button "2" [ref=e227]
+                    - button "3" [ref=e228]
+                    - button [ref=e229]:
+                      - img
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e9] [cursor=pointer]:
+    - img [ref=e10]
+  - alert [ref=e13]

@@ -1,0 +1,184 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - img "MANRIS logo" [ref=e6]
+        - generic [ref=e8]: MR-V0
+      - button [ref=e9]:
+        - img
+      - navigation [ref=e10]:
+        - generic [ref=e12]: Risk Assessments
+        - generic [ref=e13]:
+          - img [ref=e14]
+          - generic [ref=e16]: working-papers
+        - generic [ref=e17]:
+          - img [ref=e18]
+          - generic [ref=e20]: new
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - img [ref=e23]
+          - textbox "Search..." [ref=e26]
+        - button [ref=e27]:
+          - img
+        - button "FI Dr. Farah Indah" [ref=e28]:
+          - generic [ref=e29]: FI
+          - generic [ref=e30]: Dr. Farah Indah
+    - generic [ref=e31]:
+      - complementary [ref=e32]:
+        - navigation [ref=e36]:
+          - generic [ref=e37]:
+            - button "MAIN MENU" [ref=e38]:
+              - generic [ref=e39]: MAIN MENU
+              - img [ref=e40]
+            - generic [ref=e42]:
+              - link "Dashboard" [ref=e43] [cursor=pointer]:
+                - /url: /overview
+                - img [ref=e44]
+                - generic [ref=e49]: Dashboard
+              - link "Approval" [ref=e50] [cursor=pointer]:
+                - /url: /inbox
+                - img [ref=e51]
+                - generic [ref=e54]: Approval
+              - link "Risk Register" [ref=e55] [cursor=pointer]:
+                - /url: /risk/register
+                - img [ref=e56]
+                - generic [ref=e58]: Risk Register
+              - link "Kertas Kerja" [ref=e59] [cursor=pointer]:
+                - /url: /risk/working-papers
+                - img [ref=e60]
+                - generic [ref=e64]: Kertas Kerja
+              - link "Monitoring & Updates" [ref=e65] [cursor=pointer]:
+                - /url: /compliance/monitoring
+                - img [ref=e66]
+                - generic [ref=e70]: Monitoring & Updates
+              - link "Reports & Export" [ref=e71] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e72]
+                - generic [ref=e75]: Reports & Export
+              - link "Insiden" [ref=e76] [cursor=pointer]:
+                - /url: /incidents
+                - img [ref=e77]
+                - generic [ref=e79]: Insiden
+              - link "My Forms" [ref=e80] [cursor=pointer]:
+                - /url: /forms
+                - img [ref=e81]
+                - generic [ref=e84]: My Forms
+          - generic [ref=e85]:
+            - button "AI & Automation" [ref=e86]:
+              - generic [ref=e87]:
+                - img [ref=e88]
+                - text: AI & Automation
+              - img [ref=e91]
+            - generic [ref=e93]:
+              - link "Meeting" [ref=e94] [cursor=pointer]:
+                - /url: /minutes
+                - img [ref=e95]
+                - generic [ref=e98]: Meeting
+              - link "Predictive Scoring" [ref=e99] [cursor=pointer]:
+                - /url: /intelligence/predictive
+                - img [ref=e100]
+                - generic [ref=e103]: Predictive Scoring
+              - link "Cost Benefit Analysis" [ref=e104] [cursor=pointer]:
+                - /url: /intelligence/cba
+                - img [ref=e105]
+                - generic [ref=e107]: Cost Benefit Analysis
+          - generic [ref=e108]:
+            - button "ADMINISTRATION" [ref=e109]:
+              - generic [ref=e110]:
+                - img [ref=e111]
+                - text: ADMINISTRATION
+              - img [ref=e114]
+            - generic [ref=e116]:
+              - link "Users" [ref=e117] [cursor=pointer]:
+                - /url: /admin/users
+                - img [ref=e118]
+                - generic [ref=e123]: Users
+              - link "Organizations" [ref=e124] [cursor=pointer]:
+                - /url: /admin/organizations
+                - img [ref=e125]
+                - generic [ref=e129]: Organizations
+              - link "Form Builder" [ref=e130] [cursor=pointer]:
+                - /url: /admin/forms
+                - img [ref=e131]
+                - generic [ref=e134]: Form Builder
+              - link "Settings" [ref=e135] [cursor=pointer]:
+                - /url: /admin/settings
+                - img [ref=e136]
+                - generic [ref=e139]: Settings
+        - generic [ref=e141]:
+          - generic [ref=e142]: FI
+          - generic [ref=e143]:
+            - generic [ref=e144]: Dr. Farah Indah
+            - generic [ref=e145]: reviewer
+      - main [ref=e146]:
+        - generic [ref=e147]:
+          - generic [ref=e149]:
+            - button "Kembali" [ref=e150]:
+              - img
+              - text: Kembali
+            - heading "Buat Kertas Kerja Baru" [level=1] [ref=e151]
+            - paragraph [ref=e152]: Pilih risiko dan atur penandatangan untuk menghasilkan dokumen kertas kerja.
+          - generic [ref=e153]:
+            - generic [ref=e154]:
+              - generic [ref=e155]:
+                - generic [ref=e156]: Informasi Kertas Kerja
+                - generic [ref=e157]: Masukkan detail identifikasi untuk kertas kerja ini
+              - generic [ref=e158]:
+                - generic [ref=e159]:
+                  - generic [ref=e160]: Judul Kertas Kerja *
+                  - textbox "Judul Kertas Kerja *" [ref=e161]:
+                    - /placeholder: "Contoh: Kertas Kerja Manajemen Risiko IT 2024"
+                - generic [ref=e162]:
+                  - text: Deskripsi (Opsional)
+                  - textbox "Deskripsi (Opsional)" [ref=e163]:
+                    - /placeholder: Penjelasan singkat mengenai tujuan pembuatan kertas kerja ini...
+                - generic [ref=e164]:
+                  - text: Siklus Asesmen (Opsional)
+                  - textbox "Siklus Asesmen (Opsional)" [ref=e165]:
+                    - /placeholder: "Contoh: 2024"
+                    - text: "2026"
+            - generic [ref=e166]:
+              - generic [ref=e167]:
+                - generic [ref=e168]:
+                  - generic [ref=e169]: Pilih Risiko
+                  - generic [ref=e170]: Pilih risiko yang telah disetujui (minimal 1)
+                - generic [ref=e172]: 0 dipilih
+              - generic [ref=e173]:
+                - textbox "Cari judul atau kode risiko..." [ref=e175]
+                - generic [ref=e177]:
+                  - img [ref=e178]
+                  - text: Memuat daftar risiko...
+            - generic [ref=e180]:
+              - generic [ref=e181]:
+                - generic [ref=e182]:
+                  - generic [ref=e183]: Konfigurasi Penandatangan
+                  - generic [ref=e184]: Tentukan urutan penandatangan dokumen
+                - button "Tambah Baris" [ref=e185]:
+                  - img
+                  - text: Tambah Baris
+              - generic [ref=e188]:
+                - generic [ref=e189]: "1"
+                - generic [ref=e190]:
+                  - generic [ref=e191]:
+                    - generic [ref=e192]: Pengguna *
+                    - combobox [disabled] [ref=e193]:
+                      - generic: Pilih pengguna...
+                      - img
+                    - combobox [disabled] [ref=e194]
+                  - generic [ref=e195]:
+                    - generic [ref=e196]: Jabatan (saat penandatanganan) *
+                    - 'textbox "Cth: Direktur Utama" [ref=e197]'
+                  - generic [ref=e198]:
+                    - generic [ref=e199]: Peran Label *
+                    - 'textbox "Cth: Pihak Pertama" [ref=e200]': Pihak Pertama
+                - button [disabled]:
+                  - img
+            - generic [ref=e201]:
+              - button "Batal" [ref=e202]
+              - button "Buat Kertas Kerja" [ref=e203]:
+                - img
+                - text: Buat Kertas Kerja
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e209] [cursor=pointer]:
+    - img [ref=e210]
+  - alert [ref=e213]

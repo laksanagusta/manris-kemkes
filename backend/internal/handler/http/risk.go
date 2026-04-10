@@ -634,7 +634,7 @@ func (h *RiskHandler) DashboardSummary(c *fiber.Ctx) error {
 		return handleError(c, err)
 	}
 
-	return c.JSON(fiber.Map{"data": summary})
+	return c.JSON(fiber.Map{"data": summary.Summary})
 }
 
 // ActionPressure handles GET /api/dashboard/action-pressure

@@ -15,7 +15,7 @@ func (uc *UseCase) Get(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*
 		return nil, domainerrors.ErrNotFound
 	}
 
-	if !orgContains(orgIDs, wp.OrgID) {
+	if len(orgIDs) > 0 && !orgContains(orgIDs, wp.OrgID) {
 		return nil, domainerrors.ErrForbidden
 	}
 

@@ -79,11 +79,11 @@ const navigation: NavGroup[] = [
         icon: FileText,
         matchHrefs: ["/minutes", "/intelligence/transcript"],
       },
-      {
-        label: "Predictive Scoring",
-        href: "/intelligence/predictive",
-        icon: TrendingUp,
-      },
+      // {
+      //   label: "Predictive Scoring",
+      //   href: "/intelligence/predictive",
+      //   icon: TrendingUp,
+      // },
       {
         label: "Cost Benefit Analysis",
         href: "/intelligence/cba",
@@ -97,7 +97,7 @@ const navigation: NavGroup[] = [
     items: [
       { label: "Users", href: "/admin/users", icon: Users },
       { label: "Organizations", href: "/admin/organizations", icon: Building2 },
-      { label: "Form Builder", href: "/admin/forms", icon: FileText },
+      // { label: "Form Builder", href: "/admin/forms", icon: FileText },
       { label: "Settings", href: "/admin/settings", icon: Settings2 },
     ],
   },
@@ -301,9 +301,7 @@ export function AppSidebar({
                 {getInitials(user?.name)}
               </div>
             </TooltipTrigger>
-            <TooltipContent side="right">
-              {user?.name || "User"}
-            </TooltipContent>
+            <TooltipContent side="right">{user?.name || "User"}</TooltipContent>
           </Tooltip>
         )}
       </div>

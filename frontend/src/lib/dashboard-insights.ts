@@ -49,6 +49,7 @@ export type MovementChartDatum = {
 
 export type ExecutiveTrendDatum = {
   period: string;
+  medium: number;
   high: number;
   extreme: number;
   exposureScore: number;
@@ -184,7 +185,8 @@ export function buildExecutiveTrendData(risks: RiskLike[]): ExecutiveTrendDatum[
         reviewedScore: risk.reviewedScore,
       }).effective.score,
     );
-    const row = grouped.get(period) ?? { period, high: 0, extreme: 0, exposureScore: 0 };
+    const row = grouped.get(period) ?? { period, medium: 0, high: 0, extreme: 0, exposureScore: 0 };
+    if (level === "Sedang") row.medium += 1;
     if (level === "Tinggi") row.high += 1;
     if (level === "Sangat Tinggi") row.extreme += 1;
     row.exposureScore += weightFor(level);
@@ -311,6 +313,7 @@ export function buildInherentResidualTrendData(risks: RiskLike[]): InherentResid
 export type CriticalRiskRateDatum = {
   period: string;
   highExtremeRate: number;
+  mediumCount: number;
   highCount: number;
   extremeCount: number;
   totalRisks: number;
@@ -338,7 +341,8 @@ export function buildCriticalRiskRateTrendData(risks: RiskLike[]): CriticalRiskR
         reviewedScore: risk.reviewedScore,
       }).effective.score,
     );
-    const bucket = grouped.get(period) ?? { high: 0, extreme: 0, total: 0 };
+    const bucket = grouped.get(period) ?? { medium: 0, high: 0, extreme: 0, total: 0 };
+    if (level === "Sedang") bucket.medium += 1;
     if (level === "Tinggi") bucket.high += 1;
     if (level === "Sangat Tinggi") bucket.extreme += 1;
     bucket.total += 1;
@@ -349,7 +353,8 @@ export function buildCriticalRiskRateTrendData(risks: RiskLike[]): CriticalRiskR
     .sort(([a], [b]) => semesterSortValue(a) - semesterSortValue(b))
     .map(([period, bucket]) => ({
       period,
-      highExtremeRate: bucket.total > 0 ? Math.round(((bucket.high + bucket.extreme) / bucket.total) * 100) : 0,
+      highExtremeRate: bucket.total > 0 ? Math.round(((bucket.medium + bucket.high + bucket.extreme) / bucket.total) * 100) : 0,
+      mediumCount: bucket.medium,
       highCount: bucket.high,
       extremeCount: bucket.extreme,
       totalRisks: bucket.total,

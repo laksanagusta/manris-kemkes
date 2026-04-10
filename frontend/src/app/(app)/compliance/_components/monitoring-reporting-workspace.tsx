@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Activity, ClipboardCheck, ShieldAlert } from "lucide-react";
+import { ClipboardCheck, ShieldAlert } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MitigationMonitoringPanel } from "./mitigation-monitoring-panel";
 import { KRIMonitorPanel } from "./kri-monitor-panel";
@@ -97,13 +97,6 @@ export function MonitoringReportingWorkspace() {
             >
               <ClipboardCheck className="size-4" />
               Mitigasi
-            </TabsTrigger>
-            <TabsTrigger
-              value="kri"
-              className="h-full min-w-0 basis-0 gap-2 px-5 text-sm"
-            >
-              <Activity className="size-4" />
-              Key Risk Indicator
             </TabsTrigger>
           </TabsList>
         </div>

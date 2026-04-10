@@ -29,7 +29,7 @@ import { useAuth } from "@/contexts/auth-context";
 
 const breadcrumbMap: Record<string, string> = {
   "/dashboard": "Dashboard",
-  "/inbox": "Approval",
+  "/inbox": "Persetujuan",
   "/compliance": "Compliance",
   "/compliance/monitoring": "Monitoring & Reporting",
   "/compliance/kri": "Monitoring & Reporting",

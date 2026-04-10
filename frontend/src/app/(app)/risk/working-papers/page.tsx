@@ -14,6 +14,7 @@ import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -36,9 +37,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   Plus,
-  Eye,
-  Trash2,
-  XCircle,
   ChevronLeft,
   ChevronRight,
   AlertCircle,
@@ -194,13 +192,12 @@ export default function WorkingPapersPage() {
               <TableHead className="text-xs text-center w-28">Jumlah Risiko</TableHead>
               <TableHead className="text-xs text-center w-32">Progres TTE</TableHead>
               <TableHead className="text-xs w-32">Dibuat Pada</TableHead>
-              <TableHead className="text-xs w-24 text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {papers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground text-xs">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground text-xs">
                   Tidak ada kertas kerja yang ditemukan
                 </TableCell>
               </TableRow>
@@ -208,14 +205,15 @@ export default function WorkingPapersPage() {
               papers.map((wp) => {
                 const signedCount = wp.signatories?.filter((s) => s.status === 'signed').length || 0;
                 const totalSignatories = wp.signatories?.length || 0;
-                const progressText = totalSignatories > 0 ? `${signedCount}/${totalSignatories} Ditandatangani` : "-";
+                const progressPercent = totalSignatories > 0 ? (signedCount / totalSignatories) * 100 : 0;
+                const progressText = totalSignatories > 0 ? `${signedCount}/${totalSignatories}` : "-";
                 const date = new Date(wp.created_at).toLocaleDateString("id-ID", {
                   year: "numeric", month: "short", day: "numeric",
                 });
 
                 return (
                   <TableRow key={wp.id} className="border-border/30 hover:bg-muted/30 transition-colors">
-                    <TableCell className="max-w-[250px]">
+                    <TableCell className="max-w-[200px]">
                       <Link
                         href={`/risk/working-papers/${wp.id}`}
                         className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
@@ -240,42 +238,18 @@ export default function WorkingPapersPage() {
                     <TableCell className="text-center text-xs font-medium">
                       {wp.risk_snapshots?.length || 0}
                     </TableCell>
-                    <TableCell className="text-center text-xs text-muted-foreground">
-                      {progressText}
+                    <TableCell className="text-center">
+                      {totalSignatories > 0 ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <Progress value={progressPercent} className="w-16 h-1.5" />
+                          <span className="text-[10px] text-muted-foreground">{progressText}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {date}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-1">
-                        <Link href={`/risk/working-papers/${wp.id}`}>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Lihat Detail">
-                            <Eye className="size-4" />
-                          </Button>
-                        </Link>
-                        {wp.status === 'draft' && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive" 
-                            title="Hapus Draft"
-                            onClick={() => setPaperToDelete(wp)}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        )}
-                        {(wp.status === 'draft' || wp.status === 'signing') && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive" 
-                            title="Batalkan Kertas Kerja"
-                            onClick={() => setPaperToCancel(wp)}
-                          >
-                            <XCircle className="size-4" />
-                          </Button>
-                        )}
-                      </div>
                     </TableCell>
                   </TableRow>
                 );

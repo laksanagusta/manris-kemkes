@@ -20,39 +20,39 @@ const (
 
 // WorkingPaper represents a digitally-signed working paper containing risk snapshots
 type WorkingPaper struct {
-	ID                       uuid.UUID
-	Title                    string
-	Description              string
-	OrgID                    uuid.UUID
-	Status                   string // draft, signing, completed, cancelled
-	AssessmentCycle          string
-	RiskSnapshots            []RiskSnapshot
-	DocumentHash             string // SHA-256 hex of RiskSnapshots JSON
-	CurrentSignatorySequence int    // 0-based: next signatory index
-	CreatedBy                uuid.UUID
-	CreatedAt                time.Time
-	UpdatedAt                time.Time
-	CompletedAt              *time.Time
-	CancelledAt              *time.Time
+	ID                       uuid.UUID      `json:"id"`
+	Title                    string         `json:"title"`
+	Description              string         `json:"description"`
+	OrgID                    uuid.UUID      `json:"org_id"`
+	Status                   string         `json:"status"` // draft, signing, completed, cancelled
+	AssessmentCycle          string         `json:"assessment_cycle"`
+	RiskSnapshots            []RiskSnapshot `json:"risk_snapshots"`
+	DocumentHash             string         `json:"document_hash"`              // SHA-256 hex of RiskSnapshots JSON
+	CurrentSignatorySequence int            `json:"current_signatory_sequence"` // 0-based: next signatory index
+	CreatedBy                uuid.UUID      `json:"created_by"`
+	CreatedAt                time.Time      `json:"created_at"`
+	UpdatedAt                time.Time      `json:"updated_at"`
+	CompletedAt              *time.Time     `json:"completed_at,omitempty"`
+	CancelledAt              *time.Time     `json:"cancelled_at,omitempty"`
 
 	// Joined data
-	Signatories []WorkingPaperSignatory
+	Signatories []WorkingPaperSignatory `json:"signatories"`
 }
 
 // WorkingPaperSignatory represents a signer in the workflow
 type WorkingPaperSignatory struct {
-	ID              uuid.UUID
-	WorkingPaperID  uuid.UUID
-	UserID          uuid.UUID
-	SequenceNo      int // 1-based sequence order
-	SignerName      string
-	SignerNIP       string
-	SignerTitle     string
-	SignerRoleLabel string
-	Status          string // pending, signed
-	SignedAt        *time.Time
-	QRCodePNG       string          // base64 PNG
-	QRData          json.RawMessage // JSON with signing metadata
+	ID              uuid.UUID       `json:"id"`
+	WorkingPaperID  uuid.UUID       `json:"working_paper_id"`
+	UserID          uuid.UUID       `json:"user_id"`
+	SequenceNo      int             `json:"sequence_no"` // 1-based sequence order
+	SignerName      string          `json:"signer_name"`
+	SignerNIP       string          `json:"signer_nip"`
+	SignerTitle     string          `json:"signer_title"`
+	SignerRoleLabel string          `json:"signer_role_label"`
+	Status          string          `json:"status"` // pending, signed
+	SignedAt        *time.Time      `json:"signed_at,omitempty"`
+	QRCodePNG       string          `json:"qr_code_png,omitempty"` // base64 PNG
+	QRData          json.RawMessage `json:"qr_data,omitempty"`     // JSON with signing metadata
 }
 
 // RiskSnapshot captures a point-in-time risk for inclusion in the working paper

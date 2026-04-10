@@ -15,9 +15,14 @@ export const mainMenuItems: MainMenuGroup[] = [
     title: "MAIN MENU",
     items: [
       { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
-      { label: "Approval", href: "/inbox", icon: "Inbox" },
+      { label: "Persetujuan", href: "/inbox", icon: "Inbox" },
       { label: "Risk Register", href: "/risk/register", icon: "ShieldAlert" },
-      { label: "Kertas Kerja", href: "/risk/working-papers", icon: "FileSignature" },
+      { label: "Insiden", href: "/incidents", icon: "AlertTriangle" },
+      {
+        label: "Kertas Kerja",
+        href: "/risk/working-papers",
+        icon: "FileSignature",
+      },
       {
         label: "Monitoring & Updates",
         href: "/compliance/monitoring",
@@ -25,15 +30,14 @@ export const mainMenuItems: MainMenuGroup[] = [
         matchHrefs: ["/compliance/monitoring", "/compliance/kri"],
       },
       { label: "Reports & Export", href: "/reports", icon: "FileBarChart" },
-      { label: "Insiden", href: "/incidents", icon: "AlertTriangle" },
-      { label: "My Forms", href: "/forms", icon: "ClipboardList" },
+      // { label: "My Forms", href: "/forms", icon: "ClipboardList" },
     ],
   },
 ];
 
 export const breadcrumbMap: Record<string, string> = {
   "/overview": "Dashboard",
-  "/inbox": "Approval",
+  "/inbox": "Persetujuan",
   "/compliance": "Compliance",
   "/compliance/monitoring": "Monitoring & Updates",
   "/compliance/kri": "Monitoring & Updates",

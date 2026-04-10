@@ -48,7 +48,7 @@ func (r *mitigationTaskRepository) GetByID(ctx context.Context, id uuid.UUID, or
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
 		 LEFT JOIN users u ON t.reported_by = u.id
-		 WHERE t.id = $1 AND (cardinality($2::uuid[]) = 0 OR r.org_id = ANY($2::uuid[]))`, id, orgIDs,
+		 WHERE t.id = $1 AND (cardinality($2::uuid[]) = 0 OR r.organization_id = ANY($2::uuid[]))`, id, orgIDs,
 	).Scan(
 		&task.ID, &task.MitigationID, &task.RiskID,
 		&task.PeriodLabel, &task.PeriodStart, &task.PeriodEnd, &task.DueDate,
@@ -92,7 +92,7 @@ func (r *mitigationTaskRepository) ListByRisk(ctx context.Context, riskID uuid.U
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
 		 LEFT JOIN users u ON t.reported_by = u.id
-		 WHERE t.risk_id = $1 AND (cardinality($2::uuid[]) = 0 OR r.org_id = ANY($2::uuid[]))
+		 WHERE t.risk_id = $1 AND (cardinality($2::uuid[]) = 0 OR r.organization_id = ANY($2::uuid[]))
 		 ORDER BY t.due_date DESC`, riskID, orgIDs)
 }
 
@@ -109,7 +109,7 @@ func (r *mitigationTaskRepository) ListByMitigation(ctx context.Context, mitigat
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
 		 LEFT JOIN users u ON t.reported_by = u.id
-		 WHERE t.mitigation_id = $1 AND (cardinality($2::uuid[]) = 0 OR r.org_id = ANY($2::uuid[]))
+		 WHERE t.mitigation_id = $1 AND (cardinality($2::uuid[]) = 0 OR r.organization_id = ANY($2::uuid[]))
 		 ORDER BY t.due_date DESC`, mitigationID, orgIDs)
 }
 
@@ -125,7 +125,7 @@ func (r *mitigationTaskRepository) ListByUser(ctx context.Context, userID uuid.U
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
 		 LEFT JOIN users u ON t.reported_by = u.id
-		 WHERE m.owner_user_id = $1 AND (cardinality($2::uuid[]) = 0 OR r.org_id = ANY($2::uuid[]))`
+		 WHERE m.owner_user_id = $1 AND (cardinality($2::uuid[]) = 0 OR r.organization_id = ANY($2::uuid[]))`
 
 	args := []interface{}{userID, orgIDs}
 	if status != "" && status != "all" {
@@ -200,7 +200,7 @@ func (r *mitigationTaskRepository) ListAll(ctx context.Context, orgIDs []uuid.UU
 		 LEFT JOIN users u ON t.reported_by = u.id`
 
 	if len(orgIDs) > 0 {
-		return r.queryTasks(ctx, baseQuery+" WHERE r.org_id = ANY($1) ORDER BY t.due_date DESC", orgIDs)
+		return r.queryTasks(ctx, baseQuery+" WHERE r.organization_id = ANY($1) ORDER BY t.due_date DESC", orgIDs)
 	}
 	return r.queryTasks(ctx, baseQuery+" ORDER BY t.due_date DESC")
 }

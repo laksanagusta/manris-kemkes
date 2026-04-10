@@ -143,8 +143,8 @@ test("buildExecutiveTrendData keeps only high and extreme counts plus weighted e
   ]);
 
   assert.deepEqual(result, [
-    { period: "2025-H2", high: 0, extreme: 1, exposureScore: 7 },
-    { period: "2026-H1", high: 0, extreme: 1, exposureScore: 5 },
+    { period: "2025-H2", medium: 1, high: 0, extreme: 1, exposureScore: 7 },
+    { period: "2026-H1", medium: 0, high: 0, extreme: 1, exposureScore: 5 },
   ]);
 });
 
@@ -162,7 +162,7 @@ test("buildExecutiveTrendData uses approved reviewed bundles for current-state t
   ]);
 
   assert.deepEqual(result, [
-    { period: "2025-H2", high: 0, extreme: 0, exposureScore: 1 },
+    { period: "2025-H2", medium: 0, high: 0, extreme: 0, exposureScore: 1 },
   ]);
 });
 
@@ -180,7 +180,7 @@ test("buildExecutiveTrendData falls back to inherent semantics for approved part
   ]);
 
   assert.deepEqual(result, [
-    { period: "2025-H2", high: 0, extreme: 1, exposureScore: 5 },
+    { period: "2025-H2", medium: 0, high: 0, extreme: 1, exposureScore: 5 },
   ]);
 });
 
@@ -198,7 +198,7 @@ test("buildExecutiveTrendData keeps non-approved rows on inherent semantics even
   ]);
 
   assert.deepEqual(result, [
-    { period: "2025-H2", high: 0, extreme: 1, exposureScore: 5 },
+    { period: "2025-H2", medium: 0, high: 0, extreme: 1, exposureScore: 5 },
   ]);
 });
 
@@ -297,7 +297,7 @@ test("buildCriticalRiskRateTrendData uses approved reviewed bundles for current-
   ]);
 
   assert.deepEqual(result, [
-    { period: "2026-H1", highExtremeRate: 100, highCount: 0, extremeCount: 1, totalRisks: 1 },
+    { period: "2026-H1", highExtremeRate: 100, mediumCount: 0, highCount: 0, extremeCount: 1, totalRisks: 1 },
   ]);
 });
 
@@ -318,7 +318,7 @@ test("buildCriticalRiskRateTrendData keeps non-approved reviewed drafts on inher
   ]);
 
   assert.deepEqual(result, [
-    { period: "2026-H1", highExtremeRate: 0, highCount: 0, extremeCount: 0, totalRisks: 1 },
+    { period: "2026-H1", highExtremeRate: 0, mediumCount: 0, highCount: 0, extremeCount: 0, totalRisks: 1 },
   ]);
 });
 

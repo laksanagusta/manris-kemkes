@@ -1,202 +1,27 @@
-"use client";
+const fs = require('fs');
 
-import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/auth-context";
-import { toast } from "sonner";
-import {
-  WorkingPaper,
-  
-  WorkingPaperStatus,
-} from "@/types/working-paper";
-import {
-  getWorkingPaper,
-  signWorkingPaper,
-  cancelWorkingPaper,
-  deleteWorkingPaper,
-} from "@/lib/api/working-papers";
+const path = 'frontend/src/app/(app)/risk/working-papers/[id]/page.tsx';
+let content = fs.readFileSync(path, 'utf8');
 
-import {
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { FormPage, FormHeader, FormSection } from "@/components/shared/form-shell";
-
-import { cn } from "@/lib/utils";
-import {
-  CheckCircle2,
-  Circle,
-  Clock,
-  Copy,
-  Download,
-  FileSignature,
-  FileText,
-  ShieldAlert,
-  Trash2,
-  XCircle,
-} from "lucide-react";
-
-const statusVariant: Record<WorkingPaperStatus, string> = {
-  draft: "bg-muted text-muted-foreground border-border",
-  signing: "bg-amber-500/15 text-amber-700 border-amber-500/20",
-  completed: "bg-success/15 text-success border-success/20",
-  cancelled: "bg-destructive/15 text-destructive border-destructive/20",
-};
-
-const statusLabel: Record<WorkingPaperStatus, string> = {
-  draft: "Draft",
-  signing: "Proses Tanda Tangan",
-  completed: "Selesai",
-  cancelled: "Dibatalkan",
-};
-
-const levelBadgeVariant: Record<string, string> = {
-  "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
-  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
-  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi": "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
-};
-
-export default function WorkingPaperDetailPage(props: { params: Promise<{ id: string }> }) {
-  const params = use(props.params);
-  const { id } = params;
-  const router = useRouter();
-  const { token, user } = useAuth();
-  
-  const [data, setData] = useState<WorkingPaper | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [signDialogOpen, setSignDialogOpen] = useState(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  useEffect(() => {
-    if (!token) return;
-    loadData();
-  }, [token, id]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await getWorkingPaper(id, token!);
-      setData(res);
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Gagal memuat detail Kertas Kerja.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleExport = async () => {
-    if (!data) return;
-    try {
-      const { exportWorkingPaper } = await import("@/lib/working-paper-export").catch(() => {
-        throw new Error("Fitur ekspor Excel belum tersedia.");
-      });
-      await exportWorkingPaper(data);
-      toast.success("Kertas Kerja berhasil diekspor.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal mengekspor Kertas Kerja.");
-    }
-  };
-
-  const handleSign = async () => {
-    if (!token || !data) return;
-    try {
-      await signWorkingPaper(id, token);
-      toast.success("Berhasil menandatangani Kertas Kerja.");
-      setSignDialogOpen(false);
-      loadData();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal menandatangani Kertas Kerja.");
-    }
-  };
-
-  const handleCancel = async () => {
-    if (!token || !data) return;
-    try {
-      await cancelWorkingPaper(id, token);
-      toast.success("Kertas Kerja berhasil dibatalkan.");
-      setCancelDialogOpen(false);
-      loadData();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal membatalkan Kertas Kerja.");
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!token || !data) return;
-    try {
-      await deleteWorkingPaper(id, token);
-      toast.success("Kertas Kerja berhasil dihapus.");
-      setDeleteDialogOpen(false);
-      router.push("/risk/working-papers");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal menghapus Kertas Kerja.");
-    }
-  };
-
-  const copyHash = (hash: string) => {
-    navigator.clipboard.writeText(hash);
-    toast.success("Hash disalin ke clipboard");
-  };
-
-  if (loading) {
-    return (
-      <div className="p-8 text-center text-muted-foreground animate-pulse">
-        Memuat detail Kertas Kerja...
-      </div>
-    );
-  }
-
-  if (error || !data) {
-    return (
-      <div className="p-8 flex flex-col items-center justify-center gap-4">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-destructive/10 mb-4">
-          <ShieldAlert className="w-6 h-6 text-destructive" />
-        </div>
-        <h3 className="text-lg font-semibold">Gagal Memuat Data</h3>
-        <p className="text-sm text-muted-foreground max-w-md text-center">{error}</p>
-        <Button variant="outline" onClick={() => router.back()} className="mt-4">
-          Kembali
-        </Button>
-      </div>
-    );
-  }
-
-  const { signatories, status, current_signatory_sequence } = data;
-  
-  const nextSignatory = signatories.find(
-    (s) => s.sequence_no === current_signatory_sequence + 1 && s.status === 'pending'
+if (!content.includes('FormPage')) {
+  content = content.replace(
+    'import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";',
+    'import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";\nimport { FormPage, FormHeader, FormSection } from "@/components/shared/form-shell";'
   );
+}
 
-  const canSign = user && nextSignatory && nextSignatory.user_id === user.id && (status === 'draft' || status === 'signing');
-  const canCancel = status === 'draft' || status === 'signing';
-  const canDelete = status === 'draft';
+const startMarker = `  return (\n    <div className="space-y-6 animate-fade-in max-w-6xl mx-auto pb-12">`;
+const startIndex = content.indexOf(startMarker);
 
-  return (
+if (startIndex === -1) {
+  console.log("Could not find start marker");
+  process.exit(1);
+}
+
+// Find the last `  );` before the final `}`
+const lastReturnEnd = content.lastIndexOf('  );\n}');
+
+const newReturn = `  return (
     <FormPage className="max-w-7xl">
       <FormHeader
         title={data.title}
@@ -474,5 +299,8 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
         </AlertDialogContent>
       </AlertDialog>
     </FormPage>
-  );
-}
+  );`;
+
+content = content.substring(0, startIndex) + newReturn + '\n}';
+fs.writeFileSync(path, content);
+console.log('done');

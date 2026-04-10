@@ -53,8 +53,9 @@ import { resolveRiskScoreSemantics } from "@/lib/risk";
 import { cn } from "@/lib/utils";
 
 const executiveTrendLegend = [
-  { key: "high", color: "oklch(0.70 0.18 40)", label: "High" },
-  { key: "extreme", color: "oklch(0.62 0.22 27)", label: "Extreme" },
+  { key: "medium", color: "oklch(0.75 0.15 75)", label: "Sedang" },
+  { key: "high", color: "oklch(0.70 0.18 40)", label: "Tinggi" },
+  { key: "extreme", color: "oklch(0.62 0.22 27)", label: "Sangat Tinggi" },
   {
     key: "exposureScore",
     color: "oklch(0.55 0.05 260 / 35%)",
@@ -101,6 +102,7 @@ export default function DashboardPage() {
   const [trendData, setTrendData] = useState<
     Array<{
       period: string;
+      medium: number;
       high: number;
       extreme: number;
       exposureScore: number;
@@ -486,7 +488,7 @@ export default function DashboardPage() {
                   Risk Trend
                 </CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Eksposur high/extreme per semester
+                  Eksposur sedang/tinggi/sangat tinggi per semester
                 </p>
               </div>
               <div className="flex items-center gap-4">
@@ -548,6 +550,12 @@ export default function DashboardPage() {
                     />
                     <Bar
                       yAxisId="left"
+                      dataKey="medium"
+                      fill="oklch(0.75 0.15 75)"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      yAxisId="left"
                       dataKey="high"
                       fill="oklch(0.70 0.18 40)"
                       radius={[4, 4, 0, 0]}
@@ -569,8 +577,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Belum ada data semester untuk menghitung eksposur high dan
-                extreme.
+                Belum ada data semester untuk menghitung eksposur risiko.
               </div>
             )}
           </CardContent>

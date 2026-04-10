@@ -60,7 +60,7 @@ export function CriticalRiskRateTrend({
               Tingkat Risiko Kritis
             </CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              Persentase risiko Tinggi + Sangat Tinggi dari total risiko per
+              Persentase risiko Sedang + Tinggi + Sangat Tinggi dari total risiko per
               semester
             </p>
           </div>
@@ -131,7 +131,7 @@ export function CriticalRiskRateTrend({
                     labelFormatter={(label) => {
                       const item = data.find((d) => d.period === label);
                       if (!item) return String(label);
-                      return `${label} — ${item.highCount} tinggi, ${item.extremeCount} sangat tinggi dari ${item.totalRisks} total`;
+                      return `${label} — ${item.mediumCount} sedang, ${item.highCount} tinggi, ${item.extremeCount} sangat tinggi dari ${item.totalRisks} total`;
                     }}
                     contentStyle={{
                       background: "oklch(0.98 0.003 170 / 95%)",
@@ -169,7 +169,7 @@ export function CriticalRiskRateTrend({
                   style={{ background: RATE_COLOR }}
                 />
                 <span className="text-[10px] text-muted-foreground">
-                  % Tinggi + Sangat Tinggi
+                  % Sedang + Tinggi + Sangat Tinggi
                 </span>
               </div>
             </div>

@@ -311,8 +311,7 @@ func (r *workingPaperRepository) UpdateSignatory(ctx context.Context, sig *entit
 
 // GetPendingSigningByUserID retrieves working papers pending the given user's signature
 func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, userID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.WorkingPaper, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT wp.id, wp.title, wp.description, wp.org_id, wp.status, wp.assessment_cycle,
+	query := `SELECT wp.id, wp.title, wp.description, wp.org_id, wp.status, wp.assessment_cycle,
 		        wp.risk_snapshots, wp.document_hash, wp.current_signatory_sequence, wp.created_by,
 		        wp.created_at, wp.updated_at, wp.completed_at, wp.cancelled_at
 		 FROM working_papers wp
@@ -320,10 +319,20 @@ func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, 
 		 WHERE wp.status IN ('draft', 'signing')
 		   AND wps.user_id = $1
 		   AND wps.sequence_no = wp.current_signatory_sequence + 1
-		   AND wps.status = 'pending'
-		   AND wp.org_id = ANY($2)
-		 ORDER BY wp.created_at DESC`, userID, orgIDs,
-	)
+		   AND wps.status = 'pending'`
+
+	args := []interface{}{userID}
+	argIdx := 2
+
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND wp.org_id = ANY($%d)", argIdx)
+		args = append(args, orgIDs)
+		argIdx++
+	}
+
+	query += " ORDER BY wp.created_at DESC"
+
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("get pending signing by user id: %w", err)
 	}

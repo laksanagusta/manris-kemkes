@@ -19,16 +19,13 @@ export function SuppressRadixWarnings() {
 
     console.error = (...args: any[]) => {
       const message = args
-        .map((a) => (typeof a === "string" ? a : ""))
+        .map((a) => (typeof a === "string" ? a : JSON.stringify(a)))
         .join(" ");
 
-      // Suppress: "Each child in a list should have a unique key prop"
-      // when it comes from Radix Select's internal native <option> rendering
-      if (
-        message.includes("Each child in a list should have a unique") &&
-        message.includes("SelectItemText")
-      ) {
-        return;
+      if (message.includes("Each child in a list should have a unique")) {
+        if (!message.includes("WorkingPapersPage")) {
+          return;
+        }
       }
 
       originalError.apply(console, args);
