@@ -21,6 +21,7 @@ import {
   Bot,
   Calculator,
   Building2,
+  FileSignature,
 } from "lucide-react";
 import { mainMenuItems } from "@/lib/app-navigation";
 import {
@@ -57,6 +58,7 @@ const iconMap: Record<string, React.ElementType> = {
   FileBarChart,
   AlertTriangle,
   ClipboardList,
+  FileSignature,
 };
 
 const navigation: NavGroup[] = [

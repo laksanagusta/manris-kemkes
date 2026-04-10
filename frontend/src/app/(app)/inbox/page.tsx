@@ -9,6 +9,7 @@ import {
   BarChart3,
   Check,
   Clock,
+  FileSignature,
   FileText,
   Loader2,
   Search,
@@ -77,7 +78,20 @@ interface KRIReportReview {
   submittedAt: string;
 }
 
-type InboxItem = ApprovalRequest | KRIReportReview;
+interface WorkingPaperSigningItem {
+  id: string;
+  requestType: "working_paper";
+  workingPaperId: string;
+  title: string;
+  description: string;
+  assessmentCycle: string;
+  sequenceNo: number;
+  signerRoleLabel: string;
+  status: "pending_signing";
+  createdAt: string;
+}
+
+type InboxItem = ApprovalRequest | KRIReportReview | WorkingPaperSigningItem;
 
 const statusVariant: Record<string, string> = {
   pending: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
@@ -85,6 +99,7 @@ const statusVariant: Record<string, string> = {
   rejected: "bg-destructive/15 text-destructive border-destructive/20",
   submitted: "bg-amber-100 text-amber-700 border-amber-200",
   revision_requested: "bg-orange-100 text-orange-700 border-orange-200",
+  pending_signing: "bg-blue-100 text-blue-700 border-blue-200",
 };
 
 const statusLabel: Record<string, string> = {
@@ -93,6 +108,7 @@ const statusLabel: Record<string, string> = {
   rejected: "Ditolak",
   submitted: "Menunggu Review",
   revision_requested: "Revisi Diminta",
+  pending_signing: "Menunggu TTE",
 };
 
 const requestTypeConfig: Record<
@@ -113,6 +129,11 @@ const requestTypeConfig: Record<
     icon: BarChart3,
     label: "Laporan KRI",
     href: (id, kriId) => `/compliance/kri/${kriId}`,
+  },
+  working_paper: {
+    icon: FileSignature,
+    label: "Kertas Kerja",
+    href: (id) => `/risk/working-papers/${id}`,
   },
 };
 
@@ -137,6 +158,31 @@ async function getKRIReportReviewQueue(token: string): Promise<KRIReportReview[]
   }));
 }
 
+async function getWorkingPaperSigningItems(token: string): Promise<WorkingPaperSigningItem[]> {
+  const response = await api.get<{
+    id: string;
+    working_paper_id: string;
+    title: string;
+    description: string;
+    assessment_cycle: string;
+    sequence_no: number;
+    signer_role_label: string;
+    created_at: string;
+  }[]>("/working-papers/pending-signing", token);
+  return response.map((item) => ({
+    id: item.id,
+    requestType: "working_paper" as const,
+    workingPaperId: item.working_paper_id ?? item.id,
+    title: item.title,
+    description: item.description ?? "",
+    assessmentCycle: item.assessment_cycle ?? "",
+    sequenceNo: item.sequence_no ?? 1,
+    signerRoleLabel: item.signer_role_label ?? "",
+    status: "pending_signing" as const,
+    createdAt: item.created_at,
+  }));
+}
+
 export default function InboxPage() {
   const searchParams = useSearchParams();
   const { token } = useAuth();
@@ -147,9 +193,9 @@ export default function InboxPage() {
     }
     return "all";
   });
-  const [typeFilter, setTypeFilter] = useState<"all" | "risk" | "incident" | "kri_report">(() => {
+  const [typeFilter, setTypeFilter] = useState<"all" | "risk" | "incident" | "kri_report" | "working_paper">(() => {
     const value = searchParams.get("type");
-    return value === "risk" || value === "incident" || value === "kri_report" ? value : "all";
+    return value === "risk" || value === "incident" || value === "kri_report" || value === "working_paper" ? value : "all";
   });
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [requests, setRequests] = useState<InboxItem[]>([]);
@@ -178,11 +224,12 @@ export default function InboxPage() {
     try {
       setLoading(true);
       setError(null);
-      const [approvals, kriReports] = await Promise.all([
+      const [approvals, kriReports, wpSigningItems] = await Promise.all([
         getApprovalRequests(token),
         getKRIReportReviewQueue(token),
+        getWorkingPaperSigningItems(token).catch(() => []),
       ]);
-      setRequests([...approvals, ...kriReports]);
+      setRequests([...approvals, ...kriReports, ...wpSigningItems]);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Gagal memuat daftar persetujuan.");
@@ -201,7 +248,7 @@ export default function InboxPage() {
     } else {
       setFilter("all");
     }
-    setTypeFilter(queryType === "risk" || queryType === "incident" || queryType === "kri_report" ? queryType : "all");
+    setTypeFilter(queryType === "risk" || queryType === "incident" || queryType === "kri_report" || queryType === "working_paper" ? queryType : "all");
     setSearch(querySearch ?? "");
   }, [searchParams]);
 
@@ -215,11 +262,12 @@ export default function InboxPage() {
       try {
         setLoading(true);
         setError(null);
-        const [approvals, kriReports] = await Promise.all([
+        const [approvals, kriReports, wpSigningItems] = await Promise.all([
           getApprovalRequests(token),
           getKRIReportReviewQueue(token),
+          getWorkingPaperSigningItems(token).catch(() => []),
         ]);
-        setRequests([...approvals, ...kriReports]);
+        setRequests([...approvals, ...kriReports, ...wpSigningItems]);
       } catch (err) {
         console.error(err);
         setError(err instanceof Error ? err.message : "Gagal memuat daftar persetujuan.");
@@ -235,6 +283,9 @@ export default function InboxPage() {
     if (item.requestType === "kri_report") {
       return (item as KRIReportReview).status;
     }
+    if (item.requestType === "working_paper") {
+      return (item as WorkingPaperSigningItem).status;
+    }
     return (item as ApprovalRequest).currentStatus;
   };
 
@@ -246,17 +297,21 @@ export default function InboxPage() {
           const kriItem = item as KRIReportReview;
           return kriItem.status === "submitted";
         }
+        if (item.requestType === "working_paper") {
+          return true; // WP signing items are always pending
+        }
         const approvalItem = item as ApprovalRequest;
         return approvalItem.currentStatus === "pending" && approvalItem.currentApproverRole === "reviewer";
       }).length,
       pendingApproval: requests.filter((item) => {
         if (item.requestType === "kri_report") return false;
+        if (item.requestType === "working_paper") return false;
         const approvalItem = item as ApprovalRequest;
         return approvalItem.currentStatus === "pending" && approvalItem.currentApproverRole === "pimpinan";
       }).length,
-      pending: requests.filter((item) => item.requestType !== "kri_report" && (item as ApprovalRequest).currentStatus === "pending").length + requests.filter((item) => item.requestType === "kri_report" && (item as KRIReportReview).status === "submitted").length,
-      approved: requests.filter((item) => item.requestType !== "kri_report" && (item as ApprovalRequest).currentStatus === "approved").length,
-      rejected: requests.filter((item) => item.requestType !== "kri_report" && (item as ApprovalRequest).currentStatus === "rejected").length,
+      pending: requests.filter((item) => item.requestType !== "kri_report" && item.requestType !== "working_paper" && (item as ApprovalRequest).currentStatus === "pending").length + requests.filter((item) => item.requestType === "kri_report" && (item as KRIReportReview).status === "submitted").length + requests.filter((item) => item.requestType === "working_paper").length,
+      approved: requests.filter((item) => item.requestType !== "kri_report" && item.requestType !== "working_paper" && (item as ApprovalRequest).currentStatus === "approved").length,
+      rejected: requests.filter((item) => item.requestType !== "kri_report" && item.requestType !== "working_paper" && (item as ApprovalRequest).currentStatus === "rejected").length,
     }),
     [requests]
   );
@@ -268,19 +323,24 @@ export default function InboxPage() {
         if (item.requestType === "kri_report") {
           const kriItem = item as KRIReportReview;
           if (kriItem.status !== "submitted") return false;
+        } else if (item.requestType === "working_paper") {
+          // WP signing items always show under "Menunggu Review"
         } else {
           const approvalItem = item as ApprovalRequest;
           if (approvalItem.currentStatus !== "pending" || approvalItem.currentApproverRole !== "reviewer") return false;
         }
       } else if (filter === "pending_approval") {
         if (item.requestType === "kri_report") return false;
+        if (item.requestType === "working_paper") return false;
         const approvalItem = item as ApprovalRequest;
         if (approvalItem.currentStatus !== "pending" || approvalItem.currentApproverRole !== "pimpinan") return false;
       } else if (filter === "approved") {
         if (item.requestType === "kri_report") return false;
+        if (item.requestType === "working_paper") return false;
         if ((item as ApprovalRequest).currentStatus !== filter) return false;
       } else if (filter === "rejected") {
         if (item.requestType === "kri_report") return false;
+        if (item.requestType === "working_paper") return false;
         if ((item as ApprovalRequest).currentStatus !== filter) return false;
       }
 
@@ -299,6 +359,18 @@ export default function InboxPage() {
           kriItem.riskTitle,
           kriItem.periodLabel,
           kriItem.submittedByName,
+        ]
+          .filter(Boolean)
+          .some((value) => value!.toLowerCase().includes(keyword));
+      }
+
+      if (item.requestType === "working_paper") {
+        const wpItem = item as WorkingPaperSigningItem;
+        return [
+          wpItem.title,
+          wpItem.description,
+          wpItem.assessmentCycle,
+          wpItem.signerRoleLabel,
         ]
           .filter(Boolean)
           .some((value) => value!.toLowerCase().includes(keyword));
@@ -458,6 +530,7 @@ export default function InboxPage() {
                 <SelectItem value="risk">Risiko</SelectItem>
                 <SelectItem value="incident">Insiden</SelectItem>
                 <SelectItem value="kri_report">Laporan KRI</SelectItem>
+                <SelectItem value="working_paper">Kertas Kerja</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -491,22 +564,52 @@ export default function InboxPage() {
                 const Icon = typeConfig.icon;
                 const status = getStatus(item);
                 const isKRIReport = item.requestType === "kri_report";
+                const isWorkingPaper = item.requestType === "working_paper";
                 const kriItem = isKRIReport ? item as KRIReportReview : null;
-                const approvalItem = !isKRIReport ? item as ApprovalRequest : null;
+                const wpItem = isWorkingPaper ? item as WorkingPaperSigningItem : null;
+                const approvalItem = !isKRIReport && !isWorkingPaper ? item as ApprovalRequest : null;
                 const isRisk = item.requestType === "risk";
 const canAction = isKRIReport 
   ? kriItem!.status === "submitted" 
-  : (approvalItem!.currentStatus === "pending" && !isRisk);
+  : isWorkingPaper
+    ? false
+    : (approvalItem!.currentStatus === "pending" && !isRisk);
 
-                const displayCode = isKRIReport ? kriItem!.riskCode : approvalItem!.entityCode;
-                const displayTitle = isKRIReport ? kriItem!.kriName : approvalItem!.entityTitle;
+                const displayCode = isKRIReport
+                  ? kriItem!.riskCode
+                  : isWorkingPaper
+                    ? `KK-${wpItem!.workingPaperId.slice(0, 6)}`
+                    : approvalItem!.entityCode;
+                const displayTitle = isKRIReport
+                  ? kriItem!.kriName
+                  : isWorkingPaper
+                    ? wpItem!.title
+                    : approvalItem!.entityTitle;
                 const displaySubtitle = isKRIReport
                   ? `${kriItem!.periodLabel} • Nilai: ${kriItem!.value !== null ? kriItem!.value : "—"} ${kriItem!.kriMetric || ""}`
-                  : (approvalItem!.notes || `Menunggu review ${approvalItem!.currentApproverRole}`);
-                const displayOrg = isKRIReport ? kriItem!.riskTitle : approvalItem!.entityOrgName;
-                const displayRequester = isKRIReport ? kriItem!.submittedByName : approvalItem!.requestedByName;
-                const displayDate = isKRIReport ? kriItem!.submittedAt : approvalItem!.requestedAt;
-                const entityId = isKRIReport ? kriItem!.id : approvalItem!.entityId;
+                  : isWorkingPaper
+                    ? `Penandatangan #${wpItem!.sequenceNo} (${wpItem!.signerRoleLabel})`
+                    : (approvalItem!.notes || `Menunggu review ${approvalItem!.currentApproverRole}`);
+                const displayOrg = isKRIReport
+                  ? kriItem!.riskTitle
+                  : isWorkingPaper
+                    ? wpItem!.assessmentCycle || "—"
+                    : approvalItem!.entityOrgName;
+                const displayRequester = isKRIReport
+                  ? kriItem!.submittedByName
+                  : isWorkingPaper
+                    ? "Sistem"
+                    : approvalItem!.requestedByName;
+                const displayDate = isKRIReport
+                  ? kriItem!.submittedAt
+                  : isWorkingPaper
+                    ? wpItem!.createdAt
+                    : approvalItem!.requestedAt;
+                const entityId = isKRIReport
+                  ? kriItem!.id
+                  : isWorkingPaper
+                    ? wpItem!.workingPaperId
+                    : approvalItem!.entityId;
                 const extraId = isKRIReport ? kriItem!.kriId : undefined;
 
                 return (
@@ -541,7 +644,7 @@ const canAction = isKRIReport
                     <TableCell>
                       <div>
                         <p className="text-xs font-medium">{displayRequester || "System"}</p>
-                        {!isKRIReport && (
+                        {!isKRIReport && !isWorkingPaper && (
                           <p className="mt-0.5 text-[10px] text-muted-foreground capitalize">
                             Approver: {approvalItem!.currentApproverRole || "-"}
                           </p>
@@ -566,7 +669,19 @@ const canAction = isKRIReport
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        {canAction ? (
+                        {isWorkingPaper ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="h-7 gap-1.5 px-2 text-xs"
+                          >
+                            <Link href={`/risk/working-papers/${wpItem!.workingPaperId}`}>
+                              <FileSignature className="size-3" />
+                              Tanda Tangan
+                            </Link>
+                          </Button>
+                        ) : canAction ? (
                           isKRIReport ? (
                             <>
                               <Button

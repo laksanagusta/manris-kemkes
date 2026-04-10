@@ -15,9 +15,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!token) return;
-    api.get<{ Count: number }>("/approvals/pending-count", token)
-      .then((data) => setInboxCount(data.Count ?? 0))
-      .catch(() => {});
+    Promise.all([
+      api.get<{ Count: number }>("/approvals/pending-count", token).catch(() => ({ Count: 0 })),
+      api.get<{ count: number }>("/working-papers/pending-count", token).catch(() => ({ count: 0 })),
+    ]).then(([approvals, wp]) => {
+      setInboxCount((approvals.Count ?? 0) + (wp.count ?? 0));
+    });
   }, [token]);
 
   return (

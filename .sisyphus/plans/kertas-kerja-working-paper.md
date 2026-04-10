@@ -198,7 +198,7 @@ Max Concurrent: 5 (Wave 2)
 
 ## TODOs
 
-- [ ] 1. Database Migration — Working Paper Tables
+- [x] 1. Database Migration — Working Paper Tables
 
   **What to do**:
   - Create `backend/db/migrations/000031_working_papers.up.sql` with:
@@ -319,7 +319,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `backend/db/migrations/000031_working_papers.up.sql`, `backend/db/migrations/000031_working_papers.down.sql`
   - Pre-commit: `cd backend && make migrate-up`
 
-- [ ] 2. Backend Domain Entities + Repository Interface
+- [x] 2. Backend Domain Entities + Repository Interface
 
   **What to do**:
   - Create `backend/internal/domain/entity/working_paper.go`:
@@ -434,7 +434,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `backend/internal/domain/entity/working_paper.go`, `backend/internal/domain/repository/working_paper.go`
   - Pre-commit: `cd backend && go build ./...`
 
-- [ ] 3. Backend QR Code + Document Hash Utilities
+- [x] 3. Backend QR Code + Document Hash Utilities
 
   **What to do**:
   - Add `github.com/skip2/go-qrcode` to `backend/go.mod`: run `go get github.com/skip2/go-qrcode`
@@ -520,7 +520,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `backend/internal/pkg/qrcode/qrcode.go`, `backend/internal/pkg/hash/hash.go`, `backend/go.mod`, `backend/go.sum`
   - Pre-commit: `cd backend && go build ./...`
 
-- [ ] 4. Frontend TypeScript Types + API Client + Sidebar Navigation
+- [x] 4. Frontend TypeScript Types + API Client + Sidebar Navigation
 
   **What to do**:
   - Create `frontend/src/types/working-paper.ts`:
@@ -647,7 +647,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `frontend/src/types/working-paper.ts`, `frontend/src/lib/api/working-papers.ts`, `frontend/src/app-navigation.ts`
   - Pre-commit: `cd frontend && npm run build`
 
-- [ ] 5. Backend Postgres Repository Implementation
+- [x] 5. Backend Postgres Repository Implementation
 
   **What to do**:
   - Create `backend/internal/repository/postgres/working_paper.go`:
@@ -770,7 +770,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `backend/internal/repository/postgres/working_paper.go`
   - Pre-commit: `cd backend && go build ./...`
 
-- [ ] 6. Frontend Working Paper List Page
+- [x] 6. Frontend Working Paper List Page
 
   **What to do**:
   - Create `frontend/src/app/(app)/risk/working-papers/page.tsx`:
@@ -887,7 +887,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `frontend/src/app/(app)/risk/working-papers/page.tsx`
   - Pre-commit: `cd frontend && npm run build`
 
-- [ ] 7. Frontend Create Page — Risk Picker + Signatory Configuration
+- [x] 7. Frontend Create Page — Risk Picker + Signatory Configuration
 
   **What to do**:
   - Create `frontend/src/app/(app)/risk/working-papers/new/page.tsx`:
@@ -1039,7 +1039,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `frontend/src/app/(app)/risk/working-papers/new/page.tsx`
   - Pre-commit: `cd frontend && npm run build`
 
-- [ ] 8. Frontend Excel Export — 3 Government Document Templates
+- [x] 8. Frontend Excel Export — 3 Government Document Templates
 
   **What to do**:
   - Create `frontend/src/lib/working-paper-export.ts`:
@@ -1173,7 +1173,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `frontend/src/lib/working-paper-export.ts`
   - Pre-commit: `cd frontend && npm run build`
 
-- [ ] 9. Frontend Detail/Signing Page
+- [x] 9. Frontend Detail/Signing Page
 
   **What to do**:
   - Create `frontend/src/app/(app)/risk/working-papers/[id]/page.tsx`:
@@ -1322,7 +1322,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `frontend/src/app/(app)/risk/working-papers/[id]/page.tsx`
   - Pre-commit: `cd frontend && npm run build`
 
-- [ ] 10. Backend Usecases — Create + List + Get + Delete
+- [x] 10. Backend Usecases — Create + List + Get + Delete
 
   **What to do**:
   - Create `backend/internal/usecase/workingpaper/` directory
@@ -1461,7 +1461,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `backend/internal/usecase/workingpaper/usecase.go`, `backend/internal/usecase/workingpaper/create.go`, `backend/internal/usecase/workingpaper/list.go`, `backend/internal/usecase/workingpaper/get.go`, `backend/internal/usecase/workingpaper/delete.go`
   - Pre-commit: `cd backend && go build ./...`
 
-- [ ] 11. Backend Usecase — Sign Working Paper (Sequential Signing with QR)
+- [x] 11. Backend Usecase — Sign Working Paper (Sequential Signing with QR)
 
   **What to do**:
   - Create `backend/internal/usecase/workingpaper/sign.go`:
@@ -1610,7 +1610,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `backend/internal/usecase/workingpaper/sign.go`, `backend/internal/usecase/workingpaper/cancel.go`, `backend/internal/usecase/workingpaper/usecase.go` (updated)
   - Pre-commit: `cd backend && go build ./...`
 
-- [ ] 12. Frontend Inbox Integration — Working Paper Signing Notifications
+- [x] 12. Frontend Inbox Integration — Working Paper Signing Notifications
 
   **What to do**:
   - Update `frontend/src/app/(app)/inbox/page.tsx`:
@@ -1724,7 +1724,7 @@ Max Concurrent: 5 (Wave 2)
   - Files: `frontend/src/app/(app)/inbox/page.tsx`, optionally `frontend/src/components/app-header.tsx`, `frontend/src/components/app-sidebar.tsx`
   - Pre-commit: `cd frontend && npm run build`
 
-- [ ] 13. Backend HTTP Handlers + Route Registration
+- [x] 13. Backend HTTP Handlers + Route Registration
 
   **What to do**:
   - Create `backend/internal/handler/http/working_paper.go`:
@@ -1925,19 +1925,19 @@ Max Concurrent: 5 (Wave 2)
 > 4 review agents run in PARALLEL. ALL must APPROVE. Present consolidated results to user and get explicit "okay" before completing.
 > **Do NOT auto-proceed after verification. Wait for user's explicit approval before marking work complete.**
 
-- [ ] F1. **Plan Compliance Audit** — `oracle`
+- [x] F1. **Plan Compliance Audit** — `oracle`
   Read the plan end-to-end. For each "Must Have": verify implementation exists (read file, curl endpoint, run command). For each "Must NOT Have": search codebase for forbidden patterns — reject with file:line if found. Check evidence files exist in .sisyphus/evidence/. Compare deliverables against plan.
   Output: `Must Have [N/N] | Must NOT Have [N/N] | Tasks [N/N] | VERDICT: APPROVE/REJECT`
 
-- [ ] F2. **Code Quality Review** — `unspecified-high`
+- [x] F2. **Code Quality Review** — `unspecified-high`
   Run `go vet ./...` + `go build ./...` in backend. Run `npm run build` in frontend. Review all changed files for: `as any`/`@ts-ignore`, empty catches, console.log in prod, commented-out code, unused imports. Check AI slop: excessive comments, over-abstraction, generic names. Verify Clean Architecture boundaries (no handler importing repository directly).
   Output: `Build [PASS/FAIL] | Vet [PASS/FAIL] | Frontend Build [PASS/FAIL] | Files [N clean/N issues] | VERDICT`
 
-- [ ] F3. **Real Manual QA** — `unspecified-high` (+ `playwright` skill for UI)
+- [x] F3. **Real Manual QA** — `unspecified-high` (+ `playwright` skill for UI)
   Start from clean state. Run migration. Start backend. Start frontend. Execute EVERY QA scenario from EVERY task — follow exact steps, capture evidence. Test cross-task integration: create working paper → sign sequentially → export Excel → verify inbox. Save to `.sisyphus/evidence/final-qa/`.
   Output: `Scenarios [N/N pass] | Integration [N/N] | Edge Cases [N tested] | VERDICT`
 
-- [ ] F4. **Scope Fidelity Check** — `deep`
+- [x] F4. **Scope Fidelity Check** — `deep`
   For each task: read "What to do", read actual files created/modified. Verify 1:1 — everything in spec was built, nothing beyond spec. Check "Must NOT do" compliance: no changes to approval tables, no PDF generation, no frontend QR library. Detect unplanned changes to existing files. Flag any scope creep.
   Output: `Tasks [N/N compliant] | Scope Creep [CLEAN/N issues] | Unaccounted [CLEAN/N files] | VERDICT`
 

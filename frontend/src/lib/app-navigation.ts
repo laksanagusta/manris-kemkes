@@ -17,6 +17,7 @@ export const mainMenuItems: MainMenuGroup[] = [
       { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
       { label: "Approval", href: "/inbox", icon: "Inbox" },
       { label: "Risk Register", href: "/risk/register", icon: "ShieldAlert" },
+      { label: "Kertas Kerja", href: "/risk/working-papers", icon: "FileSignature" },
       {
         label: "Monitoring & Updates",
         href: "/compliance/monitoring",
@@ -41,6 +42,8 @@ export const breadcrumbMap: Record<string, string> = {
   "/risk/register": "Risk Register",
   "/risk/new": "New Risk",
   "/risk/history": "Risk History",
+  "/risk/working-papers": "Kertas Kerja",
+  "/risk/working-papers/new": "Buat Kertas Kerja",
   "/controls": "Control Library",
   "/monitoring/overdue": "Overdue",
   "/lessons": "Lessons Learned",

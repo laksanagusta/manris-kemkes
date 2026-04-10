@@ -41,6 +41,7 @@ import (
 	systemuc "github.com/manris/backend/internal/usecase/system"
 	systemsettinguc "github.com/manris/backend/internal/usecase/system_setting"
 	useruc "github.com/manris/backend/internal/usecase/user"
+	workingpaperusecase "github.com/manris/backend/internal/usecase/workingpaper"
 )
 
 func main() {
@@ -76,6 +77,7 @@ func main() {
 	domainFormAssignmentRepo := postgresrepo.NewFormAssignmentRepository(pool)
 	domainFormResponseRepo := postgresrepo.NewFormResponseRepository(pool)
 	domainExternalPICRepo := postgresrepo.NewExternalPICRepository(pool)
+	domainWPRepo := postgresrepo.NewWorkingPaperRepository(pool)
 
 	// Domain services
 	orgHierarchySvc := domainsvc.NewOrganizationHierarchy(domainOrgRepo)
@@ -248,6 +250,9 @@ func main() {
 	formListResponsesUC := formusecase.NewListResponsesUseCase(domainFormRepo, domainFormResponseRepo)
 	formAnalyticsUC := formusecase.NewFormAnalyticsUseCase(domainFormRepo, domainFormResponseRepo)
 
+	// Working Paper usecases
+	wpUseCase := workingpaperusecase.NewWorkingPaperUseCase(domainWPRepo, domainRiskRepo)
+
 	// Report usecases
 	generateReportUC := reportuc.NewGenerateReportUseCase(domainRiskRepo, domainIncidentRepo, domainKRiRepo)
 	pdfReportRenderer := reportpdf.NewPDFReportRenderer()
@@ -345,6 +350,8 @@ func main() {
 	cleanExternalPICHandler := httpHandler.NewExternalPICHandler(
 		externalextPICGetOrCreateUC, externalextPICListUC, externalextPICDeleteUC,
 	)
+
+	wpHandler := httpHandler.NewWorkingPaperHandler(wpUseCase, domainWPRepo)
 
 	// Fiber app
 	app := fiber.New(fiber.Config{
@@ -550,6 +557,16 @@ func main() {
 	protected.Post("/forms/:id/responses", cleanFormHandler.SubmitResponse)
 	protected.Get("/forms/:id/responses", cleanFormHandler.ListResponses)
 	protected.Get("/forms/:id/analytics", cleanFormHandler.Analytics)
+
+	// Working Papers — static routes MUST come before /:id
+	protected.Get("/working-papers", wpHandler.List)
+	protected.Get("/working-papers/pending-count", wpHandler.GetPendingSigningCount)
+	protected.Get("/working-papers/pending-signing", wpHandler.ListPendingSigning)
+	protected.Post("/working-papers", wpHandler.Create)
+	protected.Get("/working-papers/:id", wpHandler.Get)
+	protected.Delete("/working-papers/:id", wpHandler.Delete)
+	protected.Post("/working-papers/:id/sign", wpHandler.Sign)
+	protected.Post("/working-papers/:id/cancel", wpHandler.Cancel)
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
