@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { filterToAccessibleOrgs } from "@/lib/organization";
 import { useAuth } from "@/contexts/auth-context";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -747,7 +748,7 @@ export default function RiskInputPage() {
             id: org.id || org.ID,
             name: org.name || org.Name,
           }));
-          const filtered = user?.isGlobal ? normalized : normalized.filter(org => user?.accessibleOrgIds?.includes(org.id));
+          const filtered = user?.isGlobal ? normalized : filterToAccessibleOrgs(normalized as any, user?.accessibleOrgIds || []);
           setOrganizations(filtered);
         } catch (err) {
           console.error(err);

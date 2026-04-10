@@ -109,7 +109,7 @@ func (uc *UpdateControlUseCase) Execute(ctx context.Context, input UpdateControl
 
 	// 2. Validate linked risk if changed
 	if input.RiskID != nil {
-		_, err := uc.riskRepo.GetByID(ctx, *input.RiskID, nil)
+		_, err := uc.riskRepo.GetByID(ctx, *input.RiskID, orgIDs)
 		if err != nil {
 			return nil, errors.Wrap(err, "linked risk not found")
 		}

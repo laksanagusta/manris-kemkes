@@ -3,6 +3,7 @@ package kri
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -200,6 +201,85 @@ func TestUpdateKRIParentCannotUpdateChildOwned(t *testing.T) {
 	}, scope.AccessibleOrgIDs, scope)
 	if !errors.IsForbidden(err) {
 		t.Fatalf("expected ErrForbidden, got %v", err)
+	}
+}
+
+type scopeAwareKRIRiskRepo struct {
+	scopeKRIRiskRepo
+	item *entity.Risk
+}
+
+func (r *scopeAwareKRIRiskRepo) GetByID(_ context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Risk, error) {
+	if r.item == nil || r.item.ID != id {
+		return nil, fmt.Errorf("not found")
+	}
+	if orgIDs != nil {
+		found := false
+		for _, oid := range orgIDs {
+			if r.item.OrganizationID != nil && oid == *r.item.OrganizationID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("not found")
+		}
+	}
+	copy := *r.item
+	return &copy, nil
+}
+
+func TestKRIUpdateRejectsSiblingLinkedRisk(t *testing.T) {
+	userOrg := uuid.New()
+	siblingOrg := uuid.New()
+	kriID := uuid.New()
+	riskID := uuid.New()
+	amberMax := 85.0
+
+	kriRepo := &scopeKRIRepo{item: &entity.KRI{
+		ID:                kriID,
+		Name:              "Test KRI",
+		Metric:            "%",
+		ThresholdMin:      0,
+		ThresholdMax:      100,
+		CurrentValue:      50,
+		Direction:         "higher_worse",
+		Frequency:         "monthly",
+		AmberThresholdMax: &amberMax,
+		OrganizationID:    &userOrg,
+	}}
+
+	riskRepo := &scopeAwareKRIRiskRepo{item: &entity.Risk{
+		ID:             riskID,
+		OrganizationID: &siblingOrg,
+	}}
+
+	scope := &entity.AccessScope{
+		UserID:           uuid.New(),
+		Role:             "unit",
+		OrganizationID:   &userOrg,
+		AccessibleOrgIDs: []uuid.UUID{userOrg},
+	}
+
+	uc := NewUpdateKRIUseCase(kriRepo, riskRepo, &scopeKRIOrgRepo{})
+	_, err := uc.Execute(context.Background(), UpdateKRIInput{
+		ID:             kriID,
+		RiskID:         riskID,
+		Name:           "Updated KRI",
+		Description:    "desc",
+		Metric:         "%",
+		ThresholdMin:   0,
+		ThresholdMax:   100,
+		CurrentValue:   50,
+		Direction:      "higher_worse",
+		Frequency:      "monthly",
+		OrganizationID: &userOrg,
+	}, scope.AccessibleOrgIDs, scope)
+	if err == nil {
+		t.Fatal("expected error for cross-org linked risk, got nil")
+	}
+	if !strings.Contains(err.Error(), "linked risk not found") {
+		t.Fatalf("expected 'linked risk not found' error, got: %v", err)
 	}
 }
 

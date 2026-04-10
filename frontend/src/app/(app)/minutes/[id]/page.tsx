@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { deleteMeetingMinute, getMeetingMinute } from "@/lib/meeting-minutes";
 import type { MeetingMinuteWithRisks } from "@/types/meeting-minute";
 import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
@@ -23,7 +24,7 @@ import { toast } from "sonner";
 
 export default function MeetingMinuteDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [minutes, setMinutes] = useState<MeetingMinuteWithRisks | null>(null);
@@ -119,13 +120,15 @@ export default function MeetingMinuteDetailPage() {
           </>
         }
         actions={
-          <Button
-            variant="outline"
-            className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => setShowDeleteConfirm(true)}
-          >
-            <Trash2 className="size-4" /> Hapus Notulen
-          </Button>
+          !isReadOnlyForOrg(user, minutes.organizationId || "") ? (
+            <Button
+              variant="outline"
+              className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 className="size-4" /> Hapus Notulen
+            </Button>
+          ) : undefined
         }
         onBack={() => router.back()}
       />

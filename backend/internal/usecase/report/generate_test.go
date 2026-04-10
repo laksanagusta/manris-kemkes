@@ -287,6 +287,103 @@ func TestGenerateReportUseCase_ExecuteKeepsFallbackAndDraftIsolationCompatible(t
 	}
 }
 
+func TestReportExcludesSiblingOrgData(t *testing.T) {
+	orgA := uuid.New()
+	orgB := uuid.New()
+
+	riskA := approvedRiskWithReviewedBundle("R-ORGA", "OrgA Risk", entity.RiskCategoryOperasional, "2026-H1", 3, 3, 9, 3, 3, 9)
+	riskB := approvedRiskWithReviewedBundle("R-ORGB", "OrgB Risk", entity.RiskCategoryOperasional, "2026-H1", 4, 4, 16, 4, 4, 16)
+
+	incidentA := &entity.Incident{ID: uuid.New(), Title: "OrgA Incident", LinkedRiskID: &riskA.ID, OrganizationID: &orgA}
+	incidentB := &entity.Incident{ID: uuid.New(), Title: "OrgB Incident", LinkedRiskID: &riskB.ID, OrganizationID: &orgB}
+
+	kriA := &entity.KRI{ID: uuid.New(), RiskID: riskA.ID, Name: "OrgA KRI", OrganizationID: &orgA}
+	kriB := &entity.KRI{ID: uuid.New(), RiskID: riskB.ID, Name: "OrgB KRI", OrganizationID: &orgB}
+
+	riskRepo := &fakeReportRiskRepo{
+		listCycleSnapshot: func(_ context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
+			if cycle != "2026-H1" {
+				return nil, nil
+			}
+			return []*entity.Risk{riskA}, nil
+		},
+		listApprovedRisks: func(_ context.Context, _ []uuid.UUID) ([]*entity.Risk, error) {
+			return []*entity.Risk{riskA}, nil
+		},
+	}
+
+	incidentRepo := &fakeReportIncidentRepo{
+		list: func(_ context.Context, orgIDs []uuid.UUID) ([]*entity.Incident, error) {
+			if len(orgIDs) == 0 {
+				t.Fatal("incidentRepo.List called with nil/empty orgIDs — data leak")
+			}
+			var result []*entity.Incident
+			allowed := make(map[uuid.UUID]struct{}, len(orgIDs))
+			for _, id := range orgIDs {
+				allowed[id] = struct{}{}
+			}
+			for _, inc := range []*entity.Incident{incidentA, incidentB} {
+				if inc.OrganizationID != nil {
+					if _, ok := allowed[*inc.OrganizationID]; ok {
+						result = append(result, inc)
+					}
+				}
+			}
+			return result, nil
+		},
+	}
+
+	kriRepo := &fakeReportKRIRepo{
+		list: func(_ context.Context, orgIDs []uuid.UUID, _ bool) ([]*entity.KRI, error) {
+			if len(orgIDs) == 0 {
+				t.Fatal("kriRepo.List called with nil/empty orgIDs — data leak")
+			}
+			var result []*entity.KRI
+			allowed := make(map[uuid.UUID]struct{}, len(orgIDs))
+			for _, id := range orgIDs {
+				allowed[id] = struct{}{}
+			}
+			for _, kri := range []*entity.KRI{kriA, kriB} {
+				if kri.OrganizationID != nil {
+					if _, ok := allowed[*kri.OrganizationID]; ok {
+						result = append(result, kri)
+					}
+				}
+			}
+			return result, nil
+		},
+	}
+
+	uc := NewGenerateReportUseCase(riskRepo, incidentRepo, kriRepo)
+	report, err := uc.Execute(context.Background(), GenerateReportInput{
+		Cycle:  "2026-H1",
+		OrgIDs: []uuid.UUID{orgA},
+	})
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	// Verify only orgA incidents are present
+	for _, inc := range report.Incidents {
+		if inc.OrganizationID != nil && *inc.OrganizationID == orgB {
+			t.Fatalf("report contains sibling org B incident %q — data leak", inc.Title)
+		}
+	}
+	if len(report.Incidents) != 1 || report.Incidents[0].Title != "OrgA Incident" {
+		t.Fatalf("Incidents = %v, want exactly 1 OrgA Incident", report.Incidents)
+	}
+
+	// Verify only orgA KRIs are present
+	for _, kri := range report.KRIs {
+		if kri.OrganizationID != nil && *kri.OrganizationID == orgB {
+			t.Fatalf("report contains sibling org B KRI %q — data leak", kri.Name)
+		}
+	}
+	if len(report.KRIs) != 1 || report.KRIs[0].Name != "OrgA KRI" {
+		t.Fatalf("KRIs = %v, want exactly 1 OrgA KRI", report.KRIs)
+	}
+}
+
 func approvedRiskWithReviewedBundle(code string, title string, category string, cycle string, probability int, impact int, inherentScore int, reviewedProbability int, reviewedImpact int, reviewedScore int) *entity.Risk {
 	reviewedWeight := 1.0
 	reviewedNilai := float64(reviewedScore)

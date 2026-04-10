@@ -67,12 +67,12 @@ func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateRepo
 		topRisks = topRisks[:10]
 	}
 
-	incidents, err := uc.filterIncidentsByRiskIDs(ctx, riskIDs)
+	incidents, err := uc.filterIncidentsByRiskIDs(ctx, riskIDs, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load incidents")
 	}
 
-	kris, err := uc.filterKRIsByRiskIDs(ctx, riskIDs)
+	kris, err := uc.filterKRIsByRiskIDs(ctx, riskIDs, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load kris")
 	}
@@ -150,8 +150,8 @@ func (uc *GenerateReportUseCase) buildHeatmap(risks []*entity.Risk) [5][5]int {
 	return heatmap
 }
 
-func (uc *GenerateReportUseCase) filterIncidentsByRiskIDs(ctx context.Context, riskIDs map[uuid.UUID]struct{}) ([]*entity.Incident, error) {
-	allIncidents, err := uc.incidentRepo.List(ctx, nil)
+func (uc *GenerateReportUseCase) filterIncidentsByRiskIDs(ctx context.Context, riskIDs map[uuid.UUID]struct{}, orgIDs []uuid.UUID) ([]*entity.Incident, error) {
+	allIncidents, err := uc.incidentRepo.List(ctx, orgIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -174,8 +174,8 @@ func (uc *GenerateReportUseCase) filterIncidentsByRiskIDs(ctx context.Context, r
 	return filtered, nil
 }
 
-func (uc *GenerateReportUseCase) filterKRIsByRiskIDs(ctx context.Context, riskIDs map[uuid.UUID]struct{}) ([]*entity.KRI, error) {
-	allKRIs, err := uc.kriRepo.List(ctx, nil, false)
+func (uc *GenerateReportUseCase) filterKRIsByRiskIDs(ctx context.Context, riskIDs map[uuid.UUID]struct{}, orgIDs []uuid.UUID) ([]*entity.KRI, error) {
+	allKRIs, err := uc.kriRepo.List(ctx, orgIDs, false)
 	if err != nil {
 		return nil, err
 	}

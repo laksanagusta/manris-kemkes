@@ -3,6 +3,7 @@ package control
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -192,6 +193,74 @@ func TestUpdateControlParentCannotUpdateChildOwned(t *testing.T) {
 	}, scope.AccessibleOrgIDs, scope)
 	if !errors.IsForbidden(err) {
 		t.Fatalf("expected ErrForbidden, got %v", err)
+	}
+}
+
+type scopeAwareCtrlRiskRepo struct {
+	scopeCtrlRiskRepo
+	item *entity.Risk
+}
+
+func (r *scopeAwareCtrlRiskRepo) GetByID(_ context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Risk, error) {
+	if r.item == nil || r.item.ID != id {
+		return nil, fmt.Errorf("not found")
+	}
+	if orgIDs != nil {
+		found := false
+		for _, oid := range orgIDs {
+			if r.item.OrganizationID != nil && oid == *r.item.OrganizationID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("not found")
+		}
+	}
+	copy := *r.item
+	return &copy, nil
+}
+
+func TestControlUpdateRejectsSiblingLinkedRisk(t *testing.T) {
+	userOrg := uuid.New()
+	siblingOrg := uuid.New()
+	controlID := uuid.New()
+	riskID := uuid.New()
+
+	controlRepo := &scopeControlRepo{item: &entity.Control{
+		ID:             controlID,
+		Code:           "C-001",
+		Name:           "Test Control",
+		Type:           "preventive",
+		OrganizationID: &userOrg,
+	}}
+
+	riskRepo := &scopeAwareCtrlRiskRepo{item: &entity.Risk{
+		ID:             riskID,
+		OrganizationID: &siblingOrg,
+	}}
+
+	scope := &entity.AccessScope{
+		UserID:           uuid.New(),
+		Role:             "unit",
+		OrganizationID:   &userOrg,
+		AccessibleOrgIDs: []uuid.UUID{userOrg},
+	}
+
+	uc := NewUpdateControlUseCase(controlRepo, riskRepo, &scopeCtrlOrgRepo{})
+	_, err := uc.Execute(context.Background(), UpdateControlInput{
+		ID:             controlID,
+		RiskID:         &riskID,
+		Code:           "C-001",
+		Name:           "Updated",
+		Type:           "preventive",
+		OrganizationID: &userOrg,
+	}, scope.AccessibleOrgIDs, scope)
+	if err == nil {
+		t.Fatal("expected error for cross-org linked risk, got nil")
+	}
+	if !strings.Contains(err.Error(), "linked risk not found") {
+		t.Fatalf("expected 'linked risk not found' error, got: %v", err)
 	}
 }
 

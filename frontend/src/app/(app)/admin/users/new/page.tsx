@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { filterToAccessibleOrgs } from "@/lib/organization";
 import { useAuth } from "@/contexts/auth-context";
 import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,7 @@ export default function NewUserPage() {
     api
       .get<{ id: string; name: string }[]>("/organizations", token)
       .then((res) => {
-        const filtered = user?.isGlobal ? res : res.filter(org => user?.accessibleOrgIds?.includes(org.id));
+        const filtered = user?.isGlobal ? res : filterToAccessibleOrgs(res as any, user?.accessibleOrgIds || []);
         setOrganizations(filtered);
       })
       .catch(console.error);

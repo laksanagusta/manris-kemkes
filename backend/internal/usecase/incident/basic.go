@@ -112,7 +112,7 @@ func (uc *UpdateIncidentUseCase) Execute(ctx context.Context, input UpdateIncide
 	}
 
 	for _, riskID := range linkedRiskIDs {
-		_, err := uc.riskRepo.GetByID(ctx, riskID, nil)
+		_, err := uc.riskRepo.GetByID(ctx, riskID, orgIDs)
 		if err != nil {
 			return nil, errors.Wrap(err, "linked risk not found")
 		}

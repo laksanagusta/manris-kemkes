@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { CalendarDays, FileText, Loader2, Plus, Search, Trash2, Users } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth-context";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { deleteMeetingMinute, listMeetingMinutes } from "@/lib/meeting-minutes";
 import type { MeetingMinute } from "@/types/meeting-minute";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +33,7 @@ import {
 
 export default function MinutesPage() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [items, setItems] = useState<MeetingMinute[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -192,15 +193,17 @@ export default function MinutesPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => setMinuteToDelete(minute)}
-                        >
-                          <Trash2 className="size-3" />
-                        </Button>
+                        {!isReadOnlyForOrg(user, minute.organizationId || "") && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => setMinuteToDelete(minute)}
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

@@ -1,8 +1,56 @@
 {
   "active_plan": "/Users/dikalaksana/Engineering/manris-v2/.sisyphus/plans/org-rbac-scope.md",
   "started_at": "2026-04-09T14:00:00.000Z",
-  "session_ids": [],
+  "session_ids": [
+    "ses_28b291758ffe46x97aev4Je0Q6",
+    "ses_28ac6a9d7ffeyklCKcfiV905zQ",
+    "ses_28ac65f93ffeToR26pwntFDNYG",
+    "ses_28abf927bffemkyR9O5EuTDgf4",
+    "ses_28abf2415ffeGzmHLh5ECyCM33",
+    "ses_28ab6be6ffferDhJxP4bcI2x7n",
+    "ses_28aabf093ffeXngbOq2tVLejsB",
+    "ses_28aac664effe7aaT4U6UtONzKV",
+    "ses_28aac1931ffebBgg6wfG7yJyT3",
+    "ses_28aab93e0ffepyZXs1pFM3eOCv"
+  ],
   "plan_name": "org-rbac-scope",
   "agent": "atlas",
-  "task_sessions": {}
+  "task_sessions": {
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "Enforce org scope for risks, executive dashboards, and report generation",
+      "session_id": "ses_28ac6a9d7ffeyklCKcfiV905zQ",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-10T02:32:11.192Z"
+    },
+    "todo:7": {
+      "task_key": "todo:7",
+      "task_label": "7",
+      "task_title": "Enforce org scope for forms and meeting minutes",
+      "session_id": "ses_28abf927bffemkyR9O5EuTDgf4",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-10T02:41:21.254Z"
+    },
+    "todo:9": {
+      "task_key": "todo:9",
+      "task_label": "9",
+      "task_title": "Add focused regression coverage and leakage checks across the RBAC boundary",
+      "session_id": "ses_28ab6be6ffferDhJxP4bcI2x7n",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-10T02:56:45.525Z"
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "Plan Compliance Audit — oracle",
+      "session_id": "ses_28aab93e0ffepyZXs1pFM3eOCv",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-10T03:04:03.741Z"
+    }
+  }
 }

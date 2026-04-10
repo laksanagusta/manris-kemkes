@@ -3,6 +3,7 @@ package incident
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -176,6 +177,80 @@ func TestUpdateIncidentParentCannotUpdateChildOwned(t *testing.T) {
 	}, scope.AccessibleOrgIDs, scope)
 	if !errors.IsForbidden(err) {
 		t.Fatalf("expected ErrForbidden, got %v", err)
+	}
+}
+
+type scopeAwareRiskRepo struct {
+	scopeRiskRepo
+	item *entity.Risk
+}
+
+func (r *scopeAwareRiskRepo) GetByID(_ context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Risk, error) {
+	if r.item == nil || r.item.ID != id {
+		return nil, fmt.Errorf("not found")
+	}
+	if orgIDs != nil {
+		found := false
+		for _, oid := range orgIDs {
+			if r.item.OrganizationID != nil && oid == *r.item.OrganizationID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("not found")
+		}
+	}
+	copy := *r.item
+	return &copy, nil
+}
+
+func TestIncidentUpdateRejectsSiblingLinkedRisk(t *testing.T) {
+	userOrg := uuid.New()
+	siblingOrg := uuid.New()
+	incidentID := uuid.New()
+	riskID := uuid.New()
+
+	incidentRepo := &scopeIncidentRepo{item: &entity.Incident{
+		ID:             incidentID,
+		Title:          "Test",
+		What:           "what",
+		Who:            "who",
+		Where:          "where",
+		Severity:       "minor",
+		Status:         "open",
+		OrganizationID: &userOrg,
+	}}
+
+	riskRepo := &scopeAwareRiskRepo{item: &entity.Risk{
+		ID:             riskID,
+		OrganizationID: &siblingOrg,
+	}}
+
+	scope := &entity.AccessScope{
+		UserID:           uuid.New(),
+		Role:             "unit",
+		OrganizationID:   &userOrg,
+		AccessibleOrgIDs: []uuid.UUID{userOrg},
+	}
+
+	uc := NewUpdateIncidentUseCase(incidentRepo, riskRepo)
+	_, err := uc.Execute(context.Background(), UpdateIncidentInput{
+		ID:             incidentID,
+		Title:          "Updated",
+		What:           "what",
+		Who:            "who",
+		Where:          "where",
+		Severity:       "minor",
+		Status:         "open",
+		LinkedRiskIDs:  []string{riskID.String()},
+		OrganizationID: &userOrg,
+	}, scope.AccessibleOrgIDs, scope)
+	if err == nil {
+		t.Fatal("expected error for cross-org linked risk, got nil")
+	}
+	if !strings.Contains(err.Error(), "linked risk not found") {
+		t.Fatalf("expected 'linked risk not found' error, got: %v", err)
 	}
 }
 

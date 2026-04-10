@@ -106,7 +106,7 @@ func (uc *UpdateKRIUseCase) Execute(ctx context.Context, input UpdateKRIInput, o
 	}
 
 	// 2. Validate linked risk
-	_, err = uc.riskRepo.GetByID(ctx, input.RiskID, nil)
+	_, err = uc.riskRepo.GetByID(ctx, input.RiskID, orgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "linked risk not found")
 	}

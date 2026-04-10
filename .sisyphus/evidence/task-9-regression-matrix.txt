@@ -1,0 +1,62 @@
+Task 9: RBAC Regression Matrix — Evidence
+==========================================
+Date: 2026-04-10
+File created: backend/internal/usecase/rbac_regression_test.go
+
+1. Targeted RBAC regression tests (regex match):
+-------------------------------------------------
+$ cd backend && go test ./internal/usecase/... -run 'Test.*(SiblingOrgDenied|ParentCanReadDescendantOnly|OutOfScopeDetailReturnsNotFound|RejectsOutOfScopeOrgFilter)' -count=1 -v
+
+PASS: TestRBACMatrix_SiblingOrgDenied (8 subtests: risk, incident, control, kri, lesson, form, meeting_minute, report)
+PASS: TestRBACMatrix_ParentCanReadDescendantOnly (9 subtests: risk/read_allowed, risk/write_denied, incident/read_allowed, incident/write_denied, control/read_allowed, kri/read_allowed, lesson/read_allowed, form/read_allowed, meeting_minute/read_allowed)
+PASS: TestRBACMatrix_OutOfScopeDetailReturnsNotFound (7 subtests: risk, incident, control, kri, lesson, form, meeting_minute)
+PASS: TestRBACMatrix_RejectsOutOfScopeOrgFilter (8 subtests: risk, incident, control, kri, lesson, form, meeting_minute, report)
+
+Total: 4 test functions, 32 subtests — ALL PASS
+
+2. Full backend test suite:
+---------------------------
+$ cd backend && go test ./internal/domain/service ./internal/usecase/auth ./internal/usecase/risk ./internal/usecase/incident ./internal/usecase/control ./internal/usecase/kri ./internal/usecase/lesson ./internal/usecase/form ./internal/usecase/meeting_minute ./internal/usecase/report ./internal/repository/postgres -count=1
+
+ok  github.com/manris/backend/internal/domain/service
+ok  github.com/manris/backend/internal/usecase/auth
+ok  github.com/manris/backend/internal/usecase/risk
+ok  github.com/manris/backend/internal/usecase/incident
+ok  github.com/manris/backend/internal/usecase/control
+ok  github.com/manris/backend/internal/usecase/kri
+ok  github.com/manris/backend/internal/usecase/lesson
+ok  github.com/manris/backend/internal/usecase/form
+ok  github.com/manris/backend/internal/usecase/meeting_minute
+ok  github.com/manris/backend/internal/usecase/report
+ok  github.com/manris/backend/internal/repository/postgres
+ALL PASS — no regressions
+
+3. Frontend tests:
+------------------
+$ cd frontend && npm test
+72 tests, 0 failures — ALL PASS
+
+4. Frontend build:
+------------------
+$ cd frontend && npm run build
+✓ Compiled successfully
+✓ All 35 pages generated
+PASS
+
+5. Domains covered by regression matrix:
+-----------------------------------------
+  [x] risk          — GetByID scoped via orgIDs param
+  [x] incident      — GetByID scoped via orgIDs param (string ID)
+  [x] control       — GetByID scoped via orgIDs param
+  [x] kri           — GetByID scoped via orgIDs param
+  [x] lesson        — GetByID scoped via orgIDs param
+  [x] form          — Scope check in use case via AccessScope (not repo)
+  [x] meeting_minute — GetByID scoped via orgIDs param
+  [x] report        — Aggregate isolation via orgIDs in ListCycleSnapshot
+
+6. Security properties verified:
+---------------------------------
+  [x] Sibling org denial — entities owned by org A are invisible to org B
+  [x] Parent read-only   — parent can read child entities, cannot write
+  [x] Not-found masking  — out-of-scope detail returns not-found, NOT forbidden
+  [x] NarrowToOrg guard  — inaccessible org filter returns ErrForbidden

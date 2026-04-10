@@ -101,7 +101,7 @@ Wave 3: T9 focused regression coverage and leak checks
 > Implementation + Test = ONE task. Never separate.
 > EVERY task MUST have: Agent Profile + Parallelization + QA Scenarios.
 
-- [ ] 1. Build the backend access-scope contract
+- [x] 1. Build the backend access-scope contract
 
   **What to do**: Introduce a shared backend authorization contract (for example `AccessScope`) that is resolved once per protected request from JWT locals + organization hierarchy. The contract must contain authenticated user ID, raw role, normalized role, root organization ID, and descendant `accessible_org_ids`. Normalize current role aliases so `superadmin`, `super_admin`, and `admin` do not diverge in enforcement code. Extend the authenticated user shape returned to the frontend (`/auth/me` and login response if needed) with the minimum org-scope metadata required for UI consistency; do not expose write inheritance because phase 1 is read-only only.
   **Must NOT do**: Do not add multi-org membership, org switching, or delegated-admin rules. Do not leave protected requests working with a nil org scope unless the endpoint is explicitly marked out of scope for phase 1.
@@ -148,7 +148,7 @@ Wave 3: T9 focused regression coverage and leak checks
 
   **Commit**: YES | Message: `feat(auth): add request-scoped organization access context` | Files: [backend/internal/middleware/auth.go, backend/internal/domain/service/*, backend/internal/usecase/auth/*, backend/internal/domain/entity/user.go]
 
-- [ ] 2. Make protected repository and usecase reads scope-aware by default
+- [x] 2. Make protected repository and usecase reads scope-aware by default
 
   **What to do**: Change the protected backend access pattern so direct-object reads cannot bypass organization scope. For protected business-data repositories (risks, incidents, controls, KRIs, lessons, meeting minutes, forms where applicable), make `GetByID`-style access scope-aware by accepting accessible org IDs directly or by introducing a single shared scoped-read helper that the usecase must call before returning data. Use the stricter option: change protected repository detail methods to require `orgIDs []uuid.UUID` and update usecases to pass the resolved access scope. For create/update/delete paths, validate the target record’s org ownership with scoped detail reads before performing mutation; do not rely on UI or handler filtering.
   **Must NOT do**: Do not leave old unscoped `GetByID` calls on protected paths. Do not change mutation semantics so parent users gain inherited write/delete/approve access.
@@ -197,7 +197,7 @@ Wave 3: T9 focused regression coverage and leak checks
 
   **Commit**: YES | Message: `refactor(authz): require scoped detail reads for protected resources` | Files: [backend/internal/domain/repository/*, backend/internal/usecase/incident/*, backend/internal/usecase/control/*, backend/internal/usecase/kri/*, backend/internal/usecase/lesson/*, backend/internal/usecase/meeting_minute/*]
 
-- [ ] 3. Route protected handlers through server-derived org scope and narrowing-only filters
+- [x] 3. Route protected handlers through server-derived org scope and narrowing-only filters
 
   **What to do**: Update protected HTTP handlers and usecase inputs so authorization is derived from the authenticated access scope, not from client-provided `org_id`. When a request omits `org_id`, use the authenticated root org and descendants automatically. When a request provides `org_id`, validate that it belongs to the caller’s `accessible_org_ids`; if valid, treat it as a narrowing filter, not a privilege expansion. Return `403` for explicit out-of-scope org filter requests, but continue using `404`-style behavior for direct protected object access. Keep organization master-data endpoints (`organization/list`, user/org administration) out of this wave except for whatever auth payload support is required by T1.
   **Must NOT do**: Do not remove useful narrowing filters for legitimate descendants. Do not retrofit unrelated admin master-data flows into the same wave.
@@ -243,7 +243,7 @@ Wave 3: T9 focused regression coverage and leak checks
 
   **Commit**: YES | Message: `refactor(authz): derive protected org filters from auth scope` | Files: [backend/internal/handler/http/*, backend/internal/usecase/risk/*, backend/internal/usecase/incident/*, backend/internal/usecase/control/*, backend/internal/usecase/kri/*, backend/internal/usecase/lesson/*, backend/internal/usecase/meeting_minute/*]
 
-- [ ] 4. Enforce org scope for risks, executive dashboards, and report generation
+- [x] 4. Enforce org scope for risks, executive dashboards, and report generation
 
   **What to do**: Apply the scoped access contract to all risk-centric user-facing flows. Keep existing list-style org filtering, but ensure risk detail reads, review queues, approved-risk lists, and any dashboard/report queries derive `orgIDs` from the authenticated access scope. Replace the current `nil` org usage in executive dashboard and report generation with scoped descendant org IDs so counts, heatmaps, trend lines, and top-risk outputs cannot leak sibling-org data. Where repo dashboard methods currently lack org parameters, add scoped variants and route user-facing calls through them. If a method truly must remain global for a non-user-facing internal path, document it as internal-only and keep it off protected routes.
   **Must NOT do**: Do not keep any user-facing risk analytics path on `nil` org scope. Do not let parent users mutate or approve child-owned risks in this wave.
@@ -288,7 +288,7 @@ Wave 3: T9 focused regression coverage and leak checks
 
   **Commit**: YES | Message: `fix(risk): enforce org scope on detail dashboard and reports` | Files: [backend/internal/usecase/risk/*, backend/internal/usecase/report/*, backend/internal/domain/repository/risk.go, backend/internal/repository/postgres/risk.go]
 
-- [ ] 5. Enforce org scope for incidents, including summaries and linked-risk validation
+- [x] 5. Enforce org scope for incidents, including summaries and linked-risk validation
 
   **What to do**: Make incident detail, list, update, delete, and summary flows use the shared access scope. Scoped detail reads must gate update/delete paths. Incident summary counters must accept only authenticated/narrowed descendant org scope, not arbitrary org strings. When an incident references linked risks, validate that those linked risks are also readable within the same accessible org scope so a parent cannot attach sibling-org risks or mutate descendant data outside phase-1 rules.
   **Must NOT do**: Do not preserve any path where incident existence is checked globally before authorization. Do not allow cross-org linked-risk references through update flows.
@@ -332,7 +332,7 @@ Wave 3: T9 focused regression coverage and leak checks
 
   **Commit**: YES | Message: `fix(incident): enforce org scope on detail and mutation flows` | Files: [backend/internal/usecase/incident/*, backend/internal/repository/postgres/incident.go]
 
-- [ ] 6. Enforce org scope for controls, KRIs, and lessons
+- [x] 6. Enforce org scope for controls, KRIs, and lessons
 
   **What to do**: Apply the same scoped-read and read-only inheritance policy to controls, KRIs, and lessons. Their list/dashboard paths already accept org descendants, but detail/update/delete flows still use global existence checks. Update these domains so detail reads, dashboard metrics, and mutations all derive from access scope. For KRI/control flows that validate linked risks or organizations, ensure those validations also stay inside accessible descendants. Keep create/update/delete/approve semantics local to the owning org in phase 1.
   **Must NOT do**: Do not stop at list endpoints. Do not treat parent read inheritance as permission to update descendant compliance data.
@@ -376,7 +376,7 @@ Wave 3: T9 focused regression coverage and leak checks
 
   **Commit**: YES | Message: `fix(compliance): enforce org scope on controls kris and lessons` | Files: [backend/internal/usecase/control/*, backend/internal/usecase/kri/*, backend/internal/usecase/lesson/*, backend/internal/repository/postgres/control.go, backend/internal/repository/postgres/kri.go, backend/internal/repository/postgres/lesson.go]
 
-- [ ] 7. Enforce org scope for forms and meeting minutes
+- [x] 7. Enforce org scope for forms and meeting minutes
 
   **What to do**: Harden the remaining org-sensitive flows that are neither classic CRUD nor pure dashboards. For forms, replace the current special-case admin bypass with the shared access-scope policy, then make descendant read visibility explicit: parent users may read child-assigned and child-created forms, but create/update/publish/assignment actions remain limited to the form-owning organization only in this wave. For meeting minutes, route organization filtering through access scope so list/detail access cannot be widened via raw `OrganizationID`, `CreatedBy`, or `RiskID` combinations.
   **Must NOT do**: Do not keep `super_admin`/`admin` global-read shortcuts for protected business data. Do not let meeting-minute filters combine into sibling-org leakage.
@@ -418,7 +418,7 @@ Wave 3: T9 focused regression coverage and leak checks
 
   **Commit**: YES | Message: `fix(forms): scope form and meeting-minute access by organization` | Files: [backend/internal/usecase/form/*, backend/internal/usecase/meeting_minute/*, backend/internal/repository/postgres/form.go, backend/internal/repository/postgres/meeting_minute.go]
 
-- [ ] 8. Align frontend auth state and UI behavior with backend org scope
+- [x] 8. Align frontend auth state and UI behavior with backend org scope
 
   **What to do**: Update frontend auth/session handling to consume the backend-provided org-scope metadata from T1 and make UI behavior consistent with backend enforcement. The frontend must treat backend org scope as authoritative: default list/detail screens should request data without forcing users to choose an org first, render only the authenticated org subtree as available filter options, and mark descendant data as read-only for parent users. Use the existing organization tree helpers to display descendant choices safely; never allow the UI to construct sibling-org filters. Keep security server-side, but remove misleading UI affordances that would always fail because of org boundaries.
   **Must NOT do**: Do not introduce client-only authorization logic. Do not let the frontend invent additional org scope beyond what `/auth/me` returns.
@@ -462,7 +462,7 @@ Wave 3: T9 focused regression coverage and leak checks
 
   **Commit**: YES | Message: `feat(frontend): align auth session and org-scoped UI behavior` | Files: [frontend/src/contexts/auth-context.tsx, frontend/src/lib/organization.ts, frontend/src/types/*, frontend/src/app/**/*]
 
-- [ ] 9. Add focused regression coverage and leakage checks across the RBAC boundary
+- [x] 9. Add focused regression coverage and leakage checks across the RBAC boundary
 
   **What to do**: Add a final targeted regression layer that proves organization isolation across the most leak-prone paths: scoped detail access, sibling-org denial, parent descendant read-only behavior, dashboard aggregate isolation, report isolation, filter narrowing, and frontend scope rendering. Use the existing backend Go test patterns and frontend `node --test` setup. Add one concise smoke-test matrix that names each protected domain so future contributors can detect a missing org-scope hook quickly.
   **Must NOT do**: Do not add a brand-new e2e framework in this wave. Do not rely only on domain-local tests without a cross-domain leakage matrix.
@@ -511,10 +511,10 @@ Wave 3: T9 focused regression coverage and leak checks
 > 4 review agents run in PARALLEL. ALL must APPROVE. Present consolidated results to user and get explicit "okay" before completing.
 > **Do NOT auto-proceed after verification. Wait for user's explicit approval before marking work complete.**
 > **Never mark F1-F4 as checked before getting user's okay.** Rejection or user feedback -> fix -> re-run -> present again -> wait for okay.
-- [ ] F1. Plan Compliance Audit — oracle
-- [ ] F2. Code Quality Review — unspecified-high
-- [ ] F3. Real Manual QA — unspecified-high (+ playwright if UI)
-- [ ] F4. Scope Fidelity Check — deep
+- [x] F1. Plan Compliance Audit — oracle
+- [x] F2. Code Quality Review — unspecified-high
+- [x] F3. Real Manual QA — unspecified-high (+ playwright if UI)
+- [x] F4. Scope Fidelity Check — deep
 
 ## Commit Strategy
 - Use atomic commits aligned to T1-T9; do not combine unrelated domains in one commit.

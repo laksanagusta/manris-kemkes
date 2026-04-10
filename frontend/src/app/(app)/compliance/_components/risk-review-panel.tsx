@@ -7,6 +7,7 @@ import { AlertCircle, ArrowRight, CalendarClock, CheckCircle2, Clock3, Minus, Re
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { filterToAccessibleOrgs } from "@/lib/organization";
 import type { HeatmapCell, RiskCycleComparisonItem, RiskReviewQueueItem, RiskReviewStatus, RiskReviewSummary } from "@/types/risk";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -122,7 +123,7 @@ export function RiskReviewPanel() {
 		const uniqueOrgs = dedupeOrganizations(data);
 		const filteredOrgs = user?.isGlobal 
 		  ? uniqueOrgs 
-		  : uniqueOrgs.filter(org => user?.accessibleOrgIds?.includes(org.id));
+		  : filterToAccessibleOrgs(uniqueOrgs as any, user?.accessibleOrgIds || []);
 		setOrganizations(filteredOrgs);
 	  } catch (error) {
 		console.error(error);

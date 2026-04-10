@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { filterToAccessibleOrgs } from "@/lib/organization";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { classifyRiskCycleDetailMovement, exportRiskCycleDetailCSV, exportRiskCycleDetailXLSX } from "@/lib/risk-cycle-detail-export";
@@ -293,7 +294,7 @@ export function RiskCycleDetailReport({
         const uniqueOrgs = dedupeOrganizations(data);
         const filteredOrgs = user?.isGlobal 
           ? uniqueOrgs 
-          : uniqueOrgs.filter(org => user?.accessibleOrgIds?.includes(org.id));
+          : filterToAccessibleOrgs(uniqueOrgs as any, user?.accessibleOrgIds || []);
         setOrganizations(filteredOrgs);
       } catch (error) {
         console.error(error);
