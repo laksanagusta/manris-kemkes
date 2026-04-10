@@ -25,5 +25,9 @@ func (uc *UseCase) List(ctx context.Context, orgIDs []uuid.UUID, status string, 
 		return nil, 0, domainerrors.Wrap(err, "failed to list working papers")
 	}
 
+	if wps == nil {
+		wps = make([]*entity.WorkingPaper, 0)
+	}
+
 	return wps, total, nil
 }

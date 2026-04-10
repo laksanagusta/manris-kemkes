@@ -83,8 +83,8 @@ export default function WorkingPapersPage() {
         page,
         limit,
       });
-      setPapers(res.data);
-      setTotal(res.total);
+      setPapers(res.data ?? []);
+      setTotal(res.total ?? 0);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Gagal memuat daftar kertas kerja. Silakan coba lagi.");
