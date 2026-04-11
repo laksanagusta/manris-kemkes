@@ -133,21 +133,21 @@ export default function MeetingMinuteDetailPage() {
         onBack={() => router.back()}
       />
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-6">
+      <div className="grid gap-8 lg:gap-12 md:grid-cols-3 items-start">
+        <div className="md:col-span-2 space-y-8 lg:space-y-10">
           <FormSection
             title="Informasi Rapat"
             description="Peserta, agenda, dan ringkasan notulen."
           >
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Users className="size-4 text-muted-foreground" />
-                  <p className="text-sm font-medium">Peserta</p>
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Users className="size-4.5 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold text-foreground">Peserta</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {minutes.participants.map((participant, idx) => (
-                    <Badge key={idx} variant="secondary">
+                    <Badge key={idx} variant="secondary" className="px-2.5 py-1 text-xs font-medium bg-secondary/60 hover:bg-secondary/80 transition-colors">
                       {participant}
                     </Badge>
                   ))}
@@ -155,32 +155,39 @@ export default function MeetingMinuteDetailPage() {
               </div>
 
               {minutes.agenda.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium mb-2">Agenda</p>
-                  <ul className="list-disc list-inside space-y-1">
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">Agenda</h3>
+                  <ul className="grid gap-2">
                     {minutes.agenda.map((item, idx) => (
-                      <li key={idx} className="text-sm text-muted-foreground">{item}</li>
+                      <li key={idx} className="flex items-start gap-3">
+                        <div className="mt-1.5 size-1.5 rounded-full bg-primary/40 shrink-0" />
+                        <span className="text-sm leading-relaxed text-muted-foreground">{item}</span>
+                      </li>
                     ))}
                   </ul>
                 </div>
               )}
 
-              <div>
-                <p className="text-sm font-medium mb-2">Ringkasan</p>
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Ringkasan</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{minutes.summary}</p>
               </div>
 
               {minutes.nextCheckIn && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="size-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Next Check-in:</span>
-                  <span className="font-medium">
-                    {new Date(minutes.nextCheckIn).toLocaleDateString("id-ID", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </span>
+                <div className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-muted/20 p-4 shadow-sm">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    <Clock className="size-4 text-primary" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-medium text-muted-foreground">Next Check-in</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {new Date(minutes.nextCheckIn).toLocaleDateString("id-ID", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
@@ -188,11 +195,13 @@ export default function MeetingMinuteDetailPage() {
 
           {minutes.keyPoints.length > 0 && (
             <FormSection title="Poin-Poin Kunci">
-              <ul className="space-y-2">
+              <ul className="grid gap-4">
                 {minutes.keyPoints.map((point, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-sm">
-                    <div className="size-2 rounded-full bg-primary mt-2 shrink-0" />
-                    <span className="text-muted-foreground">{point}</span>
+                  <li key={idx} className="flex items-start gap-4">
+                    <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <div className="size-2 rounded-full bg-primary" />
+                    </div>
+                    <span className="text-sm leading-relaxed text-muted-foreground mt-0.5">{point}</span>
                   </li>
                 ))}
               </ul>
@@ -203,14 +212,16 @@ export default function MeetingMinuteDetailPage() {
             <FormSection
               title="Keputusan"
               action={
-                <CheckCircle2 className="size-4 text-success" />
+                <div className="flex size-8 items-center justify-center rounded-full bg-success/10">
+                  <CheckCircle2 className="size-4.5 text-success" />
+                </div>
               }
             >
-              <ul className="space-y-2">
+              <ul className="grid gap-4">
                 {minutes.decisions.map((decision, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-sm">
-                    <CheckCircle2 className="size-4 text-success mt-0.5 shrink-0" />
-                    <span className="text-muted-foreground">{decision}</span>
+                  <li key={idx} className="flex items-start gap-4 rounded-xl border border-border/40 bg-card p-4 shadow-sm transition-all hover:shadow-md">
+                    <CheckCircle2 className="size-5 text-success mt-0.5 shrink-0" />
+                    <span className="text-sm font-medium leading-relaxed text-foreground">{decision}</span>
                   </li>
                 ))}
               </ul>
@@ -219,38 +230,40 @@ export default function MeetingMinuteDetailPage() {
 
           {minutes.actionItems.length > 0 && (
             <FormSection title="Tindak Lanjut">
-              <div className="space-y-3">
+              <div className="grid gap-4">
                 {minutes.actionItems.map((action, idx) => (
-                  <div key={idx} className="p-3 rounded-lg border border-border/50 bg-muted/30">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <p className="text-sm font-medium flex-1">{action.task}</p>
+                  <div key={idx} className="flex flex-col gap-4 rounded-xl border border-border/40 bg-card p-4 shadow-sm transition-all hover:shadow-md">
+                    <div className="flex items-start justify-between gap-4">
+                      <p className="text-sm font-semibold leading-snug text-foreground">{action.task}</p>
                       <Badge
                         variant={priorityConfig[action.priority].variant}
-                        className="shrink-0"
+                        className="shrink-0 px-2.5 py-0.5 text-[10px] uppercase tracking-wider font-semibold"
                       >
                         {priorityConfig[action.priority].label}
                       </Badge>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <User className="size-3" />
-                        <span>{action.pic}</span>
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-lg bg-muted/30 p-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <User className="size-3.5 text-muted-foreground" />
+                        <span className="font-medium text-foreground">{action.pic}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="size-3" />
-                        <span>{new Date(action.deadline).toLocaleDateString("id-ID")}</span>
+                      <div className="flex items-center gap-2">
+                        <Clock className="size-3.5 text-muted-foreground" />
+                        <span className="font-medium text-foreground">{new Date(action.deadline).toLocaleDateString("id-ID")}</span>
                       </div>
                       {action.status && (
-                        <Badge
-                          variant={statusConfig[action.status].variant}
-                          className={cn("text-[10px]", statusConfig[action.status].className)}
-                        >
-                          {statusConfig[action.status].label}
-                        </Badge>
+                        <div className="ml-auto">
+                          <Badge
+                            variant={statusConfig[action.status].variant}
+                            className={cn("px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider", statusConfig[action.status].className)}
+                          >
+                            {statusConfig[action.status].label}
+                          </Badge>
+                        </div>
                       )}
                     </div>
                     {action.notes && (
-                      <p className="text-xs text-muted-foreground mt-2 italic">{action.notes}</p>
+                      <p className="text-sm leading-relaxed text-muted-foreground italic pl-3 border-l-2 border-border/60">{action.notes}</p>
                     )}
                   </div>
                 ))}
@@ -260,11 +273,11 @@ export default function MeetingMinuteDetailPage() {
 
           {minutes.openIssues.length > 0 && (
             <FormSection title="Isu Terbuka">
-              <ul className="space-y-2">
+              <ul className="grid gap-3">
                 {minutes.openIssues.map((issue, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-sm">
-                    <AlertCircle className="size-4 text-amber-500 mt-0.5 shrink-0" />
-                    <span className="text-muted-foreground">{issue}</span>
+                  <li key={idx} className="flex items-start gap-4 rounded-lg bg-amber-500/5 p-3.5 border border-amber-500/10">
+                    <AlertCircle className="size-5 text-amber-500 mt-0.5 shrink-0" />
+                    <span className="text-sm leading-relaxed text-amber-950 dark:text-amber-200/90">{issue}</span>
                   </li>
                 ))}
               </ul>
@@ -272,45 +285,50 @@ export default function MeetingMinuteDetailPage() {
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-8 lg:space-y-10">
           <FormSection
             title="Risiko Terkait"
-            action={<Link2 className="size-4 text-muted-foreground" />}
+            action={<Link2 className="size-4.5 text-muted-foreground" />}
           >
             {(minutes.linkedRisks?.length ?? 0) > 0 ? (
-              <div className="space-y-2">
+              <div className="grid gap-3">
                 {minutes.linkedRisks.map((risk) => (
                   <Link
                     key={risk.id}
                     href={`/risk/register/${risk.riskId}`}
-                    className="flex items-center justify-between rounded-lg border border-border/50 p-3 hover:bg-muted/50 transition-colors"
+                    className="group flex flex-col gap-1.5 rounded-xl border border-border/40 bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:bg-primary/[0.02] hover:shadow-md"
                   >
-                    <div className="flex-1 min-w-0">
-                      <span className="font-mono text-[10px] text-muted-foreground">
+                    <div className="flex items-start justify-between gap-4">
+                      <span className="font-mono text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
                         {risk.riskCode || risk.riskId.substring(0, 8)}
                       </span>
-                      <p className="text-sm font-medium mt-0.5 truncate">{risk.riskTitle || "Risiko"}</p>
+                      <Badge variant="outline" className="shrink-0 px-2 py-0 text-[9px] uppercase tracking-wider font-bold">Lihat</Badge>
                     </div>
-                    <Badge variant="outline" className="shrink-0 ml-2">Lihat</Badge>
+                    <p className="text-sm font-medium leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                      {risk.riskTitle || "Risiko"}
+                    </p>
                   </Link>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Tidak ada risiko yang terkait dengan notulen ini.
-              </p>
+              <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 bg-muted/20 py-8 px-4 text-center">
+                <Link2 className="size-6 text-muted-foreground/50" />
+                <p className="text-xs font-medium text-muted-foreground">
+                  Tidak ada risiko yang terkait.
+                </p>
+              </div>
             )}
           </FormSection>
 
           <FormSection title="Metadata">
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Dibuat Oleh</p>
-                <p className="text-sm font-medium">{minutes.createdByName}</p>
+            <div className="grid gap-5 rounded-xl bg-muted/20 p-5 border border-border/30">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Dibuat Oleh</span>
+                <span className="text-sm font-medium text-foreground">{minutes.createdByName}</span>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Dibuat Pada</p>
-                <p className="text-sm font-medium">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Dibuat Pada</span>
+                <span className="text-sm font-medium text-foreground">
                   {new Date(minutes.createdAt).toLocaleDateString("id-ID", {
                     year: "numeric",
                     month: "long",
@@ -318,11 +336,11 @@ export default function MeetingMinuteDetailPage() {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
-                </p>
+                </span>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Terakhir Diperbarui</p>
-                <p className="text-sm font-medium">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Terakhir Diperbarui</span>
+                <span className="text-sm font-medium text-foreground">
                   {new Date(minutes.updatedAt).toLocaleDateString("id-ID", {
                     year: "numeric",
                     month: "long",
@@ -330,7 +348,7 @@ export default function MeetingMinuteDetailPage() {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
-                </p>
+                </span>
               </div>
             </div>
           </FormSection>

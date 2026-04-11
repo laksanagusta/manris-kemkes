@@ -642,7 +642,7 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle stri
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 15 AND (%[1]s) < 20) as tinggi,
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 20) as ekstrem
 		 FROM risks r
-		 WHERE r.is_cycle_current = TRUE AND r.assessment_cycle = $1`, scoreExpr)
+		 WHERE r.is_cycle_current = TRUE AND r.status = 'approved' AND r.assessment_cycle = $1`, scoreExpr)
 		args = []interface{}{cycle}
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($2)"
@@ -660,7 +660,7 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle stri
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 15 AND (%[1]s) < 20) as tinggi,
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 20) as ekstrem
 		 FROM risks r
-		 WHERE r.is_current = TRUE`, scoreExpr)
+		 WHERE r.is_current = TRUE AND r.status = 'approved'`, scoreExpr)
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($1)"
 			args = append(args, orgIDs)

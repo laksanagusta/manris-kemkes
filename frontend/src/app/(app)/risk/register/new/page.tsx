@@ -2990,6 +2990,7 @@ export default function RiskInputPage() {
                     loadRiskData(riskId);
                   }
                 }}
+                onNavigateToLog={() => setActiveView("log")}
               />
             </div>
           </div>
@@ -3055,7 +3056,7 @@ export default function RiskInputPage() {
             <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
               <div>
                 <span className="font-medium text-foreground">Reviewer: </span>
-                <span className="text-muted-foreground">{reviewerId || "-"}</span>
+                <span className="text-muted-foreground">{availableUsers.find(u => u.id === reviewerId)?.name || "-"}</span>
               </div>
               <div>
                 <span className="font-medium text-foreground">Approval line: </span>

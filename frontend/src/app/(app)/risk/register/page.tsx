@@ -97,6 +97,14 @@ const statusVariant: Record<string, string> = {
   rejected: "bg-destructive/15 text-destructive border-destructive/20",
 };
 
+const statusLabel: Record<string, string> = {
+  draft: "Draft",
+  in_review: "Sedang Ditinjau",
+  in_approval: "Menunggu Approval",
+  approved: "Approved",
+  rejected: "Ditolak",
+};
+
 type RiskListItem = {
   id: string;
   code?: string;
@@ -822,13 +830,13 @@ export default function RiskRegisterPage() {
                         <TableCell>
                           <Badge
                             className={cn(
-                              "text-[10px] font-medium border h-5 px-1.5 capitalize",
+                              "text-[10px] font-medium border h-5 px-1.5",
                               risk.status
                                 ? statusVariant[risk.status]
                                 : undefined,
                             )}
                           >
-                            {risk.status || "-"}
+                            {risk.status ? statusLabel[risk.status] || risk.status : "-"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground capitalize">
