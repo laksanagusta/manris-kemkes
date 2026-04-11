@@ -1,10 +1,15 @@
 import ExcelJS from "exceljs";
 
 import type {
-  RiskSnapshot,
   WorkingPaper,
   WorkingPaperSignatory,
 } from "@/types/working-paper";
+import { getWorkingPaperRiskRows } from "./working-paper-linked-risks";
+
+// Sheet builders accept any-shaped risk rows so legacy columns render as empty
+// when the backend no longer provides snapshot-level detail.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExportableRiskRow = Record<string, any>;
 
 const HEADER_FILL: ExcelJS.FillPattern = {
   type: "pattern",
@@ -102,7 +107,7 @@ function applyDataBorders(
 
 function buildProfilRisikoSheet(
   workbook: ExcelJS.Workbook,
-  risks: RiskSnapshot[],
+  risks: ExportableRiskRow[],
 ): void {
   const ws = workbook.addWorksheet("Profil Risiko");
 
@@ -151,7 +156,7 @@ function buildProfilRisikoSheet(
 
 function buildPenilaianRisikoSheet(
   workbook: ExcelJS.Workbook,
-  risks: RiskSnapshot[],
+  risks: ExportableRiskRow[],
 ): void {
   const ws = workbook.addWorksheet("KK Penilaian Risiko");
 
@@ -194,7 +199,7 @@ function buildPenilaianRisikoSheet(
 
 function buildPemantauanReviuSheet(
   workbook: ExcelJS.Workbook,
-  risks: RiskSnapshot[],
+  risks: ExportableRiskRow[],
 ): void {
   const ws = workbook.addWorksheet("KK Pemantauan Reviu");
 
@@ -356,7 +361,7 @@ function downloadBlob(blob: Blob, filename: string): void {
 
 export async function exportWorkingPaper(workingPaper: WorkingPaper): Promise<void> {
   const workbook = new ExcelJS.Workbook();
-  const risks = workingPaper.risk_snapshots;
+  const risks = getWorkingPaperRiskRows(workingPaper);
 
   buildProfilRisikoSheet(workbook, risks);
   buildPenilaianRisikoSheet(workbook, risks);

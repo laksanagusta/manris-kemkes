@@ -15,7 +15,7 @@ type WorkingPaperRepository interface {
 	List(ctx context.Context, orgIDs []uuid.UUID, status string, page, limit int) ([]*entity.WorkingPaper, int, error)
 	Update(ctx context.Context, wp *entity.WorkingPaper) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	GetByIDForUpdate(ctx context.Context, id uuid.UUID) (*entity.WorkingPaper, error)
+	MutateByIDForUpdate(ctx context.Context, id uuid.UUID, mutate func(*entity.WorkingPaper) error) (*entity.WorkingPaper, error)
 
 	// GetSignatoriesByWorkingPaperID retrieves all signatories for a working paper
 	GetSignatoriesByWorkingPaperID(ctx context.Context, wpID uuid.UUID) ([]*entity.WorkingPaperSignatory, error)
@@ -24,4 +24,5 @@ type WorkingPaperRepository interface {
 	// GetPendingSigningByUserID retrieves working papers pending this user's signature
 	GetPendingSigningByUserID(ctx context.Context, userID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.WorkingPaper, error)
 	CountPendingSigningByUserID(ctx context.Context, userID uuid.UUID) (int, error)
+	HasBlockingDocumentLink(ctx context.Context, riskID uuid.UUID) (bool, error)
 }

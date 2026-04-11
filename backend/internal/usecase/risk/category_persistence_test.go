@@ -182,7 +182,7 @@ func TestUpdateRiskUseCase_ExecutePersistsCategory(t *testing.T) {
 		Impact:         3,
 	}}
 
-	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{})
+	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{}, nil)
 	_, err := uc.Execute(context.Background(), UpdateRiskInput{
 		ID:             riskID,
 		Title:          "Updated title",
@@ -218,7 +218,7 @@ func TestUpdateRiskUseCase_ExecuteRejectsInvalidCategory(t *testing.T) {
 		Impact:         3,
 	}}
 
-	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{})
+	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{}, nil)
 	_, err := uc.Execute(context.Background(), UpdateRiskInput{
 		ID:             riskID,
 		Title:          "Updated title",
@@ -253,6 +253,50 @@ func TestListRisksUseCase_ExecutePassesCategoryFilter(t *testing.T) {
 	}
 	if riskRepo.listStatus != "approved" {
 		t.Fatalf("expected status approved, got %q", riskRepo.listStatus)
+	}
+}
+
+// lockAwareWorkingPaperRepo is a minimal mock that satisfies WorkingPaperLockChecker.
+type lockAwareWorkingPaperRepo struct {
+	blocked bool
+}
+
+func (r *lockAwareWorkingPaperRepo) HasBlockingDocumentLink(_ context.Context, _ uuid.UUID) (bool, error) {
+	return r.blocked, nil
+}
+
+func TestUpdateRiskUseCase_ExecuteRejectsRiskLinkedToSigningWorkingPaper(t *testing.T) {
+	riskID := uuid.New()
+	riskRepo := &categoryRiskRepo{byID: &entity.Risk{
+		ID:             riskID,
+		Code:           "R-001",
+		Title:          "Old title",
+		Category:       entity.RiskCategoryStrategis,
+		Status:         entity.RiskStatusDraft,
+		VersionGroupID: uuid.New(),
+		OrganizationID: uuidPtr(uuid.New()),
+		Probability:    3,
+		Impact:         3,
+	}}
+
+	wpRepo := &lockAwareWorkingPaperRepo{blocked: true}
+	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{}, wpRepo)
+
+	_, err := uc.Execute(context.Background(), UpdateRiskInput{
+		ID:             riskID,
+		Title:          "Updated title",
+		Description:    "Updated desc",
+		Category:       entity.RiskCategoryStrategis,
+		Status:         entity.RiskStatusDraft,
+		OrganizationID: riskRepo.byID.OrganizationID,
+		Probability:    3,
+		Impact:         3,
+	}, nil)
+	if err == nil {
+		t.Fatal("expected error when risk is linked to signing working paper, got nil")
+	}
+	if !errors.Is(err, domainerrors.ErrInvalidStatus) {
+		t.Fatalf("expected ErrInvalidStatus, got %v", err)
 	}
 }
 

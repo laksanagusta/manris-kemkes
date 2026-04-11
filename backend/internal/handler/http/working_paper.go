@@ -29,6 +29,7 @@ type createWorkingPaperRequest struct {
 	Title           string                   `json:"title"`
 	Description     string                   `json:"description"`
 	AssessmentCycle string                   `json:"assessment_cycle"`
+	RiskSourceMode  string                   `json:"risk_source_mode"`
 	RiskIDs         []uuid.UUID              `json:"risk_ids"`
 	Signatories     []createSignatoryRequest `json:"signatories"`
 }
@@ -72,13 +73,14 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 	}
 
 	input := workingpaper.CreateWorkingPaperInput{
-		Title:           req.Title,
-		Description:     req.Description,
-		AssessmentCycle: req.AssessmentCycle,
-		OrgID:           scope.AccessibleOrgIDs[0],
-		CreatedByUserID: userID,
-		RiskIDs:         req.RiskIDs,
-		Signatories:     signatories,
+		Title:            req.Title,
+		Description:      req.Description,
+		AssessmentCycle:  req.AssessmentCycle,
+		RiskSourceMode:   req.RiskSourceMode,
+		AccessibleOrgIDs: append([]uuid.UUID(nil), scope.AccessibleOrgIDs...),
+		CreatedByUserID:  userID,
+		RiskIDs:          req.RiskIDs,
+		Signatories:      signatories,
 	}
 
 	wp, err := h.uc.Create(c.Context(), input)

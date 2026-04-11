@@ -107,7 +107,7 @@ func main() {
 	riskSpreadsheetUC := riskuc.NewBulkRiskSpreadsheetUseCase(domainOrgRepo, domainUserRepo)
 	riskGetUC := riskuc.NewGetRiskUseCase(domainRiskRepo)
 	riskReassessUC := riskuc.NewCreateRiskReassessmentUseCase(domainRiskRepo)
-	riskUpdateUC := riskuc.NewUpdateRiskUseCase(domainRiskRepo, domainUserRepo, domainOrgRepo)
+	riskUpdateUC := riskuc.NewUpdateRiskUseCase(domainRiskRepo, domainUserRepo, domainOrgRepo, domainWPRepo)
 	riskDeleteUC := riskuc.NewDeleteRiskUseCase(domainRiskRepo)
 	riskListUC := riskuc.NewListRisksUseCase(domainRiskRepo, orgHierarchySvc)
 	riskListVersionsUC := riskuc.NewListRiskVersionsUseCase(domainRiskRepo)

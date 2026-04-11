@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 import {
   WorkingPaper,
-  
   WorkingPaperStatus,
 } from "@/types/working-paper";
 import {
@@ -15,6 +14,7 @@ import {
   cancelWorkingPaper,
   deleteWorkingPaper,
 } from "@/lib/api/working-papers";
+import { getWorkingPaperRiskRows } from "@/lib/working-paper-linked-risks";
 
 import {
 } from "@/components/ui/card";
@@ -274,7 +274,7 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
         <div className="lg:col-span-2 space-y-6">
           <FormSection
             title="Risiko dalam Kertas Kerja"
-            action={<Badge variant="secondary" className="font-mono">{data.risk_snapshots.length} Risiko</Badge>}
+            action={<Badge variant="secondary" className="font-mono">{data.risks.length} Risiko</Badge>}
             contentClassName="p-0 sm:p-0"
           >
             <div className="overflow-x-auto rounded-b-[24px]">
@@ -292,22 +292,26 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.risk_snapshots.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                        Tidak ada data risiko.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    data.risk_snapshots.map((risk, index) => {
+                  {(() => {
+                    const riskRows = getWorkingPaperRiskRows(data);
+                    if (riskRows.length === 0) {
+                      return (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                            Tidak ada data risiko.
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
+                    return riskRows.map((risk, index) => {
                       const levelLabel = risk.tingkat_risiko || "Rendah";
                       const badgeCls = levelBadgeVariant[levelLabel] || levelBadgeVariant["Rendah"];
                       
                       return (
                         <TableRow 
-                          key={index} 
+                          key={risk.id} 
                           className="hover:bg-muted/30 cursor-pointer transition-colors"
-                          onClick={() => router.push('/risk/register/new?id=' + risk.original_risk_id)}
+                          onClick={() => router.push('/risk/register/new?id=' + risk.id)}
                         >
                           <TableCell className="text-center text-xs text-muted-foreground">{index + 1}</TableCell>
                           <TableCell className="font-mono text-xs text-muted-foreground">{risk.code || "-"}</TableCell>
@@ -327,8 +331,8 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                           </TableCell>
                         </TableRow>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </TableBody>
               </Table>
             </div>

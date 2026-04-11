@@ -2,7 +2,6 @@ package workingpaper
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,17 +19,20 @@ type CreateSignatoryInput struct {
 }
 
 type CreateWorkingPaperInput struct {
-	Title           string
-	Description     string
-	AssessmentCycle string
-	OrgID           uuid.UUID
-	CreatedByUserID uuid.UUID
-	RiskIDs         []uuid.UUID
-	Signatories     []CreateSignatoryInput
+	Title            string
+	Description      string
+	AssessmentCycle  string
+	RiskSourceMode   string
+	AccessibleOrgIDs []uuid.UUID
+	OrgID            uuid.UUID
+	CreatedByUserID  uuid.UUID
+	RiskIDs          []uuid.UUID
+	Signatories      []CreateSignatoryInput
 }
 
-// Create builds a working paper with risk snapshots from approved risks and persists it.
 func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*entity.WorkingPaper, error) {
+	input.RiskSourceMode = normalizeRiskSourceMode(input.RiskSourceMode)
+
 	if input.Title == "" {
 		return nil, domainerrors.ErrInvalidTitle
 	}
@@ -41,23 +43,36 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one signatory is required"}
 	}
 
-	snapshots := make([]entity.RiskSnapshot, 0, len(input.RiskIDs))
-	for _, riskID := range input.RiskIDs {
-		risk, err := uc.riskRepo.GetByID(ctx, riskID, []uuid.UUID{input.OrgID})
+	lookupOrgIDs := append([]uuid.UUID(nil), input.AccessibleOrgIDs...)
+	if len(lookupOrgIDs) == 0 && input.OrgID != uuid.Nil {
+		lookupOrgIDs = []uuid.UUID{input.OrgID}
+	}
+
+	linkedRisks := make([]entity.WorkingPaperRiskLink, 0, len(input.RiskIDs))
+	resolvedOrgID := input.OrgID
+	for idx, riskID := range input.RiskIDs {
+		resolvedRisk, err := resolveLinkedRisk(ctx, uc.riskRepo, riskID, input.AssessmentCycle, input.RiskSourceMode, lookupOrgIDs)
 		if err != nil {
-			return nil, &domainerrors.AppError{
-				Code:    "RISK_NOT_FOUND",
-				Message: fmt.Sprintf("risk %s not found", riskID),
-			}
+			return nil, err
 		}
-		if risk.Status != entity.RiskStatusApproved {
-			return nil, &domainerrors.AppError{
-				Code:    "INVALID_STATUS",
-				Message: fmt.Sprintf("risk %s is not approved (status: %s)", riskID, risk.Status),
+		if resolvedRisk.risk.OrganizationID == nil {
+			if resolvedOrgID == uuid.Nil {
+				return nil, &domainerrors.AppError{Code: "INVALID_RISK", Message: "resolved risk is missing organization_id"}
 			}
+		} else if resolvedOrgID == uuid.Nil {
+			resolvedOrgID = *resolvedRisk.risk.OrganizationID
+		} else if resolvedOrgID != *resolvedRisk.risk.OrganizationID {
+			return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "all selected risks must belong to the same organization"}
+		}
+		if resolvedRisk.risk.OrganizationID == nil && resolvedOrgID == uuid.Nil {
+			return nil, &domainerrors.AppError{Code: "INVALID_RISK", Message: "resolved risk is missing organization_id"}
 		}
 
-		snapshots = append(snapshots, buildRiskSnapshot(risk))
+		resolvedRisk.link.SortOrder = idx
+		linkedRisks = append(linkedRisks, resolvedRisk.link)
+	}
+	if resolvedOrgID == uuid.Nil {
+		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "unable to determine working paper organization"}
 	}
 
 	now := time.Now()
@@ -65,10 +80,10 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 		ID:                       uuid.New(),
 		Title:                    input.Title,
 		Description:              input.Description,
-		OrgID:                    input.OrgID,
+		OrgID:                    resolvedOrgID,
 		Status:                   entity.WorkingPaperStatusDraft,
 		AssessmentCycle:          input.AssessmentCycle,
-		RiskSnapshots:            snapshots,
+		Risks:                    linkedRisks,
 		CurrentSignatorySequence: 0,
 		CreatedBy:                input.CreatedByUserID,
 		CreatedAt:                now,
@@ -100,56 +115,9 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 	if err := uc.wpRepo.Create(ctx, &wp); err != nil {
 		return nil, domainerrors.Wrap(err, "failed to create working paper")
 	}
+	for i := range wp.Risks {
+		wp.Risks[i].WorkingPaperID = wp.ID
+	}
 
 	return &wp, nil
-}
-
-func buildRiskSnapshot(risk *entity.Risk) entity.RiskSnapshot {
-	return entity.RiskSnapshot{
-		OriginalRiskID:              risk.ID,
-		Code:                        risk.Code,
-		Title:                       risk.Title,
-		Description:                 risk.Description,
-		Category:                    risk.Category,
-		OrgName:                     risk.OrgName,
-		Probability:                 risk.Probability,
-		Impact:                      risk.Impact,
-		Bobot:                       risk.Weight,
-		Nilai:                       risk.Nilai,
-		TingkatRisiko:               riskLevelFromScore(risk.Probability, risk.Impact),
-		PrioritasRisiko:             risk.RiskPriority,
-		Sebab:                       risk.Cause,
-		SumberRisiko:                risk.RiskSource,
-		ControlUncontrol:            risk.Controllability,
-		Dampak:                      risk.ImpactDesc,
-		PengendalianUraian:          risk.ExistingControl,
-		PengendalianEfektif:         risk.ControlEffectiveness,
-		PengendalianAdaTidakEfektif: "",
-		SeleraRisiko:                risk.RiskAppetite,
-		PenangananRisiko:            risk.TreatmentOption,
-		RPRUraian:                   "",
-		RPRJadwal:                   "",
-		RPRPenanggungJawab:          "",
-		TargetP:                     risk.TargetProbability,
-		TargetD:                     risk.TargetImpact,
-		TargetBobot:                 risk.TargetWeight,
-		TargetNilai:                 risk.TargetNilai,
-		TargetTingkatRisiko:         riskLevelFromScore(risk.TargetProbability, risk.TargetImpact),
-	}
-}
-
-func riskLevelFromScore(probability, impact int) string {
-	score := probability * impact
-	switch {
-	case score <= 4:
-		return entity.RiskLevelSangatRendah
-	case score <= 8:
-		return entity.RiskLevelRendah
-	case score <= 12:
-		return entity.RiskLevelSedang
-	case score <= 16:
-		return entity.RiskLevelTinggi
-	default:
-		return entity.RiskLevelSangatTinggi
-	}
 }

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"sort"
@@ -10,6 +11,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
@@ -20,6 +23,12 @@ type riskRepository struct {
 	pool *pgxpool.Pool
 }
 
+type riskQueryer interface {
+	Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+}
+
 // NewRiskRepository creates a new risk repository
 func NewRiskRepository(pool *pgxpool.Pool) repository.RiskRepository {
 	return &riskRepository{pool: pool}
@@ -27,12 +36,16 @@ func NewRiskRepository(pool *pgxpool.Pool) repository.RiskRepository {
 
 // Create inserts a new risk and its mitigations
 func (r *riskRepository) Create(ctx context.Context, risk *entity.Risk) error {
+	return insertRiskWithQueryer(ctx, r.pool, risk)
+}
+
+func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk) error {
 	risk.CalculateAll()
 	risk.CalculateTargetBobot()
 	risk.CalculateTargetNilai()
 	risk.CalculateTargetScore()
 
-	err := r.pool.QueryRow(ctx,
+	err := q.QueryRow(ctx,
 		`INSERT INTO risks (code, title, description, category, status, version_group_id, previous_risk_id, is_current, is_cycle_current, archived_at, archived_reason, organization_id, created_by,
 		  cause, risk_source, controllability, impact_description,
 		  existing_control, control_effectiveness, probability, impact, weight, nilai, inherent_score,
@@ -53,9 +66,8 @@ func (r *riskRepository) Create(ctx context.Context, risk *entity.Risk) error {
 		return fmt.Errorf("create risk: %w", err)
 	}
 
-	// Insert mitigations
 	for i, m := range risk.Mitigations {
-		_, err := r.pool.Exec(ctx,
+		_, err := q.Exec(ctx,
 			`INSERT INTO mitigations (risk_id, action, owner, owner_user_id, due_date, frequency, recurring_interval, report_day, report_date, execution_schedule_text, target_cost, sort_order)
 			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
 			risk.ID, m.Action, m.Owner, m.OwnerUserID, m.DueDate, m.Frequency, m.RecurringInterval, m.ReportDay, m.ReportDate, m.ExecutionScheduleText, m.TargetCost, i+1)
@@ -64,6 +76,41 @@ func (r *riskRepository) Create(ctx context.Context, risk *entity.Risk) error {
 		}
 	}
 	return nil
+}
+
+func (r *riskRepository) GetOrCreatePeriodicReassessmentInTx(ctx context.Context, sourceRisk *entity.Risk, cycle string) (*entity.Risk, bool, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, false, fmt.Errorf("begin reassessment reservation tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	lockedRows, err := tx.Query(ctx, `SELECT id FROM risks WHERE version_group_id = $1 FOR UPDATE`, sourceRisk.VersionGroupID)
+	if err != nil {
+		return nil, false, fmt.Errorf("lock risk version group: %w", err)
+	}
+	lockedRows.Close()
+
+	existing, err := getInProgressReassessmentForCycle(ctx, tx, sourceRisk.VersionGroupID, cycle)
+	if err != nil {
+		return nil, false, err
+	}
+	if existing != nil {
+		if err := tx.Commit(ctx); err != nil {
+			return nil, false, fmt.Errorf("commit reassessment reservation tx: %w", err)
+		}
+		return existing, false, nil
+	}
+
+	draft := cloneRiskForPeriodicReassessment(sourceRisk, cycle, time.Now().UTC())
+	if err := insertRiskWithQueryer(ctx, tx, draft); err != nil {
+		return nil, false, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, false, fmt.Errorf("commit reassessment reservation tx: %w", err)
+	}
+	return draft, true, nil
 }
 
 // GetByID retrieves a risk by ID including mitigations
@@ -190,6 +237,77 @@ func mustJSON(value any) []byte {
 		return []byte("[]")
 	}
 	return encoded
+}
+
+func getInProgressReassessmentForCycle(ctx context.Context, q riskQueryer, versionGroupID uuid.UUID, cycle string) (*entity.Risk, error) {
+	risk := &entity.Risk{}
+	err := q.QueryRow(ctx,
+		`SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id,
+		        r.is_current, r.is_cycle_current, r.archived_at, r.archived_reason, r.organization_id,
+		        r.cause, r.risk_source, r.controllability, r.impact_description,
+		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai,
+		        r.inherent_score, r.risk_priority, r.risk_appetite, r.treatment_option,
+		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
+		        r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''),
+		        COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''), r.review_started_at,
+		        r.review_submitted_at, r.review_approved_at,
+		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
+		        COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''), COALESCE(o.name, '')
+		 FROM risks r
+		 LEFT JOIN organizations o ON o.id = r.organization_id
+		 WHERE r.version_group_id = $1
+		   AND COALESCE(r.assessment_cycle, '') = $2
+		   AND r.status IN ('draft', 'reviewed')
+		 ORDER BY CASE WHEN r.status = 'draft' THEN 0 ELSE 1 END, r.created_at DESC
+		 LIMIT 1`,
+		versionGroupID, cycle,
+	).Scan(
+		&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID,
+		&risk.IsCurrent, &risk.IsCycleCurrent, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID,
+		&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
+		&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai,
+		&risk.InherentScore, &risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
+		&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
+		&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType,
+		&risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt,
+		&risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
+		&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
+		&risk.ScoreChangeLabel, &risk.EffectivenessLabel, &risk.OrgName,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("load in-progress reassessment: %w", err)
+	}
+	return risk, nil
+}
+
+func cloneRiskForPeriodicReassessment(sourceRisk *entity.Risk, cycle string, startedAt time.Time) *entity.Risk {
+	clone := *sourceRisk
+	clone.ID = uuid.Nil
+	clone.PreviousRiskID = &sourceRisk.ID
+	clone.IsCurrent = false
+	clone.IsCycleCurrent = false
+	clone.Status = entity.RiskStatusDraft
+	clone.ArchivedAt = nil
+	clone.ArchivedReason = ""
+	clone.AssessmentCycle = cycle
+	clone.ReviewType = "periodic"
+	clone.ReviewStartedAt = &startedAt
+	clone.ReviewSubmittedAt = nil
+	clone.ReviewApprovedAt = nil
+	clone.Cause = append([]string(nil), sourceRisk.Cause...)
+	clone.ImpactDesc = append([]string(nil), sourceRisk.ImpactDesc...)
+	clone.Mitigations = make([]entity.Mitigation, len(sourceRisk.Mitigations))
+	for i, mitigation := range sourceRisk.Mitigations {
+		copied := mitigation
+		copied.ID = uuid.Nil
+		copied.RiskID = uuid.Nil
+		copied.CreatedAt = time.Time{}
+		clone.Mitigations[i] = copied
+	}
+	return &clone
 }
 
 func finalizedScoreExpr(alias string) string {

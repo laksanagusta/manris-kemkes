@@ -14,6 +14,10 @@ type CreateRiskReassessmentUseCase struct {
 	riskRepo repository.RiskRepository
 }
 
+type periodicReassessmentReservation interface {
+	GetOrCreatePeriodicReassessmentInTx(ctx context.Context, sourceRisk *entity.Risk, cycle string) (*entity.Risk, bool, error)
+}
+
 func NewCreateRiskReassessmentUseCase(riskRepo repository.RiskRepository) *CreateRiskReassessmentUseCase {
 	return &CreateRiskReassessmentUseCase{riskRepo: riskRepo}
 }
@@ -43,30 +47,32 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 	if !sourceRisk.CanBeReassessed() {
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "only current approved risks can be reassessed")
 	}
+	if manager, ok := uc.riskRepo.(periodicReassessmentReservation); ok {
+		reservedRisk, created, err := manager.GetOrCreatePeriodicReassessmentInTx(ctx, sourceRisk, input.Cycle)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to reserve reassessment draft")
+		}
+		if !created {
+			return nil, errors.Wrap(errors.ErrInvalidStatus, "an in-progress reassessment already exists for this cycle")
+		}
+		return &CreateRiskReassessmentOutput{
+			ID:             reservedRisk.ID,
+			VersionGroupID: reservedRisk.VersionGroupID,
+			Status:         reservedRisk.Status,
+			Message:        "risk reassessment draft created",
+		}, nil
+	}
 
 	versions, err := uc.riskRepo.ListVersions(ctx, sourceRisk.VersionGroupID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load risk versions")
 	}
-	for _, version := range versions {
-		if version.AssessmentCycle == input.Cycle && (version.Status == "draft" || version.Status == "reviewed") {
-			return nil, errors.Wrap(errors.ErrInvalidStatus, "an in-progress reassessment already exists for this cycle")
-		}
+	if existing := FindInProgressReassessmentForCycle(versions, input.Cycle); existing != nil {
+		return nil, errors.Wrap(errors.ErrInvalidStatus, "an in-progress reassessment already exists for this cycle")
 	}
 
 	now := time.Now().UTC()
-	reassessment := cloneRiskForReassessment(sourceRisk)
-	reassessment.PreviousRiskID = &sourceRisk.ID
-	reassessment.IsCurrent = false
-	reassessment.IsCycleCurrent = false
-	reassessment.Status = "draft"
-	reassessment.ArchivedAt = nil
-	reassessment.ArchivedReason = ""
-	reassessment.AssessmentCycle = input.Cycle
-	reassessment.ReviewType = "periodic"
-	reassessment.ReviewStartedAt = &now
-	reassessment.ReviewSubmittedAt = nil
-	reassessment.ReviewApprovedAt = nil
+	reassessment := BuildPeriodicReassessmentDraft(sourceRisk, input.Cycle, now)
 
 	if err := uc.riskRepo.Create(ctx, reassessment); err != nil {
 		return nil, errors.Wrap(err, "failed to create reassessment draft")
@@ -80,9 +86,29 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 	}, nil
 }
 
-func cloneRiskForReassessment(source *entity.Risk) *entity.Risk {
+func FindInProgressReassessmentForCycle(versions []*entity.Risk, cycle string) *entity.Risk {
+	for _, version := range versions {
+		if version.AssessmentCycle == cycle && (version.Status == entity.RiskStatusDraft || version.Status == "reviewed") {
+			return version
+		}
+	}
+	return nil
+}
+
+func BuildPeriodicReassessmentDraft(source *entity.Risk, cycle string, startedAt time.Time) *entity.Risk {
 	clone := *source
 	clone.ID = uuid.Nil
+	clone.PreviousRiskID = &source.ID
+	clone.IsCurrent = false
+	clone.IsCycleCurrent = false
+	clone.Status = entity.RiskStatusDraft
+	clone.ArchivedAt = nil
+	clone.ArchivedReason = ""
+	clone.AssessmentCycle = cycle
+	clone.ReviewType = "periodic"
+	clone.ReviewStartedAt = &startedAt
+	clone.ReviewSubmittedAt = nil
+	clone.ReviewApprovedAt = nil
 	clone.Cause = append([]string(nil), source.Cause...)
 	clone.ImpactDesc = append([]string(nil), source.ImpactDesc...)
 	clone.Mitigations = make([]entity.Mitigation, len(source.Mitigations))

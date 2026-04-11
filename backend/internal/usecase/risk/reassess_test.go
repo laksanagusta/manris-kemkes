@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
@@ -112,6 +113,22 @@ func (r *fakeReassessRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID)
 }
 func (r *fakeReassessRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, errors.New("not implemented")
+}
+
+type transactionalReassessRiskRepo struct {
+	*fakeReassessRiskRepo
+	reservedRisk   *entity.Risk
+	reserveCreated bool
+	reserveErr     error
+	reserveCalls   int
+}
+
+func (r *transactionalReassessRiskRepo) GetOrCreatePeriodicReassessmentInTx(context.Context, *entity.Risk, string) (*entity.Risk, bool, error) {
+	r.reserveCalls++
+	if r.reservedRisk == nil {
+		return nil, r.reserveCreated, r.reserveErr
+	}
+	return cloneRiskForReassessTest(r.reservedRisk), r.reserveCreated, r.reserveErr
 }
 
 func TestListRiskReviewQueueUseCase_ExecuteReturnsReviewItems(t *testing.T) {
@@ -456,6 +473,42 @@ func TestCreateRiskReassessmentUseCase_ExecuteKeepsDraftOnPreliminarySemanticsEv
 	}
 }
 
+func TestCreateRiskReassessmentUseCase_ExecuteUsesRepositoryManagedReservation(t *testing.T) {
+	sourceID := uuid.New()
+	versionGroupID := uuid.New()
+	repo := &transactionalReassessRiskRepo{fakeReassessRiskRepo: &fakeReassessRiskRepo{
+		risks: map[uuid.UUID]*entity.Risk{
+			sourceID: {
+				ID:             sourceID,
+				Code:           "R-080",
+				Title:          "Risk reservasi aman",
+				Status:         entity.RiskStatusApproved,
+				VersionGroupID: versionGroupID,
+				IsCurrent:      true,
+			},
+		},
+	},
+		reservedRisk: &entity.Risk{
+			ID:              uuid.New(),
+			VersionGroupID:  versionGroupID,
+			Status:          entity.RiskStatusDraft,
+			AssessmentCycle: "2026-H1",
+		},
+	}
+
+	uc := NewCreateRiskReassessmentUseCase(repo)
+	_, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
+	if !errors.Is(err, domainerrors.ErrInvalidStatus) {
+		t.Fatalf("expected invalid status from repository-managed existing in-progress draft, got %v", err)
+	}
+	if repo.reserveCalls != 1 {
+		t.Fatalf("expected repository-managed reservation once, got %d", repo.reserveCalls)
+	}
+	if repo.createdRisk != nil {
+		t.Fatal("expected no new draft creation when reservation reports existing in-progress version")
+	}
+}
+
 func TestListRiskVersionsUseCase_ExecuteReturnsCategory(t *testing.T) {
 	sourceID := uuid.New()
 	versionGroupID := uuid.New()
@@ -495,6 +548,77 @@ func TestListRiskVersionsUseCase_ExecuteReturnsCategory(t *testing.T) {
 	}
 	if versions[1].Category != entity.RiskCategoryOperasional {
 		t.Fatalf("expected second version category %q, got %q", entity.RiskCategoryOperasional, versions[1].Category)
+	}
+}
+
+func TestFindInProgressReassessmentForCycleReturnsReusableDraft(t *testing.T) {
+	targetID := uuid.New()
+	versions := []*entity.Risk{
+		{ID: uuid.New(), Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+		{ID: targetID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-H1"},
+		{ID: uuid.New(), Status: "reviewed", AssessmentCycle: "2026-H1"},
+	}
+
+	got := FindInProgressReassessmentForCycle(versions, "2026-H1")
+	if got == nil {
+		t.Fatal("expected reusable draft for cycle")
+	}
+	if got.ID != targetID {
+		t.Fatalf("expected draft %s, got %s", targetID, got.ID)
+	}
+}
+
+func TestBuildPeriodicReassessmentDraftClonesForTargetCycle(t *testing.T) {
+	sourceID := uuid.New()
+	startedAt := time.Date(2026, time.April, 11, 10, 30, 0, 0, time.UTC)
+	source := &entity.Risk{
+		ID:                sourceID,
+		Code:              "R-900",
+		Title:             "Gangguan distribusi",
+		Status:            entity.RiskStatusApproved,
+		VersionGroupID:    uuid.New(),
+		IsCurrent:         true,
+		IsCycleCurrent:    true,
+		AssessmentCycle:   "2025-H2",
+		ReviewType:        "annual",
+		Probability:       4,
+		Impact:            4,
+		Weight:            entity.GetBobot(4, 4),
+		Mitigations:       []entity.Mitigation{{ID: uuid.New(), RiskID: sourceID, Action: "Koordinasi", Owner: "Logistik"}},
+		ReviewApprovedAt:  &startedAt,
+		ReviewSubmittedAt: &startedAt,
+	}
+
+	got := BuildPeriodicReassessmentDraft(source, "2026-H1", startedAt)
+	if got == nil {
+		t.Fatal("expected draft")
+	}
+	if got.ID != uuid.Nil {
+		t.Fatalf("expected zero ID before persistence, got %s", got.ID)
+	}
+	if got.PreviousRiskID == nil || *got.PreviousRiskID != sourceID {
+		t.Fatalf("expected previous risk id %s, got %v", sourceID, got.PreviousRiskID)
+	}
+	if got.Status != entity.RiskStatusDraft {
+		t.Fatalf("expected draft status, got %q", got.Status)
+	}
+	if got.AssessmentCycle != "2026-H1" {
+		t.Fatalf("expected cycle 2026-H1, got %q", got.AssessmentCycle)
+	}
+	if got.ReviewType != "periodic" {
+		t.Fatalf("expected periodic review type, got %q", got.ReviewType)
+	}
+	if got.ReviewStartedAt == nil || !got.ReviewStartedAt.Equal(startedAt) {
+		t.Fatalf("expected startedAt %v, got %v", startedAt, got.ReviewStartedAt)
+	}
+	if got.ReviewApprovedAt != nil || got.ReviewSubmittedAt != nil {
+		t.Fatalf("expected review timestamps to reset, got approved=%v submitted=%v", got.ReviewApprovedAt, got.ReviewSubmittedAt)
+	}
+	if len(got.Mitigations) != 1 {
+		t.Fatalf("expected mitigation clone, got %d", len(got.Mitigations))
+	}
+	if got.Mitigations[0].ID != uuid.Nil || got.Mitigations[0].RiskID != uuid.Nil {
+		t.Fatalf("expected mitigation IDs reset, got id=%s risk_id=%s", got.Mitigations[0].ID, got.Mitigations[0].RiskID)
 	}
 }
 

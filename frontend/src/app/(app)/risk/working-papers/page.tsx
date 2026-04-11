@@ -236,7 +236,7 @@ export default function WorkingPapersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center text-xs font-medium">
-                      {wp.risk_snapshots?.length || 0}
+                      {wp.risks?.length || 0}
                     </TableCell>
                     <TableCell className="text-center">
                       {totalSignatories > 0 ? (

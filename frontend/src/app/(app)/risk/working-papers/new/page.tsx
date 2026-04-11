@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Table,
   TableBody,
@@ -47,6 +48,9 @@ const formSchema = z.object({
   title: z.string().min(3, "Judul kertas kerja harus diisi (min. 3 karakter)"),
   description: z.string().optional(),
   assessment_cycle: z.string().optional(),
+  risk_source_mode: z.enum(["latest_approved", "review_periodic"], {
+    message: "Sumber data risiko harus dipilih",
+  }),
   risk_ids: z.array(z.string()).min(1, "Pilih minimal 1 risiko untuk kertas kerja"),
   signatories: z.array(z.object({
     user_id: z.string().min(1, "Pengguna harus dipilih"),
@@ -79,6 +83,7 @@ export default function CreateWorkingPaperPage() {
       title: "",
       description: "",
       assessment_cycle: new Date().getFullYear().toString(),
+      risk_source_mode: "latest_approved" as const,
       risk_ids: [],
       signatories: [
         {
@@ -157,6 +162,7 @@ export default function CreateWorkingPaperPage() {
         title: data.title,
         description: data.description || undefined,
         assessment_cycle: data.assessment_cycle || undefined,
+        risk_source_mode: data.risk_source_mode,
         risk_ids: data.risk_ids,
         signatories: data.signatories.map((sig, idx) => ({
           user_id: sig.user_id,
@@ -234,6 +240,35 @@ export default function CreateWorkingPaperPage() {
                 {...register("assessment_cycle")}
                 className="max-w-[200px]"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                Sumber Data Risiko <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                control={control}
+                name="risk_source_mode"
+                render={({ field: { value, onChange } }) => (
+                  <RadioGroup value={value} onValueChange={onChange} className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="latest_approved" id="mode_latest" />
+                      <Label htmlFor="mode_latest" className="font-normal cursor-pointer">
+                        Data terakhir disetujui (latest approved)
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="review_periodic" id="mode_review" />
+                      <Label htmlFor="mode_review" className="font-normal cursor-pointer">
+                        Review periodik (review periodic)
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                )}
+              />
+              {errors.risk_source_mode && (
+                <p className="text-sm text-destructive">{errors.risk_source_mode.message}</p>
+              )}
             </div>
           </CardContent>
         </Card>

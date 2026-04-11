@@ -11,22 +11,28 @@ import (
 	"github.com/manris/backend/internal/domain/repository"
 )
 
-// UpdateRiskUseCase handles risk update business logic
+type WorkingPaperLockChecker interface {
+	HasBlockingDocumentLink(ctx context.Context, riskID uuid.UUID) (bool, error)
+}
+
 type UpdateRiskUseCase struct {
 	riskRepo repository.RiskRepository
 	userRepo repository.UserRepository
 	orgRepo  repository.OrganizationRepository
+	wpRepo   WorkingPaperLockChecker
 }
 
 func NewUpdateRiskUseCase(
 	riskRepo repository.RiskRepository,
 	userRepo repository.UserRepository,
 	orgRepo repository.OrganizationRepository,
+	wpRepo WorkingPaperLockChecker,
 ) *UpdateRiskUseCase {
 	return &UpdateRiskUseCase{
 		riskRepo: riskRepo,
 		userRepo: userRepo,
 		orgRepo:  orgRepo,
+		wpRepo:   wpRepo,
 	}
 }
 
@@ -84,7 +90,18 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		return nil, errors.ErrRiskNotFound
 	}
 
-	// 2. Validate status transitions
+	// 2. Block updates when risk is locked by a signing/completed working paper
+	if uc.wpRepo != nil {
+		blocked, bErr := uc.wpRepo.HasBlockingDocumentLink(ctx, existingRisk.ID)
+		if bErr != nil {
+			return nil, errors.Wrap(bErr, "failed to check working paper lock")
+		}
+		if blocked {
+			return nil, errors.Wrap(errors.ErrInvalidStatus, "risk version is locked by a signing or completed working paper")
+		}
+	}
+
+	// 3. Validate status transitions
 	if existingRisk.Status == "approved" && input.Status != "approved" && input.Status != "draft" {
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "cannot change status from approved except to draft")
 	}
@@ -92,7 +109,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "rejected risk can only be moved to draft")
 	}
 
-	// 3. Validate organization if changed
+	// 4. Validate organization if changed
 	if input.OrganizationID != nil && *input.OrganizationID != *existingRisk.OrganizationID {
 		_, err := uc.orgRepo.GetByID(ctx, *input.OrganizationID)
 		if err != nil {
@@ -100,7 +117,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		}
 	}
 
-	// 4. Validate mitigations
+	// 5. Validate mitigations
 	for i, m := range input.Mitigations {
 		if err := m.Validate(); err != nil {
 			return nil, errors.Wrap(err, "mitigation validation failed")
@@ -113,7 +130,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		return nil, errors.ErrInvalidRiskCategory
 	}
 
-	// 5. Update risk entity
+	// 6. Update risk entity
 	existingRisk.Title = input.Title
 	existingRisk.Description = input.Description
 	existingRisk.Category = input.Category
@@ -158,17 +175,17 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	existingRisk.ReviewSummary = input.ReviewSummary
 	existingRisk.DraftApprovalLine = input.DraftApprovalLine
 
-	// 6. Validate risk entity
+	// 7. Validate risk entity
 	if err := existingRisk.Validate(); err != nil {
 		return nil, err
 	}
 
-	// 7. Save to database
+	// 8. Save to database
 	if err := uc.riskRepo.Update(ctx, existingRisk); err != nil {
 		return nil, errors.Wrap(err, "failed to update risk")
 	}
 
-	// 8. Return result
+	// 9. Return result
 	return &UpdateRiskOutput{
 		ID:        existingRisk.ID,
 		Code:      existingRisk.Code,
