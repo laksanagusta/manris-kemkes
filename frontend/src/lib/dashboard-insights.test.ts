@@ -2,7 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 // @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
-import { buildCriticalRiskRateTrendData, buildExecutiveTrendData, buildInherentResidualTrendData, buildMovementChartData, buildMovementSnapshotData, buildTopRiskBadgeMap, buildUnitExposureData } from "./dashboard-insights.ts";
+import {
+  buildCriticalRiskRateTrendData,
+  buildExecutiveTrendData,
+  buildInherentResidualTrendData,
+  buildLatestOrganizationProgressData,
+  buildMovementChartData,
+  buildMovementSnapshotData,
+  buildTopRiskBadgeMap,
+  buildUnitExposureData,
+} from "./dashboard-insights.ts";
 
 type DashboardRiskInput = Parameters<typeof buildUnitExposureData>[0][number] & {
   status?: string;
@@ -322,23 +331,87 @@ test("buildCriticalRiskRateTrendData keeps non-approved reviewed drafts on inher
   ]);
 });
 
-test("buildInherentResidualTrendData preserves target score as residual even when reviewed values exist", () => {
+test("buildInherentResidualTrendData uses approved reviewed score instead of target score", () => {
   const result = buildInherentResidualTrendData([
     makeDashboardRisk({
       status: "approved",
       assessmentCycle: "2026-H1",
       inherentScore: 20,
       targetScore: 6,
-      reviewedProbability: 5,
-      reviewedImpact: 4,
+      reviewedProbability: 2,
+      reviewedImpact: 3,
       reviewedWeight: 1,
-      reviewedNilai: 20,
-      reviewedScore: 20,
+      reviewedNilai: 6,
+      reviewedScore: 6,
     }),
   ]);
 
   assert.deepEqual(result, [
     { period: "2026-H1", avgInherent: 20, avgResidual: 6, gap: 14, riskCount: 1 },
+  ]);
+});
+
+test("buildInherentResidualTrendData falls back to inherent score when reviewed bundle is partial", () => {
+  const result = buildInherentResidualTrendData([
+    makeDashboardRisk({
+      status: "approved",
+      assessmentCycle: "2026-H1",
+      inherentScore: 20,
+      targetScore: 4,
+      reviewedProbability: 2,
+      reviewedImpact: 3,
+      reviewedWeight: 1,
+      reviewedNilai: 6,
+      reviewedScore: null,
+    }),
+  ]);
+
+  assert.deepEqual(result, [
+    { period: "2026-H1", avgInherent: 20, avgResidual: 20, gap: 0, riskCount: 1 },
+  ]);
+});
+
+test("buildLatestOrganizationProgressData keeps only latest cycle per organization", () => {
+  const result = buildLatestOrganizationProgressData([
+    makeDashboardRisk({ code: "R-001", orgName: "Direktorat A", assessmentCycle: "2025-H2", status: "approved" }),
+    makeDashboardRisk({ code: "R-002", orgName: "Direktorat A", assessmentCycle: "2026-H1", status: "approved" }),
+    makeDashboardRisk({ code: "R-003", orgName: "Direktorat A", assessmentCycle: "2026-H1", status: "draft" }),
+    makeDashboardRisk({ code: "R-004", orgName: "Direktorat B", assessmentCycle: "2025-H2", status: "draft" }),
+    makeDashboardRisk({ code: "R-005", orgName: "Direktorat B", assessmentCycle: "2025-H2", status: "approved" }),
+  ]);
+
+  assert.deepEqual(result, [
+    {
+      orgName: "Direktorat A",
+      period: "2026-H1",
+      approvedCount: 1,
+      totalCount: 2,
+      approvedPercent: 50,
+    },
+    {
+      orgName: "Direktorat B",
+      period: "2025-H2",
+      approvedCount: 1,
+      totalCount: 2,
+      approvedPercent: 50,
+    },
+  ]);
+});
+
+test("buildLatestOrganizationProgressData keeps zero-approved latest cycles visible", () => {
+  const result = buildLatestOrganizationProgressData([
+    makeDashboardRisk({ code: "R-010", orgName: "Direktorat C", assessmentCycle: "2026-H1", status: "draft" }),
+    makeDashboardRisk({ code: "R-011", orgName: "Direktorat C", assessmentCycle: "2026-H1", status: "in_review" }),
+  ]);
+
+  assert.deepEqual(result, [
+    {
+      orgName: "Direktorat C",
+      period: "2026-H1",
+      approvedCount: 0,
+      totalCount: 2,
+      approvedPercent: 0,
+    },
   ]);
 });
 

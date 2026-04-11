@@ -40,6 +40,7 @@ import { UnitResponseTimeChart } from "./_components/unit-response-time";
 import { InherentResidualTrend } from "./_components/inherent-residual-trend";
 import { CriticalRiskRateTrend } from "./_components/critical-risk-rate-trend";
 import { RiskMovementByOrg } from "./_components/risk-movement-by-org";
+import { OrganizationLatestProgressChart } from "./_components/organization-latest-progress-chart";
 import { cn } from "@/lib/utils";
 import {
   exportRiskBulkCSV,
@@ -55,6 +56,7 @@ import {
   buildInherentResidualTrendData,
   buildCriticalRiskRateTrendData,
   buildMovementByOrgData,
+  buildLatestOrganizationProgressData,
   type MovementSnapshotDatum,
   type MovementByOrgSortKey,
 } from "@/lib/dashboard-insights";
@@ -182,6 +184,7 @@ export default function ReportsPage() {
   );
   const [movementByOrgSort, setMovementByOrgSort] =
     useState<MovementByOrgSortKey>("total");
+  const [allRisks, setAllRisks] = useState<Risk[]>([]);
 
   const cycleOptions = useMemo(() => buildRecentCycleOptions(), []);
   const previousCycle = useMemo(
@@ -220,6 +223,10 @@ export default function ReportsPage() {
   const movementByOrgData = useMemo(
     () => buildMovementByOrgData(comparisons, movementByOrgSort),
     [comparisons, movementByOrgSort],
+  );
+  const organizationProgressData = useMemo(
+    () => buildLatestOrganizationProgressData(allRisks),
+    [allRisks],
   );
   const hasTrendData = trendData.length > 0;
   const hasMovementData = movementData.some((item) => item.value > 0);
@@ -261,6 +268,7 @@ export default function ReportsPage() {
       ),
       api.get<KRIBreachItem[]>("/dashboard/kri-breach-summary", token),
       api.get<UnitResponseTime[]>("/dashboard/unit-response-time", token),
+      api.get<Risk[]>("/risks", token),
     ]).then(
       ([
         riskResult,
@@ -270,6 +278,7 @@ export default function ReportsPage() {
         overdueResult,
         kriBreachResult,
         responseTimeResult,
+        allRiskResult,
       ]) => {
         if (riskResult.status === "fulfilled") {
           setTrendRisks(riskResult.value);
@@ -319,6 +328,9 @@ export default function ReportsPage() {
           console.error(responseTimeResult.reason);
           setResponseTimeData([]);
         }
+
+        if (allRiskResult.status === "fulfilled") setAllRisks(allRiskResult.value);
+        else setAllRisks([]);
       },
     );
   }, [token, exportCycle, previousCycle]);
@@ -674,7 +686,7 @@ export default function ReportsPage() {
         onSortChange={setMovementByOrgSort}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         <Card className="border-border/50 bg-card/80">
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
@@ -884,9 +896,10 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         <InherentResidualTrend data={inherentResidualData} />
         <CriticalRiskRateTrend data={criticalRiskRateData} />
+        <OrganizationLatestProgressChart data={organizationProgressData} />
       </div>
 
       {selectedUnit || selectedMovement ? (

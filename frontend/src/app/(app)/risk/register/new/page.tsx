@@ -32,6 +32,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import {
   Accordion,
@@ -478,6 +488,7 @@ export default function RiskInputPage() {
     currentAssessmentCycle(),
   );
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSubmitReviewConfirm, setShowSubmitReviewConfirm] = useState(false);
   const submitTarget = useRef<"draft" | "review">("draft");
 
   const form = useForm<FormInput, unknown, FormValues>({
@@ -1391,6 +1402,30 @@ export default function RiskInputPage() {
     console.error("Form Validation Errors: ", errors);
   };
 
+  const openSubmitReviewConfirm = () => {
+    submitTarget.current = "review";
+    clearErrors();
+
+    if (!reviewerId) {
+      toast.error("Pilih Reviewer terlebih dahulu.");
+      return;
+    }
+
+    if (!isFinalizeReady) {
+      const firstMissing = missingSections[0]?.id ?? "identifikasi";
+      scrollToSection(firstMissing);
+      return;
+    }
+
+    setShowSubmitReviewConfirm(true);
+  };
+
+  const handleConfirmSubmitReview = () => {
+    submitTarget.current = "review";
+    setShowSubmitReviewConfirm(false);
+    void handleSubmit(onSubmit, onValidationError)();
+  };
+
   const showUnavailableFeatureToast = (featureName: string) => {
     toast.info(`${featureName} akan diaktifkan pada iterasi berikutnya.`);
   };
@@ -1623,22 +1658,8 @@ export default function RiskInputPage() {
                   </Button>
                   <Button
                     className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
-                    onClick={() => {
-                      submitTarget.current = "review";
-                      clearErrors();
-                      if (!reviewerId) {
-                        toast.error("Pilih Reviewer terlebih dahulu.");
-                        return;
-                      }
-                      if (!isFinalizeReady) {
-                        const firstMissing =
-                          missingSections[0]?.id ?? "identifikasi";
-                        scrollToSection(firstMissing);
-                        return;
-                      }
-                      handleSubmit(onSubmit, onValidationError)();
-                    }}
-                    disabled={isSubmitting || !isFinalizeReady}
+                    onClick={openSubmitReviewConfirm}
+                    disabled={isSubmitting}
                   >
                     {isSubmitting && submitTarget.current === "review" ? (
                       <Loader2 className="size-4 animate-spin" />
@@ -3018,6 +3039,41 @@ export default function RiskInputPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog
+          open={showSubmitReviewConfirm}
+          onOpenChange={setShowSubmitReviewConfirm}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Ajukan Risiko untuk Review?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Risiko akan disimpan lalu dikirim ke reviewer dan approval line yang
+                sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+              <div>
+                <span className="font-medium text-foreground">Reviewer: </span>
+                <span className="text-muted-foreground">{reviewerId || "-"}</span>
+              </div>
+              <div>
+                <span className="font-medium text-foreground">Approval line: </span>
+                <span className="text-muted-foreground">{approvalLine.length} orang</span>
+              </div>
+              <div>
+                <span className="font-medium text-foreground">Bagian siap: </span>
+                <span className="text-muted-foreground">{sectionStatuses.length - missingSections.length}/{sectionStatuses.length}</span>
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isSubmitting}>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmSubmitReview} disabled={isSubmitting}>
+                Lanjutkan
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );

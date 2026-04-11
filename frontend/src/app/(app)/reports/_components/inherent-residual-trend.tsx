@@ -30,7 +30,7 @@ export function InherentResidualTrend({ loading, data = [] }: InherentResidualTr
     return (
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="inherent-residual-trend">
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Inherent vs Residual Score</CardTitle>
+          <CardTitle className="text-base font-semibold">Inherent vs Reviewed Score</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
@@ -46,9 +46,9 @@ export function InherentResidualTrend({ loading, data = [] }: InherentResidualTr
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-base font-semibold">Inherent vs Residual Score</CardTitle>
+            <CardTitle className="text-base font-semibold">Inherent vs Reviewed Score</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              Rata-rata skor risiko sebelum & sesudah kontrol per semester
+              Rata-rata skor risiko sebelum kontrol dan sesudah review per semester
             </p>
           </div>
           {hasData && (
@@ -61,7 +61,7 @@ export function InherentResidualTrend({ loading, data = [] }: InherentResidualTr
       <CardContent>
         {!hasData ? (
           <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-            Belum ada data semester untuk menampilkan tren inherent vs residual.
+            Belum ada data semester untuk menampilkan tren inherent vs reviewed.
           </div>
         ) : (
           <>
@@ -85,7 +85,7 @@ export function InherentResidualTrend({ loading, data = [] }: InherentResidualTr
                     formatter={(value, name) => {
                       const labels: Record<string, string> = {
                         avgInherent: "Avg Inherent",
-                        avgResidual: "Avg Residual",
+                        avgResidual: "Avg Reviewed",
                         gap: "Gap",
                       };
                       return [`${value ?? 0}`, labels[String(name)] ?? String(name)];
@@ -131,7 +131,7 @@ export function InherentResidualTrend({ loading, data = [] }: InherentResidualTr
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="h-0.5 w-4 rounded-full" style={{ background: RESIDUAL_COLOR }} />
-                <span className="text-[10px] text-muted-foreground">Residual</span>
+                <span className="text-[10px] text-muted-foreground">Reviewed</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="h-0.5 w-4 rounded-full border-t border-dashed" style={{ borderColor: GAP_COLOR }} />

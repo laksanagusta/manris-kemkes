@@ -319,6 +319,71 @@ export function buildDashboardRiskCategoryData(
   }));
 }
 
+/* ───────────────────── Latest Organization Progress ───────────────────── */
+
+export type LatestOrganizationProgressDatum = {
+  orgName: string;
+  period: string;
+  approvedCount: number;
+  totalCount: number;
+  approvedPercent: number;
+};
+
+function resolveRiskPeriod(risk: Pick<RiskLike, "assessmentCycle" | "createdAt">) {
+  return normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+}
+
+export function buildLatestOrganizationProgressData(
+  risks: RiskLike[],
+): LatestOrganizationProgressDatum[] {
+  const grouped = new Map<
+    string,
+    { period: string; sortValue: number; approvedCount: number; totalCount: number }
+  >();
+
+  for (const risk of risks) {
+    const orgName = risk.orgName?.trim() || "Tanpa Unit";
+    const period = resolveRiskPeriod(risk);
+    if (!period) continue;
+
+    const sortValue = semesterSortValue(period);
+    const existing = grouped.get(orgName);
+
+    if (!existing || sortValue > existing.sortValue) {
+      grouped.set(orgName, {
+        period,
+        sortValue,
+        approvedCount: risk.status === "approved" ? 1 : 0,
+        totalCount: 1,
+      });
+      continue;
+    }
+
+    if (sortValue === existing.sortValue) {
+      existing.totalCount += 1;
+      if (risk.status === "approved") existing.approvedCount += 1;
+    }
+  }
+
+  return [...grouped.entries()]
+    .map(([orgName, bucket]) => ({
+      orgName,
+      period: bucket.period,
+      approvedCount: bucket.approvedCount,
+      totalCount: bucket.totalCount,
+      approvedPercent:
+        bucket.totalCount === 0
+          ? 0
+          : Math.round((bucket.approvedCount / bucket.totalCount) * 1000) / 10,
+    }))
+    .sort(
+      (left, right) =>
+        right.approvedPercent - left.approvedPercent ||
+        right.totalCount - left.totalCount ||
+        left.orgName.localeCompare(right.orgName),
+    );
+}
+
 /* ───────────────────── Inherent vs Residual Trend ───────────────────── */
 
 export type InherentResidualDatum = {
@@ -333,15 +398,31 @@ export function buildInherentResidualTrendData(risks: RiskLike[]): InherentResid
   const grouped = new Map<string, { inherentSum: number; residualSum: number; count: number }>();
 
   for (const risk of risks) {
-    const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+    const period = resolveRiskPeriod(risk);
     if (!period) continue;
 
-    const inherent = risk.inherentScore ?? 0;
-    const residual = risk.targetScore ?? 0;
+    const semantics = resolveRiskScoreSemantics({
+      status: risk.status ?? "draft",
+      probability: risk.probability ?? 1,
+      impact: risk.impact ?? 1,
+      weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
+      nilai: risk.nilai ?? undefined,
+      inherentScore: risk.inherentScore ?? 0,
+      reviewedProbability: risk.reviewedProbability,
+      reviewedImpact: risk.reviewedImpact,
+      reviewedWeight: risk.reviewedWeight,
+      reviewedNilai: risk.reviewedNilai,
+      reviewedScore: risk.reviewedScore,
+    });
 
-    const bucket = grouped.get(period) ?? { inherentSum: 0, residualSum: 0, count: 0 };
-    bucket.inherentSum += inherent;
-    bucket.residualSum += residual;
+    const bucket = grouped.get(period) ?? {
+      inherentSum: 0,
+      residualSum: 0,
+      count: 0,
+    };
+
+    bucket.inherentSum += semantics.inherent.score;
+    bucket.residualSum += semantics.effective.score;
     bucket.count += 1;
     grouped.set(period, bucket);
   }
@@ -351,6 +432,7 @@ export function buildInherentResidualTrendData(risks: RiskLike[]): InherentResid
     .map(([period, bucket]) => {
       const avgInherent = Math.round((bucket.inherentSum / bucket.count) * 10) / 10;
       const avgResidual = Math.round((bucket.residualSum / bucket.count) * 10) / 10;
+
       return {
         period,
         avgInherent,

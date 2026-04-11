@@ -3,7 +3,12 @@
 import { ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getBobot, resolveRiskScoreSemantics } from "@/lib/risk";
+import {
+  getBobot,
+  getRiskLevelFromNilai,
+  levelToColor,
+  resolveRiskScoreSemantics,
+} from "@/lib/risk";
 import { cn } from "@/lib/utils";
 import type { TopRiskItem } from "@/types/risk";
 
@@ -19,13 +24,6 @@ type TopRiskScoreSemanticsInput = TopRiskItem & {
   reviewedNilai?: number | null;
   reviewedScore?: number | null;
 };
-
-function scoreColor(score: number) {
-  if (score >= 17) return "bg-risk-extreme text-white";
-  if (score >= 10) return "bg-risk-high text-white";
-  if (score >= 5) return "bg-warning text-white";
-  return "bg-chart-3 text-white";
-}
 
 export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
   if (loading) {
@@ -64,46 +62,55 @@ export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
             Belum ada data risiko.
           </div>
         ) : (
-          <div className="space-y-2">
-            {risks.slice(0, 7).map((risk) => {
-              const score = resolveRiskScoreSemantics({
-                status: risk.status,
-                probability: risk.probability,
-                impact: risk.impact,
-                weight: getBobot(risk.probability, risk.impact),
-                nilai: risk.nilai,
-                inherentScore: risk.inherentScore,
-                reviewedProbability: (risk as TopRiskScoreSemanticsInput).reviewedProbability,
-                reviewedImpact: (risk as TopRiskScoreSemanticsInput).reviewedImpact,
-                reviewedWeight: (risk as TopRiskScoreSemanticsInput).reviewedWeight,
-                reviewedNilai: (risk as TopRiskScoreSemanticsInput).reviewedNilai,
-                reviewedScore: (risk as TopRiskScoreSemanticsInput).reviewedScore,
-              }).primary.score;
-              return (
-                <div
-                  key={risk.id}
-                  data-testid="risk-row"
-                  className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 p-3 transition-colors hover:bg-muted/30"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="shrink-0 text-xs font-mono font-semibold text-muted-foreground">
-                        {risk.code}
-                      </span>
-                      <span className={cn("inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold", scoreColor(score))}>
-                        {score}
-                      </span>
-                    </div>
-                    <p className="mt-1 truncate text-sm font-medium text-foreground">{risk.title}</p>
-                    {risk.orgName && (
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{risk.orgName}</p>
-                    )}
-                  </div>
-                  <ChevronRight className="ml-2 size-4 shrink-0 text-muted-foreground" />
-                </div>
-              );
-            })}
-          </div>
+           <div className="space-y-2">
+             {risks.slice(0, 7).map((risk) => {
+               const scoreSemantics = resolveRiskScoreSemantics({
+                 status: risk.status,
+                 probability: risk.probability,
+                 impact: risk.impact,
+                 weight: getBobot(risk.probability, risk.impact),
+                 nilai: risk.nilai,
+                 inherentScore: risk.inherentScore,
+                 reviewedProbability: (risk as TopRiskScoreSemanticsInput).reviewedProbability,
+                 reviewedImpact: (risk as TopRiskScoreSemanticsInput).reviewedImpact,
+                 reviewedWeight: (risk as TopRiskScoreSemanticsInput).reviewedWeight,
+                 reviewedNilai: (risk as TopRiskScoreSemanticsInput).reviewedNilai,
+                 reviewedScore: (risk as TopRiskScoreSemanticsInput).reviewedScore,
+               });
+
+               const score = scoreSemantics.primary.score;
+               const level = getRiskLevelFromNilai(scoreSemantics.primary.nilai);
+
+               return (
+                 <div
+                   key={risk.id}
+                   data-testid="risk-row"
+                   className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 p-3 transition-colors hover:bg-muted/30"
+                 >
+                   <div className="min-w-0 flex-1">
+                     <div className="flex items-center gap-2">
+                       <span className="shrink-0 text-xs font-mono font-semibold text-muted-foreground">
+                         {risk.code}
+                       </span>
+                       <span
+                         className={cn(
+                           "inline-block rounded border px-1.5 py-0.5 text-[10px] font-semibold",
+                           levelToColor(level),
+                         )}
+                       >
+                         {score}
+                       </span>
+                     </div>
+                     <p className="mt-1 truncate text-sm font-medium text-foreground">{risk.title}</p>
+                     {risk.orgName && (
+                       <p className="mt-0.5 truncate text-xs text-muted-foreground">{risk.orgName}</p>
+                     )}
+                   </div>
+                   <ChevronRight className="ml-2 size-4 shrink-0 text-muted-foreground" />
+                 </div>
+               );
+             })}
+           </div>
         )}
       </CardContent>
     </Card>
