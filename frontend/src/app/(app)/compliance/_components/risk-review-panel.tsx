@@ -3,17 +3,48 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowRight, CalendarClock, CheckCircle2, Clock3, Minus, RefreshCcw, Send, ShieldAlert, TrendingDown, TrendingUp } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  CalendarClock,
+  CheckCircle2,
+  Clock3,
+  Minus,
+  RefreshCcw,
+  Send,
+  ShieldAlert,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { filterToAccessibleOrgs } from "@/lib/organization";
-import type { HeatmapCell, RiskCycleComparisonItem, RiskReviewQueueItem, RiskReviewStatus, RiskReviewSummary } from "@/types/risk";
+import type {
+  HeatmapCell,
+  RiskCycleComparisonItem,
+  RiskReviewQueueItem,
+  RiskReviewStatus,
+  RiskReviewSummary,
+} from "@/types/risk";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,12 +63,30 @@ type OrganizationOption = {
 };
 
 const reviewStatusMeta: Record<string, { label: string; className: string }> = {
-  due: { label: "Due", className: "bg-muted text-muted-foreground border-border" },
-  in_draft: { label: "In Draft", className: "bg-primary/15 text-primary border-primary/20" },
-  pending_approval: { label: "Pending Approval", className: "bg-risk-medium/15 text-risk-medium border-risk-medium/20" },
-  approved: { label: "Approved", className: "bg-success/15 text-success border-success/20" },
-  overdue: { label: "Overdue", className: "bg-destructive/15 text-destructive border-destructive/20" },
-  rejected: { label: "Rejected", className: "bg-destructive/10 text-destructive border-destructive/20" },
+  due: {
+    label: "Due",
+    className: "bg-muted text-muted-foreground border-border",
+  },
+  in_draft: {
+    label: "In Draft",
+    className: "bg-primary/15 text-primary border-primary/20",
+  },
+  pending_approval: {
+    label: "Pending Approval",
+    className: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
+  },
+  approved: {
+    label: "Approved",
+    className: "bg-success/15 text-success border-success/20",
+  },
+  overdue: {
+    label: "Overdue",
+    className: "bg-destructive/15 text-destructive border-destructive/20",
+  },
+  rejected: {
+    label: "Rejected",
+    className: "bg-destructive/10 text-destructive border-destructive/20",
+  },
 };
 
 function currentGlobalCycle() {
@@ -86,7 +135,11 @@ function buildHeatmapGrid(cells: HeatmapCell[]) {
     const impact = 5 - rowIndex;
     return Array.from({ length: 5 }, (_, colIndex) => {
       const probability = colIndex + 1;
-      return cells.find((cell) => cell.probability === probability && cell.impact === impact)?.count ?? 0;
+      return (
+        cells.find(
+          (cell) => cell.probability === probability && cell.impact === impact,
+        )?.count ?? 0
+      );
     });
   });
 }
@@ -96,7 +149,9 @@ export function RiskReviewPanel() {
   const { token, user } = useAuth();
   const [items, setItems] = useState<RiskReviewQueueItem[]>([]);
   const [comparisons, setComparisons] = useState<RiskCycleComparisonItem[]>([]);
-  const [summaryData, setSummaryData] = useState<RiskReviewSummary | null>(null);
+  const [summaryData, setSummaryData] = useState<RiskReviewSummary | null>(
+    null,
+  );
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [comparisonLoading, setComparisonLoading] = useState(true);
@@ -104,33 +159,41 @@ export function RiskReviewPanel() {
   const [status, setStatus] = useState<RiskReviewStatus | "all">("all");
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [selectedRisk, setSelectedRisk] = useState<RiskReviewQueueItem | null>(null);
+  const [selectedRisk, setSelectedRisk] = useState<RiskReviewQueueItem | null>(
+    null,
+  );
   const cycle = useMemo(() => currentGlobalCycle(), []);
   const previousCycle = useMemo(() => previousGlobalCycle(cycle), [cycle]);
 
   useEffect(() => {
-	if (user?.role === "unit" && user.organizationId) {
-	  setOrgFilter(user.organizationId);
-	}
+    if (user?.role === "unit" && user.organizationId) {
+      setOrgFilter(user.organizationId);
+    }
   }, [user]);
 
   useEffect(() => {
-	if (!token) return;
+    if (!token) return;
 
-	const loadOrganizations = async () => {
-	  try {
-		const data = await api.get<OrganizationOption[]>("/organizations", token);
-		const uniqueOrgs = dedupeOrganizations(data);
-		const filteredOrgs = user?.isGlobal 
-		  ? uniqueOrgs 
-		  : filterToAccessibleOrgs(uniqueOrgs as any, user?.accessibleOrgIds || []);
-		setOrganizations(filteredOrgs);
-	  } catch (error) {
-		console.error(error);
-	  }
-	};
+    const loadOrganizations = async () => {
+      try {
+        const data = await api.get<OrganizationOption[]>(
+          "/organizations",
+          token,
+        );
+        const uniqueOrgs = dedupeOrganizations(data);
+        const filteredOrgs = user?.isGlobal
+          ? uniqueOrgs
+          : filterToAccessibleOrgs(
+              uniqueOrgs as any,
+              user?.accessibleOrgIds || [],
+            );
+        setOrganizations(filteredOrgs);
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
-	loadOrganizations();
+    loadOrganizations();
   }, [token]);
 
   useEffect(() => {
@@ -142,11 +205,18 @@ export function RiskReviewPanel() {
         const params = new URLSearchParams({ cycle });
         if (status !== "all") params.set("status", status);
         if (orgFilter !== "all") params.set("org_id", orgFilter);
-        const data = await api.get<RiskReviewQueueItem[]>(`/risks/review-queue?${params.toString()}`, token);
+        const data = await api.get<RiskReviewQueueItem[]>(
+          `/risks/review-queue?${params.toString()}`,
+          token,
+        );
         setItems(data);
       } catch (error) {
         console.error(error);
-        toast.error(error instanceof Error ? error.message : "Queue review belum berhasil dimuat.");
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Queue review belum berhasil dimuat.",
+        );
       } finally {
         setLoading(false);
       }
@@ -163,11 +233,18 @@ export function RiskReviewPanel() {
       try {
         const params = new URLSearchParams({ from: previousCycle, to: cycle });
         if (orgFilter !== "all") params.set("org_id", orgFilter);
-        const data = await api.get<RiskCycleComparisonItem[]>(`/risks/compare?${params.toString()}`, token);
+        const data = await api.get<RiskCycleComparisonItem[]>(
+          `/risks/compare?${params.toString()}`,
+          token,
+        );
         setComparisons(data);
       } catch (error) {
         console.error(error);
-        toast.error(error instanceof Error ? error.message : "Perbandingan semester belum berhasil dimuat.");
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Perbandingan semester belum berhasil dimuat.",
+        );
       } finally {
         setComparisonLoading(false);
       }
@@ -184,11 +261,18 @@ export function RiskReviewPanel() {
       try {
         const params = new URLSearchParams({ cycle });
         if (orgFilter !== "all") params.set("org_id", orgFilter);
-        const data = await api.get<RiskReviewSummary>(`/dashboard/risk-review-summary?${params.toString()}`, token);
+        const data = await api.get<RiskReviewSummary>(
+          `/dashboard/risk-review-summary?${params.toString()}`,
+          token,
+        );
         setSummaryData(data);
       } catch (error) {
         console.error(error);
-        toast.error(error instanceof Error ? error.message : "Ringkasan semester belum berhasil dimuat.");
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Ringkasan semester belum berhasil dimuat.",
+        );
       } finally {
         setSummaryLoading(false);
       }
@@ -198,7 +282,13 @@ export function RiskReviewPanel() {
   }, [token, cycle, orgFilter]);
 
   const summary = useMemo(() => {
-    const counts = { due: 0, in_draft: 0, pending_approval: 0, approved: 0, overdue: 0 };
+    const counts = {
+      due: 0,
+      in_draft: 0,
+      pending_approval: 0,
+      approved: 0,
+      overdue: 0,
+    };
     for (const item of items) {
       if (item.reviewStatus in counts) {
         counts[item.reviewStatus as keyof typeof counts] += 1;
@@ -217,8 +307,14 @@ export function RiskReviewPanel() {
     return result;
   }, [comparisons]);
 
-  const previousHeatmapGrid = useMemo(() => buildHeatmapGrid(summaryData?.previousHeatmap ?? []), [summaryData]);
-  const currentHeatmapGrid = useMemo(() => buildHeatmapGrid(summaryData?.currentHeatmap ?? []), [summaryData]);
+  const previousHeatmapGrid = useMemo(
+    () => buildHeatmapGrid(summaryData?.previousHeatmap ?? []),
+    [summaryData],
+  );
+  const currentHeatmapGrid = useMemo(
+    () => buildHeatmapGrid(summaryData?.currentHeatmap ?? []),
+    [summaryData],
+  );
 
   const handleOpenConfirmDialog = (item: RiskReviewQueueItem) => {
     setSelectedRisk(item);
@@ -235,14 +331,21 @@ export function RiskReviewPanel() {
 
     toast.promise(
       (async () => {
-        const result = await api.post<{ id: string }>(`/risks/${selectedRisk.riskId}/reassess`, { cycle }, token);
+        const result = await api.post<{ id: string }>(
+          `/risks/${selectedRisk.riskId}/reassess`,
+          { cycle },
+          token,
+        );
         router.push(`/risk/register/${result.id}`);
       })(),
       {
         loading: `Membuat draft reassessment ${cycle}...`,
         success: `Draft reassessment ${cycle} berhasil dibuat.`,
-        error: (error) => error instanceof Error ? error.message : "Draft reassessment belum berhasil dibuat.",
-      }
+        error: (error) =>
+          error instanceof Error
+            ? error.message
+            : "Draft reassessment belum berhasil dibuat.",
+      },
     );
   };
 
@@ -259,8 +362,12 @@ export function RiskReviewPanel() {
           <Card key={metric.label} className="border-border/50 bg-card/80">
             <CardContent className="flex items-center justify-between p-4">
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">{metric.label}</p>
-                <p className="mt-1 text-2xl font-semibold text-foreground">{metric.value}</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {metric.label}
+                </p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">
+                  {metric.value}
+                </p>
               </div>
               <metric.icon className="size-5 text-muted-foreground" />
             </CardContent>
@@ -271,9 +378,20 @@ export function RiskReviewPanel() {
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="text-base font-semibold text-foreground">Risk Review Queue</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">Cycle aktif {cycle}. Risiko current approved diklasifikasikan menjadi due, in draft, pending approval, approved, atau overdue.</p>
-            <p className="mt-1 text-xs text-muted-foreground">Entry point reassessment ada di tombol <span className="font-medium text-foreground">Mulai Reassessment</span> untuk item berstatus Due atau Overdue.</p>
+            <CardTitle className="text-base font-semibold text-foreground">
+              Risk Review Queue
+            </CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Cycle aktif {cycle}. Risiko current approved diklasifikasikan
+              menjadi due, in draft, pending approval, approved, atau overdue.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Entry point reassessment ada di tombol{" "}
+              <span className="font-medium text-foreground">
+                Mulai Reassessment
+              </span>{" "}
+              untuk item berstatus Due atau Overdue.
+            </p>
           </div>
           <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
             <Select value={orgFilter} onValueChange={setOrgFilter}>
@@ -283,11 +401,18 @@ export function RiskReviewPanel() {
               <SelectContent>
                 <SelectItem value="all">Semua Unit</SelectItem>
                 {organizations.map((org) => (
-                  <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                  <SelectItem key={org.id} value={org.id}>
+                    {org.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={status} onValueChange={(value) => setStatus(value as RiskReviewStatus | "all") }>
+            <Select
+              value={status}
+              onValueChange={(value) =>
+                setStatus(value as RiskReviewStatus | "all")
+              }
+            >
               <SelectTrigger className="w-full md:w-[220px]">
                 <SelectValue placeholder="Filter status review" />
               </SelectTrigger>
@@ -295,7 +420,9 @@ export function RiskReviewPanel() {
                 <SelectItem value="all">Semua Status</SelectItem>
                 <SelectItem value="due">Due</SelectItem>
                 <SelectItem value="in_draft">In Draft</SelectItem>
-                <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                <SelectItem value="pending_approval">
+                  Pending Approval
+                </SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="overdue">Overdue</SelectItem>
               </SelectContent>
@@ -304,7 +431,9 @@ export function RiskReviewPanel() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Memuat queue reassessment...</div>
+            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+              Memuat queue reassessment...
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -322,69 +451,125 @@ export function RiskReviewPanel() {
               <TableBody>
                 {items.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-28 text-center text-sm text-muted-foreground">Belum ada risiko untuk filter ini.</TableCell>
+                    <TableCell
+                      colSpan={8}
+                      className="h-28 text-center text-sm text-muted-foreground"
+                    >
+                      Belum ada risiko untuk filter ini.
+                    </TableCell>
                   </TableRow>
-                ) : items.map((item) => {
-                  const meta = reviewStatusMeta[item.reviewStatus] || reviewStatusMeta.due;
-                  return (
-                    <TableRow key={item.versionGroupId}>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{item.code || "-"}</TableCell>
-                      <TableCell className="max-w-[300px]">
-                        <div className="space-y-1">
-                          <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
-                          <p className="truncate text-xs text-muted-foreground">{item.changeReason || item.reviewSummary || "Belum ada ringkasan perubahan pada cycle ini."}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{item.orgName || "-"}</TableCell>
-                      <TableCell className="text-center text-sm">
-                        <span className="font-semibold">{item.currentScore}</span>
-                        <span className="ml-1 text-muted-foreground">{formatRiskLevel(item.currentLevel)}</span>
-                      </TableCell>
-                      <TableCell className="text-center text-sm">
-                        {item.candidateScore ? (
-                          <>
-                            <span className="font-semibold">{item.candidateScore}</span>
-                            <span className="ml-1 text-muted-foreground">{formatRiskLevel(item.candidateLevel)}</span>
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={cn("border font-normal", meta.className)}>{meta.label}</Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{item.nextReviewDate || "-"}</TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-2">
-                          {item.reviewStatus === "due" || item.reviewStatus === "overdue" ? (
-                            <Button variant="default" size="sm" className="h-8 gap-1 text-xs" onClick={() => handleOpenConfirmDialog(item)}>
-                              <RefreshCcw className="size-3.5" />
-                              Reassessment
-                            </Button>
-                          ) : null}
-                          <Link href={`/risk/register/${item.candidateRiskId || item.riskId}`}>
-                            <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
-                              <ShieldAlert className="size-3.5" />
-                              Buka
-                            </Button>
-                          </Link>
-                          {item.reviewStatus === "pending_approval" ? (
-                            <Link href={`/inbox?status=pending&type=risk&search=${encodeURIComponent(item.code)}`}>
-                              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs text-primary">
-                                <Send className="size-3.5" /> Inbox
+                ) : (
+                  items.map((item) => {
+                    const meta =
+                      reviewStatusMeta[item.reviewStatus] ||
+                      reviewStatusMeta.due;
+                    return (
+                      <TableRow key={item.versionGroupId}>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {item.code || "-"}
+                        </TableCell>
+                        <TableCell className="max-w-[300px]">
+                          <div className="space-y-1">
+                            <p className="truncate text-sm font-medium text-foreground">
+                              {item.title}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {item.changeReason ||
+                                item.reviewSummary ||
+                                "Belum ada ringkasan perubahan pada cycle ini."}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {item.orgName || "-"}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          <span className="font-semibold">
+                            {item.currentScore}
+                          </span>
+                          <span className="ml-1 text-muted-foreground">
+                            {formatRiskLevel(item.currentLevel)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {item.candidateScore ? (
+                            <>
+                              <span className="font-semibold">
+                                {item.candidateScore}
+                              </span>
+                              <span className="ml-1 text-muted-foreground">
+                                {formatRiskLevel(item.candidateLevel)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={cn("border font-normal", meta.className)}
+                          >
+                            {meta.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {item.nextReviewDate || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-2">
+                            {item.reviewStatus === "due" ||
+                            item.reviewStatus === "overdue" ? (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="h-8 gap-1 text-xs"
+                                onClick={() => handleOpenConfirmDialog(item)}
+                              >
+                                <RefreshCcw className="size-3.5" />
+                                Reassessment
+                              </Button>
+                            ) : null}
+                            <Link
+                              href={`/risk/register/${item.candidateRiskId || item.riskId}`}
+                            >
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-xs"
+                              >
+                                <ShieldAlert className="size-3.5" />
+                                Buka
                               </Button>
                             </Link>
-                          ) : null}
-                          {item.reviewStatus === "in_draft" || item.reviewStatus === "pending_approval" ? (
-                            <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 text-[11px] text-muted-foreground">
-                              <Clock3 className="size-3" /> {item.reviewStatus === "pending_approval" ? "Menunggu" : "Berjalan"}
-                            </span>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                            {item.reviewStatus === "pending_approval" ? (
+                              <Link
+                                href={`/inbox?status=pending&type=risk&search=${encodeURIComponent(item.code)}`}
+                              >
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 gap-1 text-xs text-primary"
+                                >
+                                  <Send className="size-3.5" /> Inbox
+                                </Button>
+                              </Link>
+                            ) : null}
+                            {item.reviewStatus === "in_draft" ||
+                            item.reviewStatus === "pending_approval" ? (
+                              <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 text-[11px] text-muted-foreground">
+                                <Clock3 className="size-3" />{" "}
+                                {item.reviewStatus === "pending_approval"
+                                  ? "Menunggu"
+                                  : "Berjalan"}
+                              </span>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           )}
@@ -394,12 +579,19 @@ export function RiskReviewPanel() {
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-base font-semibold text-foreground">Completion Rate per Unit</CardTitle>
-            <p className="text-sm text-muted-foreground">Persentase risiko yang sudah selesai direassess dan approved pada cycle {cycle}.</p>
+            <CardTitle className="text-base font-semibold text-foreground">
+              Completion Rate per Unit
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Persentase risiko yang sudah selesai dinilai ulang dan approved
+              pada cycle {cycle}.
+            </p>
           </CardHeader>
           <CardContent>
             {summaryLoading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">Memuat completion rate...</div>
+              <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                Memuat completion rate...
+              </div>
             ) : (
               <Table>
                 <TableHeader>
@@ -415,18 +607,39 @@ export function RiskReviewPanel() {
                 <TableBody>
                   {(summaryData?.unitCompletion.length ?? 0) === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">Belum ada data unit completion untuk cycle ini.</TableCell>
+                      <TableCell
+                        colSpan={6}
+                        className="h-24 text-center text-sm text-muted-foreground"
+                      >
+                        Belum ada data unit completion untuk cycle ini.
+                      </TableCell>
                     </TableRow>
-                  ) : summaryData?.unitCompletion.map((unit) => (
-                    <TableRow key={unit.orgName}>
-                      <TableCell className="max-w-[200px] text-sm font-medium text-foreground"><span className="block truncate">{unit.orgName || "-"}</span></TableCell>
-                      <TableCell className="text-center text-sm">{unit.totalAssigned}</TableCell>
-                      <TableCell className="text-center text-sm">{unit.completed}</TableCell>
-                      <TableCell className="text-center text-sm">{unit.pending}</TableCell>
-                      <TableCell className="text-center text-sm">{unit.overdue}</TableCell>
-                      <TableCell className="text-right text-sm font-semibold">{unit.completionRate.toFixed(1)}%</TableCell>
-                    </TableRow>
-                  ))}
+                  ) : (
+                    summaryData?.unitCompletion.map((unit) => (
+                      <TableRow key={unit.orgName}>
+                        <TableCell className="max-w-[200px] text-sm font-medium text-foreground">
+                          <span className="block truncate">
+                            {unit.orgName || "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {unit.totalAssigned}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {unit.completed}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {unit.pending}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {unit.overdue}
+                        </TableCell>
+                        <TableCell className="text-right text-sm font-semibold">
+                          {unit.completionRate.toFixed(1)}%
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             )}
@@ -435,12 +648,18 @@ export function RiskReviewPanel() {
 
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-base font-semibold text-foreground">Heatmap Compare</CardTitle>
-            <p className="text-sm text-muted-foreground">Distribusi risiko approved pada {previousCycle} dan {cycle}.</p>
+            <CardTitle className="text-base font-semibold text-foreground">
+              Heatmap Compare
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Distribusi risiko approved pada {previousCycle} dan {cycle}.
+            </p>
           </CardHeader>
           <CardContent className="grid gap-6 md:grid-cols-2">
             {summaryLoading ? (
-              <div className="md:col-span-2 flex h-40 items-center justify-center text-sm text-muted-foreground">Memuat heatmap compare...</div>
+              <div className="md:col-span-2 flex h-40 items-center justify-center text-sm text-muted-foreground">
+                Memuat heatmap compare...
+              </div>
             ) : (
               <>
                 {[
@@ -448,19 +667,25 @@ export function RiskReviewPanel() {
                   { label: cycle, grid: currentHeatmapGrid },
                 ].map((heatmap) => (
                   <div key={heatmap.label} className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{heatmap.label}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {heatmap.label}
+                    </p>
                     <div className="grid grid-cols-5 gap-1">
-                      {heatmap.grid.flatMap((row, rowIndex) => row.map((count, colIndex) => (
-                        <div
-                          key={`${heatmap.label}-${rowIndex}-${colIndex}`}
-                          className={cn(
-                            "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
-                            count > 0 ? "border-primary/20 bg-primary/10 text-foreground" : "border-border bg-muted/20 text-muted-foreground"
-                          )}
-                        >
-                          {count}
-                        </div>
-                      )))}
+                      {heatmap.grid.flatMap((row, rowIndex) =>
+                        row.map((count, colIndex) => (
+                          <div
+                            key={`${heatmap.label}-${rowIndex}-${colIndex}`}
+                            className={cn(
+                              "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
+                              count > 0
+                                ? "border-primary/20 bg-primary/10 text-foreground"
+                                : "border-border bg-muted/20 text-muted-foreground",
+                            )}
+                          >
+                            {count}
+                          </div>
+                        )),
+                      )}
                     </div>
                   </div>
                 ))}
@@ -472,36 +697,55 @@ export function RiskReviewPanel() {
 
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-base font-semibold text-foreground">Perbandingan Cycle {previousCycle} ke {cycle}</CardTitle>
-          <p className="text-sm text-muted-foreground">Fokus pada perubahan skor dan level antar semester untuk reviewer dan pimpinan.</p>
+          <CardTitle className="text-base font-semibold text-foreground">
+            Perbandingan Cycle {previousCycle} ke {cycle}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Fokus pada perubahan skor dan level antar semester untuk reviewer
+            dan pimpinan.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Naik</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                Naik
+              </p>
               <div className="mt-2 flex items-center gap-2 text-destructive">
                 <TrendingUp className="size-4" />
-                <span className="text-2xl font-semibold">{movementSummary.up}</span>
+                <span className="text-2xl font-semibold">
+                  {movementSummary.up}
+                </span>
               </div>
             </div>
             <div className="rounded-lg border border-success/20 bg-success/5 p-4">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Turun</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                Turun
+              </p>
               <div className="mt-2 flex items-center gap-2 text-success">
                 <TrendingDown className="size-4" />
-                <span className="text-2xl font-semibold">{movementSummary.down}</span>
+                <span className="text-2xl font-semibold">
+                  {movementSummary.down}
+                </span>
               </div>
             </div>
             <div className="rounded-lg border border-border bg-muted/20 p-4">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Tetap</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                Tetap
+              </p>
               <div className="mt-2 flex items-center gap-2 text-muted-foreground">
                 <Minus className="size-4" />
-                <span className="text-2xl font-semibold text-foreground">{movementSummary.stable}</span>
+                <span className="text-2xl font-semibold text-foreground">
+                  {movementSummary.stable}
+                </span>
               </div>
             </div>
           </div>
 
           {comparisonLoading ? (
-            <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">Memuat perbandingan semester...</div>
+            <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+              Memuat perbandingan semester...
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -509,7 +753,9 @@ export function RiskReviewPanel() {
                   <TableHead className="w-24">Kode</TableHead>
                   <TableHead>Risiko</TableHead>
                   <TableHead className="w-40">Unit</TableHead>
-                  <TableHead className="w-24 text-center">{previousCycle}</TableHead>
+                  <TableHead className="w-24 text-center">
+                    {previousCycle}
+                  </TableHead>
                   <TableHead className="w-12 text-center" />
                   <TableHead className="w-24 text-center">{cycle}</TableHead>
                   <TableHead className="w-24 text-center">Delta</TableHead>
@@ -519,29 +765,68 @@ export function RiskReviewPanel() {
               <TableBody>
                 {comparisons.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-28 text-center text-sm text-muted-foreground">Belum ada pasangan data approved antara {previousCycle} dan {cycle}.</TableCell>
-                  </TableRow>
-                ) : comparisons.slice(0, 12).map((item) => (
-                  <TableRow key={`${item.versionGroupId}-${item.code}`}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{item.code}</TableCell>
-                    <TableCell className="max-w-[300px]">
-                      <div className="space-y-1">
-                        <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
-                        <p className="truncate text-xs text-muted-foreground">{item.changeReason || "Tidak ada alasan perubahan yang tercatat."}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{item.orgName || "-"}</TableCell>
-                    <TableCell className="text-center text-sm">{item.previousScore} <span className="text-muted-foreground">{formatRiskLevel(item.previousLevel)}</span></TableCell>
-                    <TableCell className="text-center text-muted-foreground"><ArrowRight className="mx-auto size-3.5" /></TableCell>
-                    <TableCell className="text-center text-sm">{item.currentScore} <span className="text-muted-foreground">{formatRiskLevel(item.currentLevel)}</span></TableCell>
-                    <TableCell className="text-center text-sm font-semibold">{item.scoreDelta > 0 ? `+${item.scoreDelta}` : item.scoreDelta}</TableCell>
-                    <TableCell className="text-center">
-                      {item.movement === "up" ? <TrendingUp className="mx-auto size-4 text-destructive" /> : null}
-                      {item.movement === "down" ? <TrendingDown className="mx-auto size-4 text-success" /> : null}
-                      {item.movement === "stable" ? <Minus className="mx-auto size-4 text-muted-foreground" /> : null}
+                    <TableCell
+                      colSpan={8}
+                      className="h-28 text-center text-sm text-muted-foreground"
+                    >
+                      Belum ada pasangan data approved antara {previousCycle}{" "}
+                      dan {cycle}.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  comparisons.slice(0, 12).map((item) => (
+                    <TableRow key={`${item.versionGroupId}-${item.code}`}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {item.code}
+                      </TableCell>
+                      <TableCell className="max-w-[300px]">
+                        <div className="space-y-1">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {item.title}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {item.changeReason ||
+                              "Tidak ada alasan perubahan yang tercatat."}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {item.orgName || "-"}
+                      </TableCell>
+                      <TableCell className="text-center text-sm">
+                        {item.previousScore}{" "}
+                        <span className="text-muted-foreground">
+                          {formatRiskLevel(item.previousLevel)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center text-muted-foreground">
+                        <ArrowRight className="mx-auto size-3.5" />
+                      </TableCell>
+                      <TableCell className="text-center text-sm">
+                        {item.currentScore}{" "}
+                        <span className="text-muted-foreground">
+                          {formatRiskLevel(item.currentLevel)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center text-sm font-semibold">
+                        {item.scoreDelta > 0
+                          ? `+${item.scoreDelta}`
+                          : item.scoreDelta}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.movement === "up" ? (
+                          <TrendingUp className="mx-auto size-4 text-destructive" />
+                        ) : null}
+                        {item.movement === "down" ? (
+                          <TrendingDown className="mx-auto size-4 text-success" />
+                        ) : null}
+                        {item.movement === "stable" ? (
+                          <Minus className="mx-auto size-4 text-muted-foreground" />
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           )}
@@ -553,17 +838,23 @@ export function RiskReviewPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Reassessment</AlertDialogTitle>
             <AlertDialogDescription>
-              Anda akan memulai reassessment untuk risiko berikut. Tindakan ini akan membuat draft reassessment baru yang dapat Anda edit sebelum diajukan untuk persetujuan.
+              Anda akan memulai reassessment untuk risiko berikut. Tindakan ini
+              akan membuat draft reassessment baru yang dapat Anda edit sebelum
+              diajukan untuk persetujuan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
             <div className="text-sm">
               <span className="font-medium text-foreground">Kode: </span>
-              <span className="font-mono text-xs text-muted-foreground">{selectedRisk?.code || "-"}</span>
+              <span className="font-mono text-xs text-muted-foreground">
+                {selectedRisk?.code || "-"}
+              </span>
             </div>
             <div className="text-sm">
               <span className="font-medium text-foreground">Judul: </span>
-              <span className="text-muted-foreground">{selectedRisk?.title || "-"}</span>
+              <span className="text-muted-foreground">
+                {selectedRisk?.title || "-"}
+              </span>
             </div>
             <div className="text-sm">
               <span className="font-medium text-foreground">Cycle: </span>

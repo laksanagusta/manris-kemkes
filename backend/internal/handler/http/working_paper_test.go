@@ -143,8 +143,10 @@ func TestWorkingPaperCreatePassesFullAccessibleOrgScope(t *testing.T) {
 	body, err := json.Marshal(map[string]any{
 		"title":            "KK Semester I",
 		"assessment_cycle": "2026-H1",
-		"risk_source_mode": "latest_approved",
-		"risk_ids":         []string{riskID.String()},
+		"risks": []map[string]any{{
+			"risk_id":     riskID.String(),
+			"source_mode": "latest_approved",
+		}},
 		"signatories": []map[string]any{{
 			"user_id":           uuid.New().String(),
 			"sequence_no":       1,

@@ -1,0 +1,169 @@
+import type { WorkingPaper, WorkingPaperSignatory } from "@/types/working-paper";
+
+export type WorkingPaperActionTone = "attention" | "neutral" | "success" | "danger";
+
+export type WorkingPaperCurrentAction = {
+  tone: WorkingPaperActionTone;
+  title: string;
+  description: string;
+  buttonLabel?: string;
+};
+
+export type WorkingPaperTimelineItem = {
+  signatory: WorkingPaperSignatory;
+  state: "signed" | "current" | "upcoming";
+  isActionOwner: boolean;
+  label: string;
+  description: string;
+};
+
+export type WorkingPaperDetailViewModel = {
+  nextSignatory: WorkingPaperSignatory | null;
+  canSign: boolean;
+  canCancel: boolean;
+  canDelete: boolean;
+  currentAction: WorkingPaperCurrentAction | null;
+  timeline: WorkingPaperTimelineItem[];
+};
+
+function getNextSignatory(workingPaper: WorkingPaper): WorkingPaperSignatory | null {
+  return (
+    workingPaper.signatories.find(
+      (signatory) =>
+        signatory.sequence_no === workingPaper.current_signatory_sequence + 1 &&
+        signatory.status === "pending",
+    ) ?? null
+  );
+}
+
+function buildCurrentAction(
+  workingPaper: WorkingPaper,
+  nextSignatory: WorkingPaperSignatory | null,
+  canSign: boolean,
+  allRisksApproved: boolean,
+): WorkingPaperCurrentAction | null {
+  if (workingPaper.status === "cancelled") {
+    return {
+      tone: "danger",
+      title: "Kertas kerja dibatalkan",
+      description: "Proses tanda tangan dihentikan. Dokumen ini tidak dapat dilanjutkan ke tahap persetujuan berikutnya.",
+    };
+  }
+
+  if (workingPaper.status === "completed") {
+    return {
+      tone: "success",
+      title: "Seluruh tanda tangan selesai",
+      description: "Dokumen ini sudah disahkan oleh seluruh penandatangan dan siap dipakai sebagai arsip kerja resmi.",
+    };
+  }
+
+  if (canSign) {
+    return {
+      tone: "attention",
+      title: "Tindakan Anda diperlukan",
+      description: "Anda adalah penandatangan aktif. Periksa isi dokumen, lalu tandatangani ketika seluruh informasi sudah sesuai.",
+      buttonLabel: "Tanda tangani sekarang",
+    };
+  }
+
+  if (!allRisksApproved && nextSignatory) {
+    return {
+      tone: "neutral",
+      title: "Menunggu persetujuan risiko",
+      description: "Seluruh risiko dalam kertas kerja ini harus berstatus disetujui sebelum proses tanda tangan dapat dimulai. Pantau progres persetujuan di tabel risiko di bawah.",
+    };
+  }
+
+  if (nextSignatory) {
+    return {
+      tone: "neutral",
+      title: "Menunggu penandatangan aktif",
+      description: `Dokumen saat ini menunggu tanda tangan dari ${nextSignatory.signer_name} pada urutan ${nextSignatory.sequence_no}.`,
+    };
+  }
+
+  return {
+    tone: "neutral",
+    title: "Dokumen siap ditinjau",
+    description: "Belum ada penandatangan aktif. Periksa ringkasan dokumen dan susunan penandatangan untuk melanjutkan proses.",
+  };
+}
+
+function buildTimelineItem(
+  signatory: WorkingPaperSignatory,
+  workingPaper: WorkingPaper,
+  nextSignatory: WorkingPaperSignatory | null,
+  currentUserId?: string | null,
+): WorkingPaperTimelineItem {
+  const isSigned = signatory.status === "signed";
+  const isCurrent = !isSigned && nextSignatory?.id === signatory.id;
+  const isActionOwner = Boolean(isCurrent && currentUserId && signatory.user_id === currentUserId);
+
+  if (isSigned) {
+    return {
+      signatory,
+      state: "signed",
+      isActionOwner: false,
+      label: "Sudah ditandatangani",
+      description: "Tahap ini telah selesai dan tercatat dalam riwayat penandatanganan.",
+    };
+  }
+
+  if (isCurrent) {
+    if (isActionOwner) {
+      return {
+        signatory,
+        state: "current",
+        isActionOwner: true,
+        label: "Giliran Anda",
+        description: "Periksa isi dokumen, lalu tandatangani ketika seluruh informasi sudah sesuai.",
+      };
+    }
+
+    return {
+      signatory,
+      state: "current",
+      isActionOwner: false,
+      label: "Sedang ditinjau",
+      description: `Tahap ini menunggu tindakan ${signatory.signer_name} sebagai penandatangan urutan ${signatory.sequence_no}.`,
+    };
+  }
+
+  const previousSequence = Math.max(signatory.sequence_no - 1, workingPaper.current_signatory_sequence + 1);
+
+  return {
+    signatory,
+    state: "upcoming",
+    isActionOwner: false,
+    label: "Menunggu giliran",
+    description: `Tahap ini aktif setelah penandatangan urutan ${previousSequence} selesai.`,
+  };
+}
+
+export function buildWorkingPaperDetailViewModel(
+  workingPaper: WorkingPaper,
+  currentUserId?: string | null,
+): WorkingPaperDetailViewModel {
+  const nextSignatory = getNextSignatory(workingPaper);
+  const risks = workingPaper.risks ?? [];
+  const allRisksApproved = risks.length > 0 && risks.every((link) => link.risk.status === "approved");
+  const canSign = Boolean(
+    currentUserId &&
+      nextSignatory &&
+      nextSignatory.user_id === currentUserId &&
+      (workingPaper.status === "draft" || workingPaper.status === "signing") &&
+      allRisksApproved,
+  );
+
+  return {
+    nextSignatory,
+    canSign,
+    canCancel: workingPaper.status === "draft" || workingPaper.status === "signing",
+    canDelete: workingPaper.status === "draft",
+    currentAction: buildCurrentAction(workingPaper, nextSignatory, canSign, allRisksApproved),
+    timeline: workingPaper.signatories.map((signatory) =>
+      buildTimelineItem(signatory, workingPaper, nextSignatory, currentUserId),
+    ),
+  };
+}

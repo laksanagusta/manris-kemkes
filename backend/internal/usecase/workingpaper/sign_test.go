@@ -2,11 +2,13 @@ package workingpaper
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 )
 
 type stubSignWorkingPaperRepo struct {
@@ -57,7 +59,7 @@ func TestSignComputesDocumentHashFromLinkedRisksBeforeFirstSignature(t *testing.
 		AssessmentCycle: "2026-H1",
 		Risks: []entity.WorkingPaperRiskLink{{
 			RiskID:    uuid.New(),
-			Risk:      entity.WorkingPaperRiskData{Code: "R-001", Title: "Gangguan server", Probability: 4, Impact: 5, Nilai: 20, TingkatRisiko: entity.RiskLevelSangatTinggi, AssessmentCycle: "2026-H1"},
+			Risk:      entity.WorkingPaperRiskData{Code: "R-001", Title: "Gangguan server", Probability: 4, Impact: 5, Nilai: 20, TingkatRisiko: entity.RiskLevelSangatTinggi, AssessmentCycle: "2026-H1", Status: entity.RiskStatusApproved},
 			CreatedAt: time.Now(),
 		}},
 		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerTitle: "Kabid", SignerRoleLabel: "Pemeriksa", Status: "pending"}},
@@ -73,5 +75,78 @@ func TestSignComputesDocumentHashFromLinkedRisksBeforeFirstSignature(t *testing.
 	}
 	if repo.updated == nil || repo.updated.DocumentHash == "" {
 		t.Fatal("expected updated working paper to persist document hash")
+	}
+}
+
+func TestSignRejectsWhenLinkedRiskNotApproved(t *testing.T) {
+	signerID := uuid.New()
+	sigID := uuid.New()
+	wpID := uuid.New()
+	repo := &stubSignWorkingPaperRepo{wp: &entity.WorkingPaper{
+		ID:              wpID,
+		Title:           "KK Semester I",
+		Status:          entity.WorkingPaperStatusDraft,
+		AssessmentCycle: "2026-H1",
+		Risks: []entity.WorkingPaperRiskLink{
+			{
+				RiskID:    uuid.New(),
+				Risk:      entity.WorkingPaperRiskData{Code: "R-001", Title: "Risk approved", Probability: 3, Impact: 4, Nilai: 12, TingkatRisiko: entity.RiskLevelTinggi, AssessmentCycle: "2026-H1", Status: entity.RiskStatusApproved},
+				CreatedAt: time.Now(),
+			},
+			{
+				RiskID:    uuid.New(),
+				Risk:      entity.WorkingPaperRiskData{Code: "R-002", Title: "Risk draft", Probability: 2, Impact: 3, Nilai: 6, TingkatRisiko: entity.RiskLevelSedang, AssessmentCycle: "2026-H1", Status: entity.RiskStatusDraft},
+				CreatedAt: time.Now(),
+			},
+		},
+		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerTitle: "Kabid", SignerRoleLabel: "Pemeriksa", Status: "pending"}},
+	}}
+
+	uc := NewWorkingPaperUseCase(repo, nil)
+	_, err := uc.Sign(context.Background(), wpID, signerID)
+	if err == nil {
+		t.Fatal("expected error when linked risk is not approved, got nil")
+	}
+
+	var appErr *domainerrors.AppError
+	if !errors.As(err, &appErr) {
+		t.Fatalf("expected AppError, got %T: %v", err, err)
+	}
+	if appErr.Code != "RISKS_NOT_APPROVED" {
+		t.Fatalf("expected code RISKS_NOT_APPROVED, got %s", appErr.Code)
+	}
+}
+
+func TestSignSucceedsWhenAllLinkedRisksApproved(t *testing.T) {
+	signerID := uuid.New()
+	sigID := uuid.New()
+	wpID := uuid.New()
+	repo := &stubSignWorkingPaperRepo{wp: &entity.WorkingPaper{
+		ID:              wpID,
+		Title:           "KK Semester I",
+		Status:          entity.WorkingPaperStatusDraft,
+		AssessmentCycle: "2026-H1",
+		Risks: []entity.WorkingPaperRiskLink{
+			{
+				RiskID:    uuid.New(),
+				Risk:      entity.WorkingPaperRiskData{Code: "R-001", Title: "Risk one", Probability: 4, Impact: 5, Nilai: 20, TingkatRisiko: entity.RiskLevelSangatTinggi, AssessmentCycle: "2026-H1", Status: entity.RiskStatusApproved},
+				CreatedAt: time.Now(),
+			},
+			{
+				RiskID:    uuid.New(),
+				Risk:      entity.WorkingPaperRiskData{Code: "R-002", Title: "Risk two", Probability: 3, Impact: 3, Nilai: 9, TingkatRisiko: entity.RiskLevelSedang, AssessmentCycle: "2026-H1", Status: entity.RiskStatusApproved},
+				CreatedAt: time.Now(),
+			},
+		},
+		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerTitle: "Kabid", SignerRoleLabel: "Pemeriksa", Status: "pending"}},
+	}}
+
+	uc := NewWorkingPaperUseCase(repo, nil)
+	got, err := uc.Sign(context.Background(), wpID, signerID)
+	if err != nil {
+		t.Fatalf("Sign returned error: %v", err)
+	}
+	if got.DocumentHash == "" {
+		t.Fatal("expected document hash to be computed")
 	}
 }

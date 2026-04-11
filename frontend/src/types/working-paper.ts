@@ -7,6 +7,7 @@ export interface WorkingPaperRiskData {
   code: string;
   title: string;
   category: string;
+  status: string;
   probability: number;
   impact: number;
   nilai: number;
@@ -67,12 +68,16 @@ export interface CreateSignatoryInput {
   signer_role_label: string;
 }
 
+export interface CreateWorkingPaperRiskInput {
+  risk_id: string;
+  source_mode: WorkingPaperRiskSourceMode;
+}
+
 export interface CreateWorkingPaperRequest {
   title: string;
   description?: string;
   assessment_cycle?: string;
-  risk_ids: string[];
-  risk_source_mode: string;
+  risks: CreateWorkingPaperRiskInput[];
   signatories: CreateSignatoryInput[];
 }
 

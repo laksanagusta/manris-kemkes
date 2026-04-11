@@ -13,6 +13,12 @@ import (
 
 func (uc *UseCase) Sign(ctx context.Context, workingPaperID uuid.UUID, signerUserID uuid.UUID) (*entity.WorkingPaper, error) {
 	wp, err := uc.wpRepo.MutateByIDForUpdate(ctx, workingPaperID, func(wp *entity.WorkingPaper) error {
+		for _, link := range wp.Risks {
+			if link.Risk.Status != entity.RiskStatusApproved {
+				return &domainerrors.AppError{Code: "RISKS_NOT_APPROVED", Message: "semua risiko harus berstatus approved sebelum dapat ditandatangani"}
+			}
+		}
+
 		canSign, err := wp.CanSign(signerUserID)
 		if err != nil {
 			return err

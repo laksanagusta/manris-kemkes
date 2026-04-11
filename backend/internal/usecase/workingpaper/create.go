@@ -18,26 +18,28 @@ type CreateSignatoryInput struct {
 	SignerRoleLabel string
 }
 
+type RiskInput struct {
+	RiskID     uuid.UUID
+	SourceMode string
+}
+
 type CreateWorkingPaperInput struct {
 	Title            string
 	Description      string
 	AssessmentCycle  string
-	RiskSourceMode   string
 	AccessibleOrgIDs []uuid.UUID
 	OrgID            uuid.UUID
 	CreatedByUserID  uuid.UUID
-	RiskIDs          []uuid.UUID
+	Risks            []RiskInput
 	Signatories      []CreateSignatoryInput
 }
 
 func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*entity.WorkingPaper, error) {
-	input.RiskSourceMode = normalizeRiskSourceMode(input.RiskSourceMode)
-
 	if input.Title == "" {
 		return nil, domainerrors.ErrInvalidTitle
 	}
-	if len(input.RiskIDs) == 0 {
-		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one risk ID is required"}
+	if len(input.Risks) == 0 {
+		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one risk is required"}
 	}
 	if len(input.Signatories) == 0 {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one signatory is required"}
@@ -48,10 +50,11 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 		lookupOrgIDs = []uuid.UUID{input.OrgID}
 	}
 
-	linkedRisks := make([]entity.WorkingPaperRiskLink, 0, len(input.RiskIDs))
+	linkedRisks := make([]entity.WorkingPaperRiskLink, 0, len(input.Risks))
 	resolvedOrgID := input.OrgID
-	for idx, riskID := range input.RiskIDs {
-		resolvedRisk, err := resolveLinkedRisk(ctx, uc.riskRepo, riskID, input.AssessmentCycle, input.RiskSourceMode, lookupOrgIDs)
+	for idx, ri := range input.Risks {
+		sourceMode := normalizeRiskSourceMode(ri.SourceMode)
+		resolvedRisk, err := resolveLinkedRisk(ctx, uc.riskRepo, ri.RiskID, input.AssessmentCycle, sourceMode, lookupOrgIDs)
 		if err != nil {
 			return nil, err
 		}

@@ -213,8 +213,7 @@ func TestCreateLatestApprovedLinksTheExactApprovedRiskID(t *testing.T) {
 		OrgID:           orgID,
 		CreatedByUserID: uuid.New(),
 		AssessmentCycle: "2026-H1",
-		RiskSourceMode:  "latest_approved",
-		RiskIDs:         []uuid.UUID{approvedID},
+		Risks:           []RiskInput{{RiskID: approvedID, SourceMode: "latest_approved"}},
 		Signatories: []CreateSignatoryInput{{
 			UserID:          uuid.New(),
 			SequenceNo:      1,
@@ -269,9 +268,8 @@ func TestCreateLatestApprovedUsesFullAccessibleOrgScope(t *testing.T) {
 		Title:            "KK Semester I",
 		CreatedByUserID:  uuid.New(),
 		AssessmentCycle:  "2026-H1",
-		RiskSourceMode:   "latest_approved",
 		AccessibleOrgIDs: []uuid.UUID{accessibleOrgOne, accessibleOrgTwo},
-		RiskIDs:          []uuid.UUID{approvedID},
+		Risks:            []RiskInput{{RiskID: approvedID, SourceMode: "latest_approved"}},
 		Signatories: []CreateSignatoryInput{{
 			UserID:          uuid.New(),
 			SequenceNo:      1,
@@ -334,8 +332,7 @@ func TestCreateReviewPeriodicReusesExistingDraftRiskVersion(t *testing.T) {
 		OrgID:           orgID,
 		CreatedByUserID: uuid.New(),
 		AssessmentCycle: "2026-H1",
-		RiskSourceMode:  "review_periodic",
-		RiskIDs:         []uuid.UUID{approvedID},
+		Risks:           []RiskInput{{RiskID: approvedID, SourceMode: "review_periodic"}},
 		Signatories: []CreateSignatoryInput{{
 			UserID:          uuid.New(),
 			SequenceNo:      1,
@@ -389,8 +386,7 @@ func TestCreateReviewPeriodicCreatesDraftRiskVersionWhenMissing(t *testing.T) {
 		OrgID:           orgID,
 		CreatedByUserID: uuid.New(),
 		AssessmentCycle: "2026-H1",
-		RiskSourceMode:  "review_periodic",
-		RiskIDs:         []uuid.UUID{approvedID},
+		Risks:           []RiskInput{{RiskID: approvedID, SourceMode: "review_periodic"}},
 		Signatories: []CreateSignatoryInput{{
 			UserID:          uuid.New(),
 			SequenceNo:      1,
@@ -454,9 +450,8 @@ func TestCreateReviewPeriodicRejectsWhenReviewedVersionAlreadyExists(t *testing.
 		Title:            "KK Semester I",
 		CreatedByUserID:  uuid.New(),
 		AssessmentCycle:  "2026-H1",
-		RiskSourceMode:   "review_periodic",
 		AccessibleOrgIDs: []uuid.UUID{uuid.New()},
-		RiskIDs:          []uuid.UUID{approvedID},
+		Risks:            []RiskInput{{RiskID: approvedID, SourceMode: "review_periodic"}},
 		Signatories: []CreateSignatoryInput{{
 			UserID:          uuid.New(),
 			SequenceNo:      1,

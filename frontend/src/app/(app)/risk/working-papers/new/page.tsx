@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Table,
   TableBody,
@@ -48,10 +47,10 @@ const formSchema = z.object({
   title: z.string().min(3, "Judul kertas kerja harus diisi (min. 3 karakter)"),
   description: z.string().optional(),
   assessment_cycle: z.string().optional(),
-  risk_source_mode: z.enum(["latest_approved", "review_periodic"], {
-    message: "Sumber data risiko harus dipilih",
-  }),
-  risk_ids: z.array(z.string()).min(1, "Pilih minimal 1 risiko untuk kertas kerja"),
+  risks: z.array(z.object({
+    risk_id: z.string(),
+    source_mode: z.enum(["latest_approved", "review_periodic"]),
+  })).min(1, "Pilih minimal 1 risiko untuk kertas kerja"),
   signatories: z.array(z.object({
     user_id: z.string().min(1, "Pengguna harus dipilih"),
     signer_title: z.string().min(1, "Jabatan penandatangan harus diisi"),
@@ -83,8 +82,7 @@ export default function CreateWorkingPaperPage() {
       title: "",
       description: "",
       assessment_cycle: new Date().getFullYear().toString(),
-      risk_source_mode: "latest_approved" as const,
-      risk_ids: [],
+      risks: [],
       signatories: [
         {
           user_id: "",
@@ -102,7 +100,7 @@ export default function CreateWorkingPaperPage() {
     name: "signatories",
   });
 
-  const watchRiskIds = watch("risk_ids");
+  const watchRisks = watch("risks");
 
   useEffect(() => {
     if (!token) return;
@@ -137,13 +135,36 @@ export default function CreateWorkingPaperPage() {
     (r.code && r.code.toLowerCase().includes(searchRisk.toLowerCase()))
   );
 
+  const selectedRiskIds = watchRisks.map(r => r.risk_id);
+
   const handleToggleRisk = (riskId: string, checked: boolean) => {
-    const current = watchRiskIds || [];
+    const current = watchRisks || [];
     if (checked) {
-      setValue("risk_ids", [...current, riskId], { shouldValidate: true });
+      setValue("risks", [...current, { risk_id: riskId, source_mode: "latest_approved" }], { shouldValidate: true });
     } else {
-      setValue("risk_ids", current.filter(id => id !== riskId), { shouldValidate: true });
+      setValue("risks", current.filter(r => r.risk_id !== riskId), { shouldValidate: true });
     }
+  };
+
+  const handleToggleAll = (checked: boolean) => {
+    if (checked) {
+      const newRisks = filteredRisks.map(r => {
+        const existing = watchRisks.find(wr => wr.risk_id === r.id);
+        return existing || { risk_id: r.id, source_mode: "latest_approved" as const };
+      });
+      setValue("risks", newRisks, { shouldValidate: true });
+    } else {
+      setValue("risks", [], { shouldValidate: true });
+    }
+  };
+
+  const handleSourceModeChange = (riskId: string, mode: "latest_approved" | "review_periodic") => {
+    const current = watchRisks || [];
+    setValue(
+      "risks",
+      current.map(r => r.risk_id === riskId ? { ...r, source_mode: mode } : r),
+      { shouldValidate: true },
+    );
   };
 
   const handleUserSelect = (index: number, userId: string) => {
@@ -162,8 +183,7 @@ export default function CreateWorkingPaperPage() {
         title: data.title,
         description: data.description || undefined,
         assessment_cycle: data.assessment_cycle || undefined,
-        risk_source_mode: data.risk_source_mode,
-        risk_ids: data.risk_ids,
+        risks: data.risks,
         signatories: data.signatories.map((sig, idx) => ({
           user_id: sig.user_id,
           sequence_no: idx + 1,
@@ -241,35 +261,6 @@ export default function CreateWorkingPaperPage() {
                 className="max-w-[200px]"
               />
             </div>
-
-            <div className="space-y-2">
-              <Label>
-                Sumber Data Risiko <span className="text-destructive">*</span>
-              </Label>
-              <Controller
-                control={control}
-                name="risk_source_mode"
-                render={({ field: { value, onChange } }) => (
-                  <RadioGroup value={value} onValueChange={onChange} className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="latest_approved" id="mode_latest" />
-                      <Label htmlFor="mode_latest" className="font-normal cursor-pointer">
-                        Data terakhir disetujui (latest approved)
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="review_periodic" id="mode_review" />
-                      <Label htmlFor="mode_review" className="font-normal cursor-pointer">
-                        Review periodik (review periodic)
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                )}
-              />
-              {errors.risk_source_mode && (
-                <p className="text-sm text-destructive">{errors.risk_source_mode.message}</p>
-              )}
-            </div>
           </CardContent>
         </Card>
 
@@ -281,7 +272,7 @@ export default function CreateWorkingPaperPage() {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="px-2.5 py-0.5">
-                {watchRiskIds.length} dipilih
+                {watchRisks.length} dipilih
               </Badge>
             </div>
           </CardHeader>
@@ -295,7 +286,7 @@ export default function CreateWorkingPaperPage() {
               />
             </div>
             
-            {errors.risk_ids && <p className="text-sm text-destructive">{errors.risk_ids.message}</p>}
+            {errors.risks && <p className="text-sm text-destructive">{typeof errors.risks.message === 'string' ? errors.risks.message : 'Pilih minimal 1 risiko'}</p>}
 
             <div className="border rounded-md overflow-hidden bg-card">
               {loadingRisks ? (
@@ -311,18 +302,26 @@ export default function CreateWorkingPaperPage() {
                   <Table>
                     <TableHeader className="bg-muted/50 sticky top-0 z-10">
                       <TableRow>
-                        <TableHead className="w-[50px] text-center">Pilih</TableHead>
+                        <TableHead className="w-[50px] text-center">
+                          <Checkbox
+                            checked={filteredRisks.length > 0 && filteredRisks.every(r => selectedRiskIds.includes(r.id))}
+                            onCheckedChange={(checked) => handleToggleAll(!!checked)}
+                            aria-label="Pilih semua risiko"
+                          />
+                        </TableHead>
                         <TableHead className="w-[100px]">Kode</TableHead>
                         <TableHead>Judul Risiko</TableHead>
                         <TableHead className="w-[140px]">Kategori</TableHead>
                         <TableHead className="w-[120px] text-center">Nilai</TableHead>
                         <TableHead className="w-[140px] text-center">Tingkat</TableHead>
+                        <TableHead className="w-[180px]">Sumber Data</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredRisks.length > 0 ? (
                         filteredRisks.map((risk) => {
-                          const isChecked = watchRiskIds.includes(risk.id);
+                          const isChecked = selectedRiskIds.includes(risk.id);
+                          const riskEntry = watchRisks.find(r => r.risk_id === risk.id);
                           const lvlLabel = getRiskLevelLabel(getRiskLevelFromNilai(risk.nilai || 0));
                           return (
                             <TableRow 
@@ -356,12 +355,30 @@ export default function CreateWorkingPaperPage() {
                                   {lvlLabel}
                                 </Badge>
                               </TableCell>
+                              <TableCell>
+                                {isChecked ? (
+                                  <Select
+                                    value={riskEntry?.source_mode || "latest_approved"}
+                                    onValueChange={(val) => handleSourceModeChange(risk.id, val as "latest_approved" | "review_periodic")}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="latest_approved">Latest Approved</SelectItem>
+                                      <SelectItem value="review_periodic">Review Periodik</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
                             </TableRow>
                           );
                         })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                             Pencarian tidak menemukan risiko.
                           </TableCell>
                         </TableRow>
