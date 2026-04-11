@@ -128,6 +128,7 @@ type RiskListItem = {
   treatmentOption?: string;
   nextReviewDate?: string;
   versionGroupId?: string;
+  versionNumber?: number;
   previousRiskId?: string | null;
   isCurrent?: boolean;
   assessmentCycle?: string;
@@ -153,6 +154,7 @@ type VersionOption = {
   name: string;
   date: string;
   isCurrent: boolean;
+  versionNumber?: number;
 };
 
 function getRiskLevel(nilai: number | undefined): string {
@@ -365,6 +367,7 @@ export default function RiskRegisterPage() {
             ? new Date(item.createdAt).toLocaleDateString("id-ID")
             : "-",
           isCurrent: item.isCurrent,
+          versionNumber: item.versionNumber,
         }));
 
         setVersions(versionOptions);
@@ -761,7 +764,14 @@ export default function RiskRegisterPage() {
                         className="border-border/30 hover:bg-muted/30 transition-colors"
                       >
                         <TableCell className="text-xs font-mono text-muted-foreground">
-                          {risk.code || "-"}
+                          <span className="flex items-center gap-1.5">
+                            {risk.code || "-"}
+                            {risk.versionNumber != null && risk.versionNumber > 1 && (
+                              <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-border/50">
+                                v{risk.versionNumber}
+                              </span>
+                            )}
+                          </span>
                         </TableCell>
                         <TableCell className="max-w-[300px]">
                           <Link
@@ -1086,7 +1096,7 @@ export default function RiskRegisterPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-sm">
-                          {ver.name}
+                          {ver.versionNumber != null && ver.versionNumber > 0 ? `v${ver.versionNumber} — ` : ""}{ver.name}
                         </span>
                         {ver.isCurrent && (
                           <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5 ml-1">

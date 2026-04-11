@@ -339,97 +339,91 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.95fr)]">
-        {viewModel.currentAction ? (
-          <section
-            className={cn(
-              "rounded-[24px] border px-5 py-5",
-              actionToneClassName[viewModel.currentAction.tone],
-            )}
-          >
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="min-w-0 space-y-1.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Langkah saat ini
-                </p>
-                <h2
-                  className={cn(
-                    "text-lg font-semibold tracking-tight",
-                    actionToneTitleClassName[viewModel.currentAction.tone],
-                  )}
-                >
-                  {viewModel.currentAction.title}
-                </h2>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                  {viewModel.currentAction.description}
-                </p>
-              </div>
-
-              {viewModel.canSign && viewModel.currentAction.buttonLabel ? (
-                <Button size="lg" className="shadow-sm" onClick={() => setSignDialogOpen(true)}>
-                  <FileSignature className="mr-2 size-4" />
-                  {viewModel.currentAction.buttonLabel}
-                </Button>
-              ) : null}
+      {viewModel.currentAction ? (
+        <section
+          className={cn(
+            "rounded-2xl border px-5 py-5",
+            actionToneClassName[viewModel.currentAction.tone],
+          )}
+        >
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0 space-y-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Langkah saat ini
+              </p>
+              <h2
+                className={cn(
+                  "text-lg font-semibold tracking-tight",
+                  actionToneTitleClassName[viewModel.currentAction.tone],
+                )}
+              >
+                {viewModel.currentAction.title}
+              </h2>
+              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                {viewModel.currentAction.description}
+              </p>
             </div>
-          </section>
-        ) : null}
 
-        <section className="rounded-[24px] border border-border/50 bg-card px-5 py-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Ringkasan dokumen
-            </p>
-
-            <Badge variant="secondary" className="font-mono">
-              {signedCount}/{signatories.length || 0} TTE
-            </Badge>
+            {viewModel.canSign && viewModel.currentAction.buttonLabel ? (
+              <Button size="lg" className="shadow-sm" onClick={() => setSignDialogOpen(true)}>
+                <FileSignature className="mr-2 size-4" />
+                {viewModel.currentAction.buttonLabel}
+              </Button>
+            ) : null}
           </div>
-
-          <dl className="mt-4 grid gap-4 border-t border-border/40 pt-4 sm:grid-cols-2">
-            {summaryItems.map((item) => (
-              <div key={item.label} className="space-y-1">
-                <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                  {item.label}
-                </dt>
-                <dd className="text-sm font-medium text-foreground">{item.value}</dd>
-              </div>
-            ))}
-
-            <div className="space-y-1 sm:col-span-2">
-              <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Hash dokumen
-              </dt>
-              <dd className="flex flex-wrap items-center gap-2 text-sm text-foreground">
-                <span className="font-mono text-xs text-muted-foreground">
-                  {data.document_hash ? `${data.document_hash.substring(0, 24)}...` : "Belum tersedia"}
-                </span>
-                {data.document_hash ? (
-                  <button
-                    type="button"
-                    onClick={() => copyHash(data.document_hash!)}
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/25 hover:text-foreground"
-                    title="Salin hash dokumen"
-                  >
-                    <Copy className="size-3" />
-                    Salin hash
-                  </button>
-                ) : null}
-              </dd>
-            </div>
-          </dl>
         </section>
-      </div>
+      ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <div className="min-w-0 space-y-6">
+          <FormSection
+            title="Ringkasan dokumen"
+            action={
+              <Badge variant="secondary" className="font-mono">
+                {signedCount}/{signatories.length || 0} TTE
+              </Badge>
+            }
+          >
+            <dl className="grid gap-4 sm:grid-cols-2">
+              {summaryItems.map((item) => (
+                <div key={item.label} className="space-y-1">
+                  <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    {item.label}
+                  </dt>
+                  <dd className="text-sm font-medium text-foreground">{item.value}</dd>
+                </div>
+              ))}
+
+              <div className="space-y-1 sm:col-span-2">
+                <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  Hash dokumen
+                </dt>
+                <dd className="flex flex-wrap items-center gap-2 text-sm text-foreground">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {data.document_hash ? `${data.document_hash.substring(0, 24)}...` : "Belum tersedia"}
+                  </span>
+                  {data.document_hash ? (
+                    <button
+                      type="button"
+                      onClick={() => copyHash(data.document_hash!)}
+                      className="inline-flex items-center gap-1 rounded-full border border-border/60 px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/25 hover:text-foreground"
+                      title="Salin hash dokumen"
+                    >
+                      <Copy className="size-3" />
+                      Salin hash
+                    </button>
+                  ) : null}
+                </dd>
+              </div>
+            </dl>
+          </FormSection>
           <FormSection
             title="Risiko dalam Kertas Kerja"
             action={<Badge variant="secondary" className="font-mono">{data.risks?.length || 0} Risiko</Badge>}
             contentClassName="p-0 sm:p-0"
           >
             {totalRiskCount > 0 && (
-              <div className="flex flex-col gap-3 px-5 py-4 border-b border-border/40 bg-card">
+              <div className="flex flex-col gap-3 px-4 py-4 border-b border-border/40">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
                     {isAllApproved ? (
@@ -456,14 +450,14 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                 </div>
               </div>
             )}
-            <div className="overflow-x-auto rounded-b-[24px]">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/10">
                      <TableHead className="w-24 text-xs">Kode</TableHead>
                      <TableHead className="text-xs">Judul Risiko</TableHead>
-                     <TableHead className="text-xs text-center">Probabilitas</TableHead>
-                     <TableHead className="text-xs text-center">Dampak</TableHead>
+                     <TableHead className="hidden xl:table-cell text-xs text-center">Probabilitas</TableHead>
+                     <TableHead className="hidden xl:table-cell text-xs text-center">Dampak</TableHead>
                      <TableHead className="text-xs text-center">Nilai</TableHead>
                      <TableHead className="text-xs">Tingkat</TableHead>
                      <TableHead className="text-xs">Status</TableHead>
@@ -512,12 +506,21 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                        
                       return (
                         <TableRow key={risk.id || index} className="transition-colors hover:bg-muted/20">
-                          <TableCell className="font-mono text-xs text-muted-foreground">{risk.code || "-"}</TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1.5">
+                              {risk.code || "-"}
+                              {risk.versionNumber != null && risk.versionNumber > 1 && (
+                                <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-border/50">
+                                  v{risk.versionNumber}
+                                </span>
+                              )}
+                            </span>
+                          </TableCell>
                           <TableCell className="max-w-[240px] truncate text-xs font-medium" title={risk.title}>
                             {risk.title}
                           </TableCell>
-                          <TableCell className="text-center text-xs">{risk.probability || '-'}</TableCell>
-                          <TableCell className="text-center text-xs">{risk.impact || '-'}</TableCell>
+                          <TableCell className="hidden xl:table-cell text-center text-xs">{risk.probability || '-'}</TableCell>
+                          <TableCell className="hidden xl:table-cell text-center text-xs">{risk.impact || '-'}</TableCell>
                           <TableCell className="text-center text-xs font-semibold">{risk.nilai || '-'}</TableCell>
                           <TableCell>
                             <Badge className={cn("text-[10px] font-semibold border px-1.5 h-5", badgeCls)}>
@@ -545,7 +548,7 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
           </FormSection>
         </div>
 
-        <div className="lg:col-span-1 space-y-6">
+        <div>
           <FormSection
             title="Status Tanda Tangan"
             action={<Badge variant="secondary" className="font-mono">{signedCount}/{signatories.length || 0}</Badge>}
@@ -556,7 +559,7 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                 <p className="text-sm text-muted-foreground">Belum ada penandatangan</p>
               </div>
             ) : (
-              <div className="relative ml-2 space-y-6">
+              <div className="space-y-0">
                 {viewModel.timeline.map((item, index) => {
                   const isLast = index === viewModel.timeline.length - 1;
                   const isSigned = item.state === "signed";
@@ -567,65 +570,64 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                   return (
                     <div
                       key={sig.id}
-                      className={cn("relative flex gap-4", isFuture && "opacity-75")}
+                      className={cn("flex gap-3", isFuture && "opacity-75")}
                     >
-                      {!isLast ? (
-                        <div
-                          className={cn(
-                            "absolute bottom-[-24px] left-[11px] top-8 z-0 w-0.5",
-                            isSigned ? "bg-success" : isCurrent ? "bg-primary/30" : "bg-border",
+                      <div className="flex flex-col items-center">
+                        <div className="mt-1 shrink-0">
+                          {isSigned ? (
+                            <div className="flex size-6 items-center justify-center rounded-full border border-success/30 bg-success/20">
+                              <CheckCircle2 className="size-4 text-success" />
+                            </div>
+                          ) : isCurrent ? (
+                            <div className="flex size-6 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
+                              <div className="size-2.5 rounded-full bg-primary animate-pulse" />
+                            </div>
+                          ) : (
+                            <div className="flex size-6 items-center justify-center rounded-full border border-border bg-muted">
+                              <Circle className="size-3 text-muted-foreground" />
+                            </div>
                           )}
-                        />
-                      ) : null}
-
-                      <div className="relative z-10 mt-1 shrink-0">
-                        {isSigned ? (
-                          <div className="flex size-6 items-center justify-center rounded-full border border-success/30 bg-success/20">
-                            <CheckCircle2 className="size-4 text-success" />
-                          </div>
-                        ) : isCurrent ? (
-                          <div className="flex size-6 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
-                            <div className="size-2.5 rounded-full bg-primary animate-pulse" />
-                          </div>
-                        ) : (
-                          <div className="flex size-6 items-center justify-center rounded-full border border-border bg-muted">
-                            <Circle className="size-3 text-muted-foreground" />
-                          </div>
+                        </div>
+                        {!isLast && (
+                          <div
+                            className={cn(
+                              "w-0.5 flex-1 min-h-4",
+                              isSigned ? "bg-success" : isCurrent ? "bg-primary/30" : "bg-border",
+                            )}
+                          />
                         )}
                       </div>
 
-                      <div className="min-w-0 flex-1 pb-2">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="min-w-0 space-y-1.5">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate text-sm font-semibold leading-none">
-                                {sig.signer_name}
-                              </p>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "h-5 px-2 text-[10px] font-semibold",
-                                  timelineStatusClassName[item.state],
-                                )}
-                              >
-                                {item.label}
-                              </Badge>
-                            </div>
-
-                            <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
-                              {sig.signer_title}
+                      <div className={cn("min-w-0 flex-1", !isLast ? "pb-6" : "pb-0")}>
+                        <div className="space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-semibold leading-none">
+                              {sig.signer_name}
                             </p>
-
-                            {sig.signer_role_label ? (
-                              <Badge variant="outline" className="bg-muted/30 text-[10px] leading-none">
-                                {sig.signer_role_label}
-                              </Badge>
-                            ) : null}
-
-                            <p className="text-xs leading-5 text-muted-foreground">
-                              {item.description}
-                            </p>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "h-5 px-2 text-[10px] font-semibold",
+                                timelineStatusClassName[item.state],
+                              )}
+                            >
+                              {item.label}
+                            </Badge>
                           </div>
+
+                          <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+                            {sig.signer_title}
+                          </p>
+
+                          {sig.signer_role_label ? (
+                            <Badge variant="outline" className="bg-muted/30 text-[10px] leading-none">
+                              {sig.signer_role_label}
+                            </Badge>
+                          ) : null}
+
+                          <p className="text-xs leading-5 text-muted-foreground">
+                            {item.description}
+                          </p>
                         </div>
 
                         {sig.signed_at ? (

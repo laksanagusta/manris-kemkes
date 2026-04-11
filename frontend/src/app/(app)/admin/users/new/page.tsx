@@ -33,6 +33,9 @@ export default function NewUserPage() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("unit");
   const [orgId, setOrgId] = useState("");
+  const [nip, setNip] = useState("");
+  const [jabatan, setJabatan] = useState("");
+  const [pangkat, setPangkat] = useState("");
 
   useEffect(() => {
     if (!token) return;
@@ -68,6 +71,9 @@ export default function NewUserPage() {
           password,
           role,
           organizationId: role === "superadmin" ? null : orgId,
+          nip,
+          jabatan,
+          pangkat,
         },
         token || undefined,
       );
@@ -153,6 +159,42 @@ export default function NewUserPage() {
               className="h-10 text-sm"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="Informasi kepegawaian"
+        description="Data profil pegawai untuk identifikasi dalam sistem."
+        contentClassName="space-y-5"
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">NIP</Label>
+            <Input
+              placeholder="Contoh: 198501012010011001"
+              className="h-10 text-sm"
+              value={nip}
+              onChange={(e) => setNip(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Jabatan</Label>
+            <Input
+              placeholder="Contoh: Kepala Seksi Surveilans"
+              className="h-10 text-sm"
+              value={jabatan}
+              onChange={(e) => setJabatan(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Pangkat</Label>
+            <Input
+              placeholder="Contoh: Pembina Tk. I (IV/b)"
+              className="h-10 text-sm"
+              value={pangkat}
+              onChange={(e) => setPangkat(e.target.value)}
             />
           </div>
         </div>

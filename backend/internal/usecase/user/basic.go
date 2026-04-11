@@ -74,6 +74,9 @@ type UpdateUserInput struct {
 	Role           string
 	OrganizationID *uuid.UUID
 	Status         string
+	NIP            string
+	Jabatan        string
+	Pangkat        string
 }
 
 type UpdateUserOutput struct {
@@ -104,6 +107,9 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 	existingUser.Role = input.Role
 	existingUser.OrganizationID = input.OrganizationID
 	existingUser.Status = input.Status
+	existingUser.NIP = input.NIP
+	existingUser.Jabatan = input.Jabatan
+	existingUser.Pangkat = input.Pangkat
 
 	// 4. Validate user entity
 	if err := existingUser.Validate(); err != nil {

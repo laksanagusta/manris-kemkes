@@ -119,6 +119,7 @@ func BuildPeriodicReassessmentDraft(source *entity.Risk, cycle string, startedAt
 		copied.CreatedAt = time.Time{}
 		clone.Mitigations[i] = copied
 	}
+	clone.VersionNumber = source.VersionNumber + 1
 	return &clone
 }
 

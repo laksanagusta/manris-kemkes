@@ -33,8 +33,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { cn } from "@/lib/utils";
 import {
@@ -461,7 +471,8 @@ export default function RiskInputPage() {
     { id: string; name: string; role?: string }[]
   >([]);
   const [approvalId, setApprovalId] = useState<string | null>(null);
-  const [approvalWorkflow, setApprovalWorkflow] = useState<RiskWorkflowState | null>(null);
+  const [approvalWorkflow, setApprovalWorkflow] =
+    useState<RiskWorkflowState | null>(null);
   const [openSections, setOpenSections] = useState<string[]>(["identifikasi"]);
   const [assessmentCycleDisplay, setAssessmentCycleDisplay] = useState(
     currentAssessmentCycle(),
@@ -592,7 +603,9 @@ export default function RiskInputPage() {
           riskCode: risk.code || "",
           causes: loadedCauses,
           impacts: loadedImpacts,
-          riskSource: (risk.riskSource === "eksternal" ? "eksternal" : "internal") as "internal" | "eksternal",
+          riskSource: (risk.riskSource === "eksternal"
+            ? "eksternal"
+            : "internal") as "internal" | "eksternal",
           controllability: risk.controllability === "UC" ? "UC" : "C",
           existingControl: risk.existingControl || "",
           controlEffectiveness: risk.controlEffectiveness || "",
@@ -600,8 +613,13 @@ export default function RiskInputPage() {
           impact: risk.impact || 3,
           weight: risk.weight || 1.0,
           riskPriority: risk.riskPriority || 0,
-          riskAppetite: (risk.riskAppetite === "di_atas_batas" ? "di_atas_batas" : "dalam_batas") as "dalam_batas" | "di_atas_batas",
-          treatmentOption: risk.treatmentOption as "menerima" | "mitigasi" | undefined,
+          riskAppetite: (risk.riskAppetite === "di_atas_batas"
+            ? "di_atas_batas"
+            : "dalam_batas") as "dalam_batas" | "di_atas_batas",
+          treatmentOption: risk.treatmentOption as
+            | "menerima"
+            | "mitigasi"
+            | undefined,
           mitigations: Array.isArray(risk.mitigations)
             ? risk.mitigations.map((mitigation) => ({
                 ...mitigation,
@@ -633,8 +651,13 @@ export default function RiskInputPage() {
         } else {
           setReviewerScoreData(null);
         }
-        if (Array.isArray(risk.draftApprovalLine) && risk.draftApprovalLine.length > 0) {
-          const hasTypedMembers = risk.draftApprovalLine.some((member) => member.type);
+        if (
+          Array.isArray(risk.draftApprovalLine) &&
+          risk.draftApprovalLine.length > 0
+        ) {
+          const hasTypedMembers = risk.draftApprovalLine.some(
+            (member) => member.type,
+          );
           if (hasTypedMembers) {
             const reviewer = risk.draftApprovalLine.find(
               (member: { type?: string }) => member.type === "review",
@@ -677,8 +700,10 @@ export default function RiskInputPage() {
               approvalResult
                 ? {
                     currentStatus: approvalResult.currentStatus ?? null,
-                    currentApproverRole: approvalResult.currentApproverRole ?? null,
-                    currentApproverUserId: approvalResult.currentApproverUserId ?? null,
+                    currentApproverRole:
+                      approvalResult.currentApproverRole ?? null,
+                    currentApproverUserId:
+                      approvalResult.currentApproverUserId ?? null,
                     steps:
                       approvalResult.steps?.map((step) => ({
                         approverUserId: step.approverUserId ?? null,
@@ -690,9 +715,16 @@ export default function RiskInputPage() {
                 : null,
             );
             if (approvalResult?.steps && Array.isArray(approvalResult.steps)) {
-              const reviewerStep = approvalResult.steps.find((s) => s.stepType === 'review');
+              const reviewerStep = approvalResult.steps.find(
+                (s) => s.stepType === "review",
+              );
               const approvalSteps = approvalResult.steps
-                .filter((step) => step.stepType === 'approval' && step.approverUserId && step.approverName)
+                .filter(
+                  (step) =>
+                    step.stepType === "approval" &&
+                    step.approverUserId &&
+                    step.approverName,
+                )
                 .map((step) => ({
                   id: step.approverUserId!,
                   name: step.approverName!,
@@ -754,7 +786,12 @@ export default function RiskInputPage() {
             id: org.id || org.ID,
             name: org.name || org.Name,
           }));
-          const filtered = user?.isGlobal ? normalized : filterToAccessibleOrgs(normalized as any, user?.accessibleOrgIds || []);
+          const filtered = user?.isGlobal
+            ? normalized
+            : filterToAccessibleOrgs(
+                normalized as any,
+                user?.accessibleOrgIds || [],
+              );
           setOrganizations(filtered);
         } catch (err) {
           console.error(err);
@@ -799,9 +836,7 @@ export default function RiskInputPage() {
         );
         if (meetingPrefillRaw) {
           try {
-            meetingPrefill = JSON.parse(
-              meetingPrefillRaw,
-            ) as RiskDraftPrefill;
+            meetingPrefill = JSON.parse(meetingPrefillRaw) as RiskDraftPrefill;
           } catch (error) {
             console.error(
               "Failed to parse legacy Meeting Intelligence prefill:",
@@ -833,7 +868,8 @@ export default function RiskInputPage() {
               ]
             : [],
           impacts: [],
-          riskSource: (meetingPrefill.source as "internal" | "eksternal") || "internal",
+          riskSource:
+            (meetingPrefill.source as "internal" | "eksternal") || "internal",
           controllability: "C",
           existingControl: "",
           controlEffectiveness: "",
@@ -842,7 +878,8 @@ export default function RiskInputPage() {
           weight: 1.0,
           riskPriority: 0,
           riskAppetite: "dalam_batas",
-          treatmentOption: (meetingPrefill.treatmentOption as "menerima" | "mitigasi") || "",
+          treatmentOption:
+            (meetingPrefill.treatmentOption as "menerima" | "mitigasi") || "",
           mitigations: meetingPrefill.mitigation
             ? [
                 {
@@ -853,10 +890,7 @@ export default function RiskInputPage() {
                 },
               ]
             : [],
-          targetProbability: Math.max(
-            1,
-            (meetingPrefill.probability || 3) - 1,
-          ),
+          targetProbability: Math.max(1, (meetingPrefill.probability || 3) - 1),
           targetImpact: Math.max(1, (meetingPrefill.impact || 3) - 1),
           targetWeight: 1.0,
           nextReviewDate: "",
@@ -887,15 +921,33 @@ export default function RiskInputPage() {
   const [activeView, setActiveView] = useState<WorkspaceView>("form");
 
   // Computed - using new bobot matrix and nilai calculation
-  const weight = useMemo(() => getBobot(probability, impact), [probability, impact]);
-  const nilai = useMemo(() => calculateNilai(probability, impact, weight), [probability, impact, weight]);
+  const weight = useMemo(
+    () => getBobot(probability, impact),
+    [probability, impact],
+  );
+  const nilai = useMemo(
+    () => calculateNilai(probability, impact, weight),
+    [probability, impact, weight],
+  );
   const level = useMemo(() => getRiskLevelFromNilai(nilai), [nilai]);
   const riskPriority = useMemo(() => getRiskPriority(level), [level]);
 
-  const targetWeight = useMemo(() => getBobot(targetProbability, targetImpact), [targetProbability, targetImpact]);
-  const targetNilai = useMemo(() => calculateNilai(targetProbability, targetImpact, targetWeight), [targetProbability, targetImpact, targetWeight]);
-  const targetLevel = useMemo(() => getRiskLevelFromNilai(targetNilai), [targetNilai]);
-  const targetPriority = useMemo(() => getRiskPriority(targetLevel), [targetLevel]);
+  const targetWeight = useMemo(
+    () => getBobot(targetProbability, targetImpact),
+    [targetProbability, targetImpact],
+  );
+  const targetNilai = useMemo(
+    () => calculateNilai(targetProbability, targetImpact, targetWeight),
+    [targetProbability, targetImpact, targetWeight],
+  );
+  const targetLevel = useMemo(
+    () => getRiskLevelFromNilai(targetNilai),
+    [targetNilai],
+  );
+  const targetPriority = useMemo(
+    () => getRiskPriority(targetLevel),
+    [targetLevel],
+  );
   const currentScoreSemantics = useMemo(
     () =>
       resolveRiskScoreSemantics({
@@ -1097,8 +1149,9 @@ export default function RiskInputPage() {
               {
                 id: reviewerId,
                 name:
-                  availableUsers.find((userOption) => userOption.id === reviewerId)
-                    ?.name || "Reviewer",
+                  availableUsers.find(
+                    (userOption) => userOption.id === reviewerId,
+                  )?.name || "Reviewer",
                 type: "review" as const,
               },
             ]
@@ -1462,80 +1515,84 @@ export default function RiskInputPage() {
 
   return (
     <TooltipProvider>
-    <div className="animate-fade-in pb-20">
-      <FormHeader
-        title="Form registrasi risiko"
-        description={
-          isRiskLocked
-            ? "Dokumen ini terkunci karena sudah final. Kembalikan ke draft terlebih dahulu jika ingin mengubah data risiko."
-            : "Lengkapi identifikasi, analisis, dan rencana penanganan sebelum diajukan untuk approval."
-        }
-        badges={
-          <>
-            <Badge
-              variant="outline"
-              className="border-primary/15 bg-primary/[0.04] text-primary"
-            >
-              Draft kerja
-            </Badge>
-            <Badge
-              variant="outline"
-              className={cn(
-                "border-border/15",
-                isFinalizeReady
-                  ? "bg-success/10 text-success"
-                  : "bg-muted/40 text-muted-foreground",
-              )}
-            >
-              {isFinalizeReady
-                ? "Siap diajukan"
-                : `${missingSections.length} bagian belum siap`}
-            </Badge>
-          </>
-        }
-        backLabel="Kembali ke register risiko"
-        onBack={() => router.push("/risk/register")}
-        actions={
-          <div className="flex items-center gap-2 sm:gap-3">
-            {riskId &&
-              (riskStatus === "in_review" ||
-                riskStatus === "in_approval" ||
-                riskStatus === "approved" ||
-                riskStatus === "rejected") && (
-                <Button
-                  variant="outline"
-                  className="gap-2 text-xs text-destructive hover:bg-destructive/10"
-                  onClick={handleRevertToDraft}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <ArrowLeft className="size-3.5 rounded-full border border-current p-0.5" />
-                  )}{" "}
-                  <span className="hidden sm:inline">Kembalikan ke draft</span>
-                </Button>
-              )}
+      <div className="animate-fade-in pb-20">
+        <FormHeader
+          title="Form registrasi risiko"
+          description={
+            isRiskLocked
+              ? "Dokumen ini terkunci karena sudah final. Kembalikan ke draft terlebih dahulu jika ingin mengubah data risiko."
+              : "Lengkapi identifikasi, analisis, dan rencana penanganan sebelum diajukan untuk approval."
+          }
+          badges={
+            <>
+              <Badge
+                variant="outline"
+                className="border-primary/15 bg-primary/[0.04] text-primary"
+              >
+                Draft kerja
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "border-border/15",
+                  isFinalizeReady
+                    ? "bg-success/10 text-success"
+                    : "bg-muted/40 text-muted-foreground",
+                )}
+              >
+                {isFinalizeReady
+                  ? "Siap diajukan"
+                  : `${missingSections.length} bagian belum siap`}
+              </Badge>
+            </>
+          }
+          backLabel="Kembali ke register risiko"
+          onBack={() => router.push("/risk/register")}
+          actions={
+            <div className="flex items-center gap-2 sm:gap-3">
+              {riskId &&
+                (riskStatus === "in_review" ||
+                  riskStatus === "in_approval" ||
+                  riskStatus === "approved" ||
+                  riskStatus === "rejected") && (
+                  <Button
+                    variant="outline"
+                    className="gap-2 text-xs text-destructive hover:bg-destructive/10"
+                    onClick={handleRevertToDraft}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <ArrowLeft className="size-3.5 rounded-full border border-current p-0.5" />
+                    )}{" "}
+                    <span className="hidden sm:inline">
+                      Kembalikan ke draft
+                    </span>
+                  </Button>
+                )}
 
-            {riskId && (
+              {riskId && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="size-8 text-muted-foreground hover:text-foreground"
-                      onClick={() => showUnavailableFeatureToast("Riwayat versi")}
+                      onClick={() =>
+                        showUnavailableFeatureToast("Riwayat versi")
+                      }
                     >
                       <History className="size-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Riwayat versi</TooltipContent>
                 </Tooltip>
-            )}
+              )}
 
-            {(riskStatus === "draft" || !riskId) && (
-              <div className="flex items-center gap-2 border-l border-border/40 pl-2 sm:pl-3 ml-1 sm:ml-2">
-                {riskId && (
+              {(riskStatus === "draft" || !riskId) && (
+                <div className="flex items-center gap-2 border-l border-border/40 pl-2 sm:pl-3 ml-1 sm:ml-2">
+                  {riskId && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -1550,1227 +1607,1418 @@ export default function RiskInputPage() {
                       </TooltipTrigger>
                       <TooltipContent>Hapus draft</TooltipContent>
                     </Tooltip>
-                )}
-                <Button
-                  variant="outline"
-                  className="gap-2 text-xs font-medium border-primary/20 hover:bg-primary/5 hover:text-primary"
-                  onClick={handleSaveDraft}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting && submitTarget.current === "draft" ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Save className="size-3.5" />
-                  )}{" "}
-                  Simpan draft
-                </Button>
-                <Button
-                  className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => {
-                    submitTarget.current = "review";
-                    clearErrors();
-                    if (!reviewerId) {
-                      toast.error("Pilih Reviewer terlebih dahulu.");
-                      return;
-                    }
-                    if (!isFinalizeReady) {
-                       const firstMissing = missingSections[0]?.id ?? "identifikasi";
-                       scrollToSection(firstMissing);
-                       return;
-                    }
-                    handleSubmit(onSubmit, onValidationError)();
-                  }}
-                  disabled={isSubmitting || !isFinalizeReady}
-                >
-                  {isSubmitting && submitTarget.current === "review" ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Send className="size-4" />
-                  )}{" "}
-                  Ajukan review
-                </Button>
-              </div>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="gap-2 text-xs font-medium border-primary/20 hover:bg-primary/5 hover:text-primary"
+                    onClick={handleSaveDraft}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting && submitTarget.current === "draft" ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Save className="size-3.5" />
+                    )}{" "}
+                    Simpan draft
+                  </Button>
+                  <Button
+                    className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                    onClick={() => {
+                      submitTarget.current = "review";
+                      clearErrors();
+                      if (!reviewerId) {
+                        toast.error("Pilih Reviewer terlebih dahulu.");
+                        return;
+                      }
+                      if (!isFinalizeReady) {
+                        const firstMissing =
+                          missingSections[0]?.id ?? "identifikasi";
+                        scrollToSection(firstMissing);
+                        return;
+                      }
+                      handleSubmit(onSubmit, onValidationError)();
+                    }}
+                    disabled={isSubmitting || !isFinalizeReady}
+                  >
+                    {isSubmitting && submitTarget.current === "review" ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Send className="size-4" />
+                    )}{" "}
+                    Ajukan review
+                  </Button>
+                </div>
+              )}
+            </div>
+          }
+        />
+
+        <div className="mb-6 max-w-4xl space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Ruang kerja
+            </p>
+            {riskId && (
+              <Badge
+                variant="outline"
+                className="border-primary/15 bg-primary/[0.04] text-primary"
+              >
+                Dokumen tersimpan
+              </Badge>
             )}
           </div>
-        }
-      />
+          <div className="rounded-2xl border border-border/20 bg-muted/[0.18] p-1.5">
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                {
+                  id: "form" as const,
+                  label: "Form Aktif",
+                  icon: BookOpen,
+                },
+                {
+                  id: "progress" as const,
+                  label: "Progress Mitigasi",
+                  icon: Activity,
+                },
+                {
+                  id: "log" as const,
+                  label: "Log & Komunikasi",
+                  icon: MessageSquare,
+                },
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = activeView === item.id;
+                const isDisabled = item.id !== "form" && !riskId;
 
-      <div className="mb-6 max-w-4xl space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Ruang kerja
-          </p>
-          {riskId && (
-            <Badge
-              variant="outline"
-              className="border-primary/15 bg-primary/[0.04] text-primary"
-            >
-              Dokumen tersimpan
-            </Badge>
-          )}
-        </div>
-        <div className="rounded-2xl border border-border/20 bg-muted/[0.18] p-1.5">
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              {
-                id: "form" as const,
-                label: "Form Aktif",
-                icon: BookOpen,
-              },
-              {
-                id: "progress" as const,
-                label: "Progress Mitigasi",
-                icon: Activity,
-              },
-              {
-                id: "log" as const,
-                label: "Log & Komunikasi",
-                icon: MessageSquare,
-              },
-            ].map((item) => {
-              const Icon = item.icon;
-              const isActive = activeView === item.id;
-              const isDisabled = item.id !== "form" && !riskId;
-
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleViewChange(item.id)}
-                  className={cn(
-                    "inline-flex min-w-[180px] flex-1 items-center gap-2 rounded-[18px] px-4 py-3 text-left transition-colors",
-                    isActive
-                      ? "bg-background text-foreground ring-1 ring-border/35"
-                      : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
-                    isDisabled && "opacity-60",
-                  )}
-                >
-                  <Icon className="size-4" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {activeView === "form" && (
-        <div className="flex flex-col items-start gap-6 xl:flex-row">
-          <form
-            onSubmit={(e) => e.preventDefault()}
-            className="w-full xl:w-2/3"
-          >
-            <Accordion type="multiple" value={openSections} onValueChange={setOpenSections} className="space-y-6">
-            <AccordionItem value="identifikasi" id="identifikasi" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">1</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Identifikasi Risiko</p>
-                  </div>
-                  <Badge
-                    variant="outline"
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleViewChange(item.id)}
                     className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      sectionStatuses[0].done
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
+                      "inline-flex min-w-[180px] flex-1 items-center gap-2 rounded-[18px] px-4 py-3 text-left transition-colors",
+                      isActive
+                        ? "bg-background text-foreground ring-1 ring-border/35"
+                        : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+                      isDisabled && "opacity-60",
                     )}
                   >
-                    {sectionStatuses[0].done ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{sectionStatuses[0].done ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                <div className="relative space-y-1.5">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <Label className="text-sm font-medium">
-                      Risiko<span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <AiFieldButton
-                      loading={generatingRisk}
-                      disabled={isRiskLocked}
-                      onClick={handleGenerateRisk}
-                      label="Bantu rumuskan risiko"
-                    />
-                  </div>
-                  <Controller
-                    name="title"
-                    control={control}
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        placeholder="Contoh: Terjadi kebakaran di gudang bahan baku"
-                        disabled={isRiskLocked}
-                        className={cn(
-                          "text-sm",
-                          errors.title && "border-destructive",
-                        )}
-                      />
-                    )}
-                  />
-                  <FormErrorMessage error={errors.title?.message} />
+                    <Icon className="size-4" />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
-                  {showRiskSuggestions && riskSuggestions.length > 0 && (
-                    <div className="absolute z-50 mt-2 w-full rounded-lg border border-border bg-background shadow-lg">
-                      <div className="border-b border-border/60 px-3 py-2">
-                        <p className="text-xs font-semibold text-foreground">
-                          Saran AI untuk judul risiko
+        {activeView === "form" && (
+          <div className="flex flex-col items-start gap-6 xl:flex-row">
+            <form
+              onSubmit={(e) => e.preventDefault()}
+              className="w-full xl:w-2/3"
+            >
+              <Accordion
+                type="multiple"
+                value={openSections}
+                onValueChange={setOpenSections}
+                className="space-y-6"
+              >
+                <AccordionItem
+                  value="identifikasi"
+                  id="identifikasi"
+                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                >
+                  <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
+                    <div className="flex flex-1 items-center justify-between pr-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
+                          1
+                        </div>
+                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
+                          Identifikasi Risiko
                         </p>
                       </div>
-                      <div className="max-h-[300px] overflow-y-auto">
-                        {riskSuggestions.map((suggestion, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => {
-                              setValue("title", suggestion.title);
-                              setValue("description", suggestion.description);
-                              setShowRiskSuggestions(false);
-                            }}
-                            className="w-full border-b border-border/50 p-3 text-left hover:bg-muted/30"
-                          >
-                            <p className="text-sm font-medium text-foreground">
-                              {suggestion.title}
-                            </p>
-                            <p className="mt-1 text-xs leading-relaxed text-muted-foreground line-clamp-2">
-                              {suggestion.description}
-                            </p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium">
-                    Deskripsi Kejadian Risiko
-                    <span className="text-destructive ml-0.5">*</span>
-                  </Label>
-                  <Controller
-                    name="description"
-                    control={control}
-                    render={({ field }) => (
-                      <Textarea
-                        {...field}
-                        placeholder="Contoh: Mesin A mati secara tiba-tiba saat proses produksi berlangsung..."
-                        disabled={isRiskLocked}
+                      <Badge
+                        variant="outline"
                         className={cn(
-                          "min-h-[120px] text-sm",
-                          errors.description && "border-destructive",
+                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                          sectionStatuses[0].done
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-muted/40 text-muted-foreground",
+                        )}
+                      >
+                        {sectionStatuses[0].done ? (
+                          <CheckCircle2 className="size-3.5" />
+                        ) : (
+                          <CircleDot className="size-3.5" />
+                        )}
+                        <span className="hidden sm:inline">
+                          {sectionStatuses[0].done
+                            ? "Siap"
+                            : "Perlu dilengkapi"}
+                        </span>
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                    <div className="relative space-y-1.5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <Label className="text-sm font-medium">
+                          Risiko
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <AiFieldButton
+                          loading={generatingRisk}
+                          disabled={isRiskLocked}
+                          onClick={handleGenerateRisk}
+                          label="Bantu rumuskan risiko"
+                        />
+                      </div>
+                      <Controller
+                        name="title"
+                        control={control}
+                        render={({ field }) => (
+                          <Input
+                            {...field}
+                            placeholder="Contoh: Terjadi kebakaran di gudang bahan baku"
+                            disabled={isRiskLocked}
+                            className={cn(
+                              "text-sm",
+                              errors.title && "border-destructive",
+                            )}
+                          />
                         )}
                       />
-                    )}
-                  />
-                  <FormErrorMessage error={errors.description?.message} />
-                </div>
+                      <FormErrorMessage error={errors.title?.message} />
 
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium">
-                    Kategori Risiko
-                    <span className="text-destructive ml-0.5">*</span>
-                  </Label>
-                  <Controller
-                    name="category"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={isRiskLocked}
-                      >
-                        <SelectTrigger
-                          className={cn(
-                            "h-9 text-sm",
-                            errors.category && "border-destructive",
-                          )}
-                        >
-                          <SelectValue placeholder="Pilih kategori risiko" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {riskCategoryOptions.map((option) => (
-                            <SelectItem
-                              key={option.value}
-                              value={option.value}
-                              className="text-sm"
+                      {showRiskSuggestions && riskSuggestions.length > 0 && (
+                        <div className="absolute z-50 mt-2 w-full rounded-lg border border-border bg-background shadow-lg">
+                          <div className="border-b border-border/60 px-3 py-2">
+                            <p className="text-xs font-semibold text-foreground">
+                              Saran AI untuk judul risiko
+                            </p>
+                          </div>
+                          <div className="max-h-[300px] overflow-y-auto">
+                            {riskSuggestions.map((suggestion, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  setValue("title", suggestion.title);
+                                  setValue(
+                                    "description",
+                                    suggestion.description,
+                                  );
+                                  setShowRiskSuggestions(false);
+                                }}
+                                className="w-full border-b border-border/50 p-3 text-left hover:bg-muted/30"
+                              >
+                                <p className="text-sm font-medium text-foreground">
+                                  {suggestion.title}
+                                </p>
+                                <p className="mt-1 text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                                  {suggestion.description}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">
+                        Deskripsi Kejadian Risiko
+                        <span className="text-destructive ml-0.5">*</span>
+                      </Label>
+                      <Controller
+                        name="description"
+                        control={control}
+                        render={({ field }) => (
+                          <Textarea
+                            {...field}
+                            placeholder="Contoh: Mesin A mati secara tiba-tiba saat proses produksi berlangsung..."
+                            disabled={isRiskLocked}
+                            className={cn(
+                              "min-h-[120px] text-sm",
+                              errors.description && "border-destructive",
+                            )}
+                          />
+                        )}
+                      />
+                      <FormErrorMessage error={errors.description?.message} />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">
+                        Kategori Risiko
+                        <span className="text-destructive ml-0.5">*</span>
+                      </Label>
+                      <Controller
+                        name="category"
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            disabled={isRiskLocked}
+                          >
+                            <SelectTrigger
+                              className={cn(
+                                "h-9 text-sm",
+                                errors.category && "border-destructive",
+                              )}
                             >
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  <FormErrorMessage error={errors.category?.message} />
-                </div>
+                              <SelectValue placeholder="Pilih kategori risiko" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {riskCategoryOptions.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                  className="text-sm"
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <FormErrorMessage error={errors.category?.message} />
+                    </div>
 
-                <div className="grid gap-5 md:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Kode Risiko</Label>
-                    <Controller
-                      name="riskCode"
-                      control={control}
-                      render={({ field }) => (
+                    <div className="grid gap-5 md:grid-cols-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">
+                          Kode Risiko
+                        </Label>
+                        <Controller
+                          name="riskCode"
+                          control={control}
+                          render={({ field }) => (
+                            <Input
+                              {...field}
+                              placeholder="Terisi otomatis setelah draft disimpan"
+                              disabled
+                              className="text-sm"
+                            />
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">
+                          Assessment Cycle
+                        </Label>
                         <Input
-                          {...field}
-                          placeholder="Terisi otomatis setelah draft disimpan"
+                          value={assessmentCycleDisplay}
                           disabled
                           className="text-sm"
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Diisi otomatis mengikuti siklus aktif.
+                        </p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">
+                          Unit Kerja
+                        </Label>
+                        <Controller
+                          name="organizationId"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              disabled={true}
+                            >
+                              <SelectTrigger className="h-9 text-sm">
+                                <SelectValue placeholder="Pilih Unit Kerja" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {organizations.map((u, idx) => (
+                                  <SelectItem
+                                    key={`${u.id}-${idx}`}
+                                    value={u.id}
+                                    className="text-sm"
+                                  >
+                                    {u.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-1.5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <Label className="text-sm font-medium">
+                          Sebab
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <AiFieldButton
+                          loading={generatingCause}
+                          disabled={!canUseAiAssist || isRiskLocked}
+                          onClick={handleGenerateCause}
+                          label="Susun sebab dengan AI"
+                        />
+                      </div>
+                      <Controller
+                        name="causes"
+                        control={control}
+                        render={({ field }) => (
+                          <EditableItemsTable
+                            items={field.value}
+                            onChange={field.onChange}
+                            placeholder="Tulis penyebab..."
+                            addItemLabel="Tambah Sebab"
+                            emptyMessage="Belum ada sebab"
+                            disabled={isRiskLocked}
+                          />
+                        )}
+                      />
+                      <FormErrorMessage error={errors.causes?.message} />
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">
+                          Sumber Risiko
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <Controller
+                          name="riskSource"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              disabled={isRiskLocked}
+                            >
+                              <SelectTrigger className="h-9 text-sm">
+                                <SelectValue placeholder="Pilih sumber risiko" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem
+                                  value="internal"
+                                  className="text-sm"
+                                >
+                                  Internal
+                                </SelectItem>
+                                <SelectItem
+                                  value="eksternal"
+                                  className="text-sm"
+                                >
+                                  Eksternal
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">
+                          Tingkat Kendali
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <Controller
+                          name="controllability"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              disabled={isRiskLocked}
+                            >
+                              <SelectTrigger className="h-9 text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="C" className="text-sm">
+                                  Controllable
+                                </SelectItem>
+                                <SelectItem value="UC" className="text-sm">
+                                  Uncontrollable
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <Label className="text-sm font-medium">
+                          Dampak
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <AiFieldButton
+                          loading={generatingImpact}
+                          disabled={!canUseAiAssist || isRiskLocked}
+                          onClick={handleGenerateImpact}
+                          label="Susun dampak dengan AI"
+                        />
+                      </div>
+                      <Controller
+                        name="impacts"
+                        control={control}
+                        render={({ field }) => (
+                          <EditableItemsTable
+                            items={field.value}
+                            onChange={field.onChange}
+                            placeholder="Tulis dampak..."
+                            addItemLabel="Tambah Dampak"
+                            disabled={isRiskLocked}
+                          />
+                        )}
+                      />
+                      <FormErrorMessage error={errors.impacts?.message} />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem
+                  value="analisis"
+                  id="analisis"
+                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                >
+                  <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
+                    <div className="flex flex-1 items-center justify-between pr-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
+                          2
+                        </div>
+                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
+                          Analisis Risiko
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                          sectionStatuses[1].done
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-muted/40 text-muted-foreground",
+                        )}
+                      >
+                        {sectionStatuses[1].done ? (
+                          <CheckCircle2 className="size-3.5" />
+                        ) : (
+                          <CircleDot className="size-3.5" />
+                        )}
+                        <span className="hidden sm:inline">
+                          {sectionStatuses[1].done
+                            ? "Siap"
+                            : "Perlu dilengkapi"}
+                        </span>
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">
+                        Pengendalian yang Ada
+                      </Label>
+                      <Controller
+                        name="existingControl"
+                        control={control}
+                        render={({ field }) => (
+                          <EditableList
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            placeholder="Tulis pengendalian yang sudah berjalan..."
+                            disabled={isRiskLocked}
+                          />
+                        )}
+                      />
+                    </div>
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">
+                          Efektivitas Pengendalian
+                        </Label>
+                        <Controller
+                          name="controlEffectiveness"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              disabled={isRiskLocked}
+                            >
+                              <SelectTrigger className="h-9 text-sm">
+                                <SelectValue placeholder="Belum dinilai" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="efektif" className="text-sm">
+                                  Efektif
+                                </SelectItem>
+                                <SelectItem
+                                  value="tidak_efektif"
+                                  className="text-sm"
+                                >
+                                  Tidak efektif
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">
+                          Probabilitas
+                        </Label>
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {[1, 2, 3, 4, 5].map((val) => (
+                            <Tooltip key={val}>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  disabled={isRiskLocked}
+                                  onClick={() =>
+                                    setValue("probability", val, {
+                                      shouldValidate: true,
+                                    })
+                                  }
+                                  className={cn(
+                                    "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                                    val === probability
+                                      ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, impact, getBobot(val, impact))))} ring-1 font-bold`
+                                      : "bg-muted/30 hover:bg-muted/50",
+                                    isRiskLocked &&
+                                      "cursor-not-allowed opacity-70 hover:bg-muted/30",
+                                  )}
+                                >
+                                  {val}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                {PROBABILITY_LABELS[val]}
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">Dampak</Label>
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {[1, 2, 3, 4, 5].map((val) => (
+                            <Tooltip key={val}>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  disabled={isRiskLocked}
+                                  onClick={() =>
+                                    setValue("impact", val, {
+                                      shouldValidate: true,
+                                    })
+                                  }
+                                  className={cn(
+                                    "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                                    val === impact
+                                      ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(probability, val, getBobot(probability, val))))} ring-1 font-bold`
+                                      : "bg-muted/30 hover:bg-muted/50",
+                                    isRiskLocked &&
+                                      "cursor-not-allowed opacity-70 hover:bg-muted/30",
+                                  )}
+                                >
+                                  {val}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                {IMPACT_LABELS[val]}
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      className={cn(
+                        "flex items-center justify-between rounded-lg border p-4",
+                        levelToColor(currentPrimarySnapshot.level),
                       )}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">
-                      Assessment Cycle
-                    </Label>
-                    <Input
-                      value={assessmentCycleDisplay}
-                      disabled
-                      className="text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Diisi otomatis mengikuti siklus aktif.
-                    </p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Unit Kerja</Label>
+                    >
+                      <div className="text-left">
+                        <p className="text-xs font-semibold">Hasil Asesmen</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Bobot: {currentPrimarySnapshot.weight.toFixed(2)} |
+                          Prioritas: {currentPrimarySnapshot.priority}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold">
+                          {getRiskLevelLabel(currentPrimarySnapshot.level)}
+                        </p>
+                        <p className="text-xs font-mono">
+                          {currentScoreLabel}: {currentPrimarySnapshot.score}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Reviewer Score Card — shown when approved with reviewer scores */}
+                    {reviewerScoreData && riskStatus === "approved" && (
+                      <div className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary/5 p-4 animate-in slide-in-from-top-1">
+                        <div className="flex items-center gap-2">
+                          <div className="flex size-6 items-center justify-center rounded-md bg-primary/15">
+                            <Check className="size-3.5 text-primary" />
+                          </div>
+                          <h4 className="text-sm font-semibold text-primary">
+                            Skor Penilaian Reviewer
+                          </h4>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Skor Sementara */}
+                          <div className="rounded-md border border-border/50 bg-card p-3 space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Skor Sementara
+                            </p>
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-2xl font-bold">
+                                {Math.round(nilai)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                P{probability} × D{impact}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {getRiskLevelLabel(level)}
+                            </p>
+                          </div>
+
+                          {/* Skor Penilaian */}
+                          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
+                            <p className="text-xs font-medium text-primary uppercase tracking-wider">
+                              Skor Penilaian
+                            </p>
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-2xl font-bold text-primary">
+                                {reviewerScoreData.reviewedNilai
+                                  ? Math.round(reviewerScoreData.reviewedNilai)
+                                  : (reviewerScoreData.reviewedScore ?? "—")}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                P{reviewerScoreData.reviewedProbability} × D
+                                {reviewerScoreData.reviewedImpact}
+                              </span>
+                            </div>
+                            <p className="text-xs text-primary/80">
+                              Skor Resmi
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Labels */}
+                        <div className="flex flex-wrap gap-2">
+                          {reviewerScoreData.scoreChangeLabel && (
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border",
+                                reviewerScoreData.scoreChangeLabel.includes(
+                                  "penurunan",
+                                )
+                                  ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                                  : reviewerScoreData.scoreChangeLabel.includes(
+                                        "peningkatan",
+                                      )
+                                    ? "bg-red-500/10 text-red-700 border-red-500/20"
+                                    : "bg-muted text-muted-foreground border-border/50",
+                              )}
+                            >
+                              {reviewerScoreData.scoreChangeLabel}
+                            </span>
+                          )}
+                          {reviewerScoreData.effectivenessLabel && (
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border",
+                                reviewerScoreData.effectivenessLabel ===
+                                  "Efektif"
+                                  ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                                  : "bg-amber-500/10 text-amber-700 border-amber-500/20",
+                              )}
+                            >
+                              {reviewerScoreData.effectivenessLabel}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem
+                  value="evaluasi"
+                  id="evaluasi"
+                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                >
+                  <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
+                    <div className="flex flex-1 items-center justify-between pr-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
+                          3
+                        </div>
+                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
+                          Evaluasi Risiko
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                          sectionStatuses[2].done
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-muted/40 text-muted-foreground",
+                        )}
+                      >
+                        {sectionStatuses[2].done ? (
+                          <CheckCircle2 className="size-3.5" />
+                        ) : (
+                          <CircleDot className="size-3.5" />
+                        )}
+                        <span className="hidden sm:inline">
+                          {sectionStatuses[2].done
+                            ? "Siap"
+                            : "Perlu dilengkapi"}
+                        </span>
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">
+                          Prioritas Risiko
+                        </Label>
+                        <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3 text-sm">
+                          <span className="font-semibold">{riskPriority}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (Otomatis dari tingkat risiko)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">
+                          Selera Risiko
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <Controller
+                          name="riskAppetite"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              disabled={isRiskLocked}
+                            >
+                              <SelectTrigger className="h-9 text-sm">
+                                <SelectValue placeholder="Pilih selera risiko" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem
+                                  value="dalam_batas"
+                                  className="text-sm"
+                                >
+                                  Dalam batas selera risiko
+                                </SelectItem>
+                                <SelectItem
+                                  value="di_atas_batas"
+                                  className="text-sm"
+                                >
+                                  Di atas batas selera risiko
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">
+                        Pilihan Penanganan
+                        <span className="text-destructive ml-0.5">*</span>
+                      </Label>
+                      <Controller
+                        name="treatmentOption"
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            disabled={isRiskLocked}
+                          >
+                            <SelectTrigger className="h-9 text-sm">
+                              <SelectValue placeholder="Pilih penanganan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="menerima" className="text-sm">
+                                Menerima
+                              </SelectItem>
+                              <SelectItem value="mitigasi" className="text-sm">
+                                Mitigasi
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem
+                  value="penanganan"
+                  id="penanganan"
+                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                >
+                  <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
+                    <div className="flex flex-1 items-center justify-between pr-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
+                          4
+                        </div>
+                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
+                          Rencana Penanganan
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                          sectionStatuses[3].done
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-muted/40 text-muted-foreground",
+                        )}
+                      >
+                        {sectionStatuses[3].done ? (
+                          <CheckCircle2 className="size-3.5" />
+                        ) : (
+                          <CircleDot className="size-3.5" />
+                        )}
+                        <span className="hidden sm:inline">
+                          {sectionStatuses[3].done
+                            ? "Siap"
+                            : "Perlu dilengkapi"}
+                        </span>
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
                     <Controller
-                      name="organizationId"
+                      name="mitigations"
                       control={control}
                       render={({ field }) => (
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={true}
-                        >
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue placeholder="Pilih Unit Kerja" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {organizations.map((u, idx) => (
+                        <MitigationTable
+                          items={(field.value ?? []).map(
+                            (mitigation): MitigationItem => ({
+                              id: mitigation.id,
+                              action: mitigation.action,
+                              owner: mitigation.owner ?? "",
+                              treatmentOwnerId: mitigation.treatmentOwnerId,
+                              externalPicId: mitigation.externalPicId,
+                              dueDate: mitigation.dueDate ?? "",
+                              frequency:
+                                (mitigation.frequency as
+                                  | MitigationFrequency
+                                  | undefined) ?? "insidental",
+                              recurringInterval:
+                                mitigation.recurringInterval as
+                                  | RecurringInterval
+                                  | undefined,
+                              reportDay: mitigation.reportDay,
+                              reportDate: mitigation.reportDate,
+                            }),
+                          )}
+                          onChange={field.onChange}
+                          users={availableUsers}
+                          disabled={isRiskLocked}
+                        />
+                      )}
+                    />
+                    <FormErrorMessage error={errors.mitigations?.message} />
+
+                    <MitigationPicker
+                      title={title}
+                      description={description}
+                      cause={(causes || [])
+                        .map((cause) => cause.text)
+                        .join("\n")}
+                      impactDescription={(impacts || [])
+                        .map((impactItem) => impactItem.text)
+                        .join("\n")}
+                      onSelect={(action) =>
+                        setValue("mitigations", [
+                          ...(mitigations || []),
+                          {
+                            action,
+                            owner: "",
+                            dueDate: "",
+                            frequency: "insidental",
+                          },
+                        ])
+                      }
+                      existingActions={(mitigations || []).map(
+                        (mitigation) => mitigation.action,
+                      )}
+                      disabled={isRiskLocked}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem
+                  value="target"
+                  id="target"
+                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                >
+                  <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
+                    <div className="flex flex-1 items-center justify-between pr-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
+                          5
+                        </div>
+                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
+                          Target Penurunan
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                          sectionStatuses[4].done && sectionStatuses[5].done
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-muted/40 text-muted-foreground",
+                        )}
+                      >
+                        {sectionStatuses[4].done && sectionStatuses[5].done ? (
+                          <CheckCircle2 className="size-3.5" />
+                        ) : (
+                          <CircleDot className="size-3.5" />
+                        )}
+                        <span className="hidden sm:inline">
+                          {sectionStatuses[4].done && sectionStatuses[5].done
+                            ? "Siap"
+                            : "Perlu dilengkapi"}
+                        </span>
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">
+                          Probabilitas
+                        </Label>
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {[1, 2, 3, 4, 5].map((val) => (
+                            <Tooltip key={val}>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  disabled={isRiskLocked}
+                                  onClick={() =>
+                                    setValue("targetProbability", val)
+                                  }
+                                  className={cn(
+                                    "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                                    val === targetProbability
+                                      ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, targetImpact, getBobot(val, targetImpact))))} ring-1 font-bold`
+                                      : "bg-muted/30 hover:bg-muted/50",
+                                    isRiskLocked &&
+                                      "cursor-not-allowed opacity-70 hover:bg-muted/30",
+                                  )}
+                                >
+                                  {val}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                {PROBABILITY_LABELS[val]}
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">Dampak</Label>
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {[1, 2, 3, 4, 5].map((val) => (
+                            <Tooltip key={val}>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  disabled={isRiskLocked}
+                                  onClick={() => setValue("targetImpact", val)}
+                                  className={cn(
+                                    "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                                    val === targetImpact
+                                      ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(targetProbability, val, getBobot(targetProbability, val))))} ring-1 font-bold`
+                                      : "bg-muted/30 hover:bg-muted/50",
+                                    isRiskLocked &&
+                                      "cursor-not-allowed opacity-70 hover:bg-muted/30",
+                                  )}
+                                >
+                                  {val}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                {IMPACT_LABELS[val]}
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 scroll-mt-28" id="jadwal">
+                      <Label className="text-sm font-medium">
+                        Jadwal Review
+                      </Label>
+                      <Controller
+                        name="nextReviewDate"
+                        control={control}
+                        render={({ field }) => (
+                          <Input
+                            type="date"
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            disabled={isRiskLocked}
+                            className="text-sm"
+                          />
+                        )}
+                      />
+                    </div>
+                    <div
+                      className={cn(
+                        "flex items-center justify-between rounded-lg border p-4",
+                        levelToColor(targetLevel),
+                      )}
+                    >
+                      <div className="text-left">
+                        <p className="text-xs font-semibold">
+                          Target Residual Risk
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Bobot: {targetWeight.toFixed(2)} | Prioritas:{" "}
+                          {targetPriority}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold">
+                          {getRiskLevelLabel(targetLevel)}
+                        </p>
+                        <p className="text-xs font-mono">
+                          Skor Target: {Math.round(targetNilai)}
+                        </p>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem
+                  value="approval-line"
+                  id="approval-line"
+                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                >
+                  <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
+                    <div className="flex flex-1 items-center justify-between pr-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
+                          6
+                        </div>
+                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
+                          Approval Line
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                          approvalLine.length > 0
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-muted/40 text-muted-foreground",
+                        )}
+                      >
+                        {approvalLine.length > 0 ? (
+                          <CheckCircle2 className="size-3.5" />
+                        ) : (
+                          <CircleDot className="size-3.5" />
+                        )}
+                        <span className="hidden sm:inline">
+                          {approvalLine.length > 0
+                            ? "Siap"
+                            : "Perlu dilengkapi"}
+                        </span>
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
+                    <div className="rounded-xl border border-border/60 bg-muted/10 p-5 space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium text-foreground">
+                          1. Reviewer (Pemeriksa)
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Pilih reviewer yang akan memeriksa dan memberikan skor
+                          penilaian resmi sebelum risiko ini diajukan ke
+                          pimpinan.
+                        </p>
+                      </div>
+                      <Select
+                        value={reviewerId}
+                        onValueChange={setReviewerId}
+                        disabled={isRiskLocked}
+                      >
+                        <SelectTrigger className="h-10 text-sm md:w-[360px] bg-background">
+                          <SelectValue placeholder="Pilih reviewer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableUsers
+                            .filter((u) => u.role === "reviewer")
+                            .map((u) => (
                               <SelectItem
-                                key={`${u.id}-${idx}`}
+                                key={u.id}
                                 value={u.id}
                                 className="text-sm"
                               >
                                 {u.name}
                               </SelectItem>
                             ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-1.5">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <Label className="text-sm font-medium">
-                      Sebab<span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <AiFieldButton
-                      loading={generatingCause}
-                      disabled={!canUseAiAssist || isRiskLocked}
-                      onClick={handleGenerateCause}
-                      label="Susun sebab dengan AI"
-                    />
-                  </div>
-                  <Controller
-                    name="causes"
-                    control={control}
-                    render={({ field }) => (
-                      <EditableItemsTable
-                        items={field.value}
-                        onChange={field.onChange}
-                        placeholder="Tulis penyebab..."
-                        addItemLabel="Tambah Sebab"
-                        emptyMessage="Belum ada sebab"
-                        disabled={isRiskLocked}
-                      />
-                    )}
-                  />
-                  <FormErrorMessage error={errors.causes?.message} />
-                </div>
-
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">
-                      Sumber Risiko<span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <Controller
-                      name="riskSource"
-                      control={control}
-                      render={({ field }) => (
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={isRiskLocked}
-                        >
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue placeholder="Pilih sumber risiko" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="internal" className="text-sm">
-                              Internal
-                            </SelectItem>
-                            <SelectItem value="eksternal" className="text-sm">
-                              Eksternal
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">
-                      Tingkat Kendali<span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <Controller
-                      name="controllability"
-                      control={control}
-                      render={({ field }) => (
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={isRiskLocked}
-                        >
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="C" className="text-sm">
-                              Controllable
-                            </SelectItem>
-                            <SelectItem value="UC" className="text-sm">
-                              Uncontrollable
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <Label className="text-sm font-medium">
-                      Dampak<span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <AiFieldButton
-                      loading={generatingImpact}
-                      disabled={!canUseAiAssist || isRiskLocked}
-                      onClick={handleGenerateImpact}
-                      label="Susun dampak dengan AI"
-                    />
-                  </div>
-                  <Controller
-                    name="impacts"
-                    control={control}
-                    render={({ field }) => (
-                      <EditableItemsTable
-                        items={field.value}
-                        onChange={field.onChange}
-                        placeholder="Tulis dampak..."
-                        addItemLabel="Tambah Dampak"
-                        disabled={isRiskLocked}
-                      />
-                    )}
-                  />
-                  <FormErrorMessage error={errors.impacts?.message} />
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="analisis" id="analisis" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">2</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Analisis Risiko</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      sectionStatuses[1].done
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {sectionStatuses[1].done ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{sectionStatuses[1].done ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium">
-                    Pengendalian yang Ada
-                  </Label>
-                  <Controller
-                    name="existingControl"
-                    control={control}
-                    render={({ field }) => (
-                      <EditableList
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        placeholder="Tulis pengendalian yang sudah berjalan..."
-                        disabled={isRiskLocked}
-                      />
-                    )}
-                  />
-                </div>
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">
-                      Efektivitas Pengendalian
-                    </Label>
-                    <Controller
-                      name="controlEffectiveness"
-                      control={control}
-                      render={({ field }) => (
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={isRiskLocked}
-                        >
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue placeholder="Belum dinilai" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="efektif" className="text-sm">
-                              Efektif
-                            </SelectItem>
-                            <SelectItem
-                              value="tidak_efektif"
-                              className="text-sm"
-                            >
-                              Tidak efektif
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Probabilitas</Label>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {[1, 2, 3, 4, 5].map((val) => (
-                        <Tooltip key={val}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              disabled={isRiskLocked}
-                              onClick={() =>
-                                setValue("probability", val, {
-                                  shouldValidate: true,
-                                })
-                              }
-                              className={cn(
-                                "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                val === probability
-                                  ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, impact, getBobot(val, impact))))} ring-1 font-bold`
-                                  : "bg-muted/30 hover:bg-muted/50",
-                                isRiskLocked &&
-                                  "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                              )}
-                            >
-                              {val}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            {PROBABILITY_LABELS[val]}
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Dampak</Label>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {[1, 2, 3, 4, 5].map((val) => (
-                        <Tooltip key={val}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              disabled={isRiskLocked}
-                              onClick={() =>
-                                setValue("impact", val, { shouldValidate: true })
-                              }
-                              className={cn(
-                                "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                val === impact
-                                  ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(probability, val, getBobot(probability, val))))} ring-1 font-bold`
-                                  : "bg-muted/30 hover:bg-muted/50",
-                                isRiskLocked &&
-                                  "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                              )}
-                            >
-                              {val}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            {IMPACT_LABELS[val]}
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className={cn(
-                    "flex items-center justify-between rounded-lg border p-4",
-                    levelToColor(currentPrimarySnapshot.level),
-                  )}
-                >
-                  <div className="text-left">
-                    <p className="text-xs font-semibold">Hasil Asesmen</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Bobot: {currentPrimarySnapshot.weight.toFixed(2)} | Prioritas: {currentPrimarySnapshot.priority}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold">
-                      {getRiskLevelLabel(currentPrimarySnapshot.level)}
-                    </p>
-                    <p className="text-xs font-mono">
-                      {currentScoreLabel}: {currentPrimarySnapshot.score}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Reviewer Score Card — shown when approved with reviewer scores */}
-                {reviewerScoreData && riskStatus === "approved" && (
-                  <div className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary/5 p-4 animate-in slide-in-from-top-1">
-                    <div className="flex items-center gap-2">
-                      <div className="flex size-6 items-center justify-center rounded-md bg-primary/15">
-                        <Check className="size-3.5 text-primary" />
-                      </div>
-                      <h4 className="text-sm font-semibold text-primary">Skor Penilaian Reviewer</h4>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Skor Sementara */}
-                      <div className="rounded-md border border-border/50 bg-card p-3 space-y-1">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Skor Sementara</p>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-2xl font-bold">{Math.round(nilai)}</span>
-                          <span className="text-xs text-muted-foreground">P{probability} × D{impact}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{getRiskLevelLabel(level)}</p>
-                      </div>
-
-                      {/* Skor Penilaian */}
-                      <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
-                        <p className="text-xs font-medium text-primary uppercase tracking-wider">Skor Penilaian</p>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-2xl font-bold text-primary">
-                            {reviewerScoreData.reviewedNilai ? Math.round(reviewerScoreData.reviewedNilai) : (reviewerScoreData.reviewedScore ?? "—")}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            P{reviewerScoreData.reviewedProbability} × D{reviewerScoreData.reviewedImpact}
-                          </span>
-                        </div>
-                        <p className="text-xs text-primary/80">Skor Resmi</p>
-                      </div>
-                    </div>
-
-                    {/* Labels */}
-                    <div className="flex flex-wrap gap-2">
-                      {reviewerScoreData.scoreChangeLabel && (
-                        <span className={cn(
-                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border",
-                          reviewerScoreData.scoreChangeLabel.includes("penurunan")
-                            ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
-                            : reviewerScoreData.scoreChangeLabel.includes("peningkatan")
-                              ? "bg-red-500/10 text-red-700 border-red-500/20"
-                              : "bg-muted text-muted-foreground border-border/50"
-                        )}>
-                          {reviewerScoreData.scoreChangeLabel}
-                        </span>
-                      )}
-                      {reviewerScoreData.effectivenessLabel && (
-                        <span className={cn(
-                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border",
-                          reviewerScoreData.effectivenessLabel === "Efektif"
-                            ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
-                            : "bg-amber-500/10 text-amber-700 border-amber-500/20"
-                        )}>
-                          {reviewerScoreData.effectivenessLabel}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="evaluasi" id="evaluasi" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">3</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Evaluasi Risiko</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      sectionStatuses[2].done
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {sectionStatuses[2].done ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{sectionStatuses[2].done ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">
-                      Prioritas Risiko
-                    </Label>
-                    <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3 text-sm">
-                      <span className="font-semibold">{riskPriority}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        (Otomatis dari tingkat risiko)
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">
-                      Selera Risiko<span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <Controller
-                      name="riskAppetite"
-                      control={control}
-                      render={({ field }) => (
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={isRiskLocked}
-                        >
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue placeholder="Pilih selera risiko" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="dalam_batas" className="text-sm">
-                              Dalam batas selera risiko
-                            </SelectItem>
-                            <SelectItem value="di_atas_batas" className="text-sm">
-                              Di atas batas selera risiko
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium">
-                    Pilihan Penanganan<span className="text-destructive ml-0.5">*</span>
-                  </Label>
-                  <Controller
-                    name="treatmentOption"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={isRiskLocked}
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Pilih penanganan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="menerima" className="text-sm">
-                            Menerima
-                          </SelectItem>
-                          <SelectItem value="mitigasi" className="text-sm">
-                            Mitigasi
-                          </SelectItem>
                         </SelectContent>
                       </Select>
-                    )}
-                  />
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="penanganan" id="penanganan" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">4</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Rencana Penanganan</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      sectionStatuses[3].done
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {sectionStatuses[3].done ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{sectionStatuses[3].done ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
-                <Controller
-                  name="mitigations"
-                  control={control}
-                  render={({ field }) => (
-                    <MitigationTable
-                      items={(field.value ?? []).map(
-                        (mitigation): MitigationItem => ({
-                          id: mitigation.id,
-                          action: mitigation.action,
-                          owner: mitigation.owner ?? "",
-                          treatmentOwnerId: mitigation.treatmentOwnerId,
-                          externalPicId: mitigation.externalPicId,
-                          dueDate: mitigation.dueDate ?? "",
-                          frequency:
-                            (mitigation.frequency as
-                              | MitigationFrequency
-                              | undefined) ?? "insidental",
-                          recurringInterval: mitigation.recurringInterval as
-                            | RecurringInterval
-                            | undefined,
-                          reportDay: mitigation.reportDay,
-                          reportDate: mitigation.reportDate,
-                        }),
-                      )}
-                      onChange={field.onChange}
-                      users={availableUsers}
-                      disabled={isRiskLocked}
-                    />
-                  )}
-                />
-                <FormErrorMessage error={errors.mitigations?.message} />
-
-                <MitigationPicker
-                  title={title}
-                  description={description}
-                  cause={(causes || []).map((cause) => cause.text).join("\n")}
-                  impactDescription={(impacts || [])
-                    .map((impactItem) => impactItem.text)
-                    .join("\n")}
-                  onSelect={(action) =>
-                    setValue("mitigations", [
-                      ...(mitigations || []),
-                      {
-                        action,
-                        owner: "",
-                        dueDate: "",
-                        frequency: "insidental",
-                      },
-                    ])
-                  }
-                  existingActions={(mitigations || []).map(
-                    (mitigation) => mitigation.action,
-                  )}
-                  disabled={isRiskLocked}
-                />
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="target" id="target" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">5</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Target Penurunan</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      sectionStatuses[4].done && sectionStatuses[5].done
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {sectionStatuses[4].done && sectionStatuses[5].done ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{sectionStatuses[4].done && sectionStatuses[5].done ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Probabilitas</Label>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {[1, 2, 3, 4, 5].map((val) => (
-                        <Tooltip key={val}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              disabled={isRiskLocked}
-                              onClick={() => setValue("targetProbability", val)}
-                              className={cn(
-                                "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                val === targetProbability
-                                  ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, targetImpact, getBobot(val, targetImpact))))} ring-1 font-bold`
-                                  : "bg-muted/30 hover:bg-muted/50",
-                                isRiskLocked &&
-                                  "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                              )}
-                            >
-                              {val}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            {PROBABILITY_LABELS[val]}
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
                     </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Dampak</Label>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {[1, 2, 3, 4, 5].map((val) => (
-                        <Tooltip key={val}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              disabled={isRiskLocked}
-                              onClick={() => setValue("targetImpact", val)}
-                              className={cn(
-                                "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                val === targetImpact
-                                  ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(targetProbability, val, getBobot(targetProbability, val))))} ring-1 font-bold`
-                                  : "bg-muted/30 hover:bg-muted/50",
-                                isRiskLocked &&
-                                  "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                              )}
-                            >
-                              {val}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            {IMPACT_LABELS[val]}
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                    </div>
-                  </div>
-                </div>
 
-                <div className="space-y-1.5 scroll-mt-28" id="jadwal">
-                  <Label className="text-sm font-medium">Jadwal Review</Label>
-                  <Controller
-                    name="nextReviewDate"
-                    control={control}
-                    render={({ field }) => (
-                      <Input
-                        type="date"
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        disabled={isRiskLocked}
-                        className="text-sm"
-                      />
-                    )}
-                  />
-                </div>
-                <div
-                  className={cn(
-                    "flex items-center justify-between rounded-lg border p-4",
-                    levelToColor(targetLevel),
-                  )}
-                >
-                  <div className="text-left">
-                    <p className="text-xs font-semibold">Target Residual Risk</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Bobot: {targetWeight.toFixed(2)} | Prioritas: {targetPriority}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold">
-                      {getRiskLevelLabel(targetLevel)}
-                    </p>
-                    <p className="text-xs font-mono">Skor Target: {Math.round(targetNilai)}</p>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="approval-line" id="approval-line" className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">6</div>
-                    <p className="text-sm md:text-base font-semibold text-foreground transition-colors">Approval Line</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                      approvalLine.length > 0
-                        ? "bg-success/10 text-success border-success/20"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {approvalLine.length > 0 ? <CheckCircle2 className="size-3.5" /> : <CircleDot className="size-3.5" />}
-                    <span className="hidden sm:inline">{approvalLine.length > 0 ? "Siap" : "Perlu dilengkapi"}</span>
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
-                <div className="rounded-xl border border-border/60 bg-muted/10 p-5 space-y-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-foreground">
-                      1. Reviewer (Pemeriksa)
-                      <span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Pilih reviewer yang akan memeriksa dan memberikan skor penilaian resmi sebelum risiko ini diajukan ke pimpinan.
-                    </p>
-                  </div>
-                  <Select
-                    value={reviewerId}
-                    onValueChange={setReviewerId}
-                    disabled={isRiskLocked}
-                  >
-                    <SelectTrigger className="h-10 text-sm md:w-[360px] bg-background">
-                      <SelectValue placeholder="Pilih reviewer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableUsers
-                        .filter((u) => u.role === "reviewer")
-                        .map((u) => (
-                          <SelectItem key={u.id} value={u.id} className="text-sm">
-                            {u.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-5 space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-foreground">
-                      2. Approval Line (Pimpinan)
-                      <span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Susun rantai persetujuan pimpinan. Persetujuan dilakukan secara berurutan.
-                    </p>
-                  </div>
-
-                <div className="flex flex-col gap-3 md:flex-row">
-                  <Select
-                    value={selectedApproverId}
-                    onValueChange={setSelectedApproverId}
-                  >
-                    <SelectTrigger className="h-9 text-sm md:w-[320px]">
-                      <SelectValue placeholder="Pilih approver" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableUsers
-                        .filter(
-                          (userOption) =>
-                            !approvalLine.some(
-                              (item) => item.id === userOption.id,
-                            ),
-                        )
-                        .map((userOption) => (
-                          <SelectItem
-                            key={userOption.id}
-                            value={userOption.id}
-                            className="text-sm"
-                          >
-                            {userOption.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="gap-2 text-xs"
-                    onClick={addApproverToLine}
-                    disabled={!selectedApproverId}
-                  >
-                    <Plus className="size-3.5" /> Tambah approver
-                  </Button>
-                </div>
-
-                <div className="space-y-2 pt-4">
-                  {approvalLine.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
-                      Belum ada approver. Tambahkan minimal satu user sebelum
-                      klik <span className="font-medium text-foreground">Ajukan approval</span>.
-                    </div>
-                  ) : (
-                    approvalLine.map((approver, index) => (
-                      <div
-                        key={approver.id}
-                        className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            {index + 1}. {approver.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Urutan approval ke-{index + 1}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            onClick={() => moveApprover(index, -1)}
-                            disabled={index === 0}
-                          >
-                            <ChevronUp className="size-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            onClick={() => moveApprover(index, 1)}
-                            disabled={index === approvalLine.length - 1}
-                          >
-                            <ChevronDown className="size-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            onClick={() => removeApprover(approver.id)}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </div>
+                    <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-5 space-y-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium text-foreground">
+                          2. Approval Line (Pimpinan)
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Susun rantai persetujuan pimpinan. Persetujuan
+                          dilakukan secara berurutan.
+                        </p>
                       </div>
-                    ))
-                  )}
-                </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-            </Accordion>
-          </form>
 
-          <div className="w-full space-y-4 xl:sticky xl:top-24 xl:w-1/3">
-            <Card className="border-border/20 bg-card">
-              <CardContent className="pt-5 pb-4">
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <h3 className="text-sm font-semibold">Kesiapan Finalisasi</h3>
-                  <Badge
-                    variant="outline"
-                    className="border-primary/20 bg-primary/[0.04] text-primary"
-                  >
-                    {completedSectionCount}/{sectionStatuses.length}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  {sectionStatuses.map((section) => (
-                    <button
-                      key={section.id}
-                      type="button"
-                      onClick={() => scrollToSection(section.id)}
-                      className={cn(
-                        "rounded-xl border px-3 py-3 text-left transition-colors",
-                        section.done
-                          ? "border-success/20 bg-success/10"
-                          : "border-border/60 bg-muted/20 hover:bg-muted/40",
-                      )}
-                    >
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        {section.done ? (
-                          <CheckCircle2 className="size-4 text-success" />
+                      <div className="flex flex-col gap-3 md:flex-row">
+                        <Select
+                          value={selectedApproverId}
+                          onValueChange={setSelectedApproverId}
+                        >
+                          <SelectTrigger className="h-9 text-sm md:w-[320px]">
+                            <SelectValue placeholder="Pilih approver" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableUsers
+                              .filter(
+                                (userOption) =>
+                                  !approvalLine.some(
+                                    (item) => item.id === userOption.id,
+                                  ),
+                              )
+                              .map((userOption) => (
+                                <SelectItem
+                                  key={userOption.id}
+                                  value={userOption.id}
+                                  className="text-sm"
+                                >
+                                  {userOption.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="gap-2 text-xs"
+                          onClick={addApproverToLine}
+                          disabled={!selectedApproverId}
+                        >
+                          <Plus className="size-3.5" /> Tambah approver
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2 pt-4">
+                        {approvalLine.length === 0 ? (
+                          <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
+                            Belum ada approver. Tambahkan minimal satu user
+                            sebelum klik{" "}
+                            <span className="font-medium text-foreground">
+                              Ajukan approval
+                            </span>
+                            .
+                          </div>
                         ) : (
-                          <CircleDot className="size-4 text-muted-foreground" />
+                          approvalLine.map((approver, index) => (
+                            <div
+                              key={approver.id}
+                              className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5"
+                            >
+                              <div>
+                                <p className="text-sm font-medium text-foreground">
+                                  {index + 1}. {approver.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Urutan approval ke-{index + 1}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8"
+                                  onClick={() => moveApprover(index, -1)}
+                                  disabled={index === 0}
+                                >
+                                  <ChevronUp className="size-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8"
+                                  onClick={() => moveApprover(index, 1)}
+                                  disabled={index === approvalLine.length - 1}
+                                >
+                                  <ChevronDown className="size-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  onClick={() => removeApprover(approver.id)}
+                                >
+                                  <Trash2 className="size-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))
                         )}
-                        {section.step}. {section.title}
                       </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </form>
 
-            <ReviewSidePanel
-              approvalId={approvalId}
-              approvalWorkflow={approvalWorkflow}
-              currentUserId={user?.id || ""}
-              riskStatus={riskStatus}
-              userRole={user?.role || ""}
-              inherentScore={currentScoreSemantics.inherent.score}
-              reviewedScore={reviewerScoreData?.reviewedScore}
-              reviewedProbability={reviewerScoreData?.reviewedProbability}
-              reviewedImpact={reviewerScoreData?.reviewedImpact}
-              token={token || undefined}
-              onActionComplete={() => {
-                if (riskId) {
-                  loadRiskData(riskId);
-                }
-              }}
-            />
+            <div className="w-full space-y-4 xl:sticky xl:top-24 xl:w-1/3">
+              <Card className="border-border/20 bg-card">
+                <CardContent className="pt-5 pb-4">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <h3 className="text-sm font-semibold">
+                      Kesiapan Finalisasi
+                    </h3>
+                    <Badge
+                      variant="outline"
+                      className="border-primary/20 bg-primary/[0.04] text-primary"
+                    >
+                      {completedSectionCount}/{sectionStatuses.length}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {sectionStatuses.map((section) => (
+                      <button
+                        key={section.id}
+                        type="button"
+                        onClick={() => scrollToSection(section.id)}
+                        className={cn(
+                          "rounded-xl border px-3 py-3 text-left transition-colors",
+                          section.done
+                            ? "border-success/20 bg-success/10"
+                            : "border-border/60 bg-muted/20 hover:bg-muted/40",
+                        )}
+                      >
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          {section.done ? (
+                            <CheckCircle2 className="size-4 text-success" />
+                          ) : (
+                            <CircleDot className="size-4 text-muted-foreground" />
+                          )}
+                          {section.step}. {section.title}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <ReviewSidePanel
+                approvalId={approvalId}
+                approvalWorkflow={approvalWorkflow}
+                currentUserId={user?.id || ""}
+                riskStatus={riskStatus}
+                userRole={user?.role || ""}
+                inherentScore={currentScoreSemantics.inherent.score}
+                reviewedScore={reviewerScoreData?.reviewedScore}
+                reviewedProbability={reviewerScoreData?.reviewedProbability}
+                reviewedImpact={reviewerScoreData?.reviewedImpact}
+                token={token || undefined}
+                onActionComplete={() => {
+                  if (riskId) {
+                    loadRiskData(riskId);
+                  }
+                }}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {activeView === "progress" && riskId && (
-        <div className="space-y-6">
-          <MitigationProgressTab riskId={riskId} token={token || ""} />
-        </div>
-      )}
-
-      {activeView === "log" && riskId && (
-        <RiskLogTimeline riskId={riskId} token={token || ""} />
-      )}
-
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Hapus Draft Risiko?</DialogTitle>
-            <DialogDescription>
-              Draft yang dihapus tidak bisa dikembalikan. Risiko berstatus ditinjau
-              harus dikembalikan ke draft terlebih dahulu sebelum dapat dihapus.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
-            <p className="font-medium">{title || "Tanpa judul"}</p>
-            <p className="text-xs text-muted-foreground">
-              {riskId || "Belum tersimpan"}
-            </p>
+        {activeView === "progress" && riskId && (
+          <div className="space-y-6">
+            <MitigationProgressTab riskId={riskId} token={token || ""} />
           </div>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDeleteConfirm(false)}
-            >
-              Batal
-            </Button>
-            <Button variant="destructive" size="sm" onClick={handleDeleteDraft}>
-              <Trash2 className="size-3.5" /> Hapus Draft
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        )}
+
+        {activeView === "log" && riskId && (
+          <RiskLogTimeline riskId={riskId} token={token || ""} />
+        )}
+
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Hapus Draft Risiko?</DialogTitle>
+              <DialogDescription>
+                Draft yang dihapus tidak bisa dikembalikan. Risiko berstatus
+                ditinjau harus dikembalikan ke draft terlebih dahulu sebelum
+                dapat dihapus.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+              <p className="font-medium">{title || "Tanpa judul"}</p>
+              <p className="text-xs text-muted-foreground">
+                {riskId || "Belum tersimpan"}
+              </p>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteDraft}
+              >
+                <Trash2 className="size-3.5" /> Hapus Draft
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </TooltipProvider>
   );
 }

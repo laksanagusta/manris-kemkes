@@ -12,6 +12,9 @@ export interface User {
   organizationId: string | null;
   orgName: string;
   status: string;
+  nip: string;
+  jabatan: string;
+  pangkat: string;
   accessibleOrgIds: string[];
   isGlobal: boolean;
 }
@@ -27,6 +30,9 @@ function parseUser(raw: any): User {
     organizationId: raw.organizationId || raw.organization_id || null,
     orgName: raw.orgName || raw.org_name || "",
     status: raw.status,
+    nip: raw.nip || "",
+    jabatan: raw.jabatan || "",
+    pangkat: raw.pangkat || "",
     accessibleOrgIds: raw.accessibleOrgIds || raw.accessible_org_ids || [],
     isGlobal: raw.isGlobal ?? raw.is_global ?? false,
   };

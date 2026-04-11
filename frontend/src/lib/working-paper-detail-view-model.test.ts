@@ -15,7 +15,7 @@ function makeWorkingPaper(overrides: Partial<WorkingPaper> = {}): WorkingPaper {
     org_id: "org-1",
     status: "signing",
     assessment_cycle: "2026 Semester I",
-    risk_snapshots: [],
+    risks: [],
     document_hash: "abc123def456ghi789",
     current_signatory_sequence: 0,
     created_by: "creator-1",

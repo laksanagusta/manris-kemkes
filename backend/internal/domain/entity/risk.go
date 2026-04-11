@@ -50,6 +50,7 @@ type Risk struct {
 	PreviousRiskID *uuid.UUID `json:"previousRiskId,omitempty"`
 	IsCurrent      bool       `json:"isCurrent"`
 	IsCycleCurrent bool       `json:"isCycleCurrent"`
+	VersionNumber  int        `json:"versionNumber"`
 	ArchivedAt     *time.Time `json:"archivedAt,omitempty"`
 	ArchivedReason string     `json:"archivedReason,omitempty"`
 	OrganizationID *uuid.UUID `json:"organizationId,omitempty"`

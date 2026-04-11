@@ -23,10 +23,10 @@ func NewUserRepository(pool *pgxpool.Pool) repository.UserRepository {
 // Create inserts a new user
 func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO users (name, username, email, password_hash, role, organization_id, status, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,NOW(),NOW())
+		`INSERT INTO users (name, username, email, password_hash, role, organization_id, status, nip, jabatan, pangkat, created_at, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW(),NOW())
 		 RETURNING id, created_at, updated_at`,
-		user.Name, user.Username, user.Email, user.PasswordHash, user.Role, user.OrganizationID, user.Status,
+		user.Name, user.Username, user.Email, user.PasswordHash, user.Role, user.OrganizationID, user.Status, user.NIP, user.Jabatan, user.Pangkat,
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
@@ -40,10 +40,10 @@ func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
 func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.User, error) {
 	user := &entity.User{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT u.id, u.name, u.username, u.email, u.password_hash, u.role, u.organization_id, COALESCE(o.name, '') as org_name, u.status, u.created_at, u.updated_at
+		`SELECT u.id, u.name, u.username, u.email, u.password_hash, u.role, u.organization_id, COALESCE(o.name, '') as org_name, u.status, u.nip, u.jabatan, u.pangkat, u.created_at, u.updated_at
 		 FROM users u LEFT JOIN organizations o ON u.organization_id = o.id
 		 WHERE u.id = $1`, id,
-	).Scan(&user.ID, &user.Name, &user.Username, &user.Email, &user.PasswordHash, &user.Role, &user.OrganizationID, &user.OrgName, &user.Status, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.Name, &user.Username, &user.Email, &user.PasswordHash, &user.Role, &user.OrganizationID, &user.OrgName, &user.Status, &user.NIP, &user.Jabatan, &user.Pangkat, &user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("find user by id: %w", err)
@@ -56,10 +56,10 @@ func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Use
 func (r *userRepository) GetByUsername(ctx context.Context, username string) (*entity.User, error) {
 	user := &entity.User{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT u.id, u.name, u.username, u.email, u.password_hash, u.role, u.organization_id, COALESCE(o.name, '') as org_name, u.status, u.created_at, u.updated_at
+		`SELECT u.id, u.name, u.username, u.email, u.password_hash, u.role, u.organization_id, COALESCE(o.name, '') as org_name, u.status, u.nip, u.jabatan, u.pangkat, u.created_at, u.updated_at
 		 FROM users u LEFT JOIN organizations o ON u.organization_id = o.id
 		 WHERE u.username = $1 OR u.email = $1`, username,
-	).Scan(&user.ID, &user.Name, &user.Username, &user.Email, &user.PasswordHash, &user.Role, &user.OrganizationID, &user.OrgName, &user.Status, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.Name, &user.Username, &user.Email, &user.PasswordHash, &user.Role, &user.OrganizationID, &user.OrgName, &user.Status, &user.NIP, &user.Jabatan, &user.Pangkat, &user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("find user by username: %w", err)
@@ -71,9 +71,9 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*e
 // Update updates a user
 func (r *userRepository) Update(ctx context.Context, user *entity.User) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE users SET name=$2, username=$3, email=$4, role=$5, organization_id=$6, status=$7, updated_at=NOW()
+		`UPDATE users SET name=$2, username=$3, email=$4, role=$5, organization_id=$6, status=$7, nip=$8, jabatan=$9, pangkat=$10, updated_at=NOW()
 		 WHERE id=$1`,
-		user.ID, user.Name, user.Username, user.Email, user.Role, user.OrganizationID, user.Status,
+		user.ID, user.Name, user.Username, user.Email, user.Role, user.OrganizationID, user.Status, user.NIP, user.Jabatan, user.Pangkat,
 	)
 
 	if err != nil {
@@ -95,7 +95,7 @@ func (r *userRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // List retrieves all users
 func (r *userRepository) List(ctx context.Context) ([]*entity.User, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT u.id, u.name, u.username, u.email, '', u.role, u.organization_id, COALESCE(o.name, '') as org_name, u.status, u.created_at, u.updated_at
+		`SELECT u.id, u.name, u.username, u.email, '', u.role, u.organization_id, COALESCE(o.name, '') as org_name, u.status, u.nip, u.jabatan, u.pangkat, u.created_at, u.updated_at
 		 FROM users u LEFT JOIN organizations o ON u.organization_id = o.id
 		 ORDER BY u.created_at`)
 
@@ -107,7 +107,7 @@ func (r *userRepository) List(ctx context.Context) ([]*entity.User, error) {
 	var users []*entity.User
 	for rows.Next() {
 		var user entity.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Username, &user.Email, &user.PasswordHash, &user.Role, &user.OrganizationID, &user.OrgName, &user.Status, &user.CreatedAt, &user.UpdatedAt); err != nil {
+		if err := rows.Scan(&user.ID, &user.Name, &user.Username, &user.Email, &user.PasswordHash, &user.Role, &user.OrganizationID, &user.OrgName, &user.Status, &user.NIP, &user.Jabatan, &user.Pangkat, &user.CreatedAt, &user.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan user: %w", err)
 		}
 		users = append(users, &user)

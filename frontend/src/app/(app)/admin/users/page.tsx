@@ -111,7 +111,10 @@ export default function UsersManagementPage() {
             <TableRow className="border-border/50 hover:bg-transparent">
               <TableHead className="text-xs">User</TableHead>
               <TableHead className="text-xs w-32">Username</TableHead>
+              <TableHead className="text-xs w-32">NIP</TableHead>
               <TableHead className="text-xs w-28">Role</TableHead>
+              <TableHead className="text-xs w-36">Jabatan</TableHead>
+              <TableHead className="text-xs w-28">Pangkat</TableHead>
               <TableHead className="text-xs w-40">Organisasi</TableHead>
               <TableHead className="text-xs w-20">Status</TableHead>
               <TableHead className="text-xs w-10"></TableHead>
@@ -120,13 +123,13 @@ export default function UsersManagementPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground text-xs">
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground text-xs">
                   Belum ada data user.
                 </TableCell>
               </TableRow>
@@ -151,6 +154,9 @@ export default function UsersManagementPage() {
                 <TableCell className="text-xs font-mono text-muted-foreground">
                   {user.username}
                 </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {user.nip || "—"}
+                </TableCell>
                 <TableCell>
                   <Badge
                     className={cn(
@@ -160,6 +166,12 @@ export default function UsersManagementPage() {
                   >
                     {user.role}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {user.jabatan || "—"}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {user.pangkat || "—"}
                 </TableCell>
                 <TableCell className="max-w-[200px] text-xs text-muted-foreground">
                   <span className="block truncate">{user.orgName || "—"}</span>

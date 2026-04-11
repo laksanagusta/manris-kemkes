@@ -13,6 +13,7 @@ export interface WorkingPaperRiskData {
   nilai: number;
   tingkat_risiko: string;
   assessment_cycle?: string;
+  versionNumber?: number;
 }
 
 export interface WorkingPaperRiskLink {

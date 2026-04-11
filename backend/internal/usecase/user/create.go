@@ -34,6 +34,9 @@ type CreateUserInput struct {
 	Role           string
 	OrganizationID *uuid.UUID
 	Status         string
+	NIP            string
+	Jabatan        string
+	Pangkat        string
 }
 
 type CreateUserOutput struct {
@@ -83,6 +86,9 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, input CreateUserInput)
 		Role:           input.Role,
 		OrganizationID: input.OrganizationID,
 		Status:         input.Status,
+		NIP:            input.NIP,
+		Jabatan:        input.Jabatan,
+		Pangkat:        input.Pangkat,
 	}
 
 	if user.Status == "" {

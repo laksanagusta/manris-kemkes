@@ -131,6 +131,7 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		VersionGroupID: uuid.New(),
 		IsCurrent:      true,
 		IsCycleCurrent: true,
+		VersionNumber:  1,
 		OrganizationID: input.OrganizationID,
 		CreatedBy:      input.CreatedBy,
 

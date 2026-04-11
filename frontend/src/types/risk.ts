@@ -71,6 +71,7 @@ export interface RiskVersionTimelineItem {
   status: RiskStatus;
   isCurrent: boolean;
   versionGroupId: string;
+  versionNumber?: number;
   previousRiskId?: string | null;
   probability: number;
   impact: number;
@@ -278,6 +279,7 @@ export interface Risk {
   nextReviewDate: string;
   status: RiskStatus;
   versionGroupId?: string;
+  versionNumber?: number;
   previousRiskId?: string | null;
   isCurrent?: boolean;
   assessmentCycle?: string;

@@ -35,6 +35,9 @@ type User struct {
 	OrganizationID *uuid.UUID `json:"organizationId,omitempty"`
 	OrgName        string     `json:"orgName,omitempty"`
 	Status         string     `json:"status"`
+	NIP            string     `json:"nip,omitempty"`
+	Jabatan        string     `json:"jabatan,omitempty"`
+	Pangkat        string     `json:"pangkat,omitempty"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
 }
