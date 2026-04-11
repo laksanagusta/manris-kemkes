@@ -39,6 +39,9 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 	if input.RiskID == uuid.Nil || input.Cycle == "" {
 		return nil, errors.ErrInvalidInput
 	}
+	if !IsValidCycleFormat(input.Cycle) {
+		return nil, errors.Wrap(errors.ErrInvalidInput, "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)")
+	}
 
 	sourceRisk, err := uc.riskRepo.GetByID(ctx, input.RiskID, input.OrgIDs)
 	if err != nil {

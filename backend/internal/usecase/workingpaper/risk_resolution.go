@@ -84,6 +84,9 @@ func resolveOrCreateReassessmentDraft(ctx context.Context, repo repository.RiskR
 	if cycle == "" {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "assessment_cycle is required for review_periodic risk source mode"}
 	}
+	if !riskusecase.IsValidCycleFormat(cycle) {
+		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)"}
+	}
 	if manager, ok := repo.(periodicReassessmentReservation); ok {
 		reservedRisk, created, err := manager.GetOrCreatePeriodicReassessmentInTx(ctx, sourceRisk, cycle)
 		if err != nil {

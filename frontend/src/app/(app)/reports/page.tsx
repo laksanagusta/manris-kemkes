@@ -39,6 +39,7 @@ import { KRIBreachSummary } from "./_components/kri-breach-summary";
 import { UnitResponseTimeChart } from "./_components/unit-response-time";
 import { InherentResidualTrend } from "./_components/inherent-residual-trend";
 import { CriticalRiskRateTrend } from "./_components/critical-risk-rate-trend";
+import { RiskMovementByOrg } from "./_components/risk-movement-by-org";
 import { cn } from "@/lib/utils";
 import {
   exportRiskBulkCSV,
@@ -46,13 +47,16 @@ import {
   downloadBlob,
   type RiskExportItem,
 } from "@/lib/risk-export";
+import { exportMovementByOrgXLSX } from "@/lib/risk-movement-by-org-export";
 import {
   buildMovementChartData,
   buildMovementSnapshotData,
   buildUnitExposureData,
   buildInherentResidualTrendData,
   buildCriticalRiskRateTrendData,
+  buildMovementByOrgData,
   type MovementSnapshotDatum,
+  type MovementByOrgSortKey,
 } from "@/lib/dashboard-insights";
 import {
   buildRiskTrendData,
@@ -112,6 +116,14 @@ const exportOptions = [
     format: "PDF",
     isEnabled: true,
   },
+  {
+    key: "movement-by-org-xlsx",
+    title: "Pergerakan per Unit (Excel)",
+    description: "Tabel pergerakan risiko per organisasi dengan warna indikator",
+    icon: FileSpreadsheet,
+    format: "XLSX",
+    isEnabled: true,
+  },
 ];
 
 function currentGlobalCycle() {
@@ -167,6 +179,7 @@ export default function ReportsPage() {
   const [responseTimeData, setResponseTimeData] = useState<UnitResponseTime[]>(
     [],
   );
+  const [movementByOrgSort, setMovementByOrgSort] = useState<MovementByOrgSortKey>("total");
 
   const cycleOptions = useMemo(() => buildRecentCycleOptions(), []);
   const previousCycle = useMemo(
@@ -201,6 +214,10 @@ export default function ReportsPage() {
   const criticalRiskRateData = useMemo(
     () => buildCriticalRiskRateTrendData(trendRisks),
     [trendRisks],
+  );
+  const movementByOrgData = useMemo(
+    () => buildMovementByOrgData(comparisons, movementByOrgSort),
+    [comparisons, movementByOrgSort],
   );
   const hasTrendData = trendData.length > 0;
   const hasMovementData = movementData.some((item) => item.value > 0);
@@ -334,6 +351,27 @@ export default function ReportsPage() {
         toast.success(`Laporan PDF ${exportCycle} berhasil diunduh.`);
       } catch {
         toast.error("Gagal mengunduh laporan PDF.");
+      } finally {
+        setIsExporting(null);
+      }
+      return;
+    }
+
+    if (key === "movement-by-org-xlsx") {
+      setIsExporting("movement-by-org-xlsx");
+      try {
+        const orgData = buildMovementByOrgData(comparisons, movementByOrgSort);
+        if (orgData.length === 0) {
+          toast.error(`Belum ada data pergerakan risiko untuk ${exportCycle}.`);
+          return;
+        }
+        await exportMovementByOrgXLSX(orgData, previousCycle, exportCycle);
+        toast.success(`Export pergerakan risiko per unit ${exportCycle} berhasil.`);
+      } catch (error) {
+        console.error(error);
+        toast.error(
+          error instanceof Error ? error.message : "Gagal export pergerakan risiko.",
+        );
       } finally {
         setIsExporting(null);
       }
@@ -623,6 +661,12 @@ export default function ReportsPage() {
           )}
         </CardContent>
       </Card>
+
+      <RiskMovementByOrg
+        data={movementByOrgData}
+        currentSort={movementByOrgSort}
+        onSortChange={setMovementByOrgSort}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-border/50 bg-card/80">

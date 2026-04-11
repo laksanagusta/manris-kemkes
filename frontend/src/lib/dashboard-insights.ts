@@ -29,6 +29,7 @@ type RiskLike = {
 
 type ComparisonLike = {
   code?: string;
+  orgName?: string;
   movement?: string;
 };
 
@@ -161,6 +162,58 @@ export function buildMovementChartData(comparisons: ComparisonLike[]): MovementC
     { label: "Turun", value: counts.down, fill: "oklch(0.72 0.17 155)" },
     { label: "Stabil", value: counts.stable, fill: "oklch(0.60 0.02 265 / 55%)" },
   ];
+}
+
+/* ───────────────── Movement By Organization ───────────────── */
+
+export type MovementByOrgDatum = {
+  orgName: string;
+  naik: number;
+  turun: number;
+  stabil: number;
+  total: number;
+};
+
+export type MovementByOrgSortKey = "total" | "naik" | "turun" | "stabil" | "orgName";
+
+export function buildMovementByOrgData(
+  comparisons: ComparisonLike[],
+  sortBy: MovementByOrgSortKey = "total",
+): MovementByOrgDatum[] {
+  const grouped = new Map<string, MovementByOrgDatum>();
+
+  for (const item of comparisons) {
+    const orgName = item.orgName?.trim() || "Tanpa Unit";
+    const row = grouped.get(orgName) ?? { orgName, naik: 0, turun: 0, stabil: 0, total: 0 };
+
+    if (item.movement === "up") row.naik += 1;
+    else if (item.movement === "down") row.turun += 1;
+    else row.stabil += 1;
+
+    row.total += 1;
+    grouped.set(orgName, row);
+  }
+
+  const result = [...grouped.values()];
+
+  switch (sortBy) {
+    case "naik":
+      result.sort((a, b) => b.naik - a.naik || b.total - a.total || a.orgName.localeCompare(b.orgName));
+      break;
+    case "turun":
+      result.sort((a, b) => b.turun - a.turun || b.total - a.total || a.orgName.localeCompare(b.orgName));
+      break;
+    case "stabil":
+      result.sort((a, b) => b.stabil - a.stabil || b.total - a.total || a.orgName.localeCompare(b.orgName));
+      break;
+    case "orgName":
+      result.sort((a, b) => a.orgName.localeCompare(b.orgName));
+      break;
+    default:
+      result.sort((a, b) => b.total - a.total || b.naik - a.naik || a.orgName.localeCompare(b.orgName));
+  }
+
+  return result;
 }
 
 export function buildExecutiveTrendData(risks: RiskLike[]): ExecutiveTrendDatum[] {
