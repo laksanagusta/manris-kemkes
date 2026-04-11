@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/working-papers";
 import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -41,6 +41,11 @@ import {
   ChevronRight,
   AlertCircle,
   ArrowUpRight,
+  FileText,
+  FileEdit,
+  PenTool,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 const statusVariant: Record<WorkingPaperStatus, string> = {
@@ -132,7 +137,44 @@ export default function WorkingPapersPage() {
   const totalPages = Math.ceil(total / limit) || 1;
 
   if (loading && papers.length === 0) {
-    return <div className="p-8 text-center text-muted-foreground animate-pulse">Memuat daftar kertas kerja...</div>;
+    return (
+      <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-7 w-48 rounded-md bg-muted animate-pulse" />
+            <div className="h-4 w-72 rounded-md bg-muted/60 animate-pulse" />
+          </div>
+          <div className="h-9 w-36 rounded-md bg-muted animate-pulse" />
+        </div>
+        {/* Stats skeleton */}
+        <div className="grid gap-4 md:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} className="border-border/50 bg-card/80">
+              <CardContent className="p-4 space-y-2">
+                <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+                <div className="h-7 w-10 rounded bg-muted animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        {/* Table skeleton */}
+        <Card className="border-border/50 bg-card/80 overflow-hidden">
+          <div className="p-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-border/20 last:border-0">
+                <div className="h-4 flex-1 rounded bg-muted animate-pulse" />
+                <div className="h-4 w-20 rounded bg-muted/60 animate-pulse" />
+                <div className="h-5 w-16 rounded-full bg-muted animate-pulse" />
+                <div className="h-4 w-8 rounded bg-muted/60 animate-pulse" />
+                <div className="h-1.5 w-16 rounded bg-muted animate-pulse" />
+                <div className="h-4 w-20 rounded bg-muted/60 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   if (error) {
@@ -153,8 +195,13 @@ export default function WorkingPapersPage() {
     );
   }
 
+  const draftCount = papers.filter((p) => p.status === "draft").length;
+  const signingCount = papers.filter((p) => p.status === "signing").length;
+  const completedCount = papers.filter((p) => p.status === "completed").length;
+  const cancelledCount = papers.filter((p) => p.status === "cancelled").length;
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Kertas Kerja</h1>
@@ -172,7 +219,56 @@ export default function WorkingPapersPage() {
         </div>
       </div>
 
-      <Tabs value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
+      <div className="grid gap-4 md:grid-cols-5">
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground font-medium">Total</p>
+              <FileText className="size-4 text-muted-foreground" />
+            </div>
+            <p className="text-2xl font-bold mt-2">{total}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground font-medium">Draft</p>
+              <FileEdit className="size-4 text-muted-foreground" />
+            </div>
+            <p className="text-2xl font-bold mt-2">{draftCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground font-medium">Proses TTE</p>
+              <PenTool className="size-4 text-amber-600" />
+            </div>
+            <p className="text-2xl font-bold mt-2">{signingCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground font-medium">Selesai</p>
+              <CheckCircle className="size-4 text-success" />
+            </div>
+            <p className="text-2xl font-bold mt-2">{completedCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground font-medium">Dibatalkan</p>
+              <XCircle className="size-4 text-destructive" />
+            </div>
+            <p className="text-2xl font-bold mt-2">{cancelledCount}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-3">
+        <Tabs value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
         <TabsList className="bg-muted/40 border border-border/50">
           <TabsTrigger value="all" className="gap-2 text-xs">Semua</TabsTrigger>
           <TabsTrigger value="draft" className="gap-2 text-xs">Draft</TabsTrigger>
@@ -197,8 +293,19 @@ export default function WorkingPapersPage() {
           <TableBody>
             {papers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground text-xs">
-                  Tidak ada kertas kerja yang ditemukan
+                <TableCell colSpan={6} className="py-12">
+                  <div className="flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="inline-flex size-12 items-center justify-center rounded-full bg-muted">
+                      <FileText className="size-6 text-muted-foreground" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-foreground">Belum ada kertas kerja</p>
+                      <p className="text-sm text-muted-foreground">Buat kertas kerja baru untuk memulai proses pengesahan profil risiko.</p>
+                    </div>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/risk/working-papers/new">Buat Kertas Kerja</Link>
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
@@ -213,7 +320,7 @@ export default function WorkingPapersPage() {
 
                 return (
                   <TableRow key={wp.id} className="border-border/30 hover:bg-muted/30 transition-colors">
-                    <TableCell className="max-w-[200px]">
+                    <TableCell className="max-w-[320px]">
                       <Link
                         href={`/risk/working-papers/${wp.id}`}
                         className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
@@ -228,7 +335,7 @@ export default function WorkingPapersPage() {
                     <TableCell>
                       <Badge
                         className={cn(
-                          "text-[10px] font-semibold border h-5 px-1.5",
+                          "text-xs font-semibold border h-5 px-1.5",
                           statusVariant[wp.status]
                         )}
                       >
@@ -242,7 +349,7 @@ export default function WorkingPapersPage() {
                       {totalSignatories > 0 ? (
                         <div className="flex flex-col items-center gap-1">
                           <Progress value={progressPercent} className="w-16 h-1.5" />
-                          <span className="text-[10px] text-muted-foreground">{progressText}</span>
+                          <span className="text-xs text-muted-foreground">{progressText}</span>
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">-</span>
@@ -285,6 +392,7 @@ export default function WorkingPapersPage() {
           </div>
         </div>
       </Card>
+      </div>
 
       <AlertDialog open={!!paperToDelete} onOpenChange={(open) => !open && setPaperToDelete(null)}>
         <AlertDialogContent>

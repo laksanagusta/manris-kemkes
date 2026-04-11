@@ -100,14 +100,14 @@ const exportOptions = [
     format: "XLSX",
     isEnabled: false,
   },
-  {
-    key: "kri-xlsx",
-    title: "KRI Summary (Excel)",
-    description: "Export KRI belum termasuk ruang lingkup delivery ini",
-    icon: FileSpreadsheet,
-    format: "XLSX",
-    isEnabled: false,
-  },
+  // {
+  //   key: "kri-xlsx",
+  //   title: "KRI Summary (Excel)",
+  //   description: "Export KRI belum termasuk ruang lingkup delivery ini",
+  //   icon: FileSpreadsheet,
+  //   format: "XLSX",
+  //   isEnabled: false,
+  // },
   {
     key: "risk-pdf",
     title: "Laporan Risiko (PDF)",
@@ -119,7 +119,8 @@ const exportOptions = [
   {
     key: "movement-by-org-xlsx",
     title: "Pergerakan per Unit (Excel)",
-    description: "Tabel pergerakan risiko per organisasi dengan warna indikator",
+    description:
+      "Tabel pergerakan risiko per organisasi dengan warna indikator",
     icon: FileSpreadsheet,
     format: "XLSX",
     isEnabled: true,
@@ -179,7 +180,8 @@ export default function ReportsPage() {
   const [responseTimeData, setResponseTimeData] = useState<UnitResponseTime[]>(
     [],
   );
-  const [movementByOrgSort, setMovementByOrgSort] = useState<MovementByOrgSortKey>("total");
+  const [movementByOrgSort, setMovementByOrgSort] =
+    useState<MovementByOrgSortKey>("total");
 
   const cycleOptions = useMemo(() => buildRecentCycleOptions(), []);
   const previousCycle = useMemo(
@@ -366,11 +368,15 @@ export default function ReportsPage() {
           return;
         }
         await exportMovementByOrgXLSX(orgData, previousCycle, exportCycle);
-        toast.success(`Export pergerakan risiko per unit ${exportCycle} berhasil.`);
+        toast.success(
+          `Export pergerakan risiko per unit ${exportCycle} berhasil.`,
+        );
       } catch (error) {
         console.error(error);
         toast.error(
-          error instanceof Error ? error.message : "Gagal export pergerakan risiko.",
+          error instanceof Error
+            ? error.message
+            : "Gagal export pergerakan risiko.",
         );
       } finally {
         setIsExporting(null);
@@ -837,7 +843,9 @@ export default function ReportsPage() {
                           stackId="risk"
                           fill={color}
                           radius={
-                            key === "Sangat Tinggi" ? [3, 3, 0, 0] : [0, 0, 0, 0]
+                            key === "Sangat Tinggi"
+                              ? [3, 3, 0, 0]
+                              : [0, 0, 0, 0]
                           }
                         />
                       ))}
