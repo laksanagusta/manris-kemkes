@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -23,6 +24,7 @@ type RiskHandler struct {
 	updateUC              *riskuc.UpdateRiskUseCase
 	deleteUC              *riskuc.DeleteRiskUseCase
 	listUC                *riskuc.ListRisksUseCase
+	listRegisterUC        *riskuc.ListRiskRegisterUseCase
 	listCycleSnapshotUC   *riskuc.ListRiskCycleSnapshotUseCase
 	listVersionsUC        *riskuc.ListRiskVersionsUseCase
 	reviewQueueUC         *riskuc.ListRiskReviewQueueUseCase
@@ -52,6 +54,7 @@ func NewRiskHandler(
 	updateUC *riskuc.UpdateRiskUseCase,
 	deleteUC *riskuc.DeleteRiskUseCase,
 	listUC *riskuc.ListRisksUseCase,
+	listRegisterUC *riskuc.ListRiskRegisterUseCase,
 	listCycleSnapshotUC *riskuc.ListRiskCycleSnapshotUseCase,
 	listVersionsUC *riskuc.ListRiskVersionsUseCase,
 	reviewQueueUC *riskuc.ListRiskReviewQueueUseCase,
@@ -80,6 +83,7 @@ func NewRiskHandler(
 		updateUC:              updateUC,
 		deleteUC:              deleteUC,
 		listUC:                listUC,
+		listRegisterUC:        listRegisterUC,
 		listCycleSnapshotUC:   listCycleSnapshotUC,
 		listVersionsUC:        listVersionsUC,
 		reviewQueueUC:         reviewQueueUC,
@@ -99,6 +103,75 @@ func NewRiskHandler(
 		unitResponseTimeUC:    unitResponseTimeUC,
 		mmRepo:                mmRepo,
 	}
+}
+
+func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
+		orgID, err := uuid.Parse(orgIDStr)
+		if err != nil {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		}
+		if scope != nil && !scope.IsGlobal {
+			narrowed, err := scope.NarrowToOrg(orgID)
+			if err != nil {
+				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			orgIDs = narrowed
+		} else {
+			orgIDs = []uuid.UUID{orgID}
+		}
+	}
+
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	input := riskuc.ListRiskRegisterInput{
+		OrgIDs:          orgIDs,
+		Status:          strings.TrimSpace(c.Query("status", "all")),
+		AssessmentCycle: strings.TrimSpace(c.Query("assessment_cycle", "")),
+		Query:           strings.TrimSpace(c.Query("q", "")),
+		Page:            page,
+		Limit:           limit,
+	}
+	if category := strings.TrimSpace(c.Query("category")); category != "" {
+		if !entity.IsValidRiskCategory(category) {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid category")
+		}
+		input.Category = category
+	}
+
+	result, err := h.listRegisterUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleError(c, err)
+	}
+	if result == nil {
+		result = &riskuc.ListRiskRegisterResult{Data: []*entity.Risk{}, Page: page, Limit: limit}
+	}
+	if result.Data == nil {
+		result.Data = []*entity.Risk{}
+	}
+
+	return c.JSON(fiber.Map{
+		"data":  result.Data,
+		"total": result.Total,
+		"page":  result.Page,
+		"limit": result.Limit,
+	})
 }
 
 // ListCycleSnapshot handles GET /api/risks/cycle-snapshot?cycle=YYYY-H1

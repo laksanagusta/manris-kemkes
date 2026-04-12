@@ -7,10 +7,20 @@ import type {
 
 export async function listWorkingPapers(
   token: string,
-  params?: { status?: string; page?: number; limit?: number },
+  params?: {
+    status?: string;
+    q?: string;
+    assessment_cycle?: string;
+    page?: number;
+    limit?: number;
+  },
 ): Promise<WorkingPaperListResponse> {
   const searchParams = new URLSearchParams();
   if (params?.status) searchParams.set("status", params.status);
+  if (params?.q) searchParams.set("q", params.q);
+  if (params?.assessment_cycle) {
+    searchParams.set("assessment_cycle", params.assessment_cycle);
+  }
   if (params?.page) searchParams.set("page", params.page.toString());
   if (params?.limit) searchParams.set("limit", params.limit.toString());
   const qs = searchParams.toString();

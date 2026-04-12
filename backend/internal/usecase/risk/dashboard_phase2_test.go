@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	repo "github.com/manris/backend/internal/domain/repository"
 )
 
 type fakeDashboardRiskRepo struct {
@@ -21,6 +22,10 @@ func (r *fakeDashboardRiskRepo) List(ctx context.Context, orgIDs []uuid.UUID, st
 		return r.list(ctx, orgIDs, status, category)
 	}
 	return nil, errors.New("not implemented")
+}
+
+func (r *fakeDashboardRiskRepo) ListRegister(context.Context, repo.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	return nil, 0, errors.New("not implemented")
 }
 
 func (r *fakeDashboardRiskRepo) ListCycleSnapshot(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error) {

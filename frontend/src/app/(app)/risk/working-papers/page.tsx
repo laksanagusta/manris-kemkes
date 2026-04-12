@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { 
@@ -14,6 +19,7 @@ import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
   Table,
@@ -41,12 +47,41 @@ import {
   ChevronRight,
   AlertCircle,
   ArrowUpRight,
+  Calendar,
   FileText,
   FileEdit,
   PenTool,
   CheckCircle,
+  Search,
   XCircle,
 } from "lucide-react";
+
+type WorkingPaperStatusFilter = "all" | WorkingPaperStatus;
+
+function getWorkingPaperStatusFilter(
+  value: string | null,
+): WorkingPaperStatusFilter {
+  if (
+    value === "draft" ||
+    value === "signing" ||
+    value === "completed" ||
+    value === "cancelled"
+  ) {
+    return value;
+  }
+
+  return "all";
+}
+
+function parsePositiveInt(value: string | null, fallback: number): number {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return Math.floor(parsed);
+}
 
 const statusVariant: Record<WorkingPaperStatus, string> = {
   draft: "bg-muted text-muted-foreground border-border",
@@ -63,16 +98,33 @@ const statusLabels: Record<WorkingPaperStatus, string> = {
 };
 
 export default function WorkingPapersPage() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { token } = useAuth();
+  const [isPending, startTransition] = useTransition();
   
   const [papers, setPapers] = useState<WorkingPaper[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [statusFilter, setStatusFilter] = useState<WorkingPaperStatusFilter>(() =>
+    getWorkingPaperStatusFilter(searchParams.get("status")),
+  );
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [assessmentCycleFilter, setAssessmentCycleFilter] = useState(
+    () => searchParams.get("assessment_cycle") ?? "",
+  );
+  const [page, setPage] = useState(() =>
+    parsePositiveInt(searchParams.get("page"), 1),
+  );
+  const [limit, setLimit] = useState(() =>
+    parsePositiveInt(searchParams.get("limit"), 10),
+  );
   const [total, setTotal] = useState(0);
+
+  const deferredSearch = useDeferredValue(search);
+  const deferredAssessmentCycleFilter = useDeferredValue(assessmentCycleFilter);
 
   const [paperToDelete, setPaperToDelete] = useState<WorkingPaper | null>(null);
   const [paperToCancel, setPaperToCancel] = useState<WorkingPaper | null>(null);
@@ -83,11 +135,16 @@ export default function WorkingPapersPage() {
       setError(null);
       const res = await listWorkingPapers(activeToken, {
         status: statusFilter === "all" ? undefined : statusFilter,
+        q: deferredSearch.trim() || undefined,
+        assessment_cycle:
+          deferredAssessmentCycleFilter.trim() || undefined,
         page,
         limit,
       });
       setPapers(res.data ?? []);
       setTotal(res.total ?? 0);
+      setPage(res.page ?? page);
+      setLimit(res.limit ?? limit);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Gagal memuat daftar kertas kerja. Silakan coba lagi.");
@@ -100,7 +157,95 @@ export default function WorkingPapersPage() {
     if (token) {
       fetchWorkingPapers(token);
     }
-  }, [token, statusFilter, page, limit]);
+  }, [
+    token,
+    statusFilter,
+    deferredSearch,
+    deferredAssessmentCycleFilter,
+    page,
+    limit,
+  ]);
+
+  useEffect(() => {
+    const nextStatusFilter = getWorkingPaperStatusFilter(searchParams.get("status"));
+    const nextSearch = searchParams.get("q") ?? "";
+    const nextAssessmentCycleFilter = searchParams.get("assessment_cycle") ?? "";
+    const nextPage = parsePositiveInt(searchParams.get("page"), 1);
+    const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
+
+    setStatusFilter((current) =>
+      current === nextStatusFilter ? current : nextStatusFilter,
+    );
+    setSearch((current) => (current === nextSearch ? current : nextSearch));
+    setAssessmentCycleFilter((current) =>
+      current === nextAssessmentCycleFilter
+        ? current
+        : nextAssessmentCycleFilter,
+    );
+    setPage((current) => (current === nextPage ? current : nextPage));
+    setLimit((current) => (current === nextLimit ? current : nextLimit));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    const normalizedSearch = search.trim();
+    const normalizedAssessmentCycle = assessmentCycleFilter.trim();
+
+    if (statusFilter === "all") {
+      nextParams.delete("status");
+    } else {
+      nextParams.set("status", statusFilter);
+    }
+
+    if (normalizedSearch) {
+      nextParams.set("q", normalizedSearch);
+    } else {
+      nextParams.delete("q");
+    }
+
+    if (normalizedAssessmentCycle) {
+      nextParams.set("assessment_cycle", normalizedAssessmentCycle);
+    } else {
+      nextParams.delete("assessment_cycle");
+    }
+
+    if (page === 1) {
+      nextParams.delete("page");
+    } else {
+      nextParams.set("page", page.toString());
+    }
+
+    if (limit === 10) {
+      nextParams.delete("limit");
+    } else {
+      nextParams.set("limit", limit.toString());
+    }
+
+    const nextUrl = nextParams.toString()
+      ? `${pathname}?${nextParams.toString()}`
+      : pathname;
+    const currentUrl = searchParams.toString()
+      ? `${pathname}?${searchParams.toString()}`
+      : pathname;
+
+    if (nextUrl === currentUrl) {
+      return;
+    }
+
+    startTransition(() => {
+      router.replace(nextUrl, { scroll: false });
+    });
+  }, [
+    assessmentCycleFilter,
+    limit,
+    page,
+    pathname,
+    router,
+    search,
+    searchParams,
+    startTransition,
+    statusFilter,
+  ]);
 
   const handleDelete = async () => {
     if (!paperToDelete || !token) return;
@@ -268,7 +413,13 @@ export default function WorkingPapersPage() {
       </div>
 
       <div className="space-y-3">
-        <Tabs value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
+        <Tabs
+          value={statusFilter}
+          onValueChange={(val) => {
+            setStatusFilter(val as WorkingPaperStatusFilter);
+            setPage(1);
+          }}
+        >
         <TabsList className="bg-muted/40 border border-border/50">
           <TabsTrigger value="all" className="gap-2 text-xs">Semua</TabsTrigger>
           <TabsTrigger value="draft" className="gap-2 text-xs">Draft</TabsTrigger>
@@ -277,6 +428,37 @@ export default function WorkingPapersPage() {
           <TabsTrigger value="cancelled" className="gap-2 text-xs">Dibatalkan</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Cari judul kertas kerja..."
+                className="h-8 border-none bg-muted/30 pl-8 text-xs"
+              />
+            </div>
+            <div className="relative min-w-[200px] md:w-52">
+              <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={assessmentCycleFilter}
+                onChange={(event) => {
+                  setAssessmentCycleFilter(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Filter siklus asesmen"
+                className="h-8 border-none bg-muted/30 pl-8 text-xs"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
         <Table>
@@ -374,7 +556,7 @@ export default function WorkingPapersPage() {
               variant="ghost"
               size="sm"
               className="h-7 w-7 p-0 text-muted-foreground"
-              disabled={page === 1}
+              disabled={page === 1 || loading || isPending}
               onClick={() => setPage(p => Math.max(1, p - 1))}
             >
               <ChevronLeft className="size-3.5" />
@@ -384,7 +566,7 @@ export default function WorkingPapersPage() {
               variant="ghost"
               size="sm"
               className="h-7 w-7 p-0 text-muted-foreground"
-              disabled={page === totalPages || total === 0}
+              disabled={page === totalPages || total === 0 || loading || isPending}
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             >
               <ChevronRight className="size-3.5" />

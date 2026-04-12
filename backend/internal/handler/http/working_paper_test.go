@@ -32,6 +32,9 @@ func (r *handlerCreateRiskRepo) Delete(context.Context, uuid.UUID) error    { re
 func (r *handlerCreateRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, nil
 }
+func (r *handlerCreateRiskRepo) ListRegister(context.Context, repository.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	return nil, 0, nil
+}
 func (r *handlerCreateRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	return nil, nil
 }
@@ -81,7 +84,15 @@ func (r *handlerCreateRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID
 }
 
 type handlerCreateWorkingPaperRepo struct {
-	created *entity.WorkingPaper
+	created             *entity.WorkingPaper
+	listOrgIDs          []uuid.UUID
+	listStatus          string
+	listQuery           string
+	listAssessmentCycle string
+	listPage            int
+	listLimit           int
+	listItems           []*entity.WorkingPaper
+	listTotal           int
 }
 
 func (r *handlerCreateWorkingPaperRepo) Create(_ context.Context, wp *entity.WorkingPaper) error {
@@ -91,8 +102,14 @@ func (r *handlerCreateWorkingPaperRepo) Create(_ context.Context, wp *entity.Wor
 func (r *handlerCreateWorkingPaperRepo) GetByID(context.Context, uuid.UUID) (*entity.WorkingPaper, error) {
 	return nil, nil
 }
-func (r *handlerCreateWorkingPaperRepo) List(context.Context, []uuid.UUID, string, int, int) ([]*entity.WorkingPaper, int, error) {
-	return nil, 0, nil
+func (r *handlerCreateWorkingPaperRepo) List(_ context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle string, page, limit int) ([]*entity.WorkingPaper, int, error) {
+	r.listOrgIDs = append([]uuid.UUID(nil), orgIDs...)
+	r.listStatus = status
+	r.listQuery = query
+	r.listAssessmentCycle = assessmentCycle
+	r.listPage = page
+	r.listLimit = limit
+	return r.listItems, r.listTotal, nil
 }
 func (r *handlerCreateWorkingPaperRepo) Update(context.Context, *entity.WorkingPaper) error {
 	return nil
@@ -183,5 +200,78 @@ func TestWorkingPaperCreatePassesFullAccessibleOrgScope(t *testing.T) {
 	}
 	if riskRepo.gotOrgIDs[0] != orgOne || riskRepo.gotOrgIDs[1] != orgTwo {
 		t.Fatalf("expected full scope [%s %s], got %v", orgOne, orgTwo, riskRepo.gotOrgIDs)
+	}
+}
+
+func TestWorkingPaperListSupportsDynamicFiltersAndClampsPagination(t *testing.T) {
+	orgOne := uuid.New()
+	orgTwo := uuid.New()
+	wpRepo := &handlerCreateWorkingPaperRepo{}
+	handler := NewWorkingPaperHandler(workingpaper.NewWorkingPaperUseCase(wpRepo, nil), wpRepo)
+
+	app := fiber.New()
+	app.Get("/working-papers", func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{AccessibleOrgIDs: []uuid.UUID{orgOne, orgTwo}})
+		return c.Next()
+	}, handler.List)
+
+	req := httptest.NewRequest(
+		fiber.MethodGet,
+		"/working-papers?status=signing&q=semester&assessment_cycle=2026-H1&page=0&limit=250",
+		nil,
+	)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusOK {
+		payload, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, payload)
+	}
+
+	if len(wpRepo.listOrgIDs) != 2 || wpRepo.listOrgIDs[0] != orgOne || wpRepo.listOrgIDs[1] != orgTwo {
+		t.Fatalf("expected full scope [%s %s], got %v", orgOne, orgTwo, wpRepo.listOrgIDs)
+	}
+	if wpRepo.listStatus != "signing" {
+		t.Fatalf("expected status signing, got %q", wpRepo.listStatus)
+	}
+	if wpRepo.listQuery != "semester" {
+		t.Fatalf("expected q semester, got %q", wpRepo.listQuery)
+	}
+	if wpRepo.listAssessmentCycle != "2026-H1" {
+		t.Fatalf("expected assessment cycle 2026-H1, got %q", wpRepo.listAssessmentCycle)
+	}
+	if wpRepo.listPage != 1 {
+		t.Fatalf("expected clamped page 1, got %d", wpRepo.listPage)
+	}
+	if wpRepo.listLimit != 100 {
+		t.Fatalf("expected clamped limit 100, got %d", wpRepo.listLimit)
+	}
+
+	var payload struct {
+		Data  []map[string]any `json:"data"`
+		Total int              `json:"total"`
+		Page  int              `json:"page"`
+		Limit int              `json:"limit"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Data == nil {
+		t.Fatal("expected non-nil data array")
+	}
+	if len(payload.Data) != 0 {
+		t.Fatalf("expected empty data array, got %d items", len(payload.Data))
+	}
+	if payload.Total != 0 {
+		t.Fatalf("expected total 0, got %d", payload.Total)
+	}
+	if payload.Page != 1 {
+		t.Fatalf("expected response page 1, got %d", payload.Page)
+	}
+	if payload.Limit != 100 {
+		t.Fatalf("expected response limit 100, got %d", payload.Limit)
 	}
 }

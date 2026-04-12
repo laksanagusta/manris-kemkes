@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
+	repo "github.com/manris/backend/internal/domain/repository"
 )
 
 type scopeIncidentRepo struct {
@@ -54,6 +55,9 @@ func (r *scopeRiskRepo) Update(context.Context, *entity.Risk) error { return nil
 func (r *scopeRiskRepo) Delete(context.Context, uuid.UUID) error    { return nil }
 func (r *scopeRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, nil
+}
+func (r *scopeRiskRepo) ListRegister(context.Context, repo.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	return nil, 0, nil
 }
 func (r *scopeRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	return nil, nil

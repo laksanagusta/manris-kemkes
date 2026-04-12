@@ -46,6 +46,9 @@ func (r *categoryRiskRepo) List(_ context.Context, orgIDs []uuid.UUID, status st
 	r.listCategory = category
 	return []*entity.Risk{}, nil
 }
+func (r *categoryRiskRepo) ListRegister(context.Context, repo.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	return []*entity.Risk{}, 0, nil
+}
 func (r *categoryRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	return nil, nil
 }

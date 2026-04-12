@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
+	repo "github.com/manris/backend/internal/domain/repository"
 )
 
 type fakeCreateRiskRepo struct {
@@ -44,6 +45,10 @@ func (r *fakeCreateRiskRepo) Delete(context.Context, uuid.UUID) error {
 
 func (r *fakeCreateRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, nil
+}
+
+func (r *fakeCreateRiskRepo) ListRegister(context.Context, repo.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	return nil, 0, nil
 }
 
 func (r *fakeCreateRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
@@ -149,7 +154,7 @@ func (r *fakeCreateWorkingPaperRepo) GetByID(context.Context, uuid.UUID) (*entit
 	return nil, nil
 }
 
-func (r *fakeCreateWorkingPaperRepo) List(context.Context, []uuid.UUID, string, int, int) ([]*entity.WorkingPaper, int, error) {
+func (r *fakeCreateWorkingPaperRepo) List(context.Context, []uuid.UUID, string, string, string, int, int) ([]*entity.WorkingPaper, int, error) {
 	return nil, 0, nil
 }
 
@@ -359,7 +364,6 @@ func TestCreateReviewPeriodicCreatesDraftRiskVersionWhenMissing(t *testing.T) {
 	orgID := uuid.New()
 	approvedID := uuid.New()
 	versionGroupID := uuid.New()
-
 	riskRepo := &fakeCreateRiskRepo{risksByID: map[uuid.UUID]*entity.Risk{
 		approvedID: {
 			ID:              approvedID,

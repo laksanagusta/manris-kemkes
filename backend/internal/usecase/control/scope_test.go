@@ -58,6 +58,9 @@ func (r *scopeCtrlRiskRepo) Delete(context.Context, uuid.UUID) error    { return
 func (r *scopeCtrlRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, nil
 }
+func (r *scopeCtrlRiskRepo) ListRegister(context.Context, repository.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	return nil, 0, nil
+}
 func (r *scopeCtrlRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	return nil, nil
 }

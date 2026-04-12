@@ -80,6 +80,9 @@ func (r *fakeSubmitRiskRepo) Delete(context.Context, uuid.UUID) error {
 func (r *fakeSubmitRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
+func (r *fakeSubmitRiskRepo) ListRegister(context.Context, repo.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	return nil, 0, errors.New("not implemented")
+}
 func (r *fakeSubmitRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	return nil, errors.New("not implemented")
 }

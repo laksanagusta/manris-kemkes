@@ -23,7 +23,7 @@ func (r *stubGetWorkingPaperRepo) GetByID(context.Context, uuid.UUID) (*entity.W
 	return r.wp, nil
 }
 
-func (r *stubGetWorkingPaperRepo) List(context.Context, []uuid.UUID, string, int, int) ([]*entity.WorkingPaper, int, error) {
+func (r *stubGetWorkingPaperRepo) List(context.Context, []uuid.UUID, string, string, string, int, int) ([]*entity.WorkingPaper, int, error) {
 	return nil, 0, nil
 }
 
@@ -139,7 +139,7 @@ func (r *atomicSignWorkingPaperRepo) GetByID(context.Context, uuid.UUID) (*entit
 	return nil, nil
 }
 
-func (r *atomicSignWorkingPaperRepo) List(context.Context, []uuid.UUID, string, int, int) ([]*entity.WorkingPaper, int, error) {
+func (r *atomicSignWorkingPaperRepo) List(context.Context, []uuid.UUID, string, string, string, int, int) ([]*entity.WorkingPaper, int, error) {
 	return nil, 0, nil
 }
 

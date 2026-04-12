@@ -8,8 +8,7 @@ import (
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 )
 
-// List retrieves working papers filtered by org, status, and pagination.
-func (uc *UseCase) List(ctx context.Context, orgIDs []uuid.UUID, status string, page, limit int) ([]*entity.WorkingPaper, int, error) {
+func (uc *UseCase) List(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle string, page, limit int) ([]*entity.WorkingPaper, int, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -20,7 +19,7 @@ func (uc *UseCase) List(ctx context.Context, orgIDs []uuid.UUID, status string, 
 		limit = 100
 	}
 
-	wps, total, err := uc.wpRepo.List(ctx, orgIDs, status, page, limit)
+	wps, total, err := uc.wpRepo.List(ctx, orgIDs, status, query, assessmentCycle, page, limit)
 	if err != nil {
 		return nil, 0, domainerrors.Wrap(err, "failed to list working papers")
 	}

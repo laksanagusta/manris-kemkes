@@ -34,6 +34,9 @@ func (r *fakeBatchRiskRepo) Delete(context.Context, uuid.UUID) error    { return
 func (r *fakeBatchRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, nil
 }
+func (r *fakeBatchRiskRepo) ListRegister(context.Context, repo.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	return nil, 0, nil
+}
 func (r *fakeBatchRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	return nil, nil
 }

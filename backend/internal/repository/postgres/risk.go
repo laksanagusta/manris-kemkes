@@ -435,6 +435,116 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	return risks, nil
 }
 
+func (r *riskRepository) ListRegister(ctx context.Context, filter repository.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	countQuery := `SELECT COUNT(*)
+		FROM risks r
+		WHERE 1=1`
+	dataQuery := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
+	                  r.cause, r.risk_source, r.controllability, r.impact_description,
+	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
+	                  r.risk_priority, r.risk_appetite, r.treatment_option,
+	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
+	                  r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
+	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
+	                  r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
+	                  COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
+	                  r.reviewed_by, r.reviewed_at,
+	                  r.created_at, r.updated_at,
+	                  COALESCE(o.name, '') as org_name,
+	                  COALESCE(u.name, '') as created_by_name
+	           FROM risks r
+	           LEFT JOIN organizations o ON r.organization_id = o.id
+	           LEFT JOIN users u ON r.created_by = u.id
+	           WHERE 1=1`
+	args := []interface{}{}
+	argIdx := 1
+
+	if filter.Status == entity.RiskStatusDraft {
+		countQuery += " AND r.status = 'draft'"
+		dataQuery += " AND r.status = 'draft'"
+	} else {
+		countQuery += " AND r.is_current = TRUE"
+		dataQuery += " AND r.is_current = TRUE"
+	}
+
+	if len(filter.OrgIDs) > 0 {
+		clause := fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
+		countQuery += clause
+		dataQuery += clause
+		args = append(args, filter.OrgIDs)
+		argIdx++
+	}
+	if filter.Status != "" && filter.Status != "all" && filter.Status != entity.RiskStatusDraft {
+		clause := fmt.Sprintf(" AND r.status = $%d", argIdx)
+		countQuery += clause
+		dataQuery += clause
+		args = append(args, filter.Status)
+		argIdx++
+	}
+	if filter.Category != "" {
+		clause := fmt.Sprintf(" AND r.category = $%d", argIdx)
+		countQuery += clause
+		dataQuery += clause
+		args = append(args, filter.Category)
+		argIdx++
+	}
+	if filter.AssessmentCycle != "" {
+		clause := fmt.Sprintf(" AND COALESCE(r.assessment_cycle, '') = $%d", argIdx)
+		countQuery += clause
+		dataQuery += clause
+		args = append(args, filter.AssessmentCycle)
+		argIdx++
+	}
+	if filter.Query != "" {
+		clause := fmt.Sprintf(" AND (COALESCE(r.code, '') ILIKE $%d OR COALESCE(r.title, '') ILIKE $%d OR COALESCE(r.description, '') ILIKE $%d)", argIdx, argIdx, argIdx)
+		countQuery += clause
+		dataQuery += clause
+		args = append(args, "%"+filter.Query+"%")
+		argIdx++
+	}
+
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("list risk register count: %w", err)
+	}
+
+	offset := (filter.Page - 1) * filter.Limit
+	dataQuery += fmt.Sprintf(" ORDER BY r.created_at DESC, r.id DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+	args = append(args, filter.Limit, offset)
+
+	rows, err := r.pool.Query(ctx, dataQuery, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list risk register query: %w", err)
+	}
+	defer rows.Close()
+
+	risks := make([]*entity.Risk, 0)
+	for rows.Next() {
+		var risk entity.Risk
+		if err := rows.Scan(
+			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
+			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
+			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
+			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
+			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
+			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
+			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
+			&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
+			&risk.ReviewedBy, &risk.ReviewedAt,
+			&risk.CreatedAt, &risk.UpdatedAt,
+			&risk.OrgName, &risk.CreatedByName,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan risk register row: %w", err)
+		}
+		risks = append(risks, &risk)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("list risk register rows: %w", err)
+	}
+
+	return risks, total, nil
+}
+
 // ListApprovedRisks returns approved risks for trend analysis (one version per cycle per risk)
 func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
 	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by,

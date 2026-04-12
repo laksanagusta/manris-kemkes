@@ -1,13 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import { api } from "@/lib/api";
+import {
+  listRiskRegister,
+  type RiskRegisterCategoryFilter,
+  type RiskRegisterListItem,
+  type RiskRegisterStatusFilter,
+} from "@/lib/api/risk-register";
 import { useAuth } from "@/contexts/auth-context";
 import type {
   RiskCategory,
-  RiskStatus,
   RiskVersionTimelineItem,
 } from "@/types/risk";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
@@ -105,44 +120,7 @@ const statusLabel: Record<string, string> = {
   rejected: "Ditolak",
 };
 
-type RiskListItem = {
-  id: string;
-  code?: string;
-  title?: string;
-  description?: string;
-  category?: RiskCategory | "";
-  status?: RiskStatus;
-  organizationId?: string;
-  orgName?: string;
-  createdByName?: string;
-  updatedAt?: string;
-  probability?: number;
-  impact?: number;
-  weight?: number;
-  nilai?: number;
-  inherentScore?: number;
-  targetProbability?: number;
-  targetImpact?: number;
-  targetWeight?: number;
-  targetNilai?: number;
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
-  cause?: string[];
-  impactDesc?: string[];
-  existingControl?: string;
-  treatmentOption?: string;
-  nextReviewDate?: string;
-  versionGroupId?: string;
-  versionNumber?: number;
-  previousRiskId?: string | null;
-  isCurrent?: boolean;
-  assessmentCycle?: string;
-  reviewType?: string;
-  changeReason?: string;
-};
+type RiskListItem = RiskRegisterListItem;
 
 type HistoryItem = {
   id: string;
@@ -164,6 +142,58 @@ type VersionOption = {
   isCurrent: boolean;
   versionNumber?: number;
 };
+
+type RiskRegisterTab = "all-risks" | "my-drafts" | "history";
+
+function getRiskRegisterTab(value: string | null): RiskRegisterTab {
+  if (value === "my-drafts" || value === "history") {
+    return value;
+  }
+
+  return "all-risks";
+}
+
+function getRiskRegisterStatusFilter(
+  value: string | null,
+): RiskRegisterStatusFilter {
+  if (
+    value === "in_review" ||
+    value === "in_approval" ||
+    value === "approved" ||
+    value === "rejected"
+  ) {
+    return value;
+  }
+
+  return "all";
+}
+
+function getRiskRegisterCategoryFilter(
+  value: string | null,
+): RiskRegisterCategoryFilter {
+  if (
+    value === "strategis" ||
+    value === "operasional" ||
+    value === "kepatuhan" ||
+    value === "finansial" ||
+    value === "reputasi" ||
+    value === "teknologi_informasi"
+  ) {
+    return value;
+  }
+
+  return "all";
+}
+
+function parsePositiveInt(value: string | null, fallback: number): number {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return Math.floor(parsed);
+}
 
 function getRiskLevel(nilai: number | undefined): string {
   if (nilai === undefined || isNaN(nilai)) return "Sangat Rendah";
@@ -220,50 +250,84 @@ function formatCycleLabel(cycle?: string, createdAt?: string) {
 }
 
 export default function RiskRegisterPage() {
+  const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { token, user } = useAuth();
+  const [isPending, startTransition] = useTransition();
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
+  const [historyRisks, setHistoryRisks] = useState<RiskListItem[]>([]);
   const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
   const [historyRiskId, setHistoryRiskId] = useState<string>("");
   const [versions, setVersions] = useState<VersionOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [statusFilter, setStatusFilter] = useState<RiskRegisterStatusFilter>(
+    () => getRiskRegisterStatusFilter(searchParams.get("status")),
+  );
+  const [categoryFilter, setCategoryFilter] =
+    useState<RiskRegisterCategoryFilter>(() =>
+      getRiskRegisterCategoryFilter(searchParams.get("category")),
+    );
+  const [assessmentCycleFilter, setAssessmentCycleFilter] = useState(
+    () => searchParams.get("assessment_cycle") ?? "",
+  );
+  const [page, setPage] = useState(() =>
+    parsePositiveInt(searchParams.get("page"), 1),
+  );
+  const [limit, setLimit] = useState(() =>
+    parsePositiveInt(searchParams.get("limit"), 10),
+  );
+  const [total, setTotal] = useState(0);
   const [selectedVersion, setSelectedVersion] = useState("");
-  const [activeTab, setActiveTab] = useState("all-risks");
+  const [activeTab, setActiveTab] = useState<RiskRegisterTab>(() =>
+    getRiskRegisterTab(searchParams.get("tab")),
+  );
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
     useState<RiskListItem | null>(null);
   const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
 
-  const refreshRisks = async (activeToken: string) => {
-    const risksQueryParams = new URLSearchParams();
-    if (statusFilter !== "all") {
-      risksQueryParams.set("status", statusFilter);
-    }
-    if (categoryFilter !== "all") {
-      risksQueryParams.set("category", categoryFilter);
-    }
+  const deferredSearch = useDeferredValue(search);
+  const deferredAssessmentCycleFilter = useDeferredValue(
+    assessmentCycleFilter,
+  );
 
-    const riskQuery = risksQueryParams.toString();
-    const [allRisks, draftRisks] = await Promise.all([
-      api.get<RiskListItem[]>(
-        `/risks${riskQuery ? `?${riskQuery}` : ""}`,
-        activeToken,
-      ),
+  const refreshRegisterData = async (
+    activeToken: string,
+    queryOverrides?: {
+      q?: string;
+      assessmentCycle?: string;
+    },
+  ) => {
+    const normalizedSearch = (queryOverrides?.q ?? search).trim();
+    const normalizedAssessmentCycle = (
+      queryOverrides?.assessmentCycle ?? assessmentCycleFilter
+    ).trim();
+
+    const [allRisksResponse, draftRisks, approvedRisks] = await Promise.all([
+      listRiskRegister(activeToken, {
+        q: normalizedSearch || undefined,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        category: categoryFilter === "all" ? undefined : categoryFilter,
+        assessment_cycle: normalizedAssessmentCycle || undefined,
+        page,
+        limit,
+      }),
       api.get<RiskListItem[]>("/risks?status=draft", activeToken),
+      api.get<RiskListItem[]>("/risks?status=approved", activeToken),
     ]);
 
-    const nonDraftRisks = allRisks.filter((risk) => risk.status !== "draft");
-    const approvedCurrentRisks = nonDraftRisks.filter(
-      (risk) => risk.status === "approved" && risk.isCurrent,
-    );
+    const approvedCurrentRisks = approvedRisks.filter((risk) => risk.isCurrent);
 
     setDrafts(draftRisks);
-    setRisks(nonDraftRisks);
+    setHistoryRisks(approvedCurrentRisks);
+    setRisks(allRisksResponse.data ?? []);
+    setTotal(allRisksResponse.total ?? 0);
+    setPage(allRisksResponse.page ?? page);
+    setLimit(allRisksResponse.limit ?? limit);
 
     if (approvedCurrentRisks.length === 0) {
       setHistoryRiskId("");
@@ -277,62 +341,131 @@ export default function RiskRegisterPage() {
       if (
         currentId &&
         approvedCurrentRisks.some((risk) => risk.id === currentId)
-      )
+      ) {
         return currentId;
+      }
+
       return approvedCurrentRisks[0].id;
     });
   };
 
   useEffect(() => {
-    if (!token) return;
+    const nextSearch = searchParams.get("q") ?? "";
+    const nextStatusFilter = getRiskRegisterStatusFilter(
+      searchParams.get("status"),
+    );
+    const nextCategoryFilter = getRiskRegisterCategoryFilter(
+      searchParams.get("category"),
+    );
+    const nextAssessmentCycleFilter = searchParams.get("assessment_cycle") ?? "";
+    const nextPage = parsePositiveInt(searchParams.get("page"), 1);
+    const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
+    const nextTab = getRiskRegisterTab(searchParams.get("tab"));
+
+    setSearch((current) => (current === nextSearch ? current : nextSearch));
+    setStatusFilter((current) =>
+      current === nextStatusFilter ? current : nextStatusFilter,
+    );
+    setCategoryFilter((current) =>
+      current === nextCategoryFilter ? current : nextCategoryFilter,
+    );
+    setAssessmentCycleFilter((current) =>
+      current === nextAssessmentCycleFilter ? current : nextAssessmentCycleFilter,
+    );
+    setPage((current) => (current === nextPage ? current : nextPage));
+    setLimit((current) => (current === nextLimit ? current : nextLimit));
+    setActiveTab((current) => (current === nextTab ? current : nextTab));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    const normalizedSearch = search.trim();
+    const normalizedAssessmentCycle = assessmentCycleFilter.trim();
+
+    if (activeTab === "all-risks") {
+      nextParams.delete("tab");
+    } else {
+      nextParams.set("tab", activeTab);
+    }
+
+    if (normalizedSearch) {
+      nextParams.set("q", normalizedSearch);
+    } else {
+      nextParams.delete("q");
+    }
+
+    if (statusFilter === "all") {
+      nextParams.delete("status");
+    } else {
+      nextParams.set("status", statusFilter);
+    }
+
+    if (categoryFilter === "all") {
+      nextParams.delete("category");
+    } else {
+      nextParams.set("category", categoryFilter);
+    }
+
+    if (normalizedAssessmentCycle) {
+      nextParams.set("assessment_cycle", normalizedAssessmentCycle);
+    } else {
+      nextParams.delete("assessment_cycle");
+    }
+
+    if (page === 1) {
+      nextParams.delete("page");
+    } else {
+      nextParams.set("page", page.toString());
+    }
+
+    if (limit === 10) {
+      nextParams.delete("limit");
+    } else {
+      nextParams.set("limit", limit.toString());
+    }
+
+    const nextUrl = nextParams.toString()
+      ? `${pathname}?${nextParams.toString()}`
+      : pathname;
+    const currentUrl = searchParams.toString()
+      ? `${pathname}?${searchParams.toString()}`
+      : pathname;
+
+    if (nextUrl === currentUrl) {
+      return;
+    }
+
+    startTransition(() => {
+      router.replace(nextUrl, { scroll: false });
+    });
+  }, [
+    activeTab,
+    assessmentCycleFilter,
+    categoryFilter,
+    limit,
+    page,
+    pathname,
+    router,
+    search,
+    searchParams,
+    startTransition,
+    statusFilter,
+  ]);
+
+  useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
     const fetchData = async () => {
       try {
         setError(null);
         setLoading(true);
 
-        const risksQueryParams = new URLSearchParams();
-        if (statusFilter !== "all") {
-          risksQueryParams.set("status", statusFilter);
-        }
-        if (categoryFilter !== "all") {
-          risksQueryParams.set("category", categoryFilter);
-        }
-
-        const riskQuery = risksQueryParams.toString();
-        const [allRisks, draftRisks] = await Promise.all([
-          api.get<RiskListItem[]>(
-            `/risks${riskQuery ? `?${riskQuery}` : ""}`,
-            token,
-          ),
-          api.get<RiskListItem[]>("/risks?status=draft", token),
-        ]);
-
-        const nonDraftRisks = allRisks.filter(
-          (risk) => risk.status !== "draft",
-        );
-        const approvedCurrentRisks = nonDraftRisks.filter(
-          (risk) => risk.status === "approved" && risk.isCurrent,
-        );
-
-        setDrafts(draftRisks);
-        setRisks(nonDraftRisks);
-
-        if (approvedCurrentRisks.length === 0) {
-          setHistoryRiskId("");
-          setVersions([]);
-          setSelectedVersion("");
-          setHistoryData([]);
-          return;
-        }
-
-        setHistoryRiskId((currentId) => {
-          if (
-            currentId &&
-            approvedCurrentRisks.some((risk) => risk.id === currentId)
-          )
-            return currentId;
-          return approvedCurrentRisks[0].id;
+        await refreshRegisterData(token, {
+          q: deferredSearch,
+          assessmentCycle: deferredAssessmentCycleFilter,
         });
       } catch (err) {
         console.error(err);
@@ -346,8 +479,16 @@ export default function RiskRegisterPage() {
       }
     };
 
-    fetchData();
-  }, [token, statusFilter, categoryFilter]);
+    void fetchData();
+  }, [
+    token,
+    statusFilter,
+    categoryFilter,
+    deferredSearch,
+    deferredAssessmentCycleFilter,
+    page,
+    limit,
+  ]);
 
   useEffect(() => {
     if (!token || !historyRiskId) return;
@@ -411,20 +552,6 @@ export default function RiskRegisterPage() {
     fetchVersions();
   }, [historyRiskId, token]);
 
-  const filteredRisks = useMemo(() => {
-    return risks.filter((r) => {
-      const title = (r.title ?? "").toLowerCase();
-      const code = (r.code ?? "").toLowerCase();
-      if (
-        search &&
-        !title.includes(search.toLowerCase()) &&
-        !code.includes(search.toLowerCase())
-      )
-        return false;
-      return true;
-    });
-  }, [risks, search]);
-
   const riskLevelCounts = useMemo(() => {
     return risks.reduce<Record<string, number>>((counts, risk) => {
       const level = resolveListItemScoreSemantics(risk).effective.level;
@@ -433,11 +560,13 @@ export default function RiskRegisterPage() {
     }, {});
   }, [risks]);
 
+  const totalPages = Math.ceil(total / limit) || 1;
+
   const handleDeleteDraft = async (id: string) => {
     toast.promise(
       (async () => {
         await api.delete(`/risks/${id}`, undefined, token || undefined);
-        if (token) await refreshRisks(token);
+        if (token) await refreshRegisterData(token);
       })(),
       {
         loading: "Menghapus draft...",
@@ -460,7 +589,7 @@ export default function RiskRegisterPage() {
           { ...fullRisk, status: "in_review" },
           token || undefined,
         );
-        if (token) await refreshRisks(token);
+        if (token) await refreshRegisterData(token);
       })(),
       {
         loading: "Mengajukan draft...",
@@ -492,7 +621,7 @@ export default function RiskRegisterPage() {
           { cycle },
           token,
         );
-        await refreshRisks(token);
+        await refreshRegisterData(token);
         setActiveTab("my-drafts");
         router.push(`/risk/register/${result.id}`);
       })(),
@@ -514,7 +643,7 @@ export default function RiskRegisterPage() {
     (history) => history.id === selectedVersion,
   );
 
-  if (loading) {
+  if (loading && risks.length === 0 && drafts.length === 0 && historyRisks.length === 0) {
     return (
       <div className="p-8 text-center text-muted-foreground animate-pulse">
         Memuat daftar risiko...
@@ -575,7 +704,7 @@ export default function RiskRegisterPage() {
       <Tabs
         defaultValue="all-risks"
         value={activeTab}
-        onValueChange={setActiveTab}
+        onValueChange={(value) => setActiveTab(getRiskRegisterTab(value))}
       >
         <TabsList className="bg-muted/40 border border-border/50">
           <TabsTrigger value="all-risks" className="gap-2">
@@ -602,7 +731,7 @@ export default function RiskRegisterPage() {
           {/* Summary badges */}
           <div className="flex flex-wrap gap-2">
             {[
-              { label: `Total: ${risks.length}`, variant: "outline" as const },
+              { label: `Total: ${total}`, variant: "outline" as const },
               {
                 label: `Sangat Tinggi: ${riskLevelCounts.sangat_tinggi ?? 0}`,
                 cls: levelBadgeVariant["Sangat Tinggi"],
@@ -623,9 +752,7 @@ export default function RiskRegisterPage() {
                 label: `Sangat Rendah: ${riskLevelCounts.sangat_rendah ?? 0}`,
                 cls: levelBadgeVariant["Sangat Rendah"],
               },
-            ]
-              .filter((b) => b.cls !== undefined)
-              .map((b) => (
+            ].map((b) => (
                 <Badge
                   key={b.label}
                   variant={b.variant || "outline"}
@@ -645,42 +772,37 @@ export default function RiskRegisterPage() {
                   <Input
                     placeholder="Cari risiko..."
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(event) => {
+                      setSearch(event.target.value);
+                      setPage(1);
+                    }}
                     className="h-8 pl-8 text-xs bg-muted/30 border-none"
                   />
                 </div>
-                <Select defaultValue="all">
-                  <SelectTrigger className="h-8 w-40 text-xs bg-muted/30 border-none">
-                    <SelectValue placeholder="Unit Kerja" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Unit</SelectItem>
-                    <SelectItem value="surveilans">Dit. Surveilans</SelectItem>
-                    <SelectItem value="p2pm">Dit. P2PM</SelectItem>
-                    <SelectItem value="p2ptm">Dit. P2PTM</SelectItem>
-                    <SelectItem value="sekretariat">Sekretariat</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select defaultValue="all">
-                  <SelectTrigger className="h-8 w-40 text-xs bg-muted/30 border-none">
-                    <SelectValue placeholder="Level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Level</SelectItem>
-                    <SelectItem value="sangat_tinggi">Sangat Tinggi</SelectItem>
-                    <SelectItem value="tinggi">Tinggi</SelectItem>
-                    <SelectItem value="sedang">Sedang</SelectItem>
-                    <SelectItem value="rendah">Rendah</SelectItem>
-                    <SelectItem value="sangat_rendah">Sangat Rendah</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <div className="relative min-w-[180px] md:w-40">
+                  <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Siklus asesmen"
+                    value={assessmentCycleFilter}
+                    onChange={(event) => {
+                      setAssessmentCycleFilter(event.target.value);
+                      setPage(1);
+                    }}
+                    className="h-8 border-none bg-muted/30 pl-8 text-xs"
+                  />
+                </div>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(getRiskRegisterStatusFilter(value));
+                    setPage(1);
+                  }}
+                >
                   <SelectTrigger className="h-8 w-32 text-xs bg-muted/30 border-none">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="in_review">Sedang Ditinjau</SelectItem>
                     <SelectItem value="in_approval">
                       Menunggu Approval
@@ -690,7 +812,10 @@ export default function RiskRegisterPage() {
                 </Select>
                 <Select
                   value={categoryFilter}
-                  onValueChange={setCategoryFilter}
+                  onValueChange={(value) => {
+                    setCategoryFilter(getRiskRegisterCategoryFilter(value));
+                    setPage(1);
+                  }}
                 >
                   <SelectTrigger className="h-8 w-44 text-xs bg-muted/30 border-none">
                     <SelectValue placeholder="Kategori" />
@@ -743,7 +868,7 @@ export default function RiskRegisterPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRisks.length === 0 ? (
+                {risks.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={10}
@@ -753,7 +878,7 @@ export default function RiskRegisterPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredRisks.map((risk) => {
+                  risks.map((risk) => {
                     const scoreSemantics = resolveListItemScoreSemantics(risk);
                     const levelLabel = getRiskLevelLabel(
                       scoreSemantics.effective.level,
@@ -867,13 +992,15 @@ export default function RiskRegisterPage() {
             {/* Pagination */}
             <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
               <p className="text-xs text-muted-foreground">
-                Menampilkan {filteredRisks.length} dari {risks.length} risiko
+                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} risiko
               </p>
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="icon-xs"
                   className="text-muted-foreground"
+                  disabled={page === 1 || loading || isPending}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
                 >
                   <ChevronLeft className="size-3.5" />
                 </Button>
@@ -881,27 +1008,23 @@ export default function RiskRegisterPage() {
                   variant="ghost"
                   size="xs"
                   className="text-xs font-medium bg-primary/10 text-primary"
+                  disabled
                 >
-                  1
+                  {page}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  className="text-xs text-muted-foreground"
-                >
-                  2
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  className="text-xs text-muted-foreground"
-                >
-                  3
-                </Button>
+                <span className="px-1 text-xs text-muted-foreground">
+                  dari {totalPages}
+                </span>
                 <Button
                   variant="ghost"
                   size="icon-xs"
                   className="text-muted-foreground"
+                  disabled={
+                    page === totalPages || total === 0 || loading || isPending
+                  }
+                  onClick={() =>
+                    setPage((current) => Math.min(totalPages, current + 1))
+                  }
                 >
                   <ChevronRight className="size-3.5" />
                 </Button>
@@ -1061,24 +1184,20 @@ export default function RiskRegisterPage() {
                   reassessment dan membandingkannya dengan versi aktif saat ini.
                 </p>
               </div>
-              <Select value={historyRiskId} onValueChange={setHistoryRiskId}>
-                <SelectTrigger className="w-full md:w-[340px]">
-                  <SelectValue placeholder="Pilih risiko untuk history" />
-                </SelectTrigger>
-                <SelectContent>
-                  {risks
-                    .filter(
-                      (risk) => risk.status === "approved" && risk.isCurrent,
-                    )
-                    .map((risk) => (
-                      <SelectItem key={risk.id} value={risk.id}>
-                        {(risk.code || "Risk") +
-                          " • " +
-                          (risk.title || "Tanpa judul")}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                <Select value={historyRiskId} onValueChange={setHistoryRiskId}>
+                  <SelectTrigger className="w-full md:w-[340px]">
+                    <SelectValue placeholder="Pilih risiko untuk history" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {historyRisks.map((risk) => (
+                        <SelectItem key={risk.id} value={risk.id}>
+                          {(risk.code || "Risk") +
+                            " • " +
+                            (risk.title || "Tanpa judul")}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
             </CardContent>
           </Card>
 

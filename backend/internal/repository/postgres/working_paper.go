@@ -328,7 +328,7 @@ func (r *workingPaperRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 }
 
 // List retrieves working papers with optional filters and pagination
-func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, status string, page, limit int) ([]*entity.WorkingPaper, int, error) {
+func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle string, page, limit int) ([]*entity.WorkingPaper, int, error) {
 	countQuery := `SELECT COUNT(*) FROM working_papers WHERE 1=1`
 	dataQuery := `SELECT id, title, description, org_id, status, assessment_cycle,
 	                     document_hash, current_signatory_sequence, created_by,
@@ -354,13 +354,29 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 		argIdx++
 	}
 
+	if query != "" {
+		filter := fmt.Sprintf(" AND (COALESCE(title, '') ILIKE $%d OR COALESCE(description, '') ILIKE $%d)", argIdx, argIdx)
+		countQuery += filter
+		dataQuery += filter
+		args = append(args, "%"+query+"%")
+		argIdx++
+	}
+
+	if assessmentCycle != "" {
+		filter := fmt.Sprintf(" AND assessment_cycle = $%d", argIdx)
+		countQuery += filter
+		dataQuery += filter
+		args = append(args, assessmentCycle)
+		argIdx++
+	}
+
 	var total int
 	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("list working papers count: %w", err)
 	}
 
 	offset := (page - 1) * limit
-	dataQuery += " ORDER BY created_at DESC"
+	dataQuery += " ORDER BY created_at DESC, id DESC"
 	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, limit, offset)
 

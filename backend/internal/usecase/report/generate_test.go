@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	repo "github.com/manris/backend/internal/domain/repository"
 )
 
 type fakeReportRiskRepo struct {
@@ -32,6 +33,10 @@ func (r *fakeReportRiskRepo) Delete(context.Context, uuid.UUID) error {
 
 func (r *fakeReportRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
+}
+
+func (r *fakeReportRiskRepo) ListRegister(context.Context, repo.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	return nil, 0, errors.New("not implemented")
 }
 
 func (r *fakeReportRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {

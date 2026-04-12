@@ -58,6 +58,9 @@ func (r *noopRiskRepo) Delete(context.Context, uuid.UUID) error    { return nil 
 func (r *noopRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, nil
 }
+func (r *noopRiskRepo) ListRegister(context.Context, repository.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	return nil, 0, nil
+}
 func (r *noopRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	return nil, nil
 }

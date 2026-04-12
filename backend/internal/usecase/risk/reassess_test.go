@@ -45,6 +45,9 @@ func (r *fakeReassessRiskRepo) Delete(context.Context, uuid.UUID) error {
 func (r *fakeReassessRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
+func (r *fakeReassessRiskRepo) ListRegister(context.Context, repo.RiskRegisterFilter) ([]*entity.Risk, int, error) {
+	return nil, 0, errors.New("not implemented")
+}
 func (r *fakeReassessRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	return nil, errors.New("not implemented")
 }
@@ -279,10 +282,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testi
 	}
 
 	uc := NewCreateRiskReassessmentUseCase(repo)
-	output, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{
-		RiskID: sourceID,
-		Cycle:  "2026-H1",
-	})
+	output, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -352,10 +352,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle(t *testing.T
 	}
 
 	uc := NewCreateRiskReassessmentUseCase(repo)
-	_, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{
-		RiskID: sourceID,
-		Cycle:  "2026-H1",
-	})
+	_, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
 	if !errors.Is(err, domainerrors.ErrInvalidStatus) {
 		t.Fatalf("expected invalid status error for in-progress reassessment, got %v", err)
 	}
@@ -395,10 +392,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved(t 
 	}
 
 	uc := NewCreateRiskReassessmentUseCase(repo)
-	output, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{
-		RiskID: sourceID,
-		Cycle:  "2026-H1",
-	})
+	output, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
 	if err != nil {
 		t.Fatalf("expected no error for reassessment after approved version, got %v", err)
 	}

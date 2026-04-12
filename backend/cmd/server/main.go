@@ -110,6 +110,7 @@ func main() {
 	riskUpdateUC := riskuc.NewUpdateRiskUseCase(domainRiskRepo, domainUserRepo, domainOrgRepo, domainWPRepo)
 	riskDeleteUC := riskuc.NewDeleteRiskUseCase(domainRiskRepo)
 	riskListUC := riskuc.NewListRisksUseCase(domainRiskRepo, orgHierarchySvc)
+	riskListRegisterUC := riskuc.NewListRiskRegisterUseCase(domainRiskRepo)
 	riskListVersionsUC := riskuc.NewListRiskVersionsUseCase(domainRiskRepo)
 	riskReviewQueueUC := riskuc.NewListRiskReviewQueueUseCase(domainRiskRepo, orgHierarchySvc)
 	riskCompareCyclesUC := riskuc.NewCompareRiskCyclesUseCase(domainRiskRepo, orgHierarchySvc)
@@ -264,7 +265,7 @@ func main() {
 
 	// Clean architecture handlers
 	cleanRiskHandler := httpHandler.NewRiskHandler(
-		riskCreateUC, riskCreateBatchUC, riskSpreadsheetUC, riskGetUC, riskReassessUC, riskUpdateUC, riskDeleteUC, riskListUC, riskListCycleSnapshotUC, riskListVersionsUC, riskReviewQueueUC, riskCompareCyclesUC, riskCompareCycleDetailsUC, riskReviewSummaryUC,
+		riskCreateUC, riskCreateBatchUC, riskSpreadsheetUC, riskGetUC, riskReassessUC, riskUpdateUC, riskDeleteUC, riskListUC, riskListRegisterUC, riskListCycleSnapshotUC, riskListVersionsUC, riskReviewQueueUC, riskCompareCyclesUC, riskCompareCycleDetailsUC, riskReviewSummaryUC,
 		riskDashboardSummaryUC, riskActionPressureUC, riskExecutiveAlertsUC, riskHeatmapDataUC, riskTopRisksUC, riskDashboardCategoriesUC, riskListApprovedUC,
 		riskHeatmapVelocityUC, riskOverdueTimelineUC, riskKRIBreachUC, riskUnitResponseUC, domainMMRepo,
 	)
@@ -421,6 +422,7 @@ func main() {
 
 	// Risks (Clean Architecture)
 	protected.Get("/risks", cleanRiskHandler.ListRisks)
+	protected.Get("/risks/register", cleanRiskHandler.ListRiskRegister)
 	protected.Get("/risks/cycle-snapshot", cleanRiskHandler.ListCycleSnapshot)
 	protected.Get("/risks/review-queue", cleanRiskHandler.ListReviewQueue)
 	protected.Get("/risks/compare", cleanRiskHandler.CompareCycles)

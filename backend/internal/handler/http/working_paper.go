@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -110,11 +111,22 @@ func (h *WorkingPaperHandler) List(c *fiber.Ctx) error {
 		orgIDs = scope.AccessibleOrgIDs
 	}
 
-	status := c.Query("status", "")
+	status := strings.TrimSpace(c.Query("status", ""))
+	query := strings.TrimSpace(c.Query("q", ""))
+	assessmentCycle := strings.TrimSpace(c.Query("assessment_cycle", ""))
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
 
-	wps, total, err := h.uc.List(c.Context(), orgIDs, status, page, limit)
+	wps, total, err := h.uc.List(c.Context(), orgIDs, status, query, assessmentCycle, page, limit)
 	if err != nil {
 		return handleWPError(c, err)
 	}
