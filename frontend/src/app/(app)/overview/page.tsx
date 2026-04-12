@@ -314,7 +314,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
@@ -333,7 +333,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-6 grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         {kpiCards.map((kpi) => (
           <Card
             key={kpi.title}
@@ -385,7 +385,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="mt-5 grid gap-6 lg:grid-cols-5">
         <RiskHeatmap
           data={heatmapData}
           loading={loading}
@@ -394,7 +394,7 @@ export default function DashboardPage() {
         <TopRisksPanel risks={topRisks} loading={loading} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <RiskMovementSnapshot data={movementSnapshot} loading={loading} />
 
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
@@ -422,7 +422,7 @@ export default function DashboardPage() {
                 Belum ada data kategori risiko.
               </div>
             ) : (
-              <div className="h-64">
+              <div className="h-56">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={riskCategoryData}
@@ -452,11 +452,11 @@ export default function DashboardPage() {
                     <RechartsTooltip
                       formatter={(value) => [`${value} risiko`]}
                       contentStyle={{
-                        background: "oklch(0.15 0.02 265 / 95%)",
-                        border: "1px solid oklch(0.3 0.03 265)",
+                        background: "var(--popover)",
+                        border: "1px solid var(--border)",
                         borderRadius: "8px",
                         fontSize: "12px",
-                        color: "oklch(0.9 0 0)",
+                        color: "var(--popover-foreground)",
                         backdropFilter: "blur(8px)",
                       }}
                     />
@@ -479,7 +479,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="mt-10 grid gap-6 lg:grid-cols-5">
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-3">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -508,7 +508,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             {trendData.length > 0 ? (
-              <div className="h-64">
+              <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={trendData}
@@ -540,11 +540,11 @@ export default function DashboardPage() {
                     />
                     <RechartsTooltip
                       contentStyle={{
-                        background: "oklch(0.15 0.02 265 / 95%)",
-                        border: "1px solid oklch(0.3 0.03 265)",
+                        background: "var(--popover)",
+                        border: "1px solid var(--border)",
                         borderRadius: "8px",
                         fontSize: "12px",
-                        color: "oklch(0.9 0 0)",
+                        color: "var(--popover-foreground)",
                         backdropFilter: "blur(8px)",
                       }}
                     />
@@ -576,7 +576,7 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+              <div className="flex h-80 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
                 Belum ada data semester untuk menghitung eksposur risiko.
               </div>
             )}
@@ -627,10 +627,11 @@ export default function DashboardPage() {
                           formatMonthPeriod(String(value))
                         }
                         contentStyle={{
-                          background: "oklch(0.98 0.003 170 / 95%)",
-                          border: "1px solid oklch(0.91 0.008 170)",
+                          background: "var(--popover)",
+                          border: "1px solid var(--border)",
                           borderRadius: "8px",
                           fontSize: "11px",
+                          color: "var(--popover-foreground)",
                         }}
                       />
                       <Bar
@@ -696,7 +697,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+      <Card className="mt-12 border-border/50 bg-card/80 backdrop-blur-sm">
         <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">
