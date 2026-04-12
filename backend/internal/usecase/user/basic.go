@@ -50,6 +50,60 @@ func (uc *ListUsersUseCase) Execute(ctx context.Context) ([]*entity.User, error)
 	return users, nil
 }
 
+type ListUsersWithFilterUseCase struct {
+	userRepo repository.UserRepository
+}
+
+func NewListUsersWithFilterUseCase(userRepo repository.UserRepository) *ListUsersWithFilterUseCase {
+	return &ListUsersWithFilterUseCase{userRepo: userRepo}
+}
+
+type ListUsersWithFilterInput struct {
+	Page   int
+	Limit  int
+	Q      string
+	Status string
+	Role   string
+}
+
+type ListUsersWithFilterOutput struct {
+	Data  []*entity.User `json:"data"`
+	Total int            `json:"total"`
+	Page  int            `json:"page"`
+	Limit int            `json:"limit"`
+}
+
+func (uc *ListUsersWithFilterUseCase) Execute(ctx context.Context, input ListUsersWithFilterInput) (*ListUsersWithFilterOutput, error) {
+	if input.Page < 1 {
+		input.Page = 1
+	}
+	if input.Limit < 1 || input.Limit > 100 {
+		input.Limit = 10
+	}
+
+	users, total, err := uc.userRepo.ListWithFilter(ctx, repository.UserListFilter{
+		Page:   input.Page,
+		Limit:  input.Limit,
+		Q:      input.Q,
+		Status: input.Status,
+		Role:   input.Role,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if users == nil {
+		users = []*entity.User{}
+	}
+
+	return &ListUsersWithFilterOutput{
+		Data:  users,
+		Total: total,
+		Page:  input.Page,
+		Limit: input.Limit,
+	}, nil
+}
+
 // UpdateUserUseCase handles user update business logic
 type UpdateUserUseCase struct {
 	userRepo repository.UserRepository

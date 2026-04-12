@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,8 @@ import {
   ShieldAlert,
   Loader2,
   Send,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -64,7 +67,20 @@ const tierConfig: Record<string, { label: string; color: string; bg: string; bor
 
 export function MitigationMonitoringPanel() {
   const { token } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const parsePositiveInt = (val: string | null, fallback: number) => {
+    const num = parseInt(val || "", 10);
+    return isNaN(num) || num <= 0 ? fallback : num;
+  };
+
+  const page = parsePositiveInt(searchParams.get("page"), 1);
+  const limit = parsePositiveInt(searchParams.get("limit"), 10);
+
   const [mitigations, setMitigations] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<MitigationTask | null>(null);
   const [showDialog, setShowDialog] = useState(false);
@@ -92,8 +108,15 @@ export function MitigationMonitoringPanel() {
 
     setLoading(true);
     try {
-      const data = await api.get<MitigationTask[]>("/mitigation-tasks/all", token);
-      const processed = (data || []).map((m) => {
+      const response = await api.get<{ data: MitigationTask[]; total: number }>(
+        `/mitigation-tasks/all?page=${page}&limit=${limit}`,
+        token
+      );
+      
+      const rawData = response.data || [];
+      setTotal(response.total || 0);
+
+      const processed = rawData.map((m) => {
         const dueDate = new Date(m.dueDate);
         const today = new Date();
 
@@ -133,7 +156,7 @@ export function MitigationMonitoringPanel() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, page, limit]);
 
   useEffect(() => {
     fetchMitigations();
@@ -184,6 +207,14 @@ export function MitigationMonitoringPanel() {
   const lightCount = mitigations.filter((m) => m.tier === "light").length;
   const reminderCount = mitigations.filter((m) => m.tier === "reminder").length;
   const upcomingCount = mitigations.filter((m) => m.tier === "upcoming").length;
+
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", newPage.toString());
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   return (
     <div className="space-y-6">
@@ -385,6 +416,43 @@ export function MitigationMonitoringPanel() {
             )}
           </TableBody>
         </Table>
+
+        <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+          <p className="text-xs text-muted-foreground">
+            Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} mitigasi
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground"
+              disabled={page === 1 || loading}
+              onClick={() => handlePageChange(Math.max(1, page - 1))}
+            >
+              <ChevronLeft className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs font-medium bg-primary/10 text-primary"
+              disabled
+            >
+              {page}
+            </Button>
+            <span className="px-1 text-xs text-muted-foreground">
+              dari {totalPages}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground"
+              disabled={page === totalPages || total === 0 || loading}
+              onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
+            >
+              <ChevronRight className="size-3.5" />
+            </Button>
+          </div>
+        </div>
       </Card>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

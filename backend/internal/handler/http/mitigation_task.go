@@ -1,6 +1,7 @@
 package http
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -64,16 +65,30 @@ func (h *MitigationTaskHandler) ListAll(c *fiber.Ctx) error {
 		orgIDs = scope.AccessibleOrgIDs
 	}
 
-	input := mtuc.ListTasksInput{OrgIDs: orgIDs}
-	tasks, err := h.listUC.Execute(c.Context(), input)
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	input := mtuc.ListTasksInput{OrgIDs: orgIDs, Page: page, Limit: limit}
+	result, err := h.listUC.ExecutePaginated(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
 	}
 
-	if tasks == nil {
-		return c.JSON(fiber.Map{"data": []interface{}{}})
-	}
-	return c.JSON(fiber.Map{"data": tasks})
+	return c.JSON(fiber.Map{
+		"data":  result.Data,
+		"total": result.Total,
+		"page":  result.Page,
+		"limit": result.Limit,
+	})
 }
 
 // ListMyTasks handles GET /api/v1/mitigation-tasks/my

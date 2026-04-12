@@ -205,6 +205,55 @@ func (r *mitigationTaskRepository) ListAll(ctx context.Context, orgIDs []uuid.UU
 	return r.queryTasks(ctx, baseQuery+" ORDER BY t.due_date DESC")
 }
 
+func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs []uuid.UUID, page, limit int) ([]*entity.MitigationTask, int, error) {
+	baseFrom := ` FROM mitigation_tasks t
+		 JOIN mitigations m ON t.mitigation_id = m.id
+		 JOIN risks r ON t.risk_id = r.id
+		 LEFT JOIN users u ON t.reported_by = u.id`
+
+	var countQuery, dataQuery string
+	var countArgs, dataArgs []interface{}
+
+	if len(orgIDs) > 0 {
+		countQuery = `SELECT COUNT(*)` + baseFrom + ` WHERE r.organization_id = ANY($1)`
+		countArgs = []interface{}{orgIDs}
+
+		offset := (page - 1) * limit
+		dataQuery = `SELECT t.id, t.mitigation_id, t.risk_id,
+		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
+		        t.status, t.progress_pct, t.actual_cost, t.evidence_url, t.notes,
+		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
+		        m.action, m.owner,
+		        COALESCE(r.code, ''), COALESCE(r.title, ''),
+		        COALESCE(u.name, '')` + baseFrom + ` WHERE r.organization_id = ANY($1) ORDER BY t.due_date DESC LIMIT $2 OFFSET $3`
+		dataArgs = []interface{}{orgIDs, limit, offset}
+	} else {
+		countQuery = `SELECT COUNT(*)` + baseFrom
+		countArgs = nil
+
+		offset := (page - 1) * limit
+		dataQuery = `SELECT t.id, t.mitigation_id, t.risk_id,
+		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
+		        t.status, t.progress_pct, t.actual_cost, t.evidence_url, t.notes,
+		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
+		        m.action, m.owner,
+		        COALESCE(r.code, ''), COALESCE(r.title, ''),
+		        COALESCE(u.name, '')` + baseFrom + ` ORDER BY t.due_date DESC LIMIT $1 OFFSET $2`
+		dataArgs = []interface{}{limit, offset}
+	}
+
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count mitigation tasks: %w", err)
+	}
+
+	tasks, err := r.queryTasks(ctx, dataQuery, dataArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	return tasks, total, nil
+}
+
 func (r *mitigationTaskRepository) TaskExistsForPeriod(ctx context.Context, mitigationID uuid.UUID, periodStart, periodEnd string) (bool, error) {
 	var exists bool
 	err := r.pool.QueryRow(ctx,

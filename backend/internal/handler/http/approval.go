@@ -1,6 +1,8 @@
 package http
 
 import (
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/middleware"
@@ -54,11 +56,25 @@ func (h *ApprovalHandler) List(c *fiber.Ctx) error {
 		orgIDs = scope.AccessibleOrgIDs
 	}
 
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
 	input := approvaluc.ListApprovalInput{
 		Status:         status,
 		ApproverRole:   approverRole,
 		ApproverUserID: approverUserID,
 		OrgIDs:         orgIDs,
+		Page:           page,
+		Limit:          limit,
 	}
 
 	result, err := h.listUC.Execute(c.Context(), input)
@@ -66,7 +82,16 @@ func (h *ApprovalHandler) List(c *fiber.Ctx) error {
 		return handleError(c, err)
 	}
 
-	return c.JSON(fiber.Map{"data": result})
+	if result.Data == nil {
+		result.Data = []*approvaluc.ApprovalOutput{}
+	}
+
+	return c.JSON(fiber.Map{
+		"data":  result.Data,
+		"total": result.Total,
+		"page":  result.Page,
+		"limit": result.Limit,
+	})
 }
 
 // GetDetail handles GET /api/approvals/:id

@@ -104,6 +104,9 @@ func (r *fakeBatchUserRepo) GetByUsername(context.Context, string) (*entity.User
 func (r *fakeBatchUserRepo) Update(context.Context, *entity.User) error   { return nil }
 func (r *fakeBatchUserRepo) Delete(context.Context, uuid.UUID) error      { return nil }
 func (r *fakeBatchUserRepo) List(context.Context) ([]*entity.User, error) { return nil, nil }
+func (r *fakeBatchUserRepo) ListWithFilter(context.Context, repo.UserListFilter) ([]*entity.User, int, error) {
+	return nil, 0, nil
+}
 
 var _ repo.UserRepository = (*fakeBatchUserRepo)(nil)
 
@@ -117,6 +120,9 @@ func (r *fakeBatchOrgRepo) Update(context.Context, *entity.Organization) error {
 func (r *fakeBatchOrgRepo) Delete(context.Context, uuid.UUID) error            { return nil }
 func (r *fakeBatchOrgRepo) List(context.Context) ([]*entity.Organization, error) {
 	return nil, nil
+}
+func (r *fakeBatchOrgRepo) ListWithFilter(context.Context, repo.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
 }
 func (r *fakeBatchOrgRepo) GetDescendants(context.Context, uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil

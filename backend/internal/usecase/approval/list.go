@@ -20,16 +20,21 @@ func NewListApprovalUseCase(approvalRepo repository.ApprovalRepository) *ListApp
 	}
 }
 
-// Input represents the input for listing approvals
 type ListApprovalInput struct {
-	Status         string // filter by status: all, pending, approved, rejected
-	ApproverRole   string // filter by approver role
+	Status         string
+	ApproverRole   string
 	ApproverUserID *uuid.UUID
 	OrgIDs         []uuid.UUID
+	Page           int
+	Limit          int
 }
 
-// Output represents the output of listing approvals
-type ListApprovalOutput []*ApprovalOutput
+type ListApprovalResult struct {
+	Data  []*ApprovalOutput `json:"data"`
+	Total int               `json:"total"`
+	Page  int               `json:"page"`
+	Limit int               `json:"limit"`
+}
 
 // ApprovalOutput represents a single approval in the output
 type ApprovalOutput struct {
@@ -49,15 +54,22 @@ type ApprovalOutput struct {
 	Notes                 string  `json:"notes"`
 }
 
-// Execute executes the list approval usecase
-func (uc *ListApprovalUseCase) Execute(ctx context.Context, input ListApprovalInput) (*ListApprovalOutput, error) {
-	// Fetch approvals from repository
-	requests, err := uc.approvalRepo.List(ctx, input.Status, input.ApproverRole, input.ApproverUserID, input.OrgIDs)
+func (uc *ListApprovalUseCase) Execute(ctx context.Context, input ListApprovalInput) (*ListApprovalResult, error) {
+	if input.Page <= 0 {
+		input.Page = 1
+	}
+	if input.Limit <= 0 {
+		input.Limit = 20
+	}
+	if input.Limit > 100 {
+		input.Limit = 100
+	}
+
+	requests, total, err := uc.approvalRepo.List(ctx, input.Status, input.ApproverRole, input.ApproverUserID, input.OrgIDs, input.Page, input.Limit)
 	if err != nil {
 		return nil, domainerrors.Wrap(err, "failed to list approvals")
 	}
 
-	// Convert to output format
 	outputs := make([]*ApprovalOutput, len(requests))
 	for i, req := range requests {
 		var approverUserID *string
@@ -83,6 +95,10 @@ func (uc *ListApprovalUseCase) Execute(ctx context.Context, input ListApprovalIn
 		}
 	}
 
-	result := ListApprovalOutput(outputs)
-	return &result, nil
+	return &ListApprovalResult{
+		Data:  outputs,
+		Total: total,
+		Page:  input.Page,
+		Limit: input.Limit,
+	}, nil
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainErrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/middleware"
 	useruc "github.com/manris/backend/internal/usecase/user"
 	"golang.org/x/crypto/bcrypt"
@@ -43,6 +44,9 @@ func (s *handlerUserRepo) GetByID(_ context.Context, _ uuid.UUID) (*entity.User,
 func (s *handlerUserRepo) Update(_ context.Context, _ *entity.User) error { return nil }
 func (s *handlerUserRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
 func (s *handlerUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
+func (s *handlerUserRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {
+	return nil, 0, nil
+}
 func (s *handlerUserRepo) GetByUsername(_ context.Context, username string) (*entity.User, error) {
 	if s.byLookup == nil {
 		return nil, nil
@@ -58,6 +62,9 @@ func (s *handlerOrgRepo) Create(_ context.Context, _ *entity.Organization) error
 func (s *handlerOrgRepo) Update(_ context.Context, _ *entity.Organization) error { return nil }
 func (s *handlerOrgRepo) Delete(_ context.Context, _ uuid.UUID) error            { return nil }
 func (s *handlerOrgRepo) List(_ context.Context) ([]*entity.Organization, error) { return nil, nil }
+func (s *handlerOrgRepo) ListWithFilter(_ context.Context, _ repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
+}
 func (s *handlerOrgRepo) GetDescendants(_ context.Context, _ uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil
 }
@@ -76,7 +83,7 @@ func TestUserHandlerCreateAcceptsPlainPassword(t *testing.T) {
 		orgID: {ID: orgID, Name: "Direktorat Surveilans"},
 	}}
 	createUC := useruc.NewCreateUserUseCase(userRepo, orgRepo)
-	handler := NewUserHandler(createUC, nil, nil, nil, nil)
+	handler := NewUserHandler(createUC, nil, nil, nil, nil, nil)
 
 	body, err := json.Marshal(map[string]any{
 		"name":           "Unit Test User",

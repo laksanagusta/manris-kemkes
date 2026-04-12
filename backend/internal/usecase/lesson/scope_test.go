@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/domain/repository"
 )
 
 type scopeLessonRepo struct {
@@ -57,6 +58,9 @@ func (r *scopeLessonUserRepo) Delete(context.Context, uuid.UUID) error    { retu
 func (r *scopeLessonUserRepo) List(context.Context) ([]*entity.User, error) {
 	return nil, nil
 }
+func (r *scopeLessonUserRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {
+	return nil, 0, nil
+}
 
 type scopeLessonOrgRepo struct{}
 
@@ -68,6 +72,9 @@ func (r *scopeLessonOrgRepo) Update(context.Context, *entity.Organization) error
 func (r *scopeLessonOrgRepo) Delete(context.Context, uuid.UUID) error            { return nil }
 func (r *scopeLessonOrgRepo) List(context.Context) ([]*entity.Organization, error) {
 	return nil, nil
+}
+func (r *scopeLessonOrgRepo) ListWithFilter(context.Context, repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
 }
 func (r *scopeLessonOrgRepo) GetDescendants(_ context.Context, id uuid.UUID) ([]uuid.UUID, error) {
 	return []uuid.UUID{id}, nil

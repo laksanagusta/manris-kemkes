@@ -17,8 +17,8 @@ type fakeGetByEntityApprovalRepo struct {
 	histories []*entity.ApprovalHistory
 }
 
-func (r *fakeGetByEntityApprovalRepo) List(context.Context, string, string, *uuid.UUID, []uuid.UUID) ([]*entity.ApprovalRequest, error) {
-	return nil, errors.New("not implemented")
+func (r *fakeGetByEntityApprovalRepo) List(context.Context, string, string, *uuid.UUID, []uuid.UUID, int, int) ([]*entity.ApprovalRequest, int, error) {
+	return nil, 0, errors.New("not implemented")
 }
 func (r *fakeGetByEntityApprovalRepo) FindByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.ApprovalRequest, error) {
 	return nil, errors.New("not implemented")

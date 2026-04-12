@@ -143,6 +143,7 @@ func main() {
 	userUpdateUC := useruc.NewUpdateUserUseCase(domainUserRepo, domainOrgRepo)
 	userDeleteUC := useruc.NewDeleteUserUseCase(domainUserRepo)
 	userListUC := useruc.NewListUsersUseCase(domainUserRepo)
+	userListFilterUC := useruc.NewListUsersWithFilterUseCase(domainUserRepo)
 
 	// Control usecases
 	controlCreateUC := controluc.NewCreateControlUseCase(domainControlRepo, domainRiskRepo, domainOrgRepo)
@@ -204,6 +205,7 @@ func main() {
 	orgUpdateUC := organizationuc.NewUpdateOrganizationUseCase(domainOrgRepo)
 	orgDeleteUC := organizationuc.NewDeleteOrganizationUseCase(domainOrgRepo)
 	orgListUC := organizationuc.NewListOrganizationsUseCase(domainOrgRepo)
+	orgListFilterUC := organizationuc.NewListOrganizationsWithFilterUseCase(domainOrgRepo)
 
 	// External PIC usecases
 	externalextPICGetOrCreateUC := externalextPICuc.NewGetOrCreateByNameUseCase(domainExternalPICRepo)
@@ -273,7 +275,7 @@ func main() {
 		incidentCreateUC, incidentCreateBatchUC, incidentGetUC, incidentUpdateUC, incidentDeleteUC, incidentListUC, incidentSummaryUC,
 	)
 	cleanUserHandler := httpHandler.NewUserHandler(
-		userCreateUC, userGetUC, userUpdateUC, userDeleteUC, userListUC,
+		userCreateUC, userGetUC, userUpdateUC, userDeleteUC, userListUC, userListFilterUC,
 	)
 	cleanControlHandler := httpHandler.NewControlHandler(
 		controlCreateUC, controlGetUC, controlUpdateUC, controlDeleteUC, controlListUC, controlDashboardUC,
@@ -310,7 +312,7 @@ func main() {
 	cleanCBAHandler := httpHandler.NewCBAHandler(cbaRecommendUC, cbaCalculateUC)
 
 	// Organization handlers (Clean Architecture)
-	cleanOrgHandler := httpHandler.NewOrganizationHandler(orgCreateUC, orgGetUC, orgUpdateUC, orgDeleteUC, orgListUC)
+	cleanOrgHandler := httpHandler.NewOrganizationHandler(orgCreateUC, orgGetUC, orgUpdateUC, orgDeleteUC, orgListUC, orgListFilterUC)
 
 	// System handlers (Clean Architecture)
 	cleanSystemHandler := httpHandler.NewSystemHandler(systemSlowQueriesUC)

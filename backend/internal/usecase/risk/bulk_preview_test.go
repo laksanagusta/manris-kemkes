@@ -30,6 +30,9 @@ func (r *fakePreviewOrgRepo) Delete(context.Context, uuid.UUID) error           
 func (r *fakePreviewOrgRepo) List(context.Context) ([]*entity.Organization, error) {
 	return r.orgs, nil
 }
+func (r *fakePreviewOrgRepo) ListWithFilter(context.Context, repo.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
+}
 func (r *fakePreviewOrgRepo) GetDescendants(context.Context, uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil
 }
@@ -50,6 +53,9 @@ func (r *fakePreviewUserRepo) GetByUsername(context.Context, string) (*entity.Us
 func (r *fakePreviewUserRepo) Update(context.Context, *entity.User) error   { return nil }
 func (r *fakePreviewUserRepo) Delete(context.Context, uuid.UUID) error      { return nil }
 func (r *fakePreviewUserRepo) List(context.Context) ([]*entity.User, error) { return nil, nil }
+func (r *fakePreviewUserRepo) ListWithFilter(context.Context, repo.UserListFilter) ([]*entity.User, int, error) {
+	return nil, 0, nil
+}
 
 var _ repo.UserRepository = (*fakePreviewUserRepo)(nil)
 

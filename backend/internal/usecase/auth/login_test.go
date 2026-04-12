@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/manris/backend/internal/domain/entity"
 	domainErrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/domain/service"
 	"github.com/manris/backend/internal/middleware"
 	"golang.org/x/crypto/bcrypt"
@@ -29,6 +30,9 @@ func (s *loginStubUserRepo) GetByUsername(_ context.Context, _ string) (*entity.
 func (s *loginStubUserRepo) Update(_ context.Context, _ *entity.User) error { return nil }
 func (s *loginStubUserRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
 func (s *loginStubUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
+func (s *loginStubUserRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {
+	return nil, 0, nil
+}
 
 func TestLoginExecuteReturnsInvalidCredentialsForUnknownUser(t *testing.T) {
 	orgRepo := &stubOrgRepo{}

@@ -1,17 +1,20 @@
 package http
 
 import (
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
 )
 
 type OrganizationHandler struct {
-	createUC *organizationuc.CreateOrganizationUseCase
-	getUC    *organizationuc.GetOrganizationUseCase
-	updateUC *organizationuc.UpdateOrganizationUseCase
-	deleteUC *organizationuc.DeleteOrganizationUseCase
-	listUC   *organizationuc.ListOrganizationsUseCase
+	createUC     *organizationuc.CreateOrganizationUseCase
+	getUC        *organizationuc.GetOrganizationUseCase
+	updateUC     *organizationuc.UpdateOrganizationUseCase
+	deleteUC     *organizationuc.DeleteOrganizationUseCase
+	listUC       *organizationuc.ListOrganizationsUseCase
+	listFilterUC *organizationuc.ListOrganizationsWithFilterUseCase
 }
 
 func NewOrganizationHandler(
@@ -20,23 +23,33 @@ func NewOrganizationHandler(
 	updateUC *organizationuc.UpdateOrganizationUseCase,
 	deleteUC *organizationuc.DeleteOrganizationUseCase,
 	listUC *organizationuc.ListOrganizationsUseCase,
+	listFilterUC *organizationuc.ListOrganizationsWithFilterUseCase,
 ) *OrganizationHandler {
 	return &OrganizationHandler{
-		createUC: createUC,
-		getUC:    getUC,
-		updateUC: updateUC,
-		deleteUC: deleteUC,
-		listUC:   listUC,
+		createUC:     createUC,
+		getUC:        getUC,
+		updateUC:     updateUC,
+		deleteUC:     deleteUC,
+		listUC:       listUC,
+		listFilterUC: listFilterUC,
 	}
 }
 
 func (h *OrganizationHandler) List(c *fiber.Ctx) error {
-	orgs, err := h.listUC.Execute(c.Context())
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "10"))
+	q := c.Query("q")
+
+	result, err := h.listFilterUC.Execute(c.Context(), organizationuc.ListOrganizationsWithFilterInput{
+		Page:  page,
+		Limit: limit,
+		Q:     q,
+	})
 	if err != nil {
 		return handleOrganizationError(c, err)
 	}
 
-	return c.JSON(fiber.Map{"data": orgs})
+	return c.JSON(result)
 }
 
 func (h *OrganizationHandler) Create(c *fiber.Ctx) error {

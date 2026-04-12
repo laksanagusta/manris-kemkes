@@ -111,6 +111,9 @@ func (r *categoryUserRepo) GetByUsername(context.Context, string) (*entity.User,
 func (r *categoryUserRepo) Update(context.Context, *entity.User) error   { return nil }
 func (r *categoryUserRepo) Delete(context.Context, uuid.UUID) error      { return nil }
 func (r *categoryUserRepo) List(context.Context) ([]*entity.User, error) { return nil, nil }
+func (r *categoryUserRepo) ListWithFilter(context.Context, repo.UserListFilter) ([]*entity.User, int, error) {
+	return nil, 0, nil
+}
 
 type categoryOrgRepo struct{}
 
@@ -122,6 +125,9 @@ func (r *categoryOrgRepo) Update(context.Context, *entity.Organization) error { 
 func (r *categoryOrgRepo) Delete(context.Context, uuid.UUID) error            { return nil }
 func (r *categoryOrgRepo) List(context.Context) ([]*entity.Organization, error) {
 	return nil, nil
+}
+func (r *categoryOrgRepo) ListWithFilter(context.Context, repo.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
 }
 func (r *categoryOrgRepo) GetDescendants(_ context.Context, id uuid.UUID) ([]uuid.UUID, error) {
 	return []uuid.UUID{id}, nil

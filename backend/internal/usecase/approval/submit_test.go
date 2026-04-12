@@ -16,8 +16,8 @@ type fakeSubmitApprovalRepo struct {
 	steps   []entity.ApprovalStep
 }
 
-func (r *fakeSubmitApprovalRepo) List(context.Context, string, string, *uuid.UUID, []uuid.UUID) ([]*entity.ApprovalRequest, error) {
-	return nil, errors.New("not implemented")
+func (r *fakeSubmitApprovalRepo) List(context.Context, string, string, *uuid.UUID, []uuid.UUID, int, int) ([]*entity.ApprovalRequest, int, error) {
+	return nil, 0, errors.New("not implemented")
 }
 func (r *fakeSubmitApprovalRepo) FindByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.ApprovalRequest, error) {
 	return nil, errors.New("not implemented")
@@ -162,6 +162,9 @@ func (r *fakeSubmitUserRepo) Delete(context.Context, uuid.UUID) error {
 }
 func (r *fakeSubmitUserRepo) List(context.Context) ([]*entity.User, error) {
 	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitUserRepo) ListWithFilter(context.Context, repo.UserListFilter) ([]*entity.User, int, error) {
+	return nil, 0, errors.New("not implemented")
 }
 
 var _ repo.UserRepository = (*fakeSubmitUserRepo)(nil)

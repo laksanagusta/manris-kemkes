@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainErrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/domain/service"
 	authuc "github.com/manris/backend/internal/usecase/auth"
 	"golang.org/x/crypto/bcrypt"
@@ -253,6 +254,9 @@ func (s *loginStubUserRepo) GetByUsername(_ context.Context, _ string) (*entity.
 func (s *loginStubUserRepo) Update(_ context.Context, _ *entity.User) error { return nil }
 func (s *loginStubUserRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
 func (s *loginStubUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
+func (s *loginStubUserRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {
+	return nil, 0, nil
+}
 
 type changePasswordHandlerUserRepo struct {
 	user        *entity.User
@@ -295,6 +299,9 @@ func (s *changePasswordHandlerUserRepo) Delete(_ context.Context, _ uuid.UUID) e
 func (s *changePasswordHandlerUserRepo) List(_ context.Context) ([]*entity.User, error) {
 	return nil, nil
 }
+func (s *changePasswordHandlerUserRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {
+	return nil, 0, nil
+}
 
 type stubOrgRepo struct {
 	descendants []uuid.UUID
@@ -307,6 +314,9 @@ func (s *stubOrgRepo) GetByID(_ context.Context, _ uuid.UUID) (*entity.Organizat
 func (s *stubOrgRepo) Update(_ context.Context, _ *entity.Organization) error { return nil }
 func (s *stubOrgRepo) Delete(_ context.Context, _ uuid.UUID) error            { return nil }
 func (s *stubOrgRepo) List(_ context.Context) ([]*entity.Organization, error) { return nil, nil }
+func (s *stubOrgRepo) ListWithFilter(_ context.Context, _ repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
+}
 func (s *stubOrgRepo) GetDescendants(_ context.Context, _ uuid.UUID) ([]uuid.UUID, error) {
 	return s.descendants, nil
 }

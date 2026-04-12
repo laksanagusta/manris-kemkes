@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   AlertTriangle,
   BarChart3,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   FileSignature,
   FileText,
@@ -145,8 +147,32 @@ function formatDate(dateString: string) {
   });
 }
 
-async function getApprovalRequests(token: string) {
-  return api.get<ApprovalRequest[]>("/approvals?status=all", token);
+function parsePositiveInt(value: string | null, fallback: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.floor(parsed);
+}
+
+interface PaginatedApprovalsResponse {
+  data: ApprovalRequest[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+async function getApprovalRequests(
+  token: string,
+  params: { status: string; page: number; limit: number },
+): Promise<PaginatedApprovalsResponse> {
+  const qs = new URLSearchParams({
+    status: params.status,
+    page: params.page.toString(),
+    limit: params.limit.toString(),
+  });
+  return api.get<PaginatedApprovalsResponse>(
+    `/approvals?${qs.toString()}`,
+    token,
+  );
 }
 
 async function getKRIReportReviewQueue(token: string): Promise<KRIReportReview[]> {
@@ -185,7 +211,10 @@ async function getWorkingPaperSigningItems(token: string): Promise<WorkingPaperS
 
 export default function InboxPage() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const { token } = useAuth();
+  const [isPending, startTransition] = useTransition();
   const [filter, setFilter] = useState<"all" | "pending_review" | "pending_approval" | "approved" | "rejected">(() => {
     const value = searchParams.get("status");
     if (value === "all" || value === "approved" || value === "rejected" || value === "pending_review" || value === "pending_approval") {
@@ -201,6 +230,9 @@ export default function InboxPage() {
   const [requests, setRequests] = useState<InboxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(() => parsePositiveInt(searchParams.get("page"), 1));
+  const [limit, setLimit] = useState(() => parsePositiveInt(searchParams.get("limit"), 10));
+  const [approvalTotal, setApprovalTotal] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"approve" | "reject">("approve");
   const [selectedApproval, setSelectedApproval] = useState<{
@@ -224,12 +256,15 @@ export default function InboxPage() {
     try {
       setLoading(true);
       setError(null);
-      const [approvals, kriReports, wpSigningItems] = await Promise.all([
-        getApprovalRequests(token),
+      const [approvalsRes, kriReports, wpSigningItems] = await Promise.all([
+        getApprovalRequests(token, { status: "all", page, limit }),
         getKRIReportReviewQueue(token),
         getWorkingPaperSigningItems(token).catch(() => []),
       ]);
-      setRequests([...approvals, ...kriReports, ...wpSigningItems]);
+      setApprovalTotal(approvalsRes.total ?? 0);
+      setPage(approvalsRes.page ?? page);
+      setLimit(approvalsRes.limit ?? limit);
+      setRequests([...(approvalsRes.data ?? []), ...kriReports, ...wpSigningItems]);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Gagal memuat daftar persetujuan.");
@@ -242,6 +277,8 @@ export default function InboxPage() {
     const queryStatus = searchParams.get("status");
     const queryType = searchParams.get("type");
     const querySearch = searchParams.get("search");
+    const nextPage = parsePositiveInt(searchParams.get("page"), 1);
+    const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
 
     if (queryStatus === "all" || queryStatus === "approved" || queryStatus === "rejected" || queryStatus === "pending_review" || queryStatus === "pending_approval") {
       setFilter(queryStatus);
@@ -250,6 +287,8 @@ export default function InboxPage() {
     }
     setTypeFilter(queryType === "risk" || queryType === "incident" || queryType === "kri_report" || queryType === "working_paper" ? queryType : "all");
     setSearch(querySearch ?? "");
+    setPage((current) => (current === nextPage ? current : nextPage));
+    setLimit((current) => (current === nextLimit ? current : nextLimit));
   }, [searchParams]);
 
   useEffect(() => {
@@ -262,12 +301,15 @@ export default function InboxPage() {
       try {
         setLoading(true);
         setError(null);
-        const [approvals, kriReports, wpSigningItems] = await Promise.all([
-          getApprovalRequests(token),
+        const [approvalsRes, kriReports, wpSigningItems] = await Promise.all([
+          getApprovalRequests(token, { status: "all", page, limit }),
           getKRIReportReviewQueue(token),
           getWorkingPaperSigningItems(token).catch(() => []),
         ]);
-        setRequests([...approvals, ...kriReports, ...wpSigningItems]);
+        setApprovalTotal(approvalsRes.total ?? 0);
+        setPage(approvalsRes.page ?? page);
+        setLimit(approvalsRes.limit ?? limit);
+        setRequests([...(approvalsRes.data ?? []), ...kriReports, ...wpSigningItems]);
       } catch (err) {
         console.error(err);
         setError(err instanceof Error ? err.message : "Gagal memuat daftar persetujuan.");
@@ -277,7 +319,55 @@ export default function InboxPage() {
     };
 
     void loadRequests();
-  }, [token]);
+  }, [token, page, limit]);
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    if (filter === "all") {
+      nextParams.delete("status");
+    } else {
+      nextParams.set("status", filter);
+    }
+
+    if (typeFilter === "all") {
+      nextParams.delete("type");
+    } else {
+      nextParams.set("type", typeFilter);
+    }
+
+    const normalizedSearch = search.trim();
+    if (normalizedSearch) {
+      nextParams.set("search", normalizedSearch);
+    } else {
+      nextParams.delete("search");
+    }
+
+    if (page === 1) {
+      nextParams.delete("page");
+    } else {
+      nextParams.set("page", page.toString());
+    }
+
+    if (limit === 10) {
+      nextParams.delete("limit");
+    } else {
+      nextParams.set("limit", limit.toString());
+    }
+
+    const nextUrl = nextParams.toString()
+      ? `${pathname}?${nextParams.toString()}`
+      : pathname;
+    const currentUrl = searchParams.toString()
+      ? `${pathname}?${searchParams.toString()}`
+      : pathname;
+
+    if (nextUrl === currentUrl) return;
+
+    startTransition(() => {
+      router.replace(nextUrl, { scroll: false });
+    });
+  }, [filter, typeFilter, search, page, limit, pathname, router, searchParams, startTransition]);
 
   const getStatus = (item: InboxItem): string => {
     if (item.requestType === "kri_report") {
@@ -463,7 +553,7 @@ export default function InboxPage() {
         </p>
       </div>
 
-      <Tabs value={filter} onValueChange={(value) => setFilter(value as typeof filter)}>
+      <Tabs value={filter} onValueChange={(value) => { setFilter(value as typeof filter); setPage(1); }}>
         <TabsList className="bg-muted/40 border border-border/50">
           <TabsTrigger value="all">Semua</TabsTrigger>
           <TabsTrigger value="pending_review" className="gap-2">
@@ -520,7 +610,7 @@ export default function InboxPage() {
 
             <Select
               value={typeFilter}
-              onValueChange={(value) => setTypeFilter(value as typeof typeFilter)}
+              onValueChange={(value) => { setTypeFilter(value as typeof typeFilter); setPage(1); }}
             >
               <SelectTrigger className="h-8 w-40 text-xs bg-muted/30 border-none">
                 <SelectValue placeholder="Jenis Permintaan" />
@@ -767,11 +857,43 @@ const canAction = isKRIReport
 
         <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
           <p className="text-xs text-muted-foreground">
-            Menampilkan {filteredRequests.length} dari {requests.length} permintaan persetujuan
+            Menampilkan {approvalTotal === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, approvalTotal)} dari {approvalTotal} permintaan persetujuan
           </p>
-          <p className="text-xs text-muted-foreground">
-            Fokus utama: {counts.pending} item masih menunggu keputusan
-          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 text-muted-foreground"
+              disabled={page === 1 || loading || isPending}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              <ChevronLeft className="size-3.5" />
+            </Button>
+            <span className="px-2 text-xs font-medium text-primary">
+              {page}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              dari {Math.ceil(approvalTotal / limit) || 1}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 text-muted-foreground"
+              disabled={
+                page >= (Math.ceil(approvalTotal / limit) || 1) ||
+                approvalTotal === 0 ||
+                loading ||
+                isPending
+              }
+              onClick={() =>
+                setPage((current) =>
+                  Math.min(Math.ceil(approvalTotal / limit) || 1, current + 1),
+                )
+              }
+            >
+              <ChevronRight className="size-3.5" />
+            </Button>
+          </div>
         </div>
       </Card>
 

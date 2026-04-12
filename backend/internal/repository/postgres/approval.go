@@ -20,9 +20,48 @@ func NewApprovalRepository(pool *pgxpool.Pool) repository.ApprovalRepository {
 	return &approvalRepository{pool: pool}
 }
 
-// List retrieves approval requests with optional filters
-func (r *approvalRepository) List(ctx context.Context, status string, approverRole string, approverUserID *uuid.UUID, orgIDs []uuid.UUID) ([]*entity.ApprovalRequest, error) {
-	query := `
+func (r *approvalRepository) List(ctx context.Context, status string, approverRole string, approverUserID *uuid.UUID, orgIDs []uuid.UUID, page int, limit int) ([]*entity.ApprovalRequest, int, error) {
+	whereClause := " WHERE 1=1"
+	args := []interface{}{}
+	argIdx := 1
+
+	if len(orgIDs) > 0 {
+		whereClause += ` AND (
+			(ar.request_type = 'risk' AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($1)))
+			OR 
+			(ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($1)))
+			OR 
+			(ar.request_type NOT IN ('risk', 'incident'))
+		)`
+		args = append(args, orgIDs)
+		argIdx++
+	}
+
+	if status != "" && status != "all" {
+		whereClause += fmt.Sprintf(" AND ar.current_status = $%d", argIdx)
+		args = append(args, status)
+		argIdx++
+	}
+
+	if approverRole != "" {
+		whereClause += fmt.Sprintf(" AND ar.current_approver_role = $%d", argIdx)
+		args = append(args, approverRole)
+		argIdx++
+	}
+
+	if approverUserID != nil {
+		whereClause += fmt.Sprintf(" AND ar.current_approver_user_id = $%d", argIdx)
+		args = append(args, *approverUserID)
+		argIdx++
+	}
+
+	countQuery := "SELECT COUNT(*) FROM approval_requests ar" + whereClause
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count approval requests: %w", err)
+	}
+
+	dataQuery := `
 		SELECT ar.id, ar.request_type, ar.entity_id, ar.requested_by, ar.requested_at,
 		       ar.current_status, ar.current_approver_role, ar.current_approver_user_id, ar.notes,
 		       ar.created_at, ar.updated_at,
@@ -40,47 +79,15 @@ func (r *approvalRepository) List(ctx context.Context, status string, approverRo
 		       END as entity_title
 		FROM approval_requests ar
 		LEFT JOIN users u ON ar.requested_by = u.id
-		LEFT JOIN users cu ON ar.current_approver_user_id = cu.id
-		WHERE 1=1`
+		LEFT JOIN users cu ON ar.current_approver_user_id = cu.id` + whereClause
 
-	args := []interface{}{}
-	argIdx := 1
+	offset := (page - 1) * limit
+	dataQuery += fmt.Sprintf(" ORDER BY ar.created_at DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+	args = append(args, limit, offset)
 
-	if len(orgIDs) > 0 {
-		query += ` AND (
-			(ar.request_type = 'risk' AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($1)))
-			OR 
-			(ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($1)))
-			OR 
-			(ar.request_type NOT IN ('risk', 'incident'))
-		)`
-		args = append(args, orgIDs)
-		argIdx++
-	}
-
-	if status != "" && status != "all" {
-		query += fmt.Sprintf(" AND ar.current_status = $%d", argIdx)
-		args = append(args, status)
-		argIdx++
-	}
-
-	if approverRole != "" {
-		query += fmt.Sprintf(" AND ar.current_approver_role = $%d", argIdx)
-		args = append(args, approverRole)
-		argIdx++
-	}
-
-	if approverUserID != nil {
-		query += fmt.Sprintf(" AND ar.current_approver_user_id = $%d", argIdx)
-		args = append(args, *approverUserID)
-		argIdx++
-	}
-
-	query += " ORDER BY ar.created_at DESC"
-
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := r.pool.Query(ctx, dataQuery, args...)
 	if err != nil {
-		return nil, fmt.Errorf("list approval requests: %w", err)
+		return nil, 0, fmt.Errorf("list approval requests: %w", err)
 	}
 	defer rows.Close()
 
@@ -93,12 +100,12 @@ func (r *approvalRepository) List(ctx context.Context, status string, approverRo
 			&req.CreatedAt, &req.UpdatedAt,
 			&req.RequestedByName, &req.CurrentApproverName, &req.EntityCode, &req.EntityTitle,
 		); err != nil {
-			return nil, fmt.Errorf("scan approval request: %w", err)
+			return nil, 0, fmt.Errorf("scan approval request: %w", err)
 		}
 		requests = append(requests, &req)
 	}
 
-	return requests, nil
+	return requests, total, nil
 }
 
 // FindByID retrieves a single approval request by ID

@@ -91,6 +91,49 @@ func (r *organizationRepository) List(ctx context.Context) ([]*entity.Organizati
 	return orgs, nil
 }
 
+func (r *organizationRepository) ListWithFilter(ctx context.Context, filter repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	countQuery := `SELECT COUNT(*) FROM organizations WHERE 1=1`
+	dataQuery := `SELECT id, name, parent_id, created_at FROM organizations WHERE 1=1`
+
+	var args []interface{}
+	argIdx := 1
+
+	if filter.Q != "" {
+		f := fmt.Sprintf(" AND name ILIKE $%d", argIdx)
+		countQuery += f
+		dataQuery += f
+		args = append(args, "%"+filter.Q+"%")
+		argIdx++
+	}
+
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("list organizations count: %w", err)
+	}
+
+	offset := (filter.Page - 1) * filter.Limit
+	dataQuery += " ORDER BY name ASC"
+	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+	args = append(args, filter.Limit, offset)
+
+	rows, err := r.pool.Query(ctx, dataQuery, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list organizations query: %w", err)
+	}
+	defer rows.Close()
+
+	var orgs []*entity.Organization
+	for rows.Next() {
+		var org entity.Organization
+		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &org.CreatedAt); err != nil {
+			return nil, 0, fmt.Errorf("list organizations scan: %w", err)
+		}
+		orgs = append(orgs, &org)
+	}
+
+	return orgs, total, nil
+}
+
 func (r *organizationRepository) GetDescendants(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {
 	query := `
 		WITH RECURSIVE org_tree AS (

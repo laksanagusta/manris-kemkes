@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/domain/service"
 )
 
@@ -37,6 +38,9 @@ func (r *stubOrgRepo) GetByID(context.Context, uuid.UUID) (*entity.Organization,
 func (r *stubOrgRepo) Update(context.Context, *entity.Organization) error   { return nil }
 func (r *stubOrgRepo) Delete(context.Context, uuid.UUID) error              { return nil }
 func (r *stubOrgRepo) List(context.Context) ([]*entity.Organization, error) { return nil, nil }
+func (r *stubOrgRepo) ListWithFilter(context.Context, repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
+}
 func (r *stubOrgRepo) GetDescendants(context.Context, uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil
 }

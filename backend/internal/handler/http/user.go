@@ -1,9 +1,10 @@
 package http
 
 import (
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/manris/backend/internal/domain/entity"
 	useruc "github.com/manris/backend/internal/usecase/user"
 )
 
@@ -19,13 +20,13 @@ type createUserRequest struct {
 	Pangkat        string `json:"pangkat"`
 }
 
-// UserHandler handles HTTP requests for User operations using clean architecture
 type UserHandler struct {
-	createUC *useruc.CreateUserUseCase
-	getUC    *useruc.GetUserUseCase
-	updateUC *useruc.UpdateUserUseCase
-	deleteUC *useruc.DeleteUserUseCase
-	listUC   *useruc.ListUsersUseCase
+	createUC     *useruc.CreateUserUseCase
+	getUC        *useruc.GetUserUseCase
+	updateUC     *useruc.UpdateUserUseCase
+	deleteUC     *useruc.DeleteUserUseCase
+	listUC       *useruc.ListUsersUseCase
+	listFilterUC *useruc.ListUsersWithFilterUseCase
 }
 
 func NewUserHandler(
@@ -34,13 +35,15 @@ func NewUserHandler(
 	updateUC *useruc.UpdateUserUseCase,
 	deleteUC *useruc.DeleteUserUseCase,
 	listUC *useruc.ListUsersUseCase,
+	listFilterUC *useruc.ListUsersWithFilterUseCase,
 ) *UserHandler {
 	return &UserHandler{
-		createUC: createUC,
-		getUC:    getUC,
-		updateUC: updateUC,
-		deleteUC: deleteUC,
-		listUC:   listUC,
+		createUC:     createUC,
+		getUC:        getUC,
+		updateUC:     updateUC,
+		deleteUC:     deleteUC,
+		listUC:       listUC,
+		listFilterUC: listFilterUC,
 	}
 }
 
@@ -134,13 +137,22 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 
 // ListUsers handles GET /api/users
 func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
-	users, err := h.listUC.Execute(c.Context())
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "10"))
+	q := c.Query("q")
+	status := c.Query("status")
+	role := c.Query("role")
+
+	result, err := h.listFilterUC.Execute(c.Context(), useruc.ListUsersWithFilterInput{
+		Page:   page,
+		Limit:  limit,
+		Q:      q,
+		Status: status,
+		Role:   role,
+	})
 	if err != nil {
 		return handleError(c, err)
 	}
 
-	if users == nil {
-		users = []*entity.User{}
-	}
-	return c.JSON(fiber.Map{"data": users})
+	return c.JSON(result)
 }

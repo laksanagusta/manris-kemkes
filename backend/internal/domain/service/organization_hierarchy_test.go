@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/domain/repository"
 )
 
 // MockOrganizationRepository for testing
@@ -32,6 +33,10 @@ func (m *mockOrgRepo) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (m *mockOrgRepo) List(ctx context.Context) ([]*entity.Organization, error) {
 	return nil, nil
+}
+
+func (m *mockOrgRepo) ListWithFilter(context.Context, repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
 }
 
 func (m *mockOrgRepo) GetDescendants(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {

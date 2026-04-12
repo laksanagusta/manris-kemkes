@@ -10,8 +10,8 @@ import (
 // ApprovalRepository defines the interface for approval data access.
 // This interface belongs to the domain layer - implementation is in infrastructure layer.
 type ApprovalRepository interface {
-	// List retrieves approval requests with optional filters
-	List(ctx context.Context, status string, approverRole string, approverUserID *uuid.UUID, orgIDs []uuid.UUID) ([]*entity.ApprovalRequest, error)
+	// List retrieves approval requests with optional filters and pagination
+	List(ctx context.Context, status string, approverRole string, approverUserID *uuid.UUID, orgIDs []uuid.UUID, page int, limit int) ([]*entity.ApprovalRequest, int, error)
 
 	// FindByID retrieves a single approval request by ID
 	FindByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.ApprovalRequest, error)

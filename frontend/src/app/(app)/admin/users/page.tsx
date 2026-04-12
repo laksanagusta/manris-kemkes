@@ -1,9 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import {
+  useDeferredValue,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import {
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Loader2,
   MoreHorizontal,
@@ -25,6 +37,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -33,21 +52,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/auth-context";
-import { api, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { listUsers, type UserListItem } from "@/lib/api/users";
 import { cn } from "@/lib/utils";
-
-type ManagedUser = {
-  id: string;
-  name: string;
-  username: string;
-  email: string;
-  role: string;
-  status: string;
-  nip?: string | null;
-  jabatan?: string | null;
-  pangkat?: string | null;
-  orgName?: string | null;
-};
 
 const roleMeta: Record<string, { label: string; badgeClassName: string }> = {
   superadmin: {
@@ -99,24 +106,164 @@ const getInitials = (name: string) =>
     .join("")
     .toUpperCase() || "?";
 
+function parsePositiveInt(value: string | null, fallback: number): number {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return Math.floor(parsed);
+}
+
+type StatusFilterValue = "all" | "pending_activation" | "active" | "inactive";
+type RoleFilterValue = "all" | "superadmin" | "unit" | "reviewer" | "pimpinan";
+
+function getStatusFilter(value: string | null): StatusFilterValue {
+  if (
+    value === "pending_activation" ||
+    value === "active" ||
+    value === "inactive"
+  ) {
+    return value;
+  }
+  return "all";
+}
+
+function getRoleFilter(value: string | null): RoleFilterValue {
+  if (
+    value === "superadmin" ||
+    value === "unit" ||
+    value === "reviewer" ||
+    value === "pimpinan"
+  ) {
+    return value;
+  }
+  return "all";
+}
+
 export default function UsersManagementPage() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { token, user, loading: authLoading } = useAuth();
-  const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [isPending, startTransition] = useTransition();
+
+  const [users, setUsers] = useState<UserListItem[]>([]);
+  const [total, setTotal] = useState(0);
   const [pageState, setPageState] = useState<"loading" | "ready" | "forbidden">(
     "loading",
   );
   const isSuperadmin = user?.role === "superadmin";
+
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(() =>
+    getStatusFilter(searchParams.get("status")),
+  );
+  const [roleFilter, setRoleFilter] = useState<RoleFilterValue>(() =>
+    getRoleFilter(searchParams.get("role")),
+  );
+  const [page, setPage] = useState(() =>
+    parsePositiveInt(searchParams.get("page"), 1),
+  );
+  const [limit, setLimit] = useState(() =>
+    parsePositiveInt(searchParams.get("limit"), 10),
+  );
+
+  const deferredSearch = useDeferredValue(search);
+
+  useEffect(() => {
+    const nextSearch = searchParams.get("q") ?? "";
+    const nextStatus = getStatusFilter(searchParams.get("status"));
+    const nextRole = getRoleFilter(searchParams.get("role"));
+    const nextPage = parsePositiveInt(searchParams.get("page"), 1);
+    const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
+
+    setSearch((current) => (current === nextSearch ? current : nextSearch));
+    setStatusFilter((current) => (current === nextStatus ? current : nextStatus));
+    setRoleFilter((current) => (current === nextRole ? current : nextRole));
+    setPage((current) => (current === nextPage ? current : nextPage));
+    setLimit((current) => (current === nextLimit ? current : nextLimit));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    const normalizedSearch = search.trim();
+
+    if (normalizedSearch) {
+      nextParams.set("q", normalizedSearch);
+    } else {
+      nextParams.delete("q");
+    }
+
+    if (statusFilter === "all") {
+      nextParams.delete("status");
+    } else {
+      nextParams.set("status", statusFilter);
+    }
+
+    if (roleFilter === "all") {
+      nextParams.delete("role");
+    } else {
+      nextParams.set("role", roleFilter);
+    }
+
+    if (page === 1) {
+      nextParams.delete("page");
+    } else {
+      nextParams.set("page", page.toString());
+    }
+
+    if (limit === 10) {
+      nextParams.delete("limit");
+    } else {
+      nextParams.set("limit", limit.toString());
+    }
+
+    const nextUrl = nextParams.toString()
+      ? `${pathname}?${nextParams.toString()}`
+      : pathname;
+    const currentUrl = searchParams.toString()
+      ? `${pathname}?${searchParams.toString()}`
+      : pathname;
+
+    if (nextUrl === currentUrl) {
+      return;
+    }
+
+    startTransition(() => {
+      router.replace(nextUrl, { scroll: false });
+    });
+  }, [
+    search,
+    statusFilter,
+    roleFilter,
+    page,
+    limit,
+    pathname,
+    router,
+    searchParams,
+    startTransition,
+  ]);
 
   useEffect(() => {
     if (authLoading || !token || !isSuperadmin) return;
 
     let cancelled = false;
 
-    api
-      .get<ManagedUser[]>("/users", token)
+    listUsers(token, {
+      q: deferredSearch.trim() || undefined,
+      status: statusFilter === "all" ? undefined : statusFilter,
+      role: roleFilter === "all" ? undefined : roleFilter,
+      page,
+      limit,
+    })
       .then((result) => {
         if (!cancelled) {
-          setUsers(result);
+          setUsers(result.data ?? []);
+          setTotal(result.total ?? 0);
+          setPage(result.page ?? page);
+          setLimit(result.limit ?? limit);
           setPageState("ready");
         }
       })
@@ -133,7 +280,7 @@ export default function UsersManagementPage() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, isSuperadmin, token]);
+  }, [authLoading, isSuperadmin, token, deferredSearch, statusFilter, roleFilter, page, limit]);
 
   if (authLoading || (isSuperadmin && pageState === "loading")) {
     return (
@@ -150,10 +297,12 @@ export default function UsersManagementPage() {
     return <AdminOnlyState />;
   }
 
+  const totalPages = Math.ceil(total / limit) || 1;
+
   const stats = [
     {
       label: "Total akun",
-      value: users.length,
+      value: total,
       icon: Users,
       iconClassName: "text-muted-foreground",
     },
@@ -212,12 +361,54 @@ export default function UsersManagementPage() {
         ))}
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Cari pengguna, username, atau email"
-          className="h-8 border-border/50 bg-card pl-8 text-xs"
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Cari pengguna, username, atau email"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            className="h-8 border-border/50 bg-card pl-8 text-xs"
+          />
+        </div>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(getStatusFilter(value));
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="h-8 w-40 text-xs bg-card border-border/50">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Status</SelectItem>
+            <SelectItem value="pending_activation">Menunggu Aktivasi</SelectItem>
+            <SelectItem value="active">Aktif</SelectItem>
+            <SelectItem value="inactive">Nonaktif</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={roleFilter}
+          onValueChange={(value) => {
+            setRoleFilter(getRoleFilter(value));
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="h-8 w-36 text-xs bg-card border-border/50">
+            <SelectValue placeholder="Role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Role</SelectItem>
+            <SelectItem value="superadmin">Super Admin</SelectItem>
+            <SelectItem value="unit">Unit Kerja</SelectItem>
+            <SelectItem value="reviewer">Reviewer</SelectItem>
+            <SelectItem value="pimpinan">Pimpinan</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card className="overflow-hidden border-border/50 bg-card/80">
@@ -284,7 +475,7 @@ export default function UsersManagementPage() {
                         {managedUser.username}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {managedUser.nip || "—"}
+                        {managedUser.nip || "\u2014"}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -299,10 +490,10 @@ export default function UsersManagementPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {managedUser.jabatan || "—"}
+                        {managedUser.jabatan || "\u2014"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {managedUser.pangkat || "—"}
+                        {managedUser.pangkat || "\u2014"}
                       </TableCell>
                       <TableCell className="max-w-[200px] text-xs text-muted-foreground">
                         <span className="block truncate">
@@ -344,6 +535,46 @@ export default function UsersManagementPage() {
               )}
             </TableBody>
           </Table>
+
+          <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+            <p className="text-xs text-muted-foreground">
+              Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
+              {Math.min(page * limit, total)} dari {total} pengguna
+            </p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="text-muted-foreground"
+                disabled={page === 1 || isPending}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="xs"
+                className="text-xs font-medium bg-primary/10 text-primary"
+                disabled
+              >
+                {page}
+              </Button>
+              <span className="px-1 text-xs text-muted-foreground">
+                dari {totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="text-muted-foreground"
+                disabled={page === totalPages || total === 0 || isPending}
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
+              >
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

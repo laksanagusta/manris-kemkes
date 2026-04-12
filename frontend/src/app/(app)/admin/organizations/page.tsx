@@ -1,6 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useTransition,
+  useDeferredValue,
+} from "react";
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import { toast } from "sonner";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,18 +28,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { Plus, Search, Building2, Loader2, ChevronRight } from "lucide-react";
-import { api } from "@/lib/api";
+import {
+  Plus,
+  Search,
+  Building2,
+  Loader2,
+  ChevronRight,
+  ChevronLeft,
+} from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import {
-  Organization,
-  OrganizationTreeNode,
+  type Organization,
+  type OrganizationTreeNode,
   buildOrganizationTree,
 } from "@/lib/organization";
 import { flattenVisibleOrganizationTree } from "@/lib/organization-tree";
 import { OrganizationFormDialog } from "@/components/organization/organization-form-dialog";
 import { OrganizationDeleteDialog } from "@/components/organization/organization-delete-dialog";
 import { OrganizationRowActions } from "@/components/organization/organization-row-actions";
+import { listOrganizations } from "@/lib/api/organizations";
+
+function parsePositiveInt(value: string | null, fallback: number): number {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return Math.floor(parsed);
+}
 
 function getOrganizationKey(org: OrganizationTreeNode) {
   return org.id || `${org.name}-${org.parentId ?? "root"}-${org.createdAt}`;
@@ -153,8 +182,14 @@ function OrgRow({
 }
 
 export default function OrganizationsManagementPage() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { token } = useAuth();
+  const [isPending, startTransition] = useTransition();
+
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [collapsedOrgIds, setCollapsedOrgIds] = useState<Set<string>>(new Set());
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
@@ -162,32 +197,124 @@ export default function OrganizationsManagementPage() {
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [selectedOrg, setSelectedOrg] = useState<Organization | undefined>();
 
-  const fetchOrganizations = useCallback(async () => {
-    if (!token) return;
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [page, setPage] = useState(() =>
+    parsePositiveInt(searchParams.get("page"), 1),
+  );
+  const [limit, setLimit] = useState(() =>
+    parsePositiveInt(searchParams.get("limit"), 10),
+  );
 
-    try {
-      const res = await api.get<unknown[]>("/organizations", token);
-      const normalized = res
-        .map(normalizeOrganization)
-        .filter((org): org is Organization => org !== null);
-      setOrganizations(normalized);
-    } catch (error) {
-      console.error("Failed to fetch organizations", error);
-      toast.error("Gagal memuat data organisasi");
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
+  const deferredSearch = useDeferredValue(search);
 
   useEffect(() => {
+    const nextSearch = searchParams.get("q") ?? "";
+    const nextPage = parsePositiveInt(searchParams.get("page"), 1);
+    const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
+
+    setSearch((current) => (current === nextSearch ? current : nextSearch));
+    setPage((current) => (current === nextPage ? current : nextPage));
+    setLimit((current) => (current === nextLimit ? current : nextLimit));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    const normalizedSearch = search.trim();
+
+    if (normalizedSearch) {
+      nextParams.set("q", normalizedSearch);
+    } else {
+      nextParams.delete("q");
+    }
+
+    if (page === 1) {
+      nextParams.delete("page");
+    } else {
+      nextParams.set("page", page.toString());
+    }
+
+    if (limit === 10) {
+      nextParams.delete("limit");
+    } else {
+      nextParams.set("limit", limit.toString());
+    }
+
+    const nextUrl = nextParams.toString()
+      ? `${pathname}?${nextParams.toString()}`
+      : pathname;
+    const currentUrl = searchParams.toString()
+      ? `${pathname}?${searchParams.toString()}`
+      : pathname;
+
+    if (nextUrl === currentUrl) {
+      return;
+    }
+
+    startTransition(() => {
+      router.replace(nextUrl, { scroll: false });
+    });
+  }, [search, page, limit, pathname, router, searchParams, startTransition]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
     setLoading(true);
-    fetchOrganizations();
-  }, [fetchOrganizations]);
+
+    listOrganizations(token, {
+      q: deferredSearch.trim() || undefined,
+      page,
+      limit,
+    })
+      .then((result) => {
+        if (cancelled) return;
+
+        const normalized = (result.data ?? [])
+          .map((item) => normalizeOrganization(item))
+          .filter((org): org is Organization => org !== null);
+
+        setOrganizations(normalized);
+        setTotal(result.total ?? 0);
+        setPage(result.page ?? page);
+        setLimit(result.limit ?? limit);
+        setLoading(false);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Failed to fetch organizations", error);
+        toast.error("Gagal memuat data organisasi");
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, deferredSearch, page, limit]);
 
   const handleRefetch = useCallback(() => {
+    if (!token) return;
+
     setLoading(true);
-    fetchOrganizations();
-  }, [fetchOrganizations]);
+    listOrganizations(token, {
+      q: deferredSearch.trim() || undefined,
+      page,
+      limit,
+    })
+      .then((result) => {
+        const normalized = (result.data ?? [])
+          .map((item) => normalizeOrganization(item))
+          .filter((org): org is Organization => org !== null);
+
+        setOrganizations(normalized);
+        setTotal(result.total ?? 0);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch organizations", error);
+        toast.error("Gagal memuat data organisasi");
+        setLoading(false);
+      });
+  }, [token, deferredSearch, page, limit]);
 
   const handleCreateClick = () => {
     setDialogMode("create");
@@ -228,13 +355,14 @@ export default function OrganizationsManagementPage() {
   }, [organizations]);
 
   const orgTree = buildOrganizationTree(organizations);
-  const totalUnits = organizations.length;
-  const rootUnits = organizations.filter((o) => !o.parentId).length;
-  const subUnits = totalUnits - rootUnits;
   const visibleOrgRows = useMemo(
     () => flattenVisibleOrganizationTree(orgTree, collapsedOrgIds),
     [orgTree, collapsedOrgIds]
   );
+
+  const totalPages = Math.ceil(total / limit) || 1;
+  const rootUnits = organizations.filter((o) => !o.parentId).length;
+  const subUnits = organizations.length - rootUnits;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -262,7 +390,7 @@ export default function OrganizationsManagementPage() {
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Total Unit</p>
-              <p className="text-2xl font-bold mt-1">{totalUnits}</p>
+              <p className="text-2xl font-bold mt-1">{total}</p>
             </div>
             <Building2 className="size-5 text-muted-foreground" />
           </CardContent>
@@ -285,6 +413,11 @@ export default function OrganizationsManagementPage() {
         <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Cari organisasi..."
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
           className="h-8 pl-8 text-xs bg-card border-border/50"
         />
       </div>
@@ -334,6 +467,46 @@ export default function OrganizationsManagementPage() {
             )}
           </TableBody>
         </Table>
+
+        <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+          <p className="text-xs text-muted-foreground">
+            Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
+            {Math.min(page * limit, total)} dari {total} organisasi
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="text-muted-foreground"
+              disabled={page === 1 || isPending}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              <ChevronLeft className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              className="text-xs font-medium bg-primary/10 text-primary"
+              disabled
+            >
+              {page}
+            </Button>
+            <span className="px-1 text-xs text-muted-foreground">
+              dari {totalPages}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="text-muted-foreground"
+              disabled={page === totalPages || total === 0 || isPending}
+              onClick={() =>
+                setPage((current) => Math.min(totalPages, current + 1))
+              }
+            >
+              <ChevronRight className="size-3.5" />
+            </Button>
+          </div>
+        </div>
       </Card>
 
       <OrganizationFormDialog

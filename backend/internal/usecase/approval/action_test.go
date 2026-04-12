@@ -19,8 +19,8 @@ type fakeApprovalRepo struct {
 	nextStep      *entity.ApprovalStep
 }
 
-func (r *fakeApprovalRepo) List(context.Context, string, string, *uuid.UUID, []uuid.UUID) ([]*entity.ApprovalRequest, error) {
-	return nil, errors.New("not implemented")
+func (r *fakeApprovalRepo) List(context.Context, string, string, *uuid.UUID, []uuid.UUID, int, int) ([]*entity.ApprovalRequest, int, error) {
+	return nil, 0, errors.New("not implemented")
 }
 func (r *fakeApprovalRepo) FindByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.ApprovalRequest, error) {
 	if r.request == nil {

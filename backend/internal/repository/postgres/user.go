@@ -115,3 +115,63 @@ func (r *userRepository) List(ctx context.Context) ([]*entity.User, error) {
 
 	return users, nil
 }
+
+func (r *userRepository) ListWithFilter(ctx context.Context, filter repository.UserListFilter) ([]*entity.User, int, error) {
+	countQuery := `SELECT COUNT(*) FROM users u WHERE 1=1`
+	dataQuery := `SELECT u.id, u.name, u.username, u.email, '', u.role, u.organization_id, COALESCE(o.name, '') as org_name, u.status, u.must_change_password, u.nip, u.jabatan, u.pangkat, u.created_at, u.updated_at
+		 FROM users u LEFT JOIN organizations o ON u.organization_id = o.id WHERE 1=1`
+
+	var args []interface{}
+	argIdx := 1
+
+	if filter.Q != "" {
+		f := fmt.Sprintf(" AND (u.name ILIKE $%d OR u.username ILIKE $%d OR u.email ILIKE $%d)", argIdx, argIdx, argIdx)
+		countQuery += f
+		dataQuery += f
+		args = append(args, "%"+filter.Q+"%")
+		argIdx++
+	}
+
+	if filter.Status != "" {
+		f := fmt.Sprintf(" AND u.status = $%d", argIdx)
+		countQuery += f
+		dataQuery += f
+		args = append(args, filter.Status)
+		argIdx++
+	}
+
+	if filter.Role != "" {
+		f := fmt.Sprintf(" AND u.role = $%d", argIdx)
+		countQuery += f
+		dataQuery += f
+		args = append(args, filter.Role)
+		argIdx++
+	}
+
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("list users count: %w", err)
+	}
+
+	offset := (filter.Page - 1) * filter.Limit
+	dataQuery += " ORDER BY u.created_at DESC, u.id DESC"
+	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+	args = append(args, filter.Limit, offset)
+
+	rows, err := r.pool.Query(ctx, dataQuery, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list users query: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*entity.User
+	for rows.Next() {
+		var user entity.User
+		if err := rows.Scan(&user.ID, &user.Name, &user.Username, &user.Email, &user.PasswordHash, &user.Role, &user.OrganizationID, &user.OrgName, &user.Status, &user.MustChangePassword, &user.NIP, &user.Jabatan, &user.Pangkat, &user.CreatedAt, &user.UpdatedAt); err != nil {
+			return nil, 0, fmt.Errorf("list users scan: %w", err)
+		}
+		users = append(users, &user)
+	}
+
+	return users, total, nil
+}

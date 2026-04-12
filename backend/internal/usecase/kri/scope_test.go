@@ -121,6 +121,9 @@ func (r *scopeKRIOrgRepo) Delete(context.Context, uuid.UUID) error            { 
 func (r *scopeKRIOrgRepo) List(context.Context) ([]*entity.Organization, error) {
 	return nil, nil
 }
+func (r *scopeKRIOrgRepo) ListWithFilter(context.Context, repo.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
+}
 func (r *scopeKRIOrgRepo) GetDescendants(_ context.Context, id uuid.UUID) ([]uuid.UUID, error) {
 	return []uuid.UUID{id}, nil
 }

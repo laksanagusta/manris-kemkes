@@ -29,6 +29,15 @@ type ListTasksInput struct {
 	UserID       *uuid.UUID
 	Status       string
 	OrgIDs       []uuid.UUID
+	Page         int
+	Limit        int
+}
+
+type ListTasksPaginatedResult struct {
+	Data  []*entity.MitigationTask `json:"data"`
+	Total int                      `json:"total"`
+	Page  int                      `json:"page"`
+	Limit int                      `json:"limit"`
 }
 
 func (uc *ListTasksUseCase) Execute(ctx context.Context, input ListTasksInput) ([]*entity.MitigationTask, error) {
@@ -46,6 +55,32 @@ func (uc *ListTasksUseCase) Execute(ctx context.Context, input ListTasksInput) (
 	}
 	// No filter: return all tasks (for compliance monitoring dashboard)
 	return uc.taskRepo.ListAll(ctx, input.OrgIDs)
+}
+
+func (uc *ListTasksUseCase) ExecutePaginated(ctx context.Context, input ListTasksInput) (*ListTasksPaginatedResult, error) {
+	if input.Page <= 0 {
+		input.Page = 1
+	}
+	if input.Limit <= 0 {
+		input.Limit = 20
+	}
+	if input.Limit > 100 {
+		input.Limit = 100
+	}
+
+	tasks, total, err := uc.taskRepo.ListAllPaginated(ctx, input.OrgIDs, input.Page, input.Limit)
+	if err != nil {
+		return nil, fmt.Errorf("list mitigation tasks: %w", err)
+	}
+	if tasks == nil {
+		tasks = make([]*entity.MitigationTask, 0)
+	}
+	return &ListTasksPaginatedResult{
+		Data:  tasks,
+		Total: total,
+		Page:  input.Page,
+		Limit: input.Limit,
+	}, nil
 }
 
 // SubmitProgressUseCase handles a PIC submitting progress for a task

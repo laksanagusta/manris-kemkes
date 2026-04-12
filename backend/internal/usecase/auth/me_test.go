@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/domain/service"
 )
 
@@ -22,6 +23,9 @@ func (s *stubUserRepo) GetByUsername(_ context.Context, _ string) (*entity.User,
 func (s *stubUserRepo) Update(_ context.Context, _ *entity.User) error { return nil }
 func (s *stubUserRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
 func (s *stubUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
+func (s *stubUserRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {
+	return nil, 0, nil
+}
 func (s *stubUserRepo) GetByID(_ context.Context, id uuid.UUID) (*entity.User, error) {
 	if s.err != nil {
 		return nil, s.err
@@ -40,6 +44,9 @@ func (s *stubOrgRepo) GetByID(_ context.Context, _ uuid.UUID) (*entity.Organizat
 func (s *stubOrgRepo) Update(_ context.Context, _ *entity.Organization) error { return nil }
 func (s *stubOrgRepo) Delete(_ context.Context, _ uuid.UUID) error            { return nil }
 func (s *stubOrgRepo) List(_ context.Context) ([]*entity.Organization, error) { return nil, nil }
+func (s *stubOrgRepo) ListWithFilter(_ context.Context, _ repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
+}
 func (s *stubOrgRepo) GetDescendants(_ context.Context, _ uuid.UUID) ([]uuid.UUID, error) {
 	return s.descendants, nil
 }

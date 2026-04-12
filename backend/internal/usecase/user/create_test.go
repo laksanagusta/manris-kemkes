@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/manris/backend/internal/domain/entity"
 	domainErrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/domain/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -59,6 +60,9 @@ func (s *createUserStubRepo) GetByUsername(_ context.Context, username string) (
 func (s *createUserStubRepo) Update(_ context.Context, _ *entity.User) error { return nil }
 func (s *createUserStubRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
 func (s *createUserStubRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
+func (s *createUserStubRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {
+	return nil, 0, nil
+}
 
 type createUserStubOrgRepo struct {
 	orgs map[uuid.UUID]*entity.Organization
@@ -69,6 +73,9 @@ func (s *createUserStubOrgRepo) Update(_ context.Context, _ *entity.Organization
 func (s *createUserStubOrgRepo) Delete(_ context.Context, _ uuid.UUID) error            { return nil }
 func (s *createUserStubOrgRepo) List(_ context.Context) ([]*entity.Organization, error) {
 	return nil, nil
+}
+func (s *createUserStubOrgRepo) ListWithFilter(_ context.Context, _ repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
 }
 func (s *createUserStubOrgRepo) GetDescendants(_ context.Context, _ uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil
