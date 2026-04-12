@@ -35,6 +35,19 @@ export const mainMenuItems: MainMenuGroup[] = [
   },
 ];
 
+export const adminMenuGroup: MainMenuGroup = {
+  title: "ADMINISTRATION",
+  items: [
+    { label: "Users", href: "/admin/users", icon: "Users" },
+    {
+      label: "Organizations",
+      href: "/admin/organizations",
+      icon: "Building2",
+    },
+    { label: "Settings", href: "/admin/settings", icon: "Settings2" },
+  ],
+};
+
 export const breadcrumbMap: Record<string, string> = {
   "/overview": "Dashboard",
   "/inbox": "Persetujuan",
@@ -65,7 +78,11 @@ export const breadcrumbMap: Record<string, string> = {
   "/minutes/new": "Buat Notulen",
   "/intelligence/predictive": "Predictive Scoring",
   "/intelligence/cba": "Cost Benefit Analysis",
-  "/management/users": "User Management",
+  "/admin": "Administrasi",
+  "/admin/users": "Pengguna",
+  "/admin/users/new": "Tambah Pengguna",
+  "/admin/organizations": "Organisasi",
+  "/admin/settings": "Pengaturan",
   "/management/criteria": "Scope & Criteria",
   "/admin/forms": "Form Builder",
   "/admin/forms/new": "New Form",

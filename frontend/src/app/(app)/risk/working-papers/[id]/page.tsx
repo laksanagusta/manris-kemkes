@@ -616,14 +616,8 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                           </div>
 
                           <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
-                            {sig.signer_title}
+                            {[sig.signer_jabatan, sig.signer_pangkat].filter(Boolean).join(" · ")}
                           </p>
-
-                          {sig.signer_role_label ? (
-                            <Badge variant="outline" className="bg-muted/30 text-[10px] leading-none">
-                              {sig.signer_role_label}
-                            </Badge>
-                          ) : null}
 
                           <p className="text-xs leading-5 text-muted-foreground">
                             {item.description}

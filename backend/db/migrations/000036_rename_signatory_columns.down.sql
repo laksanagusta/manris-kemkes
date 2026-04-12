@@ -1,0 +1,2 @@
+ALTER TABLE working_paper_signatories RENAME COLUMN signer_jabatan TO signer_title;
+ALTER TABLE working_paper_signatories RENAME COLUMN signer_pangkat TO signer_role_label;

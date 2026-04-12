@@ -45,16 +45,17 @@ func (uc *GetCurrentUserUseCase) Execute(ctx context.Context, input GetCurrentUs
 	}
 
 	userProfile := &entity.UserProfile{
-		ID:               user.ID,
-		Username:         user.Username,
-		Name:             user.Name,
-		Role:             user.Role,
-		OrganizationID:   user.OrganizationID,
-		AccessibleOrgIDs: scope.AccessibleOrgIDs,
-		IsGlobal:         scope.IsGlobal,
-		Status:           user.Status,
-		CreatedAt:        user.CreatedAt,
-		UpdatedAt:        user.UpdatedAt,
+		ID:                 user.ID,
+		Username:           user.Username,
+		Name:               user.Name,
+		Role:               user.Role,
+		OrganizationID:     user.OrganizationID,
+		AccessibleOrgIDs:   scope.AccessibleOrgIDs,
+		IsGlobal:           scope.IsGlobal,
+		Status:             user.Status,
+		MustChangePassword: user.MustChangePassword,
+		CreatedAt:          user.CreatedAt,
+		UpdatedAt:          user.UpdatedAt,
 	}
 
 	return userProfile, nil

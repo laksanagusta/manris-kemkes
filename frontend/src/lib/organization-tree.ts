@@ -1,8 +1,8 @@
 export type OrganizationTreeLike = {
   id: string;
   name: string;
-  parent_id?: string;
-  created_at: string;
+  parentId?: string;
+  createdAt: string;
   children: OrganizationTreeLike[];
 };
 

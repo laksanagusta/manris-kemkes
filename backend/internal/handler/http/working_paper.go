@@ -39,12 +39,12 @@ type workingPaperRiskInput struct {
 }
 
 type createSignatoryRequest struct {
-	UserID          uuid.UUID `json:"user_id"`
-	SequenceNo      int       `json:"sequence_no"`
-	SignerName      string    `json:"signer_name"`
-	SignerNIP       string    `json:"signer_nip"`
-	SignerTitle     string    `json:"signer_title"`
-	SignerRoleLabel string    `json:"signer_role_label"`
+	UserID        uuid.UUID `json:"user_id"`
+	SequenceNo    int       `json:"sequence_no"`
+	SignerName    string    `json:"signer_name"`
+	SignerNIP     string    `json:"signer_nip"`
+	SignerJabatan string    `json:"signer_jabatan"`
+	SignerPangkat string    `json:"signer_pangkat"`
 }
 
 // Create handles POST /working-papers.
@@ -67,12 +67,12 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 	signatories := make([]workingpaper.CreateSignatoryInput, len(req.Signatories))
 	for i, s := range req.Signatories {
 		signatories[i] = workingpaper.CreateSignatoryInput{
-			UserID:          s.UserID,
-			SequenceNo:      s.SequenceNo,
-			SignerName:      s.SignerName,
-			SignerNIP:       s.SignerNIP,
-			SignerTitle:     s.SignerTitle,
-			SignerRoleLabel: s.SignerRoleLabel,
+			UserID:        s.UserID,
+			SequenceNo:    s.SequenceNo,
+			SignerName:    s.SignerName,
+			SignerNIP:     s.SignerNIP,
+			SignerJabatan: s.SignerJabatan,
+			SignerPangkat: s.SignerPangkat,
 		}
 	}
 
@@ -229,7 +229,8 @@ type pendingSigningItem struct {
 	Description     string    `json:"description"`
 	AssessmentCycle string    `json:"assessment_cycle"`
 	SequenceNo      int       `json:"sequence_no"`
-	SignerRoleLabel string    `json:"signer_role_label"`
+	SignerJabatan   string    `json:"signer_jabatan"`
+	SignerPangkat   string    `json:"signer_pangkat"`
 	CreatedAt       time.Time `json:"created_at"`
 }
 
@@ -262,7 +263,8 @@ func (h *WorkingPaperHandler) ListPendingSigning(c *fiber.Ctx) error {
 					Description:     wp.Description,
 					AssessmentCycle: wp.AssessmentCycle,
 					SequenceNo:      sig.SequenceNo,
-					SignerRoleLabel: sig.SignerRoleLabel,
+					SignerJabatan:   sig.SignerJabatan,
+					SignerPangkat:   sig.SignerPangkat,
 					CreatedAt:       wp.CreatedAt,
 				})
 				break

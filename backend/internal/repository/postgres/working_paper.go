@@ -71,6 +71,8 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(risk.control_effectiveness, ''),
 		       COALESCE(risk.risk_appetite, ''),
 		       COALESCE(risk.treatment_option, ''),
+		       COALESCE((SELECT array_agg(m.action ORDER BY m.sort_order) FROM mitigations m WHERE m.risk_id = risk.id), ARRAY[]::text[]),
+		       COALESCE((SELECT array_agg(m.due_date ORDER BY m.sort_order) FROM mitigations m WHERE m.risk_id = risk.id AND m.due_date IS NOT NULL), ARRAY[]::text[]),
 		       risk.target_probability,
 		       risk.target_impact,
 		       risk.target_weight,
@@ -117,6 +119,8 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&link.Risk.ControlEffectiveness,
 			&link.Risk.RiskAppetite,
 			&link.Risk.TreatmentOption,
+			&link.Risk.Mitigations,
+			&link.Risk.MitigationDueDates,
 			&link.Risk.TargetProbability,
 			&link.Risk.TargetImpact,
 			&link.Risk.TargetBobot,
@@ -140,7 +144,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 func (r *workingPaperRepository) getSignatoriesByWorkingPaperID(ctx context.Context, q workingPaperReader, wpID uuid.UUID) ([]*entity.WorkingPaperSignatory, error) {
 	rows, err := q.Query(ctx,
 		`SELECT id, working_paper_id, user_id, sequence_no, signer_name, signer_nip,
-		        signer_title, signer_role_label, status, signed_at, qr_code_png, qr_data
+		        signer_jabatan, signer_pangkat, status, signed_at, qr_code_png, qr_data
 		 FROM working_paper_signatories
 		 WHERE working_paper_id = $1
 		 ORDER BY sequence_no`, wpID,
@@ -158,7 +162,7 @@ func (r *workingPaperRepository) getSignatoriesByWorkingPaperID(ctx context.Cont
 
 		if err := rows.Scan(
 			&sig.ID, &sig.WorkingPaperID, &sig.UserID, &sig.SequenceNo,
-			&sig.SignerName, &sig.SignerNIP, &sig.SignerTitle, &sig.SignerRoleLabel,
+			&sig.SignerName, &sig.SignerNIP, &sig.SignerJabatan, &sig.SignerPangkat,
 			&sig.Status, &sig.SignedAt, &qrCodePNG, &qrData,
 		); err != nil {
 			return nil, fmt.Errorf("scan signatory: %w", err)
@@ -269,11 +273,11 @@ func insertWorkingPaperSignatories(ctx context.Context, tx workingPaperTx, wp *e
 		var createdAt interface{}
 		err := tx.QueryRow(ctx,
 			`INSERT INTO working_paper_signatories (working_paper_id, user_id, sequence_no, signer_name,
-			        signer_nip, signer_title, signer_role_label, status)
+			        signer_nip, signer_jabatan, signer_pangkat, status)
 			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 			 RETURNING id, created_at`,
 			wp.ID, sig.UserID, sig.SequenceNo, sig.SignerName,
-			sig.SignerNIP, sig.SignerTitle, sig.SignerRoleLabel, sig.Status,
+			sig.SignerNIP, sig.SignerJabatan, sig.SignerPangkat, sig.Status,
 		).Scan(&sig.ID, &createdAt)
 		if err != nil {
 			return fmt.Errorf("create working paper signatory: %w", err)

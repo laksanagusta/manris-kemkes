@@ -148,12 +148,11 @@ func TestWorkingPaperCreatePassesFullAccessibleOrgScope(t *testing.T) {
 			"source_mode": "latest_approved",
 		}},
 		"signatories": []map[string]any{{
-			"user_id":           uuid.New().String(),
-			"sequence_no":       1,
-			"signer_name":       "Rina",
-			"signer_nip":        "",
-			"signer_title":      "Kabid",
-			"signer_role_label": "Pemeriksa",
+			"user_id":        uuid.New().String(),
+			"sequence_no":    1,
+			"signer_name":    "Rina",
+			"signer_nip":     "",
+			"signer_pangkat": "Pembina Tk. I (IV/b)",
 		}},
 	})
 	if err != nil {

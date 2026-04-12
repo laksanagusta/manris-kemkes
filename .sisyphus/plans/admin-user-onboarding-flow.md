@@ -108,7 +108,7 @@ Wave 2: dependent enforcement and frontend integration (`4-6`)
 > Implementation + Test = ONE task. Never separate.
 > EVERY task MUST have: Agent Profile + Parallelization + QA Scenarios.
 
-- [ ] 1. Add onboarding lifecycle state to schema and domain
+- [x] 1. Add onboarding lifecycle state to schema and domain
 
   **What to do**: Create `backend/db/migrations/000035_add_user_onboarding_state.up.sql` and `.down.sql` to expand `users.status` from `active|inactive` to `pending_activation|active|inactive`, add `must_change_password BOOLEAN NOT NULL DEFAULT false`, and preserve existing users as `active` with `must_change_password=false`. Update `backend/internal/domain/entity/user.go` to add status constants, `MustChangePassword` field, and helper methods for `IsPendingActivation` / `CanUseFullSession`. Update `backend/internal/domain/entity/auth.go` so auth payloads can expose `status` and `mustChangePassword` to the frontend. Add or extend entity tests so invalid status values are rejected and normalized role behavior still passes.
   **Must NOT do**: Do not edit `000001_initial_schema.up.sql`; do not add invite-token, expiry, or email-delivery columns; do not remove existing `active`/`inactive` semantics for already-provisioned users.
@@ -149,7 +149,7 @@ Wave 2: dependent enforcement and frontend integration (`4-6`)
 
   **Commit**: YES | Message: `feat(auth): add onboarding account state` | Files: [`backend/db/migrations/000035_add_user_onboarding_state.up.sql`, `backend/db/migrations/000035_add_user_onboarding_state.down.sql`, `backend/internal/domain/entity/user.go`, `backend/internal/domain/entity/auth.go`, `backend/internal/domain/entity/*_test.go`]
 
-- [ ] 2. Align user provisioning contract with backend-owned temporary passwords
+- [x] 2. Align user provisioning contract with backend-owned temporary passwords
 
   **What to do**: Update `backend/internal/handler/http/user.go`, `backend/internal/usecase/user/create.go`, and `backend/internal/repository/postgres/user.go` so the create-user API accepts plain `password`, hashes it server-side with bcrypt, stores only `password_hash`, defaults new users to `status="pending_activation"` and `must_change_password=true`, and rejects unsupported roles such as `viewer`. Add superadmin-only protection to all `/api/v1/users` routes in `backend/cmd/server/main.go`. Create backend tests for: successful superadmin provisioning, duplicate username/email rejection, invalid role rejection, org-required-for-non-superadmin validation, and forbidden non-superadmin access at the HTTP layer.
   **Must NOT do**: Do not keep `PasswordHash` in the external HTTP payload; do not persist raw passwords; do not allow non-superadmins to create or manage users; do not auto-generate or send credentials by email.
@@ -192,7 +192,7 @@ Wave 2: dependent enforcement and frontend integration (`4-6`)
 
   **Commit**: YES | Message: `feat(auth): harden user provisioning contract` | Files: [`backend/cmd/server/main.go`, `backend/internal/handler/http/user.go`, `backend/internal/usecase/user/create.go`, `backend/internal/repository/postgres/user.go`, `backend/internal/usecase/user/create_test.go`, `backend/internal/handler/http/user_test.go`]
 
-- [ ] 3. Introduce setup-only login sessions for pending activation users
+- [x] 3. Introduce setup-only login sessions for pending activation users
 
   **What to do**: Update `backend/internal/usecase/auth/login.go`, `backend/internal/handler/http/auth.go`, `backend/internal/domain/entity/auth.go`, and `backend/internal/middleware/auth.go` so login behavior branches by lifecycle state: `inactive` still fails, `pending_activation` with correct temporary password succeeds but returns a **setup-only** JWT plus auth payload fields such as `mustChangePassword=true`, `sessionMode="setup"`, and user status metadata, while `active` users keep receiving full sessions. Extend JWT claims and token generation helpers to carry a `setupOnly` claim without breaking existing active-user login behavior. Add tests for active login, pending-activation setup login, inactive-user rejection, and token-claim parsing.
   **Must NOT do**: Do not grant `pending_activation` users full app access; do not regress active-user login; do not hide setup state only in frontend without emitting it from backend auth payloads.
@@ -234,7 +234,7 @@ Wave 2: dependent enforcement and frontend integration (`4-6`)
 
   **Commit**: YES | Message: `feat(auth): add setup-only login session` | Files: [`backend/internal/usecase/auth/login.go`, `backend/internal/domain/entity/auth.go`, `backend/internal/handler/http/auth.go`, `backend/internal/middleware/auth.go`, `backend/internal/usecase/auth/login_test.go`, `backend/internal/handler/http/auth_test.go`]
 
-- [ ] 4. Add first-password-change activation endpoint and full-session gate
+- [x] 4. Add first-password-change activation endpoint and full-session gate
 
   **What to do**: Implement `POST /api/v1/auth/change-password` as the only endpoint available to setup-only sessions besides `/auth/me`. Create the use case, handler wiring, and route registration so setup-only tokens can change password, flip the user to `status="active"`, clear `must_change_password`, hash and store the new password, and return a fresh full-access auth payload/JWT. Add middleware enforcement so setup-only tokens receive `403` on normal protected routes (`/users`, `/dashboard/*`, `/risks`, etc.) while still allowing `/auth/me` and `/auth/change-password`. Add tests that prove: setup-only token cannot call a normal protected route, password change activates the account, old temporary password no longer works, and `/auth/me` reflects the active state after password change.
   **Must NOT do**: Do not turn this into a generic forgot-password or profile-password-change feature; do not leave setup-only authorization enforced only by UI routing; do not keep the setup-only token as a valid full-access token after activation.
@@ -277,7 +277,7 @@ Wave 2: dependent enforcement and frontend integration (`4-6`)
 
   **Commit**: YES | Message: `feat(auth): activate users on password change` | Files: [`backend/cmd/server/main.go`, `backend/internal/handler/http/auth.go`, `backend/internal/usecase/auth/change_password.go`, `backend/internal/usecase/auth/change_password_test.go`, `backend/internal/middleware/auth.go`, `backend/internal/repository/postgres/user.go`, `backend/internal/handler/http/auth_test.go`]
 
-- [ ] 5. Add frontend forced-password-change flow for setup-only sessions
+- [x] 5. Add frontend forced-password-change flow for setup-only sessions
 
   **What to do**: Update `frontend/src/contexts/auth-context.tsx` so auth state tracks `mustChangePassword`, `sessionMode`, and refreshed user status from login + `/auth/me`; add a context method for completing first-login password change and swapping in the full-access token returned by `/auth/change-password`. Create `frontend/src/app/(public)/change-password/page.tsx` for the forced first-login form with `newPassword` + `confirmPassword`, clear validation, and redirect to `/overview` only after successful activation. Update both login surfaces (`frontend/src/app/(public)/login/page.tsx` and `frontend/src/app/page.tsx`) to route setup-only users to `/change-password` instead of `/overview`. Add setup-only redirect protection in `frontend/src/components/app-shell.tsx` and/or `frontend/src/app/(app)/layout.tsx` so users with `mustChangePassword=true` cannot remain inside the app shell. Keep `frontend/src/lib/api.ts` response handling aligned with the extended `{data: ...}` auth payload.
   **Must NOT do**: Do not create a forgot-password flow; do not allow `/overview` or `(app)` pages to stay visible for setup-only users; do not duplicate auth state logic across both login pages.
@@ -320,7 +320,7 @@ Wave 2: dependent enforcement and frontend integration (`4-6`)
 
   **Commit**: YES | Message: `feat(auth): add forced password change flow` | Files: [`frontend/src/contexts/auth-context.tsx`, `frontend/src/app/(public)/change-password/page.tsx`, `frontend/src/app/(public)/login/page.tsx`, `frontend/src/app/page.tsx`, `frontend/src/components/app-shell.tsx`, `frontend/src/app/(app)/layout.tsx`, `frontend/src/lib/api.ts`]
 
-- [ ] 6. Align admin user-management UI and navigation with onboarding rules
+- [x] 6. Align admin user-management UI and navigation with onboarding rules
 
   **What to do**: Update `frontend/src/app/(app)/admin/users/new/page.tsx` to use the backend’s final create-user contract (`password` as temporary password, no `viewer` role, role/org validation copy, and explicit onboarding notice that accounts remain pending until first password change). Update `frontend/src/app/(app)/admin/users/page.tsx` so status badges distinguish `pending_activation`, `active`, and `inactive`, and show temporary-password onboarding outcomes clearly after user creation. Hide or redirect superadmin-only admin screens for non-superadmin users using `useAuth()` checks, and update `frontend/src/components/app-sidebar.tsx` so the Administration group only renders for superadmins. Normalize breadcrumb/navigation metadata in `frontend/src/lib/app-navigation.ts` to `/admin/users` while preserving any legacy `/management/users` breadcrumb alias only if needed for backward-compatible display.
   **Must NOT do**: Do not reintroduce `viewer`; do not leave admin navigation visible to non-superadmins; do not rename the live route away from `/admin/users`; do not add unrelated organization-management redesign.

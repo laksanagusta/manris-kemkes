@@ -62,7 +62,7 @@ export function OrganizationFormDialog({
         setParentValue("__ROOT__");
       } else if (mode === "edit" && initialOrganization) {
         setName(initialOrganization.name);
-        setParentValue(initialOrganization.parent_id || "__ROOT__");
+        setParentValue(initialOrganization.parentId || "__ROOT__");
       }
     }
   }, [open, mode, initialOrganization]);

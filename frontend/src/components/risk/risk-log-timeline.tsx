@@ -88,10 +88,22 @@ interface TimelineItem {
 }
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
-  submitted: { label: "Diajukan", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  approved: { label: "Disetujui", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  rejected: { label: "Ditolak", color: "bg-red-500/10 text-red-600 border-red-500/20" },
-  returned: { label: "Dikembalikan", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  submitted: {
+    label: "Diajukan",
+    color: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  },
+  approved: {
+    label: "Disetujui",
+    color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  },
+  rejected: {
+    label: "Ditolak",
+    color: "bg-red-500/10 text-red-600 border-red-500/20",
+  },
+  returned: {
+    label: "Dikembalikan",
+    color: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  },
 };
 
 const METHOD_ICONS: Record<string, React.ReactNode> = {
@@ -101,11 +113,18 @@ const METHOD_ICONS: Record<string, React.ReactNode> = {
   Chat: <MessageSquare className="size-3" />,
 };
 
-async function getApprovalHistory(entityType: string, entityId: string, token: string): Promise<ApprovalHistory[]> {
+async function getApprovalHistory(
+  entityType: string,
+  entityId: string,
+  token: string,
+): Promise<ApprovalHistory[]> {
   try {
-    const result = await api.get<{ history?: RawApprovalHistory[]; History?: RawApprovalHistory[] } | null>(
+    const result = await api.get<{
+      history?: RawApprovalHistory[];
+      History?: RawApprovalHistory[];
+    } | null>(
       `/approvals/by-entity?request_type=${entityType}&entity_id=${entityId}`,
-      token
+      token,
     );
     if (!result) return [];
     return (result.history || result.History || [])
@@ -116,7 +135,8 @@ async function getApprovalHistory(entityType: string, entityId: string, token: s
         actorName: item.actorName || item.ActorName || "-",
         actorRole: item.actorRole || item.ActorRole || "-",
         comments: item.comments || item.Comments || "",
-        createdAt: item.createdAt || item.CreatedAt || new Date(0).toISOString(),
+        createdAt:
+          item.createdAt || item.CreatedAt || new Date(0).toISOString(),
       }))
       .filter((item) => item.id);
   } catch {
@@ -124,12 +144,16 @@ async function getApprovalHistory(entityType: string, entityId: string, token: s
   }
 }
 
-function normalizeCommunicationLogs(logs: RawCommunicationLog[]): CommunicationLog[] {
+function normalizeCommunicationLogs(
+  logs: RawCommunicationLog[],
+): CommunicationLog[] {
   return logs.map((item, index) => ({
     id: item.id || item.ID || `comm-${index}`,
     riskId: item.riskId || item.RiskID || "",
     date: item.date || item.Date || new Date(0).toISOString(),
-    method: (item.method || item.Method || "Meeting") as CommunicationLog["method"],
+    method: (item.method ||
+      item.Method ||
+      "Meeting") as CommunicationLog["method"],
     stakeholder: item.stakeholder || item.Stakeholder || "-",
     notes: item.notes || item.Notes || "",
     createdBy: item.createdBy || item.CreatedBy || "",
@@ -138,9 +162,15 @@ function normalizeCommunicationLogs(logs: RawCommunicationLog[]): CommunicationL
   }));
 }
 
-async function getRiskVersions(riskId: string, token: string): Promise<{ versions: { id: string; createdAt: string }[] } | null> {
+async function getRiskVersions(
+  riskId: string,
+  token: string,
+): Promise<{ versions: { id: string; createdAt: string }[] } | null> {
   try {
-    return await api.get<{ versions: { id: string; createdAt: string }[] }>(`/risks/${riskId}/versions`, token);
+    return await api.get<{ versions: { id: string; createdAt: string }[] }>(
+      `/risks/${riskId}/versions`,
+      token,
+    );
   } catch {
     return null;
   }
@@ -161,7 +191,9 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
   const [loading, setLoading] = useState(true);
   const [commLogs, setCommLogs] = useState<CommunicationLog[]>([]);
   const [approvalHistory, setApprovalHistory] = useState<ApprovalHistory[]>([]);
-  const [meetingMinutes, setMeetingMinutes] = useState<MeetingMinutesRisk[]>([]);
+  const [meetingMinutes, setMeetingMinutes] = useState<MeetingMinutesRisk[]>(
+    [],
+  );
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -173,7 +205,9 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
         getApprovalHistory("risk", riskId, token),
         getMeetingMinutesByRisk(riskId, token),
       ]);
-      setCommLogs(normalizeCommunicationLogs((logs || []) as RawCommunicationLog[]));
+      setCommLogs(
+        normalizeCommunicationLogs((logs || []) as RawCommunicationLog[]),
+      );
       setApprovalHistory(approval || []);
       setMeetingMinutes(minutesData || []);
     } catch {
@@ -208,7 +242,11 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
       metadata: {
         oleh: log.createdByName,
         method: log.method,
-        tanggal: new Date(log.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }),
+        tanggal: new Date(log.date).toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
       },
     })),
     ...meetingMinutes.map((mm) => ({
@@ -234,7 +272,9 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
       <Card className="border-border/50">
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-sm text-muted-foreground">Memuat log...</span>
+          <span className="ml-2 text-sm text-muted-foreground">
+            Memuat log...
+          </span>
         </CardContent>
       </Card>
     );
@@ -247,7 +287,12 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
           <CardTitle className="text-base font-bold flex items-center gap-2">
             <History className="size-4" /> Log & Komunikasi
           </CardTitle>
-          <Button variant="outline" size="sm" className="gap-2 text-xs h-8" onClick={() => setShowAddDialog(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 text-xs h-8"
+            onClick={() => setShowAddDialog(true)}
+          >
             <Plus className="size-3.5" /> Tambah Log
           </Button>
         </CardHeader>
@@ -257,9 +302,15 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
               <MessageSquare className="size-8 text-muted-foreground/50 mb-3" />
               <p className="text-sm font-medium">Belum Ada Log Komunikasi</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                Tambahkan log komunikasi untuk mencatat interaksi dengan stakeholder terkait risiko ini.
+                Tambahkan log komunikasi untuk mencatat interaksi dengan
+                stakeholder terkait risiko ini.
               </p>
-              <Button variant="outline" size="sm" className="mt-4 gap-2 text-xs" onClick={() => setShowAddDialog(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 gap-2 text-xs"
+                onClick={() => setShowAddDialog(true)}
+              >
                 <Plus className="size-3.5" /> Tambah Log Pertama
               </Button>
             </div>
@@ -286,14 +337,19 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
                     {/* Content */}
                     <div className="flex-1 min-w-0 pb-4">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-sm font-semibold">{item.title}</span>
+                        <span className="text-sm font-semibold">
+                          {item.title}
+                        </span>
                         {item.type === "approval" && (
                           <Badge variant="outline" className="text-[10px]">
                             Approval
                           </Badge>
                         )}
                         {item.type === "communication" && (
-                          <Badge variant="outline" className="text-[10px] gap-1">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] gap-1"
+                          >
                             {METHOD_ICONS[item.metadata?.method || "Meeting"]}
                             {item.metadata?.method || "Komunikasi"}
                           </Badge>
@@ -306,21 +362,31 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
                       </div>
 
                       {item.description && (
-                        <p className="text-xs text-muted-foreground mb-2">{item.description}</p>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {item.description}
+                        </p>
                       )}
 
                       <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                         <span>{formatDateTime(item.date)}</span>
-                        {item.metadata?.oleh && <span>Oleh: {item.metadata.oleh}</span>}
+                        {item.metadata?.oleh && (
+                          <span>Oleh: {item.metadata.oleh}</span>
+                        )}
                         {item.metadata?.role && (
-                          <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] h-4 px-1.5"
+                          >
                             {item.metadata.role}
                           </Badge>
                         )}
                       </div>
 
                       {item.link && (
-                        <Link href={item.link} className="text-xs text-primary hover:underline mt-1">
+                        <Link
+                          href={item.link}
+                          className="text-xs text-primary hover:underline mt-1"
+                        >
                           Lihat detail notulen →
                         </Link>
                       )}

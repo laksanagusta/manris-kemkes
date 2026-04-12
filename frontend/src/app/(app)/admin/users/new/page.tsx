@@ -1,13 +1,11 @@
 "use client";
 
-import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
+import { toast } from "sonner";
 
-import { api } from "@/lib/api";
-import { filterToAccessibleOrgs } from "@/lib/organization";
-import { useAuth } from "@/contexts/auth-context";
+import { AdminOnlyState } from "@/components/admin/admin-only-state";
 import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,15 +14,46 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/contexts/auth-context";
+import { api, ApiError } from "@/lib/api";
+import {
+  filterToAccessibleOrgs,
+  type Organization,
+} from "@/lib/organization";
+
+const roleOptions = [
+  {
+    value: "superadmin",
+    label: "Super Admin",
+    description: "mengelola pengguna, organisasi, dan pengaturan sistem.",
+  },
+  {
+    value: "pimpinan",
+    label: "Pimpinan",
+    description: "meninjau dan menyetujui dokumen lintas unit.",
+  },
+  {
+    value: "reviewer",
+    label: "Reviewer",
+    description:
+      "memeriksa kelengkapan dan kualitas dokumen pengelolaan risiko.",
+  },
+  {
+    value: "unit",
+    label: "Unit Kerja",
+    description: "mengelola risiko dan insiden pada unit kerja masing-masing.",
+  },
+] as const;
 
 export default function NewUserPage() {
   const router = useRouter();
-  const { token, user } = useAuth();
-  const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]);
+  const { token, user, loading: authLoading } = useAuth();
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [name, setName] = useState("");
@@ -36,22 +65,41 @@ export default function NewUserPage() {
   const [nip, setNip] = useState("");
   const [jabatan, setJabatan] = useState("");
   const [pangkat, setPangkat] = useState("");
+  const isSuperadmin = user?.role === "superadmin";
 
   useEffect(() => {
-    if (!token) return;
+    if (authLoading || !token || !isSuperadmin) return;
+
+    let cancelled = false;
 
     api
-      .get<{ id: string; name: string }[]>("/organizations", token)
-      .then((res) => {
-        const filtered = user?.isGlobal ? res : filterToAccessibleOrgs(res as any, user?.accessibleOrgIds || []);
+      .get<Organization[]>("/organizations", token)
+      .then((result) => {
+        if (cancelled) return;
+        const filtered = user?.isGlobal
+          ? result
+          : filterToAccessibleOrgs(result, user?.accessibleOrgIds || []);
         setOrganizations(filtered);
       })
       .catch(console.error);
-  }, [token, user]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, isSuperadmin, token, user]);
+
+  const handleRoleChange = (value: string) => {
+    setRole(value);
+    if (value === "superadmin") {
+      setOrgId("");
+    }
+  };
 
   const handleSave = async () => {
     if (!name || !username || !email || !password) {
-      toast.error("Lengkapi nama, username, email, dan password terlebih dahulu.");
+      toast.error(
+        "Lengkapi nama, username, email, dan password terlebih dahulu.",
+      );
       return;
     }
 
@@ -77,61 +125,98 @@ export default function NewUserPage() {
         },
         token || undefined,
       );
+      toast.success(
+        "Pengguna berhasil dibuat. Sampaikan username dan password sementara secara manual. Akun akan tetap menunggu aktivasi sampai password diganti saat login pertama.",
+      );
       router.push("/admin/users");
-    } catch (err) {
-      console.error(err);
-      toast.error("Pengguna baru belum berhasil disimpan.");
+    } catch (error) {
+      console.error(error);
+      if (error instanceof ApiError && error.status === 403) {
+        toast.error("Hanya Super Admin yang dapat membuat pengguna baru.");
+      } else {
+        toast.error("Pengguna baru belum berhasil disimpan.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center gap-3">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        <span className="text-sm text-muted-foreground">
+          Menyiapkan formulir pengguna...
+        </span>
+      </div>
+    );
+  }
+
+  if (!isSuperadmin) {
+    return <AdminOnlyState title="Pembuatan pengguna hanya untuk Super Admin" />;
+  }
+
   return (
     <FormPage className="max-w-4xl">
       <FormHeader
         title="Tambah pengguna"
-        description="Tambahkan akun baru dan atur peran aksesnya sebelum disimpan."
+        description="Buat akun baru, tetapkan peran, lalu sampaikan username dan password sementara secara manual. Akun akan berstatus menunggu aktivasi sampai pengguna mengganti password saat login pertama."
         badges={
-          <Badge variant="outline" className="border-primary/15 bg-primary/[0.04] text-primary">
-            Administrasi akses
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="outline"
+              className="border-primary/15 bg-primary/[0.04] text-primary"
+            >
+              Administrasi akses
+            </Badge>
+            <Badge
+              variant="outline"
+              className="border-warning/20 bg-warning/10 text-warning"
+            >
+              Password sementara
+            </Badge>
+          </div>
         }
         backLabel="Kembali ke daftar pengguna"
         onBack={() => router.push("/admin/users")}
         actions={
-          <Button className="gap-2 text-xs" onClick={handleSave} disabled={loading}>
-            <Save className="size-3.5" />
-            {loading ? "Menyimpan..." : "Simpan pengguna"}
+          <Button className="text-xs" onClick={handleSave} disabled={loading}>
+            {loading ? (
+              <Loader2 data-icon="inline-start" className="animate-spin" />
+            ) : (
+              <Save data-icon="inline-start" />
+            )}
+            {loading ? "Menyimpan..." : "Buat pengguna"}
           </Button>
         }
       />
 
       <FormSection
         title="Informasi akun"
-        description="Gunakan identitas yang dipakai pengguna saat masuk ke sistem."
+        description="Gunakan identitas kerja resmi yang akan dipakai pengguna saat login. Password sementara hanya berlaku untuk login pertama."
         contentClassName="space-y-5"
       >
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Nama lengkap<span className="text-destructive ml-0.5">*</span>
+              Nama lengkap<span className="ml-0.5 text-destructive">*</span>
             </Label>
             <Input
               placeholder="Contoh: Dr. Andi Pratama, M.Kes"
               className="h-10 text-sm"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(event) => setName(event.target.value)}
             />
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Username<span className="text-destructive ml-0.5">*</span>
+              Username<span className="ml-0.5 text-destructive">*</span>
             </Label>
             <Input
               placeholder="Contoh: andi.pratama"
               className="h-10 text-sm"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(event) => setUsername(event.target.value)}
             />
           </div>
         </div>
@@ -139,27 +224,33 @@ export default function NewUserPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Email<span className="text-destructive ml-0.5">*</span>
+              Email<span className="ml-0.5 text-destructive">*</span>
             </Label>
             <Input
               type="email"
               placeholder="Contoh: andi@kemenkes.go.id"
               className="h-10 text-sm"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
             />
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Password<span className="text-destructive ml-0.5">*</span>
+              Password sementara
+              <span className="ml-0.5 text-destructive">*</span>
             </Label>
             <Input
               type="password"
-              placeholder="Minimal 8 karakter"
+              placeholder="Minimal 8 karakter untuk login pertama"
               className="h-10 text-sm"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
             />
+            <p className="text-xs leading-5 text-muted-foreground">
+              Bagikan password sementara ini secara manual. Setelah login
+              pertama, pengguna wajib mengganti password dan status akun baru
+              berubah menjadi aktif.
+            </p>
           </div>
         </div>
       </FormSection>
@@ -176,7 +267,7 @@ export default function NewUserPage() {
               placeholder="Contoh: 198501012010011001"
               className="h-10 text-sm"
               value={nip}
-              onChange={(e) => setNip(e.target.value)}
+              onChange={(event) => setNip(event.target.value)}
             />
           </div>
           <div className="space-y-1.5">
@@ -185,7 +276,7 @@ export default function NewUserPage() {
               placeholder="Contoh: Kepala Seksi Surveilans"
               className="h-10 text-sm"
               value={jabatan}
-              onChange={(e) => setJabatan(e.target.value)}
+              onChange={(event) => setJabatan(event.target.value)}
             />
           </div>
           <div className="space-y-1.5">
@@ -194,7 +285,7 @@ export default function NewUserPage() {
               placeholder="Contoh: Pembina Tk. I (IV/b)"
               className="h-10 text-sm"
               value={pangkat}
-              onChange={(e) => setPangkat(e.target.value)}
+              onChange={(event) => setPangkat(event.target.value)}
             />
           </div>
         </div>
@@ -202,40 +293,46 @@ export default function NewUserPage() {
 
       <FormSection
         title="Peran dan unit kerja"
-        description="Pilih cakupan akses agar pengguna hanya melihat data yang memang perlu dikelola."
+        description="Pilih peran sesuai kewenangan kerja agar akses pengguna tetap tepat sasaran sejak akun dibuat."
         contentClassName="space-y-5"
       >
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Peran<span className="text-destructive ml-0.5">*</span>
+              Peran<span className="ml-0.5 text-destructive">*</span>
             </Label>
-            <Select value={role} onValueChange={setRole}>
+            <Select value={role} onValueChange={handleRoleChange}>
               <SelectTrigger className="h-10 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="superadmin" className="text-sm">
-                  Super Admin
-                </SelectItem>
-                <SelectItem value="pimpinan" className="text-sm">
-                  Pimpinan / Approver
-                </SelectItem>
-                <SelectItem value="unit" className="text-sm">
-                  Unit Kerja / Risk Officer
-                </SelectItem>
-                <SelectItem value="viewer" className="text-sm">
-                  Viewer
-                </SelectItem>
+                <SelectGroup>
+                  {roleOptions.map((option) => (
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                      className="text-sm"
+                    >
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Unit kerja {role !== "superadmin" &&<span className="text-destructive ml-0.5">*</span>}
+              Unit kerja
+              {role !== "superadmin" ? (
+                <span className="ml-0.5 text-destructive">*</span>
+              ) : null}
             </Label>
-            <Select value={orgId} onValueChange={setOrgId} disabled={role === "superadmin"}>
+            <Select
+              value={orgId}
+              onValueChange={setOrgId}
+              disabled={role === "superadmin"}
+            >
               <SelectTrigger className="h-10 text-sm">
                 <SelectValue
                   placeholder={
@@ -246,11 +343,17 @@ export default function NewUserPage() {
                 />
               </SelectTrigger>
               <SelectContent>
-                {organizations.map((org) => (
-                  <SelectItem key={org.id} value={org.id} className="text-sm">
-                    {org.name}
-                  </SelectItem>
-                ))}
+                <SelectGroup>
+                  {organizations.map((organization) => (
+                    <SelectItem
+                      key={organization.id}
+                      value={organization.id}
+                      className="text-sm"
+                    >
+                      {organization.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>
@@ -259,22 +362,14 @@ export default function NewUserPage() {
         <div className="rounded-2xl border border-border/15 bg-muted/20 px-4 py-4">
           <p className="text-xs font-medium text-foreground">Ringkasan peran</p>
           <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
-            <p>
-              <span className="font-medium text-foreground">Super Admin</span> mengelola
-              pengguna dan konfigurasi sistem.
-            </p>
-            <p>
-              <span className="font-medium text-foreground">Pimpinan</span> meninjau dan
-              menyetujui dokumen lintas unit.
-            </p>
-            <p>
-              <span className="font-medium text-foreground">Unit Kerja</span> mengelola
-              risiko dan insiden di unitnya.
-            </p>
-            <p>
-              <span className="font-medium text-foreground">Viewer</span> hanya melihat
-              data tanpa mengubah isian.
-            </p>
+            {roleOptions.map((option) => (
+              <p key={option.value}>
+                <span className="font-medium text-foreground">
+                  {option.label}
+                </span>{" "}
+                {option.description}
+              </p>
+            ))}
           </div>
         </div>
       </FormSection>

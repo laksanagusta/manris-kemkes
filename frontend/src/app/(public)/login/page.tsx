@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
@@ -17,24 +17,31 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
-  const { login, isAuthenticated, loading } = useAuth();
+  const { login, isAuthenticated, loading, postAuthRedirectPath } = useAuth();
+
+  const getErrorMessage = (error: unknown) => {
+    return error instanceof Error
+      ? error.message
+      : "Login gagal. Periksa kredensial Anda.";
+  };
 
   // Redirect if already authenticated
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      router.push("/overview");
+      router.replace(postAuthRedirectPath);
     }
-  }, [loading, isAuthenticated, router]);
+  }, [isAuthenticated, loading, postAuthRedirectPath, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+
     try {
-      await login(username, password);
-      router.push("/overview");
-    } catch (err: any) {
-      setError(err.message || "Login gagal. Periksa kredensial Anda.");
+      const result = await login(username, password);
+      router.replace(result.redirectTo);
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -82,19 +89,19 @@ export default function LoginPage() {
         {/* Login card */}
         <Card className="border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl shadow-primary/5">
           <CardHeader className="pb-4">
-            <h2 className="text-lg font-semibold">Masuk ke Akun Anda</h2>
-            <p className="text-sm text-muted-foreground">
+            <CardTitle>Masuk ke Akun Anda</CardTitle>
+            <CardDescription>
               Gunakan kredensial yang telah diberikan administrator
-            </p>
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               {error && (
-                <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-xs text-destructive">
+                <div aria-live="polite" className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                   {error}
                 </div>
               )}
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="username" className="text-xs font-medium">
                   Username atau Email
                 </Label>
@@ -108,17 +115,14 @@ export default function LoginPage() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-xs font-medium">
                     Password
                   </Label>
-                  <button
-                    type="button"
-                    className="text-[11px] text-primary hover:underline"
-                  >
-                    Lupa password?
-                  </button>
+                  <span className="text-[11px] text-muted-foreground">
+                    Hubungi administrator jika perlu reset
+                  </span>
                 </div>
                 <div className="relative">
                   <Input
@@ -154,10 +158,13 @@ export default function LoginPage() {
                 ) : (
                   <>
                     Masuk
-                    <ArrowRight className="size-4" />
+                    <ArrowRight data-icon="inline-end" />
                   </>
                 )}
               </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                Jika ini login pertama Anda, sistem akan meminta penggantian password sementara.
+              </p>
             </form>
           </CardContent>
         </Card>

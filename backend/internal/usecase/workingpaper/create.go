@@ -10,12 +10,12 @@ import (
 )
 
 type CreateSignatoryInput struct {
-	UserID          uuid.UUID
-	SequenceNo      int
-	SignerName      string
-	SignerNIP       string
-	SignerTitle     string
-	SignerRoleLabel string
+	UserID        uuid.UUID
+	SequenceNo    int
+	SignerName    string
+	SignerNIP     string
+	SignerJabatan string
+	SignerPangkat string
 }
 
 type RiskInput struct {
@@ -98,15 +98,15 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 	signatories := make([]entity.WorkingPaperSignatory, 0, len(input.Signatories))
 	for _, s := range input.Signatories {
 		signatories = append(signatories, entity.WorkingPaperSignatory{
-			ID:              uuid.New(),
-			WorkingPaperID:  wp.ID,
-			UserID:          s.UserID,
-			SequenceNo:      s.SequenceNo,
-			SignerName:      s.SignerName,
-			SignerNIP:       s.SignerNIP,
-			SignerTitle:     s.SignerTitle,
-			SignerRoleLabel: s.SignerRoleLabel,
-			Status:          "pending",
+			ID:             uuid.New(),
+			WorkingPaperID: wp.ID,
+			UserID:         s.UserID,
+			SequenceNo:     s.SequenceNo,
+			SignerName:     s.SignerName,
+			SignerNIP:      s.SignerNIP,
+			SignerJabatan:  s.SignerJabatan,
+			SignerPangkat:  s.SignerPangkat,
+			Status:         "pending",
 		})
 	}
 	wp.Signatories = signatories

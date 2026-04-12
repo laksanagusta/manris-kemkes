@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
-  Bell,
   ChevronRight,
   LogOut,
   Moon,
@@ -26,38 +25,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
-
-const breadcrumbMap: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/inbox": "Persetujuan",
-  "/compliance": "Compliance",
-  "/compliance/monitoring": "Monitoring & Reporting",
-  "/compliance/kri": "Monitoring & Reporting",
-  "/compliance/controls": "Control Library",
-  "/risk": "Risk Assessments",
-  "/risk/register": "Risk Register",
-  "/risk/new": "New Risk",
-  "/risk/history": "Risk History",
-  "/controls": "Control Library",
-  "/monitoring/overdue": "Overdue",
-  "/lessons": "Lessons Learned",
-  "/reports": "Reports",
-  "/incident": "Insiden",
-  "/incident/new": "New Incident",
-  "/incidents": "Insiden",
-  "/incidents/new": "Laporan Insiden Baru",
-  "/incidents/lessons": "Lessons Learned",
-  "/intelligence": "Inteligensi",
-  "/intelligence/transcript": "Meeting",
-  "/intelligence/minutes": "Meeting",
-  "/intelligence/minutes/new": "Buat Notulen",
-  "/minutes": "Meeting",
-  "/minutes/new": "Buat Notulen",
-  "/intelligence/predictive": "Predictive Scoring",
-  "/intelligence/cba": "Cost Benefit Analysis",
-  "/management/users": "User Management",
-  "/management/criteria": "Scope & Criteria",
-};
+import { breadcrumbMap } from "@/lib/app-navigation";
 
 function getBreadcrumbs(pathname: string) {
   const segments = pathname.split("/").filter(Boolean);

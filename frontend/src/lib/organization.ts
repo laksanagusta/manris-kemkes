@@ -3,8 +3,8 @@ import { ApiError } from "@/lib/api";
 export interface Organization {
   id: string;
   name: string;
-  parent_id?: string;
-  created_at: string;
+  parentId?: string;
+  createdAt: string;
 }
 
 export interface OrganizationPayloadInput {
@@ -25,8 +25,8 @@ export interface VisibleOrganizationTreeNode extends OrganizationTreeNode {
 export interface OrganizationParentOption {
   id: string;
   name: string;
-  parent_id?: string;
-  created_at: string;
+  parentId?: string;
+  createdAt: string;
 }
 
 export type OrganizationAction = "create" | "update" | "delete";
@@ -53,7 +53,7 @@ export function buildOrganizationTree(
     const node = nodeMap.get(organization.id);
     if (!node) continue;
 
-    const parentId = organization.parent_id;
+    const parentId = organization.parentId;
     const parentNode = parentId ? nodeMap.get(parentId) : undefined;
 
     if (parentNode) {
@@ -103,11 +103,11 @@ export function getBlockedParentIds(
   const childrenMap = new Map<string, string[]>();
 
   for (const organization of organizations) {
-    if (!organization.parent_id) continue;
+    if (!organization.parentId) continue;
 
-    const children = childrenMap.get(organization.parent_id) ?? [];
+    const children = childrenMap.get(organization.parentId) ?? [];
     children.push(organization.id);
-    childrenMap.set(organization.parent_id, children);
+    childrenMap.set(organization.parentId, children);
   }
 
   const stack = [currentOrgId];

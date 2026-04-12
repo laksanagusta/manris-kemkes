@@ -6,12 +6,31 @@ export interface WorkingPaperRiskData {
   id: string;
   code: string;
   title: string;
+  description?: string;
   category: string;
   status: string;
+  org_name?: string;
   probability: number;
   impact: number;
+  bobot: number;
   nilai: number;
   tingkat_risiko: string;
+  prioritas_risiko: number;
+  cause?: string[];
+  risk_source?: string;
+  controllability?: string;
+  impact_desc?: string[];
+  existing_control?: string;
+  control_effectiveness?: string;
+  risk_appetite?: string;
+  treatment_option?: string;
+  mitigations?: string[];
+  mitigation_due_dates?: string[];
+  target_probability?: number;
+  target_impact?: number;
+  target_bobot?: number;
+  target_nilai?: number;
+  target_tingkat_risiko?: string;
   assessment_cycle?: string;
   versionNumber?: number;
 }
@@ -33,8 +52,8 @@ export interface WorkingPaperSignatory {
   sequence_no: number;
   signer_name: string;
   signer_nip?: string;
-  signer_title: string;
-  signer_role_label: string;
+  signer_jabatan: string;
+  signer_pangkat: string;
   status: SignatoryStatus;
   signed_at?: string;
   qr_code_png?: string;
@@ -65,8 +84,8 @@ export interface CreateSignatoryInput {
   sequence_no: number;
   signer_name: string;
   signer_nip?: string;
-  signer_title: string;
-  signer_role_label: string;
+  signer_jabatan: string;
+  signer_pangkat: string;
 }
 
 export interface CreateWorkingPaperRiskInput {

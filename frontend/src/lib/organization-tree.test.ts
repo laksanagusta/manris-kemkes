@@ -6,8 +6,8 @@ const treeLib = await import(new URL("./organization-tree.ts", import.meta.url).
 type OrganizationTreeNode = {
   id: string;
   name: string;
-  parent_id?: string;
-  created_at: string;
+  parentId?: string;
+  createdAt: string;
   children: OrganizationTreeNode[];
 };
 
@@ -24,13 +24,13 @@ const flattenVisibleOrganizationTree = (
 function makeNode(
   overrides: Partial<OrganizationTreeNode> & Pick<OrganizationTreeNode, "id" | "name">,
 ): OrganizationTreeNode {
-  const { id, name, created_at = "2026-04-01T00:00:00.000Z", parent_id, children = [] } = overrides;
+  const { id, name, createdAt = "2026-04-01T00:00:00.000Z", parentId, children = [] } = overrides;
 
   return {
     id,
     name,
-    created_at,
-    ...(parent_id ? { parent_id } : {}),
+    createdAt,
+    ...(parentId ? { parentId } : {}),
     children,
   };
 }
@@ -44,8 +44,8 @@ test("flattenVisibleOrganizationTree keeps the full tree visible by default", ()
         makeNode({
           id: "child",
           name: "Child",
-          parent_id: "root",
-          children: [makeNode({ id: "grandchild", name: "Grandchild", parent_id: "child" })],
+          parentId: "root",
+          children: [makeNode({ id: "grandchild", name: "Grandchild", parentId: "child" })],
         }),
       ],
     }),
@@ -72,8 +72,8 @@ test("flattenVisibleOrganizationTree hides descendants when a parent is collapse
         makeNode({
           id: "child",
           name: "Child",
-          parent_id: "root",
-          children: [makeNode({ id: "grandchild", name: "Grandchild", parent_id: "child" })],
+          parentId: "root",
+          children: [makeNode({ id: "grandchild", name: "Grandchild", parentId: "child" })],
         }),
       ],
     }),

@@ -178,6 +178,7 @@ func main() {
 	// Auth usecases
 	authLoginUC := authuc.NewLoginUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry)
 	authMeUC := authuc.NewGetCurrentUserUseCase(domainUserRepo, orgHierarchySvc)
+	authChangePasswordUC := authuc.NewChangePasswordUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry)
 
 	// AI usecases
 	aiFishboneUC := aiuc.NewGenerateFishboneUseCase(domainAIRepo)
@@ -287,7 +288,7 @@ func main() {
 	)
 
 	// Auth handlers (Clean Architecture)
-	cleanAuthHandler := httpHandler.NewAuthHandler(authLoginUC, authMeUC)
+	cleanAuthHandler := httpHandler.NewAuthHandler(authLoginUC, authMeUC, authChangePasswordUC)
 
 	// AI handlers (Clean Architecture)
 	cleanAIHandler := httpHandler.NewAIHandler(
@@ -385,14 +386,14 @@ func main() {
 	// Auth (public)
 	api.Post("/auth/login", cleanAuthHandler.Login)
 
+	authProtected := api.Group("/auth", middleware.AuthRequired(cfg.JWTSecret))
+	authProtected.Get("/me", cleanAuthHandler.Me)
+	authProtected.Post("/change-password", cleanAuthHandler.ChangePassword)
+
+	protected := api.Group("", middleware.AuthRequired(cfg.JWTSecret), middleware.RequireFullSession(), middleware.ResolveOrgScope(orgHierarchySvc))
+
 	// Postgres Pro diagnostics endpoint (Clean Architecture)
-	api.Get("/system/slow-queries", middleware.AuthRequired(cfg.JWTSecret), cleanSystemHandler.GetSlowQueries)
-
-	// Protected routes
-	protected := api.Group("", middleware.AuthRequired(cfg.JWTSecret), middleware.ResolveOrgScope(orgHierarchySvc))
-
-	// Auth
-	protected.Get("/auth/me", cleanAuthHandler.Me)
+	protected.Get("/system/slow-queries", cleanSystemHandler.GetSlowQueries)
 
 	// System Settings (Super Admin only)
 	protected.Get("/system-settings", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.List)
@@ -409,12 +410,14 @@ func main() {
 	protected.Put("/organizations/:id", cleanOrgHandler.Update)
 	protected.Delete("/organizations/:id", cleanOrgHandler.Delete)
 
-	// Users (Clean Architecture)
+	// Users — read endpoints open to all authenticated users
 	protected.Get("/users", cleanUserHandler.ListUsers)
-	protected.Post("/users", cleanUserHandler.CreateUser)
 	protected.Get("/users/:id", cleanUserHandler.GetUser)
-	protected.Put("/users/:id", cleanUserHandler.UpdateUser)
-	protected.Delete("/users/:id", cleanUserHandler.DeleteUser)
+	// Users — write endpoints restricted to superadmin
+	usersAdmin := protected.Group("/users", middleware.RoleGuard("superadmin"))
+	usersAdmin.Post("/", cleanUserHandler.CreateUser)
+	usersAdmin.Put("/:id", cleanUserHandler.UpdateUser)
+	usersAdmin.Delete("/:id", cleanUserHandler.DeleteUser)
 
 	// Risks (Clean Architecture)
 	protected.Get("/risks", cleanRiskHandler.ListRisks)

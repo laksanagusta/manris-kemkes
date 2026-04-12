@@ -7,7 +7,6 @@ import (
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/domain/service"
-	"github.com/manris/backend/internal/middleware"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -46,9 +45,8 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*entity.
 	if err != nil {
 		return nil, errors.ErrInvalidCredentials
 	}
-
-	if user.Status != "active" {
-		return nil, errors.ErrAccountInactive
+	if user == nil {
+		return nil, errors.ErrInvalidCredentials
 	}
 
 	if err := bcrypt.CompareHashAndPassword(
@@ -58,42 +56,18 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*entity.
 		return nil, errors.ErrInvalidCredentials
 	}
 
-	orgID := ""
-	if user.OrganizationID != nil {
-		orgID = user.OrganizationID.String()
+	if user.Status == entity.UserStatusInactive {
+		return nil, errors.ErrAccountInactive
 	}
 
-	token, err := middleware.GenerateToken(
-		user.ID,
-		user.Username,
-		user.Role,
-		orgID,
-		uc.jwtSecret,
-		uc.jwtExpiry,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate token")
+	sessionMode := entity.AuthSessionModeFull
+	setupOnly := false
+	if user.IsPendingActivation() {
+		sessionMode = entity.AuthSessionModeSetup
+		setupOnly = true
 	}
 
-	scope, err := uc.hierarchySvc.ResolveAccessScope(ctx, user.ID, user.Role, user.OrganizationID)
-	if err != nil {
-		return nil, err
-	}
-
-	authToken := &entity.AuthToken{
-		Token: token,
-		User: &entity.UserPublic{
-			ID:               user.ID,
-			Username:         user.Username,
-			Name:             user.Name,
-			Role:             user.Role,
-			OrganizationID:   user.OrganizationID,
-			AccessibleOrgIDs: scope.AccessibleOrgIDs,
-			IsGlobal:         scope.IsGlobal,
-		},
-	}
-
-	return authToken, nil
+	return buildAuthToken(ctx, uc.hierarchySvc, uc.jwtSecret, uc.jwtExpiry, user, sessionMode, setupOnly)
 }
 
 func validateLoginInput(input LoginInput) error {

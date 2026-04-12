@@ -16,8 +16,8 @@ type QRPayload struct {
 	DocumentHash      string    `json:"document_hash"`
 	SignerName        string    `json:"signer_name"`
 	SignerNIP         string    `json:"signer_nip"`
-	SignerTitle       string    `json:"signer_title"`
-	SignerRoleLabel   string    `json:"signer_role_label"`
+	SignerJabatan     string    `json:"signer_jabatan"`
+	SignerPangkat     string    `json:"signer_pangkat"`
 	SignedAt          time.Time `json:"signed_at"`
 }
 

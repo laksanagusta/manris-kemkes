@@ -10,18 +10,29 @@ import { useAuth } from "@/contexts/auth-context";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const { token } = useAuth();
+  const { hasFullSession, token } = useAuth();
   const [inboxCount, setInboxCount] = useState(0);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !hasFullSession) {
+      return;
+    }
+
+    let cancelled = false;
+
     Promise.all([
       api.get<{ Count: number }>("/approvals/pending-count", token).catch(() => ({ Count: 0 })),
       api.get<{ count: number }>("/working-papers/pending-count", token).catch(() => ({ count: 0 })),
     ]).then(([approvals, wp]) => {
-      setInboxCount((approvals.Count ?? 0) + (wp.count ?? 0));
+      if (!cancelled) {
+        setInboxCount((approvals.Count ?? 0) + (wp.count ?? 0));
+      }
     });
-  }, [token]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasFullSession, token]);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -31,7 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           onToggleCollapse={() => setCollapsed(!collapsed)}
         />
         <div className="flex flex-1 pt-14">
-          <AppSidebar collapsed={collapsed} inboxBadge={inboxCount} />
+          <AppSidebar collapsed={collapsed} inboxBadge={hasFullSession ? inboxCount : 0} />
           <main
             className={cn(
               "flex-1 p-6 transition-all duration-300 animate-fade-in",

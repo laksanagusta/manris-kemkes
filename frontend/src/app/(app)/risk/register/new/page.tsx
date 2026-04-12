@@ -62,7 +62,6 @@ import {
   BookOpen,
   History,
   Save,
-  ArrowLeft,
   Send,
   MessageSquare,
   Activity,
@@ -1343,37 +1342,6 @@ export default function RiskInputPage() {
     await onSubmit(normalizeFormValues(values));
   };
 
-  const handleRevertToDraft = async () => {
-    if (!riskId) return;
-    if (!isRiskCategory(form.getValues("category"))) {
-      toast.error("Pilih kategori risiko sebelum menyimpan perubahan.");
-      scrollToSection("identifikasi");
-      return;
-    }
-    const promise = (async () => {
-      const payload = buildPayload(
-        normalizeFormValues(form.getValues()),
-        "draft",
-      );
-      await api.put(`/risks/${riskId}`, payload, token || undefined);
-      setRiskStatus("draft");
-    })();
-    toast.promise(promise, {
-      loading: "Mengembalikan ke draft...",
-      success: "Berhasil dikembalikan ke status Draft.",
-      error: (err) =>
-        `Error: ${getErrorMessage(err, "Gagal mengubah status.")}`,
-    });
-    try {
-      setIsSubmitting(true);
-      await promise;
-    } catch {
-      // error handled by toast.promise
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleDeleteDraft = async () => {
     if (!riskId) return;
     setShowDeleteConfirm(false);
@@ -1555,7 +1523,7 @@ export default function RiskInputPage() {
           title="Form registrasi risiko"
           description={
             isRiskLocked
-              ? "Dokumen ini terkunci karena sudah final. Kembalikan ke draft terlebih dahulu jika ingin mengubah data risiko."
+              ? "Dokumen ini terkunci karena sudah final. Gunakan draft baru jika perlu perubahan."
               : "Lengkapi identifikasi, analisis, dan rencana penanganan sebelum diajukan untuk approval."
           }
           badges={
@@ -1585,28 +1553,6 @@ export default function RiskInputPage() {
           onBack={() => router.push("/risk/register")}
           actions={
             <div className="flex items-center gap-2 sm:gap-3">
-              {riskId &&
-                (riskStatus === "in_review" ||
-                  riskStatus === "in_approval" ||
-                  riskStatus === "approved" ||
-                  riskStatus === "rejected") && (
-                  <Button
-                    variant="outline"
-                    className="gap-2 text-xs text-destructive hover:bg-destructive/10"
-                    onClick={handleRevertToDraft}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <ArrowLeft className="size-3.5 rounded-full border border-current p-0.5" />
-                    )}{" "}
-                    <span className="hidden sm:inline">
-                      Kembalikan ke draft
-                    </span>
-                  </Button>
-                )}
-
               {riskId && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1703,7 +1649,7 @@ export default function RiskInputPage() {
                 },
                 {
                   id: "log" as const,
-                  label: "Log & Komunikasi",
+                  label: "Activity",
                   icon: MessageSquare,
                 },
               ].map((item) => {
@@ -3049,27 +2995,44 @@ export default function RiskInputPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Ajukan Risiko untuk Review?</AlertDialogTitle>
               <AlertDialogDescription>
-                Risiko akan disimpan lalu dikirim ke reviewer dan approval line yang
-                sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan.
+                Risiko akan disimpan lalu dikirim ke reviewer dan approval line
+                yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum
+                melanjutkan.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
               <div>
                 <span className="font-medium text-foreground">Reviewer: </span>
-                <span className="text-muted-foreground">{availableUsers.find(u => u.id === reviewerId)?.name || "-"}</span>
+                <span className="text-muted-foreground">
+                  {availableUsers.find((u) => u.id === reviewerId)?.name || "-"}
+                </span>
               </div>
               <div>
-                <span className="font-medium text-foreground">Approval line: </span>
-                <span className="text-muted-foreground">{approvalLine.length} orang</span>
+                <span className="font-medium text-foreground">
+                  Approval line:{" "}
+                </span>
+                <span className="text-muted-foreground">
+                  {approvalLine.length} orang
+                </span>
               </div>
               <div>
-                <span className="font-medium text-foreground">Bagian siap: </span>
-                <span className="text-muted-foreground">{sectionStatuses.length - missingSections.length}/{sectionStatuses.length}</span>
+                <span className="font-medium text-foreground">
+                  Bagian siap:{" "}
+                </span>
+                <span className="text-muted-foreground">
+                  {sectionStatuses.length - missingSections.length}/
+                  {sectionStatuses.length}
+                </span>
               </div>
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isSubmitting}>Batal</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmSubmitReview} disabled={isSubmitting}>
+              <AlertDialogCancel disabled={isSubmitting}>
+                Batal
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmSubmitReview}
+                disabled={isSubmitting}
+              >
                 Lanjutkan
               </AlertDialogAction>
             </AlertDialogFooter>

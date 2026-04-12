@@ -215,11 +215,10 @@ func TestCreateLatestApprovedLinksTheExactApprovedRiskID(t *testing.T) {
 		AssessmentCycle: "2026-H1",
 		Risks:           []RiskInput{{RiskID: approvedID, SourceMode: "latest_approved"}},
 		Signatories: []CreateSignatoryInput{{
-			UserID:          uuid.New(),
-			SequenceNo:      1,
-			SignerName:      "Rina",
-			SignerTitle:     "Kabid",
-			SignerRoleLabel: "Pemeriksa",
+			UserID:        uuid.New(),
+			SequenceNo:    1,
+			SignerName:    "Rina",
+			SignerPangkat: "Pembina Tk. I (IV/b)",
 		}},
 	})
 	if err != nil {
@@ -271,11 +270,10 @@ func TestCreateLatestApprovedUsesFullAccessibleOrgScope(t *testing.T) {
 		AccessibleOrgIDs: []uuid.UUID{accessibleOrgOne, accessibleOrgTwo},
 		Risks:            []RiskInput{{RiskID: approvedID, SourceMode: "latest_approved"}},
 		Signatories: []CreateSignatoryInput{{
-			UserID:          uuid.New(),
-			SequenceNo:      1,
-			SignerName:      "Rina",
-			SignerTitle:     "Kabid",
-			SignerRoleLabel: "Pemeriksa",
+			UserID:        uuid.New(),
+			SequenceNo:    1,
+			SignerName:    "Rina",
+			SignerPangkat: "Pembina Tk. I (IV/b)",
 		}},
 	})
 	if err != nil {
@@ -334,11 +332,10 @@ func TestCreateReviewPeriodicReusesExistingDraftRiskVersion(t *testing.T) {
 		AssessmentCycle: "2026-H1",
 		Risks:           []RiskInput{{RiskID: approvedID, SourceMode: "review_periodic"}},
 		Signatories: []CreateSignatoryInput{{
-			UserID:          uuid.New(),
-			SequenceNo:      1,
-			SignerName:      "Rina",
-			SignerTitle:     "Kabid",
-			SignerRoleLabel: "Pemeriksa",
+			UserID:        uuid.New(),
+			SequenceNo:    1,
+			SignerName:    "Rina",
+			SignerPangkat: "Pembina Tk. I (IV/b)",
 		}},
 	})
 	if err != nil {
@@ -388,11 +385,10 @@ func TestCreateReviewPeriodicCreatesDraftRiskVersionWhenMissing(t *testing.T) {
 		AssessmentCycle: "2026-H1",
 		Risks:           []RiskInput{{RiskID: approvedID, SourceMode: "review_periodic"}},
 		Signatories: []CreateSignatoryInput{{
-			UserID:          uuid.New(),
-			SequenceNo:      1,
-			SignerName:      "Rina",
-			SignerTitle:     "Kabid",
-			SignerRoleLabel: "Pemeriksa",
+			UserID:        uuid.New(),
+			SequenceNo:    1,
+			SignerName:    "Rina",
+			SignerPangkat: "Pembina Tk. I (IV/b)",
 		}},
 	})
 	if err != nil {
@@ -453,11 +449,10 @@ func TestCreateReviewPeriodicRejectsWhenReviewedVersionAlreadyExists(t *testing.
 		AccessibleOrgIDs: []uuid.UUID{uuid.New()},
 		Risks:            []RiskInput{{RiskID: approvedID, SourceMode: "review_periodic"}},
 		Signatories: []CreateSignatoryInput{{
-			UserID:          uuid.New(),
-			SequenceNo:      1,
-			SignerName:      "Rina",
-			SignerTitle:     "Kabid",
-			SignerRoleLabel: "Pemeriksa",
+			UserID:        uuid.New(),
+			SequenceNo:    1,
+			SignerName:    "Rina",
+			SignerPangkat: "Pembina Tk. I (IV/b)",
 		}},
 	})
 	if !errors.Is(err, domainerrors.ErrInvalidStatus) {

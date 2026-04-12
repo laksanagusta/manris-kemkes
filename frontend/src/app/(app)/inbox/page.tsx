@@ -86,7 +86,7 @@ interface WorkingPaperSigningItem {
   description: string;
   assessmentCycle: string;
   sequenceNo: number;
-  signerRoleLabel: string;
+  signerPangkat: string;
   status: "pending_signing";
   createdAt: string;
 }
@@ -166,7 +166,7 @@ async function getWorkingPaperSigningItems(token: string): Promise<WorkingPaperS
     description: string;
     assessment_cycle: string;
     sequence_no: number;
-    signer_role_label: string;
+    signer_pangkat: string;
     created_at: string;
   }[]>("/working-papers/pending-signing", token);
   return response.map((item) => ({
@@ -177,7 +177,7 @@ async function getWorkingPaperSigningItems(token: string): Promise<WorkingPaperS
     description: item.description ?? "",
     assessmentCycle: item.assessment_cycle ?? "",
     sequenceNo: item.sequence_no ?? 1,
-    signerRoleLabel: item.signer_role_label ?? "",
+    signerPangkat: item.signer_pangkat ?? "",
     status: "pending_signing" as const,
     createdAt: item.created_at,
   }));
@@ -370,7 +370,7 @@ export default function InboxPage() {
           wpItem.title,
           wpItem.description,
           wpItem.assessmentCycle,
-          wpItem.signerRoleLabel,
+          wpItem.signerPangkat,
         ]
           .filter(Boolean)
           .some((value) => value!.toLowerCase().includes(keyword));
@@ -588,7 +588,7 @@ const canAction = isKRIReport
                 const displaySubtitle = isKRIReport
                   ? `${kriItem!.periodLabel} • Nilai: ${kriItem!.value !== null ? kriItem!.value : "—"} ${kriItem!.kriMetric || ""}`
                   : isWorkingPaper
-                    ? `Penandatangan #${wpItem!.sequenceNo} (${wpItem!.signerRoleLabel})`
+                    ? `Penandatangan #${wpItem!.sequenceNo} (${wpItem!.signerPangkat})`
                     : (approvalItem!.notes || `Menunggu review ${approvalItem!.currentApproverRole}`);
                 const displayOrg = isKRIReport
                   ? kriItem!.riskTitle

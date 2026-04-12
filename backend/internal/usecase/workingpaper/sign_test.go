@@ -62,7 +62,7 @@ func TestSignComputesDocumentHashFromLinkedRisksBeforeFirstSignature(t *testing.
 			Risk:      entity.WorkingPaperRiskData{Code: "R-001", Title: "Gangguan server", Probability: 4, Impact: 5, Nilai: 20, TingkatRisiko: entity.RiskLevelSangatTinggi, AssessmentCycle: "2026-H1", Status: entity.RiskStatusApproved},
 			CreatedAt: time.Now(),
 		}},
-		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerTitle: "Kabid", SignerRoleLabel: "Pemeriksa", Status: "pending"}},
+		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)", Status: "pending"}},
 	}}
 
 	uc := NewWorkingPaperUseCase(repo, nil)
@@ -99,7 +99,7 @@ func TestSignRejectsWhenLinkedRiskNotApproved(t *testing.T) {
 				CreatedAt: time.Now(),
 			},
 		},
-		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerTitle: "Kabid", SignerRoleLabel: "Pemeriksa", Status: "pending"}},
+		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)", Status: "pending"}},
 	}}
 
 	uc := NewWorkingPaperUseCase(repo, nil)
@@ -138,7 +138,7 @@ func TestSignSucceedsWhenAllLinkedRisksApproved(t *testing.T) {
 				CreatedAt: time.Now(),
 			},
 		},
-		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerTitle: "Kabid", SignerRoleLabel: "Pemeriksa", Status: "pending"}},
+		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)", Status: "pending"}},
 	}}
 
 	uc := NewWorkingPaperUseCase(repo, nil)

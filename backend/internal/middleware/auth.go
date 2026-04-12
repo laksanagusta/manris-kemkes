@@ -26,16 +26,18 @@ type JWTClaims struct {
 	Username       string    `json:"username"`
 	Role           string    `json:"role"`
 	OrganizationID string    `json:"organizationId"`
+	SetupOnly      bool      `json:"setupOnly"`
 	jwt.RegisteredClaims
 }
 
 // GenerateToken creates a signed JWT token string.
-func GenerateToken(userID uuid.UUID, username, role, orgID, secret string, expiryHours int) (string, error) {
+func GenerateToken(userID uuid.UUID, username, role, orgID string, setupOnly bool, secret string, expiryHours int) (string, error) {
 	claims := JWTClaims{
 		UserID:         userID,
 		Username:       username,
 		Role:           role,
 		OrganizationID: orgID,
+		SetupOnly:      setupOnly,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiryHours) * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -71,7 +73,18 @@ func AuthRequired(secret string) fiber.Handler {
 		c.Locals("username", claims.Username)
 		c.Locals("role", claims.Role)
 		c.Locals("organizationId", claims.OrganizationID)
+		c.Locals("setupOnly", claims.SetupOnly)
 
+		return c.Next()
+	}
+}
+
+func RequireFullSession() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		setupOnly, _ := c.Locals("setupOnly").(bool)
+		if setupOnly {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "full session required"})
+		}
 		return c.Next()
 	}
 }

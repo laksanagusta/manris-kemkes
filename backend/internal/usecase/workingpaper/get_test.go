@@ -197,15 +197,14 @@ func TestSignUsesAtomicMutationPath(t *testing.T) {
 		DocumentHash: "hash-123",
 		Status:       entity.WorkingPaperStatusDraft,
 		Signatories: []entity.WorkingPaperSignatory{{
-			ID:              signatoryID,
-			WorkingPaperID:  workingPaperID,
-			UserID:          signerID,
-			SequenceNo:      1,
-			SignerName:      "Signer One",
-			SignerNIP:       "19800101",
-			SignerTitle:     "Direktur",
-			SignerRoleLabel: "Penyetuju",
-			Status:          "pending",
+			ID:             signatoryID,
+			WorkingPaperID: workingPaperID,
+			UserID:         signerID,
+			SequenceNo:     1,
+			SignerName:     "Signer One",
+			SignerNIP:      "19800101",
+			SignerPangkat:  "Pembina Tk. I (IV/b)",
+			Status:         "pending",
 		}},
 	}}
 

@@ -67,8 +67,8 @@ const formSchema = z.object({
   })).min(1, "Pilih minimal 1 risiko untuk kertas kerja"),
   signatories: z.array(z.object({
     user_id: z.string().min(1, "Pengguna harus dipilih"),
-    signer_title: z.string().min(1, "Jabatan penandatangan harus diisi"),
-    signer_role_label: z.string().min(1, "Peran (contoh: Pihak Pertama) harus diisi"),
+    signer_jabatan: z.string(),
+    signer_pangkat: z.string(),
     signer_name: z.string(),
     signer_nip: z.string().optional(),
   })).min(1, "Minimal 1 penandatangan harus ditambahkan"),
@@ -77,7 +77,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 type RiskOption = { id: string; code: string; title: string; category: string; status: string; isCurrent: boolean; nilai: number; reviewedNilai?: number | null };
-type UserOption = { id: string; name: string; email: string; username: string; nip?: string };
+type UserOption = { id: string; name: string; email: string; username: string; nip?: string; jabatan?: string; pangkat?: string };
 
 /* ── Sortable signatory row ─────────────────────────────────── */
 
@@ -165,27 +165,23 @@ function SortableSignatoryRow({
         </div>
 
         <div className="space-y-2">
-          <Label>Jabatan (saat penandatanganan) <span className="text-destructive">*</span></Label>
+          <Label>NIP</Label>
           <Input
-            placeholder="Cth: Direktur Utama"
-            {...register(`signatories.${index}.signer_title`)}
-            className={errors.signatories?.[index]?.signer_title ? "border-destructive" : ""}
+            placeholder="Otomatis dari data pengguna"
+            {...register(`signatories.${index}.signer_nip`)}
+            disabled
+            className="bg-muted/50"
           />
-          {errors.signatories?.[index]?.signer_title && (
-            <p className="text-xs text-destructive">{errors.signatories[index]?.signer_title?.message}</p>
-          )}
         </div>
 
         <div className="space-y-2">
-          <Label>Peran Label <span className="text-destructive">*</span></Label>
+          <Label>Jabatan</Label>
           <Input
-            placeholder="Cth: Pihak Pertama"
-            {...register(`signatories.${index}.signer_role_label`)}
-            className={errors.signatories?.[index]?.signer_role_label ? "border-destructive" : ""}
+            placeholder="Otomatis dari data pengguna"
+            {...register(`signatories.${index}.signer_jabatan`)}
+            disabled
+            className="bg-muted/50"
           />
-          {errors.signatories?.[index]?.signer_role_label && (
-            <p className="text-xs text-destructive">{errors.signatories[index]?.signer_role_label?.message}</p>
-          )}
         </div>
       </div>
 
@@ -231,8 +227,8 @@ export default function CreateWorkingPaperPage() {
       signatories: [
         {
           user_id: "",
-          signer_title: "",
-          signer_role_label: "Pihak Pertama",
+          signer_jabatan: "",
+          signer_pangkat: "",
           signer_name: "",
           signer_nip: "",
         }
@@ -318,6 +314,8 @@ export default function CreateWorkingPaperPage() {
       setValue(`signatories.${index}.user_id`, userId, { shouldValidate: true });
       setValue(`signatories.${index}.signer_name`, user.name, { shouldValidate: true });
       setValue(`signatories.${index}.signer_nip`, user.nip || user.username || "", { shouldValidate: true });
+      setValue(`signatories.${index}.signer_jabatan`, user.jabatan || "", { shouldValidate: true });
+      setValue(`signatories.${index}.signer_pangkat`, user.pangkat || "", { shouldValidate: true });
     }
   };
 
@@ -347,8 +345,8 @@ export default function CreateWorkingPaperPage() {
           user_id: sig.user_id,
           sequence_no: idx + 1,
           signer_name: sig.signer_name,
-          signer_title: sig.signer_title,
-          signer_role_label: sig.signer_role_label,
+          signer_jabatan: sig.signer_jabatan,
+          signer_pangkat: sig.signer_pangkat,
           signer_nip: sig.signer_nip || undefined,
         })),
       };
@@ -376,6 +374,21 @@ export default function CreateWorkingPaperPage() {
         }
         backLabel="Kembali ke Kertas Kerja"
         onBack={() => router.push("/risk/working-papers")}
+        actions={
+          <Button type="submit" disabled={isSubmitting} onClick={handleSubmit(onSubmit)}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Menyimpan...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Buat Kertas Kerja
+              </>
+            )}
+          </Button>
+        }
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -568,8 +581,8 @@ export default function CreateWorkingPaperPage() {
               size="sm"
               onClick={() => appendSignatory({
                 user_id: "",
-                signer_title: "",
-                signer_role_label: "",
+                signer_jabatan: "",
+                signer_pangkat: "",
                 signer_name: "",
                 signer_nip: "",
               })}
@@ -603,31 +616,6 @@ export default function CreateWorkingPaperPage() {
             </div>
           </DragDropProvider>
         </FormSection>
-
-        {/* ── Sticky submit bar ──────────────────────────── */}
-        <div className="flex justify-end gap-3 sticky bottom-4 z-20 bg-background/80 backdrop-blur p-4 rounded-xl border shadow-sm">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/risk/working-papers")}
-            disabled={isSubmitting}
-          >
-            Batal
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Menyimpan...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Buat Kertas Kerja
-              </>
-            )}
-          </Button>
-        </div>
       </form>
     </FormPage>
   );

@@ -44,8 +44,8 @@ type User = {
 type Organization = {
   id: string;
   name: string;
-  parent_id?: string;
-  created_at: string;
+  parentId?: string;
+  createdAt: string;
 };
 
 function makeUser(overrides: Partial<User> = {}): User {
@@ -65,7 +65,7 @@ function makeUser(overrides: Partial<User> = {}): User {
 }
 
 function makeOrg(id: string, name: string): Organization {
-  return { id, name, created_at: "2026-01-01T00:00:00.000Z" };
+  return { id, name, createdAt: "2026-01-01T00:00:00.000Z" };
 }
 
 test("canWriteInOrg returns false for null user", () => {

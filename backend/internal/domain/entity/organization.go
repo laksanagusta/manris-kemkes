@@ -9,10 +9,10 @@ import (
 
 // Organization represents a unit kerja
 type Organization struct {
-	ID        uuid.UUID
-	Name      string
-	ParentID  *uuid.UUID
-	CreatedAt time.Time
+	ID        uuid.UUID  `json:"id"`
+	Name      string     `json:"name"`
+	ParentID  *uuid.UUID `json:"parentId,omitempty"`
+	CreatedAt time.Time  `json:"createdAt"`
 }
 
 // Validate performs domain validation on Organization

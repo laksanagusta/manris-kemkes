@@ -7,6 +7,18 @@ import (
 	useruc "github.com/manris/backend/internal/usecase/user"
 )
 
+type createUserRequest struct {
+	Name           string `json:"name"`
+	Username       string `json:"username"`
+	Email          string `json:"email"`
+	Password       string `json:"password"`
+	Role           string `json:"role"`
+	OrganizationID string `json:"organizationId"`
+	NIP            string `json:"nip"`
+	Jabatan        string `json:"jabatan"`
+	Pangkat        string `json:"pangkat"`
+}
+
 // UserHandler handles HTTP requests for User operations using clean architecture
 type UserHandler struct {
 	createUC *useruc.CreateUserUseCase
@@ -34,9 +46,30 @@ func NewUserHandler(
 
 // CreateUser handles POST /api/users
 func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
-	var input useruc.CreateUserInput
-	if err := c.BodyParser(&input); err != nil {
+	var req createUserRequest
+	if err := c.BodyParser(&req); err != nil {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+
+	var organizationID *uuid.UUID
+	if req.OrganizationID != "" {
+		parsedID, err := uuid.Parse(req.OrganizationID)
+		if err != nil {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		}
+		organizationID = &parsedID
+	}
+
+	input := useruc.CreateUserInput{
+		Name:           req.Name,
+		Username:       req.Username,
+		Email:          req.Email,
+		Password:       req.Password,
+		Role:           req.Role,
+		OrganizationID: organizationID,
+		NIP:            req.NIP,
+		Jabatan:        req.Jabatan,
+		Pangkat:        req.Pangkat,
 	}
 
 	result, err := h.createUC.Execute(c.Context(), input)

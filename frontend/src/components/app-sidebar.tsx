@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -13,8 +12,6 @@ import {
   FileBarChart,
   AlertTriangle,
   FileText,
-  ClipboardList,
-  TrendingUp,
   Users,
   Settings2,
   ChevronDown,
@@ -23,7 +20,7 @@ import {
   Building2,
   FileSignature,
 } from "lucide-react";
-import { mainMenuItems } from "@/lib/app-navigation";
+import { adminMenuGroup, mainMenuItems } from "@/lib/app-navigation";
 import {
   Tooltip,
   TooltipContent,
@@ -31,7 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 
 interface NavItem {
@@ -57,8 +54,10 @@ const iconMap: Record<string, React.ElementType> = {
   BookOpen,
   FileBarChart,
   AlertTriangle,
-  ClipboardList,
   FileSignature,
+  Users,
+  Building2,
+  Settings2,
 };
 
 const navigation: NavGroup[] = [
@@ -92,14 +91,12 @@ const navigation: NavGroup[] = [
     ],
   },
   {
-    title: "ADMINISTRATION",
+    ...adminMenuGroup,
     icon: Settings2,
-    items: [
-      { label: "Users", href: "/admin/users", icon: Users },
-      { label: "Organizations", href: "/admin/organizations", icon: Building2 },
-      // { label: "Form Builder", href: "/admin/forms", icon: FileText },
-      { label: "Settings", href: "/admin/settings", icon: Settings2 },
-    ],
+    items: adminMenuGroup.items.map((item) => ({
+      ...item,
+      icon: iconMap[item.icon] ?? Settings2,
+    })),
   },
 ];
 
@@ -202,6 +199,13 @@ export function AppSidebar({
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     new Set(),
   );
+  const visibleNavigation = useMemo(
+    () =>
+      user?.role === "superadmin"
+        ? navigation
+        : navigation.filter((group) => group.title !== adminMenuGroup.title),
+    [user?.role],
+  );
 
   // Get initials from user name (e.g., "Dr. Farah Indah" -> "FI")
   const getInitials = (name: string | undefined): string => {
@@ -236,7 +240,7 @@ export function AppSidebar({
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-6">
-          {navigation.map((group) => {
+          {visibleNavigation.map((group) => {
             const isGroupCollapsed = collapsedGroups.has(group.title);
             return (
               <div key={group.title}>

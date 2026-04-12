@@ -30,7 +30,7 @@ import { OrganizationDeleteDialog } from "@/components/organization/organization
 import { OrganizationRowActions } from "@/components/organization/organization-row-actions";
 
 function getOrganizationKey(org: OrganizationTreeNode) {
-  return org.id || `${org.name}-${org.parent_id ?? "root"}-${org.created_at}`;
+  return org.id || `${org.name}-${org.parentId ?? "root"}-${org.createdAt}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -52,16 +52,16 @@ function normalizeOrganization(value: unknown): Organization | null {
 
   const id = readStringField(value, ["id", "ID"]);
   const name = readStringField(value, ["name", "Name"]);
-  const parentId = readStringField(value, ["parent_id", "ParentID", "parentId"]);
-  const createdAt = readStringField(value, ["created_at", "CreatedAt", "createdAt"]);
+  const parentId = readStringField(value, ["parentId", "parent_id", "ParentID"]);
+  const createdAt = readStringField(value, ["createdAt", "created_at", "CreatedAt"]);
 
   if (!id || !name) return null;
 
   return {
     id,
     name,
-    ...(parentId ? { parent_id: parentId } : {}),
-    created_at: createdAt,
+    ...(parentId ? { parentId } : {}),
+    createdAt,
   };
 }
 
@@ -83,7 +83,7 @@ function OrgRow({
   onToggleExpand: (orgId: string) => void;
 }) {
   const hasChildren = org.children && org.children.length > 0;
-  const createdAt = new Date(org.created_at);
+  const createdAt = new Date(org.createdAt);
   const createdAtLabel = Number.isNaN(createdAt.getTime())
     ? "—"
     : createdAt.toLocaleDateString("id-ID");
@@ -121,8 +121,8 @@ function OrgRow({
         </div>
       </TableCell>
       <TableCell className="text-xs text-muted-foreground">
-        {org.parent_id
-          ? parentNameMap.get(org.parent_id) || "—"
+        {org.parentId
+          ? parentNameMap.get(org.parentId) || "—"
           : "—"}
       </TableCell>
       <TableCell className="text-xs text-muted-foreground">
@@ -229,7 +229,7 @@ export default function OrganizationsManagementPage() {
 
   const orgTree = buildOrganizationTree(organizations);
   const totalUnits = organizations.length;
-  const rootUnits = organizations.filter((o) => !o.parent_id).length;
+  const rootUnits = organizations.filter((o) => !o.parentId).length;
   const subUnits = totalUnits - rootUnits;
   const visibleOrgRows = useMemo(
     () => flattenVisibleOrganizationTree(orgTree, collapsedOrgIds),

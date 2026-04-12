@@ -78,6 +78,9 @@ func TestGetCurrentUser_IncludesAccessibleOrgIDs(t *testing.T) {
 	if profile.IsGlobal {
 		t.Error("expected IsGlobal = false for unit role")
 	}
+	if profile.MustChangePassword {
+		t.Error("expected MustChangePassword = false when user does not require password change")
+	}
 }
 
 func TestGetCurrentUser_SuperadminIsGlobal(t *testing.T) {
@@ -110,5 +113,34 @@ func TestGetCurrentUser_SuperadminIsGlobal(t *testing.T) {
 	}
 	if profile.AccessibleOrgIDs != nil {
 		t.Error("expected nil AccessibleOrgIDs for global scope")
+	}
+}
+
+func TestGetCurrentUser_IncludesMustChangePassword(t *testing.T) {
+	userID := uuid.New()
+
+	userRepo := &stubUserRepo{
+		user: &entity.User{
+			ID:                 userID,
+			Username:           "pending-user",
+			Name:               "Pending User",
+			Role:               entity.RoleSuperAdmin,
+			Status:             entity.UserStatusPendingActivation,
+			MustChangePassword: true,
+			CreatedAt:          time.Now(),
+			UpdatedAt:          time.Now(),
+		},
+	}
+
+	orgRepo := &stubOrgRepo{}
+	hierarchySvc := service.NewOrganizationHierarchy(orgRepo)
+	uc := NewGetCurrentUserUseCase(userRepo, hierarchySvc)
+
+	profile, err := uc.Execute(context.Background(), GetCurrentUserInput{UserID: userID})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !profile.MustChangePassword {
+		t.Fatal("expected MustChangePassword to be preserved in user profile")
 	}
 }

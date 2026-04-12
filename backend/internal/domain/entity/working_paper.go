@@ -70,6 +70,8 @@ type WorkingPaperRiskData struct {
 	ControlEffectiveness string    `json:"control_effectiveness,omitempty"`
 	RiskAppetite         string    `json:"risk_appetite,omitempty"`
 	TreatmentOption      string    `json:"treatment_option,omitempty"`
+	Mitigations          []string  `json:"mitigations,omitempty"`
+	MitigationDueDates   []string  `json:"mitigation_due_dates,omitempty"`
 	TargetProbability    int       `json:"target_probability,omitempty"`
 	TargetImpact         int       `json:"target_impact,omitempty"`
 	TargetBobot          float64   `json:"target_bobot,omitempty"`
@@ -101,18 +103,18 @@ func (r *WorkingPaperRiskData) NormalizeDerivedScores() {
 
 // WorkingPaperSignatory represents a signer in the workflow
 type WorkingPaperSignatory struct {
-	ID              uuid.UUID       `json:"id"`
-	WorkingPaperID  uuid.UUID       `json:"working_paper_id"`
-	UserID          uuid.UUID       `json:"user_id"`
-	SequenceNo      int             `json:"sequence_no"` // 1-based sequence order
-	SignerName      string          `json:"signer_name"`
-	SignerNIP       string          `json:"signer_nip"`
-	SignerTitle     string          `json:"signer_title"`
-	SignerRoleLabel string          `json:"signer_role_label"`
-	Status          string          `json:"status"` // pending, signed
-	SignedAt        *time.Time      `json:"signed_at,omitempty"`
-	QRCodePNG       string          `json:"qr_code_png,omitempty"` // base64 PNG
-	QRData          json.RawMessage `json:"qr_data,omitempty"`     // JSON with signing metadata
+	ID             uuid.UUID       `json:"id"`
+	WorkingPaperID uuid.UUID       `json:"working_paper_id"`
+	UserID         uuid.UUID       `json:"user_id"`
+	SequenceNo     int             `json:"sequence_no"` // 1-based sequence order
+	SignerName     string          `json:"signer_name"`
+	SignerNIP      string          `json:"signer_nip"`
+	SignerJabatan  string          `json:"signer_jabatan"`
+	SignerPangkat  string          `json:"signer_pangkat"`
+	Status         string          `json:"status"` // pending, signed
+	SignedAt       *time.Time      `json:"signed_at,omitempty"`
+	QRCodePNG      string          `json:"qr_code_png,omitempty"` // base64 PNG
+	QRData         json.RawMessage `json:"qr_data,omitempty"`     // JSON with signing metadata
 }
 
 // Validate performs domain validation on WorkingPaper

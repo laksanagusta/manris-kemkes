@@ -40,8 +40,8 @@ func (uc *UseCase) Sign(ctx context.Context, workingPaperID uuid.UUID, signerUse
 			DocumentHash:      wp.DocumentHash,
 			SignerName:        nextSig.SignerName,
 			SignerNIP:         nextSig.SignerNIP,
-			SignerTitle:       nextSig.SignerTitle,
-			SignerRoleLabel:   nextSig.SignerRoleLabel,
+			SignerJabatan:     nextSig.SignerJabatan,
+			SignerPangkat:     nextSig.SignerPangkat,
 			SignedAt:          now,
 		}
 
