@@ -37,8 +37,12 @@ type User = {
   organizationId: string | null;
   orgName: string;
   status: string;
+  nip: string;
+  jabatan: string;
+  pangkat: string;
   accessibleOrgIds: string[];
   isGlobal: boolean;
+  mustChangePassword: boolean;
 };
 
 type Organization = {
@@ -58,8 +62,12 @@ function makeUser(overrides: Partial<User> = {}): User {
     organizationId: "org-A",
     orgName: "Org A",
     status: "active",
+    nip: "198001012006041001",
+    jabatan: "Analis Risiko",
+    pangkat: "Pembina",
     accessibleOrgIds: ["org-A"],
     isGlobal: false,
+    mustChangePassword: false,
     ...overrides,
   };
 }

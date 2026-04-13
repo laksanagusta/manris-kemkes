@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
 import { useAuth } from "@/contexts/auth-context";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import type {
@@ -57,10 +58,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
-type OrganizationOption = {
-  id: string;
-  name: string;
-};
+type OrganizationOption = OrganizationListItem;
 
 const reviewStatusMeta: Record<string, { label: string; className: string }> = {
   due: {
@@ -176,17 +174,11 @@ export function RiskReviewPanel() {
 
     const loadOrganizations = async () => {
       try {
-        const data = await api.get<OrganizationOption[]>(
-          "/organizations",
-          token,
-        );
+        const data = await listAllOrganizations(token);
         const uniqueOrgs = dedupeOrganizations(data);
         const filteredOrgs = user?.isGlobal
           ? uniqueOrgs
-          : filterToAccessibleOrgs(
-              uniqueOrgs as any,
-              user?.accessibleOrgIds || [],
-            );
+          : filterToAccessibleOrgs(uniqueOrgs, user?.accessibleOrgIds || []);
         setOrganizations(filteredOrgs);
       } catch (error) {
         console.error(error);

@@ -22,6 +22,7 @@ type ListRiskRegisterInput struct {
 	Status          string
 	Category        string
 	AssessmentCycle string
+	CreatedAt       string
 	Query           string
 	Page            int
 	Limit           int
@@ -53,6 +54,7 @@ func (uc *ListRiskRegisterUseCase) Execute(ctx context.Context, input ListRiskRe
 		Status:          input.Status,
 		Category:        input.Category,
 		AssessmentCycle: input.AssessmentCycle,
+		CreatedAt:       input.CreatedAt,
 		Query:           input.Query,
 		Page:            input.Page,
 		Limit:           input.Limit,

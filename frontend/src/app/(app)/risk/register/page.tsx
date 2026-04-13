@@ -274,6 +274,9 @@ export default function RiskRegisterPage() {
   const [assessmentCycleFilter, setAssessmentCycleFilter] = useState(
     () => searchParams.get("assessment_cycle") ?? "",
   );
+  const [createdAtFilter, setCreatedAtFilter] = useState(
+    () => searchParams.get("created_at") ?? "",
+  );
   const [page, setPage] = useState(() =>
     parsePositiveInt(searchParams.get("page"), 1),
   );
@@ -300,12 +303,14 @@ export default function RiskRegisterPage() {
     queryOverrides?: {
       q?: string;
       assessmentCycle?: string;
+      createdAt?: string;
     },
   ) => {
     const normalizedSearch = (queryOverrides?.q ?? search).trim();
     const normalizedAssessmentCycle = (
       queryOverrides?.assessmentCycle ?? assessmentCycleFilter
     ).trim();
+    const normalizedCreatedAt = (queryOverrides?.createdAt ?? createdAtFilter).trim();
 
     const [allRisksResponse, draftRisks, approvedRisks] = await Promise.all([
       listRiskRegister(activeToken, {
@@ -313,6 +318,7 @@ export default function RiskRegisterPage() {
         status: statusFilter === "all" ? undefined : statusFilter,
         category: categoryFilter === "all" ? undefined : categoryFilter,
         assessment_cycle: normalizedAssessmentCycle || undefined,
+        created_at: normalizedCreatedAt || undefined,
         page,
         limit,
       }),
@@ -358,6 +364,7 @@ export default function RiskRegisterPage() {
       searchParams.get("category"),
     );
     const nextAssessmentCycleFilter = searchParams.get("assessment_cycle") ?? "";
+    const nextCreatedAtFilter = searchParams.get("created_at") ?? "";
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
     const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
     const nextTab = getRiskRegisterTab(searchParams.get("tab"));
@@ -372,6 +379,9 @@ export default function RiskRegisterPage() {
     setAssessmentCycleFilter((current) =>
       current === nextAssessmentCycleFilter ? current : nextAssessmentCycleFilter,
     );
+    setCreatedAtFilter((current) =>
+      current === nextCreatedAtFilter ? current : nextCreatedAtFilter,
+    );
     setPage((current) => (current === nextPage ? current : nextPage));
     setLimit((current) => (current === nextLimit ? current : nextLimit));
     setActiveTab((current) => (current === nextTab ? current : nextTab));
@@ -381,6 +391,7 @@ export default function RiskRegisterPage() {
     const nextParams = new URLSearchParams(searchParams.toString());
     const normalizedSearch = search.trim();
     const normalizedAssessmentCycle = assessmentCycleFilter.trim();
+    const normalizedCreatedAt = createdAtFilter.trim();
 
     if (activeTab === "all-risks") {
       nextParams.delete("tab");
@@ -410,6 +421,12 @@ export default function RiskRegisterPage() {
       nextParams.set("assessment_cycle", normalizedAssessmentCycle);
     } else {
       nextParams.delete("assessment_cycle");
+    }
+
+    if (normalizedCreatedAt) {
+      nextParams.set("created_at", normalizedCreatedAt);
+    } else {
+      nextParams.delete("created_at");
     }
 
     if (page === 1) {
@@ -442,6 +459,7 @@ export default function RiskRegisterPage() {
     activeTab,
     assessmentCycleFilter,
     categoryFilter,
+    createdAtFilter,
     limit,
     page,
     pathname,
@@ -466,6 +484,7 @@ export default function RiskRegisterPage() {
         await refreshRegisterData(token, {
           q: deferredSearch,
           assessmentCycle: deferredAssessmentCycleFilter,
+          createdAt: createdAtFilter,
         });
       } catch (err) {
         console.error(err);
@@ -484,6 +503,7 @@ export default function RiskRegisterPage() {
     token,
     statusFilter,
     categoryFilter,
+    createdAtFilter,
     deferredSearch,
     deferredAssessmentCycleFilter,
     page,
@@ -786,6 +806,18 @@ export default function RiskRegisterPage() {
                     value={assessmentCycleFilter}
                     onChange={(event) => {
                       setAssessmentCycleFilter(event.target.value);
+                      setPage(1);
+                    }}
+                    className="h-8 border-none bg-muted/30 pl-8 text-xs"
+                  />
+                </div>
+                <div className="relative min-w-[160px] md:w-44">
+                  <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="date"
+                    value={createdAtFilter}
+                    onChange={(event) => {
+                      setCreatedAtFilter(event.target.value);
                       setPage(1);
                     }}
                     className="h-8 border-none bg-muted/30 pl-8 text-xs"

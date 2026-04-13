@@ -11,6 +11,7 @@ export async function listWorkingPapers(
     status?: string;
     q?: string;
     assessment_cycle?: string;
+    created_at?: string;
     page?: number;
     limit?: number;
   },
@@ -21,6 +22,7 @@ export async function listWorkingPapers(
   if (params?.assessment_cycle) {
     searchParams.set("assessment_cycle", params.assessment_cycle);
   }
+  if (params?.created_at) searchParams.set("created_at", params.created_at);
   if (params?.page) searchParams.set("page", params.page.toString());
   if (params?.limit) searchParams.set("limit", params.limit.toString());
   const qs = searchParams.toString();

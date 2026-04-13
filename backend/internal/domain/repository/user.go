@@ -9,11 +9,12 @@ import (
 
 // UserListFilter holds filter/pagination parameters for listing users
 type UserListFilter struct {
-	Page   int
-	Limit  int
-	Q      string // search query (name, username, email)
-	Status string // active, inactive, pending_activation
-	Role   string // superadmin, unit, reviewer, pimpinan
+	Page           int
+	Limit          int
+	Q              string // search query (name, username, email)
+	Status         string // active, inactive, pending_activation
+	Role           string // superadmin, unit, reviewer, pimpinan
+	OrganizationID string
 }
 
 // UserRepository defines the interface for user data access

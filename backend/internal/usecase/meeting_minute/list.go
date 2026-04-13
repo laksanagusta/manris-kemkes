@@ -20,6 +20,7 @@ type ListInput struct {
 	OrgIDs    []uuid.UUID
 	CreatedBy *uuid.UUID
 	RiskID    *uuid.UUID
+	CreatedAt string
 	Limit     int
 	Offset    int
 }
@@ -34,6 +35,7 @@ func (uc *ListMeetingMinutesUseCase) Execute(ctx context.Context, input ListInpu
 		OrgIDs:    input.OrgIDs,
 		CreatedBy: input.CreatedBy,
 		RiskID:    input.RiskID,
+		CreatedAt: input.CreatedAt,
 		Limit:     input.Limit,
 		Offset:    input.Offset,
 	})

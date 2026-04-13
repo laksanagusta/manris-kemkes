@@ -495,6 +495,13 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		args = append(args, filter.AssessmentCycle)
 		argIdx++
 	}
+	if filter.CreatedAt != "" {
+		clause := fmt.Sprintf(" AND r.created_at::date = $%d::date", argIdx)
+		countQuery += clause
+		dataQuery += clause
+		args = append(args, filter.CreatedAt)
+		argIdx++
+	}
 	if filter.Query != "" {
 		clause := fmt.Sprintf(" AND (COALESCE(r.code, '') ILIKE $%d OR COALESCE(r.title, '') ILIKE $%d OR COALESCE(r.description, '') ILIKE $%d)", argIdx, argIdx, argIdx)
 		countQuery += clause

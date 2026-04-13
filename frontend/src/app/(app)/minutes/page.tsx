@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
+  Calendar,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -59,6 +60,9 @@ export default function MinutesPage() {
   const [loading, setLoading] = useState(true);
 
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
+  const [createdAtFilter, setCreatedAtFilter] = useState(
+    () => searchParams.get("created_at") ?? "",
+  );
   const [page, setPage] = useState(() =>
     parsePositiveInt(searchParams.get("page"), 1),
   );
@@ -92,6 +96,7 @@ export default function MinutesPage() {
 
   useEffect(() => {
     const nextQuery = searchParams.get("q") ?? "";
+    const nextCreatedAt = searchParams.get("created_at") ?? "";
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
     const nextLimit = parsePositiveInt(
       searchParams.get("limit"),
@@ -99,6 +104,7 @@ export default function MinutesPage() {
     );
 
     setQuery((c) => (c === nextQuery ? c : nextQuery));
+    setCreatedAtFilter((c) => (c === nextCreatedAt ? c : nextCreatedAt));
     setPage((c) => (c === nextPage ? c : nextPage));
     setLimit((c) => (c === nextLimit ? c : nextLimit));
   }, [searchParams]);
@@ -111,6 +117,13 @@ export default function MinutesPage() {
       nextParams.set("q", normalizedQuery);
     } else {
       nextParams.delete("q");
+    }
+
+    const normalizedCreatedAt = createdAtFilter.trim();
+    if (normalizedCreatedAt) {
+      nextParams.set("created_at", normalizedCreatedAt);
+    } else {
+      nextParams.delete("created_at");
     }
 
     if (page === 1) {
@@ -137,7 +150,7 @@ export default function MinutesPage() {
     startTransition(() => {
       router.replace(nextUrl, { scroll: false });
     });
-  }, [query, page, limit, pathname, router, searchParams, startTransition]);
+  }, [query, createdAtFilter, page, limit, pathname, router, searchParams, startTransition]);
 
   useEffect(() => {
     if (!token) return;
@@ -145,7 +158,7 @@ export default function MinutesPage() {
     const offset = (page - 1) * limit;
 
     setLoading(true);
-    listMeetingMinutes({ limit, offset }, token)
+    listMeetingMinutes({ limit, offset, createdAt: createdAtFilter.trim() || undefined }, token)
       .then((result) => {
         setItems(result.items || []);
         setTotal(result.total ?? 0);
@@ -155,11 +168,15 @@ export default function MinutesPage() {
         toast.error("Daftar notulen belum berhasil dimuat.");
       })
       .finally(() => setLoading(false));
-  }, [token, page, limit]);
+  }, [token, page, limit, createdAtFilter]);
 
   useEffect(() => {
     setPage(1);
   }, [query]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [createdAtFilter]);
 
   const handleDelete = async () => {
     if (!token || !minuteToDelete) return;
@@ -227,6 +244,15 @@ export default function MinutesPage() {
                 className="pl-9"
               />
             </div>
+            <div className="relative w-full md:w-52">
+              <Calendar className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="date"
+                value={createdAtFilter}
+                onChange={(event) => setCreatedAtFilter(event.target.value)}
+                className="pl-9"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -234,7 +260,7 @@ export default function MinutesPage() {
             <div className="flex min-h-[220px] items-center justify-center">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>
-          ) : total === 0 && !query.trim() ? (
+          ) : total === 0 && !query.trim() && !createdAtFilter.trim() ? (
             <div className="rounded-2xl border border-dashed border-border/60 bg-muted/[0.12] px-6 py-12 text-center">
               <p className="text-base font-medium text-foreground">
                 Belum ada notulen tersimpan

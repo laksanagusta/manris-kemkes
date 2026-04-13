@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
@@ -21,10 +22,7 @@ import type {
   RiskMitigationDiff,
 } from "@/types/risk";
 
-type OrganizationOption = {
-  id: string;
-  name: string;
-};
+type OrganizationOption = OrganizationListItem;
 
 function dedupeOrganizations(items: OrganizationOption[]) {
   const seen = new Set<string>();
@@ -290,11 +288,11 @@ export function RiskCycleDetailReport({
 
     const loadOrganizations = async () => {
       try {
-        const data = await api.get<OrganizationOption[]>("/organizations", token);
+        const data = await listAllOrganizations(token);
         const uniqueOrgs = dedupeOrganizations(data);
         const filteredOrgs = user?.isGlobal 
           ? uniqueOrgs 
-          : filterToAccessibleOrgs(uniqueOrgs as any, user?.accessibleOrgIds || []);
+          : filterToAccessibleOrgs(uniqueOrgs, user?.accessibleOrgIds || []);
         setOrganizations(filteredOrgs);
       } catch (error) {
         console.error(error);

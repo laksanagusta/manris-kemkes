@@ -153,6 +153,11 @@ func (r *meetingMinuteRepository) List(ctx context.Context, opts repository.List
 		args = append(args, *opts.RiskID)
 		argIdx++
 	}
+	if opts.CreatedAt != "" {
+		whereClause += fmt.Sprintf(" AND mm.created_at::date = $%d::date", argIdx)
+		args = append(args, opts.CreatedAt)
+		argIdx++
+	}
 
 	var total int
 	countQuery := "SELECT COUNT(*) FROM meeting_minutes mm " + whereClause

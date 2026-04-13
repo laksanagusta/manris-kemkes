@@ -5,6 +5,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -144,6 +145,7 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 		OrgIDs:          orgIDs,
 		Status:          strings.TrimSpace(c.Query("status", "all")),
 		AssessmentCycle: strings.TrimSpace(c.Query("assessment_cycle", "")),
+		CreatedAt:       strings.TrimSpace(c.Query("created_at", "")),
 		Query:           strings.TrimSpace(c.Query("q", "")),
 		Page:            page,
 		Limit:           limit,
@@ -153,6 +155,11 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid category")
 		}
 		input.Category = category
+	}
+	if input.CreatedAt != "" {
+		if _, err := time.Parse("2006-01-02", input.CreatedAt); err != nil {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid created_at date")
+		}
 	}
 
 	result, err := h.listRegisterUC.Execute(c.Context(), input)

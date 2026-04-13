@@ -12,7 +12,7 @@ import (
 type WorkingPaperRepository interface {
 	Create(ctx context.Context, wp *entity.WorkingPaper) error
 	GetByID(ctx context.Context, id uuid.UUID) (*entity.WorkingPaper, error)
-	List(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle string, page, limit int) ([]*entity.WorkingPaper, int, error)
+	List(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle, createdAt string, page, limit int) ([]*entity.WorkingPaper, int, error)
 	Update(ctx context.Context, wp *entity.WorkingPaper) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	MutateByIDForUpdate(ctx context.Context, id uuid.UUID, mutate func(*entity.WorkingPaper) error) (*entity.WorkingPaper, error)

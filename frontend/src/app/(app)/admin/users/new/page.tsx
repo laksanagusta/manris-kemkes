@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { api, ApiError } from "@/lib/api";
+import { listAllOrganizations } from "@/lib/api/organizations";
 import {
   filterToAccessibleOrgs,
   type Organization,
@@ -72,8 +73,7 @@ export default function NewUserPage() {
 
     let cancelled = false;
 
-    api
-      .get<Organization[]>("/organizations", token)
+    listAllOrganizations(token)
       .then((result) => {
         if (cancelled) return;
         const filtered = user?.isGlobal

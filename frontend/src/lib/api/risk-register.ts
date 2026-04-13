@@ -55,6 +55,7 @@ interface ListRiskRegisterParams {
   status?: Exclude<RiskStatus, "draft">;
   category?: Exclude<RiskCategory, "">;
   assessment_cycle?: string;
+  created_at?: string;
   page?: number;
   limit?: number;
 }
@@ -71,6 +72,7 @@ export async function listRiskRegister(
   if (params?.assessment_cycle) {
     searchParams.set("assessment_cycle", params.assessment_cycle);
   }
+  if (params?.created_at) searchParams.set("created_at", params.created_at);
   if (params?.page) searchParams.set("page", params.page.toString());
   if (params?.limit) searchParams.set("limit", params.limit.toString());
 

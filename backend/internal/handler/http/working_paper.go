@@ -114,7 +114,13 @@ func (h *WorkingPaperHandler) List(c *fiber.Ctx) error {
 	status := strings.TrimSpace(c.Query("status", ""))
 	query := strings.TrimSpace(c.Query("q", ""))
 	assessmentCycle := strings.TrimSpace(c.Query("assessment_cycle", ""))
+	createdAt := strings.TrimSpace(c.Query("created_at", ""))
 	page, _ := strconv.Atoi(c.Query("page", "1"))
+	if createdAt != "" {
+		if _, err := time.Parse("2006-01-02", createdAt); err != nil {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid created_at date")
+		}
+	}
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
 	if page <= 0 {
 		page = 1
@@ -126,7 +132,7 @@ func (h *WorkingPaperHandler) List(c *fiber.Ctx) error {
 		limit = 100
 	}
 
-	wps, total, err := h.uc.List(c.Context(), orgIDs, status, query, assessmentCycle, page, limit)
+	wps, total, err := h.uc.List(c.Context(), orgIDs, status, query, assessmentCycle, createdAt, page, limit)
 	if err != nil {
 		return handleWPError(c, err)
 	}

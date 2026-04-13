@@ -20,7 +20,7 @@ func (r *stubSignWorkingPaperRepo) Create(context.Context, *entity.WorkingPaper)
 func (r *stubSignWorkingPaperRepo) GetByID(context.Context, uuid.UUID) (*entity.WorkingPaper, error) {
 	return nil, nil
 }
-func (r *stubSignWorkingPaperRepo) List(context.Context, []uuid.UUID, string, string, string, int, int) ([]*entity.WorkingPaper, int, error) {
+func (r *stubSignWorkingPaperRepo) List(context.Context, []uuid.UUID, string, string, string, string, int, int) ([]*entity.WorkingPaper, int, error) {
 	return nil, 0, nil
 }
 func (r *stubSignWorkingPaperRepo) Update(context.Context, *entity.WorkingPaper) error { return nil }

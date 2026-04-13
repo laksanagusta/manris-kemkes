@@ -102,11 +102,12 @@ func (r *handlerCreateWorkingPaperRepo) Create(_ context.Context, wp *entity.Wor
 func (r *handlerCreateWorkingPaperRepo) GetByID(context.Context, uuid.UUID) (*entity.WorkingPaper, error) {
 	return nil, nil
 }
-func (r *handlerCreateWorkingPaperRepo) List(_ context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle string, page, limit int) ([]*entity.WorkingPaper, int, error) {
+func (r *handlerCreateWorkingPaperRepo) List(_ context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle, createdAt string, page, limit int) ([]*entity.WorkingPaper, int, error) {
 	r.listOrgIDs = append([]uuid.UUID(nil), orgIDs...)
 	r.listStatus = status
 	r.listQuery = query
 	r.listAssessmentCycle = assessmentCycle
+	_ = createdAt
 	r.listPage = page
 	r.listLimit = limit
 	return r.listItems, r.listTotal, nil

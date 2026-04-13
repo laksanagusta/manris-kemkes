@@ -72,6 +72,7 @@ export interface ListMeetingMinutesOptions {
   organizationId?: string;
   createdBy?: string;
   riskId?: string;
+  createdAt?: string;
   limit?: number;
   offset?: number;
 }

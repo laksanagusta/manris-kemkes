@@ -1,6 +1,7 @@
 package http
 
 import (
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -162,6 +163,13 @@ func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
 			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
 		}
 		input.RiskID = &riskID
+	}
+
+	input.CreatedAt = strings.TrimSpace(c.Query("created_at", ""))
+	if input.CreatedAt != "" {
+		if _, err := time.Parse("2006-01-02", input.CreatedAt); err != nil {
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid created_at date")
+		}
 	}
 
 	limit := c.QueryInt("limit", 20)

@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-// @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
-import {
+const dashboardInsightsLib = await import(
+  new URL("./dashboard-insights.ts", import.meta.url).href,
+);
+
+const {
   buildCriticalRiskRateTrendData,
   buildExecutiveTrendData,
   buildInherentResidualTrendData,
@@ -11,7 +14,7 @@ import {
   buildMovementSnapshotData,
   buildTopRiskBadgeMap,
   buildUnitExposureData,
-} from "./dashboard-insights.ts";
+} = dashboardInsightsLib as typeof import("./dashboard-insights");
 
 type DashboardRiskInput = Parameters<typeof buildUnitExposureData>[0][number] & {
   status?: string;

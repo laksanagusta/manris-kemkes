@@ -72,7 +72,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(risk.risk_appetite, ''),
 		       COALESCE(risk.treatment_option, ''),
 		       COALESCE((SELECT array_agg(m.action ORDER BY m.sort_order) FROM mitigations m WHERE m.risk_id = risk.id), ARRAY[]::text[]),
-		       COALESCE((SELECT array_agg(m.due_date ORDER BY m.sort_order) FROM mitigations m WHERE m.risk_id = risk.id AND m.due_date IS NOT NULL), ARRAY[]::text[]),
+		       COALESCE((SELECT array_agg(m.due_date::text ORDER BY m.sort_order) FROM mitigations m WHERE m.risk_id = risk.id AND m.due_date IS NOT NULL), ARRAY[]::text[]),
 		       risk.target_probability,
 		       risk.target_impact,
 		       risk.target_weight,
@@ -328,7 +328,7 @@ func (r *workingPaperRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 }
 
 // List retrieves working papers with optional filters and pagination
-func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle string, page, limit int) ([]*entity.WorkingPaper, int, error) {
+func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle, createdAt string, page, limit int) ([]*entity.WorkingPaper, int, error) {
 	countQuery := `SELECT COUNT(*) FROM working_papers WHERE 1=1`
 	dataQuery := `SELECT id, title, description, org_id, status, assessment_cycle,
 	                     document_hash, current_signatory_sequence, created_by,
@@ -367,6 +367,14 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 		countQuery += filter
 		dataQuery += filter
 		args = append(args, assessmentCycle)
+		argIdx++
+	}
+
+	if createdAt != "" {
+		filter := fmt.Sprintf(" AND created_at::date = $%d::date", argIdx)
+		countQuery += filter
+		dataQuery += filter
+		args = append(args, createdAt)
 		argIdx++
 	}
 

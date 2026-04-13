@@ -12,6 +12,7 @@ type RiskRegisterFilter struct {
 	Status          string
 	Category        string
 	AssessmentCycle string
+	CreatedAt       string
 	Query           string
 	Page            int
 	Limit           int

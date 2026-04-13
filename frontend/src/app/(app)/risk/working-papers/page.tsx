@@ -115,6 +115,9 @@ export default function WorkingPapersPage() {
   const [assessmentCycleFilter, setAssessmentCycleFilter] = useState(
     () => searchParams.get("assessment_cycle") ?? "",
   );
+  const [createdAtFilter, setCreatedAtFilter] = useState(
+    () => searchParams.get("created_at") ?? "",
+  );
   const [page, setPage] = useState(() =>
     parsePositiveInt(searchParams.get("page"), 1),
   );
@@ -138,6 +141,7 @@ export default function WorkingPapersPage() {
         q: deferredSearch.trim() || undefined,
         assessment_cycle:
           deferredAssessmentCycleFilter.trim() || undefined,
+        created_at: createdAtFilter.trim() || undefined,
         page,
         limit,
       });
@@ -162,6 +166,7 @@ export default function WorkingPapersPage() {
     statusFilter,
     deferredSearch,
     deferredAssessmentCycleFilter,
+    createdAtFilter,
     page,
     limit,
   ]);
@@ -170,6 +175,7 @@ export default function WorkingPapersPage() {
     const nextStatusFilter = getWorkingPaperStatusFilter(searchParams.get("status"));
     const nextSearch = searchParams.get("q") ?? "";
     const nextAssessmentCycleFilter = searchParams.get("assessment_cycle") ?? "";
+    const nextCreatedAtFilter = searchParams.get("created_at") ?? "";
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
     const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
 
@@ -182,6 +188,9 @@ export default function WorkingPapersPage() {
         ? current
         : nextAssessmentCycleFilter,
     );
+    setCreatedAtFilter((current) =>
+      current === nextCreatedAtFilter ? current : nextCreatedAtFilter,
+    );
     setPage((current) => (current === nextPage ? current : nextPage));
     setLimit((current) => (current === nextLimit ? current : nextLimit));
   }, [searchParams]);
@@ -190,6 +199,7 @@ export default function WorkingPapersPage() {
     const nextParams = new URLSearchParams(searchParams.toString());
     const normalizedSearch = search.trim();
     const normalizedAssessmentCycle = assessmentCycleFilter.trim();
+    const normalizedCreatedAt = createdAtFilter.trim();
 
     if (statusFilter === "all") {
       nextParams.delete("status");
@@ -207,6 +217,12 @@ export default function WorkingPapersPage() {
       nextParams.set("assessment_cycle", normalizedAssessmentCycle);
     } else {
       nextParams.delete("assessment_cycle");
+    }
+
+    if (normalizedCreatedAt) {
+      nextParams.set("created_at", normalizedCreatedAt);
+    } else {
+      nextParams.delete("created_at");
     }
 
     if (page === 1) {
@@ -237,6 +253,7 @@ export default function WorkingPapersPage() {
     });
   }, [
     assessmentCycleFilter,
+    createdAtFilter,
     limit,
     page,
     pathname,
@@ -453,6 +470,18 @@ export default function WorkingPapersPage() {
                   setPage(1);
                 }}
                 placeholder="Filter siklus asesmen"
+                className="h-8 border-none bg-muted/30 pl-8 text-xs"
+              />
+            </div>
+            <div className="relative min-w-[160px] md:w-44">
+              <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="date"
+                value={createdAtFilter}
+                onChange={(event) => {
+                  setCreatedAtFilter(event.target.value);
+                  setPage(1);
+                }}
                 className="h-8 border-none bg-muted/30 pl-8 text-xs"
               />
             </div>

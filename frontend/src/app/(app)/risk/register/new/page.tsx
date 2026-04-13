@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { listUsers, type UserListItem } from "@/lib/api/users";
+import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import { useAuth } from "@/contexts/auth-context";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
@@ -65,7 +67,6 @@ import {
   Send,
   MessageSquare,
   Activity,
-  Plus,
   Check,
   CheckCircle2,
   CircleDot,
@@ -87,6 +88,10 @@ import {
   PROBABILITY_LABELS,
   IMPACT_LABELS,
 } from "@/lib/risk";
+import {
+  resolveDraftApprovalLine,
+  type DraftApprovalLineMember,
+} from "@/lib/risk-approval-line";
 import { EditableList } from "@/components/shared/editable-list";
 import { EditableItemsTable } from "@/components/shared/editable-items-table";
 import { FormHeader } from "@/components/shared/form-shell";
@@ -112,6 +117,11 @@ import {
   ReviewSidePanel,
   type RiskWorkflowState,
 } from "@/components/risk/review-side-panel";
+import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
+import {
+  filterApproverOptions,
+  type UserPickerOption,
+} from "@/lib/risk-register-user-picker";
 
 const RiskLogTimeline = dynamic(
   () =>
@@ -158,7 +168,7 @@ type SectionId =
   | "jadwal";
 type WorkspaceView = "form" | "progress" | "log";
 type CauseImpactItem = { id: string; text: string };
-type RoleUser = { id: string; name: string; role: string };
+type ApprovalLineUser = { id: string; name: string; role?: string };
 type RiskSuggestion = { title: string; description: string };
 type ErrorWithMessage = { message?: string; error?: string };
 
@@ -175,7 +185,7 @@ type RiskApiResponse = {
   organizationId?: string;
   code?: string;
   assessmentCycle?: string;
-  draftApprovalLine?: { id: string; name: string; type?: string }[];
+  draftApprovalLine?: DraftApprovalLineMember[];
   cause?: string[] | string;
   riskSource?: string;
   controllability?: "C" | "UC";
@@ -218,6 +228,13 @@ const riskCategoryOptions = riskCategoryValues.map((value) => ({
   value,
   label: riskCategoryLabels[value],
 }));
+
+const approvalRoleLabels: Record<string, string> = {
+  superadmin: "Super Admin",
+  unit: "Unit Kerja",
+  reviewer: "Reviewer",
+  pimpinan: "Pimpinan",
+};
 
 function isRiskCategory(value: unknown): value is RiskCategory {
   return (
@@ -452,6 +469,46 @@ function dedupeApproverIds(ids: Array<string | undefined>) {
   return [...new Set(ids.filter((id): id is string => Boolean(id)))];
 }
 
+function toUserPickerOption(
+  user: Pick<UserListItem, "id" | "name" | "role" | "orgName">,
+): UserPickerOption {
+  const subtitle = user.orgName?.trim() || approvalRoleLabels[user.role] || user.role;
+
+  return {
+    id: user.id,
+    name: user.name,
+    role: user.role,
+    subtitle,
+  };
+}
+
+function toHydratedUserPickerOption(user: {
+  id?: string | null;
+  name?: string | null;
+  role?: string | null;
+}): UserPickerOption | null {
+  if (!user.id || !user.name) {
+    return null;
+  }
+
+  const role = user.role ?? undefined;
+
+  return {
+    id: user.id,
+    name: user.name,
+    role,
+    subtitle: role ? approvalRoleLabels[role] || role : undefined,
+  };
+}
+
+function toApprovalLineUser(option: UserPickerOption): ApprovalLineUser {
+  return {
+    id: option.id,
+    name: option.name,
+    role: option.role,
+  };
+}
+
 export default function RiskInputPage() {
   const router = useRouter();
   const { token, user } = useAuth();
@@ -475,10 +532,10 @@ export default function RiskInputPage() {
     { id: string; name: string; role?: string }[]
   >([]);
   const [reviewerId, setReviewerId] = useState<string>("");
-  const [selectedApproverId, setSelectedApproverId] = useState<string>("");
-  const [approvalLine, setApprovalLine] = useState<
-    { id: string; name: string; role?: string }[]
-  >([]);
+  const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(
+    null,
+  );
+  const [approvalLine, setApprovalLine] = useState<ApprovalLineUser[]>([]);
   const [approvalId, setApprovalId] = useState<string | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<RiskWorkflowState | null>(null);
@@ -544,18 +601,33 @@ export default function RiskInputPage() {
   const treatmentOption = watch("treatmentOption") ?? "";
   const nextReviewDate = watch("nextReviewDate") ?? "";
 
-  const addApproverToLine = () => {
-    if (!selectedApproverId) return;
-    const selectedUser = availableUsers.find(
-      (item) => item.id === selectedApproverId,
-    );
-    if (!selectedUser) return;
-    setApprovalLine((current) => {
-      if (current.some((item) => item.id === selectedUser.id)) return current;
-      return [...current, selectedUser];
-    });
-    setSelectedApproverId("");
-  };
+  const handleReviewerSelect = useCallback((option: UserPickerOption) => {
+    setReviewerId(option.id);
+    setReviewerOption(option);
+  }, []);
+
+  const handleApproverSelect = useCallback(
+    (option: UserPickerOption) => {
+      const filteredOption = filterApproverOptions([option], {
+        reviewerId,
+        selectedApproverIds: approvalLine.map((member) => member.id),
+      })[0];
+
+      if (!filteredOption) {
+        return;
+      }
+
+      const selectedUser = toApprovalLineUser(filteredOption);
+      setApprovalLine((current) => {
+        if (current.some((item) => item.id === selectedUser.id)) {
+          return current;
+        }
+
+        return [...current, selectedUser];
+      });
+    },
+    [approvalLine, reviewerId],
+  );
 
   const moveApprover = (index: number, direction: -1 | 1) => {
     setApprovalLine((current) => {
@@ -570,6 +642,57 @@ export default function RiskInputPage() {
   const removeApprover = (id: string) => {
     setApprovalLine((current) => current.filter((item) => item.id !== id));
   };
+
+  const loadReviewerOptions = useCallback(
+    async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
+      if (!token) {
+        return { options: [], total: 0, page, limit };
+      }
+
+      const result = await listUsers(token, {
+        q: q || undefined,
+        role: "reviewer",
+        page,
+        limit,
+      });
+
+      return {
+        options: result.data.map(toUserPickerOption),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      };
+    },
+    [token],
+  );
+
+  const loadApproverOptions = useCallback(
+    async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
+      if (!token) {
+        return { options: [], total: 0, page, limit };
+      }
+
+      const result = await listUsers(token, {
+        q: q || undefined,
+        page,
+        limit,
+      });
+
+      return {
+        options: filterApproverOptions(
+          result.data.map(toUserPickerOption),
+          {
+            reviewerId,
+            selectedApproverIds: approvalLine.map((member) => member.id),
+          },
+        ),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      };
+    },
+    [approvalLine, reviewerId, token],
+  );
 
   const loadRiskData = useCallback(
     async (id: string) => {
@@ -665,24 +788,19 @@ export default function RiskInputPage() {
           Array.isArray(risk.draftApprovalLine) &&
           risk.draftApprovalLine.length > 0
         ) {
-          const hasTypedMembers = risk.draftApprovalLine.some(
-            (member) => member.type,
+          const resolvedApprovalLine = resolveDraftApprovalLine(
+            risk.draftApprovalLine,
+            risk.reviewedBy,
           );
-          if (hasTypedMembers) {
-            const reviewer = risk.draftApprovalLine.find(
-              (member: { type?: string }) => member.type === "review",
-            );
-            const approvers = risk.draftApprovalLine.filter(
-              (member: { type?: string }) => member.type === "approval",
-            );
-            setReviewerId(reviewer?.id || "");
-            setApprovalLine(approvers);
-          } else {
-            setReviewerId("");
-            setApprovalLine(risk.draftApprovalLine);
-          }
+          const reviewerMember = risk.draftApprovalLine.find(
+            (member) => member.id === resolvedApprovalLine.reviewerId,
+          );
+          setReviewerId(resolvedApprovalLine.reviewerId);
+          setReviewerOption(toHydratedUserPickerOption(reviewerMember ?? {}));
+          setApprovalLine(resolvedApprovalLine.approvalLine);
         } else {
           setReviewerId("");
+          setReviewerOption(null);
           setApprovalLine([]);
         }
 
@@ -741,6 +859,13 @@ export default function RiskInputPage() {
                 }));
               if (reviewerStep?.approverUserId) {
                 setReviewerId(reviewerStep.approverUserId);
+                setReviewerOption(
+                  toHydratedUserPickerOption({
+                    id: reviewerStep.approverUserId,
+                    name: reviewerStep.approverName,
+                    role: "reviewer",
+                  }),
+                );
               }
               setApprovalLine(approvalSteps);
             }
@@ -791,25 +916,18 @@ export default function RiskInputPage() {
     const init = async () => {
       if (token) {
         try {
-          const res = await api.get<any[]>("/organizations", token);
-          const normalized = res.map((org: any) => ({
-            id: org.id || org.ID,
-            name: org.name || org.Name,
-          }));
+          const res = await listAllOrganizations(token);
           const filtered = user?.isGlobal
-            ? normalized
-            : filterToAccessibleOrgs(
-                normalized as any,
-                user?.accessibleOrgIds || [],
-              );
-          setOrganizations(filtered);
+            ? res
+            : filterToAccessibleOrgs(res, user?.accessibleOrgIds || []);
+          setOrganizations(filtered.map((org) => ({ id: org.id, name: org.name })));
         } catch (err) {
           console.error(err);
         }
 
         try {
-          const usersRes = await api.get<RoleUser[]>("/users", token);
-          const mappedUsers = usersRes
+          const usersRes = await listUsers(token);
+          const mappedUsers = usersRes.data
             .filter(
               (u) =>
                 u.role === "unit" ||
@@ -1158,10 +1276,7 @@ export default function RiskInputPage() {
           ? [
               {
                 id: reviewerId,
-                name:
-                  availableUsers.find(
-                    (userOption) => userOption.id === reviewerId,
-                  )?.name || "Reviewer",
+                name: reviewerOption?.name || "Reviewer",
                 type: "review" as const,
               },
             ]
@@ -2740,28 +2855,17 @@ export default function RiskInputPage() {
                           pimpinan.
                         </p>
                       </div>
-                      <Select
-                        value={reviewerId}
-                        onValueChange={setReviewerId}
+                      <RemoteUserPicker
+                        title="Pilih Reviewer"
+                        description="Cari reviewer yang akan memeriksa dan memberikan penilaian resmi untuk risiko ini."
+                        placeholder="Pilih reviewer"
+                        searchPlaceholder="Cari nama reviewer"
+                        emptyMessage="Reviewer tidak ditemukan."
+                        value={reviewerOption}
+                        onSelect={handleReviewerSelect}
+                        loadOptions={loadReviewerOptions}
                         disabled={isRiskLocked}
-                      >
-                        <SelectTrigger className="h-10 text-sm md:w-[360px] bg-background">
-                          <SelectValue placeholder="Pilih reviewer" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableUsers
-                            .filter((u) => u.role === "reviewer")
-                            .map((u) => (
-                              <SelectItem
-                                key={u.id}
-                                value={u.id}
-                                className="text-sm"
-                              >
-                                {u.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
 
                     <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-5 space-y-4">
@@ -2776,42 +2880,19 @@ export default function RiskInputPage() {
                         </p>
                       </div>
 
-                      <div className="flex flex-col gap-3 md:flex-row">
-                        <Select
-                          value={selectedApproverId}
-                          onValueChange={setSelectedApproverId}
-                        >
-                          <SelectTrigger className="h-9 text-sm md:w-[320px]">
-                            <SelectValue placeholder="Pilih approver" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableUsers
-                              .filter(
-                                (userOption) =>
-                                  !approvalLine.some(
-                                    (item) => item.id === userOption.id,
-                                  ),
-                              )
-                              .map((userOption) => (
-                                <SelectItem
-                                  key={userOption.id}
-                                  value={userOption.id}
-                                  className="text-sm"
-                                >
-                                  {userOption.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="gap-2 text-xs"
-                          onClick={addApproverToLine}
-                          disabled={!selectedApproverId}
-                        >
-                          <Plus className="size-3.5" /> Tambah approver
-                        </Button>
+                      <div className="flex flex-col gap-3">
+                        <RemoteUserPicker
+                          title="Tambah Approver"
+                          description="Cari approver untuk disusun ke dalam rantai persetujuan berurutan."
+                          placeholder="Pilih approver"
+                          searchPlaceholder="Cari nama approver"
+                          emptyMessage="Approver tidak ditemukan."
+                          value={null}
+                          onSelect={handleApproverSelect}
+                          loadOptions={loadApproverOptions}
+                          disabled={isRiskLocked}
+                          className="md:w-[320px]"
+                        />
                       </div>
 
                       <div className="space-y-2 pt-4">
@@ -3004,7 +3085,7 @@ export default function RiskInputPage() {
               <div>
                 <span className="font-medium text-foreground">Reviewer: </span>
                 <span className="text-muted-foreground">
-                  {availableUsers.find((u) => u.id === reviewerId)?.name || "-"}
+                  {reviewerOption?.name || "-"}
                 </span>
               </div>
               <div>

@@ -154,7 +154,7 @@ func (r *fakeCreateWorkingPaperRepo) GetByID(context.Context, uuid.UUID) (*entit
 	return nil, nil
 }
 
-func (r *fakeCreateWorkingPaperRepo) List(context.Context, []uuid.UUID, string, string, string, int, int) ([]*entity.WorkingPaper, int, error) {
+func (r *fakeCreateWorkingPaperRepo) List(context.Context, []uuid.UUID, string, string, string, string, int, int) ([]*entity.WorkingPaper, int, error) {
 	return nil, 0, nil
 }
 

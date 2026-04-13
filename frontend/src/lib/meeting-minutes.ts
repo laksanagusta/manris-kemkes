@@ -30,6 +30,7 @@ export async function listMeetingMinutes(
   if (options.organizationId) params.set("organizationId", options.organizationId);
   if (options.createdBy) params.set("createdBy", options.createdBy);
   if (options.riskId) params.set("riskId", options.riskId);
+  if (options.createdAt) params.set("created_at", options.createdAt);
   if (options.limit) params.set("limit", String(options.limit));
   if (options.offset) params.set("offset", String(options.offset));
 

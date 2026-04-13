@@ -21,6 +21,7 @@ type ListMeetingMinutesOptions struct {
 	OrgIDs    []uuid.UUID
 	CreatedBy *uuid.UUID
 	RiskID    *uuid.UUID
+	CreatedAt string
 	Limit     int
 	Offset    int
 }
