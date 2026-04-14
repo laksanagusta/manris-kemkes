@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -653,7 +654,7 @@ export function RiskReviewPanel() {
                     <TableHead className="w-24 text-center">Done</TableHead>
                     <TableHead className="w-24 text-center">Pending</TableHead>
                     <TableHead className="w-24 text-center">Overdue</TableHead>
-                    <TableHead className="w-28 text-right">Rate</TableHead>
+                    <TableHead className="w-48 text-right">Rate</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -686,8 +687,11 @@ export function RiskReviewPanel() {
                         <TableCell className="text-center text-sm">
                           {unit.overdue}
                         </TableCell>
-                        <TableCell className="text-right text-sm font-semibold">
-                          {unit.completionRate.toFixed(1)}%
+                        <TableCell className="text-right text-sm">
+                          <div className="flex items-center gap-2">
+                            <Progress value={unit.completionRate} className="h-2 flex-1" />
+                            <span className="w-12 text-right font-semibold">{unit.completionRate.toFixed(1)}%</span>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
