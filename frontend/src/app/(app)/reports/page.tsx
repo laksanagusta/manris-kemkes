@@ -329,7 +329,8 @@ export default function ReportsPage() {
           setResponseTimeData([]);
         }
 
-        if (allRiskResult.status === "fulfilled") setAllRisks(allRiskResult.value);
+        if (allRiskResult.status === "fulfilled")
+          setAllRisks(allRiskResult.value);
         else setAllRisks([]);
       },
     );
@@ -673,8 +674,7 @@ export default function ReportsPage() {
             </>
           ) : (
             <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-              Perbandingan cycle belum tersedia, jadi pergerakan risiko belum
-              bisa diringkas.
+              Perbandingan cycle belum tersedia
             </div>
           )}
         </CardContent>

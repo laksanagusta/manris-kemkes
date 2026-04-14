@@ -8,14 +8,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   ChevronRight,
   LogOut,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
-  Search,
   Settings,
   Sun,
   User,
@@ -135,15 +133,6 @@ export function AppHeader({
       </nav>
 
       <div className="ml-auto flex items-center gap-2">
-        {/* Search */}
-        <div className="relative hidden md:block">
-          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search..."
-            className="h-8 w-56 pl-8 text-xs bg-muted/50 border-none focus-visible:ring-1"
-          />
-        </div>
-
         {/* Theme toggle */}
         <Button
           variant="ghost"

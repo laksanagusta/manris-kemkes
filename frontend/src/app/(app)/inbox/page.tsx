@@ -631,14 +631,14 @@ export default function InboxPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="w-24 text-xs">Kode</TableHead>
-              <TableHead className="text-xs">Entitas</TableHead>
-              <TableHead className="w-32 text-xs">Unit Kerja</TableHead>
-              <TableHead className="w-24 text-xs">Jenis</TableHead>
-              <TableHead className="w-36 text-xs">Pemohon</TableHead>
-              <TableHead className="w-32 text-xs">Tanggal</TableHead>
-              <TableHead className="w-28 text-xs">Status</TableHead>
-              <TableHead className="w-28 text-xs text-right">Tindakan</TableHead>
+              <TableHead className="w-24">Kode</TableHead>
+              <TableHead>Entitas</TableHead>
+              <TableHead className="w-32">Unit Kerja</TableHead>
+              <TableHead className="w-24">Jenis</TableHead>
+              <TableHead className="w-36">Pemohon</TableHead>
+              <TableHead className="w-32">Tanggal</TableHead>
+              <TableHead className="w-28">Status</TableHead>
+              <TableHead className="w-28 text-right">Tindakan</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -704,27 +704,27 @@ const canAction = isKRIReport
 
                 return (
                   <TableRow key={item.id} className="border-border/30 hover:bg-muted/30">
-                    <TableCell className="text-xs font-mono text-muted-foreground truncate max-w-[100px]">
+                    <TableCell className="font-mono text-muted-foreground truncate max-w-[100px]">
                       {displayCode || `REQ-${item.id.slice(0, 8)}`}
                     </TableCell>
                     <TableCell className="max-w-[300px]">
                       <div className="min-w-0">
                         <Link
                           href={typeConfig.href(entityId, extraId)}
-                          className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
+                          className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
                         >
                           {displayTitle || "Tanpa judul"}
                         </Link>
-                        <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                        <p className="mt-0.5 truncate text-sm text-muted-foreground">
                           {displaySubtitle}
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground truncate max-w-[150px]">
+                    <TableCell className="text-muted-foreground truncate max-w-[150px]">
                       {displayOrg || "—"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                      <Badge variant="outline" className="h-5 px-1.5 text-xs">
                         <span className="inline-flex items-center gap-1">
                           <Icon className="size-3" />
                           {typeConfig.label}
@@ -733,15 +733,15 @@ const canAction = isKRIReport
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="text-xs font-medium">{displayRequester || "System"}</p>
+                        <p className="text-sm font-medium">{displayRequester || "System"}</p>
                         {!isKRIReport && !isWorkingPaper && (
-                          <p className="mt-0.5 text-[10px] text-muted-foreground capitalize">
+                          <p className="mt-0.5 text-sm text-muted-foreground capitalize">
                             Approver: {approvalItem!.currentApproverRole || "-"}
                           </p>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="size-3" />
                         {formatDate(displayDate)}

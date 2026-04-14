@@ -493,12 +493,12 @@ export default function WorkingPapersPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="text-xs">Judul</TableHead>
-              <TableHead className="text-xs w-28">Siklus Asesmen</TableHead>
-              <TableHead className="text-xs w-28">Status</TableHead>
-              <TableHead className="text-xs text-center w-28">Jumlah Risiko</TableHead>
-              <TableHead className="text-xs text-center w-32">Progres TTE</TableHead>
-              <TableHead className="text-xs w-32">Dibuat Pada</TableHead>
+              <TableHead>Judul</TableHead>
+              <TableHead className="w-28">Siklus Asesmen</TableHead>
+              <TableHead className="w-28">Status</TableHead>
+              <TableHead className="text-center w-28">Jumlah Risiko</TableHead>
+              <TableHead className="text-center w-32">Progres TTE</TableHead>
+              <TableHead className="w-32">Dibuat Pada</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -534,13 +534,13 @@ export default function WorkingPapersPage() {
                     <TableCell className="max-w-[320px]">
                       <Link
                         href={`/risk/working-papers/${wp.id}`}
-                        className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
+                        className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
                         title={wp.title}
                       >
                         {wp.title || "Tanpa Judul"}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-muted-foreground">
                       {wp.assessment_cycle || "-"}
                     </TableCell>
                     <TableCell>
@@ -553,20 +553,20 @@ export default function WorkingPapersPage() {
                         {statusLabels[wp.status] || wp.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center text-xs font-medium">
+                    <TableCell className="text-center text-sm font-medium">
                       {wp.risks?.length || 0}
                     </TableCell>
                     <TableCell className="text-center">
                       {totalSignatories > 0 ? (
                         <div className="flex flex-col items-center gap-1">
                           <Progress value={progressPercent} className="w-16 h-1.5" />
-                          <span className="text-xs text-muted-foreground">{progressText}</span>
+                          <span className="text-sm text-muted-foreground">{progressText}</span>
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
+                        <span className="text-sm text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-muted-foreground">
                       {date}
                     </TableCell>
                   </TableRow>

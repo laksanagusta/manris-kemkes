@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -10,8 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, UserCircle2, Building2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import type { MitigationFrequency, RecurringInterval } from "@/types/risk";
+import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
+import type { UserPickerOption } from "@/lib/risk-register-user-picker";
 
 export interface MitigationItem {
   id?: string;
@@ -27,22 +30,29 @@ export interface MitigationItem {
   executionScheduleText?: string;
 }
 
+type RemoteUserPickerResult = {
+  options: UserPickerOption[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 interface MitigationTableProps {
   items: MitigationItem[];
   onChange: (items: MitigationItem[]) => void;
   disabled?: boolean;
-  users?: { id: string; name: string }[];
-  externalPics?: { id: string; name: string }[];
-  onSaveExternalPic?: (name: string) => Promise<{ id: string; name: string } | null>;
+  loadPicOptions?: (params: {
+    q: string;
+    page: number;
+    limit: number;
+  }) => Promise<RemoteUserPickerResult>;
 }
 
 export function MitigationTable({ 
   items, 
   onChange, 
   disabled, 
-  users = [],
-  externalPics = [],
-  onSaveExternalPic 
+  loadPicOptions,
 }: MitigationTableProps) {
   const addItem = () => {
     onChange([...items, { action: "", owner: "", dueDate: "", frequency: "insidental" }]);
@@ -58,97 +68,29 @@ export function MitigationTable({
     onChange(items.filter((_, i) => i !== index));
   };
 
-  const allOptions = [
-    ...users.map(u => ({ ...u, type: 'internal' as const })),
-    ...externalPics.map(e => ({ ...e, type: 'external' as const })),
-  ];
-
-  const handlePicSelect = (index: number, selectedId: string) => {
-    const updated = [...items];
-    if (selectedId === "__manual__") {
+  const handlePicSelect = useCallback(
+    (index: number, option: UserPickerOption) => {
+      const updated = [...items];
       updated[index] = {
         ...updated[index],
-        treatmentOwnerId: undefined,
+        treatmentOwnerId: option.id,
         externalPicId: undefined,
-        owner: "",
-      };
-    } else {
-      const selectedOption = allOptions.find(o => o.id === selectedId);
-      if (selectedOption) {
-        if (selectedOption.type === 'internal') {
-          updated[index] = {
-            ...updated[index],
-            treatmentOwnerId: selectedId,
-            externalPicId: undefined,
-            owner: selectedOption.name,
-          };
-        } else {
-          updated[index] = {
-            ...updated[index],
-            treatmentOwnerId: undefined,
-            externalPicId: selectedId,
-            owner: selectedOption.name,
-          };
-        }
-      }
-    }
-    onChange(updated);
-  };
-
-  const handleOwnerBlur = async (index: number, name: string) => {
-    const trimmedName = name.trim();
-    if (!trimmedName) return;
-
-    const matchingUser = users.find(u => u.name.toLowerCase() === trimmedName.toLowerCase());
-    if (matchingUser) {
-      const updated = [...items];
-      updated[index] = {
-        ...updated[index],
-        treatmentOwnerId: matchingUser.id,
-        owner: matchingUser.name,
+        owner: option.name,
       };
       onChange(updated);
-      return;
-    }
+    },
+    [items, onChange],
+  );
 
-    const matchingExternal = externalPics.find(e => e.name.toLowerCase() === trimmedName.toLowerCase());
-    if (matchingExternal) {
-      const updated = [...items];
-      updated[index] = {
-        ...updated[index],
-        treatmentOwnerId: undefined,
-        externalPicId: matchingExternal.id,
-        owner: matchingExternal.name,
-      };
-      onChange(updated);
-      return;
-    }
-
-    if (onSaveExternalPic && trimmedName.length > 0) {
-      const newPic = await onSaveExternalPic(trimmedName);
-      if (newPic) {
-        const updated = [...items];
-        updated[index] = {
-          ...updated[index],
-          treatmentOwnerId: undefined,
-          externalPicId: newPic.id,
-          owner: newPic.name,
-        };
-        onChange(updated);
-      }
-    }
-  };
-
-  const handleOwnerChange = (index: number, name: string) => {
-    const updated = [...items];
-    updated[index] = { 
-      ...updated[index], 
-      owner: name 
-    };
-    onChange(updated);
-  };
-
-  const hasOptions = users.length > 0 || externalPics.length > 0;
+  const picValues = useMemo(
+    () =>
+      items.map((item): UserPickerOption | null => {
+        const id = item.treatmentOwnerId ?? item.externalPicId;
+        if (!id || !item.owner) return null;
+        return { id, name: item.owner };
+      }),
+    [items],
+  );
 
   return (
     <div className="space-y-3">
@@ -177,83 +119,35 @@ export function MitigationTable({
               <Trash2 className="size-4" />
             </Button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pl-7">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pl-7">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">PIC</Label>
-              {hasOptions ? (
-                <div className="space-y-1.5">
-                  <Select 
-                    value={item.treatmentOwnerId || item.externalPicId || "__manual__"} 
-                    onValueChange={(v) => handlePicSelect(index, v)}
-                    disabled={disabled}
-                  >
-                    <SelectTrigger className="w-full text-sm bg-background">
-                      <SelectValue placeholder="Pilih PIC" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__manual__" className="text-sm">
-                        <span className="flex items-center gap-1.5">
-                          <UserCircle2 className="size-3.5" />
-                          Ketik Manual...
-                        </span>
-                      </SelectItem>
-                      {users.length > 0 && (
-                        <SelectItem value="__users__" disabled className="text-sm text-muted-foreground font-semibold">
-                          PIC Internal
-                        </SelectItem>
-                      )}
-                      {users.map((u) => (
-                        <SelectItem key={u.id} value={u.id} className="text-sm">{u.name}</SelectItem>
-                      ))}
-                      {externalPics.length > 0 && (
-                        <SelectItem value="__external__" disabled className="text-sm text-muted-foreground font-semibold">
-                          PIC Eksternal
-                        </SelectItem>
-                      )}
-                      {externalPics.map((e) => (
-                        <SelectItem key={e.id} value={e.id} className="text-sm">
-                          <span className="flex items-center gap-1.5">
-                            <Building2 className="size-3.5" />
-                            {e.name}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {!item.treatmentOwnerId && !item.externalPicId && (
-                    <Input
-                      value={item.owner || ""}
-                      onChange={(e) => handleOwnerChange(index, e.target.value)}
-                      onBlur={(e) => handleOwnerBlur(index, e.target.value)}
-                      placeholder="Nama PIC (tersimpan otomatis)"
-                      className="h-8 text-sm bg-background border-border/50"
-                      disabled={disabled}
-                    />
-                  )}
-                </div>
+              {loadPicOptions ? (
+                <RemoteUserPicker
+                  title="Pilih PIC"
+                  description="Cari dan pilih PIC untuk rencana penanganan ini"
+                  placeholder="Pilih PIC"
+                  searchPlaceholder="Cari nama PIC..."
+                  emptyMessage="Tidak ada user ditemukan."
+                  disabled={disabled}
+                  value={picValues[index]}
+                  onSelect={(option) => handlePicSelect(index, option)}
+                  loadOptions={loadPicOptions}
+                />
               ) : (
                 <Input
                   value={item.owner || ""}
-                  onChange={(e) => handleOwnerChange(index, e.target.value)}
-                  onBlur={(e) => handleOwnerBlur(index, e.target.value)}
+                  onChange={(e) => {
+                    const updated = [...items];
+                    updated[index] = { ...updated[index], owner: e.target.value };
+                    onChange(updated);
+                  }}
                   placeholder="Nama PIC"
                   className="h-8 text-sm bg-background border-border/50"
                   disabled={disabled}
                 />
               )}
             </div>
-            {item.frequency !== "rutin" && (
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Target Waktu</Label>
-                <Input
-                  type="date"
-                  value={item.dueDate || ""}
-                  onChange={(e) => updateItem(index, "dueDate", e.target.value)}
-                  className="h-8 text-sm bg-background border-border/50"
-                  disabled={disabled}
-                />
-              </div>
-            )}
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Frekuensi</Label>
               <Select value={item.frequency} onValueChange={(v) => updateItem(index, "frequency", v)} disabled={disabled}>
@@ -264,7 +158,18 @@ export function MitigationTable({
                 </SelectContent>
               </Select>
             </div>
-            {item.frequency === "rutin" && (
+            {item.frequency !== "rutin" ? (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Target Waktu</Label>
+                <Input
+                  type="date"
+                  value={item.dueDate || ""}
+                  onChange={(e) => updateItem(index, "dueDate", e.target.value)}
+                  className="h-8 text-sm bg-background border-border/50"
+                  disabled={disabled}
+                />
+              </div>
+            ) : (
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Interval</Label>
                 <Select value={item.recurringInterval || "mingguan"} onValueChange={(v) => updateItem(index, "recurringInterval", v)} disabled={disabled}>

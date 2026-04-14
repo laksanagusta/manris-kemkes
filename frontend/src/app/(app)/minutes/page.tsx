@@ -290,14 +290,14 @@ export default function MinutesPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="w-24 text-xs">Kode</TableHead>
-                  <TableHead className="text-xs">Judul Notulen</TableHead>
-                  <TableHead className="text-xs w-32">Tanggal</TableHead>
-                  <TableHead className="text-xs w-20 text-center">
+                  <TableHead className="w-24">Kode</TableHead>
+                  <TableHead>Judul Notulen</TableHead>
+                  <TableHead className="w-32">Tanggal</TableHead>
+                  <TableHead className="w-20 text-center">
                     Peserta
                   </TableHead>
-                  <TableHead className="text-xs w-36">Dibuat Oleh</TableHead>
-                  <TableHead className="text-xs w-20 text-right">
+                  <TableHead className="w-36">Dibuat Oleh</TableHead>
+                  <TableHead className="w-20 text-right">
                     Aksi
                   </TableHead>
                 </TableRow>
@@ -308,31 +308,31 @@ export default function MinutesPage() {
                     key={minute.id}
                     className="border-border/30 hover:bg-muted/30 transition-colors"
                   >
-                    <TableCell className="text-xs font-mono text-muted-foreground">
+                    <TableCell className="font-mono text-muted-foreground">
                       {minute.id.slice(0, 8)}
                     </TableCell>
                     <TableCell className="max-w-[300px]">
                       <Link
                         href={`/minutes/${minute.id}`}
-                        className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
+                        className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
                       >
                         {minute.title || "-"}
                       </Link>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      <p className="mt-0.5 truncate text-sm text-muted-foreground">
                         {minute.summary || "Belum ada ringkasan"}
                       </p>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-muted-foreground">
                       {new Date(minute.date).toLocaleDateString("id-ID", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
                       })}
                     </TableCell>
-                    <TableCell className="text-xs text-center text-muted-foreground">
+                    <TableCell className="text-center text-muted-foreground">
                       {minute.participants?.length || 0}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-muted-foreground">
                       {minute.createdByName || "-"}
                     </TableCell>
                     <TableCell>

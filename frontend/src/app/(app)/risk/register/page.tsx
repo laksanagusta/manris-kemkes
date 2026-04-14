@@ -878,18 +878,18 @@ export default function RiskRegisterPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="w-20 text-xs">Kode</TableHead>
-                  <TableHead className="text-xs">Judul Risiko</TableHead>
-                  <TableHead className="text-xs w-32">Kategori</TableHead>
-                  <TableHead className="text-xs w-28">Periode</TableHead>
-                  <TableHead className="text-xs w-32">Unit Kerja</TableHead>
-                  <TableHead className="text-xs text-center w-16">
+                  <TableHead className="w-20">Kode</TableHead>
+                  <TableHead>Judul Risiko</TableHead>
+                  <TableHead className="w-32">Kategori</TableHead>
+                  <TableHead className="w-28">Periode</TableHead>
+                  <TableHead className="w-32">Unit Kerja</TableHead>
+                  <TableHead className="text-center w-16">
                     Nilai
                   </TableHead>
-                  <TableHead className="text-xs w-24">Level</TableHead>
-                  <TableHead className="text-xs w-24">Status</TableHead>
-                  <TableHead className="text-xs w-28">Perlakuan</TableHead>
-                  <TableHead className="text-xs w-28 text-right">
+                  <TableHead className="w-24">Level</TableHead>
+                  <TableHead className="w-24">Status</TableHead>
+                  <TableHead className="w-28">Perlakuan</TableHead>
+                  <TableHead className="w-28 text-right">
                     Aksi
                   </TableHead>
                 </TableRow>
@@ -923,7 +923,7 @@ export default function RiskRegisterPage() {
                         key={risk.id}
                         className="border-border/30 hover:bg-muted/30 transition-colors"
                       >
-                        <TableCell className="text-xs font-mono text-muted-foreground">
+                        <TableCell className="font-mono text-muted-foreground">
                           <span className="flex items-center gap-1.5">
                             {risk.code || "-"}
                             {risk.versionNumber != null && risk.versionNumber > 1 && (
@@ -936,21 +936,21 @@ export default function RiskRegisterPage() {
                         <TableCell className="max-w-[300px]">
                           <Link
                             href={`/risk/register/${risk.id}`}
-                            className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
+                            className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
                           >
                             {risk.title || "-"}
                           </Link>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="text-muted-foreground">
                           {riskCategoryLabels[risk.category ?? ""]}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="text-muted-foreground">
                           {formatCycleLabel(
                             risk.assessmentCycle,
                             risk.updatedAt,
                           )}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="text-muted-foreground">
                           <div className="flex items-center gap-1">
                             {risk.orgName || "-"}
                             {isReadOnly && (
@@ -965,7 +965,7 @@ export default function RiskRegisterPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="text-xs font-bold">
+                          <span className="text-sm font-bold">
                             {scoreSemantics.effective.score}
                           </span>
                         </TableCell>
@@ -991,7 +991,7 @@ export default function RiskRegisterPage() {
                             {risk.status ? statusLabel[risk.status] || risk.status : "-"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground capitalize">
+                        <TableCell className="text-muted-foreground capitalize">
                           {risk.treatmentOption || "-"}
                         </TableCell>
                         <TableCell>

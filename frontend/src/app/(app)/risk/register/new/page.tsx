@@ -74,6 +74,7 @@ import {
   ChevronUp,
   ChevronDown,
   Trash2,
+  GripVertical,
 } from "lucide-react";
 
 import {
@@ -323,7 +324,7 @@ function SectionHeader({
           ) : (
             <CircleDot className="size-3.5" />
           )}
-          {ready ? "Siap" : "Perlu dilengkapi"}
+          {ready ? "Lengkap" : "Perlu dilengkapi"}
         </Badge>
       </div>
     </CardHeader>
@@ -509,9 +510,6 @@ export default function RiskInputPage() {
   const [organizations, setOrganizations] = useState<
     { id: string; name: string }[]
   >([]);
-  const [availableUsers, setAvailableUsers] = useState<
-    { id: string; name: string; role?: string }[]
-  >([]);
   const [reviewerId, setReviewerId] = useState<string>("");
   const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(
     null,
@@ -673,6 +671,28 @@ export default function RiskInputPage() {
       };
     },
     [approvalLine, reviewerId, token],
+  );
+
+  const loadPicOptions = useCallback(
+    async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
+      if (!token) {
+        return { options: [], total: 0, page, limit };
+      }
+
+      const result = await listUsers(token, {
+        q: q || undefined,
+        page,
+        limit,
+      });
+
+      return {
+        options: result.data.map(toUserPickerOption),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      };
+    },
+    [token],
   );
 
   const loadRiskData = useCallback(
@@ -887,22 +907,6 @@ export default function RiskInputPage() {
             ? res
             : filterToAccessibleOrgs(res, user?.accessibleOrgIds || []);
           setOrganizations(filtered.map((org) => ({ id: org.id, name: org.name })));
-        } catch (err) {
-          console.error(err);
-        }
-
-        try {
-          const usersRes = await listUsers(token);
-          const mappedUsers = usersRes.data
-            .filter(
-              (u) =>
-                u.role === "unit" ||
-                u.role === "reviewer" ||
-                u.role === "pimpinan" ||
-                u.role === "superadmin",
-            )
-            .map((u) => ({ id: u.id, name: u.name, role: u.role }));
-          setAvailableUsers(mappedUsers);
         } catch (err) {
           console.error(err);
         }
@@ -1612,7 +1616,7 @@ export default function RiskInputPage() {
                 )}
               >
                 {isFinalizeReady
-                  ? "Siap diajukan"
+                  ? "Lengkap diajukan"
                   : `${missingSections.length} bagian belum siap`}
               </Badge>
             </>
@@ -1790,7 +1794,7 @@ export default function RiskInputPage() {
                         )}
                         <span className="hidden sm:inline">
                           {sectionStatuses[0].done
-                            ? "Siap"
+                            ? "Lengkap"
                             : "Perlu dilengkapi"}
                         </span>
                       </Badge>
@@ -2149,7 +2153,7 @@ export default function RiskInputPage() {
                         )}
                         <span className="hidden sm:inline">
                           {sectionStatuses[1].done
-                            ? "Siap"
+                            ? "Lengkap"
                             : "Perlu dilengkapi"}
                         </span>
                       </Badge>
@@ -2337,7 +2341,7 @@ export default function RiskInputPage() {
                         )}
                         <span className="hidden sm:inline">
                           {sectionStatuses[2].done
-                            ? "Siap"
+                            ? "Lengkap"
                             : "Perlu dilengkapi"}
                         </span>
                       </Badge>
@@ -2455,7 +2459,7 @@ export default function RiskInputPage() {
                         )}
                         <span className="hidden sm:inline">
                           {sectionStatuses[3].done
-                            ? "Siap"
+                            ? "Lengkap"
                             : "Perlu dilengkapi"}
                         </span>
                       </Badge>
@@ -2488,7 +2492,7 @@ export default function RiskInputPage() {
                             }),
                           )}
                           onChange={field.onChange}
-                          users={availableUsers}
+                          loadPicOptions={loadPicOptions}
                           disabled={isRiskLocked}
                         />
                       )}
@@ -2554,7 +2558,7 @@ export default function RiskInputPage() {
                         )}
                         <span className="hidden sm:inline">
                           {sectionStatuses[4].done && sectionStatuses[5].done
-                            ? "Siap"
+                            ? "Lengkap"
                             : "Perlu dilengkapi"}
                         </span>
                       </Badge>
@@ -2702,14 +2706,14 @@ export default function RiskInputPage() {
                         )}
                         <span className="hidden sm:inline">
                           {approvalLine.length > 0
-                            ? "Siap"
+                            ? "Lengkap"
                             : "Perlu dilengkapi"}
                         </span>
                       </Badge>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
-                    <div className="rounded-xl border border-border/60 bg-muted/10 p-5 space-y-3">
+                    <div className="rounded-xl border border-border/60 bg-white p-5 space-y-3">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
                           1. Reviewer (Pemeriksa)
@@ -2734,7 +2738,7 @@ export default function RiskInputPage() {
                       />
                     </div>
 
-                    <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-5 space-y-4">
+                    <div className="rounded-xl border border-primary/10 bg-white p-5 space-y-4">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
                           2. Approval Line (Pimpinan)
@@ -2772,52 +2776,67 @@ export default function RiskInputPage() {
                             .
                           </div>
                         ) : (
-                          approvalLine.map((approver, index) => (
-                            <div
-                              key={approver.id}
-                              className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5"
-                            >
-                              <div>
-                                <p className="text-sm font-medium text-foreground">
-                                  {index + 1}. {approver.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  Urutan approval ke-{index + 1}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-8"
-                                  onClick={() => moveApprover(index, -1)}
-                                  disabled={index === 0}
-                                >
-                                  <ChevronUp className="size-4" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-8"
-                                  onClick={() => moveApprover(index, 1)}
-                                  disabled={index === approvalLine.length - 1}
-                                >
-                                  <ChevronDown className="size-4" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                  onClick={() => removeApprover(approver.id)}
-                                >
-                                  <Trash2 className="size-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))
+                          <div className="border border-border/50 rounded-lg overflow-hidden">
+                            <table className="w-full">
+                              <tbody className="divide-y divide-border/50">
+                                {approvalLine.map((approver, index) => (
+                                  <tr key={approver.id} className="hover:bg-muted/30 transition-colors">
+                                    <td className="w-8 px-2 py-2">
+                                      <div className="flex items-center justify-center text-muted-foreground">
+                                        <GripVertical className="size-3.5" />
+                                      </div>
+                                    </td>
+                                    <td className="w-8 px-2 py-2">
+                                      <span className="text-[10px] font-semibold text-muted-foreground bg-muted/50 rounded-full w-5 h-5 flex items-center justify-center">
+                                        {index + 1}
+                                      </span>
+                                    </td>
+                                    <td className="flex-1 px-2 py-2">
+                                      <div>
+                                        <p className="text-sm font-medium text-foreground">
+                                          {approver.name}
+                                        </p>
+                                      </div>
+                                    </td>
+                                    <td className="w-auto px-2 py-2">
+                                      <div className="flex items-center justify-end gap-1">
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="size-8"
+                                          onClick={() => moveApprover(index, -1)}
+                                          disabled={index === 0}
+                                        >
+                                          <ChevronUp className="size-4" />
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="size-8"
+                                          onClick={() => moveApprover(index, 1)}
+                                          disabled={index === approvalLine.length - 1}
+                                        >
+                                          <ChevronDown className="size-4" />
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="size-8 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
+                                          onClick={() => removeApprover(approver.id)}
+                                          disabled={isRiskLocked}
+                                        >
+                                          <Trash2 className="size-4" />
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         )}
                       </div>
                     </div>
