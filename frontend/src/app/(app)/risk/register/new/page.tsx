@@ -57,6 +57,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 import { cn } from "@/lib/utils";
 import {
@@ -75,6 +83,10 @@ import {
   ChevronDown,
   Trash2,
   GripVertical,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  GitBranch,
 } from "lucide-react";
 
 import {
@@ -107,6 +119,7 @@ import type {
   RecurringInterval,
   RiskCategory,
   RiskStatus,
+  RiskVersionTimelineItem,
 } from "@/types/risk";
 import {
   consumeMeetingIntelligencePrefill,
@@ -123,6 +136,10 @@ import {
   filterApproverOptions,
   type UserPickerOption,
 } from "@/lib/risk-register-user-picker";
+import {
+  buildVersionHistoryItem,
+  type RiskRegisterHistoryItem,
+} from "@/lib/risk-history";
 
 const RiskLogTimeline = dynamic(
   () =>
@@ -150,6 +167,15 @@ const CATEGORY_TITLES: Record<string, string> = {
   mesin: "Mesin",
   material: "Material",
   lingkungan: "Lingkungan",
+};
+
+const VERSION_LEVEL_BADGE: Record<string, string> = {
+  "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
+  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
+  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
+  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
+  "Sangat Tinggi":
+    "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
 };
 const CATEGORY_ORDER: string[] = [
   "manusia",
@@ -524,6 +550,11 @@ export default function RiskInputPage() {
   );
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSubmitReviewConfirm, setShowSubmitReviewConfirm] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [versionHistory, setVersionHistory] = useState<
+    RiskRegisterHistoryItem[]
+  >([]);
+  const [loadingVersions, setLoadingVersions] = useState(false);
   const submitTarget = useRef<"draft" | "review">("draft");
 
   const form = useForm<FormInput, unknown, FormValues>({
@@ -1475,6 +1506,33 @@ export default function RiskInputPage() {
     toast.info(`${featureName} akan diaktifkan pada iterasi berikutnya.`);
   };
 
+  const fetchVersionHistory = useCallback(
+    async (id: string) => {
+      if (!token) return;
+      setLoadingVersions(true);
+      try {
+        const items = await api.get<RiskVersionTimelineItem[]>(
+          `/risks/${id}/versions`,
+          token,
+        );
+        const current = items.find((v) => v.isCurrent) ?? items[0];
+        if (!current) {
+          setVersionHistory([]);
+          return;
+        }
+        setVersionHistory(
+          items.map((v) => buildVersionHistoryItem(v, current)),
+        );
+      } catch {
+        toast.error("Gagal memuat riwayat versi.");
+        setVersionHistory([]);
+      } finally {
+        setLoadingVersions(false);
+      }
+    },
+    [token],
+  );
+
   const handleViewChange = (nextView: WorkspaceView) => {
     if (nextView !== "form" && !riskId) {
       toast.info(
@@ -1631,21 +1689,127 @@ export default function RiskInputPage() {
           actions={
             <div className="flex items-center gap-2 sm:gap-3">
               {riskId && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 text-muted-foreground hover:text-foreground"
-                      onClick={() =>
-                        showUnavailableFeatureToast("Riwayat versi")
-                      }
-                    >
-                      <History className="size-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Riwayat versi</TooltipContent>
-                </Tooltip>
+                <Sheet
+                  open={historyOpen}
+                  onOpenChange={(open) => {
+                    setHistoryOpen(open);
+                    if (open && riskId) fetchVersionHistory(riskId);
+                  }}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SheetTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-muted-foreground hover:text-foreground"
+                        >
+                          <History className="size-4" />
+                        </Button>
+                      </SheetTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Riwayat versi</TooltipContent>
+                  </Tooltip>
+                  <SheetContent
+                    side="right"
+                    className="sm:max-w-md overflow-y-auto"
+                  >
+                    <SheetHeader className="border-b border-border/50 pb-4">
+                      <SheetTitle className="flex items-center gap-2 text-base font-bold">
+                        <History className="size-4" />
+                        Riwayat Versi
+                      </SheetTitle>
+                      <SheetDescription>
+                        Perubahan skor risiko dari waktu ke waktu
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="flex-1 px-4 pb-4">
+                      {loadingVersions ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            Memuat riwayat...
+                          </span>
+                        </div>
+                      ) : versionHistory.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <GitBranch className="size-8 text-muted-foreground/50 mb-3" />
+                          <p className="text-sm font-medium">
+                            Belum Ada Riwayat Versi
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                            Riwayat versi akan tersedia setelah risiko ini
+                            mengalami perubahan skor.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="relative pt-2">
+                          <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border/50" />
+                          <div className="flex flex-col gap-4">
+                            {versionHistory.map((item) => (
+                              <div
+                                key={item.id}
+                                className="flex gap-3 relative"
+                              >
+                                <div className="shrink-0 size-6 rounded-full bg-background border border-border/50 flex items-center justify-center z-10">
+                                  {item.trend === "up" ? (
+                                    <TrendingUp className="size-3.5 text-risk-extreme" />
+                                  ) : item.trend === "down" ? (
+                                    <TrendingDown className="size-3.5 text-success" />
+                                  ) : (
+                                    <Minus className="size-3.5 text-muted-foreground" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0 pb-2">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <span className="text-sm font-semibold">
+                                      {item.cycle}
+                                    </span>
+                                    {item.isCurrent && (
+                                      <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
+                                        Current
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mb-1.5">
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-[10px] font-semibold border h-5 px-1.5",
+                                        VERSION_LEVEL_BADGE[
+                                          item.previousLevel
+                                        ] || "",
+                                      )}
+                                    >
+                                      {item.previousLevel}
+                                    </Badge>
+                                    <span className="text-muted-foreground text-xs">
+                                      →
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-[10px] font-semibold border h-5 px-1.5",
+                                        VERSION_LEVEL_BADGE[
+                                          item.currentLevel
+                                        ] || "",
+                                      )}
+                                    >
+                                      {item.currentLevel}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground italic">
+                                    {item.changeReason}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </SheetContent>
+                </Sheet>
               )}
 
               {(riskStatus === "draft" || !riskId) && (
