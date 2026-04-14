@@ -312,12 +312,12 @@ export default function MinutesPage() {
                       {minute.id.slice(0, 8)}
                     </TableCell>
                     <TableCell className="max-w-[300px]">
-                      <Link
-                        href={`/minutes/${minute.id}`}
-                        className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
-                      >
-                        {minute.title || "-"}
-                      </Link>
+                       <Link
+                         href={`/minutes/${minute.id}`}
+                         className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80"
+                       >
+                         {minute.title || "-"}
+                       </Link>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">
                         {minute.summary || "Belum ada ringkasan"}
                       </p>

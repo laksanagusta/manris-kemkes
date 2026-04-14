@@ -708,13 +708,13 @@ const canAction = isKRIReport
                       {displayCode || `REQ-${item.id.slice(0, 8)}`}
                     </TableCell>
                     <TableCell className="max-w-[300px]">
-                      <div className="min-w-0">
-                        <Link
-                          href={typeConfig.href(entityId, extraId)}
-                          className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
-                        >
-                          {displayTitle || "Tanpa judul"}
-                        </Link>
+                       <div className="min-w-0">
+                         <Link
+                           href={typeConfig.href(entityId, extraId)}
+                           className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80"
+                         >
+                           {displayTitle || "Tanpa judul"}
+                         </Link>
                         <p className="mt-0.5 truncate text-sm text-muted-foreground">
                           {displaySubtitle}
                         </p>

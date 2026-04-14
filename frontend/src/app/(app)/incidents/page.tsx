@@ -276,14 +276,14 @@ export default function IncidentPage() {
                   <TableCell className="text-xs font-mono text-muted-foreground">
                     {incident.code || incident.id.slice(0, 8)}
                   </TableCell>
-                  <TableCell className="max-w-[300px]">
-                    <div className="flex min-w-0 items-center gap-2 text-xs">
-                      <Link
-                        href={`/incidents/${incident.id}`}
-                        className="block truncate font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
-                      >
-                        {incident.title}
-                      </Link>
+                    <TableCell className="max-w-[300px]">
+                     <div className="flex min-w-0 items-center gap-2 text-xs">
+                       <Link
+                         href={`/incidents/${incident.id}`}
+                         className="block truncate font-medium text-primary transition-colors hover:text-primary/80"
+                       >
+                         {incident.title}
+                       </Link>
                       {isReadOnly && (
                         <Badge variant="secondary" className="text-[9px] h-4 px-1" title="Read-only access">RO</Badge>
                       )}

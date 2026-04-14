@@ -534,7 +534,7 @@ export default function WorkingPapersPage() {
                     <TableCell className="max-w-[320px]">
                       <Link
                         href={`/risk/working-papers/${wp.id}`}
-                        className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
+                        className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80"
                         title={wp.title}
                       >
                         {wp.title || "Tanpa Judul"}

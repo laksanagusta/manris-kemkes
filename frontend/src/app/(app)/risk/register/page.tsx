@@ -936,7 +936,7 @@ export default function RiskRegisterPage() {
                         <TableCell className="max-w-[300px]">
                           <Link
                             href={`/risk/register/${risk.id}`}
-                            className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
+                            className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80"
                           >
                             {risk.title || "-"}
                           </Link>
@@ -1117,7 +1117,7 @@ export default function RiskRegisterPage() {
                           <div className="flex items-center gap-2">
                             <Link
                               href={`/risk/register/${draft.id}`}
-                              className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80 hover:underline"
+                              className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80"
                             >
                               {draft.title || "Tanpa Judul"}
                             </Link>
