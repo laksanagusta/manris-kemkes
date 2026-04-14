@@ -17,9 +17,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  ComposedChart,
   Legend,
-  Line,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
@@ -615,11 +613,10 @@ export default function DashboardPage() {
           <CardHeader>
             <div>
               <CardTitle className="text-base font-semibold">
-                Incident vs Mitigation Closure
+                Progress Mitigasi
               </CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">
-                Perbandingan insiden baru, mitigasi selesai, dan overdue per
-                bulan.
+                Distribusi mitigasi selesai dan overdue per bulan.
               </p>
             </div>
           </CardHeader>
@@ -628,7 +625,7 @@ export default function DashboardPage() {
               <>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart
+                    <BarChart
                       data={actionPressureData}
                       margin={{ top: 4, right: 8, left: -16, bottom: 0 }}
                     >
@@ -662,41 +659,43 @@ export default function DashboardPage() {
                           color: "var(--popover-foreground)",
                         }}
                       />
-                      <Bar
-                        dataKey="incidentsCreated"
-                        name="Insiden dibuat"
-                        fill="oklch(0.70 0.18 40)"
-                        radius={[4, 4, 0, 0]}
+                      <Legend
+                        iconType="square"
+                        iconSize={10}
+                        wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
                       />
                       <Bar
                         dataKey="mitigationsCompleted"
-                        name="Mitigasi selesai"
+                        name="Mitigasi Selesai"
                         fill="oklch(0.72 0.17 155)"
                         radius={[4, 4, 0, 0]}
                       />
-                      <Line
-                        type="monotone"
+                      <Bar
                         dataKey="overdueMitigations"
                         name="Overdue"
-                        stroke="oklch(0.68 0.18 70)"
-                        strokeWidth={2}
-                        dot={{ r: 3 }}
+                        fill="oklch(0.62 0.22 27)"
+                        radius={[4, 4, 0, 0]}
                       />
-                    </ComposedChart>
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                   <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-                    <p className="text-[10px] text-muted-foreground">Insiden</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Total Mitigasi
+                    </p>
                     <p className="mt-1 font-semibold text-foreground">
                       {actionPressureData.reduce(
-                        (sum, item) => sum + item.incidentsCreated,
+                        (sum, item) =>
+                          sum +
+                          item.mitigationsCompleted +
+                          item.overdueMitigations,
                         0,
                       )}
                     </p>
                   </div>
                   <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-                    <p className="text-[10px] text-muted-foreground">Closed</p>
+                    <p className="text-[10px] text-muted-foreground">Selesai</p>
                     <p className="mt-1 font-semibold text-foreground">
                       {actionPressureData.reduce(
                         (sum, item) => sum + item.mitigationsCompleted,
@@ -717,8 +716,7 @@ export default function DashboardPage() {
               </>
             ) : (
               <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Data incident dan closure mitigasi belum tersedia untuk periode
-                ini.
+                Data progress mitigasi belum tersedia untuk periode ini.
               </div>
             )}
           </CardContent>
