@@ -149,12 +149,12 @@ function OrgRow({
           <span className="truncate text-xs font-medium">{org.name}</span>
         </div>
       </TableCell>
-      <TableCell className="text-xs text-muted-foreground">
+      <TableCell className="text-sm text-muted-foreground">
         {org.parentId
           ? parentNameMap.get(org.parentId) || "—"
           : "—"}
       </TableCell>
-      <TableCell className="text-xs text-muted-foreground">
+      <TableCell className="text-sm text-muted-foreground">
         {createdAtLabel}
       </TableCell>
       <TableCell>

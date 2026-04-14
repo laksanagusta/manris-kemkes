@@ -471,12 +471,12 @@ export default function UsersManagementPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-xs font-mono text-muted-foreground">
-                        {managedUser.username}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {managedUser.nip || "\u2014"}
-                      </TableCell>
+                       <TableCell className="text-sm font-mono text-muted-foreground">
+                         {managedUser.username}
+                       </TableCell>
+                       <TableCell className="text-sm text-muted-foreground">
+                         {managedUser.nip || "\u2014"}
+                       </TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
@@ -489,19 +489,19 @@ export default function UsersManagementPage() {
                           {role?.label ?? managedUser.role}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {managedUser.jabatan || "\u2014"}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {managedUser.pangkat || "\u2014"}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] text-xs text-muted-foreground">
-                        <span className="block truncate">
-                          {managedUser.role === "superadmin"
-                            ? "Semua organisasi"
-                            : managedUser.orgName || "Belum ditetapkan"}
-                        </span>
-                      </TableCell>
+                       <TableCell className="text-sm text-muted-foreground">
+                         {managedUser.jabatan || "\u2014"}
+                       </TableCell>
+                       <TableCell className="text-sm text-muted-foreground">
+                         {managedUser.pangkat || "\u2014"}
+                       </TableCell>
+                       <TableCell className="max-w-[200px] text-sm text-muted-foreground">
+                         <span className="block truncate">
+                           {managedUser.role === "superadmin"
+                             ? "Semua organisasi"
+                             : managedUser.orgName || "Belum ditetapkan"}
+                         </span>
+                       </TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
