@@ -35,6 +35,7 @@ export default function ControlsPage() {
   const [controls, setControls] = useState<any[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (!token) return;
@@ -70,11 +71,16 @@ export default function ControlsPage() {
         )}
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Cari kontrol..." className="h-8 pl-8 text-xs bg-card border-border/50" />
-      </div>
+       {/* Search */}
+       <div className="relative max-w-sm">
+         <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+         <Input
+           placeholder="Cari kontrol..."
+           value={search}
+           onChange={(event) => setSearch(event.target.value)}
+           className="h-8 pl-8 text-xs bg-card border-border/50"
+         />
+       </div>
 
       {/* Control Cards */}
       <div className="space-y-3">
