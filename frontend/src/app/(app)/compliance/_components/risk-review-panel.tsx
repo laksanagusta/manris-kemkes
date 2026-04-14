@@ -147,6 +147,13 @@ function buildHeatmapGrid(cells: HeatmapCell[]) {
   });
 }
 
+function getHeatmapCellClass(count: number): string {
+  if (count === 0) return "border-border bg-muted/20 text-muted-foreground";
+  if (count <= 2) return "border-primary/20 bg-primary/15 text-foreground";
+  if (count <= 5) return "border-primary/30 bg-primary/30 text-foreground";
+  return "border-primary/40 bg-primary/50 font-bold text-foreground";
+}
+
 export function RiskReviewPanel() {
   const router = useRouter();
   const { token, user } = useAuth();
@@ -308,6 +315,10 @@ export function RiskReviewPanel() {
     return counts;
   }, [items]);
 
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => item.reviewStatus !== "approved");
+  }, [items]);
+
   const movementSummary = useMemo(() => {
     const result = { up: 0, down: 0, stable: 0 };
     for (const item of comparisons) {
@@ -393,8 +404,8 @@ export function RiskReviewPanel() {
               Risk Review Queue
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Cycle aktif {cycle}. Risiko current approved diklasifikasikan
-              menjadi due, in draft, pending approval, approved, atau overdue.
+              Cycle aktif {cycle}. Risiko yang belum approved diklasifikasikan
+              menjadi due, in draft, pending approval, atau overdue.
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Entry point reassessment ada di tombol{" "}
@@ -443,7 +454,6 @@ export function RiskReviewPanel() {
                 <SelectItem value="pending_approval">
                   Pending Approval
                 </SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="overdue">Overdue</SelectItem>
               </SelectContent>
             </Select>
@@ -468,8 +478,8 @@ export function RiskReviewPanel() {
                   <TableHead className="w-36 text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {items.length === 0 ? (
+               <TableBody>
+                {filteredItems.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={8}
@@ -479,7 +489,7 @@ export function RiskReviewPanel() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  items.map((item) => {
+                  filteredItems.map((item) => {
                     const meta =
                       reviewStatusMeta[item.reviewStatus] ||
                       reviewStatusMeta.due;
@@ -593,11 +603,11 @@ export function RiskReviewPanel() {
               </TableBody>
             </Table>
           )}
-          {!loading && items.length > 0 && (
-            <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
-              <p className="text-xs text-muted-foreground">
-                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} risiko
-              </p>
+           {!loading && filteredItems.length > 0 && (
+             <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+               <p className="text-xs text-muted-foreground">
+                 Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} risiko
+               </p>
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
@@ -733,9 +743,7 @@ export function RiskReviewPanel() {
                             key={`${heatmap.label}-${rowIndex}-${colIndex}`}
                             className={cn(
                               "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
-                              count > 0
-                                ? "border-primary/20 bg-primary/10 text-foreground"
-                                : "border-border bg-muted/20 text-muted-foreground",
+                              getHeatmapCellClass(count),
                             )}
                           >
                             {count}
