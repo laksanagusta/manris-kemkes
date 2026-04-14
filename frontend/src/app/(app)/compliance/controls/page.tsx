@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -36,6 +36,18 @@ export default function ControlsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+
+  const filteredControls = useMemo(() => {
+    const q = deferredSearch.trim().toLowerCase();
+    if (!q) return controls;
+    return controls.filter(
+      (c) =>
+        c.name?.toLowerCase().includes(q) ||
+        c.description?.toLowerCase().includes(q) ||
+        c.owner?.toLowerCase().includes(q),
+    );
+  }, [controls, deferredSearch]);
 
   useEffect(() => {
     if (!token) return;
@@ -86,9 +98,9 @@ export default function ControlsPage() {
       <div className="space-y-3">
         {loading ? (
            <div className="py-10 text-center text-sm text-muted-foreground">Memuat data control library...</div>
-        ) : controls.length === 0 ? (
+        ) : filteredControls.length === 0 ? (
            <div className="py-10 text-center text-sm text-muted-foreground">Tidak ada control library yang ditemukan.</div>
-        ) : controls.map((control) => {
+        ) : filteredControls.map((control) => {
           const isExpanded = expandedId === control.id;
           const lastTest = control.tests?.[0];
           const effectiveCount = control.tests ? control.tests.filter((t: any) => t.result === "Efektif").length : 0;
