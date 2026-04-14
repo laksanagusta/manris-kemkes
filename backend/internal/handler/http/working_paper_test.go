@@ -61,8 +61,8 @@ func (r *handlerCreateRiskRepo) ListCycleSnapshot(context.Context, string, []uui
 	return nil, nil
 }
 func (r *handlerCreateRiskRepo) ActivateApprovedVersion(context.Context, uuid.UUID) error { return nil }
-func (r *handlerCreateRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string) ([]*entity.RiskReviewQueueItem, error) {
-	return nil, nil
+func (r *handlerCreateRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string, string, int, int) ([]*entity.RiskReviewQueueItem, int, error) {
+	return nil, 0, nil
 }
 func (r *handlerCreateRiskRepo) CompareCycles(context.Context, string, string, []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {
 	return nil, nil

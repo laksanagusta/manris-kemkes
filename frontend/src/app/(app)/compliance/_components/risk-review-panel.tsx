@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -8,9 +8,12 @@ import {
   ArrowRight,
   CalendarClock,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Minus,
   RefreshCcw,
+  Search,
   Send,
   ShieldAlert,
   TrendingDown,
@@ -31,6 +34,7 @@ import type {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -156,6 +160,11 @@ export function RiskReviewPanel() {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [status, setStatus] = useState<RiskReviewStatus | "all">("all");
   const [orgFilter, setOrgFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [total, setTotal] = useState(0);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState<RiskReviewQueueItem | null>(
     null,
@@ -189,6 +198,10 @@ export function RiskReviewPanel() {
   }, [token]);
 
   useEffect(() => {
+    setPage(1);
+  }, [status, orgFilter, deferredSearch]);
+
+  useEffect(() => {
     if (!token) return;
 
     const loadQueue = async () => {
@@ -197,11 +210,16 @@ export function RiskReviewPanel() {
         const params = new URLSearchParams({ cycle });
         if (status !== "all") params.set("status", status);
         if (orgFilter !== "all") params.set("org_id", orgFilter);
-        const data = await api.get<RiskReviewQueueItem[]>(
+        if (deferredSearch.trim()) params.set("search", deferredSearch.trim());
+        params.set("page", page.toString());
+        params.set("limit", limit.toString());
+        
+        const result = await api.get<{ data: RiskReviewQueueItem[]; total: number; page: number; limit: number }>(
           `/risks/review-queue?${params.toString()}`,
           token,
         );
-        setItems(data);
+        setItems(result.data);
+        setTotal(result.total);
       } catch (error) {
         console.error(error);
         toast.error(
@@ -215,7 +233,7 @@ export function RiskReviewPanel() {
     };
 
     loadQueue();
-  }, [token, status, cycle, orgFilter]);
+  }, [token, status, cycle, orgFilter, deferredSearch, page, limit]);
 
   useEffect(() => {
     if (!token) return;
@@ -386,6 +404,15 @@ export function RiskReviewPanel() {
             </p>
           </div>
           <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Cari kode, judul, unit..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 pl-8 text-xs bg-muted/30 border-none"
+              />
+            </div>
             <Select value={orgFilter} onValueChange={setOrgFilter}>
               <SelectTrigger className="w-full md:w-[240px]">
                 <SelectValue placeholder="Filter unit" />
@@ -564,6 +591,39 @@ export function RiskReviewPanel() {
                 )}
               </TableBody>
             </Table>
+          )}
+          {!loading && items.length > 0 && (
+            <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+              <p className="text-xs text-muted-foreground">
+                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} risiko
+              </p>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-muted-foreground"
+                  disabled={page === 1 || loading}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="size-3.5" />
+                </Button>
+                <span className="px-2 text-xs font-medium text-primary">
+                  {page}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  dari {Math.ceil(total / limit) || 1}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-muted-foreground"
+                  disabled={page >= (Math.ceil(total / limit) || 1) || total === 0 || loading}
+                  onClick={() => setPage((p) => Math.min(Math.ceil(total / limit) || 1, p + 1))}
+                >
+                  <ChevronRight className="size-3.5" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

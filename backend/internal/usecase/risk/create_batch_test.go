@@ -62,8 +62,8 @@ func (r *fakeBatchRiskRepo) ListCycleSnapshot(context.Context, string, []uuid.UU
 func (r *fakeBatchRiskRepo) ActivateApprovedVersion(context.Context, uuid.UUID) error {
 	return nil
 }
-func (r *fakeBatchRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string) ([]*entity.RiskReviewQueueItem, error) {
-	return nil, nil
+func (r *fakeBatchRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string, string, int, int) ([]*entity.RiskReviewQueueItem, int, error) {
+	return nil, 0, nil
 }
 func (r *fakeBatchRiskRepo) CompareCycles(context.Context, string, string, []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {
 	return nil, nil

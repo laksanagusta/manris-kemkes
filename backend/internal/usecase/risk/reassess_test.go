@@ -17,7 +17,7 @@ type fakeReassessRiskRepo struct {
 	createdRisk       *entity.Risk
 	versions          []*entity.Risk
 	listCycleSnapshot func(context.Context, string, []uuid.UUID) ([]*entity.Risk, error)
-	listReviewQueue   func(context.Context, string, []uuid.UUID, string) ([]*entity.RiskReviewQueueItem, error)
+	listReviewQueue   func(context.Context, string, []uuid.UUID, string, string, int, int) ([]*entity.RiskReviewQueueItem, int, error)
 	compareCycles     func(context.Context, string, string, []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error)
 	riskReviewSummary func(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error)
 }
@@ -81,11 +81,11 @@ func (r *fakeReassessRiskRepo) ListCycleSnapshot(ctx context.Context, cycle stri
 func (r *fakeReassessRiskRepo) ActivateApprovedVersion(context.Context, uuid.UUID) error {
 	return errors.New("not implemented")
 }
-func (r *fakeReassessRiskRepo) ListReviewQueue(ctx context.Context, cycle string, orgIDs []uuid.UUID, status string) ([]*entity.RiskReviewQueueItem, error) {
+func (r *fakeReassessRiskRepo) ListReviewQueue(ctx context.Context, cycle string, orgIDs []uuid.UUID, status string, search string, page int, limit int) ([]*entity.RiskReviewQueueItem, int, error) {
 	if r.listReviewQueue != nil {
-		return r.listReviewQueue(ctx, cycle, orgIDs, status)
+		return r.listReviewQueue(ctx, cycle, orgIDs, status, search, page, limit)
 	}
-	return nil, errors.New("not implemented")
+	return nil, 0, errors.New("not implemented")
 }
 func (r *fakeReassessRiskRepo) CompareCycles(ctx context.Context, fromCycle string, toCycle string, orgIDs []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {
 	if r.compareCycles != nil {
@@ -145,26 +145,26 @@ func TestListRiskReviewQueueUseCase_ExecuteReturnsReviewItems(t *testing.T) {
 		ReviewStatus:    "due",
 	}}
 	repoList := want
-	repo.listReviewQueue = func(_ context.Context, cycle string, _ []uuid.UUID, status string) ([]*entity.RiskReviewQueueItem, error) {
+	repo.listReviewQueue = func(_ context.Context, cycle string, _ []uuid.UUID, status string, _ string, _ int, _ int) ([]*entity.RiskReviewQueueItem, int, error) {
 		if cycle != "2026-H1" {
 			t.Fatalf("expected cycle 2026-H1, got %q", cycle)
 		}
 		if status != "all" {
 			t.Fatalf("expected status all, got %q", status)
 		}
-		return repoList, nil
+		return repoList, len(repoList), nil
 	}
 
 	uc := NewListRiskReviewQueueUseCase(repo, nil)
-	items, err := uc.Execute(context.Background(), ListRiskReviewQueueInput{Cycle: "2026-H1", Status: "all"})
+	result, err := uc.Execute(context.Background(), ListRiskReviewQueueInput{Cycle: "2026-H1", Status: "all"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if len(items) != 1 {
-		t.Fatalf("expected 1 item, got %d", len(items))
+	if len(result.Data) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(result.Data))
 	}
-	if items[0].ReviewStatus != "due" {
-		t.Fatalf("expected due review status, got %q", items[0].ReviewStatus)
+	if result.Data[0].ReviewStatus != "due" {
+		t.Fatalf("expected due review status, got %q", result.Data[0].ReviewStatus)
 	}
 }
 

@@ -296,20 +296,24 @@ func (h *RiskHandler) ListReviewQueue(c *fiber.Ctx) error {
 		}
 	}
 
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	search := c.Query("search", "")
+
 	input := riskuc.ListRiskReviewQueueInput{
 		Cycle:  c.Query("cycle"),
 		OrgIDs: orgIDs,
 		Status: c.Query("status", "all"),
+		Search: search,
+		Page:   page,
+		Limit:  limit,
 	}
 
-	items, err := h.reviewQueueUC.Execute(c.Context(), input)
+	result, err := h.reviewQueueUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
 	}
-	if items == nil {
-		items = []*entity.RiskReviewQueueItem{}
-	}
-	return c.JSON(fiber.Map{"data": items})
+	return c.JSON(result)
 }
 
 // CompareCycles handles GET /api/risks/compare

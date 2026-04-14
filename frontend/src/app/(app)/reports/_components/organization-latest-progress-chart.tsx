@@ -1,19 +1,19 @@
 "use client";
 
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import type { LatestOrganizationProgressDatum } from "@/lib/dashboard-insights";
 
-const PROGRESS_COLOR = "oklch(0.72 0.17 155)";
+const PROGRESS_COLOR_CLASS = "[&>div]:bg-[oklch(0.72_0.17_155)]";
 
 type OrganizationLatestProgressChartProps = {
   data?: LatestOrganizationProgressDatum[];
@@ -23,6 +23,7 @@ export function OrganizationLatestProgressChart({
   data = [],
 }: OrganizationLatestProgressChartProps) {
   const hasData = data.length > 0;
+  const sortedData = [...data].sort((a, b) => b.approvedPercent - a.approvedPercent);
 
   return (
     <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
@@ -49,43 +50,39 @@ export function OrganizationLatestProgressChart({
             Belum ada data progress organisasi untuk ditampilkan.
           </div>
         ) : (
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 24, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" horizontal={false} />
-                <XAxis
-                  type="number"
-                  domain={[0, 100]}
-                  tick={{ fontSize: 10, fill: "oklch(0.6 0.02 265)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="orgName"
-                  width={110}
-                  tick={{ fontSize: 10, fill: "oklch(0.6 0.02 265)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  formatter={(value, _name, item) => {
-                    const payload = item.payload as LatestOrganizationProgressDatum;
-                    return [
-                      `${value}%`,
-                      `${payload.approvedCount}/${payload.totalCount} approved · ${payload.period}`,
-                    ];
-                  }}
-                  contentStyle={{
-                    background: "oklch(0.98 0.003 170 / 95%)",
-                    border: "1px solid oklch(0.91 0.008 170)",
-                    borderRadius: "8px",
-                    fontSize: "11px",
-                  }}
-                />
-                <Bar dataKey="approvedPercent" fill={PROGRESS_COLOR} radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="max-h-[300px] overflow-y-auto rounded-md border border-border/50">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Organisasi</TableHead>
+                  <TableHead>Periode</TableHead>
+                  <TableHead className="w-[40%]">Progress</TableHead>
+                  <TableHead className="text-right">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedData.map((row, idx) => (
+                  <TableRow key={`${row.orgName}-${idx}`}>
+                    <TableCell className="font-medium text-sm">{row.orgName}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{row.period}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Progress 
+                          value={row.approvedPercent} 
+                          className={`h-2 ${PROGRESS_COLOR_CLASS}`} 
+                        />
+                        <span className="text-xs text-muted-foreground w-8 text-right">
+                          {row.approvedPercent}%
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right text-sm text-muted-foreground">
+                      {row.approvedCount}/{row.totalCount}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>

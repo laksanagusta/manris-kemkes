@@ -127,8 +127,8 @@ func (r *fakeApprovalRiskRepo) ActivateApprovedVersion(_ context.Context, approv
 	r.activatedRiskID = approvedRiskID
 	return nil
 }
-func (r *fakeApprovalRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string) ([]*entity.RiskReviewQueueItem, error) {
-	return nil, errors.New("not implemented")
+func (r *fakeApprovalRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string, string, int, int) ([]*entity.RiskReviewQueueItem, int, error) {
+	return nil, 0, errors.New("not implemented")
 }
 func (r *fakeApprovalRiskRepo) CompareCycles(context.Context, string, string, []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {
 	return nil, errors.New("not implemented")

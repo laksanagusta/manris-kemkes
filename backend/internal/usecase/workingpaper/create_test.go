@@ -97,8 +97,8 @@ func (r *fakeCreateRiskRepo) ActivateApprovedVersion(context.Context, uuid.UUID)
 	return nil
 }
 
-func (r *fakeCreateRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string) ([]*entity.RiskReviewQueueItem, error) {
-	return nil, nil
+func (r *fakeCreateRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string, string, int, int) ([]*entity.RiskReviewQueueItem, int, error) {
+	return nil, 0, nil
 }
 
 func (r *fakeCreateRiskRepo) CompareCycles(context.Context, string, string, []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {

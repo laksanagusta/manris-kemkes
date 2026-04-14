@@ -111,22 +111,6 @@ CREATE TABLE IF NOT EXISTS communication_logs (
     created_at  TIMESTAMPTZ DEFAULT now()
 );
 
--- Lessons Learned
-CREATE TABLE IF NOT EXISTS lessons_learned (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title           TEXT NOT NULL,
-    description     TEXT DEFAULT '',
-    source_type     TEXT DEFAULT 'risiko' CHECK (source_type IN ('risiko','insiden')),
-    source_ref      TEXT DEFAULT '',
-    success_factors TEXT DEFAULT '',
-    failure_factors TEXT DEFAULT '',
-    recommendations TEXT DEFAULT '',
-    tags            TEXT[] DEFAULT '{}',
-    author_id       UUID REFERENCES users(id),
-    organization_id UUID REFERENCES organizations(id),
-    created_at      TIMESTAMPTZ DEFAULT now()
-);
-
 -- Controls
 CREATE TABLE IF NOT EXISTS controls (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),

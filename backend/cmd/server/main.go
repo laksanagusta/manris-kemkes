@@ -32,7 +32,6 @@ import (
 	incidentuc "github.com/manris/backend/internal/usecase/incident"
 	kriuc "github.com/manris/backend/internal/usecase/kri"
 	krireportuc "github.com/manris/backend/internal/usecase/kri_report"
-	lessonuc "github.com/manris/backend/internal/usecase/lesson"
 	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
@@ -65,7 +64,6 @@ func main() {
 	domainIncidentRepo := postgresrepo.NewIncidentRepository(pool)
 	domainKRiRepo := postgresrepo.NewKRIRepository(pool)
 	domainControlRepo := postgresrepo.NewControlRepository(pool)
-	domainLessonRepo := postgresrepo.NewLessonRepository(pool)
 	domainApprovalRepo := postgresrepo.NewApprovalRepository(pool)
 	domainSystemRepo := postgresrepo.NewSystemRepository(pool)
 	domainSystemSettingRepo := postgresrepo.NewSystemSettingRepository(pool)
@@ -160,14 +158,6 @@ func main() {
 	kriArchiveUC := kriuc.NewArchiveKRIUseCase(domainKRiRepo)
 	kriListUC := kriuc.NewListKRIsUseCase(domainKRiRepo, orgHierarchySvc)
 	kriDashboardUC := kriuc.NewKRIDashboardUseCase(domainKRiRepo, orgHierarchySvc)
-
-	// Lesson usecases
-	lessonCreateUC := lessonuc.NewCreateLessonUseCase(domainLessonRepo, domainUserRepo, domainOrgRepo)
-	lessonGetUC := lessonuc.NewGetLessonUseCase(domainLessonRepo)
-	lessonUpdateUC := lessonuc.NewUpdateLessonUseCase(domainLessonRepo, domainUserRepo, domainOrgRepo)
-	lessonDeleteUC := lessonuc.NewDeleteLessonUseCase(domainLessonRepo)
-	lessonListUC := lessonuc.NewListLessonsUseCase(domainLessonRepo, orgHierarchySvc)
-	lessonDashboardUC := lessonuc.NewLessonDashboardUseCase(domainLessonRepo, orgHierarchySvc)
 
 	// Approval usecases
 	approvalListUC := approvaluc.NewListApprovalUseCase(domainApprovalRepo)
@@ -282,9 +272,6 @@ func main() {
 	)
 	cleanKRIHandler := httpHandler.NewKRIHandler(
 		kriCreateUC, kriGetUC, kriUpdateUC, kriArchiveUC, kriListUC, kriDashboardUC,
-	)
-	cleanLessonHandler := httpHandler.NewLessonHandler(
-		lessonCreateUC, lessonGetUC, lessonUpdateUC, lessonDeleteUC, lessonListUC, lessonDashboardUC,
 	)
 	approvalHandler := httpHandler.NewApprovalHandler(
 		approvalListUC, approvalSubmitUC, approvalActionUC, approvalGetDetailUC, approvalGetPendingCountUC, approvalGetByEntityUC,
@@ -480,14 +467,6 @@ func main() {
 	protected.Get("/controls/:id", cleanControlHandler.GetControl)
 	protected.Put("/controls/:id", cleanControlHandler.UpdateControl)
 	protected.Delete("/controls/:id", cleanControlHandler.DeleteControl)
-
-	// Lessons Learned (Clean Architecture)
-	protected.Get("/lessons", cleanLessonHandler.ListLessons)
-	protected.Get("/lessons/dashboard", cleanLessonHandler.LessonDashboard)
-	protected.Post("/lessons", cleanLessonHandler.CreateLesson)
-	protected.Get("/lessons/:id", cleanLessonHandler.GetLesson)
-	protected.Put("/lessons/:id", cleanLessonHandler.UpdateLesson)
-	protected.Delete("/lessons/:id", cleanLessonHandler.DeleteLesson)
 
 	// External PICs (Clean Architecture)
 	protected.Get("/external-pics", cleanExternalPICHandler.List)

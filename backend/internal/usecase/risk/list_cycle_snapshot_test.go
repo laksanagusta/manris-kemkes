@@ -53,8 +53,8 @@ func (r *fakeCycleSnapshotRiskRepo) ListCycleSnapshot(_ context.Context, cycle s
 func (r *fakeCycleSnapshotRiskRepo) ActivateApprovedVersion(context.Context, uuid.UUID) error {
 	return nil
 }
-func (r *fakeCycleSnapshotRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string) ([]*entity.RiskReviewQueueItem, error) {
-	return nil, nil
+func (r *fakeCycleSnapshotRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string, string, int, int) ([]*entity.RiskReviewQueueItem, int, error) {
+	return nil, 0, nil
 }
 func (r *fakeCycleSnapshotRiskRepo) CompareCycles(context.Context, string, string, []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {
 	return nil, nil

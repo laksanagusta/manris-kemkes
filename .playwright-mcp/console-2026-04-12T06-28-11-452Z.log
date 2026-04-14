@@ -1,8 +1,0 @@
-[   23953ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3000/:0
-[   23985ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8080/api/v1/auth/me:0
-[   24060ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3000/login:0
-[   24781ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "new-password"): (More info: https://goo.gl/9p2vKq) @ http://localhost:3000/change-password:0
-[   24781ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "new-password"): (More info: https://goo.gl/9p2vKq) @ http://localhost:3000/change-password:0
-[   25573ms] TypeError: e is not iterable
-    at h (http://localhost:3000/_next/static/chunks/90db5213b1a8028d.js:1:40411)
-    at http://localhost:3000/_next/static/chunks/90db5213b1a8028d.js:1:57027

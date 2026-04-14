@@ -1125,9 +1125,61 @@ func (r *riskRepository) ActivateApprovedVersion(ctx context.Context, approvedRi
 }
 
 // ListReviewQueue returns current risks and their reassessment progress for a cycle.
-func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgIDs []uuid.UUID, status string) ([]*entity.RiskReviewQueueItem, error) {
+// page=0 and limit=0 disables pagination, returning all rows.
+func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgIDs []uuid.UUID, status string, search string, page int, limit int) ([]*entity.RiskReviewQueueItem, int, error) {
 	currentScoreExpr := finalizedScoreExpr("base")
 	candidateScoreExpr := finalizedScoreExpr("candidate")
+
+	baseFrom := fmt.Sprintf(`FROM risks base
+	LEFT JOIN organizations org ON org.id = base.organization_id
+	LEFT JOIN LATERAL (
+		SELECT c.id, c.status, c.inherent_score, c.probability, c.impact, c.weight, c.nilai, c.reviewed_probability, c.reviewed_impact, c.reviewed_weight, c.reviewed_nilai, c.reviewed_score, c.change_reason, c.review_summary, c.updated_at
+		FROM risks c
+		WHERE c.version_group_id = base.version_group_id
+		  AND c.assessment_cycle = $1
+		ORDER BY c.created_at DESC
+		LIMIT 1
+	) candidate ON TRUE
+	WHERE base.is_current = TRUE AND base.status = 'approved'`)
+
+	args := []interface{}{cycle}
+	if len(orgIDs) > 0 {
+		baseFrom += fmt.Sprintf(" AND base.organization_id = ANY($%d)", len(args)+1)
+		args = append(args, orgIDs)
+	}
+	if status != "" && status != "all" {
+		baseFrom += fmt.Sprintf(` AND (
+			CASE
+				WHEN base.assessment_cycle = $1 THEN 'approved'
+				WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date < CURRENT_DATE THEN 'overdue'
+				WHEN candidate.id IS NULL THEN 'due'
+				WHEN candidate.status = 'draft' THEN 'in_draft'
+				WHEN candidate.status = 'in_review' THEN 'in_review'
+				WHEN candidate.status = 'in_approval' THEN 'pending_approval'
+				WHEN candidate.status = 'approved' THEN 'approved'
+				WHEN candidate.status = 'rejected' THEN 'rejected'
+				ELSE 'due'
+			END
+		) = $%d`, len(args)+1)
+		args = append(args, status)
+	}
+	if search != "" {
+		baseFrom += fmt.Sprintf(` AND (
+			base.code ILIKE '%%' || $%[1]d || '%%'
+			OR base.title ILIKE '%%' || $%[1]d || '%%'
+			OR COALESCE(org.name, '') ILIKE '%%' || $%[1]d || '%%'
+			OR COALESCE(candidate.change_reason, '') ILIKE '%%' || $%[1]d || '%%'
+			OR COALESCE(candidate.review_summary, '') ILIKE '%%' || $%[1]d || '%%'
+		)`, len(args)+1)
+		args = append(args, search)
+	}
+
+	countQuery := "SELECT COUNT(*) " + baseFrom
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count risk review queue: %w", err)
+	}
+
 	query := fmt.Sprintf(`SELECT
 		base.id::text,
 		base.version_group_id::text,
@@ -1170,44 +1222,17 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 		COALESCE(candidate.change_reason, ''),
 		COALESCE(candidate.review_summary, ''),
 		candidate.updated_at::text
-	FROM risks base
-	LEFT JOIN organizations org ON org.id = base.organization_id
-	LEFT JOIN LATERAL (
-		SELECT c.id, c.status, c.inherent_score, c.probability, c.impact, c.weight, c.nilai, c.reviewed_probability, c.reviewed_impact, c.reviewed_weight, c.reviewed_nilai, c.reviewed_score, c.change_reason, c.review_summary, c.updated_at
-		FROM risks c
-		WHERE c.version_group_id = base.version_group_id
-		  AND c.assessment_cycle = $1
-		ORDER BY c.created_at DESC
-		LIMIT 1
-	) candidate ON TRUE
-	WHERE base.is_current = TRUE AND base.status = 'approved'`, currentScoreExpr, candidateScoreExpr)
+	`, currentScoreExpr, candidateScoreExpr) + baseFrom + " ORDER BY base.next_review_date NULLS LAST, base.updated_at DESC"
 
-	args := []interface{}{cycle}
-	if len(orgIDs) > 0 {
-		query += fmt.Sprintf(" AND base.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+	if page > 0 && limit > 0 {
+		offset := (page - 1) * limit
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+		args = append(args, limit, offset)
 	}
-	if status != "" && status != "all" {
-		query += fmt.Sprintf(` AND (
-			CASE
-				WHEN base.assessment_cycle = $1 THEN 'approved'
-				WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date < CURRENT_DATE THEN 'overdue'
-				WHEN candidate.id IS NULL THEN 'due'
-				WHEN candidate.status = 'draft' THEN 'in_draft'
-				WHEN candidate.status = 'in_review' THEN 'in_review'
-				WHEN candidate.status = 'in_approval' THEN 'pending_approval'
-				WHEN candidate.status = 'approved' THEN 'approved'
-				WHEN candidate.status = 'rejected' THEN 'rejected'
-				ELSE 'due'
-			END
-		) = $%d`, len(args)+1)
-		args = append(args, status)
-	}
-	query += " ORDER BY base.next_review_date NULLS LAST, base.updated_at DESC"
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("list risk review queue: %w", err)
+		return nil, 0, fmt.Errorf("list risk review queue: %w", err)
 	}
 	defer rows.Close()
 
@@ -1234,12 +1259,12 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 			&item.ReviewSummary,
 			&item.CandidateUpdated,
 		); err != nil {
-			return nil, fmt.Errorf("scan risk review queue: %w", err)
+			return nil, 0, fmt.Errorf("scan risk review queue: %w", err)
 		}
 		items = append(items, item)
 	}
 
-	return items, nil
+	return items, total, nil
 }
 
 // CompareCycles returns approved risk movement between two cycles.
@@ -1353,7 +1378,7 @@ func previousCycle(cycle string) string {
 
 // RiskReviewSummary returns aggregated cycle metrics for monitoring.
 func (r *riskRepository) RiskReviewSummary(ctx context.Context, cycle string, orgIDs []uuid.UUID) (*entity.RiskReviewSummary, error) {
-	queue, err := r.ListReviewQueue(ctx, cycle, orgIDs, "all")
+	queue, _, err := r.ListReviewQueue(ctx, cycle, orgIDs, "all", "", 0, 0)
 	if err != nil {
 		return nil, fmt.Errorf("load review queue summary: %w", err)
 	}
