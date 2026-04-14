@@ -885,6 +885,7 @@ export default function ReportsPage() {
             )}
           </CardContent>
         </Card>
+        <CriticalRiskRateTrend data={criticalRiskRateData} />
       </div>
 
       <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
@@ -898,7 +899,6 @@ export default function ReportsPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <InherentResidualTrend data={inherentResidualData} />
-        <CriticalRiskRateTrend data={criticalRiskRateData} />
         <OrganizationLatestProgressChart data={organizationProgressData} />
       </div>
 
