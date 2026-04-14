@@ -142,13 +142,22 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 	q := c.Query("q")
 	status := c.Query("status")
 	role := c.Query("role")
+	organizationId := c.Query("organizationId")
+
+	// Validate organizationId if provided
+	if organizationId != "" {
+		if _, err := uuid.Parse(organizationId); err != nil {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID format")
+		}
+	}
 
 	result, err := h.listFilterUC.Execute(c.Context(), useruc.ListUsersWithFilterInput{
-		Page:   page,
-		Limit:  limit,
-		Q:      q,
-		Status: status,
-		Role:   role,
+		Page:           page,
+		Limit:          limit,
+		Q:              q,
+		Status:         status,
+		Role:           role,
+		OrganizationID: organizationId,
 	})
 	if err != nil {
 		return handleError(c, err)

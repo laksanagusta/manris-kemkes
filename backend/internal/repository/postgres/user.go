@@ -148,6 +148,14 @@ func (r *userRepository) ListWithFilter(ctx context.Context, filter repository.U
 		argIdx++
 	}
 
+	if filter.OrganizationID != "" {
+		f := fmt.Sprintf(" AND u.organization_id = $%d", argIdx)
+		countQuery += f
+		dataQuery += f
+		args = append(args, filter.OrganizationID)
+		argIdx++
+	}
+
 	var total int
 	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("list users count: %w", err)

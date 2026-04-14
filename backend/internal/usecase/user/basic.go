@@ -59,11 +59,12 @@ func NewListUsersWithFilterUseCase(userRepo repository.UserRepository) *ListUser
 }
 
 type ListUsersWithFilterInput struct {
-	Page   int
-	Limit  int
-	Q      string
-	Status string
-	Role   string
+	Page           int
+	Limit          int
+	Q              string
+	Status         string
+	Role           string
+	OrganizationID string
 }
 
 type ListUsersWithFilterOutput struct {
@@ -82,11 +83,12 @@ func (uc *ListUsersWithFilterUseCase) Execute(ctx context.Context, input ListUse
 	}
 
 	users, total, err := uc.userRepo.ListWithFilter(ctx, repository.UserListFilter{
-		Page:   input.Page,
-		Limit:  input.Limit,
-		Q:      input.Q,
-		Status: input.Status,
-		Role:   input.Role,
+		Page:           input.Page,
+		Limit:          input.Limit,
+		Q:              input.Q,
+		Status:         input.Status,
+		Role:           input.Role,
+		OrganizationID: input.OrganizationID,
 	})
 	if err != nil {
 		return nil, err
