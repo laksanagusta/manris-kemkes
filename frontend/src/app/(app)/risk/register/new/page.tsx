@@ -622,6 +622,8 @@ export default function RiskInputPage() {
     setApprovalLine((current) => current.filter((item) => item.id !== id));
   };
 
+  const orgFilter = user?.isGlobal ? undefined : user?.organizationId ?? undefined;
+
   const loadReviewerOptions = useCallback(
     async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
       if (!token) {
@@ -633,6 +635,7 @@ export default function RiskInputPage() {
         role: "reviewer",
         page,
         limit,
+        organizationId: orgFilter,
       });
 
       return {
@@ -642,7 +645,7 @@ export default function RiskInputPage() {
         limit: result.limit,
       };
     },
-    [token],
+    [orgFilter, token],
   );
 
   const loadApproverOptions = useCallback(
@@ -655,6 +658,7 @@ export default function RiskInputPage() {
         q: q || undefined,
         page,
         limit,
+        organizationId: orgFilter,
       });
 
       return {
@@ -670,7 +674,7 @@ export default function RiskInputPage() {
         limit: result.limit,
       };
     },
-    [approvalLine, reviewerId, token],
+    [approvalLine, orgFilter, reviewerId, token],
   );
 
   const loadPicOptions = useCallback(
@@ -683,6 +687,7 @@ export default function RiskInputPage() {
         q: q || undefined,
         page,
         limit,
+        organizationId: orgFilter,
       });
 
       return {
@@ -692,7 +697,7 @@ export default function RiskInputPage() {
         limit: result.limit,
       };
     },
-    [token],
+    [orgFilter, token],
   );
 
   const loadRiskData = useCallback(

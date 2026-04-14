@@ -20,12 +20,13 @@ export interface PaginatedUsersResponse {
   limit: number;
 }
 
-interface ListUsersParams {
+export interface ListUsersParams {
   q?: string;
   status?: string;
   role?: string;
   page?: number;
   limit?: number;
+  organizationId?: string;
 }
 
 export async function listUsers(
@@ -39,6 +40,7 @@ export async function listUsers(
   if (params?.role) searchParams.set("role", params.role);
   if (params?.page) searchParams.set("page", params.page.toString());
   if (params?.limit) searchParams.set("limit", params.limit.toString());
+  if (params?.organizationId) searchParams.set("organizationId", params.organizationId);
 
   const qs = searchParams.toString();
 
