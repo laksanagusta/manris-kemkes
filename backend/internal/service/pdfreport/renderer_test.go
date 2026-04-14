@@ -56,7 +56,7 @@ func (d *capturedDocument) GetReport() *metrics.Report { return nil }
 func (d *capturedDocument) Merge([]byte) error { return nil }
 
 func TestPDFReportRenderer_AddRiskRegisterUsesEffectiveFields(t *testing.T) {
-	risk := approvedPDFRisk("R-100", "Latency Spike", 1, 1, 1, 5, 4, 23)
+	risk := approvedPDFRisk("R-100", "Latency Spike", 5, 4, 23)
 	renderer := &pdfReportRenderer{}
 	m := &capturedMaroto{}
 
@@ -68,7 +68,7 @@ func TestPDFReportRenderer_AddRiskRegisterUsesEffectiveFields(t *testing.T) {
 }
 
 func TestPDFReportRenderer_AddTopRisksUsesEffectiveScoreAndLevelColor(t *testing.T) {
-	risk := approvedPDFRisk("R-200", "Cold Chain Failure", 1, 1, 1, 5, 4, 23)
+	risk := approvedPDFRisk("R-200", "Cold Chain Failure", 5, 4, 23)
 	renderer := &pdfReportRenderer{}
 	m := &capturedMaroto{}
 
@@ -85,10 +85,10 @@ func TestPDFReportRenderer_AddTopRisksUsesEffectiveScoreAndLevelColor(t *testing
 }
 
 func TestPDFReportRenderer_AddRiskRegisterKeepsFallbackAndDraftIsolationCompatible(t *testing.T) {
-	legacyApproved := approvedPDFRiskWithPartialReviewedBundle("R-201", "Legacy Fallback", entity.RiskStatusApproved, 5, 4, 20, 1, 1)
-	draftReviewed := approvedPDFRisk("R-202", "Draft Isolation", 4, 4, 16, 1, 1, 0)
+	legacyApproved := approvedPDFRiskWithPartialReviewedBundle("R-201", "Legacy Fallback", entity.RiskStatusApproved, 5, 4, 20)
+	draftReviewed := approvedPDFRisk("R-202", "Draft Isolation", 4, 4, 16)
 	draftReviewed.Status = entity.RiskStatusInApproval
-	finalizedZero := approvedPDFRisk("R-203", "Zero Final", 5, 5, 25, 1, 1, 0)
+	finalizedZero := approvedPDFRisk("R-203", "Zero Final", 5, 5, 25)
 	renderer := &pdfReportRenderer{}
 	m := &capturedMaroto{}
 
@@ -96,47 +96,32 @@ func TestPDFReportRenderer_AddRiskRegisterKeepsFallbackAndDraftIsolationCompatib
 
 	assertExactTexts(t, findRowTextsContaining(t, m.rows, "R-201"), []string{"1", "R-201", "Legacy Fallback", legacyApproved.Category, "5", "4", "20", entity.RiskLevelSangatTinggi, entity.RiskStatusApproved})
 	assertExactTexts(t, findRowTextsContaining(t, m.rows, "R-202"), []string{"2", "R-202", "Draft Isolation", draftReviewed.Category, "4", "4", "16", entity.RiskLevelTinggi, entity.RiskStatusInApproval})
-	assertExactTexts(t, findRowTextsContaining(t, m.rows, "R-203"), []string{"3", "R-203", "Zero Final", finalizedZero.Category, "1", "1", "0", entity.RiskLevelSangatRendah, entity.RiskStatusApproved})
+	assertExactTexts(t, findRowTextsContaining(t, m.rows, "R-203"), []string{"3", "R-203", "Zero Final", finalizedZero.Category, "5", "5", "25", entity.RiskLevelSangatTinggi, entity.RiskStatusApproved})
 }
 
-func approvedPDFRisk(code string, title string, probability int, impact int, inherentScore int, reviewedProbability int, reviewedImpact int, reviewedScore int) *entity.Risk {
-	reviewedWeight := 1.0
-	reviewedNilai := float64(reviewedScore)
-
+func approvedPDFRisk(code string, title string, probability int, impact int, inherentScore int) *entity.Risk {
 	return &entity.Risk{
-		Code:                code,
-		Title:               title,
-		Category:            entity.RiskCategoryOperasional,
-		Status:              entity.RiskStatusApproved,
-		Probability:         probability,
-		Impact:              impact,
-		Nilai:               float64(inherentScore),
-		InherentScore:       inherentScore,
-		ReviewedProbability: &reviewedProbability,
-		ReviewedImpact:      &reviewedImpact,
-		ReviewedWeight:      &reviewedWeight,
-		ReviewedNilai:       &reviewedNilai,
-		ReviewedScore:       &reviewedScore,
+		Code:          code,
+		Title:         title,
+		Category:      entity.RiskCategoryOperasional,
+		Status:        entity.RiskStatusApproved,
+		Probability:   probability,
+		Impact:        impact,
+		Nilai:         float64(inherentScore),
+		InherentScore: inherentScore,
 	}
 }
 
-func approvedPDFRiskWithPartialReviewedBundle(code string, title string, status string, probability int, impact int, inherentScore int, reviewedProbability int, reviewedImpact int) *entity.Risk {
-	reviewedWeight := 1.0
-	reviewedNilai := float64(inherentScore)
-
+func approvedPDFRiskWithPartialReviewedBundle(code string, title string, status string, probability int, impact int, inherentScore int) *entity.Risk {
 	return &entity.Risk{
-		Code:                code,
-		Title:               title,
-		Category:            entity.RiskCategoryOperasional,
-		Status:              status,
-		Probability:         probability,
-		Impact:              impact,
-		Nilai:               float64(inherentScore),
-		InherentScore:       inherentScore,
-		ReviewedProbability: &reviewedProbability,
-		ReviewedImpact:      &reviewedImpact,
-		ReviewedWeight:      &reviewedWeight,
-		ReviewedNilai:       &reviewedNilai,
+		Code:          code,
+		Title:         title,
+		Category:      entity.RiskCategoryOperasional,
+		Status:        status,
+		Probability:   probability,
+		Impact:        impact,
+		Nilai:         float64(inherentScore),
+		InherentScore: inherentScore,
 	}
 }
 

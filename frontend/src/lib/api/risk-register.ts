@@ -24,11 +24,6 @@ export interface RiskRegisterListItem {
   targetImpact?: number;
   targetWeight?: number;
   targetNilai?: number;
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
   cause?: string[];
   impactDesc?: string[];
   existingControl?: string;

@@ -20,8 +20,8 @@ export interface RiskScoreSnapshot {
 }
 
 export interface ResolvedRiskScoreSemantics {
-  source: "inherent" | "reviewed";
-  usesReviewed: boolean;
+  source: "inherent";
+  usesReviewed: false;
   isFinalized: boolean;
   effective: RiskScoreSnapshot;
   primary: RiskScoreSnapshot;
@@ -44,11 +44,6 @@ type RiskScoreSemanticFields = Pick<
   | "weight"
   | "nilai"
   | "inherentScore"
-  | "reviewedProbability"
-  | "reviewedImpact"
-  | "reviewedWeight"
-  | "reviewedNilai"
-  | "reviewedScore"
 >;
 
 export const PROBABILITY_LABELS: Record<number, string> = {
@@ -255,42 +250,6 @@ function buildRiskScoreSnapshot(bundle: RiskScoreBundleInput): RiskScoreSnapshot
   };
 }
 
-function hasCompleteReviewedRiskScoreBundle(risk: RiskScoreSemanticFields): boolean {
-  return (
-    isExplicitNumber(risk.reviewedProbability) &&
-    isExplicitNumber(risk.reviewedImpact) &&
-    isExplicitNumber(risk.reviewedWeight) &&
-    isExplicitNumber(risk.reviewedNilai) &&
-    isExplicitNumber(risk.reviewedScore)
-  );
-}
-
-function buildReviewedRiskScoreSnapshot(risk: RiskScoreSemanticFields): RiskScoreSnapshot | null {
-  const reviewedProbability = risk.reviewedProbability;
-  const reviewedImpact = risk.reviewedImpact;
-  const reviewedWeight = risk.reviewedWeight;
-  const reviewedNilai = risk.reviewedNilai;
-  const reviewedScore = risk.reviewedScore;
-
-  if (
-    !isExplicitNumber(reviewedProbability) ||
-    !isExplicitNumber(reviewedImpact) ||
-    !isExplicitNumber(reviewedWeight) ||
-    !isExplicitNumber(reviewedNilai) ||
-    !isExplicitNumber(reviewedScore)
-  ) {
-    return null;
-  }
-
-  return buildRiskScoreSnapshot({
-    probability: reviewedProbability,
-    impact: reviewedImpact,
-    weight: reviewedWeight,
-    nilai: reviewedNilai,
-    score: reviewedScore,
-  });
-}
-
 export function resolveRiskScoreSemantics(risk: RiskScoreSemanticFields): ResolvedRiskScoreSemantics {
   const inherent = buildRiskScoreSnapshot({
     probability: risk.probability,
@@ -299,18 +258,13 @@ export function resolveRiskScoreSemantics(risk: RiskScoreSemanticFields): Resolv
     nilai: risk.nilai,
     score: risk.inherentScore,
   });
-  const reviewed = risk.status === "approved" && hasCompleteReviewedRiskScoreBundle(risk)
-    ? buildReviewedRiskScoreSnapshot(risk)
-    : null;
-  const usesReviewed = reviewed !== null;
-  const effective = reviewed ?? inherent;
 
   return {
-    source: usesReviewed ? "reviewed" : "inherent",
-    usesReviewed,
+    source: "inherent",
+    usesReviewed: false,
     isFinalized: risk.status === "approved",
-    effective,
-    primary: effective,
+    effective: inherent,
+    primary: inherent,
     inherent,
   };
 }

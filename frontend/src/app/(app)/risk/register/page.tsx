@@ -216,11 +216,6 @@ function resolveListItemScoreSemantics(risk: RiskListItem) {
     weight: risk.weight ?? fallbackMetrics.weight,
     nilai: risk.nilai ?? fallbackMetrics.nilai,
     inherentScore: risk.inherentScore ?? fallbackMetrics.inherentScore,
-    reviewedProbability: risk.reviewedProbability,
-    reviewedImpact: risk.reviewedImpact,
-    reviewedWeight: risk.reviewedWeight,
-    reviewedNilai: risk.reviewedNilai,
-    reviewedScore: risk.reviewedScore,
   });
 }
 

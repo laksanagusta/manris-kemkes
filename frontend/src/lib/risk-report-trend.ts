@@ -11,11 +11,6 @@ export type RiskTrendSourceItem = {
   impact: number;
   inherentScore: number;
   status?: RiskScoreSemanticInput["status"];
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
   targetProbability?: number;
   targetImpact?: number;
   targetScore?: number;

@@ -17,14 +17,6 @@ interface TopRisksPanelProps {
   loading?: boolean;
 }
 
-type TopRiskScoreSemanticsInput = TopRiskItem & {
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
-};
-
 export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
   if (loading) {
     return (
@@ -71,11 +63,6 @@ export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
                  weight: getBobot(risk.probability, risk.impact),
                  nilai: risk.nilai,
                  inherentScore: risk.inherentScore,
-                 reviewedProbability: (risk as TopRiskScoreSemanticsInput).reviewedProbability,
-                 reviewedImpact: (risk as TopRiskScoreSemanticsInput).reviewedImpact,
-                 reviewedWeight: (risk as TopRiskScoreSemanticsInput).reviewedWeight,
-                 reviewedNilai: (risk as TopRiskScoreSemanticsInput).reviewedNilai,
-                 reviewedScore: (risk as TopRiskScoreSemanticsInput).reviewedScore,
                });
 
                const score = scoreSemantics.primary.score;

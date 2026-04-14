@@ -161,13 +161,5 @@ func buildWorkingPaperRiskData(risk *entity.Risk) entity.WorkingPaperRiskData {
 }
 
 func effectiveWorkingPaperWeight(risk *entity.Risk) float64 {
-	if risk.Status == entity.RiskStatusApproved &&
-		risk.ReviewedProbability != nil &&
-		risk.ReviewedImpact != nil &&
-		risk.ReviewedWeight != nil &&
-		risk.ReviewedNilai != nil &&
-		risk.ReviewedScore != nil {
-		return *risk.ReviewedWeight
-	}
 	return risk.Weight
 }

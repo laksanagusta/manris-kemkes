@@ -22,7 +22,7 @@ type RiskScoreSnapshot = {
 };
 
 type RiskScoreSemantics = {
-  source: "inherent" | "reviewed";
+  source: "inherent";
   usesReviewed: boolean;
   isFinalized: boolean;
   effective: RiskScoreSnapshot;
@@ -82,20 +82,20 @@ function makeRisk(overrides: Partial<Risk> = {}): Risk {
   };
 }
 
-test("resolveRiskScoreSemantics uses the complete reviewed bundle for approved risks", () => {
+test("resolveRiskScoreSemantics always uses inherent values", () => {
   const risk = makeRisk({
     status: "approved",
-    reviewedProbability: 1,
-    reviewedImpact: 2,
-    reviewedWeight: 1.5,
-    reviewedNilai: 3,
-    reviewedScore: 3,
+    probability: 1,
+    impact: 2,
+    weight: 1.5,
+    nilai: 3,
+    inherentScore: 3,
   });
 
   const resolved = getResolver()(risk);
 
-  assert.equal(resolved.source, "reviewed");
-  assert.equal(resolved.usesReviewed, true);
+  assert.equal(resolved.source, "inherent");
+  assert.equal(resolved.usesReviewed, false);
   assert.equal(resolved.isFinalized, true);
   assert.deepEqual(resolved.primary, resolved.effective);
   assert.equal(resolved.effective.probability, 1);
@@ -111,98 +111,5 @@ test("resolveRiskScoreSemantics uses the complete reviewed bundle for approved r
     probabilityLabel: "Sangat Jarang",
     impactLabel: "Ringan",
   });
-  assert.equal(resolved.inherent.score, 24);
-  assert.equal(resolved.inherent.level, "sangat_tinggi");
-});
-
-test("resolveRiskScoreSemantics falls back fully to the inherent bundle when approved reviewed data is partial", () => {
-  const risk = makeRisk({
-    status: "approved",
-    reviewedProbability: 1,
-    reviewedImpact: 1,
-    reviewedWeight: 1,
-    reviewedNilai: 1,
-  });
-
-  const resolved = getResolver()(risk);
-
-  assert.equal(resolved.source, "inherent");
-  assert.equal(resolved.usesReviewed, false);
-  assert.equal(resolved.effective.probability, 4);
-  assert.equal(resolved.effective.impact, 5);
-  assert.equal(resolved.effective.weight, 1.2);
-  assert.equal(resolved.effective.nilai, 24);
-  assert.equal(resolved.effective.score, 24);
-  assert.equal(resolved.effective.level, "sangat_tinggi");
-  assert.deepEqual(resolved.effective.matrix, {
-    probability: 4,
-    impact: 5,
-    cellKey: "4-5",
-    probabilityLabel: "Sering",
-    impactLabel: "Sangat Berat",
-  });
   assert.deepEqual(resolved.effective, resolved.inherent);
-});
-
-test("resolveRiskScoreSemantics ignores reviewed values when the risk is not approved", () => {
-  const risk = makeRisk({
-    status: "in_approval",
-    reviewedProbability: 1,
-    reviewedImpact: 1,
-    reviewedWeight: 1,
-    reviewedNilai: 1,
-    reviewedScore: 1,
-  });
-
-  const resolved = getResolver()(risk);
-
-  assert.equal(resolved.source, "inherent");
-  assert.equal(resolved.usesReviewed, false);
-  assert.equal(resolved.isFinalized, false);
-  assert.deepEqual(resolved.primary, resolved.inherent);
-  assert.equal(resolved.effective.score, 24);
-  assert.equal(resolved.effective.level, "sangat_tinggi");
-});
-
-test("resolveRiskScoreSemantics derives matrix and level from the effective bundle", () => {
-  const risk = makeRisk({
-    status: "approved",
-    reviewedProbability: 2,
-    reviewedImpact: 2,
-    reviewedWeight: 1.8,
-    reviewedNilai: 7.2,
-    reviewedScore: 7,
-  });
-
-  const resolved = getResolver()(risk);
-
-  assert.equal(resolved.effective.level, "rendah");
-  assert.equal(resolved.inherent.level, "sangat_tinggi");
-  assert.deepEqual(resolved.effective.matrix, {
-    probability: 2,
-    impact: 2,
-    cellKey: "2-2",
-    probabilityLabel: "Jarang",
-    impactLabel: "Ringan",
-  });
-});
-
-test("resolveRiskScoreSemantics keeps zero-like reviewed values when the approved bundle is complete", () => {
-  const risk = makeRisk({
-    status: "approved",
-    reviewedProbability: 1,
-    reviewedImpact: 1,
-    reviewedWeight: 0,
-    reviewedNilai: 0,
-    reviewedScore: 0,
-  });
-
-  const resolved = getResolver()(risk);
-
-  assert.equal(resolved.source, "reviewed");
-  assert.equal(resolved.usesReviewed, true);
-  assert.equal(resolved.effective.weight, 0);
-  assert.equal(resolved.effective.nilai, 0);
-  assert.equal(resolved.effective.score, 0);
-  assert.equal(resolved.effective.level, "sangat_rendah");
 });

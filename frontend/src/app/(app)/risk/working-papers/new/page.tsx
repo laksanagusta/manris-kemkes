@@ -76,7 +76,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-type RiskOption = { id: string; code: string; title: string; category: string; status: string; isCurrent: boolean; nilai: number; reviewedNilai?: number | null };
+type RiskOption = { id: string; code: string; title: string; category: string; status: string; isCurrent: boolean; nilai: number; };
 type UserOption = { id: string; name: string; email: string; username: string; nip?: string; jabatan?: string; pangkat?: string };
 
 /* ── Sortable signatory row ─────────────────────────────────── */
@@ -501,7 +501,7 @@ export default function CreateWorkingPaperPage() {
                       filteredRisks.map((risk) => {
                         const isChecked = selectedRiskIds.includes(risk.id);
                         const riskEntry = watchRisks.find(r => r.risk_id === risk.id);
-                        const displayNilai = risk.reviewedNilai ?? risk.nilai ?? 0;
+                        const displayNilai = risk.nilai ?? 0;
                         const lvlLabel = getRiskLevelLabel(getRiskLevelFromNilai(displayNilai));
                         return (
                           <TableRow

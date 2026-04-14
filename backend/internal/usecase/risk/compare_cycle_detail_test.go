@@ -373,41 +373,31 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteKeepsHistoricalSnapshotsWhenRevie
 		switch cycle {
 		case "2025-H2":
 			return []*entity.Risk{{
-				ID:                  uuid.New(),
-				VersionGroupID:      groupID,
-				Code:                "R-040",
-				Title:               "Risiko skor historis",
-				Status:              entity.RiskStatusApproved,
-				Probability:         2,
-				Impact:              3,
-				InherentScore:       6,
-				TargetProbability:   1,
-				TargetImpact:        2,
-				TargetScore:         2,
-				ReviewedProbability: intPtr(5),
-				ReviewedImpact:      intPtr(5),
-				ReviewedWeight:      floatPtr(1),
-				ReviewedNilai:       floatPtr(25),
-				ReviewedScore:       intPtr(25),
+				ID:                uuid.New(),
+				VersionGroupID:    groupID,
+				Code:              "R-040",
+				Title:             "Risiko skor historis",
+				Status:            entity.RiskStatusApproved,
+				Probability:       2,
+				Impact:            3,
+				InherentScore:     6,
+				TargetProbability: 1,
+				TargetImpact:      2,
+				TargetScore:       2,
 			}}, nil
 		case "2026-H1":
 			return []*entity.Risk{{
-				ID:                  uuid.New(),
-				VersionGroupID:      groupID,
-				Code:                "R-040",
-				Title:               "Risiko skor historis",
-				Status:              entity.RiskStatusApproved,
-				Probability:         4,
-				Impact:              2,
-				InherentScore:       8,
-				TargetProbability:   2,
-				TargetImpact:        2,
-				TargetScore:         4,
-				ReviewedProbability: intPtr(1),
-				ReviewedImpact:      intPtr(1),
-				ReviewedWeight:      floatPtr(1),
-				ReviewedNilai:       floatPtr(1),
-				ReviewedScore:       intPtr(1),
+				ID:                uuid.New(),
+				VersionGroupID:    groupID,
+				Code:              "R-040",
+				Title:             "Risiko skor historis",
+				Status:            entity.RiskStatusApproved,
+				Probability:       4,
+				Impact:            2,
+				InherentScore:     8,
+				TargetProbability: 2,
+				TargetImpact:      2,
+				TargetScore:       4,
 			}}, nil
 		default:
 			return nil, nil
@@ -451,14 +441,6 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteKeepsHistoricalSnapshotsWhenRevie
 	if !hasFieldDiff(item.FieldDiffs, "targetScore", "modified") {
 		t.Fatal("expected targetScore diff from stored target values")
 	}
-}
-
-func intPtr(value int) *int {
-	return &value
-}
-
-func floatPtr(value float64) *float64 {
-	return &value
 }
 
 func hasFieldDiff(diffs []*entity.RiskFieldDiff, field string, changeType string) bool {

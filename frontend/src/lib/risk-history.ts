@@ -20,11 +20,6 @@ type RiskScoreLike = {
   impact?: number;
   inherentScore?: number;
   nilai?: number | null;
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
 };
 
 export type ApprovedRiskHistoryLike = {
@@ -38,11 +33,6 @@ export type ApprovedRiskHistoryLike = {
   nilai?: number | null;
   inherentScore?: number;
   targetScore?: number;
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
 };
 
 function resolveTimelineScoreSemantics(item: RiskScoreLike) {
@@ -55,11 +45,6 @@ function resolveTimelineScoreSemantics(item: RiskScoreLike) {
     weight: fallbackMetrics.weight,
     nilai: item.nilai ?? fallbackMetrics.nilai,
     inherentScore: item.inherentScore ?? fallbackMetrics.inherentScore,
-    reviewedProbability: item.reviewedProbability,
-    reviewedImpact: item.reviewedImpact,
-    reviewedWeight: item.reviewedWeight,
-    reviewedNilai: item.reviewedNilai,
-    reviewedScore: item.reviewedScore,
   });
 }
 
@@ -98,11 +83,6 @@ export function buildApprovedRiskHistoryItem(risk: ApprovedRiskHistoryLike) {
     weight: risk.weight ?? calculateRiskMetrics(risk.probability ?? 1, risk.impact ?? 1).weight,
     nilai: risk.nilai ?? undefined,
     inherentScore: risk.inherentScore ?? calculateRiskMetrics(risk.probability ?? 1, risk.impact ?? 1).inherentScore,
-    reviewedProbability: risk.reviewedProbability,
-    reviewedImpact: risk.reviewedImpact,
-    reviewedWeight: risk.reviewedWeight,
-    reviewedNilai: risk.reviewedNilai,
-    reviewedScore: risk.reviewedScore,
   });
   const currentScore = currentSemantics.effective.score;
   const targetScore = risk.targetScore ?? 0;

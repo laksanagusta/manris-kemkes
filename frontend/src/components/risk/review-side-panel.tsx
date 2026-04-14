@@ -23,15 +23,6 @@ import {
   History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ReviewScoringGrid } from "@/components/shared/review-scoring-grid";
-import {
-  getRiskLevelDisplayLabel,
-  getLevelBadgeClasses,
-  getScoreBtnColorClasses,
-  getBobot,
-  calculateNilai,
-  getRiskLevelFromNilai,
-} from "@/lib/risk";
 import {
   canActivateApprovalPanel,
   canActivateReviewerPanel,
@@ -64,9 +55,6 @@ interface ReviewSidePanelProps {
   riskStatus: string;
   userRole: string;
   inherentScore?: number;
-  reviewedScore?: number | null;
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
   token?: string;
   onActionComplete?: () => void;
   onNavigateToLog?: () => void;
@@ -79,9 +67,6 @@ export function ReviewSidePanel({
   riskStatus,
   userRole,
   inherentScore,
-  reviewedScore,
-  reviewedProbability: initialReviewedProbability,
-  reviewedImpact: initialReviewedImpact,
   token,
   onActionComplete,
   onNavigateToLog,
@@ -89,22 +74,8 @@ export function ReviewSidePanel({
   const [reviewMessage, setReviewMessage] = useState("");
   const [approvalMessage, setApprovalMessage] = useState("");
   const [submittingStage, setSubmittingStage] = useState<ActionStage | null>(null);
-  const [reviewedProbability, setReviewedProbability] = useState<number | null>(
-    initialReviewedProbability ?? null,
-  );
-  const [reviewedImpact, setReviewedImpact] = useState<number | null>(
-    initialReviewedImpact ?? null,
-  );
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
-
-  useEffect(() => {
-    setReviewedProbability(initialReviewedProbability ?? null);
-  }, [initialReviewedProbability]);
-
-  useEffect(() => {
-    setReviewedImpact(initialReviewedImpact ?? null);
-  }, [initialReviewedImpact]);
 
   const workflowStatus = approvalWorkflow?.currentStatus ?? null;
   const currentApproverRole = approvalWorkflow?.currentApproverRole ?? null;
@@ -163,58 +134,6 @@ export function ReviewSidePanel({
     ? buildApprovalStepperViewModel(approvalWorkflow, riskStatus, currentUserId)
     : [];
 
-  const renderScoreSummary = (score: number) => {
-    const nilai =
-      reviewedProbability && reviewedImpact
-        ? calculateNilai(
-            reviewedProbability,
-            reviewedImpact,
-            getBobot(reviewedProbability, reviewedImpact),
-          )
-        : null;
-    const level = nilai ? getRiskLevelFromNilai(nilai) : null;
-    const levelLabel = level ? getRiskLevelDisplayLabel(level) : null;
-
-    return (
-      <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
-        <h4 className="text-sm font-semibold">Hasil Penilaian Reviewer</h4>
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <p className="text-xs text-muted-foreground">Skor Penilaian</p>
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex items-center justify-center rounded-md px-2 py-0.5 text-sm font-bold",
-                  getScoreBtnColorClasses(score),
-                )}
-              >
-                {score}
-              </span>
-              {levelLabel && (
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium border",
-                    getLevelBadgeClasses(levelLabel),
-                  )}
-                >
-                  {levelLabel}
-                </span>
-              )}
-            </div>
-          </div>
-          {reviewedProbability && reviewedImpact && (
-            <div className="text-right">
-              <p className="text-[10px] text-muted-foreground">P × D</p>
-              <p className="text-xs font-mono font-medium">
-                {reviewedProbability} × {reviewedImpact}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   const handleAction = async (
     action: "approve" | "reject",
     stage: ActionStage,
@@ -224,26 +143,12 @@ export function ReviewSidePanel({
       return;
     }
 
-    if (
-      stage === "review" &&
-      action === "approve" &&
-      (!reviewedProbability || !reviewedImpact)
-    ) {
-      toast.error("Silakan tentukan skor probabilitas dan dampak penilaian.");
-      return;
-    }
-
     setSubmittingStage(stage);
     try {
       const payload: Record<string, unknown> = {
         action,
         comments: stage === "review" ? reviewMessage : approvalMessage,
       };
-
-      if (stage === "review" && reviewedProbability && reviewedImpact) {
-        payload.reviewedProbability = reviewedProbability;
-        payload.reviewedImpact = reviewedImpact;
-      }
 
       await api.post(`/approvals/${approvalId}/action`, payload, token);
 
@@ -288,13 +193,6 @@ export function ReviewSidePanel({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <ReviewScoringGrid
-            reviewedProbability={reviewedProbability}
-            reviewedImpact={reviewedImpact}
-            onProbabilityChange={setReviewedProbability}
-            onImpactChange={setReviewedImpact}
-            disabled={submittingStage === "review"}
-          />
           <Textarea
             placeholder="Tambahkan catatan review atau alasan keputusan..."
             value={reviewMessage}
@@ -326,11 +224,7 @@ export function ReviewSidePanel({
             </Button>
             <Button
               onClick={() => handleAction("approve", "review")}
-              disabled={
-                submittingStage === "review" ||
-                !reviewedProbability ||
-                !reviewedImpact
-              }
+              disabled={submittingStage === "review"}
               className="flex-1"
             >
               {submittingStage === "review" ? (
@@ -356,7 +250,6 @@ export function ReviewSidePanel({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          {reviewedScore && renderScoreSummary(reviewedScore)}
           <Textarea
             placeholder="Tambahkan pesan persetujuan atau alasan penolakan..."
             value={approvalMessage}

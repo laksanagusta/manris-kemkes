@@ -36,11 +36,6 @@ const sampleReport: RiskCycleDetailedComparisonReport = {
         impact: 4,
         inherentScore: 16,
         status: "approved",
-        reviewedProbability: 4,
-        reviewedImpact: 5,
-        reviewedWeight: 1,
-        reviewedNilai: 20,
-        reviewedScore: 20,
         riskPriority: 1,
         treatmentOption: "mitigate",
         targetProbability: 3,
@@ -58,11 +53,6 @@ const sampleReport: RiskCycleDetailedComparisonReport = {
         impact: 4,
         inherentScore: 12,
         status: "approved",
-        reviewedProbability: 5,
-        reviewedImpact: 5,
-        reviewedWeight: 1,
-        reviewedNilai: 25,
-        reviewedScore: 25,
         riskPriority: 1,
         treatmentOption: "mitigate",
         targetProbability: 2,
@@ -79,23 +69,18 @@ const sampleReport: RiskCycleDetailedComparisonReport = {
   ],
 };
 
-test("classifyRiskCycleDetailMovement uses effective score semantics", () => {
+test("classifyRiskCycleDetailMovement uses base score semantics", () => {
   const item = sampleReport.items[0];
-  assert.equal(classifyRiskCycleDetailMovement(item), "up");
+  assert.equal(classifyRiskCycleDetailMovement(item), "down");
 });
 
-test("classifyRiskCycleDetailMovement keeps non-finalized reviewed drafts on inherent semantics", () => {
+test("classifyRiskCycleDetailMovement keeps non-finalized drafts on inherent semantics", () => {
   const item: RiskCycleDetailedComparisonReport["items"][number] = {
     ...sampleReport.items[0],
     fromSnapshot: {
       ...sampleReport.items[0].fromSnapshot,
       status: "approved",
       inherentScore: 20,
-      reviewedProbability: 5,
-      reviewedImpact: 4,
-      reviewedWeight: 1,
-      reviewedNilai: 20,
-      reviewedScore: 20,
     } as any,
     toSnapshot: {
       ...sampleReport.items[0].toSnapshot,
@@ -103,11 +88,6 @@ test("classifyRiskCycleDetailMovement keeps non-finalized reviewed drafts on inh
       probability: 5,
       impact: 4,
       inherentScore: 20,
-      reviewedProbability: 1,
-      reviewedImpact: 1,
-      reviewedWeight: 0,
-      reviewedNilai: 0,
-      reviewedScore: 0,
     } as any,
   };
 

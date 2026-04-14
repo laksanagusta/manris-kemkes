@@ -36,19 +36,14 @@ test("buildRiskTrendData groups risks by semester assessment cycle instead of cr
   ]);
 });
 
-test("buildRiskTrendData promotes approved complete reviewed bundles to effective score buckets", () => {
+test("buildRiskTrendData promotes approved complete bundles to effective score buckets", () => {
   const risks: RiskTrendSourceItem[] = [
     {
       assessmentCycle: "2026-H1",
       status: "approved",
-      probability: 2,
-      impact: 2,
-      inherentScore: 4,
-      reviewedProbability: 5,
-      reviewedImpact: 5,
-      reviewedWeight: 1,
-      reviewedNilai: 25,
-      reviewedScore: 20,
+      probability: 5,
+      impact: 5,
+      inherentScore: 20,
     },
   ];
 
@@ -59,7 +54,7 @@ test("buildRiskTrendData promotes approved complete reviewed bundles to effectiv
   ]);
 });
 
-test("buildRiskTrendData falls back to inherent semantics for approved partial reviewed bundles", () => {
+test("buildRiskTrendData uses base semantics for approved risks", () => {
   const risks: RiskTrendSourceItem[] = [
     {
       assessmentCycle: "2026-H1",
@@ -67,10 +62,6 @@ test("buildRiskTrendData falls back to inherent semantics for approved partial r
       probability: 3,
       impact: 3,
       inherentScore: 9,
-      reviewedProbability: 5,
-      reviewedImpact: 5,
-      reviewedWeight: 1,
-      reviewedNilai: 25,
     },
   ];
 
@@ -81,19 +72,14 @@ test("buildRiskTrendData falls back to inherent semantics for approved partial r
   ]);
 });
 
-test("buildRiskTrendData keeps explicit zero reviewed values in approved buckets", () => {
+test("buildRiskTrendData handles zero base values for approved risks", () => {
   const risks: RiskTrendSourceItem[] = [
     {
       assessmentCycle: "2026-H1",
       status: "approved",
-      probability: 5,
-      impact: 4,
-      inherentScore: 20,
-      reviewedProbability: 1,
-      reviewedImpact: 1,
-      reviewedWeight: 0,
-      reviewedNilai: 0,
-      reviewedScore: 0,
+      probability: 1,
+      impact: 1,
+      inherentScore: 0,
     },
   ];
 
@@ -110,7 +96,7 @@ test("buildRiskTrendData keeps explicit zero reviewed values in approved buckets
   ]);
 });
 
-test("buildRiskTrendData keeps non-finalized reviewed drafts on inherent buckets", () => {
+test("buildRiskTrendData keeps non-finalized drafts on inherent buckets", () => {
   const risks: RiskTrendSourceItem[] = [
     {
       assessmentCycle: "2026-H1",
@@ -118,11 +104,6 @@ test("buildRiskTrendData keeps non-finalized reviewed drafts on inherent buckets
       probability: 3,
       impact: 4,
       inherentScore: 12,
-      reviewedProbability: 1,
-      reviewedImpact: 1,
-      reviewedWeight: 0,
-      reviewedNilai: 0,
-      reviewedScore: 0,
     },
   ];
 

@@ -20,11 +20,6 @@ type DashboardRiskInput = Parameters<typeof buildUnitExposureData>[0][number] & 
   status?: string;
   weight?: number;
   nilai?: number | null;
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
 };
 
 function makeDashboardRisk(
@@ -41,11 +36,6 @@ function makeDashboardRisk(
     nilai: 20,
     inherentScore: 20,
     status: "draft",
-    reviewedProbability: null,
-    reviewedImpact: null,
-    reviewedWeight: null,
-    reviewedNilai: null,
-    reviewedScore: null,
     ...overrides,
   } as Parameters<typeof buildUnitExposureData>[0][number];
 }
@@ -63,15 +53,15 @@ test("buildUnitExposureData ranks units by weighted exposure score", () => {
   ]);
 });
 
-test("buildUnitExposureData uses approved reviewed bundles for current-state exposure", () => {
+test("buildUnitExposureData uses approved base values for current-state exposure", () => {
   const result = buildUnitExposureData([
     makeDashboardRisk({
       status: "approved",
-      reviewedProbability: 2,
-      reviewedImpact: 3,
-      reviewedWeight: 1,
-      reviewedNilai: 6,
-      reviewedScore: 6,
+      probability: 2,
+      impact: 3,
+      weight: 1,
+      nilai: 6,
+      inherentScore: 6,
     }),
   ]);
 
@@ -80,15 +70,15 @@ test("buildUnitExposureData uses approved reviewed bundles for current-state exp
   ]);
 });
 
-test("buildUnitExposureData falls back to inherent semantics for approved partial reviewed bundles", () => {
+test("buildUnitExposureData uses base values for all approved risks", () => {
   const result = buildUnitExposureData([
     makeDashboardRisk({
       status: "approved",
-      reviewedProbability: 2,
-      reviewedImpact: 3,
-      reviewedWeight: 1,
-      reviewedNilai: 6,
-      reviewedScore: null,
+      probability: 5,
+      impact: 4,
+      weight: 1,
+      nilai: 20,
+      inherentScore: 20,
     }),
   ]);
 
@@ -97,15 +87,15 @@ test("buildUnitExposureData falls back to inherent semantics for approved partia
   ]);
 });
 
-test("buildUnitExposureData keeps non-approved rows on inherent semantics even with reviewed values present", () => {
+test("buildUnitExposureData keeps non-approved rows on inherent semantics", () => {
   const result = buildUnitExposureData([
     makeDashboardRisk({
       status: "in_approval",
-      reviewedProbability: 2,
-      reviewedImpact: 3,
-      reviewedWeight: 1,
-      reviewedNilai: 6,
-      reviewedScore: 6,
+      probability: 5,
+      impact: 4,
+      weight: 1,
+      nilai: 20,
+      inherentScore: 20,
     }),
   ]);
 
@@ -114,15 +104,15 @@ test("buildUnitExposureData keeps non-approved rows on inherent semantics even w
   ]);
 });
 
-test("buildUnitExposureData keeps explicit zero reviewed bundles instead of falling back to inherent", () => {
+test("buildUnitExposureData handles zero base values for approved risks", () => {
   const result = buildUnitExposureData([
     makeDashboardRisk({
       status: "approved",
-      reviewedProbability: 1,
-      reviewedImpact: 1,
-      reviewedWeight: 0,
-      reviewedNilai: 0,
-      reviewedScore: 0,
+      probability: 1,
+      impact: 1,
+      weight: 0,
+      nilai: 0,
+      inherentScore: 0,
     }),
   ]);
 
@@ -160,16 +150,16 @@ test("buildExecutiveTrendData keeps only high and extreme counts plus weighted e
   ]);
 });
 
-test("buildExecutiveTrendData uses approved reviewed bundles for current-state trends", () => {
+test("buildExecutiveTrendData uses approved base values for current-state trends", () => {
   const result = buildExecutiveTrendData([
     makeDashboardRisk({
       status: "approved",
       assessmentCycle: "2025-H2",
-      reviewedProbability: 2,
-      reviewedImpact: 3,
-      reviewedWeight: 1,
-      reviewedNilai: 6,
-      reviewedScore: 6,
+      probability: 2,
+      impact: 3,
+      weight: 1,
+      nilai: 6,
+      inherentScore: 6,
     }),
   ]);
 
@@ -178,16 +168,16 @@ test("buildExecutiveTrendData uses approved reviewed bundles for current-state t
   ]);
 });
 
-test("buildExecutiveTrendData falls back to inherent semantics for approved partial reviewed bundles", () => {
+test("buildExecutiveTrendData uses base values for all approved risks", () => {
   const result = buildExecutiveTrendData([
     makeDashboardRisk({
       status: "approved",
       assessmentCycle: "2025-H2",
-      reviewedProbability: 2,
-      reviewedImpact: 3,
-      reviewedWeight: 1,
-      reviewedNilai: 6,
-      reviewedScore: null,
+      probability: 5,
+      impact: 4,
+      weight: 1,
+      nilai: 20,
+      inherentScore: 20,
     }),
   ]);
 
@@ -196,16 +186,16 @@ test("buildExecutiveTrendData falls back to inherent semantics for approved part
   ]);
 });
 
-test("buildExecutiveTrendData keeps non-approved rows on inherent semantics even with reviewed values present", () => {
+test("buildExecutiveTrendData keeps non-approved rows on inherent semantics", () => {
   const result = buildExecutiveTrendData([
     makeDashboardRisk({
       status: "in_approval",
       assessmentCycle: "2025-H2",
-      reviewedProbability: 2,
-      reviewedImpact: 3,
-      reviewedWeight: 1,
-      reviewedNilai: 6,
-      reviewedScore: 6,
+      probability: 5,
+      impact: 4,
+      weight: 1,
+      nilai: 20,
+      inherentScore: 20,
     }),
   ]);
 
@@ -237,7 +227,7 @@ test("buildTopRiskBadgeMap marks movement overdue and newly introduced cycle ris
   });
 });
 
-test("movement helpers remain comparison-driven even when reviewed score fields differ", () => {
+test("movement helpers remain comparison-driven for all risk states", () => {
   const chart = buildMovementChartData([
     { code: "R-001", movement: "up" },
     { code: "R-002", movement: "down" },
@@ -252,11 +242,6 @@ test("movement helpers remain comparison-driven even when reviewed score fields 
         status: "approved",
         assessmentCycle: "2026-H1",
         nextReviewDate: "2026-03-01",
-        reviewedProbability: 2,
-        reviewedImpact: 3,
-        reviewedWeight: 1,
-        reviewedNilai: 6,
-        reviewedScore: 6,
       }),
     ],
     comparisons: [{ code: "R-001", movement: "up" }],
@@ -292,19 +277,16 @@ test("buildExecutiveTrendData sorts semester output chronologically for overview
   assert.deepEqual(result.map((item) => item.period), ["2025-H2", "2026-H1"]);
 });
 
-test("buildCriticalRiskRateTrendData uses approved reviewed bundles for current-state severity", () => {
+test("buildCriticalRiskRateTrendData uses approved base values for current-state severity", () => {
   const result = buildCriticalRiskRateTrendData([
     makeDashboardRisk({
       status: "approved",
       assessmentCycle: "2026-H1",
-      probability: 2,
-      impact: 2,
-      inherentScore: 4,
-      reviewedProbability: 5,
-      reviewedImpact: 4,
-      reviewedWeight: 1,
-      reviewedNilai: 20,
-      reviewedScore: 20,
+      probability: 5,
+      impact: 4,
+      inherentScore: 20,
+      weight: 1,
+      nilai: 20,
     }),
   ]);
 
@@ -313,7 +295,7 @@ test("buildCriticalRiskRateTrendData uses approved reviewed bundles for current-
   ]);
 });
 
-test("buildCriticalRiskRateTrendData keeps non-approved reviewed drafts on inherent severity", () => {
+test("buildCriticalRiskRateTrendData keeps non-approved drafts on inherent severity", () => {
   const result = buildCriticalRiskRateTrendData([
     makeDashboardRisk({
       status: "in_approval",
@@ -321,11 +303,8 @@ test("buildCriticalRiskRateTrendData keeps non-approved reviewed drafts on inher
       probability: 2,
       impact: 2,
       inherentScore: 4,
-      reviewedProbability: 5,
-      reviewedImpact: 4,
-      reviewedWeight: 1,
-      reviewedNilai: 20,
-      reviewedScore: 20,
+      weight: 1,
+      nilai: 4,
     }),
   ]);
 
@@ -334,18 +313,17 @@ test("buildCriticalRiskRateTrendData keeps non-approved reviewed drafts on inher
   ]);
 });
 
-test("buildInherentResidualTrendData uses approved reviewed score instead of target score", () => {
+test("buildInherentResidualTrendData uses approved base score instead of target score", () => {
   const result = buildInherentResidualTrendData([
     makeDashboardRisk({
       status: "approved",
       assessmentCycle: "2026-H1",
       inherentScore: 20,
       targetScore: 6,
-      reviewedProbability: 2,
-      reviewedImpact: 3,
-      reviewedWeight: 1,
-      reviewedNilai: 6,
-      reviewedScore: 6,
+      probability: 2,
+      impact: 3,
+      weight: 1,
+      nilai: 6,
     }),
   ]);
 
@@ -354,18 +332,17 @@ test("buildInherentResidualTrendData uses approved reviewed score instead of tar
   ]);
 });
 
-test("buildInherentResidualTrendData falls back to inherent score when reviewed bundle is partial", () => {
+test("buildInherentResidualTrendData uses base values for all approved risks", () => {
   const result = buildInherentResidualTrendData([
     makeDashboardRisk({
       status: "approved",
       assessmentCycle: "2026-H1",
       inherentScore: 20,
       targetScore: 4,
-      reviewedProbability: 2,
-      reviewedImpact: 3,
-      reviewedWeight: 1,
-      reviewedNilai: 6,
-      reviewedScore: null,
+      probability: 5,
+      impact: 4,
+      weight: 1,
+      nilai: 20,
     }),
   ]);
 

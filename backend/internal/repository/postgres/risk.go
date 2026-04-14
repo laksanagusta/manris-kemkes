@@ -50,9 +50,8 @@ func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		  cause, risk_source, controllability, impact_description,
 		  existing_control, control_effectiveness, probability, impact, weight, nilai, inherent_score,
 		  risk_priority, risk_appetite, treatment_option,
-		  target_probability, target_impact, target_weight, target_nilai, target_score, next_review_date, assessment_cycle, review_type, change_reason, review_summary, review_started_at, review_submitted_at, review_approved_at, draft_approval_line,
-		  reviewed_probability, reviewed_impact, reviewed_weight, reviewed_nilai, reviewed_score, score_change_label, effectiveness_label, reviewed_by, reviewed_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51)
+		  target_probability, target_impact, target_weight, target_nilai, target_score, next_review_date, assessment_cycle, review_type, change_reason, review_summary, review_started_at, review_submitted_at, review_approved_at, draft_approval_line)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42)
 		 RETURNING id, created_at, updated_at`,
 		risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.VersionNumber, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID, risk.CreatedBy,
 		risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
@@ -60,7 +59,6 @@ func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
 		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.TargetScore, risk.NextReviewDate,
 		risk.AssessmentCycle, risk.ReviewType, risk.ChangeReason, risk.ReviewSummary, risk.ReviewStartedAt, risk.ReviewSubmittedAt, risk.ReviewApprovedAt, mustJSON(risk.DraftApprovalLine),
-		risk.ReviewedProbability, risk.ReviewedImpact, risk.ReviewedWeight, risk.ReviewedNilai, risk.ReviewedScore, risk.ScoreChangeLabel, risk.EffectivenessLabel, risk.ReviewedBy, risk.ReviewedAt,
 	).Scan(&risk.ID, &risk.CreatedAt, &risk.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create risk: %w", err)
@@ -126,9 +124,6 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 		        r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 		        r.review_started_at, r.review_submitted_at, r.review_approved_at,
 		        COALESCE(r.draft_approval_line, '[]'::jsonb),
-		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
-		        COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
-		        r.reviewed_by, r.reviewed_at,
 		        r.created_at, r.updated_at,
 		        COALESCE(o.name, '') as org_name,
 		        COALESCE(u.name, '') as created_by_name
@@ -150,9 +145,6 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 		&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
 		&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
 		&draftApprovalLineRaw,
-		&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
-		&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
-		&risk.ReviewedBy, &risk.ReviewedAt,
 		&risk.CreatedAt, &risk.UpdatedAt,
 		&risk.OrgName, &risk.CreatedByName,
 	)
@@ -200,8 +192,6 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 		  target_probability=$29, target_impact=$30, target_weight=$31, target_nilai=$32, target_score=$33, next_review_date=$34,
 		  assessment_cycle=$35, review_type=$36, change_reason=$37, review_summary=$38, review_started_at=$39, review_submitted_at=$40, review_approved_at=$41,
 		  draft_approval_line=$42,
-		  reviewed_probability=$43, reviewed_impact=$44, reviewed_weight=$45, reviewed_nilai=$46, reviewed_score=$47,
-		  score_change_label=$48, effectiveness_label=$49, reviewed_by=$50, reviewed_at=$51,
 		  updated_at=now()
 		 WHERE id=$1`,
 		risk.ID, risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.VersionNumber, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID,
@@ -210,8 +200,6 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
 		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.TargetScore, risk.NextReviewDate,
 		risk.AssessmentCycle, risk.ReviewType, risk.ChangeReason, risk.ReviewSummary, risk.ReviewStartedAt, risk.ReviewSubmittedAt, risk.ReviewApprovedAt, mustJSON(risk.DraftApprovalLine),
-		risk.ReviewedProbability, risk.ReviewedImpact, risk.ReviewedWeight, risk.ReviewedNilai, risk.ReviewedScore,
-		risk.ScoreChangeLabel, risk.EffectivenessLabel, risk.ReviewedBy, risk.ReviewedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("update risk: %w", err)
@@ -251,8 +239,7 @@ func getInProgressReassessmentForCycle(ctx context.Context, q riskQueryer, versi
 		        r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''),
 		        COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''), r.review_started_at,
 		        r.review_submitted_at, r.review_approved_at,
-		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
-		        COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''), COALESCE(o.name, '')
+		        COALESCE(o.name, '')
 		 FROM risks r
 		 LEFT JOIN organizations o ON o.id = r.organization_id
 		 WHERE r.version_group_id = $1
@@ -271,8 +258,7 @@ func getInProgressReassessmentForCycle(ctx context.Context, q riskQueryer, versi
 		&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType,
 		&risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt,
 		&risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
-		&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
-		&risk.ScoreChangeLabel, &risk.EffectivenessLabel, &risk.OrgName,
+		&risk.OrgName,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -311,48 +297,6 @@ func cloneRiskForPeriodicReassessment(sourceRisk *entity.Risk, cycle string, sta
 	return &clone
 }
 
-func finalizedScoreExpr(alias string) string {
-	return fmt.Sprintf(`CASE
-		WHEN %[1]s.status = 'approved'
-			AND %[1]s.reviewed_probability IS NOT NULL
-			AND %[1]s.reviewed_impact IS NOT NULL
-			AND %[1]s.reviewed_weight IS NOT NULL
-			AND %[1]s.reviewed_nilai IS NOT NULL
-			AND %[1]s.reviewed_score IS NOT NULL
-		THEN %[1]s.reviewed_score
-		ELSE COALESCE(
-			%[1]s.inherent_score,
-			ROUND(COALESCE(%[1]s.nilai, %[1]s.probability * %[1]s.impact * COALESCE(%[1]s.weight, 1.0)))::int
-		)
-	END`, alias)
-}
-
-func finalizedProbabilityExpr(alias string) string {
-	return fmt.Sprintf(`CASE
-		WHEN %[1]s.status = 'approved'
-			AND %[1]s.reviewed_probability IS NOT NULL
-			AND %[1]s.reviewed_impact IS NOT NULL
-			AND %[1]s.reviewed_weight IS NOT NULL
-			AND %[1]s.reviewed_nilai IS NOT NULL
-			AND %[1]s.reviewed_score IS NOT NULL
-		THEN %[1]s.reviewed_probability
-		ELSE %[1]s.probability
-	END`, alias)
-}
-
-func finalizedImpactExpr(alias string) string {
-	return fmt.Sprintf(`CASE
-		WHEN %[1]s.status = 'approved'
-			AND %[1]s.reviewed_probability IS NOT NULL
-			AND %[1]s.reviewed_impact IS NOT NULL
-			AND %[1]s.reviewed_weight IS NOT NULL
-			AND %[1]s.reviewed_nilai IS NOT NULL
-			AND %[1]s.reviewed_score IS NOT NULL
-		THEN %[1]s.reviewed_impact
-		ELSE %[1]s.impact
-	END`, alias)
-}
-
 // Delete deletes a risk
 func (r *riskRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := r.pool.Exec(ctx, "DELETE FROM risks WHERE id = $1", id)
@@ -371,9 +315,6 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
 	                  r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
-	                  r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
-	                  COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
-	                  r.reviewed_by, r.reviewed_at,
 	                  r.created_at, r.updated_at,
 	                  COALESCE(o.name, '') as org_name,
 	                  COALESCE(u.name, '') as created_by_name
@@ -422,9 +363,6 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
 			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
 			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
-			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
-			&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
-			&risk.ReviewedBy, &risk.ReviewedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 		); err != nil {
@@ -446,9 +384,6 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
 	                  r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
-	                  r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
-	                  COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
-	                  r.reviewed_by, r.reviewed_at,
 	                  r.created_at, r.updated_at,
 	                  COALESCE(o.name, '') as org_name,
 	                  COALESCE(u.name, '') as created_by_name
@@ -535,9 +470,6 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
 			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
 			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
-			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
-			&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
-			&risk.ReviewedBy, &risk.ReviewedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 		); err != nil {
@@ -561,9 +493,6 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
 	                  r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
-	                  r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
-	                  COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
-	                  r.reviewed_by, r.reviewed_at,
 	                  r.created_at, r.updated_at,
 	                  COALESCE(o.name, '') as org_name,
 	                  COALESCE(u.name, '') as created_by_name
@@ -597,9 +526,6 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
 			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
 			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
-			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
-			&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
-			&risk.ReviewedBy, &risk.ReviewedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 		); err != nil {
@@ -668,7 +594,7 @@ func (r *riskRepository) NextRiskCode(ctx context.Context) (string, error) {
 // DashboardSummary returns KPI card data for a specific cycle (or all cycles if empty)
 func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, orgIDs []uuid.UUID) (*entity.DashboardSummary, error) {
 	s := &entity.DashboardSummary{}
-	scoreExpr := finalizedScoreExpr("r")
+	scoreExpr := "r.inherent_score"
 	var orgFilter string
 	var orgArgs []interface{}
 	if len(orgIDs) > 0 {
@@ -749,7 +675,7 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	var query string
 	var args []interface{}
-	scoreExpr := finalizedScoreExpr("r")
+	scoreExpr := "r.inherent_score"
 	if cycle != "" {
 		query = fmt.Sprintf(`SELECT COALESCE(NULLIF(category, ''), 'uncategorized') as category,
 		        COUNT(*) as count,
@@ -808,9 +734,8 @@ func (r *riskRepository) HeatmapData(ctx context.Context, cycle string, orgIDs [
 	var query string
 	var args []interface{}
 	if cycle != "" {
-		query = fmt.Sprintf(`SELECT %s AS probability, %s AS impact, COUNT(*) as cnt
-		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1`,
-			finalizedProbabilityExpr("r"), finalizedImpactExpr("r"))
+		query = `SELECT r.probability AS probability, r.impact AS impact, COUNT(*) as cnt
+		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1`
 		args = []interface{}{cycle}
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($2)"
@@ -818,9 +743,8 @@ func (r *riskRepository) HeatmapData(ctx context.Context, cycle string, orgIDs [
 		}
 		query += " GROUP BY 1, 2"
 	} else {
-		query = fmt.Sprintf(`SELECT %s AS probability, %s AS impact, COUNT(*) as cnt
-		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE`,
-			finalizedProbabilityExpr("r"), finalizedImpactExpr("r"))
+		query = `SELECT r.probability AS probability, r.impact AS impact, COUNT(*) as cnt
+		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE`
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($1)"
 			args = append(args, orgIDs)
@@ -850,7 +774,6 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 	var args []interface{}
 	if cycle != "" {
 		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
-		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
 		 WHERE r.status IN ('in_approval','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1`
@@ -862,15 +785,14 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 			argIdx++
 		}
 		query += fmt.Sprintf(`
-		 ORDER BY (%s) DESC, r.created_at DESC
-		 LIMIT $%d`, finalizedScoreExpr("r"), argIdx)
+		 ORDER BY r.inherent_score DESC, r.created_at DESC
+		 LIMIT $%d`, argIdx)
 		args = append(args, limit)
 	} else {
-		query = fmt.Sprintf(`SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
-		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
+		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
-		 WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE`)
+		 WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE`
 		argIdx := 1
 		if len(orgIDs) > 0 {
 			query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
@@ -878,8 +800,8 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 			argIdx++
 		}
 		query += fmt.Sprintf(`
-		 ORDER BY (%s) DESC, r.created_at DESC
-		 LIMIT $%d`, finalizedScoreExpr("r"), argIdx)
+		 ORDER BY r.inherent_score DESC, r.created_at DESC
+		 LIMIT $%d`, argIdx)
 		args = append(args, limit)
 	}
 	rows, err := r.pool.Query(ctx, query, args...)
@@ -893,7 +815,6 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 		var risk entity.Risk
 		if err := rows.Scan(
 			&risk.ID, &risk.Code, &risk.Title, &risk.Category, &risk.Probability, &risk.Impact, &risk.InherentScore, &risk.Nilai, &risk.Status,
-			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
 			&risk.OrgName,
 		); err != nil {
 			return nil, fmt.Errorf("scan top risk: %w", err)
@@ -913,9 +834,6 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
 		        r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 		        r.review_started_at, r.review_submitted_at, r.review_approved_at,
-		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
-		        COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
-		        r.reviewed_by, r.reviewed_at,
 		        r.created_at, r.updated_at,
 		        COALESCE(o.name, '') as org_name,
 		        COALESCE(u.name, '') as created_by_name
@@ -939,9 +857,6 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
 			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
 			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
-			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
-			&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
-			&risk.ReviewedBy, &risk.ReviewedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 		); err != nil {
@@ -975,9 +890,6 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
 		        r.next_review_date::text, COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 		        r.review_started_at, r.review_submitted_at, r.review_approved_at,
-		        r.reviewed_probability, r.reviewed_impact, r.reviewed_weight, r.reviewed_nilai, r.reviewed_score,
-		        COALESCE(r.score_change_label, ''), COALESCE(r.effectiveness_label, ''),
-		        r.reviewed_by, r.reviewed_at,
 		        r.created_at, r.updated_at,
 		        COALESCE(o.name, '') AS org_name,
 		        COALESCE(u.name, '') AS created_by_name
@@ -1012,9 +924,6 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
 			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
 			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
-			&risk.ReviewedProbability, &risk.ReviewedImpact, &risk.ReviewedWeight, &risk.ReviewedNilai, &risk.ReviewedScore,
-			&risk.ScoreChangeLabel, &risk.EffectivenessLabel,
-			&risk.ReviewedBy, &risk.ReviewedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 		); err != nil {
@@ -1127,20 +1036,20 @@ func (r *riskRepository) ActivateApprovedVersion(ctx context.Context, approvedRi
 // ListReviewQueue returns current risks and their reassessment progress for a cycle.
 // page=0 and limit=0 disables pagination, returning all rows.
 func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgIDs []uuid.UUID, status string, search string, page int, limit int) ([]*entity.RiskReviewQueueItem, int, error) {
-	currentScoreExpr := finalizedScoreExpr("base")
-	candidateScoreExpr := finalizedScoreExpr("candidate")
+	currentScoreExpr := "base.inherent_score"
+	candidateScoreExpr := "candidate.inherent_score"
 
-	baseFrom := fmt.Sprintf(`FROM risks base
+	baseFrom := `FROM risks base
 	LEFT JOIN organizations org ON org.id = base.organization_id
 	LEFT JOIN LATERAL (
-		SELECT c.id, c.status, c.inherent_score, c.probability, c.impact, c.weight, c.nilai, c.reviewed_probability, c.reviewed_impact, c.reviewed_weight, c.reviewed_nilai, c.reviewed_score, c.change_reason, c.review_summary, c.updated_at
+		SELECT c.id, c.status, c.inherent_score, c.probability, c.impact, c.weight, c.nilai, c.change_reason, c.review_summary, c.updated_at
 		FROM risks c
 		WHERE c.version_group_id = base.version_group_id
 		  AND c.assessment_cycle = $1
 		ORDER BY c.created_at DESC
 		LIMIT 1
 	) candidate ON TRUE
-	WHERE base.is_current = TRUE AND base.status = 'approved'`)
+	WHERE base.is_current = TRUE AND base.status = 'approved'`
 
 	args := []interface{}{cycle}
 	if len(orgIDs) > 0 {
@@ -1269,8 +1178,8 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 
 // CompareCycles returns approved risk movement between two cycles.
 func (r *riskRepository) CompareCycles(ctx context.Context, fromCycle string, toCycle string, orgIDs []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {
-	prevScore := finalizedScoreExpr("prev")
-	currScore := finalizedScoreExpr("curr")
+	prevScore := "prev.inherent_score"
+	currScore := "curr.inherent_score"
 
 	cteQuery := fmt.Sprintf(`WITH scored AS (
 		SELECT
@@ -1428,7 +1337,7 @@ func (r *riskRepository) RiskReviewSummary(ctx context.Context, cycle string, or
 	})
 
 	loadHeatmap := func(targetCycle string) ([]*entity.HeatmapCell, error) {
-		query := fmt.Sprintf(`SELECT %s AS probability, %s AS impact, COUNT(*) as cnt FROM risks r WHERE r.assessment_cycle = $1 AND r.status = 'approved' AND r.is_cycle_current = TRUE`, finalizedProbabilityExpr("r"), finalizedImpactExpr("r"))
+		query := `SELECT r.probability AS probability, r.impact AS impact, COUNT(*) as cnt FROM risks r WHERE r.assessment_cycle = $1 AND r.status = 'approved' AND r.is_cycle_current = TRUE`
 		args := []interface{}{targetCycle}
 		if len(orgIDs) > 0 {
 			query += fmt.Sprintf(" AND organization_id = ANY($%d)", len(args)+1)
@@ -1466,20 +1375,15 @@ func (r *riskRepository) RiskReviewSummary(ctx context.Context, cycle string, or
 }
 
 func heatmapVelocityQuery() string {
-	currentProbabilityExpr := finalizedProbabilityExpr("curr")
-	currentImpactExpr := finalizedImpactExpr("curr")
-	previousScoreExpr := finalizedScoreExpr("prev")
-	currentScoreExpr := finalizedScoreExpr("curr")
-
-	return fmt.Sprintf(`
+	return `
 	WITH cycle_compare AS (
 		SELECT
-			%s AS probability,
-			%s AS impact,
+			curr.probability AS probability,
+			curr.impact AS impact,
 			CASE
-				WHEN (%s) IS NULL THEN 'new'
-				WHEN (%s) > (%s) THEN 'up'
-				WHEN (%s) < (%s) THEN 'down'
+				WHEN prev.inherent_score IS NULL THEN 'new'
+				WHEN curr.inherent_score > prev.inherent_score THEN 'up'
+				WHEN curr.inherent_score < prev.inherent_score THEN 'down'
 				ELSE 'stable'
 			END AS movement
 		FROM risks curr
@@ -1501,24 +1405,19 @@ func heatmapVelocityQuery() string {
 		COUNT(*) FILTER (WHERE movement = 'new') AS new_count
 	FROM cycle_compare
 	GROUP BY probability, impact
-	ORDER BY probability DESC, impact DESC`, currentProbabilityExpr, currentImpactExpr, previousScoreExpr, currentScoreExpr, previousScoreExpr, currentScoreExpr, previousScoreExpr)
+	ORDER BY probability DESC, impact DESC`
 }
 
 func heatmapVelocityQueryScoped() string {
-	currentProbabilityExpr := finalizedProbabilityExpr("curr")
-	currentImpactExpr := finalizedImpactExpr("curr")
-	previousScoreExpr := finalizedScoreExpr("prev")
-	currentScoreExpr := finalizedScoreExpr("curr")
-
-	return fmt.Sprintf(`
+	return `
 	WITH cycle_compare AS (
 		SELECT
-			%s AS probability,
-			%s AS impact,
+			curr.probability AS probability,
+			curr.impact AS impact,
 			CASE
-				WHEN (%s) IS NULL THEN 'new'
-				WHEN (%s) > (%s) THEN 'up'
-				WHEN (%s) < (%s) THEN 'down'
+				WHEN prev.inherent_score IS NULL THEN 'new'
+				WHEN curr.inherent_score > prev.inherent_score THEN 'up'
+				WHEN curr.inherent_score < prev.inherent_score THEN 'down'
 				ELSE 'stable'
 			END AS movement
 		FROM risks curr
@@ -1541,7 +1440,7 @@ func heatmapVelocityQueryScoped() string {
 		COUNT(*) FILTER (WHERE movement = 'new') AS new_count
 	FROM cycle_compare
 	GROUP BY probability, impact
-	ORDER BY probability DESC, impact DESC`, currentProbabilityExpr, currentImpactExpr, previousScoreExpr, currentScoreExpr, previousScoreExpr, currentScoreExpr, previousScoreExpr)
+	ORDER BY probability DESC, impact DESC`
 }
 
 func (r *riskRepository) GetHeatmapVelocity(ctx context.Context, fromCycle, toCycle string, orgIDs []uuid.UUID) ([]entity.HeatmapVelocityCell, error) {

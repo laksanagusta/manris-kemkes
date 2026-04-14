@@ -13,9 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X, Loader2, AlertTriangle } from "lucide-react";
+import { Check, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ReviewScoringGrid } from "@/components/shared/review-scoring-grid";
 
 interface ApprovalModalProps {
   open: boolean;
@@ -42,13 +41,10 @@ export function ApprovalModal({
 }: ApprovalModalProps) {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [reviewedProbability, setReviewedProbability] = useState<number | null>(null);
-  const [reviewedImpact, setReviewedImpact] = useState<number | null>(null);
 
   const isApprove = approvalType === "approve";
   const isRisk = requestType === "risk";
   const isReviewer = approverRole === "reviewer";
-  const showScoring = isApprove && isRisk && isReviewer;
 
   const title = isApprove
     ? isReviewer
@@ -67,22 +63,12 @@ export function ApprovalModal({
       return;
     }
 
-    if (showScoring && (!reviewedProbability || !reviewedImpact)) {
-      toast.error("Silakan tentukan skor probabilitas dan dampak penilaian.");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const payload: Record<string, unknown> = {
         action: approvalType,
         comments: message,
       };
-
-      if (showScoring && reviewedProbability && reviewedImpact) {
-        payload.reviewedProbability = reviewedProbability;
-        payload.reviewedImpact = reviewedImpact;
-      }
 
       await api.post(
         `/approvals/${approvalId}/action`,
@@ -99,8 +85,6 @@ export function ApprovalModal({
       );
 
       setMessage("");
-      setReviewedProbability(null);
-      setReviewedImpact(null);
       onOpenChange(false);
 
       onSuccess?.();
@@ -121,15 +105,13 @@ export function ApprovalModal({
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setMessage("");
-      setReviewedProbability(null);
-      setReviewedImpact(null);
     }
     onOpenChange(newOpen);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className={cn("sm:max-w-md", showScoring && "sm:max-w-lg")} showCloseButton={!isSubmitting}>
+      <DialogContent className={cn("sm:max-w-md")} showCloseButton={!isSubmitting}>
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div
@@ -158,25 +140,6 @@ export function ApprovalModal({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {showScoring && (
-            <div className="space-y-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="size-4 text-primary" />
-                <h4 className="text-sm font-semibold text-primary">Skor Penilaian Reviewer</h4>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Tentukan skor probabilitas dan dampak berdasarkan hasil penilaian Anda sebagai reviewer.
-              </p>
-
-              <ReviewScoringGrid
-                reviewedProbability={reviewedProbability}
-                reviewedImpact={reviewedImpact}
-                onProbabilityChange={setReviewedProbability}
-                onImpactChange={setReviewedImpact}
-              />
-            </div>
-          )}
-
           <div className="space-y-2">
             <label
               htmlFor="approval-message"
@@ -218,7 +181,7 @@ export function ApprovalModal({
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={isSubmitting || (showScoring && (!reviewedProbability || !reviewedImpact))}
+            disabled={isSubmitting}
             className={isApprove ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
           >
             {isSubmitting ? (

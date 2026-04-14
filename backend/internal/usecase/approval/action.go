@@ -38,10 +38,6 @@ type ApprovalActionInput struct {
 	ActorRole  string // user role (set by handler)
 	Comments   string `json:"comments"` // optional comments
 	OrgIDs     []uuid.UUID
-
-	// Reviewer scoring (only required when role is reviewer and action is approve on a risk)
-	ReviewedProbability *int `json:"reviewedProbability,omitempty"`
-	ReviewedImpact      *int `json:"reviewedImpact,omitempty"`
 }
 
 // Output represents the output of approval action
@@ -171,8 +167,7 @@ func validateCurrentApprover(approvalReq *entity.ApprovalRequest, actorID uuid.U
 	return nil
 }
 
-// updateEntityStatus updates the status of the entity (risk or incident)
-// For risks, it also applies reviewer scoring if provided.
+// updateEntityStatus updates the status of the entity (risk or incident).
 func (uc *ApprovalActionUseCase) updateEntityStatus(ctx context.Context, approvalReq *entity.ApprovalRequest, status string, input ApprovalActionInput) error {
 	if approvalReq.RequestType == "risk" {
 		risk, err := uc.riskRepo.GetByID(ctx, approvalReq.EntityID, input.OrgIDs)
@@ -180,21 +175,7 @@ func (uc *ApprovalActionUseCase) updateEntityStatus(ctx context.Context, approva
 			return err
 		}
 
-		// Apply reviewer scoring if this is a reviewer approval and scoring is provided
-		if (status == entity.RiskStatusInApproval || status == entity.RiskStatusApproved) && input.Action == "approve" &&
-			input.ReviewedProbability != nil && input.ReviewedImpact != nil {
-			actorID := uuid.MustParse(input.ActorID)
-			risk.ApplyReviewerScore(*input.ReviewedProbability, *input.ReviewedImpact, actorID)
-		}
-
 		if status == entity.RiskStatusApproved && risk.PreviousRiskID != nil {
-			// Save reviewed fields before activating the version
-			if risk.ReviewedProbability != nil {
-				risk.Status = status
-				if err := uc.riskRepo.Update(ctx, risk); err != nil {
-					return err
-				}
-			}
 			return uc.riskRepo.ActivateApprovedVersion(ctx, approvalReq.EntityID)
 		}
 		risk.Status = status

@@ -79,11 +79,6 @@ export interface RiskVersionTimelineItem {
   nilai?: number;
   targetScore?: number;
   targetNilai?: number;
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
   assessmentCycle?: string;
   reviewType?: RiskReviewType | "";
   changeReason?: string;
@@ -291,16 +286,6 @@ export interface Risk {
   updatedAt?: string;
   fishboneDraft?: import("./fishbone").FishboneDraft | null;
 
-  // Skor Penilaian (assessed by reviewer)
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
-  scoreChangeLabel?: string;
-  effectivenessLabel?: string;
-  reviewedBy?: string | null;
-  reviewedAt?: string | null;
 }
 
 export interface DashboardRiskCategoryItem {
@@ -367,11 +352,6 @@ export interface TopRiskItem {
   impact: number;
   inherentScore: number;
   nilai?: number;
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
   treatmentOption: TreatmentOption;
   assessmentCycle?: string;
   createdAt: string;

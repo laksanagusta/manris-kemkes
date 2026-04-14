@@ -180,15 +180,15 @@ func (r *fakeReportKRIRepo) GetDashboard(context.Context, []uuid.UUID) (map[stri
 }
 
 func TestGenerateReportUseCase_ExecuteUsesEffectiveSemanticsForPrimaryOutputs(t *testing.T) {
-	alpha := approvedRiskWithReviewedBundle("R-ALPHA", "Alpha", entity.RiskCategoryStrategis, "2026-H1", 1, 1, 1, 5, 4, 23)
+	alpha := approvedRiskWithReviewedBundle("R-ALPHA", "Alpha", entity.RiskCategoryStrategis, "2026-H1", 5, 4, 23)
 	alpha.Mitigations = []entity.Mitigation{{Action: "Escalate vendor"}}
 
-	beta := approvedRiskWithReviewedBundle("R-BETA", "Beta", entity.RiskCategoryOperasional, "2026-H1", 5, 5, 25, 1, 1, 1)
-	gamma := approvedRiskWithReviewedBundle("R-GAMMA", "Gamma", entity.RiskCategoryKepatuhan, "2026-H1", 2, 2, 4, 5, 2, 12)
+	beta := approvedRiskWithReviewedBundle("R-BETA", "Beta", entity.RiskCategoryOperasional, "2026-H1", 1, 1, 1)
+	gamma := approvedRiskWithReviewedBundle("R-GAMMA", "Gamma", entity.RiskCategoryKepatuhan, "2026-H1", 5, 2, 12)
 
-	trendExtreme := approvedRiskWithReviewedBundle("R-TREND-1", "Trend Extreme", entity.RiskCategoryStrategis, "2025-H2", 1, 1, 1, 5, 4, 23)
-	trendLow := approvedRiskWithReviewedBundle("R-TREND-2", "Trend Low", entity.RiskCategoryOperasional, "2026-H1", 5, 5, 25, 1, 1, 1)
-	trendMedium := approvedRiskWithReviewedBundle("R-TREND-3", "Trend Medium", entity.RiskCategoryKepatuhan, "2026-H1", 2, 2, 4, 5, 2, 12)
+	trendExtreme := approvedRiskWithReviewedBundle("R-TREND-1", "Trend Extreme", entity.RiskCategoryStrategis, "2025-H2", 5, 4, 23)
+	trendLow := approvedRiskWithReviewedBundle("R-TREND-2", "Trend Low", entity.RiskCategoryOperasional, "2026-H1", 1, 1, 1)
+	trendMedium := approvedRiskWithReviewedBundle("R-TREND-3", "Trend Medium", entity.RiskCategoryKepatuhan, "2026-H1", 5, 2, 12)
 
 	riskRepo := &fakeReportRiskRepo{
 		listCycleSnapshot: func(_ context.Context, cycle string, _ []uuid.UUID) ([]*entity.Risk, error) {
@@ -256,9 +256,9 @@ func TestGenerateReportUseCase_ExecuteUsesEffectiveSemanticsForPrimaryOutputs(t 
 }
 
 func TestGenerateReportUseCase_ExecuteKeepsFallbackAndDraftIsolationCompatible(t *testing.T) {
-	legacyApproved := approvedRiskWithPartialReviewedBundle("R-LEGACY", "Legacy", entity.RiskCategoryOperasional, "2026-H1", 5, 4, 20, 1, 1)
-	draftReviewed := nonFinalizedRiskWithReviewedDraft("R-DRAFT", "Draft", entity.RiskCategoryStrategis, "2026-H1", entity.RiskStatusInApproval, 4, 4, 16, 1, 1, 0)
-	finalizedZero := approvedRiskWithReviewedBundle("R-ZERO", "Zero", entity.RiskCategoryKepatuhan, "2026-H1", 5, 5, 25, 1, 1, 0)
+	legacyApproved := approvedRiskWithPartialReviewedBundle("R-LEGACY", "Legacy", entity.RiskCategoryOperasional, "2026-H1", 5, 4, 20)
+	draftReviewed := nonFinalizedRiskWithReviewedDraft("R-DRAFT", "Draft", entity.RiskCategoryStrategis, "2026-H1", entity.RiskStatusInApproval, 4, 4, 16)
+	finalizedZero := approvedRiskWithReviewedBundle("R-ZERO", "Zero", entity.RiskCategoryKepatuhan, "2026-H1", 1, 1, 1)
 
 	riskRepo := &fakeReportRiskRepo{
 		listCycleSnapshot: func(_ context.Context, cycle string, _ []uuid.UUID) ([]*entity.Risk, error) {
@@ -296,8 +296,8 @@ func TestReportExcludesSiblingOrgData(t *testing.T) {
 	orgA := uuid.New()
 	orgB := uuid.New()
 
-	riskA := approvedRiskWithReviewedBundle("R-ORGA", "OrgA Risk", entity.RiskCategoryOperasional, "2026-H1", 3, 3, 9, 3, 3, 9)
-	riskB := approvedRiskWithReviewedBundle("R-ORGB", "OrgB Risk", entity.RiskCategoryOperasional, "2026-H1", 4, 4, 16, 4, 4, 16)
+	riskA := approvedRiskWithReviewedBundle("R-ORGA", "OrgA Risk", entity.RiskCategoryOperasional, "2026-H1", 3, 3, 9)
+	riskB := approvedRiskWithReviewedBundle("R-ORGB", "OrgB Risk", entity.RiskCategoryOperasional, "2026-H1", 4, 4, 16)
 
 	incidentA := &entity.Incident{ID: uuid.New(), Title: "OrgA Incident", LinkedRiskID: &riskA.ID, OrganizationID: &orgA}
 	incidentB := &entity.Incident{ID: uuid.New(), Title: "OrgB Incident", LinkedRiskID: &riskB.ID, OrganizationID: &orgB}
@@ -389,70 +389,47 @@ func TestReportExcludesSiblingOrgData(t *testing.T) {
 	}
 }
 
-func approvedRiskWithReviewedBundle(code string, title string, category string, cycle string, probability int, impact int, inherentScore int, reviewedProbability int, reviewedImpact int, reviewedScore int) *entity.Risk {
-	reviewedWeight := 1.0
-	reviewedNilai := float64(reviewedScore)
-
+func approvedRiskWithReviewedBundle(code string, title string, category string, cycle string, probability int, impact int, inherentScore int) *entity.Risk {
 	return &entity.Risk{
-		ID:                  uuid.New(),
-		VersionGroupID:      uuid.New(),
-		Code:                code,
-		Title:               title,
-		Category:            category,
-		Status:              entity.RiskStatusApproved,
-		AssessmentCycle:     cycle,
-		Probability:         probability,
-		Impact:              impact,
-		InherentScore:       inherentScore,
-		ReviewedProbability: &reviewedProbability,
-		ReviewedImpact:      &reviewedImpact,
-		ReviewedWeight:      &reviewedWeight,
-		ReviewedNilai:       &reviewedNilai,
-		ReviewedScore:       &reviewedScore,
+		ID:              uuid.New(),
+		VersionGroupID:  uuid.New(),
+		Code:            code,
+		Title:           title,
+		Category:        category,
+		Status:          entity.RiskStatusApproved,
+		AssessmentCycle: cycle,
+		Probability:     probability,
+		Impact:          impact,
+		InherentScore:   inherentScore,
 	}
 }
 
-func approvedRiskWithPartialReviewedBundle(code string, title string, category string, cycle string, probability int, impact int, inherentScore int, reviewedProbability int, reviewedImpact int) *entity.Risk {
-	reviewedWeight := 1.0
-	reviewedNilai := float64(inherentScore)
-
+func approvedRiskWithPartialReviewedBundle(code string, title string, category string, cycle string, probability int, impact int, inherentScore int) *entity.Risk {
 	return &entity.Risk{
-		ID:                  uuid.New(),
-		VersionGroupID:      uuid.New(),
-		Code:                code,
-		Title:               title,
-		Category:            category,
-		Status:              entity.RiskStatusApproved,
-		AssessmentCycle:     cycle,
-		Probability:         probability,
-		Impact:              impact,
-		InherentScore:       inherentScore,
-		ReviewedProbability: &reviewedProbability,
-		ReviewedImpact:      &reviewedImpact,
-		ReviewedWeight:      &reviewedWeight,
-		ReviewedNilai:       &reviewedNilai,
+		ID:              uuid.New(),
+		VersionGroupID:  uuid.New(),
+		Code:            code,
+		Title:           title,
+		Category:        category,
+		Status:          entity.RiskStatusApproved,
+		AssessmentCycle: cycle,
+		Probability:     probability,
+		Impact:          impact,
+		InherentScore:   inherentScore,
 	}
 }
 
-func nonFinalizedRiskWithReviewedDraft(code string, title string, category string, cycle string, status string, probability int, impact int, inherentScore int, reviewedProbability int, reviewedImpact int, reviewedScore int) *entity.Risk {
-	reviewedWeight := 1.0
-	reviewedNilai := float64(reviewedScore)
-
+func nonFinalizedRiskWithReviewedDraft(code string, title string, category string, cycle string, status string, probability int, impact int, inherentScore int) *entity.Risk {
 	return &entity.Risk{
-		ID:                  uuid.New(),
-		VersionGroupID:      uuid.New(),
-		Code:                code,
-		Title:               title,
-		Category:            category,
-		Status:              status,
-		AssessmentCycle:     cycle,
-		Probability:         probability,
-		Impact:              impact,
-		InherentScore:       inherentScore,
-		ReviewedProbability: &reviewedProbability,
-		ReviewedImpact:      &reviewedImpact,
-		ReviewedWeight:      &reviewedWeight,
-		ReviewedNilai:       &reviewedNilai,
-		ReviewedScore:       &reviewedScore,
+		ID:              uuid.New(),
+		VersionGroupID:  uuid.New(),
+		Code:            code,
+		Title:           title,
+		Category:        category,
+		Status:          status,
+		AssessmentCycle: cycle,
+		Probability:     probability,
+		Impact:          impact,
+		InherentScore:   inherentScore,
 	}
 }

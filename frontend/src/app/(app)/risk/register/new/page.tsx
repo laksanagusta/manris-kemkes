@@ -203,16 +203,6 @@ type RiskApiResponse = {
   targetImpact?: number;
   targetWeight?: number;
   nextReviewDate?: string;
-  // Reviewed scoring fields
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
-  scoreChangeLabel?: string;
-  effectivenessLabel?: string;
-  reviewedBy?: string | null;
-  reviewedAt?: string | null;
 };
 
 const riskCategoryValues: RiskCategory[] = [
@@ -515,15 +505,6 @@ export default function RiskInputPage() {
 
   const [riskId, setRiskId] = useState<string | null>(null);
   const [riskStatus, setRiskStatus] = useState<string>("draft");
-  const [reviewerScoreData, setReviewerScoreData] = useState<{
-    reviewedProbability: number | null;
-    reviewedImpact: number | null;
-    reviewedWeight: number | null;
-    reviewedScore: number | null;
-    reviewedNilai: number | null;
-    scoreChangeLabel: string;
-    effectivenessLabel: string;
-  } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<
     { id: string; name: string }[]
@@ -770,27 +751,12 @@ export default function RiskInputPage() {
           risk.assessmentCycle || currentAssessmentCycle(),
         );
 
-        // Load reviewer score data
-        if (risk.reviewedProbability && risk.reviewedImpact) {
-          setReviewerScoreData({
-            reviewedProbability: risk.reviewedProbability,
-            reviewedImpact: risk.reviewedImpact,
-            reviewedWeight: risk.reviewedWeight ?? null,
-            reviewedScore: risk.reviewedScore ?? null,
-            reviewedNilai: risk.reviewedNilai ?? null,
-            scoreChangeLabel: risk.scoreChangeLabel || "",
-            effectivenessLabel: risk.effectivenessLabel || "",
-          });
-        } else {
-          setReviewerScoreData(null);
-        }
         if (
           Array.isArray(risk.draftApprovalLine) &&
           risk.draftApprovalLine.length > 0
         ) {
           const resolvedApprovalLine = resolveDraftApprovalLine(
             risk.draftApprovalLine,
-            risk.reviewedBy,
           );
           const reviewerMember = risk.draftApprovalLine.find(
             (member) => member.id === resolvedApprovalLine.reviewerId,
@@ -1085,30 +1051,17 @@ export default function RiskInputPage() {
         weight,
         nilai,
         inherentScore: Math.round(nilai),
-        reviewedProbability: reviewerScoreData?.reviewedProbability,
-        reviewedImpact: reviewerScoreData?.reviewedImpact,
-        reviewedWeight: reviewerScoreData?.reviewedWeight,
-        reviewedNilai: reviewerScoreData?.reviewedNilai,
-        reviewedScore: reviewerScoreData?.reviewedScore,
       }),
     [
       impact,
       nilai,
       probability,
-      reviewerScoreData?.reviewedImpact,
-      reviewerScoreData?.reviewedNilai,
-      reviewerScoreData?.reviewedProbability,
-      reviewerScoreData?.reviewedScore,
-      reviewerScoreData?.reviewedWeight,
       riskStatus,
       weight,
     ],
   );
   const currentPrimarySnapshot = currentScoreSemantics.effective;
-  const currentScoreLabel =
-    currentScoreSemantics.isFinalized && currentScoreSemantics.usesReviewed
-      ? "Skor Final"
-      : "Skor Inherent";
+  const currentScoreLabel = "Skor Risiko";
   const canUseAiAssist =
     title.trim().length > 0 && description.trim().length > 0;
 
@@ -2203,6 +2156,9 @@ export default function RiskInputPage() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md border border-border/50">
+                      Nilai probabilitas dan dampak sudah mempertimbangkan kontrol yang ada (residual risk).
+                    </p>
                     <div className="space-y-1.5">
                       <Label className="text-sm font-medium">
                         Pengendalian yang Ada
@@ -2291,7 +2247,7 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">Dampak</Label>
+                        <Label className="text-sm font-medium">Dampak (Residual)</Label>
                         <div className="grid grid-cols-5 gap-1.5">
                           {[1, 2, 3, 4, 5].map((val) => (
                             <Tooltip key={val}>
@@ -2347,96 +2303,6 @@ export default function RiskInputPage() {
                         </p>
                       </div>
                     </div>
-
-                    {/* Reviewer Score Card — shown when approved with reviewer scores */}
-                    {reviewerScoreData && riskStatus === "approved" && (
-                      <div className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary/5 p-4 animate-in slide-in-from-top-1">
-                        <div className="flex items-center gap-2">
-                          <div className="flex size-6 items-center justify-center rounded-md bg-primary/15">
-                            <Check className="size-3.5 text-primary" />
-                          </div>
-                          <h4 className="text-sm font-semibold text-primary">
-                            Skor Penilaian Reviewer
-                          </h4>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          {/* Skor Sementara */}
-                          <div className="rounded-md border border-border/50 bg-card p-3 space-y-1">
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                              Skor Sementara
-                            </p>
-                            <div className="flex items-baseline gap-1.5">
-                              <span className="text-2xl font-bold">
-                                {Math.round(nilai)}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                P{probability} × D{impact}
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              {getRiskLevelLabel(level)}
-                            </p>
-                          </div>
-
-                          {/* Skor Penilaian */}
-                          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
-                            <p className="text-xs font-medium text-primary uppercase tracking-wider">
-                              Skor Penilaian
-                            </p>
-                            <div className="flex items-baseline gap-1.5">
-                              <span className="text-2xl font-bold text-primary">
-                                {reviewerScoreData.reviewedNilai
-                                  ? Math.round(reviewerScoreData.reviewedNilai)
-                                  : (reviewerScoreData.reviewedScore ?? "—")}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                P{reviewerScoreData.reviewedProbability} × D
-                                {reviewerScoreData.reviewedImpact}
-                              </span>
-                            </div>
-                            <p className="text-xs text-primary/80">
-                              Skor Resmi
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Labels */}
-                        <div className="flex flex-wrap gap-2">
-                          {reviewerScoreData.scoreChangeLabel && (
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border",
-                                reviewerScoreData.scoreChangeLabel.includes(
-                                  "penurunan",
-                                )
-                                  ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
-                                  : reviewerScoreData.scoreChangeLabel.includes(
-                                        "peningkatan",
-                                      )
-                                    ? "bg-red-500/10 text-red-700 border-red-500/20"
-                                    : "bg-muted text-muted-foreground border-border/50",
-                              )}
-                            >
-                              {reviewerScoreData.scoreChangeLabel}
-                            </span>
-                          )}
-                          {reviewerScoreData.effectivenessLabel && (
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border",
-                                reviewerScoreData.effectivenessLabel ===
-                                  "Efektif"
-                                  ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
-                                  : "bg-amber-500/10 text-amber-700 border-amber-500/20",
-                              )}
-                            >
-                              {reviewerScoreData.effectivenessLabel}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </AccordionContent>
                 </AccordionItem>
 
@@ -3004,19 +2870,12 @@ export default function RiskInputPage() {
               <ReviewSidePanel
                 approvalId={approvalId}
                 approvalWorkflow={approvalWorkflow}
-                currentUserId={user?.id || ""}
+                currentUserId={user?.id}
                 riskStatus={riskStatus}
                 userRole={user?.role || ""}
-                inherentScore={currentScoreSemantics.inherent.score}
-                reviewedScore={reviewerScoreData?.reviewedScore}
-                reviewedProbability={reviewerScoreData?.reviewedProbability}
-                reviewedImpact={reviewerScoreData?.reviewedImpact}
+                inherentScore={Math.round(nilai)}
                 token={token || undefined}
-                onActionComplete={() => {
-                  if (riskId) {
-                    loadRiskData(riskId);
-                  }
-                }}
+                onActionComplete={() => riskId && loadRiskData(riskId)}
                 onNavigateToLog={() => setActiveView("log")}
               />
             </div>

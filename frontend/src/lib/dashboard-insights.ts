@@ -17,11 +17,6 @@ type RiskLike = {
   nilai?: number | null;
   inherentScore?: number;
   status?: "draft" | "in_review" | "in_approval" | "approved" | "rejected";
-  reviewedProbability?: number | null;
-  reviewedImpact?: number | null;
-  reviewedWeight?: number | null;
-  reviewedNilai?: number | null;
-  reviewedScore?: number | null;
   targetScore?: number;
   targetProbability?: number;
   targetImpact?: number;
@@ -119,11 +114,6 @@ export function buildUnitExposureData(risks: RiskLike[], limit = 5): UnitExposur
         weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
         nilai: risk.nilai ?? undefined,
         inherentScore: risk.inherentScore ?? 0,
-        reviewedProbability: risk.reviewedProbability,
-        reviewedImpact: risk.reviewedImpact,
-        reviewedWeight: risk.reviewedWeight,
-        reviewedNilai: risk.reviewedNilai,
-        reviewedScore: risk.reviewedScore,
       }).effective.score,
     );
     const row = grouped.get(orgName) ?? {
@@ -231,11 +221,6 @@ export function buildExecutiveTrendData(risks: RiskLike[]): ExecutiveTrendDatum[
         weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
         nilai: risk.nilai ?? undefined,
         inherentScore: risk.inherentScore ?? 0,
-        reviewedProbability: risk.reviewedProbability,
-        reviewedImpact: risk.reviewedImpact,
-        reviewedWeight: risk.reviewedWeight,
-        reviewedNilai: risk.reviewedNilai,
-        reviewedScore: risk.reviewedScore,
       }).effective.score,
     );
     const row = grouped.get(period) ?? { period, medium: 0, high: 0, extreme: 0, exposureScore: 0 };
@@ -394,53 +379,9 @@ export type InherentResidualDatum = {
   riskCount: number;
 };
 
-export function buildInherentResidualTrendData(risks: RiskLike[]): InherentResidualDatum[] {
-  const grouped = new Map<string, { inherentSum: number; residualSum: number; count: number }>();
-
-  for (const risk of risks) {
-    const period = resolveRiskPeriod(risk);
-    if (!period) continue;
-
-    const semantics = resolveRiskScoreSemantics({
-      status: risk.status ?? "draft",
-      probability: risk.probability ?? 1,
-      impact: risk.impact ?? 1,
-      weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
-      nilai: risk.nilai ?? undefined,
-      inherentScore: risk.inherentScore ?? 0,
-      reviewedProbability: risk.reviewedProbability,
-      reviewedImpact: risk.reviewedImpact,
-      reviewedWeight: risk.reviewedWeight,
-      reviewedNilai: risk.reviewedNilai,
-      reviewedScore: risk.reviewedScore,
-    });
-
-    const bucket = grouped.get(period) ?? {
-      inherentSum: 0,
-      residualSum: 0,
-      count: 0,
-    };
-
-    bucket.inherentSum += semantics.inherent.score;
-    bucket.residualSum += semantics.effective.score;
-    bucket.count += 1;
-    grouped.set(period, bucket);
-  }
-
-  return [...grouped.entries()]
-    .sort(([a], [b]) => semesterSortValue(a) - semesterSortValue(b))
-    .map(([period, bucket]) => {
-      const avgInherent = Math.round((bucket.inherentSum / bucket.count) * 10) / 10;
-      const avgResidual = Math.round((bucket.residualSum / bucket.count) * 10) / 10;
-
-      return {
-        period,
-        avgInherent,
-        avgResidual,
-        gap: Math.round((avgInherent - avgResidual) * 10) / 10,
-        riskCount: bucket.count,
-      };
-    });
+export function buildInherentResidualTrendData(_risks: RiskLike[]): InherentResidualDatum[] {
+  // TODO: GAP-4 follow-up — chart needs redesign for single-score model
+  return [];
 }
 
 /* ───────────────────── Critical Risk Rate Trend ───────────────────── */
@@ -469,11 +410,6 @@ export function buildCriticalRiskRateTrendData(risks: RiskLike[]): CriticalRiskR
         weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
         nilai: risk.nilai ?? undefined,
         inherentScore: risk.inherentScore ?? 0,
-        reviewedProbability: risk.reviewedProbability,
-        reviewedImpact: risk.reviewedImpact,
-        reviewedWeight: risk.reviewedWeight,
-        reviewedNilai: risk.reviewedNilai,
-        reviewedScore: risk.reviewedScore,
       }).effective.score,
     );
     const bucket = grouped.get(period) ?? { medium: 0, high: 0, extreme: 0, total: 0 };

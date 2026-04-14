@@ -37,24 +37,17 @@ func NewWorkingPaperRepository(pool *pgxpool.Pool) repository.WorkingPaperReposi
 	return &workingPaperRepository{pool: pool}
 }
 
-func finalizedWorkingPaperRiskExpr(alias, reviewedField, baseField string) string {
-	return fmt.Sprintf(`CASE
-		WHEN %[1]s.status = 'approved'
-			AND %[1]s.reviewed_probability IS NOT NULL
-			AND %[1]s.reviewed_impact IS NOT NULL
-			AND %[1]s.reviewed_weight IS NOT NULL
-			AND %[1]s.reviewed_nilai IS NOT NULL
-			AND %[1]s.reviewed_score IS NOT NULL
-		THEN %[1]s.%[2]s
-		ELSE %[1]s.%[3]s
-	END`, alias, reviewedField, baseField)
+// finalizedWorkingPaperRiskExpr returns the base field value since reviewed_* columns no longer exist
+// After Task 2, effective scores = base scores for all risks
+func finalizedWorkingPaperRiskExpr(alias, baseField string) string {
+	return fmt.Sprintf(`%[1]s.%[2]s`, alias, baseField)
 }
 
 func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q workingPaperReader, wpID uuid.UUID) ([]entity.WorkingPaperRiskLink, error) {
-	probabilityExpr := finalizedWorkingPaperRiskExpr("risk", "reviewed_probability", "probability")
-	impactExpr := finalizedWorkingPaperRiskExpr("risk", "reviewed_impact", "impact")
-	weightExpr := finalizedWorkingPaperRiskExpr("risk", "reviewed_weight", "weight")
-	nilaiExpr := finalizedWorkingPaperRiskExpr("risk", "reviewed_nilai", "nilai")
+	probabilityExpr := finalizedWorkingPaperRiskExpr("risk", "probability")
+	impactExpr := finalizedWorkingPaperRiskExpr("risk", "impact")
+	weightExpr := finalizedWorkingPaperRiskExpr("risk", "weight")
+	nilaiExpr := finalizedWorkingPaperRiskExpr("risk", "nilai")
 
 	query := fmt.Sprintf(`SELECT wpr.id, wpr.working_paper_id, wpr.risk_id, wpr.sort_order, wpr.source_mode, wpr.created_at,
 		       risk.id, risk.code, risk.title, risk.description, risk.category, risk.status,
