@@ -18,7 +18,7 @@ import {
   BarChart,
   CartesianGrid,
   ComposedChart,
-  LabelList,
+  Legend,
   Line,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
@@ -112,7 +112,7 @@ export default function DashboardPage() {
     DashboardActionPressurePoint[]
   >([]);
   const [riskCategoryData, setRiskCategoryData] = useState<
-    { label: string; count: number }[]
+    ReturnType<typeof buildDashboardRiskCategoryData>
   >([]);
   const [isRiskCategoryLoading, setIsRiskCategoryLoading] = useState(true);
   const [riskCategoryError, setRiskCategoryError] = useState(false);
@@ -422,12 +422,12 @@ export default function DashboardPage() {
                 Belum ada data kategori risiko.
               </div>
             ) : (
-              <div className="h-56">
+              <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={riskCategoryData}
                     layout="vertical"
-                    margin={{ top: 4, right: 40, left: 8, bottom: 0 }}
+                    margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -450,7 +450,10 @@ export default function DashboardPage() {
                       tickLine={false}
                     />
                     <RechartsTooltip
-                      formatter={(value) => [`${value} risiko`]}
+                      formatter={(value, name) => [
+                        `${value} risiko`,
+                        name,
+                      ]}
                       contentStyle={{
                         background: "var(--popover)",
                         border: "1px solid var(--border)",
@@ -460,17 +463,42 @@ export default function DashboardPage() {
                         backdropFilter: "blur(8px)",
                       }}
                     />
+                    <Legend
+                      iconType="square"
+                      iconSize={10}
+                      wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+                    />
                     <Bar
-                      dataKey="count"
-                      fill="oklch(0.55 0.18 265)"
+                      dataKey="sangatRendah"
+                      stackId="a"
+                      fill="oklch(0.72 0.17 155)"
+                      name="Sangat Rendah"
+                    />
+                    <Bar
+                      dataKey="rendah"
+                      stackId="a"
+                      fill="oklch(0.72 0.14 210)"
+                      name="Rendah"
+                    />
+                    <Bar
+                      dataKey="sedang"
+                      stackId="a"
+                      fill="oklch(0.75 0.15 75)"
+                      name="Sedang"
+                    />
+                    <Bar
+                      dataKey="tinggi"
+                      stackId="a"
+                      fill="oklch(0.70 0.18 40)"
+                      name="Tinggi"
+                    />
+                    <Bar
+                      dataKey="ekstrem"
+                      stackId="a"
+                      fill="oklch(0.62 0.22 27)"
+                      name="Ekstrem"
                       radius={[0, 4, 4, 0]}
-                    >
-                      <LabelList
-                        dataKey="count"
-                        position="right"
-                        style={{ fill: "oklch(0.7 0 0)", fontSize: 11 }}
-                      />
-                    </Bar>
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

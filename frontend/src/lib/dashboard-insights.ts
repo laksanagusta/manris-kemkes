@@ -297,10 +297,23 @@ export function buildTopRiskBadgeMap(input: {
 
 export function buildDashboardRiskCategoryData(
   items: DashboardRiskCategoryItem[]
-): { label: string; count: number }[] {
+): {
+  label: string;
+  count: number;
+  sangatRendah: number;
+  rendah: number;
+  sedang: number;
+  tinggi: number;
+  ekstrem: number;
+}[] {
   return items.map((item) => ({
     label: dashboardCategoryLabels[item.category] ?? item.category,
     count: item.count,
+    sangatRendah: item.sangatRendah,
+    rendah: item.rendah,
+    sedang: item.sedang,
+    tinggi: item.tinggi,
+    ekstrem: item.ekstrem,
   }));
 }
 
