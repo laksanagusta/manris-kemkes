@@ -290,14 +290,14 @@ export function MitigationMonitoringPanel() {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="w-20 text-xs">Kode</TableHead>
-              <TableHead className="text-xs">Rencana Mitigasi</TableHead>
-              <TableHead className="w-28 text-xs">Unit / PIC</TableHead>
-              <TableHead className="w-24 text-xs">Jatuh Tempo</TableHead>
-              <TableHead className="w-20 text-center text-xs">Hari</TableHead>
-              <TableHead className="w-20 text-xs">Status</TableHead>
-                <TableHead className="w-28 text-xs">Eskalasi</TableHead>
-                <TableHead className="w-32 text-xs text-right">Aksi</TableHead>
+              <TableHead className="w-20 text-sm">Kode</TableHead>
+              <TableHead className="text-sm">Rencana Mitigasi</TableHead>
+              <TableHead className="w-28 text-sm">Unit / PIC</TableHead>
+              <TableHead className="w-24 text-sm">Jatuh Tempo</TableHead>
+              <TableHead className="w-20 text-center text-sm">Hari</TableHead>
+              <TableHead className="w-20 text-sm">Status</TableHead>
+                <TableHead className="w-28 text-sm">Eskalasi</TableHead>
+                <TableHead className="w-32 text-sm text-right">Aksi</TableHead>
               </TableRow>
           </TableHeader>
           <TableBody>
@@ -327,33 +327,33 @@ export function MitigationMonitoringPanel() {
                       item.tier === "heavy" && "bg-risk-extreme/[0.02]"
                     )}
                   >
-                    <TableCell className="text-xs font-mono text-muted-foreground">
+                    <TableCell className="text-sm font-mono text-muted-foreground">
                       {item.riskCode}
                     </TableCell>
-                    <TableCell className="max-w-0">
-                      <p className="truncate text-xs font-medium leading-relaxed text-primary">
+                     <TableCell className="max-w-0">
+                      <p className="truncate text-sm font-medium leading-relaxed text-primary">
                         {item.mitigationAction}
                       </p>
                     </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="text-xs">{item.unit}</p>
-                        <p className="text-[10px] text-muted-foreground">{item.pic}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {item.dueDate ? new Date(item.dueDate).toLocaleDateString("id-ID") : "—"}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span
-                        className={cn(
-                          "text-xs font-bold",
-                          item.daysOverdue > 0 ? tier.color : "text-muted-foreground"
-                        )}
-                      >
-                        {item.daysOverdue > 0 ? `+${item.daysOverdue}` : item.daysOverdue}
-                      </span>
-                    </TableCell>
+                     <TableCell>
+                       <div>
+                         <p className="text-sm">{item.unit}</p>
+                         <p className="text-[10px] text-muted-foreground">{item.pic}</p>
+                       </div>
+                     </TableCell>
+                     <TableCell className="text-sm text-muted-foreground">
+                       {item.dueDate ? new Date(item.dueDate).toLocaleDateString("id-ID") : "—"}
+                     </TableCell>
+                     <TableCell className="text-center">
+                       <span
+                         className={cn(
+                           "text-sm font-bold",
+                           item.daysOverdue > 0 ? tier.color : "text-muted-foreground"
+                         )}
+                       >
+                         {item.daysOverdue > 0 ? `+${item.daysOverdue}` : item.daysOverdue}
+                       </span>
+                     </TableCell>
                     <TableCell>
                       <Badge
                         className={cn(
@@ -376,20 +376,20 @@ export function MitigationMonitoringPanel() {
                         {tier.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
-                      {item.status === "done" ? (
-                        <span className="text-xs text-success">Selesai</span>
-                      ) : !submissionCheck.allowed ? (
+                     <TableCell className="text-right">
+                       {item.status === "done" ? (
+                         <span className="text-sm text-success">Selesai</span>
+                       ) : !submissionCheck.allowed ? (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="inline-block cursor-not-allowed">
                                 <Button
-                                  size="sm"
-                                  variant={item.status === "overdue" ? "destructive" : "default"}
-                                  disabled
-                                  className="opacity-50 pointer-events-none text-xs"
-                                >
+                                   size="sm"
+                                   variant={item.status === "overdue" ? "destructive" : "default"}
+                                   disabled
+                                   className="opacity-50 pointer-events-none text-sm"
+                                 >
                                   <Send className="size-3 mr-1" /> Lapor
                                 </Button>
                               </span>
@@ -400,12 +400,12 @@ export function MitigationMonitoringPanel() {
                           </Tooltip>
                         </TooltipProvider>
                       ) : (
-                        <Button
-                          size="sm"
-                          variant={item.status === "overdue" ? "destructive" : "default"}
-                          onClick={() => handleOpenSubmit(item)}
-                          className="text-xs"
-                        >
+                         <Button
+                           size="sm"
+                           variant={item.status === "overdue" ? "destructive" : "default"}
+                           onClick={() => handleOpenSubmit(item)}
+                           className="text-sm"
+                         >
                           <Send className="size-3 mr-1" /> Lapor
                         </Button>
                       )}
