@@ -15,8 +15,9 @@ interface ProfilRisikoCardProps {
 
 export function ProfilRisikoCard({ risk }: ProfilRisikoCardProps) {
   const code = risk.riskCode || risk.code || "-";
-  const nilai = risk.nilai ?? "-";
-  const level = risk.nilai ? getRiskLevelFromNilai(risk.nilai) : undefined;
+  const inherentScore = risk.inherentScore ?? risk.nilai;
+  const targetNilai = risk.targetNilai ?? risk.targetScore;
+  const level = inherentScore !== undefined && inherentScore !== null ? getRiskLevelFromNilai(inherentScore) : undefined;
   
   return (
     <Card data-testid="profil-risiko-card">
@@ -47,8 +48,8 @@ export function ProfilRisikoCard({ risk }: ProfilRisikoCardProps) {
             <p className="text-sm font-mono">{risk.weight || "-"}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Nilai</p>
-            <p className="text-sm font-mono">{nilai}</p>
+            <p className="text-sm font-medium text-muted-foreground">Inherent Score</p>
+            <p className="text-sm font-mono">{inherentScore}</p>
           </div>
 
           <div className="space-y-1">
@@ -99,8 +100,8 @@ export function ProfilRisikoCard({ risk }: ProfilRisikoCardProps) {
               <p className="text-sm font-mono">{risk.targetWeight || "-"}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Nilai</p>
-              <p className="text-sm font-mono">{risk.targetNilai ?? "-"}</p>
+              <p className="text-xs font-medium text-muted-foreground">Target Score</p>
+              <p className="text-sm font-mono">{targetNilai ?? "-"}</p>
             </div>
           </div>
         </div>

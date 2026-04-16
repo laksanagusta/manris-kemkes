@@ -352,9 +352,12 @@ func TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle(t *testing.T
 	}
 
 	uc := NewCreateRiskReassessmentUseCase(repo)
-	_, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
-	if !errors.Is(err, domainerrors.ErrInvalidStatus) {
-		t.Fatalf("expected invalid status error for in-progress reassessment, got %v", err)
+	out, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
+	if err != nil {
+		t.Fatalf("expected no error for in-progress reassessment, got %v", err)
+	}
+	if out == nil || out.Status != "draft" {
+		t.Fatalf("expected returning existing draft, got %v", out)
 	}
 	if repo.createdRisk != nil {
 		t.Fatal("expected no new draft when in-progress reassessment exists")
@@ -478,9 +481,12 @@ func TestCreateRiskReassessmentUseCase_ExecuteUsesRepositoryManagedReservation(t
 	}
 
 	uc := NewCreateRiskReassessmentUseCase(repo)
-	_, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
-	if !errors.Is(err, domainerrors.ErrInvalidStatus) {
-		t.Fatalf("expected invalid status from repository-managed existing in-progress draft, got %v", err)
+	out, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
+	if err != nil {
+		t.Fatalf("expected no error from repository-managed existing in-progress draft, got %v", err)
+	}
+	if out == nil || out.Status != entity.RiskStatusDraft {
+		t.Fatalf("expected returning existing draft, got %v", out)
 	}
 	if repo.reserveCalls != 1 {
 		t.Fatalf("expected repository-managed reservation once, got %d", repo.reserveCalls)

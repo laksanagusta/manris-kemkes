@@ -485,8 +485,8 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 }
 
 // ListApprovedRisks returns approved risks for trend analysis (one version per cycle per risk)
-func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
-	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
+func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID, query string) ([]*entity.Risk, error) {
+	queryStr := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
 	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 	                  r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -504,11 +504,19 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 	argIdx := 1
 
 	if len(orgIDs) > 0 {
-		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
+		queryStr += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
 		args = append(args, orgIDs)
 		argIdx++
 	}
-	query += " ORDER BY r.assessment_cycle, r.created_at DESC"
+	
+	// Add search filter by code or title
+	if query != "" {
+		queryStr += fmt.Sprintf(" AND (r.code ILIKE $%d OR r.title ILIKE $%d)", argIdx, argIdx)
+		args = append(args, "%"+query+"%")
+		argIdx++
+	}
+	
+	queryStr += " ORDER BY r.assessment_cycle, r.created_at DESC"
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {

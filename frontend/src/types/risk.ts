@@ -8,6 +8,13 @@ export type RiskCategory = "" | "strategis" | "operasional" | "kepatuhan" | "fin
 export type RiskSource = "" | "internal" | "eksternal";
 export type RiskAppetite = "" | "dalam_batas" | "di_atas_batas";
 
+export type DraftApprovalLineMember = {
+  id: string;
+  name: string;
+  type?: string;
+  role?: string;
+};
+
 export type RiskLevel = "sangat_rendah" | "rendah" | "sedang" | "tinggi" | "sangat_tinggi";
 
 export type RiskReviewType = "periodic" | "ad_hoc";
@@ -285,6 +292,7 @@ export interface Risk {
   createdByName?: string;
   updatedAt?: string;
   fishboneDraft?: import("./fishbone").FishboneDraft | null;
+  draftApprovalLine?: DraftApprovalLineMember[];
 
 }
 

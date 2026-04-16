@@ -1,5 +1,5 @@
 import * as React from "react";
-import { UseFormReturn, Controller } from "react-hook-form";
+import { UseFormReturn, Controller, FieldError } from "react-hook-form";
 import {
   Card,
   CardHeader,
@@ -38,6 +38,8 @@ interface HasilPemantauanCardProps {
 export function HasilPemantauanCard({ form }: HasilPemantauanCardProps) {
   const probability = form.watch("probability");
   const impact = form.watch("impact");
+  const probError = form.formState.errors.probability;
+  const impactError = form.formState.errors.impact;
 
   const bobot = React.useMemo(() => {
     if (!probability || !impact) return 0;
@@ -58,7 +60,14 @@ export function HasilPemantauanCard({ form }: HasilPemantauanCardProps) {
         <TooltipProvider>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <Label>Skor Probabilitas Baru</Label>
+              <div className="flex items-center justify-between">
+                <Label>Skor Probabilitas Baru</Label>
+                {probError && (
+                  <span className="text-xs text-red-500 font-medium">
+                    {probError.message || "Wajib diisi"}
+                  </span>
+                )}
+              </div>
               <Controller
                 control={form.control}
                 name="probability"
@@ -92,7 +101,14 @@ export function HasilPemantauanCard({ form }: HasilPemantauanCardProps) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label>Skor Dampak Baru</Label>
+              <div className="flex items-center justify-between">
+                <Label>Skor Dampak Baru</Label>
+                {impactError && (
+                  <span className="text-xs text-red-500 font-medium">
+                    {impactError.message || "Wajib diisi"}
+                  </span>
+                )}
+              </div>
               <Controller
                 control={form.control}
                 name="impact"

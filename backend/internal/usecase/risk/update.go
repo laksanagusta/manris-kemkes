@@ -55,6 +55,8 @@ type UpdateRiskInput struct {
 	Probability          int     `json:"probability"`
 	Impact               int     `json:"impact"`
 	Weight               float64 `json:"weight"`
+	Nilai                int     `json:"nilai"`
+	InherentScore        int     `json:"inherentScore"`
 
 	// Section 3: Risk Evaluation
 	RiskPriority    int    `json:"riskPriority"`
@@ -68,6 +70,8 @@ type UpdateRiskInput struct {
 	TargetProbability int                         `json:"targetProbability"`
 	TargetImpact      int                         `json:"targetImpact"`
 	TargetWeight      float64                     `json:"targetWeight"`
+	TargetNilai       int                         `json:"targetNilai"`
+	TargetScore       int                         `json:"targetScore"`
 	NextReviewDate    *string                     `json:"nextReviewDate"`
 	AssessmentCycle   string                      `json:"assessmentCycle"`
 	ReviewType        string                      `json:"reviewType"`
@@ -156,6 +160,13 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	existingRisk.Impact = input.Impact
 	existingRisk.Weight = input.Weight
 
+	if input.Nilai != 0 {
+		existingRisk.Nilai = float64(input.Nilai)
+	}
+	if input.InherentScore != 0 {
+		existingRisk.InherentScore = input.InherentScore
+	}
+
 	// Section 3
 	existingRisk.RiskPriority = input.RiskPriority
 	existingRisk.RiskAppetite = input.RiskAppetite
@@ -168,6 +179,12 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	existingRisk.TargetProbability = input.TargetProbability
 	existingRisk.TargetImpact = input.TargetImpact
 	existingRisk.TargetWeight = input.TargetWeight
+	if input.TargetNilai != 0 {
+		existingRisk.TargetNilai = float64(input.TargetNilai)
+	}
+	if input.TargetScore != 0 {
+		existingRisk.TargetScore = input.TargetScore
+	}
 	existingRisk.NextReviewDate = input.NextReviewDate
 	existingRisk.AssessmentCycle = input.AssessmentCycle
 	existingRisk.ReviewType = input.ReviewType

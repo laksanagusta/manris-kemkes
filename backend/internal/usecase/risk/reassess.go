@@ -56,7 +56,12 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 			return nil, errors.Wrap(err, "failed to reserve reassessment draft")
 		}
 		if !created {
-			return nil, errors.Wrap(errors.ErrInvalidStatus, "an in-progress reassessment already exists for this cycle")
+			return &CreateRiskReassessmentOutput{
+				ID:             reservedRisk.ID,
+				VersionGroupID: reservedRisk.VersionGroupID,
+				Status:         reservedRisk.Status,
+				Message:        "an in-progress reassessment already exists for this cycle, returning existing draft",
+			}, nil
 		}
 		return &CreateRiskReassessmentOutput{
 			ID:             reservedRisk.ID,
@@ -71,7 +76,12 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 		return nil, errors.Wrap(err, "failed to load risk versions")
 	}
 	if existing := FindInProgressReassessmentForCycle(versions, input.Cycle); existing != nil {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "an in-progress reassessment already exists for this cycle")
+		return &CreateRiskReassessmentOutput{
+			ID:             existing.ID,
+			VersionGroupID: existing.VersionGroupID,
+			Status:         existing.Status,
+			Message:        "an in-progress reassessment already exists for this cycle, returning existing draft",
+		}, nil
 	}
 
 	now := time.Now().UTC()

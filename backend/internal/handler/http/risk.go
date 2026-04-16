@@ -624,6 +624,7 @@ func (h *RiskHandler) ListApprovedRisks(c *fiber.Ctx) error {
 
 	input := riskuc.ListApprovedRisksInput{
 		OrgIDs: orgIDs,
+		Query:  c.Query("q"),
 	}
 
 	risks, err := h.listApprovedUC.Execute(c.Context(), input)

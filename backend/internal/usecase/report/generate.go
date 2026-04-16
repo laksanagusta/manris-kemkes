@@ -190,7 +190,7 @@ func (uc *GenerateReportUseCase) filterKRIsByRiskIDs(ctx context.Context, riskID
 }
 
 func (uc *GenerateReportUseCase) computeTrendData(ctx context.Context, orgIDs []uuid.UUID) ([]entity.CycleTrendPoint, error) {
-	allRisks, err := uc.riskRepo.ListApprovedRisks(ctx, orgIDs)
+	allRisks, err := uc.riskRepo.ListApprovedRisks(ctx, orgIDs, "")
 	if err != nil {
 		return nil, err
 	}

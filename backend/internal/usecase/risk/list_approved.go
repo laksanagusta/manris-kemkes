@@ -22,10 +22,11 @@ func NewListApprovedRisksUseCase(riskRepo repository.RiskRepository, orgSvc *ser
 
 type ListApprovedRisksInput struct {
 	OrgIDs []uuid.UUID
+	Query  string // Add search query
 }
 
 func (uc *ListApprovedRisksUseCase) Execute(ctx context.Context, input ListApprovedRisksInput) ([]*entity.Risk, error) {
-	risks, err := uc.riskRepo.ListApprovedRisks(ctx, input.OrgIDs)
+	risks, err := uc.riskRepo.ListApprovedRisks(ctx, input.OrgIDs, input.Query)
 	if err != nil {
 		return nil, err
 	}

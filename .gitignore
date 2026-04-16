@@ -47,3 +47,4 @@ vendor/
 *.swo
 *~
 .dockerignore
+.playwright-mcp/

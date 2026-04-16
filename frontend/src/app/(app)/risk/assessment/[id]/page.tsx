@@ -41,6 +41,10 @@ import {
   type RiskWorkflowState,
 } from "@/components/risk/review-side-panel";
 import { filterApproverOptions, type UserPickerOption } from "@/lib/risk-register-user-picker";
+import {
+  resolveDraftApprovalLine,
+  type DraftApprovalLineMember,
+} from "@/lib/risk-approval-line";
 import { ProfilRisikoCard } from "../components/profil-risiko-card";
 import {
   HasilPemantauanCard,
@@ -52,6 +56,38 @@ type ApprovalLineUser = { id: string; name: string; email?: string; role?: strin
 
 function dedupeApproverIds(ids: Array<string | undefined>) {
   return [...new Set(ids.filter((id): id is string => Boolean(id)))];
+}
+
+const approvalRoleLabels: Record<string, string> = {
+  reviewer: "Reviewer",
+  approval: "Pimpinan",
+};
+
+function toHydratedUserPickerOption(user: {
+  id?: string | null;
+  name?: string | null;
+  role?: string | null;
+}): UserPickerOption | null {
+  if (!user.id || !user.name) {
+    return null;
+  }
+
+  const role = user.role ?? undefined;
+
+  return {
+    id: user.id,
+    name: user.name,
+    role,
+    subtitle: role ? approvalRoleLabels[role] || role : undefined,
+  };
+}
+
+function toApprovalLineUser(option: UserPickerOption): ApprovalLineUser {
+  return {
+    id: option.id,
+    name: option.name,
+    role: option.role,
+  };
 }
 
 const formSchema = z.object({
@@ -243,6 +279,53 @@ export default function AssessmentFormPage() {
         const source = await getRiskDetail(token, draft.previousRiskId);
         setSourceRisk(source);
       }
+
+      if (
+        Array.isArray(draft.draftApprovalLine) &&
+        draft.draftApprovalLine.length > 0
+      ) {
+        const resolvedApprovalLine = resolveDraftApprovalLine(
+          draft.draftApprovalLine,
+        );
+        const reviewerMember = draft.draftApprovalLine.find(
+          (member) => member.id === resolvedApprovalLine.reviewerId,
+        );
+        setReviewerId(resolvedApprovalLine.reviewerId);
+        setReviewerOption(toHydratedUserPickerOption(reviewerMember ?? {}));
+        setApprovalLine(resolvedApprovalLine.approvalLine);
+      } else {
+        setReviewerId("");
+        setReviewerOption(null);
+        setApprovalLine([]);
+      }
+
+      if (draft.status === "in_review" || draft.status === "in_approval") {
+        try {
+          const approvalResult = await api.get<{
+            id?: string;
+            currentStatus?: string;
+            currentApproverRole?: string;
+            currentApproverUserId?: string;
+            steps?: {
+              approverUserId?: string;
+              approverName?: string;
+              stepType?: string;
+              status?: string;
+            }[];
+          } | null>(`/approvals/entity/${id}`, token ?? undefined);
+          if (approvalResult?.id) {
+            setApprovalId(approvalResult.id);
+            setApprovalWorkflow({
+              currentStatus: approvalResult.currentStatus || "pending",
+              currentApproverRole: approvalResult.currentApproverRole || "reviewer",
+              currentApproverUserId: approvalResult.currentApproverUserId,
+              steps: approvalResult.steps || [],
+            });
+          }
+        } catch (approvalErr) {
+          console.error("Failed to load approval workflow:", approvalErr);
+        }
+      }
     } catch (error) {
       toast.error("Gagal memuat data risiko", {
         description: (error as Error).message || "Terjadi kesalahan yang tidak diketahui",
@@ -269,6 +352,7 @@ export default function AssessmentFormPage() {
         category: draftRisk.category,
         status: draftRisk.status,
         unitId: draftRisk.unitId,
+        organizationId: (draftRisk as any).organizationId || (draftRisk as any).organizationID || "",
         cause: draftRisk.cause || [],
         riskSource: draftRisk.riskSource || "",
         controllability: draftRisk.controllability || "",
@@ -278,6 +362,8 @@ export default function AssessmentFormPage() {
         probability: values.probability,
         impact: values.impact,
         weight: newWeight,
+        inherentScore: newNilai,
+        nilai: newNilai,
         riskPriority: draftRisk.riskPriority || 0,
         riskAppetite: draftRisk.riskAppetite || "",
         treatmentOption: draftRisk.treatmentOption || "",
@@ -285,10 +371,29 @@ export default function AssessmentFormPage() {
         targetProbability: draftRisk.targetProbability || 0,
         targetImpact: draftRisk.targetImpact || 0,
         targetWeight: draftRisk.targetWeight || 0,
+        targetNilai: draftRisk.targetNilai || 0,
         assessmentCycle: draftRisk.assessmentCycle || "",
         reviewType: draftRisk.reviewType || "assessment",
-        change_reason: values.changeReason,
-        review_summary: values.reviewSummary,
+        changeReason: values.changeReason,
+        reviewSummary: values.reviewSummary,
+        draftApprovalLine: [
+          ...(reviewerId
+            ? [
+                {
+                  id: reviewerId,
+                  name: reviewerOption?.name || "Reviewer",
+                  type: "review" as const,
+                },
+              ]
+            : []),
+          ...approvalLine
+            .filter((member) => member.id && member.id !== reviewerId)
+            .map((member) => ({
+              id: member.id,
+              name: member.name,
+              type: "approval" as const,
+            })),
+        ],
       };
 
       await updateRiskAssessment(token, id, payload);
@@ -414,7 +519,7 @@ export default function AssessmentFormPage() {
           
           <div className="space-y-6">
             <SimpulanCard
-              nilaiCurrent={sourceRisk.nilai || 0}
+              nilaiCurrent={sourceRisk.inherentScore || sourceRisk.nilai || 0}
               nilaiBaru={computedNilai}
             />
             

@@ -29,7 +29,7 @@ type RiskRepository interface {
 	ListMitigations(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationAssoc, error)
 	NextRiskCode(ctx context.Context) (string, error)
 	// ListApprovedRisks returns all approved risks for trend analysis (includes all versions)
-	ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Risk, error)
+	ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID, query string) ([]*entity.Risk, error)
 
 	// Dashboard methods - cycle parameter filters by assessment_cycle, empty string uses current global state
 	DashboardSummary(ctx context.Context, cycle string, orgIDs []uuid.UUID) (*entity.DashboardSummary, error)
