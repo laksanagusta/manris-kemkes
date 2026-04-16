@@ -19,11 +19,9 @@ const (
 
 // RiskStatus constants for risk workflow states
 const (
-	RiskStatusDraft      = "draft"
-	RiskStatusInReview   = "in_review"
-	RiskStatusInApproval = "in_approval"
-	RiskStatusApproved   = "approved"
-	RiskStatusRejected   = "rejected"
+	RiskStatusDraft    = "assessment_draft"
+	RiskStatusInReview = "assessment_in_review"
+	RiskStatusApproved = "approved"
 )
 
 // BobotMatrix is the 5x5 weight matrix based on Probability (rows) and Impact (columns)
@@ -158,7 +156,7 @@ func (r *Risk) Validate() error {
 
 // CanBeSubmittedForApproval checks if risk can be submitted for approval
 func (r *Risk) CanBeSubmittedForApproval() bool {
-	return r.Status == RiskStatusDraft || r.Status == RiskStatusRejected
+	return r.Status == RiskStatusDraft
 }
 
 // GetBobot returns the weight from the matrix based on probability and impact
@@ -285,7 +283,7 @@ func (r *Risk) CalculateAll() {
 
 // IsLocked checks if risk is in a locked (non-editable) status
 func (r *Risk) IsLocked() bool {
-	return r.Status == RiskStatusInReview || r.Status == RiskStatusInApproval || r.Status == RiskStatusApproved || r.Status == RiskStatusRejected
+	return r.Status == RiskStatusInReview || r.Status == RiskStatusApproved
 }
 
 // IsApprovedCurrent returns whether this risk is the active approved version.

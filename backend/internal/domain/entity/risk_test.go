@@ -10,7 +10,7 @@ func makeValidRiskForCategoryValidation(category string) *Risk {
 	return &Risk{
 		Code:        "R-001",
 		Title:       "Risiko uji kategori",
-		Status:      "draft",
+		Status:      RiskStatusDraft,
 		Probability: 3,
 		Impact:      3,
 		Category:    category,
