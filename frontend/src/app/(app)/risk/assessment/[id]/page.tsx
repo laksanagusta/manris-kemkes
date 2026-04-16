@@ -35,19 +35,24 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { RemoteUserPicker, type UserPickerOption } from "@/components/risk/remote-user-picker";
+import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import {
   ReviewSidePanel,
   type RiskWorkflowState,
 } from "@/components/risk/review-side-panel";
-import { filterApproverOptions } from "@/lib/risk-register-user-picker";
-import { dedupeApproverIds, type ApprovalLineUser } from "@/lib/risk-approval-line";
+import { filterApproverOptions, type UserPickerOption } from "@/lib/risk-register-user-picker";
 import { ProfilRisikoCard } from "../components/profil-risiko-card";
 import {
   HasilPemantauanCard,
   type AssessmentFormValues,
 } from "../components/hasil-pemantauan-card";
 import { SimpulanCard } from "../components/simpulan-card";
+
+type ApprovalLineUser = { id: string; name: string; email?: string; role?: string };
+
+function dedupeApproverIds(ids: Array<string | undefined>) {
+  return [...new Set(ids.filter((id): id is string => Boolean(id)))];
+}
 
 const formSchema = z.object({
   probability: z.number().min(1).max(5),
@@ -93,15 +98,14 @@ export default function AssessmentFormPage() {
   const toUserPickerOption = (user: any): UserPickerOption => ({
     id: user.id,
     name: user.name,
-    email: user.email,
     role: user.role,
-    organizationName: user.organizationName,
+    subtitle: user.organizationName,
   });
 
   const toApprovalLineUser = (option: UserPickerOption): ApprovalLineUser => ({
     id: option.id,
     name: option.name,
-    email: option.email,
+    role: option.role,
   });
 
   const loadReviewerOptions = useCallback(
