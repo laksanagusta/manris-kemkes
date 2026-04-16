@@ -268,3 +268,26 @@ export function resolveRiskScoreSemantics(risk: RiskScoreSemanticFields): Resolv
     inherent,
   };
 }
+
+// Simpulan utilities for Risk Assessment
+export function getSimpulanTingkatRisiko(nilaiCurrent: number, nilaiBaru: number): string {
+  if (nilaiBaru === nilaiCurrent) return "Tidak ada penurunan tingkat risiko";
+  if (nilaiBaru > nilaiCurrent) return "Tingkat risiko mengalami peningkatan";
+  return "Tingkat risiko mengalami penurunan";
+}
+
+export function getSimpulanEfektifitas(nilaiCurrent: number, nilaiBaru: number): string {
+  if (nilaiBaru < nilaiCurrent) return "Efektif";
+  return "Tidak Efektif";
+}
+
+export function getSimpulanTingkatRisikoColor(nilaiCurrent: number, nilaiBaru: number): string {
+  if (nilaiBaru === nilaiCurrent) return "bg-yellow-100 text-yellow-700 border-yellow-200";
+  if (nilaiBaru > nilaiCurrent) return "bg-red-100 text-red-700 border-red-200";
+  return "bg-green-100 text-green-700 border-green-200";
+}
+
+export function getSimpulanEfektifitasColor(nilaiCurrent: number, nilaiBaru: number): string {
+  if (nilaiBaru < nilaiCurrent) return "bg-green-100 text-green-700 border-green-200";
+  return "bg-red-100 text-red-700 border-red-200";
+}
