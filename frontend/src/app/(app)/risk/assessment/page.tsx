@@ -7,8 +7,8 @@ import {
   createReassessmentDraft,
   getCurrentCycle,
   formatCycleLabel,
-  type PaginatedRiskResponse,
 } from "@/lib/api/risk-assessment";
+import type { Risk } from "@/types/risk";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getRiskLevelFromNilai,
@@ -50,7 +50,7 @@ export default function RiskAssessmentListPage() {
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  const [data, setData] = useState<PaginatedRiskResponse | null>(null);
+  const [data, setData] = useState<Risk[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [assessingId, setAssessingId] = useState<string | null>(null);
 
@@ -101,8 +101,8 @@ export default function RiskAssessmentListPage() {
       const draft = await createReassessmentDraft(token, riskId, cycle);
       toast.success("Draf penilaian berhasil dibuat");
       router.push(`/risk/assessment/${draft.id}`);
-    } catch (error: any) {
-      toast.error(error?.message || "Gagal membuat draf penilaian");
+    } catch (error) {
+      toast.error((error as Error)?.message || "Gagal membuat draf penilaian");
       setAssessingId(null);
     }
   };
@@ -178,14 +178,14 @@ export default function RiskAssessmentListPage() {
                       Memuat data...
                     </TableCell>
                   </TableRow>
-                ) : !data || data.data.length === 0 ? (
+                ) : !data || data.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                       Tidak ada risiko yang perlu dinilai
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data.data.map((risk) => {
+                  data.map((risk) => {
                     const prob = risk.probability || 0;
                     const imp = risk.impact || 0;
                     const probLabel = PROBABILITY_LABELS[prob] || "-";
@@ -226,11 +226,11 @@ export default function RiskAssessmentListPage() {
             </Table>
           </div>
 
-          {data && data.total > limit && (
+          {data && data.length > limit && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Menampilkan {(page - 1) * limit + 1} -{" "}
-                {Math.min(page * limit, data.total)} dari {data.total} risiko
+                {Math.min(page * limit, data.length)} dari {data.length} risiko
               </p>
               <div className="flex gap-2">
                 <Button
@@ -245,7 +245,7 @@ export default function RiskAssessmentListPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setPage((p) => p + 1)}
-                  disabled={page * limit >= data.total || isLoading}
+                  disabled={page * limit >= data.length || isLoading}
                 >
                   Selanjutnya
                 </Button>

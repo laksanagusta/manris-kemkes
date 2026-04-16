@@ -40,7 +40,7 @@ export function formatCycleLabel(cycle: string): string {
 export async function listApprovedRisks(
   token: string,
   params?: ListApprovedRisksParams,
-): Promise<PaginatedRiskResponse> {
+): Promise<Risk[]> {
   const searchParams = new URLSearchParams();
 
   if (params?.q) searchParams.set("q", params.q);
@@ -52,10 +52,15 @@ export async function listApprovedRisks(
 
   const qs = searchParams.toString();
 
-  return api.get<PaginatedRiskResponse>(
+  const result = await api.get<Risk[] | { data: Risk[] }>(
     `/risks/trend${qs ? `?${qs}` : ""}`,
     token,
   );
+
+  // Handle both unwrapped array and wrapped {data: [...]} responses
+  if (Array.isArray(result)) return result;
+  if (result && "data" in result) return result.data;
+  return [];
 }
 
 export async function createReassessmentDraft(
@@ -80,7 +85,7 @@ export async function getRiskDetail(
 export async function updateRiskAssessment(
   token: string,
   riskId: string,
-  data: RiskAssessmentUpdateData,
+  data: RiskAssessmentUpdateData & Record<string, unknown>,
 ): Promise<Risk> {
   return api.put<Risk>(
     `/risks/${riskId}`,

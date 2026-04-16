@@ -87,18 +87,36 @@ export default function AssessmentFormPage() {
   }, [id, token, form]);
 
   const onSubmit = async (values: AssessmentFormValues) => {
-    if (!token || !id) return;
+    if (!token || !id || !draftRisk) return;
     setIsSaving(true);
     try {
+      const newWeight = getBobot(values.probability, values.impact);
+      const newNilai = calculateNilai(values.probability, values.impact, newWeight);
+      // Merge assessment fields with existing risk data so backend validation passes
       const payload = {
+        title: draftRisk.title,
+        description: draftRisk.description,
+        category: draftRisk.category,
+        status: draftRisk.status,
+        organizationId: draftRisk.organizationId,
+        cause: draftRisk.cause || [],
+        riskSource: draftRisk.riskSource || "",
+        controllability: draftRisk.controllability || "",
+        impactDesc: draftRisk.impactDesc || [],
+        existingControl: draftRisk.existingControl || "",
+        controlEffectiveness: draftRisk.controlEffectiveness || "",
         probability: values.probability,
         impact: values.impact,
-        weight: getBobot(values.probability, values.impact),
-        nilai: calculateNilai(
-          values.probability,
-          values.impact,
-          getBobot(values.probability, values.impact),
-        ),
+        weight: newWeight,
+        riskPriority: draftRisk.riskPriority || 0,
+        riskAppetite: draftRisk.riskAppetite || "",
+        treatmentOption: draftRisk.treatmentOption || "",
+        mitigations: draftRisk.mitigations || [],
+        targetProbability: draftRisk.targetProbability || 0,
+        targetImpact: draftRisk.targetImpact || 0,
+        targetWeight: draftRisk.targetWeight || 0,
+        assessmentCycle: draftRisk.assessmentCycle || "",
+        reviewType: draftRisk.reviewType || "assessment",
         change_reason: values.changeReason,
         review_summary: values.reviewSummary,
       };
