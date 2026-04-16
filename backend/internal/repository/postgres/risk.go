@@ -499,7 +499,7 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 	           FROM risks r
 	           LEFT JOIN organizations o ON r.organization_id = o.id
 	           LEFT JOIN users u ON r.created_by = u.id
-	           WHERE r.status = 'approved' AND r.is_cycle_current = TRUE`
+	           WHERE r.is_cycle_current = TRUE`
 	var args []interface{}
 	argIdx := 1
 

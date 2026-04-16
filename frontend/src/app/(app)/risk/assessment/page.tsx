@@ -94,11 +94,17 @@ export default function RiskAssessmentListPage() {
     };
   }, [token, cycle, debouncedSearch, page]);
 
-  const handleAssess = async (riskId: string) => {
+  const handleAssess = async (risk: Risk) => {
     if (!token) return;
-    setAssessingId(riskId);
+    setAssessingId(risk.id);
     try {
-      const draft = await createReassessmentDraft(token, riskId, cycle);
+      // If draft/in_review/in_approval → open existing form
+      if (risk.status === "draft" || risk.status === "in_review" || risk.status === "in_approval") {
+        router.push(`/risk/assessment/${risk.id}`);
+        return;
+      }
+      // If approved → create new reassessment draft
+      const draft = await createReassessmentDraft(token, risk.id, cycle);
       toast.success("Draf penilaian berhasil dibuat");
       router.push(`/risk/assessment/${draft.id}`);
     } catch (error) {
@@ -195,8 +201,8 @@ export default function RiskAssessmentListPage() {
                     const imp = risk.impact || 0;
                     const probLabel = PROBABILITY_LABELS[prob] || "-";
                     const impLabel = IMPACT_LABELS[imp] || "-";
-                    const nilai = risk.nilai || 0;
-                    const level = getRiskLevelFromNilai(nilai);
+                    const inherentScore = risk.inherentScore || 0;
+                    const level = getRiskLevelFromNilai(inherentScore);
 
                     return (
                       <TableRow key={risk.id}>
@@ -207,7 +213,7 @@ export default function RiskAssessmentListPage() {
                         <TableCell>{risk.orgName || "-"}</TableCell>
                         <TableCell>{probLabel}</TableCell>
                         <TableCell>{impLabel}</TableCell>
-                        <TableCell>{nilai.toFixed(2)}</TableCell>
+                        <TableCell>{inherentScore.toFixed(2)}</TableCell>
                         <TableCell>
                           <Badge className={levelToColor(level)}>
                             {getRiskLevelLabel(level)}
@@ -219,7 +225,7 @@ export default function RiskAssessmentListPage() {
                             size="sm"
                             className="h-7 gap-1.5 px-2 text-xs"
                             disabled={assessingId === risk.id}
-                            onClick={() => handleAssess(risk.id)}
+                            onClick={() => handleAssess(risk)}
                           >
                             {assessingId === risk.id ? "Memproses..." : "Nilai"}
                           </Button>
