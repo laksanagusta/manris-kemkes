@@ -116,48 +116,53 @@ export default function RiskAssessmentListPage() {
   ];
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Penilaian Risiko</h1>
-          <p className="text-muted-foreground">
-            Lakukan penilaian ulang untuk risiko yang telah disetujui.
+          <h1 className="text-2xl font-bold tracking-tight">Pemantauan Risiko</h1>
+          <p className="text-sm text-muted-foreground">
+            Lakukan penilaian ulang untuk risiko yang telah disetujui
           </p>
         </div>
       </div>
 
-      <Card>
+      {/* Filters */}
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Cari risiko..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 pl-8 text-xs bg-muted/30 border-none"
+              />
+            </div>
+            <Select value={cycle} onValueChange={handleCycleChange}>
+              <SelectTrigger className="h-8 w-44 text-xs bg-muted/30 border-none">
+                <SelectValue placeholder="Siklus Asesmen" />
+              </SelectTrigger>
+              <SelectContent>
+                {cycleOptions.map((opt) => (
+                  <SelectItem key={opt} value={opt}>
+                    {formatCycleLabel(opt)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table Card */}
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>Daftar Risiko</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex w-full flex-col gap-4 md:w-auto md:flex-row md:items-center">
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari judul/kode..."
-                  className="pl-8"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <Select value={cycle} onValueChange={handleCycleChange}>
-                <SelectTrigger className="w-full md:w-[200px]">
-                  <SelectValue placeholder="Pilih Periode" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cycleOptions.map((opt) => (
-                    <SelectItem key={opt} value={opt}>
-                      {formatCycleLabel(opt)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="rounded-md border">
+        <CardContent className="p-0">
+          <div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -210,12 +215,13 @@ export default function RiskAssessmentListPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
-                            variant="default"
+                            variant="outline"
                             size="sm"
+                            className="h-7 gap-1.5 px-2 text-xs"
                             disabled={assessingId === risk.id}
                             onClick={() => handleAssess(risk.id)}
                           >
-                            {assessingId === risk.id ? "Memproses..." : "Assess"}
+                            {assessingId === risk.id ? "Memproses..." : "Nilai"}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -226,9 +232,10 @@ export default function RiskAssessmentListPage() {
             </Table>
           </div>
 
-          {data && data.length > limit && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+          {/* Pagination */}
+          {data && data.length > 0 && (
+            <div className="flex items-center justify-between border-t px-4 py-3">
+              <p className="text-xs text-muted-foreground">
                 Menampilkan {(page - 1) * limit + 1} -{" "}
                 {Math.min(page * limit, data.length)} dari {data.length} risiko
               </p>
@@ -236,14 +243,16 @@ export default function RiskAssessmentListPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="h-7 gap-1.5 px-2 text-xs"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1 || isLoading}
                 >
-                  Sebelumnnya
+                  Sebelumnya
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
+                  className="h-7 gap-1.5 px-2 text-xs"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page * limit >= data.length || isLoading}
                 >

@@ -157,8 +157,9 @@ export default function AssessmentFormPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-5xl py-8">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6 animate-fade-in pb-20">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
@@ -172,7 +173,7 @@ export default function AssessmentFormPage() {
             <h1 className="text-2xl font-bold tracking-tight">
               Form Pemantauan Risiko
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {sourceRisk.code || sourceRisk.riskCode} - {sourceRisk.title}
             </p>
           </div>
@@ -180,24 +181,30 @@ export default function AssessmentFormPage() {
         <Button
           onClick={form.handleSubmit(onSubmit)}
           disabled={isSaving}
-          className="w-full sm:w-auto"
+          className="gap-2 shadow-lg shadow-primary/20"
         >
           {isSaving ? (
-            <Loader2 className="mr-2 size-4 animate-spin" />
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Menyimpan...
+            </>
           ) : (
-            <Save className="mr-2 size-4" />
+            <>
+              <Save className="size-4" />
+              Simpan Pemantauan
+            </>
           )}
-          Simpan Pemantauan
         </Button>
       </div>
 
-      <div className="flex flex-col gap-8">
+      {/* Form Content */}
+      <div className="flex flex-col gap-6">
         <ProfilRisikoCard risk={sourceRisk} />
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
+        <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
           <HasilPemantauanCard form={form} />
           
-          <div className="space-y-8">
+          <div className="space-y-6">
             <SimpulanCard
               nilaiCurrent={sourceRisk.nilai || 0}
               nilaiBaru={computedNilai}

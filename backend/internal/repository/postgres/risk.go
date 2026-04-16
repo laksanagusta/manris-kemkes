@@ -325,7 +325,7 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	argIdx := 1
 
 	if status == "draft" {
-		query += " WHERE r.status = 'draft'"
+		query += " WHERE r.status = 'draft' AND r.version_number = 1"
 	} else {
 		query += " WHERE r.is_current = TRUE"
 	}
