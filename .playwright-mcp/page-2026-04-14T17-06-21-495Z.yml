@@ -1,0 +1,325 @@
+- generic:
+  - generic:
+    - banner:
+      - generic:
+        - generic:
+          - img
+        - generic:
+          - generic: MR-V0
+      - button:
+        - img
+      - navigation:
+        - generic:
+          - generic: Compliance
+        - generic:
+          - img
+          - generic: Monitoring & Updates
+      - generic:
+        - button:
+          - img
+        - button:
+          - generic: DL
+          - generic: Dika Laksana
+    - generic:
+      - complementary:
+        - generic:
+          - generic:
+            - generic:
+              - navigation:
+                - generic:
+                  - button:
+                    - generic: MAIN MENU
+                    - img
+                  - generic:
+                    - link:
+                      - /url: /overview
+                      - img
+                      - generic: Dashboard
+                    - link:
+                      - /url: /inbox
+                      - img
+                      - generic: Persetujuan
+                    - link:
+                      - /url: /risk/register
+                      - img
+                      - generic: Risk Register
+                    - link:
+                      - /url: /incidents
+                      - img
+                      - generic: Insiden
+                    - link:
+                      - /url: /risk/working-papers
+                      - img
+                      - generic: Kertas Kerja
+                    - link:
+                      - /url: /compliance/monitoring
+                      - img
+                      - generic: Monitoring & Updates
+                    - link:
+                      - /url: /reports
+                      - img
+                      - generic: Reports & Export
+                - generic:
+                  - button:
+                    - generic:
+                      - img
+                      - text: AI & Automation
+                    - img
+                  - generic:
+                    - link:
+                      - /url: /minutes
+                      - img
+                      - generic: Meeting
+                    - link:
+                      - /url: /intelligence/cba
+                      - img
+                      - generic: Cost Benefit Analysis
+                - generic:
+                  - button:
+                    - generic:
+                      - img
+                      - text: ADMINISTRATION
+                    - img
+                  - generic:
+                    - link:
+                      - /url: /admin/users
+                      - img
+                      - generic: Users
+                    - link:
+                      - /url: /admin/organizations
+                      - img
+                      - generic: Organizations
+                    - link:
+                      - /url: /admin/settings
+                      - img
+                      - generic: Settings
+        - generic:
+          - generic:
+            - generic: DL
+            - generic:
+              - generic: Dika Laksana
+              - generic: superadmin
+      - main:
+        - generic:
+          - generic:
+            - paragraph: Compliance workspace
+            - heading [level=1]: Monitoring & Reporting
+            - paragraph: Satu ruang kerja untuk memantau eksekusi mitigasi dan melaporkan pembaruan KRI tanpa memecah alur kerja ke menu yang berbeda.
+          - generic:
+            - generic:
+              - tablist:
+                - tab [selected]:
+                  - img
+                  - text: Risk Review
+                - tab:
+                  - img
+                  - text: Mitigasi
+            - tabpanel:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - paragraph: Due
+                        - paragraph: "0"
+                      - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - paragraph: In Draft
+                        - paragraph: "0"
+                      - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - paragraph: Pending
+                        - paragraph: "0"
+                      - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - paragraph: Approved
+                        - paragraph: "1"
+                      - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - paragraph: Overdue
+                        - paragraph: "0"
+                      - img
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Risk Review Queue
+                      - paragraph: Cycle aktif 2026-H1. Risiko yang belum approved diklasifikasikan menjadi due, in draft, pending approval, atau overdue.
+                      - paragraph: Entry point reassessment ada di tombol Mulai Reassessment untuk item berstatus Due atau Overdue.
+                    - generic:
+                      - generic:
+                        - img
+                        - textbox:
+                          - /placeholder: Cari kode, judul, unit...
+                      - combobox:
+                        - generic: Semua Unit
+                        - img
+                      - combobox [expanded]:
+                        - generic: Semua Status
+                        - img
+                  - generic:
+                    - generic:
+                      - table:
+                        - rowgroup:
+                          - row:
+                            - columnheader: Kode
+                            - columnheader: Risiko
+                            - columnheader: Unit
+                            - columnheader: Score
+                            - columnheader: Candidate
+                            - columnheader: Review Status
+                            - columnheader: Next Review
+                            - columnheader: Aksi
+                        - rowgroup:
+                          - row:
+                            - cell: Belum ada risiko untuk filter ini.
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Completion Rate per Unit
+                      - paragraph: Persentase risiko yang sudah selesai dinilai ulang dan approved pada cycle 2026-H1.
+                    - generic:
+                      - generic:
+                        - table:
+                          - rowgroup:
+                            - row:
+                              - columnheader: Unit
+                              - columnheader: Assigned
+                              - columnheader: Done
+                              - columnheader: Pending
+                              - columnheader: Overdue
+                              - columnheader: Rate
+                          - rowgroup:
+                            - row:
+                              - cell:
+                                - generic: Direktorat Jenderal Penanggulangan Penyakit
+                              - cell: "1"
+                              - cell: "1"
+                              - cell: "0"
+                              - cell: "0"
+                              - cell:
+                                - generic:
+                                  - progressbar
+                                  - generic: 100.0%
+                  - generic:
+                    - generic:
+                      - generic: Heatmap Compare
+                      - paragraph: Distribusi risiko approved pada 2025-H2 dan 2026-H1.
+                    - generic:
+                      - generic:
+                        - paragraph: 2025-H2
+                        - generic:
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                      - generic:
+                        - paragraph: 2026-H1
+                        - generic:
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "1"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                          - generic: "0"
+                - generic:
+                  - generic:
+                    - generic: Perbandingan Cycle 2025-H2 ke 2026-H1
+                    - paragraph: Fokus pada perubahan skor dan level antar semester untuk reviewer dan pimpinan.
+                  - generic:
+                    - generic:
+                      - generic:
+                        - paragraph: Naik
+                        - generic:
+                          - img
+                          - generic: "0"
+                      - generic:
+                        - paragraph: Turun
+                        - generic:
+                          - img
+                          - generic: "0"
+                      - generic:
+                        - paragraph: Tetap
+                        - generic:
+                          - img
+                          - generic: "0"
+                    - generic:
+                      - table:
+                        - rowgroup:
+                          - row:
+                            - columnheader: Kode
+                            - columnheader: Risiko
+                            - columnheader: Unit
+                            - columnheader: 2025-H2
+                            - columnheader
+                            - columnheader: 2026-H1
+                            - columnheader: Delta
+                            - columnheader: Tren
+                        - rowgroup:
+                          - row:
+                            - cell: Belum ada pasangan data approved antara 2025-H2 dan 2026-H1.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e9] [cursor=pointer]:
+    - img [ref=e10]
+  - alert
+  - listbox [ref=e350]:
+    - option "Semua Status" [active] [selected] [ref=e351]:
+      - generic:
+        - generic:
+          - img
+      - generic [ref=e352]: Semua Status
+    - option "Due" [ref=e353]:
+      - generic [ref=e354]: Due
+    - option "In Draft" [ref=e355]:
+      - generic [ref=e356]: In Draft
+    - option "Pending Approval" [ref=e357]:
+      - generic [ref=e358]: Pending Approval
+    - option "Overdue" [ref=e359]:
+      - generic [ref=e360]: Overdue

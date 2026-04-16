@@ -1,0 +1,176 @@
+- generic [ref=e1]:
+  - generic [ref=e14]:
+    - banner [ref=e15]:
+      - generic [ref=e16]:
+        - img "MANRIS logo" [ref=e18]
+        - generic [ref=e20]: MR-V0
+      - button [ref=e21]:
+        - img
+      - navigation [ref=e22]:
+        - generic [ref=e24]: Risk Assessments
+        - generic [ref=e25]:
+          - img [ref=e26]
+          - generic [ref=e28]: Risk Register
+      - generic [ref=e29]:
+        - button [ref=e30]:
+          - img
+        - button "DL Dika Laksana" [ref=e31]:
+          - generic [ref=e32]: DL
+          - generic [ref=e33]: Dika Laksana
+    - generic [ref=e34]:
+      - complementary [ref=e35]:
+        - navigation [ref=e39]:
+          - generic [ref=e40]:
+            - button "MAIN MENU" [ref=e41]:
+              - generic [ref=e42]: MAIN MENU
+              - img [ref=e43]
+            - generic [ref=e45]:
+              - link "Dashboard" [ref=e46] [cursor=pointer]:
+                - /url: /overview
+                - img [ref=e47]
+                - generic [ref=e52]: Dashboard
+              - link "Persetujuan" [ref=e53] [cursor=pointer]:
+                - /url: /inbox
+                - img [ref=e54]
+                - generic [ref=e57]: Persetujuan
+              - link "Risk Register" [ref=e58] [cursor=pointer]:
+                - /url: /risk/register
+                - img [ref=e59]
+                - generic [ref=e61]: Risk Register
+              - link "Insiden" [ref=e62] [cursor=pointer]:
+                - /url: /incidents
+                - img [ref=e63]
+                - generic [ref=e65]: Insiden
+              - link "Kertas Kerja" [ref=e66] [cursor=pointer]:
+                - /url: /risk/working-papers
+                - img [ref=e67]
+                - generic [ref=e71]: Kertas Kerja
+              - link "Monitoring & Updates" [ref=e72] [cursor=pointer]:
+                - /url: /compliance/monitoring
+                - img [ref=e73]
+                - generic [ref=e77]: Monitoring & Updates
+              - link "Reports & Export" [ref=e78] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e79]
+                - generic [ref=e82]: Reports & Export
+          - generic [ref=e83]:
+            - button "AI & Automation" [ref=e84]:
+              - generic [ref=e85]:
+                - img [ref=e86]
+                - text: AI & Automation
+              - img [ref=e89]
+            - generic [ref=e91]:
+              - link "Meeting" [ref=e92] [cursor=pointer]:
+                - /url: /minutes
+                - img [ref=e93]
+                - generic [ref=e96]: Meeting
+              - link "Cost Benefit Analysis" [ref=e97] [cursor=pointer]:
+                - /url: /intelligence/cba
+                - img [ref=e98]
+                - generic [ref=e100]: Cost Benefit Analysis
+          - generic [ref=e101]:
+            - button "ADMINISTRATION" [ref=e102]:
+              - generic [ref=e103]:
+                - img [ref=e104]
+                - text: ADMINISTRATION
+              - img [ref=e107]
+            - generic [ref=e109]:
+              - link "Users" [ref=e110] [cursor=pointer]:
+                - /url: /admin/users
+                - img [ref=e111]
+                - generic [ref=e116]: Users
+              - link "Organizations" [ref=e117] [cursor=pointer]:
+                - /url: /admin/organizations
+                - img [ref=e118]
+                - generic [ref=e122]: Organizations
+              - link "Settings" [ref=e123] [cursor=pointer]:
+                - /url: /admin/settings
+                - img [ref=e124]
+                - generic [ref=e127]: Settings
+        - generic [ref=e129]:
+          - generic [ref=e130]: DL
+          - generic [ref=e131]:
+            - generic [ref=e132]: Dika Laksana
+            - generic [ref=e133]: superadmin
+      - main [ref=e134]:
+        - generic [ref=e135]:
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - heading "Risk Register" [level=1] [ref=e138]
+              - paragraph [ref=e139]: Kelola seluruh risiko organisasi sesuai ISO 31000:2018
+            - generic [ref=e140]:
+              - link "Bulk Create" [ref=e141] [cursor=pointer]:
+                - /url: /risk/register/bulk
+                - button "Bulk Create" [ref=e142]:
+                  - img
+                  - text: Bulk Create
+              - link "Tambah Risiko" [ref=e143] [cursor=pointer]:
+                - /url: /risk/register/new
+                - button "Tambah Risiko" [ref=e144]:
+                  - img
+                  - text: Tambah Risiko
+          - generic [ref=e145]:
+            - tablist [ref=e146]:
+              - tab "All Risks" [selected] [ref=e147]:
+                - img
+                - text: All Risks
+              - tab "Draf" [ref=e148]:
+                - img
+                - text: Draf
+              - tab "Version History" [ref=e149]:
+                - img
+                - text: Version History
+            - tabpanel "All Risks" [ref=e150]:
+              - generic [ref=e151]:
+                - generic [ref=e214]: "Total: 0"
+                - generic [ref=e153]: "Sangat Tinggi: 0"
+                - generic [ref=e215]: "Tinggi: 0"
+                - generic [ref=e155]: "Sedang: 0"
+                - generic [ref=e156]: "Rendah: 0"
+                - generic [ref=e157]: "Sangat Rendah: 0"
+              - generic [ref=e160]:
+                - generic [ref=e161]:
+                  - img [ref=e162]
+                  - textbox "Cari risiko..." [active] [ref=e165]: <script>alert('xss')</script>
+                - generic [ref=e166]:
+                  - img [ref=e167]
+                  - textbox "Siklus asesmen" [ref=e169]
+                - generic [ref=e170]:
+                  - img [ref=e171]
+                  - textbox [ref=e173]
+                - combobox [ref=e174]:
+                  - generic: Semua Status
+                  - img
+                - combobox [ref=e175]:
+                  - generic: Semua Kategori
+                  - img
+              - generic [ref=e176]:
+                - table [ref=e178]:
+                  - rowgroup [ref=e179]:
+                    - row "Kode Judul Risiko Kategori Periode Unit Kerja Nilai Level Status Perlakuan Aksi" [ref=e180]:
+                      - columnheader "Kode" [ref=e181]
+                      - columnheader "Judul Risiko" [ref=e182]
+                      - columnheader "Kategori" [ref=e183]
+                      - columnheader "Periode" [ref=e184]
+                      - columnheader "Unit Kerja" [ref=e185]
+                      - columnheader "Nilai" [ref=e186]
+                      - columnheader "Level" [ref=e187]
+                      - columnheader "Status" [ref=e188]
+                      - columnheader "Perlakuan" [ref=e189]
+                      - columnheader "Aksi" [ref=e190]
+                  - rowgroup [ref=e191]:
+                    - row "Tidak ada risiko yang ditemukan" [ref=e216]:
+                      - cell "Tidak ada risiko yang ditemukan" [ref=e217]
+                - generic [ref=e210]:
+                  - paragraph [ref=e211]: Menampilkan 0 - 0 dari 0 risiko
+                  - generic [ref=e212]:
+                    - button [disabled]:
+                      - img
+                    - button "1" [disabled]
+                    - generic [ref=e213]: dari 1
+                    - button [disabled]:
+                      - img
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e9] [cursor=pointer]:
+    - img [ref=e10]
+  - alert [ref=e13]

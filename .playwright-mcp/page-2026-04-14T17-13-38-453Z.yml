@@ -1,0 +1,317 @@
+- generic [ref=e1]:
+  - generic [ref=e14]:
+    - banner [ref=e15]:
+      - generic [ref=e16]:
+        - img "MANRIS logo" [ref=e18]
+        - generic [ref=e20]: MR-V0
+      - button [ref=e21]:
+        - img
+      - navigation [ref=e22]:
+        - generic [ref=e24]: Reports & Export
+      - generic [ref=e25]:
+        - button [ref=e26]:
+          - img
+        - button "DL Dika Laksana" [ref=e27]:
+          - generic [ref=e28]: DL
+          - generic [ref=e29]: Dika Laksana
+    - generic [ref=e30]:
+      - complementary [ref=e31]:
+        - navigation [ref=e35]:
+          - generic [ref=e36]:
+            - button "MAIN MENU" [ref=e37]:
+              - generic [ref=e38]: MAIN MENU
+              - img [ref=e39]
+            - generic [ref=e41]:
+              - link "Dashboard" [ref=e42] [cursor=pointer]:
+                - /url: /overview
+                - img [ref=e43]
+                - generic [ref=e48]: Dashboard
+              - link "Persetujuan" [ref=e49] [cursor=pointer]:
+                - /url: /inbox
+                - img [ref=e50]
+                - generic [ref=e53]: Persetujuan
+              - link "Risk Register" [ref=e54] [cursor=pointer]:
+                - /url: /risk/register
+                - img [ref=e55]
+                - generic [ref=e57]: Risk Register
+              - link "Insiden" [ref=e58] [cursor=pointer]:
+                - /url: /incidents
+                - img [ref=e59]
+                - generic [ref=e61]: Insiden
+              - link "Kertas Kerja" [ref=e62] [cursor=pointer]:
+                - /url: /risk/working-papers
+                - img [ref=e63]
+                - generic [ref=e67]: Kertas Kerja
+              - link "Monitoring & Updates" [ref=e68] [cursor=pointer]:
+                - /url: /compliance/monitoring
+                - img [ref=e69]
+                - generic [ref=e73]: Monitoring & Updates
+              - link "Reports & Export" [ref=e74] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e75]
+                - generic [ref=e78]: Reports & Export
+          - generic [ref=e79]:
+            - button "AI & Automation" [ref=e80]:
+              - generic [ref=e81]:
+                - img [ref=e82]
+                - text: AI & Automation
+              - img [ref=e85]
+            - generic [ref=e87]:
+              - link "Meeting" [ref=e88] [cursor=pointer]:
+                - /url: /minutes
+                - img [ref=e89]
+                - generic [ref=e92]: Meeting
+              - link "Cost Benefit Analysis" [ref=e93] [cursor=pointer]:
+                - /url: /intelligence/cba
+                - img [ref=e94]
+                - generic [ref=e96]: Cost Benefit Analysis
+          - generic [ref=e97]:
+            - button "ADMINISTRATION" [ref=e98]:
+              - generic [ref=e99]:
+                - img [ref=e100]
+                - text: ADMINISTRATION
+              - img [ref=e103]
+            - generic [ref=e105]:
+              - link "Users" [ref=e106] [cursor=pointer]:
+                - /url: /admin/users
+                - img [ref=e107]
+                - generic [ref=e112]: Users
+              - link "Organizations" [ref=e113] [cursor=pointer]:
+                - /url: /admin/organizations
+                - img [ref=e114]
+                - generic [ref=e118]: Organizations
+              - link "Settings" [ref=e119] [cursor=pointer]:
+                - /url: /admin/settings
+                - img [ref=e120]
+                - generic [ref=e123]: Settings
+        - generic [ref=e125]:
+          - generic [ref=e126]: DL
+          - generic [ref=e127]:
+            - generic [ref=e128]: Dika Laksana
+            - generic [ref=e129]: superadmin
+      - main [ref=e130]:
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - heading "Reports & Export" [level=1] [ref=e133]
+            - paragraph [ref=e134]: Untuk review analitis, perbandingan antar-cycle, dan export formal. Pembaruan operasional mitigasi/KRI tetap dilakukan di Monitoring & Updates.
+          - generic [ref=e135]:
+            - generic [ref=e136]:
+              - paragraph [ref=e137]: Untuk analisis & unduhan
+              - paragraph [ref=e138]: Halaman ini dipakai untuk analisis dan unduhan data. Untuk memperbarui mitigasi atau KRI, gunakan Monitoring & Updates.
+            - link "Buka Monitoring & Updates" [ref=e139] [cursor=pointer]:
+              - /url: /compliance/monitoring
+          - generic [ref=e140]:
+            - generic [ref=e142]:
+              - generic [ref=e143]:
+                - img [ref=e144]
+                - text: Export Data
+              - generic [ref=e147]:
+                - generic [ref=e148]: Cycle
+                - combobox [ref=e149]:
+                  - generic: 2026-H1
+                  - img
+            - generic [ref=e151]:
+              - button "Risk Register (Excel) Export seluruh risiko ke format Excel lengkap XLSX" [ref=e152]:
+                - img [ref=e154]
+                - generic [ref=e157]:
+                  - generic [ref=e158]:
+                    - paragraph [ref=e159]: Risk Register (Excel)
+                    - paragraph [ref=e160]: Export seluruh risiko ke format Excel lengkap
+                  - generic [ref=e161]: XLSX
+              - button "Incident Report (Excel) Export insiden belum diaktifkan pada delivery ini Disabled" [disabled] [ref=e162]:
+                - img [ref=e164]
+                - generic [ref=e167]:
+                  - generic [ref=e168]:
+                    - paragraph [ref=e169]: Incident Report (Excel)
+                    - paragraph [ref=e170]: Export insiden belum diaktifkan pada delivery ini
+                  - generic [ref=e171]: Disabled
+              - button "Laporan Risiko (PDF) Download laporan eksekutif lengkap dalam format PDF PDF" [ref=e172]:
+                - img [ref=e174]
+                - generic [ref=e177]:
+                  - generic [ref=e178]:
+                    - paragraph [ref=e179]: Laporan Risiko (PDF)
+                    - paragraph [ref=e180]: Download laporan eksekutif lengkap dalam format PDF
+                  - generic [ref=e181]: PDF
+              - button "Pergerakan per Unit (Excel) Tabel pergerakan risiko per organisasi dengan warna indikator XLSX" [ref=e182]:
+                - img [ref=e184]
+                - generic [ref=e187]:
+                  - generic [ref=e188]:
+                    - paragraph [ref=e189]: Pergerakan per Unit (Excel)
+                    - paragraph [ref=e190]: Tabel pergerakan risiko per organisasi dengan warna indikator
+                  - generic [ref=e191]: XLSX
+          - generic [ref=e192]:
+            - generic [ref=e193]:
+              - paragraph [ref=e194]: Analisis Cycle
+              - paragraph [ref=e195]: Fokus pada perubahan risiko dari 2025-H2 ke 2026-H1.
+            - generic [ref=e196]: 2025-H2 ke 2026-H1
+          - generic [ref=e197]:
+            - generic [ref=e199]:
+              - generic [ref=e200]:
+                - generic [ref=e201]: Risk Movement Report
+                - paragraph [ref=e202]: Perbandingan movement dari 2025-H2 ke 2026-H1.
+              - generic [ref=e203]: 2025-H2 ke 2026-H1
+            - generic [ref=e205]: Perbandingan cycle belum tersedia
+          - generic [ref=e206]:
+            - generic [ref=e209]:
+              - generic [ref=e210]: Pergerakan Risiko per Organisasi
+              - paragraph [ref=e211]: Jumlah risiko naik, turun, dan stabil per unit kerja.
+            - generic [ref=e213]: Belum ada data perbandingan risiko antar-cycle.
+          - generic [ref=e214]:
+            - generic [ref=e215]:
+              - generic [ref=e217]:
+                - generic [ref=e218]:
+                  - generic [ref=e219]: Top Unit Exposure
+                  - paragraph [ref=e220]: Ranking unit berdasarkan weighted exposure score untuk cycle 2026-H1.
+                - generic [ref=e221]: 2026-H1
+              - generic [ref=e222]:
+                - application [ref=e226]:
+                  - generic [ref=e237]:
+                    - generic [ref=e240]: Direktorat Jende…
+                    - generic [ref=e241]:
+                      - generic [ref=e243]: "0"
+                      - generic [ref=e245]: "1"
+                      - generic [ref=e247]: "2"
+                      - generic [ref=e249]: "3"
+                      - generic [ref=e251]: "4"
+                - button "Direktorat Jenderal Penanggulangan Penyakit 0 sangat tinggi, 1 tinggi 3" [ref=e253]:
+                  - generic [ref=e254]:
+                    - paragraph [ref=e255]: Direktorat Jenderal Penanggulangan Penyakit
+                    - paragraph [ref=e256]: 0 sangat tinggi, 1 tinggi
+                  - generic [ref=e257]:
+                    - text: "3"
+                    - img [ref=e258]
+            - generic [ref=e261]:
+              - generic [ref=e263]:
+                - generic [ref=e264]:
+                  - img [ref=e265]
+                  - text: Risk Trend Report
+                - combobox [ref=e268]:
+                  - generic: 4 Semester
+                  - img
+              - generic [ref=e269]:
+                - application [ref=e273]:
+                  - generic [ref=e284]:
+                    - generic [ref=e287]: 2026-H1
+                    - generic [ref=e288]:
+                      - generic [ref=e290]: "0"
+                      - generic [ref=e292]: "0.25"
+                      - generic [ref=e294]: "0.5"
+                      - generic [ref=e296]: "0.75"
+                      - generic [ref=e298]: "1"
+                - generic [ref=e299]:
+                  - generic [ref=e302]: Rendah
+                  - generic [ref=e305]: Sedang
+                  - generic [ref=e308]: Tinggi
+                  - generic [ref=e311]: Sangat Tinggi
+            - generic [ref=e312]:
+              - generic [ref=e314]:
+                - generic [ref=e315]:
+                  - generic [ref=e316]: Tingkat Risiko Kritis
+                  - paragraph [ref=e317]: Persentase risiko Sedang + Tinggi + Sangat Tinggi dari total risiko per semester
+                - generic [ref=e318]: 100%
+              - generic [ref=e319]:
+                - application [ref=e323]:
+                  - generic [ref=e332]:
+                    - generic [ref=e335]: 2026-H1
+                    - generic [ref=e336]:
+                      - generic [ref=e338]: 0%
+                      - generic [ref=e340]: 30%
+                      - generic [ref=e342]: 60%
+                      - generic [ref=e344]: 90%
+                      - generic [ref=e346]: 110%
+                - generic [ref=e350]: "% Sedang + Tinggi + Sangat Tinggi"
+          - generic [ref=e352]:
+            - paragraph [ref=e353]: Analisis Tren
+            - paragraph [ref=e354]: Tren skor risiko dan tingkat kekritisan antar semester.
+          - generic [ref=e359]:
+            - button "Progress Kertas Kerja Terakhir Persentase risiko approved pada cycle terbaru tiap organisasi." [active] [ref=e360]:
+              - img [ref=e361]
+              - generic [ref=e363]:
+                - generic [ref=e364]: Progress Kertas Kerja Terakhir
+                - paragraph [ref=e365]: Persentase risiko approved pada cycle terbaru tiap organisasi.
+            - generic [ref=e366]: 1 organisasi
+          - generic [ref=e389]:
+            - paragraph [ref=e390]: Analisis Lanjutan
+            - paragraph [ref=e391]: Insight tambahan dari data mitigasi, KRI, dan waktu respons.
+          - generic [ref=e392]:
+            - generic [ref=e393]:
+              - generic [ref=e396]:
+                - generic [ref=e397]: Timeline Mitigasi Overdue
+                - paragraph [ref=e398]: Jumlah mitigasi per organisasi berdasarkan kedatanggal pengaporan
+              - generic [ref=e400]: Belum ada data timeline mitigasi overdue.
+            - generic [ref=e401]:
+              - generic [ref=e404]:
+                - generic [ref=e405]: Ringkasan KRI Breach
+                - paragraph [ref=e406]: KRI yang mencapai ambang batas
+              - generic [ref=e408]: Tidak ada KRI yang breach atau warning saat ini.
+            - generic [ref=e409]:
+              - generic [ref=e412]:
+                - generic [ref=e413]: Waktu Respons Unit
+                - paragraph [ref=e414]: Rata-rata hari mitigasi dan persetujuan per organisasi
+              - generic [ref=e416]: Belum ada data waktu respons unit.
+          - generic [ref=e417]:
+            - generic [ref=e418]:
+              - generic [ref=e419]:
+                - generic [ref=e420]:
+                  - generic [ref=e421]:
+                    - img [ref=e422]
+                    - text: Report Perubahan Risiko Antar Periode
+                  - paragraph [ref=e424]: Bandingkan snapshot risiko approved antar dua cycle sampai ke level kolom dan mitigasi.
+                - generic [ref=e425]:
+                  - button "CSV" [disabled]:
+                    - img
+                    - text: CSV
+                  - button "XLSX" [disabled]:
+                    - img
+                    - text: XLSX
+                  - button "Semua" [ref=e426]
+                  - button "Changed" [ref=e427]
+                  - button "Added" [ref=e428]
+                  - button "Removed" [ref=e429]
+                  - button "Stable" [ref=e430]
+              - generic [ref=e431]:
+                - combobox [ref=e432]:
+                  - generic: 2025-H2
+                  - img
+                - combobox [ref=e433]:
+                  - generic: 2026-H1
+                  - img
+                - combobox [ref=e434]:
+                  - generic: Semua unit
+                  - img
+                - combobox [ref=e435]:
+                  - generic: Sembunyikan stable
+                  - img
+            - generic [ref=e436]:
+              - generic [ref=e437]:
+                - generic [ref=e438]:
+                  - paragraph [ref=e439]: Changed
+                  - paragraph [ref=e440]: "0"
+                - generic [ref=e441]:
+                  - paragraph [ref=e442]: Added
+                  - paragraph [ref=e443]: "1"
+                - generic [ref=e444]:
+                  - paragraph [ref=e445]: Removed
+                  - paragraph [ref=e446]: "0"
+                - generic [ref=e447]:
+                  - paragraph [ref=e448]: Stable
+                  - paragraph [ref=e449]: "0"
+              - generic [ref=e450]:
+                - generic [ref=e451]: "Snapshot awal: 0 risiko. Snapshot akhir: 1 risiko. Menampilkan: 0 baris."
+                - table [ref=e454]:
+                  - rowgroup [ref=e455]:
+                    - row "Kode Risiko Unit Status Perubahan" [ref=e456]:
+                      - columnheader [ref=e457]
+                      - columnheader "Kode" [ref=e458]
+                      - columnheader "Risiko" [ref=e459]
+                      - columnheader "Unit" [ref=e460]
+                      - columnheader "Status" [ref=e461]
+                      - columnheader "Perubahan" [ref=e462]
+                  - rowgroup [ref=e463]:
+                    - row "Tidak ada data untuk filter report ini." [ref=e464]:
+                      - cell "Tidak ada data untuk filter report ini." [ref=e465]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e9] [cursor=pointer]:
+    - img [ref=e10]
+  - alert [ref=e13]
+  - generic [ref=e466]: 0%

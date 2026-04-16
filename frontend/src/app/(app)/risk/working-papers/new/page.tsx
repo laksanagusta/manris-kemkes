@@ -15,7 +15,11 @@ import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { isSortable } from "@dnd-kit/dom/sortable";
 
-import { FormPage, FormHeader, FormSection } from "@/components/shared/form-shell";
+import {
+  FormPage,
+  FormHeader,
+  FormSection,
+} from "@/components/shared/form-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,38 +50,67 @@ import {
   FileSearch,
   X,
 } from "lucide-react";
-import { getRiskLevelLabel, riskCategoryLabels, getRiskLevelFromNilai } from "@/lib/risk";
+import {
+  getRiskLevelLabel,
+  riskCategoryLabels,
+  getRiskLevelFromNilai,
+} from "@/lib/risk";
 import { cn } from "@/lib/utils";
 
 const levelBadgeVariant: Record<string, string> = {
   "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
-  "Rendah": "bg-risk-low/15 text-risk-low border-risk-low/20",
-  "Sedang": "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  "Tinggi": "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi": "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
+  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
+  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
+  "Sangat Tinggi":
+    "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
 };
 
 const formSchema = z.object({
   title: z.string().min(3, "Judul kertas kerja harus diisi (min. 3 karakter)"),
   description: z.string().optional(),
   assessment_cycle: z.string().optional(),
-  risks: z.array(z.object({
-    risk_id: z.string(),
-    source_mode: z.enum(["latest_approved", "review_periodic"]),
-  })).min(1, "Pilih minimal 1 risiko untuk kertas kerja"),
-  signatories: z.array(z.object({
-    user_id: z.string().min(1, "Pengguna harus dipilih"),
-    signer_jabatan: z.string(),
-    signer_pangkat: z.string(),
-    signer_name: z.string(),
-    signer_nip: z.string().optional(),
-  })).min(1, "Minimal 1 penandatangan harus ditambahkan"),
+  risks: z
+    .array(
+      z.object({
+        risk_id: z.string(),
+        source_mode: z.enum(["latest_approved", "review_periodic"]),
+      }),
+    )
+    .min(1, "Pilih minimal 1 risiko untuk kertas kerja"),
+  signatories: z
+    .array(
+      z.object({
+        user_id: z.string().min(1, "Pengguna harus dipilih"),
+        signer_jabatan: z.string(),
+        signer_pangkat: z.string(),
+        signer_name: z.string(),
+        signer_nip: z.string().optional(),
+      }),
+    )
+    .min(1, "Minimal 1 penandatangan harus ditambahkan"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-type RiskOption = { id: string; code: string; title: string; category: string; status: string; isCurrent: boolean; nilai: number; };
-type UserOption = { id: string; name: string; email: string; username: string; nip?: string; jabatan?: string; pangkat?: string };
+type RiskOption = {
+  id: string;
+  code: string;
+  title: string;
+  category: string;
+  status: string;
+  isCurrent: boolean;
+  nilai: number;
+};
+type UserOption = {
+  id: string;
+  name: string;
+  email: string;
+  username: string;
+  nip?: string;
+  jabatan?: string;
+  pangkat?: string;
+};
 
 /* ── Sortable signatory row ─────────────────────────────────── */
 
@@ -133,7 +166,9 @@ function SortableSignatoryRow({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
         <div className="space-y-2">
-          <Label>Pengguna <span className="text-destructive">*</span></Label>
+          <Label>
+            Pengguna <span className="text-destructive">*</span>
+          </Label>
           <Controller
             control={control}
             name={`signatories.${index}.user_id`}
@@ -146,11 +181,17 @@ function SortableSignatoryRow({
                 }}
                 disabled={loadingUsers}
               >
-                <SelectTrigger className={errors.signatories?.[index]?.user_id ? "border-destructive" : ""}>
+                <SelectTrigger
+                  className={
+                    errors.signatories?.[index]?.user_id
+                      ? "border-destructive"
+                      : ""
+                  }
+                >
                   <SelectValue placeholder="Pilih pengguna..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {users.map(u => (
+                  {users.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.name} ({u.email})
                     </SelectItem>
@@ -160,7 +201,9 @@ function SortableSignatoryRow({
             )}
           />
           {errors.signatories?.[index]?.user_id && (
-            <p className="text-xs text-destructive">{errors.signatories[index]?.user_id?.message}</p>
+            <p className="text-xs text-destructive">
+              {errors.signatories[index]?.user_id?.message}
+            </p>
           )}
         </div>
 
@@ -217,7 +260,14 @@ export default function CreateWorkingPaperPage() {
     return `${now.getFullYear()}-H${now.getMonth() < 6 ? 1 : 2}`;
   })();
 
-  const { register, handleSubmit, control, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
@@ -231,12 +281,17 @@ export default function CreateWorkingPaperPage() {
           signer_pangkat: "",
           signer_name: "",
           signer_nip: "",
-        }
+        },
       ],
-    }
+    },
   });
 
-  const { fields: signatoryFields, append: appendSignatory, remove: removeSignatory, move: moveSignatory } = useFieldArray({
+  const {
+    fields: signatoryFields,
+    append: appendSignatory,
+    remove: removeSignatory,
+    move: moveSignatory,
+  } = useFieldArray({
     control,
     name: "signatories",
   });
@@ -253,12 +308,14 @@ export default function CreateWorkingPaperPage() {
 
         const [risksRes, usersRes] = await Promise.all([
           api.get<RiskOption[]>("/risks?status=approved", token),
-          api.get<UserOption[]>("/users", token)
+          api.get<{ data: UserOption[] }>("/users?limit=100", token),
         ]);
 
-        const validRisks = (risksRes || []).filter(r => r.status === "approved" && r.isCurrent);
+        const validRisks = (risksRes || []).filter(
+          (r) => r.status === "approved" && r.isCurrent,
+        );
         setRisks(validRisks);
-        setUsers(usersRes || []);
+        setUsers(usersRes?.data || []);
       } catch (error) {
         console.error("Failed to load initial data", error);
         toast.error("Gagal memuat data risiko atau pengguna");
@@ -271,27 +328,38 @@ export default function CreateWorkingPaperPage() {
     fetchInitialData();
   }, [token]);
 
-  const filteredRisks = risks.filter(r =>
-    (r.title && r.title.toLowerCase().includes(searchRisk.toLowerCase())) ||
-    (r.code && r.code.toLowerCase().includes(searchRisk.toLowerCase()))
+  const filteredRisks = risks.filter(
+    (r) =>
+      (r.title && r.title.toLowerCase().includes(searchRisk.toLowerCase())) ||
+      (r.code && r.code.toLowerCase().includes(searchRisk.toLowerCase())),
   );
 
-  const selectedRiskIds = watchRisks.map(r => r.risk_id);
+  const selectedRiskIds = watchRisks.map((r) => r.risk_id);
 
   const handleToggleRisk = (riskId: string, checked: boolean) => {
     const current = watchRisks || [];
     if (checked) {
-      setValue("risks", [...current, { risk_id: riskId, source_mode: "latest_approved" }], { shouldValidate: true });
+      setValue(
+        "risks",
+        [...current, { risk_id: riskId, source_mode: "latest_approved" }],
+        { shouldValidate: true },
+      );
     } else {
-      setValue("risks", current.filter(r => r.risk_id !== riskId), { shouldValidate: true });
+      setValue(
+        "risks",
+        current.filter((r) => r.risk_id !== riskId),
+        { shouldValidate: true },
+      );
     }
   };
 
   const handleToggleAll = (checked: boolean) => {
     if (checked) {
-      const newRisks = filteredRisks.map(r => {
-        const existing = watchRisks.find(wr => wr.risk_id === r.id);
-        return existing || { risk_id: r.id, source_mode: "latest_approved" as const };
+      const newRisks = filteredRisks.map((r) => {
+        const existing = watchRisks.find((wr) => wr.risk_id === r.id);
+        return (
+          existing || { risk_id: r.id, source_mode: "latest_approved" as const }
+        );
       });
       setValue("risks", newRisks, { shouldValidate: true });
     } else {
@@ -299,28 +367,51 @@ export default function CreateWorkingPaperPage() {
     }
   };
 
-  const handleSourceModeChange = (riskId: string, mode: "latest_approved" | "review_periodic") => {
+  const handleSourceModeChange = (
+    riskId: string,
+    mode: "latest_approved" | "review_periodic",
+  ) => {
     const current = watchRisks || [];
     setValue(
       "risks",
-      current.map(r => r.risk_id === riskId ? { ...r, source_mode: mode } : r),
+      current.map((r) =>
+        r.risk_id === riskId ? { ...r, source_mode: mode } : r,
+      ),
       { shouldValidate: true },
     );
   };
 
   const handleUserSelect = (index: number, userId: string) => {
-    const user = users.find(u => u.id === userId);
+    const user = users.find((u) => u.id === userId);
     if (user) {
-      setValue(`signatories.${index}.user_id`, userId, { shouldValidate: true });
-      setValue(`signatories.${index}.signer_name`, user.name, { shouldValidate: true });
-      setValue(`signatories.${index}.signer_nip`, user.nip || user.username || "", { shouldValidate: true });
-      setValue(`signatories.${index}.signer_jabatan`, user.jabatan || "", { shouldValidate: true });
-      setValue(`signatories.${index}.signer_pangkat`, user.pangkat || "", { shouldValidate: true });
+      setValue(`signatories.${index}.user_id`, userId, {
+        shouldValidate: true,
+      });
+      setValue(`signatories.${index}.signer_name`, user.name, {
+        shouldValidate: true,
+      });
+      setValue(
+        `signatories.${index}.signer_nip`,
+        user.nip || user.username || "",
+        { shouldValidate: true },
+      );
+      setValue(`signatories.${index}.signer_jabatan`, user.jabatan || "", {
+        shouldValidate: true,
+      });
+      setValue(`signatories.${index}.signer_pangkat`, user.pangkat || "", {
+        shouldValidate: true,
+      });
     }
   };
 
   const handleSignatoryDragEnd = useCallback(
-    (event: { canceled: boolean; operation: { source: { id: unknown; index?: number; initialIndex?: number } | null; target: { id: unknown; index?: number } | null } }) => {
+    (event: {
+      canceled: boolean;
+      operation: {
+        source: { id: unknown; index?: number; initialIndex?: number } | null;
+        target: { id: unknown; index?: number } | null;
+      };
+    }) => {
       if (event.canceled) return;
       const { source, target } = event.operation;
       if (!source || !target) return;
@@ -366,7 +457,8 @@ export default function CreateWorkingPaperPage() {
         title="Buat Kertas Kerja Baru"
         description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            Pilih risiko dan atur penandatangan untuk menghasilkan dokumen kertas kerja.
+            Pilih risiko dan atur penandatangan untuk menghasilkan dokumen
+            kertas kerja.
             <Badge variant="secondary" className="font-mono text-[11px]">
               {assessmentCycle}
             </Badge>
@@ -375,7 +467,11 @@ export default function CreateWorkingPaperPage() {
         backLabel="Kembali ke Kertas Kerja"
         onBack={() => router.push("/risk/working-papers")}
         actions={
-          <Button type="submit" disabled={isSubmitting} onClick={handleSubmit(onSubmit)}>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            onClick={handleSubmit(onSubmit)}
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -406,7 +502,9 @@ export default function CreateWorkingPaperPage() {
               placeholder="Contoh: Kertas Kerja Manajemen Risiko IT 2024"
               {...register("title")}
             />
-            {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+            {errors.title && (
+              <p className="text-xs text-destructive">{errors.title.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -450,12 +548,19 @@ export default function CreateWorkingPaperPage() {
             </div>
           </div>
 
-          {errors.risks && <p className="text-xs text-destructive">{typeof errors.risks.message === 'string' ? errors.risks.message : 'Pilih minimal 1 risiko'}</p>}
+          {errors.risks && (
+            <p className="text-xs text-destructive">
+              {typeof errors.risks.message === "string"
+                ? errors.risks.message
+                : "Pilih minimal 1 risiko"}
+            </p>
+          )}
 
           <div className="border rounded-md overflow-hidden bg-card">
             {loadingRisks ? (
               <div className="p-8 flex justify-center items-center text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin mr-2" /> Memuat daftar risiko...
+                <Loader2 className="h-6 w-6 animate-spin mr-2" /> Memuat daftar
+                risiko...
               </div>
             ) : risks.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
@@ -467,13 +572,12 @@ export default function CreateWorkingPaperPage() {
                     Belum ada risiko yang disetujui
                   </p>
                   <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-                    Kertas kerja membutuhkan risiko berstatus disetujui. Buat dan ajukan risiko terlebih dahulu.
+                    Kertas kerja membutuhkan risiko berstatus disetujui. Buat
+                    dan ajukan risiko terlebih dahulu.
                   </p>
                 </div>
                 <Button asChild variant="outline" size="sm">
-                  <Link href="/risk/register">
-                    Buka Register Risiko
-                  </Link>
+                  <Link href="/risk/register">Buka Register Risiko</Link>
                 </Button>
               </div>
             ) : (
@@ -483,16 +587,29 @@ export default function CreateWorkingPaperPage() {
                     <TableRow>
                       <TableHead className="w-[50px] text-center">
                         <Checkbox
-                          checked={filteredRisks.length > 0 && filteredRisks.every(r => selectedRiskIds.includes(r.id))}
-                          onCheckedChange={(checked) => handleToggleAll(!!checked)}
+                          checked={
+                            filteredRisks.length > 0 &&
+                            filteredRisks.every((r) =>
+                              selectedRiskIds.includes(r.id),
+                            )
+                          }
+                          onCheckedChange={(checked) =>
+                            handleToggleAll(!!checked)
+                          }
                           aria-label="Pilih semua risiko"
                         />
                       </TableHead>
                       <TableHead className="w-[100px]">Kode</TableHead>
-                      <TableHead className="max-w-[280px]">Judul Risiko</TableHead>
+                      <TableHead className="max-w-[280px]">
+                        Judul Risiko
+                      </TableHead>
                       <TableHead className="w-[140px]">Kategori</TableHead>
-                      <TableHead className="w-[120px] text-center">Nilai</TableHead>
-                      <TableHead className="w-[140px] text-center">Tingkat</TableHead>
+                      <TableHead className="w-[120px] text-center">
+                        Nilai
+                      </TableHead>
+                      <TableHead className="w-[140px] text-center">
+                        Tingkat
+                      </TableHead>
                       <TableHead className="w-[180px]">Sumber Data</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -500,9 +617,13 @@ export default function CreateWorkingPaperPage() {
                     {filteredRisks.length > 0 ? (
                       filteredRisks.map((risk) => {
                         const isChecked = selectedRiskIds.includes(risk.id);
-                        const riskEntry = watchRisks.find(r => r.risk_id === risk.id);
+                        const riskEntry = watchRisks.find(
+                          (r) => r.risk_id === risk.id,
+                        );
                         const displayNilai = risk.nilai ?? 0;
-                        const lvlLabel = getRiskLevelLabel(getRiskLevelFromNilai(displayNilai));
+                        const lvlLabel = getRiskLevelLabel(
+                          getRiskLevelFromNilai(displayNilai),
+                        );
                         return (
                           <TableRow
                             key={risk.id}
@@ -511,7 +632,9 @@ export default function CreateWorkingPaperPage() {
                             <TableCell className="text-center">
                               <Checkbox
                                 checked={isChecked}
-                                onCheckedChange={(checked) => handleToggleRisk(risk.id, !!checked)}
+                                onCheckedChange={(checked) =>
+                                  handleToggleRisk(risk.id, !!checked)
+                                }
                                 aria-label={`Pilih ${risk.code}`}
                               />
                             </TableCell>
@@ -519,10 +642,17 @@ export default function CreateWorkingPaperPage() {
                               {risk.code}
                             </TableCell>
                             <TableCell className="font-medium max-w-[280px]">
-                              <span className="block truncate" title={risk.title}>{risk.title}</span>
+                              <span
+                                className="block truncate"
+                                title={risk.title}
+                              >
+                                {risk.title}
+                              </span>
                             </TableCell>
                             <TableCell className="text-xs">
-                              {riskCategoryLabels[risk.category as keyof typeof riskCategoryLabels] || risk.category}
+                              {riskCategoryLabels[
+                                risk.category as keyof typeof riskCategoryLabels
+                              ] || risk.category}
                             </TableCell>
                             <TableCell className="text-center font-mono text-xs">
                               {Math.round(displayNilai)}
@@ -530,7 +660,10 @@ export default function CreateWorkingPaperPage() {
                             <TableCell className="text-center">
                               <Badge
                                 variant="outline"
-                                className={levelBadgeVariant[lvlLabel] || "bg-muted text-muted-foreground"}
+                                className={
+                                  levelBadgeVariant[lvlLabel] ||
+                                  "bg-muted text-muted-foreground"
+                                }
                               >
                                 {lvlLabel}
                               </Badge>
@@ -538,19 +671,34 @@ export default function CreateWorkingPaperPage() {
                             <TableCell>
                               {isChecked ? (
                                 <Select
-                                  value={riskEntry?.source_mode || "latest_approved"}
-                                  onValueChange={(val) => handleSourceModeChange(risk.id, val as "latest_approved" | "review_periodic")}
+                                  value={
+                                    riskEntry?.source_mode || "latest_approved"
+                                  }
+                                  onValueChange={(val) =>
+                                    handleSourceModeChange(
+                                      risk.id,
+                                      val as
+                                        | "latest_approved"
+                                        | "review_periodic",
+                                    )
+                                  }
                                 >
                                   <SelectTrigger className="h-8 text-xs">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="latest_approved">Versi Terakhir Disetujui</SelectItem>
-                                    <SelectItem value="review_periodic">Tinjauan Periodik</SelectItem>
+                                    <SelectItem value="latest_approved">
+                                      Versi Terakhir Disetujui
+                                    </SelectItem>
+                                    <SelectItem value="review_periodic">
+                                      Tinjauan Periodik
+                                    </SelectItem>
                                   </SelectContent>
                                 </Select>
                               ) : (
-                                <span className="text-xs text-muted-foreground">&mdash;</span>
+                                <span className="text-xs text-muted-foreground">
+                                  &mdash;
+                                </span>
                               )}
                             </TableCell>
                           </TableRow>
@@ -558,7 +706,10 @@ export default function CreateWorkingPaperPage() {
                       })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                        <TableCell
+                          colSpan={7}
+                          className="h-24 text-center text-muted-foreground"
+                        >
                           Pencarian tidak menemukan risiko.
                         </TableCell>
                       </TableRow>
@@ -579,13 +730,15 @@ export default function CreateWorkingPaperPage() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => appendSignatory({
-                user_id: "",
-                signer_jabatan: "",
-                signer_pangkat: "",
-                signer_name: "",
-                signer_nip: "",
-              })}
+              onClick={() =>
+                appendSignatory({
+                  user_id: "",
+                  signer_jabatan: "",
+                  signer_pangkat: "",
+                  signer_name: "",
+                  signer_nip: "",
+                })
+              }
             >
               <Plus className="mr-2 h-4 w-4" />
               Tambah Baris
@@ -593,7 +746,9 @@ export default function CreateWorkingPaperPage() {
           }
         >
           {errors.signatories?.root && (
-            <p className="text-xs text-destructive">{errors.signatories.root.message}</p>
+            <p className="text-xs text-destructive">
+              {errors.signatories.root.message}
+            </p>
           )}
 
           <DragDropProvider onDragEnd={handleSignatoryDragEnd}>

@@ -12,6 +12,7 @@ import {
 import { Check, ChevronDown, Loader2, Search } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   appendUniqueUserOptions,
@@ -112,49 +113,6 @@ export function RemoteUserPicker({
     setErrorMessage("");
     setActiveIndex(-1);
   }, [deferredQuery, open, value]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    inputRef.current?.focus();
-  }, [handleOpenChange, open]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      if (containerRef.current?.contains(target)) {
-        return;
-      }
-
-      handleOpenChange(false);
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") {
-        return;
-      }
-
-      handleOpenChange(false);
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
 
   useEffect(() => {
     if (!disabled || !open) {
@@ -284,32 +242,33 @@ export function RemoteUserPicker({
   );
 
   return (
-    <div
-      ref={containerRef}
-      className={cn("relative w-full", className)}
-    >
-      <button
-        type="button"
-        onClick={() => handleOpenChange(!open)}
-        disabled={disabled}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        aria-controls={panelId}
-        className={cn(
-          "flex w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-          !value && "text-muted-foreground",
-        )}
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <div
+        ref={containerRef}
+        className={cn("relative w-full", className)}
       >
-        <span className="truncate">{value?.name ?? placeholder}</span>
-        <ChevronDown className="pointer-events-none size-4 text-muted-foreground" />
-      </button>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            disabled={disabled}
+            className={cn(
+              "flex w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+              !value && "text-muted-foreground",
+            )}
+          >
+            <span className="truncate">{value?.name ?? placeholder}</span>
+            <ChevronDown className="pointer-events-none size-4 text-muted-foreground" />
+          </button>
+        </PopoverTrigger>
 
-      {open ? (
-        <div
-          id={panelId}
-          role="listbox"
-          aria-label={title}
-          className="absolute top-full right-0 left-0 z-50 mt-1 origin-top overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 animate-in fade-in-0 zoom-in-95"
+        <PopoverContent
+          className="p-0"
+          style={{ width: "var(--radix-popover-trigger-width)" }}
+          align="start"
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            inputRef.current?.focus();
+          }}
         >
           <div className="flex flex-col">
             <div className="flex items-center border-b px-3">
@@ -330,7 +289,7 @@ export function RemoteUserPicker({
             <p className="sr-only">{description}</p>
 
             <ScrollArea className="max-h-[300px] overflow-y-auto p-1">
-              <div className="flex flex-col">
+              <div id={panelId} className="flex flex-col" role="listbox" aria-label={title}>
                 {isLoading && options.length === 0 ? (
                   <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
                     <Loader2 className="size-4 animate-spin" />
@@ -409,8 +368,8 @@ export function RemoteUserPicker({
               </div>
             </ScrollArea>
           </div>
-        </div>
-      ) : null}
-    </div>
+        </PopoverContent>
+      </div>
+    </Popover>
   );
 }

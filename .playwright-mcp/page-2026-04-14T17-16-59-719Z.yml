@@ -1,0 +1,212 @@
+- generic:
+  - generic:
+    - banner:
+      - generic:
+        - generic:
+          - img
+        - generic:
+          - generic: MR-V0
+      - button:
+        - img
+      - navigation:
+        - generic:
+          - generic: Risk Assessments
+        - generic:
+          - img
+          - generic: Risk Register
+        - generic:
+          - img
+          - generic: new
+      - generic:
+        - button:
+          - img
+        - button:
+          - generic: DL
+          - generic: Dika Laksana
+    - generic:
+      - complementary:
+        - generic:
+          - generic:
+            - generic:
+              - navigation:
+                - generic:
+                  - button:
+                    - generic: MAIN MENU
+                    - img
+                  - generic:
+                    - link:
+                      - /url: /overview
+                      - img
+                      - generic: Dashboard
+                    - link:
+                      - /url: /inbox
+                      - img
+                      - generic: Persetujuan
+                    - link:
+                      - /url: /risk/register
+                      - img
+                      - generic: Risk Register
+                    - link:
+                      - /url: /incidents
+                      - img
+                      - generic: Insiden
+                    - link:
+                      - /url: /risk/working-papers
+                      - img
+                      - generic: Kertas Kerja
+                    - link:
+                      - /url: /compliance/monitoring
+                      - img
+                      - generic: Monitoring & Updates
+                    - link:
+                      - /url: /reports
+                      - img
+                      - generic: Reports & Export
+                - generic:
+                  - button:
+                    - generic:
+                      - img
+                      - text: AI & Automation
+                    - img
+                  - generic:
+                    - link:
+                      - /url: /minutes
+                      - img
+                      - generic: Meeting
+                    - link:
+                      - /url: /intelligence/cba
+                      - img
+                      - generic: Cost Benefit Analysis
+                - generic:
+                  - button:
+                    - generic:
+                      - img
+                      - text: ADMINISTRATION
+                    - img
+                  - generic:
+                    - link:
+                      - /url: /admin/users
+                      - img
+                      - generic: Users
+                    - link:
+                      - /url: /admin/organizations
+                      - img
+                      - generic: Organizations
+                    - link:
+                      - /url: /admin/settings
+                      - img
+                      - generic: Settings
+        - generic:
+          - generic:
+            - generic: DL
+            - generic:
+              - generic: Dika Laksana
+              - generic: superadmin
+      - main:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - button:
+                  - generic:
+                    - img
+                  - generic: Kembali ke register risiko
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Draft kerja
+                      - generic: Lengkap diajukan
+                    - generic:
+                      - heading [level=1]: Form registrasi risiko
+                      - paragraph: Dokumen ini terkunci karena sudah final. Gunakan draft baru jika perlu perubahan.
+                - generic:
+                  - generic:
+                    - button [expanded]:
+                      - img
+          - generic:
+            - generic:
+              - paragraph: Ruang kerja
+              - generic: Dokumen tersimpan
+            - generic:
+              - generic:
+                - button:
+                  - img
+                  - generic: Form Aktif
+                - button:
+                  - img
+                  - generic: Progress Mitigasi
+                - button:
+                  - img
+                  - generic: Activity
+          - generic:
+            - generic:
+              - generic:
+                - img
+                - text: Log & Komunikasi
+              - button:
+                - img
+                - text: Tambah Log
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - img
+                    - generic:
+                      - generic:
+                        - generic: Disetujui
+                        - generic: Approval
+                      - paragraph: nicee
+                      - generic:
+                        - generic: 14 Apr 2026, 19.39
+                        - generic: "Oleh: indra"
+                        - generic: pimpinan
+                  - generic:
+                    - generic:
+                      - img
+                    - generic:
+                      - generic:
+                        - generic: Disetujui
+                        - generic: Approval
+                      - paragraph: okee
+                      - generic:
+                        - generic: 14 Apr 2026, 19.38
+                        - generic: "Oleh: farah"
+                        - generic: reviewer
+                  - generic:
+                    - generic:
+                      - img
+                    - generic:
+                      - generic:
+                        - generic: Diajukan
+                        - generic: Approval
+                      - paragraph: Submitted for approval by admin
+                      - generic:
+                        - generic: 14 Apr 2026, 19.37
+                        - generic: "Oleh: admin"
+                        - generic: superadmin
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e9] [cursor=pointer]:
+    - img [ref=e10]
+  - alert
+  - dialog "Riwayat Versi" [ref=e455]:
+    - generic [ref=e456]:
+      - heading "Riwayat Versi" [level=2] [ref=e457]:
+        - img [ref=e458]
+        - text: Riwayat Versi
+      - paragraph [ref=e462]: Perubahan skor risiko dari waktu ke waktu
+    - generic [ref=e467]:
+      - img [ref=e469]
+      - generic [ref=e470]:
+        - generic [ref=e471]:
+          - generic [ref=e472]: 2026-H1
+          - generic [ref=e473]: Current
+        - generic [ref=e474]:
+          - generic [ref=e475]: Tinggi
+          - generic [ref=e476]: →
+          - generic [ref=e477]: Tinggi
+        - paragraph [ref=e478]: Skor 19 dibanding current 19
+    - button "Close" [active] [ref=e479]:
+      - img
+      - generic [ref=e480]: Close

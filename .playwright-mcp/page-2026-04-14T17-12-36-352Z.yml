@@ -1,0 +1,165 @@
+- generic [ref=e1]:
+  - generic [ref=e14]:
+    - banner [ref=e15]:
+      - generic [ref=e16]:
+        - img "MANRIS logo" [ref=e18]
+        - generic [ref=e20]: MR-V0
+      - button [ref=e21]:
+        - img
+      - navigation [ref=e22]:
+        - generic [ref=e24]: Persetujuan
+      - generic [ref=e25]:
+        - button [ref=e26]:
+          - img
+        - button "DL Dika Laksana" [ref=e27]:
+          - generic [ref=e28]: DL
+          - generic [ref=e29]: Dika Laksana
+    - generic [ref=e30]:
+      - complementary [ref=e31]:
+        - navigation [ref=e35]:
+          - generic [ref=e36]:
+            - button "MAIN MENU" [ref=e37]:
+              - generic [ref=e38]: MAIN MENU
+              - img [ref=e39]
+            - generic [ref=e41]:
+              - link "Dashboard" [ref=e42] [cursor=pointer]:
+                - /url: /overview
+                - img [ref=e43]
+                - generic [ref=e48]: Dashboard
+              - link "Persetujuan" [ref=e49] [cursor=pointer]:
+                - /url: /inbox
+                - img [ref=e50]
+                - generic [ref=e53]: Persetujuan
+              - link "Risk Register" [ref=e54] [cursor=pointer]:
+                - /url: /risk/register
+                - img [ref=e55]
+                - generic [ref=e57]: Risk Register
+              - link "Insiden" [ref=e58] [cursor=pointer]:
+                - /url: /incidents
+                - img [ref=e59]
+                - generic [ref=e61]: Insiden
+              - link "Kertas Kerja" [ref=e62] [cursor=pointer]:
+                - /url: /risk/working-papers
+                - img [ref=e63]
+                - generic [ref=e67]: Kertas Kerja
+              - link "Monitoring & Updates" [ref=e68] [cursor=pointer]:
+                - /url: /compliance/monitoring
+                - img [ref=e69]
+                - generic [ref=e73]: Monitoring & Updates
+              - link "Reports & Export" [ref=e74] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e75]
+                - generic [ref=e78]: Reports & Export
+          - generic [ref=e79]:
+            - button "AI & Automation" [ref=e80]:
+              - generic [ref=e81]:
+                - img [ref=e82]
+                - text: AI & Automation
+              - img [ref=e85]
+            - generic [ref=e87]:
+              - link "Meeting" [ref=e88] [cursor=pointer]:
+                - /url: /minutes
+                - img [ref=e89]
+                - generic [ref=e92]: Meeting
+              - link "Cost Benefit Analysis" [ref=e93] [cursor=pointer]:
+                - /url: /intelligence/cba
+                - img [ref=e94]
+                - generic [ref=e96]: Cost Benefit Analysis
+          - generic [ref=e97]:
+            - button "ADMINISTRATION" [ref=e98]:
+              - generic [ref=e99]:
+                - img [ref=e100]
+                - text: ADMINISTRATION
+              - img [ref=e103]
+            - generic [ref=e105]:
+              - link "Users" [ref=e106] [cursor=pointer]:
+                - /url: /admin/users
+                - img [ref=e107]
+                - generic [ref=e112]: Users
+              - link "Organizations" [ref=e113] [cursor=pointer]:
+                - /url: /admin/organizations
+                - img [ref=e114]
+                - generic [ref=e118]: Organizations
+              - link "Settings" [ref=e119] [cursor=pointer]:
+                - /url: /admin/settings
+                - img [ref=e120]
+                - generic [ref=e123]: Settings
+        - generic [ref=e125]:
+          - generic [ref=e126]: DL
+          - generic [ref=e127]:
+            - generic [ref=e128]: Dika Laksana
+            - generic [ref=e129]: superadmin
+      - main [ref=e130]:
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - heading "Approval" [level=1] [ref=e133]
+            - paragraph [ref=e134]: Tinjau permintaan persetujuan dengan pola kerja yang sama seperti risk register.
+          - tablist [ref=e136]:
+            - tab "Semua" [selected] [ref=e137]
+            - tab "Menunggu Review" [ref=e138]
+            - tab "Menunggu Approval" [ref=e139]
+            - tab "Disetujui" [ref=e140]
+            - tab "Ditolak" [ref=e141]
+          - generic [ref=e142]:
+            - generic [ref=e143]: "Total: 1"
+            - generic [ref=e144]: "Menunggu Review: 0"
+            - generic [ref=e145]: "Menunggu Approval: 0"
+            - generic [ref=e146]: "Disetujui: 1"
+            - generic [ref=e147]: "Ditolak: 0"
+          - generic [ref=e150]:
+            - generic [ref=e151]:
+              - img [ref=e152]
+              - textbox "Cari kode, judul, unit, atau pemohon..." [active] [ref=e155]: yyyyy
+            - combobox [ref=e156]:
+              - generic: Semua Jenis
+              - img
+          - generic [ref=e157]:
+            - table [ref=e159]:
+              - rowgroup [ref=e160]:
+                - row "Kode Entitas Unit Kerja Jenis Pemohon Tanggal Status Tindakan" [ref=e161]:
+                  - columnheader "Kode" [ref=e162]
+                  - columnheader "Entitas" [ref=e163]
+                  - columnheader "Unit Kerja" [ref=e164]
+                  - columnheader "Jenis" [ref=e165]
+                  - columnheader "Pemohon" [ref=e166]
+                  - columnheader "Tanggal" [ref=e167]
+                  - columnheader "Status" [ref=e168]
+                  - columnheader "Tindakan" [ref=e169]
+              - rowgroup [ref=e170]:
+                - 'row "R-001 yyyyy Submitted for approval by admin — Risiko Dika Laksana Approver: pimpinan 14 Apr 2026 Disetujui Klik judul untuk review" [ref=e171]':
+                  - cell "R-001" [ref=e172]
+                  - cell "yyyyy Submitted for approval by admin" [ref=e173]:
+                    - generic [ref=e174]:
+                      - link "yyyyy" [ref=e175] [cursor=pointer]:
+                        - /url: /risk/register/539ac92f-cc7d-483c-8ca6-91772aa58c3c
+                      - paragraph [ref=e176]: Submitted for approval by admin
+                  - cell "—" [ref=e177]
+                  - cell "Risiko" [ref=e178]:
+                    - generic [ref=e180]:
+                      - img [ref=e181]
+                      - text: Risiko
+                  - 'cell "Dika Laksana Approver: pimpinan" [ref=e184]':
+                    - generic [ref=e185]:
+                      - paragraph [ref=e186]: Dika Laksana
+                      - paragraph [ref=e187]: "Approver: pimpinan"
+                  - cell "14 Apr 2026" [ref=e188]:
+                    - generic [ref=e189]:
+                      - img [ref=e190]
+                      - text: 14 Apr 2026
+                  - cell "Disetujui" [ref=e193]:
+                    - generic [ref=e194]: Disetujui
+                  - cell "Klik judul untuk review" [ref=e195]:
+                    - generic [ref=e197]: Klik judul untuk review
+            - generic [ref=e198]:
+              - paragraph [ref=e199]: Menampilkan 1 - 1 dari 1 permintaan persetujuan
+              - generic [ref=e200]:
+                - button [disabled]:
+                  - img
+                - generic [ref=e201]: "1"
+                - generic [ref=e202]: dari 1
+                - button [disabled]:
+                  - img
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e9] [cursor=pointer]:
+    - img [ref=e10]
+  - alert [ref=e13]

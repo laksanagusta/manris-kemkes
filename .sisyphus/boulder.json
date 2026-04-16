@@ -1,13 +1,13 @@
 {
-  "active_plan": "risk-residual-scoring-fix",
-  "plan_path": ".sisyphus/plans/risk-residual-scoring-fix.md",
+  "active_plan": "ui-improvements-batch",
+  "plan_path": ".sisyphus/plans/ui-improvements-batch.md",
   "status": "in_progress",
   "current_wave": 1,
-  "tasks_total": 13,
+  "tasks_total": 15,
   "tasks_completed": 0,
-  "started_at": "2026-04-14T00:00:00Z",
+  "started_at": "2026-04-14T16:17:44.358Z",
   "session_ids": [
-    "ses_2755581a9ffe9fZoUDlALcrnaE"
+    "ses_27358a1f0ffeyutn9sJE880ynT"
   ],
   "task_sessions": {}
 }
