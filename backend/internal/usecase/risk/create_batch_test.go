@@ -71,9 +71,9 @@ func (r *fakeBatchRiskRepo) CompareCycles(context.Context, string, string, []uui
 func (r *fakeBatchRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
+func (r *fakeBatchRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
 	return nil, nil
-}
+ }
 func (r *fakeBatchRiskRepo) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return nil, nil
 }

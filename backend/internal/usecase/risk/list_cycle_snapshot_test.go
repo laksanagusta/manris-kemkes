@@ -27,9 +27,9 @@ func (r *fakeCycleSnapshotRiskRepo) List(context.Context, []uuid.UUID, string, s
 func (r *fakeCycleSnapshotRiskRepo) ListRegister(context.Context, repo.RiskRegisterFilter) ([]*entity.Risk, int, error) {
 	return nil, 0, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
+func (r *fakeCycleSnapshotRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
 	return nil, nil
-}
+ }
 func (r *fakeCycleSnapshotRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	return nil, nil
 }

@@ -101,7 +101,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 
 func FindInProgressReassessmentForCycle(versions []*entity.Risk, cycle string) *entity.Risk {
 	for _, version := range versions {
-		if version.AssessmentCycle == cycle && (version.Status == entity.RiskStatusDraft || version.Status == "reviewed") {
+		if version.AssessmentCycle == cycle && (version.Status == entity.RiskStatusDraft || version.Status == entity.RiskStatusInReview) {
 			return version
 		}
 	}

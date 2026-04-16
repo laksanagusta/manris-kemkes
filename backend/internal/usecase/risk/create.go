@@ -127,7 +127,7 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		Title:          input.Title,
 		Description:    input.Description,
 		Category:       input.Category,
-		Status:         "draft",
+		Status:         entity.RiskStatusDraft,
 		VersionGroupID: uuid.New(),
 		IsCurrent:      true,
 		IsCycleCurrent: true,

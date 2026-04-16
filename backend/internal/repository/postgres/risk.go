@@ -244,8 +244,8 @@ func getInProgressReassessmentForCycle(ctx context.Context, q riskQueryer, versi
 		 LEFT JOIN organizations o ON o.id = r.organization_id
 		 WHERE r.version_group_id = $1
 		   AND COALESCE(r.assessment_cycle, '') = $2
-		   AND r.status IN ('draft', 'reviewed')
-		 ORDER BY CASE WHEN r.status = 'draft' THEN 0 ELSE 1 END, r.created_at DESC
+		   AND r.status IN ('assessment_draft', 'assessment_in_review')
+		 ORDER BY CASE WHEN r.status = 'assessment_draft' THEN 0 ELSE 1 END, r.created_at DESC
 		 LIMIT 1`,
 		versionGroupID, cycle,
 	).Scan(
@@ -324,8 +324,8 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	var args []interface{}
 	argIdx := 1
 
-	if status == "draft" {
-		query += " WHERE r.status = 'draft' AND r.version_number = 1"
+	if status == entity.RiskStatusDraft {
+		query += " WHERE r.status = 'assessment_draft' AND r.version_number = 1"
 	} else {
 		query += " WHERE r.is_current = TRUE"
 	}
@@ -335,7 +335,7 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 		args = append(args, orgIDs)
 		argIdx++
 	}
-	if status != "" && status != "all" && status != "draft" {
+	if status != "" && status != "all" && status != entity.RiskStatusDraft {
 		query += fmt.Sprintf(" AND r.status = $%d", argIdx)
 		args = append(args, status)
 		argIdx++
@@ -395,8 +395,8 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	argIdx := 1
 
 	if filter.Status == entity.RiskStatusDraft {
-		countQuery += " AND r.status = 'draft'"
-		dataQuery += " AND r.status = 'draft'"
+		countQuery += " AND r.status = 'assessment_draft'"
+		dataQuery += " AND r.status = 'assessment_draft'"
 	} else {
 		countQuery += " AND r.is_current = TRUE"
 		dataQuery += " AND r.is_current = TRUE"
@@ -508,14 +508,14 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 		args = append(args, orgIDs)
 		argIdx++
 	}
-	
+
 	// Add search filter by code or title
 	if query != "" {
 		queryStr += fmt.Sprintf(" AND (r.code ILIKE $%d OR r.title ILIKE $%d)", argIdx, argIdx)
 		args = append(args, "%"+query+"%")
 		argIdx++
 	}
-	
+
 	queryStr += " ORDER BY r.assessment_cycle, r.created_at DESC"
 
 	rows, err := r.pool.Query(ctx, query, args...)
@@ -550,7 +550,7 @@ func (r *riskRepository) ListMitigations(ctx context.Context, orgIDs []uuid.UUID
 	                 r.code as risk_code, r.title as risk_title, r.organization_id as risk_org_id, r.probability, r.impact
 	          FROM mitigations m
 	          JOIN risks r ON m.risk_id = r.id
-	          WHERE r.status != 'draft' AND r.is_current = TRUE AND r.is_cycle_current = TRUE`
+	          WHERE r.status != 'assessment_draft' AND r.is_current = TRUE AND r.is_cycle_current = TRUE`
 	var args []interface{}
 
 	if len(orgIDs) > 0 {
@@ -612,7 +612,7 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 	if cycle != "" {
 		args := []interface{}{cycle}
 		argIdx := 2
-		q := "SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1"
+		q := "SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1"
 		if len(orgIDs) > 0 {
 			q += fmt.Sprintf(orgFilter, argIdx)
 			args = append(args, orgArgs...)
@@ -621,7 +621,7 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 			return nil, fmt.Errorf("count risks: %w", err)
 		}
 		args2 := []interface{}{cycle}
-		q2 := fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1 AND (%s) >= 15", scoreExpr)
+		q2 := fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1 AND (%s) >= 15", scoreExpr)
 		if len(orgIDs) > 0 {
 			q2 += fmt.Sprintf(orgFilter, argIdx)
 			args2 = append(args2, orgArgs...)
@@ -632,7 +632,7 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 	} else {
 		var args []interface{}
 		argIdx := 1
-		q := "SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_current = TRUE"
+		q := "SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_current = TRUE"
 		if len(orgIDs) > 0 {
 			q += fmt.Sprintf(orgFilter, argIdx)
 			args = append(args, orgArgs...)
@@ -641,7 +641,7 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 			return nil, fmt.Errorf("count risks: %w", err)
 		}
 		var args2 []interface{}
-		q2 := fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'draft' AND r.is_current = TRUE AND (%s) >= 15", scoreExpr)
+		q2 := fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_current = TRUE AND (%s) >= 15", scoreExpr)
 		if len(orgIDs) > 0 {
 			q2 += fmt.Sprintf(orgFilter, argIdx)
 			args2 = append(args2, orgArgs...)
@@ -743,7 +743,7 @@ func (r *riskRepository) HeatmapData(ctx context.Context, cycle string, orgIDs [
 	var args []interface{}
 	if cycle != "" {
 		query = `SELECT r.probability AS probability, r.impact AS impact, COUNT(*) as cnt
-		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1`
+		 FROM risks r WHERE r.status IN ('assessment_in_review','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1`
 		args = []interface{}{cycle}
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($2)"
@@ -752,7 +752,7 @@ func (r *riskRepository) HeatmapData(ctx context.Context, cycle string, orgIDs [
 		query += " GROUP BY 1, 2"
 	} else {
 		query = `SELECT r.probability AS probability, r.impact AS impact, COUNT(*) as cnt
-		 FROM risks r WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE`
+		 FROM risks r WHERE r.status IN ('assessment_in_review','approved') AND r.is_current = TRUE`
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($1)"
 			args = append(args, orgIDs)
@@ -784,7 +784,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
-		 WHERE r.status IN ('in_approval','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1`
+		 WHERE r.status IN ('assessment_in_review','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1`
 		args = []interface{}{cycle}
 		argIdx := 2
 		if len(orgIDs) > 0 {
@@ -800,7 +800,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
-		 WHERE r.status IN ('in_approval','approved') AND r.is_current = TRUE`
+		 WHERE r.status IN ('assessment_in_review','approved') AND r.is_current = TRUE`
 		argIdx := 1
 		if len(orgIDs) > 0 {
 			query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
@@ -1070,11 +1070,9 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 				WHEN base.assessment_cycle = $1 THEN 'approved'
 				WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date < CURRENT_DATE THEN 'overdue'
 				WHEN candidate.id IS NULL THEN 'due'
-				WHEN candidate.status = 'draft' THEN 'in_draft'
-				WHEN candidate.status = 'in_review' THEN 'in_review'
-				WHEN candidate.status = 'in_approval' THEN 'pending_approval'
+				WHEN candidate.status = 'assessment_draft' THEN 'in_draft'
+				WHEN candidate.status = 'assessment_in_review' THEN 'in_review'
 				WHEN candidate.status = 'approved' THEN 'approved'
-				WHEN candidate.status = 'rejected' THEN 'rejected'
 				ELSE 'due'
 			END
 		) = $%d`, len(args)+1)
@@ -1108,11 +1106,9 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 			WHEN base.assessment_cycle = $1 THEN 'approved'
 			WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date < CURRENT_DATE THEN 'overdue'
 			WHEN candidate.id IS NULL THEN 'due'
-			WHEN candidate.status = 'draft' THEN 'in_draft'
-			WHEN candidate.status = 'in_review' THEN 'in_review'
-			WHEN candidate.status = 'in_approval' THEN 'pending_approval'
+			WHEN candidate.status = 'assessment_draft' THEN 'in_draft'
+			WHEN candidate.status = 'assessment_in_review' THEN 'in_review'
 			WHEN candidate.status = 'approved' THEN 'approved'
-			WHEN candidate.status = 'rejected' THEN 'rejected'
 			ELSE 'due'
 		END AS review_status,
 		$1 AS assessment_cycle,

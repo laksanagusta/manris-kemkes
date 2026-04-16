@@ -87,7 +87,7 @@ func TestPDFReportRenderer_AddTopRisksUsesEffectiveScoreAndLevelColor(t *testing
 func TestPDFReportRenderer_AddRiskRegisterKeepsFallbackAndDraftIsolationCompatible(t *testing.T) {
 	legacyApproved := approvedPDFRiskWithPartialReviewedBundle("R-201", "Legacy Fallback", entity.RiskStatusApproved, 5, 4, 20)
 	draftReviewed := approvedPDFRisk("R-202", "Draft Isolation", 4, 4, 16)
-	draftReviewed.Status = entity.RiskStatusInApproval
+	draftReviewed.Status = entity.RiskStatusInReview
 	finalizedZero := approvedPDFRisk("R-203", "Zero Final", 5, 5, 25)
 	renderer := &pdfReportRenderer{}
 	m := &capturedMaroto{}
@@ -95,7 +95,7 @@ func TestPDFReportRenderer_AddRiskRegisterKeepsFallbackAndDraftIsolationCompatib
 	renderer.addRiskRegister(m, []*entity.Risk{legacyApproved, draftReviewed, finalizedZero})
 
 	assertExactTexts(t, findRowTextsContaining(t, m.rows, "R-201"), []string{"1", "R-201", "Legacy Fallback", legacyApproved.Category, "5", "4", "20", entity.RiskLevelSangatTinggi, entity.RiskStatusApproved})
-	assertExactTexts(t, findRowTextsContaining(t, m.rows, "R-202"), []string{"2", "R-202", "Draft Isolation", draftReviewed.Category, "4", "4", "16", entity.RiskLevelTinggi, entity.RiskStatusInApproval})
+	assertExactTexts(t, findRowTextsContaining(t, m.rows, "R-202"), []string{"2", "R-202", "Draft Isolation", draftReviewed.Category, "4", "4", "16", entity.RiskLevelTinggi, entity.RiskStatusInReview})
 	assertExactTexts(t, findRowTextsContaining(t, m.rows, "R-203"), []string{"3", "R-203", "Zero Final", finalizedZero.Category, "5", "5", "25", entity.RiskLevelSangatTinggi, entity.RiskStatusApproved})
 }
 

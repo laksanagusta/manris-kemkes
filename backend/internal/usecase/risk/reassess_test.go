@@ -99,7 +99,7 @@ func (r *fakeReassessRiskRepo) RiskReviewSummary(ctx context.Context, cycle stri
 	}
 	return nil, errors.New("not implemented")
 }
-func (r *fakeReassessRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
+func (r *fakeReassessRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeReassessRiskRepo) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
@@ -253,7 +253,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testi
 				Title:             "Keterlambatan distribusi vaksin",
 				Description:       "Risiko existing",
 				Category:          entity.RiskCategoryOperasional,
-				Status:            "approved",
+				Status:            entity.RiskStatusApproved,
 				VersionGroupID:    versionGroupID,
 				IsCurrent:         true,
 				IsCycleCurrent:    true,
@@ -276,7 +276,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testi
 		versions: []*entity.Risk{{
 			ID:              sourceID,
 			VersionGroupID:  versionGroupID,
-			Status:          "approved",
+			Status:          entity.RiskStatusApproved,
 			AssessmentCycle: "2025-H2",
 		}},
 	}
@@ -304,7 +304,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testi
 	if repo.createdRisk.Category != entity.RiskCategoryOperasional {
 		t.Fatalf("expected reassessment to preserve category %q, got %q", entity.RiskCategoryOperasional, repo.createdRisk.Category)
 	}
-	if repo.createdRisk.Status != "draft" {
+	if repo.createdRisk.Status != entity.RiskStatusDraft {
 		t.Fatalf("expected draft status, got %q", repo.createdRisk.Status)
 	}
 	if repo.createdRisk.IsCurrent {
@@ -336,7 +336,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle(t *testing.T
 				ID:             sourceID,
 				Code:           "R-002",
 				Title:          "Gangguan cold chain",
-				Status:         "approved",
+				Status:         entity.RiskStatusApproved,
 				VersionGroupID: versionGroupID,
 				IsCurrent:      true,
 				Probability:    3,
@@ -346,7 +346,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle(t *testing.T
 		versions: []*entity.Risk{{
 			ID:              uuid.New(),
 			VersionGroupID:  versionGroupID,
-			Status:          "draft",
+			Status:          entity.RiskStatusDraft,
 			AssessmentCycle: "2026-H1",
 		}},
 	}
@@ -356,7 +356,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle(t *testing.T
 	if err != nil {
 		t.Fatalf("expected no error for in-progress reassessment, got %v", err)
 	}
-	if out == nil || out.Status != "draft" {
+	if out == nil || out.Status != entity.RiskStatusDraft {
 		t.Fatalf("expected returning existing draft, got %v", out)
 	}
 	if repo.createdRisk != nil {
@@ -373,7 +373,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved(t 
 				ID:              sourceID,
 				Code:            "R-003",
 				Title:           "Risk dengan reassessment approved",
-				Status:          "approved",
+				Status:          entity.RiskStatusApproved,
 				VersionGroupID:  versionGroupID,
 				IsCurrent:       true,
 				IsCycleCurrent:  true,
@@ -386,7 +386,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved(t 
 			{
 				ID:              sourceID,
 				VersionGroupID:  versionGroupID,
-				Status:          "approved",
+				Status:          entity.RiskStatusApproved,
 				AssessmentCycle: "2026-H1",
 				IsCurrent:       true,
 				IsCycleCurrent:  true,
@@ -543,7 +543,7 @@ func TestFindInProgressReassessmentForCycleReturnsReusableDraft(t *testing.T) {
 	versions := []*entity.Risk{
 		{ID: uuid.New(), Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
 		{ID: targetID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-H1"},
-		{ID: uuid.New(), Status: "reviewed", AssessmentCycle: "2026-H1"},
+		{ID: uuid.New(), Status: entity.RiskStatusInReview, AssessmentCycle: "2026-H1"},
 	}
 
 	got := FindInProgressReassessmentForCycle(versions, "2026-H1")

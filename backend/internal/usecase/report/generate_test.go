@@ -47,7 +47,7 @@ func (r *fakeReportRiskRepo) NextRiskCode(context.Context) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-func (r *fakeReportRiskRepo) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
+func (r *fakeReportRiskRepo) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID, _ string) ([]*entity.Risk, error) {
 	if r.listApprovedRisks != nil {
 		return r.listApprovedRisks(ctx, orgIDs)
 	}
@@ -257,7 +257,7 @@ func TestGenerateReportUseCase_ExecuteUsesEffectiveSemanticsForPrimaryOutputs(t 
 
 func TestGenerateReportUseCase_ExecuteKeepsFallbackAndDraftIsolationCompatible(t *testing.T) {
 	legacyApproved := approvedRiskWithPartialReviewedBundle("R-LEGACY", "Legacy", entity.RiskCategoryOperasional, "2026-H1", 5, 4, 20)
-	draftReviewed := nonFinalizedRiskWithReviewedDraft("R-DRAFT", "Draft", entity.RiskCategoryStrategis, "2026-H1", entity.RiskStatusInApproval, 4, 4, 16)
+	draftReviewed := nonFinalizedRiskWithReviewedDraft("R-DRAFT", "Draft", entity.RiskCategoryStrategis, "2026-H1", entity.RiskStatusInReview, 4, 4, 16)
 	finalizedZero := approvedRiskWithReviewedBundle("R-ZERO", "Zero", entity.RiskCategoryKepatuhan, "2026-H1", 1, 1, 1)
 
 	riskRepo := &fakeReportRiskRepo{

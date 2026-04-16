@@ -106,13 +106,9 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	}
 
 	// 3. Validate status transitions
-	if existingRisk.Status == "approved" && input.Status != "approved" && input.Status != "draft" {
+	if existingRisk.Status == entity.RiskStatusApproved && input.Status != entity.RiskStatusApproved && input.Status != entity.RiskStatusDraft {
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "cannot change status from approved except to draft")
 	}
-	if existingRisk.Status == "rejected" && input.Status != "rejected" && input.Status != "draft" {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "rejected risk can only be moved to draft")
-	}
-
 	// 4. Validate organization if changed
 	if input.OrganizationID != nil && *input.OrganizationID != *existingRisk.OrganizationID {
 		_, err := uc.orgRepo.GetByID(ctx, *input.OrganizationID)

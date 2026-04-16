@@ -53,7 +53,7 @@ func (r *categoryRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*ent
 	return nil, nil
 }
 func (r *categoryRiskRepo) NextRiskCode(context.Context) (string, error) { return "R-001", nil }
-func (r *categoryRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
+func (r *categoryRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, nil
 }
 func (r *categoryRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {

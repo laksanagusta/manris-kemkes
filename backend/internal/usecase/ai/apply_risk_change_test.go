@@ -88,9 +88,9 @@ func (r *fakeRiskRepository) CompareCycles(context.Context, string, string, []uu
 func (r *fakeRiskRepository) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeRiskRepository) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
+func (r *fakeRiskRepository) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
 	return nil, errors.New("not implemented")
-}
+ }
 func (r *fakeRiskRepository) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return nil, errors.New("not implemented")
 }

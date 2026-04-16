@@ -65,9 +65,9 @@ func (r *scopeCtrlRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*en
 	return nil, nil
 }
 func (r *scopeCtrlRiskRepo) NextRiskCode(context.Context) (string, error) { return "", nil }
-func (r *scopeCtrlRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
+func (r *scopeCtrlRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
 	return nil, nil
-}
+ }
 func (r *scopeCtrlRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, nil
 }
