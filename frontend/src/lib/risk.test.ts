@@ -77,7 +77,7 @@ function makeRisk(overrides: Partial<Risk> = {}): Risk {
     targetNilai: 8.58,
     targetScore: 9,
     nextReviewDate: "2026-12-31",
-    status: "draft",
+    status: "assessment_draft",
     ...overrides,
   };
 }

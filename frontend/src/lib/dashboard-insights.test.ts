@@ -35,7 +35,7 @@ function makeDashboardRisk(
     weight: 1,
     nilai: 20,
     inherentScore: 20,
-    status: "draft",
+    status: "assessment_draft",
     ...overrides,
   } as Parameters<typeof buildUnitExposureData>[0][number];
 }
@@ -90,7 +90,7 @@ test("buildUnitExposureData uses base values for all approved risks", () => {
 test("buildUnitExposureData keeps non-approved rows on inherent semantics", () => {
   const result = buildUnitExposureData([
     makeDashboardRisk({
-      status: "in_approval",
+      status: "assessment_in_review",
       probability: 5,
       impact: 4,
       weight: 1,
@@ -189,7 +189,7 @@ test("buildExecutiveTrendData uses base values for all approved risks", () => {
 test("buildExecutiveTrendData keeps non-approved rows on inherent semantics", () => {
   const result = buildExecutiveTrendData([
     makeDashboardRisk({
-      status: "in_approval",
+      status: "assessment_in_review",
       assessmentCycle: "2025-H2",
       probability: 5,
       impact: 4,
@@ -298,7 +298,7 @@ test("buildCriticalRiskRateTrendData uses approved base values for current-state
 test("buildCriticalRiskRateTrendData keeps non-approved drafts on inherent severity", () => {
   const result = buildCriticalRiskRateTrendData([
     makeDashboardRisk({
-      status: "in_approval",
+      status: "assessment_in_review",
       assessmentCycle: "2026-H1",
       probability: 2,
       impact: 2,
@@ -355,8 +355,8 @@ test("buildLatestOrganizationProgressData keeps only latest cycle per organizati
   const result = buildLatestOrganizationProgressData([
     makeDashboardRisk({ code: "R-001", orgName: "Direktorat A", assessmentCycle: "2025-H2", status: "approved" }),
     makeDashboardRisk({ code: "R-002", orgName: "Direktorat A", assessmentCycle: "2026-H1", status: "approved" }),
-    makeDashboardRisk({ code: "R-003", orgName: "Direktorat A", assessmentCycle: "2026-H1", status: "draft" }),
-    makeDashboardRisk({ code: "R-004", orgName: "Direktorat B", assessmentCycle: "2025-H2", status: "draft" }),
+    makeDashboardRisk({ code: "R-003", orgName: "Direktorat A", assessmentCycle: "2026-H1", status: "assessment_draft" }),
+    makeDashboardRisk({ code: "R-004", orgName: "Direktorat B", assessmentCycle: "2025-H2", status: "assessment_draft" }),
     makeDashboardRisk({ code: "R-005", orgName: "Direktorat B", assessmentCycle: "2025-H2", status: "approved" }),
   ]);
 
@@ -380,8 +380,8 @@ test("buildLatestOrganizationProgressData keeps only latest cycle per organizati
 
 test("buildLatestOrganizationProgressData keeps zero-approved latest cycles visible", () => {
   const result = buildLatestOrganizationProgressData([
-    makeDashboardRisk({ code: "R-010", orgName: "Direktorat C", assessmentCycle: "2026-H1", status: "draft" }),
-    makeDashboardRisk({ code: "R-011", orgName: "Direktorat C", assessmentCycle: "2026-H1", status: "in_review" }),
+    makeDashboardRisk({ code: "R-010", orgName: "Direktorat C", assessmentCycle: "2026-H1", status: "assessment_draft" }),
+    makeDashboardRisk({ code: "R-011", orgName: "Direktorat C", assessmentCycle: "2026-H1", status: "assessment_in_review" }),
   ]);
 
   assert.deepEqual(result, [

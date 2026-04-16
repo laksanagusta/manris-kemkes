@@ -84,7 +84,7 @@ test("classifyRiskCycleDetailMovement keeps non-finalized drafts on inherent sem
     } as any,
     toSnapshot: {
       ...sampleReport.items[0].toSnapshot,
-      status: "in_approval",
+      status: "assessment_in_review",
       probability: 5,
       impact: 4,
       inherentScore: 20,

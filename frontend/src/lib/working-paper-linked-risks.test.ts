@@ -10,7 +10,7 @@ test("getWorkingPaperRiskRows returns nested linked risk payloads in sort order"
     id: "wp-1",
     title: "KK Semester I",
     org_id: "org-1",
-    status: "draft",
+    status: "assessment_draft",
     current_signatory_sequence: 0,
     created_by: "creator-1",
     created_at: "2026-04-01T08:00:00.000Z",

@@ -16,7 +16,7 @@ type RiskLike = {
   weight?: number;
   nilai?: number | null;
   inherentScore?: number;
-  status?: "draft" | "in_review" | "in_approval" | "approved" | "rejected";
+  status?: "assessment_draft" | "assessment_in_review" | "approved";
   targetScore?: number;
   targetProbability?: number;
   targetImpact?: number;
@@ -106,16 +106,16 @@ export function buildUnitExposureData(risks: RiskLike[], limit = 5): UnitExposur
 
   for (const risk of risks) {
     const orgName = risk.orgName?.trim() || "Tanpa Unit";
-    const level = levelFromScore(
-      resolveRiskScoreSemantics({
-        status: risk.status ?? "draft",
-        probability: risk.probability ?? 1,
-        impact: risk.impact ?? 1,
-        weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
-        nilai: risk.nilai ?? undefined,
-        inherentScore: risk.inherentScore ?? 0,
-      }).effective.score,
-    );
+     const level = levelFromScore(
+       resolveRiskScoreSemantics({
+         status: risk.status ?? "assessment_draft",
+         probability: risk.probability ?? 1,
+         impact: risk.impact ?? 1,
+         weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
+         nilai: risk.nilai ?? undefined,
+         inherentScore: risk.inherentScore ?? 0,
+       }).effective.score,
+     );
     const row = grouped.get(orgName) ?? {
       orgName,
       exposureScore: 0,
@@ -207,22 +207,22 @@ export function buildMovementByOrgData(
 }
 
 export function buildExecutiveTrendData(risks: RiskLike[]): ExecutiveTrendDatum[] {
-  const grouped = new Map<string, ExecutiveTrendDatum>();
+   const grouped = new Map<string, ExecutiveTrendDatum>();
 
-  for (const risk of risks) {
-    const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
-    if (!period) continue;
+   for (const risk of risks) {
+     const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+     if (!period) continue;
 
-    const level = levelFromScore(
-      resolveRiskScoreSemantics({
-        status: risk.status ?? "draft",
-        probability: risk.probability ?? 1,
-        impact: risk.impact ?? 1,
-        weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
-        nilai: risk.nilai ?? undefined,
-        inherentScore: risk.inherentScore ?? 0,
-      }).effective.score,
-    );
+     const level = levelFromScore(
+       resolveRiskScoreSemantics({
+         status: risk.status ?? "assessment_draft",
+         probability: risk.probability ?? 1,
+         impact: risk.impact ?? 1,
+         weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
+         nilai: risk.nilai ?? undefined,
+         inherentScore: risk.inherentScore ?? 0,
+       }).effective.score,
+     );
     const row = grouped.get(period) ?? { period, medium: 0, high: 0, extreme: 0, exposureScore: 0 };
     if (level === "Sedang") row.medium += 1;
     if (level === "Tinggi") row.high += 1;
@@ -409,22 +409,22 @@ export type CriticalRiskRateDatum = {
 };
 
 export function buildCriticalRiskRateTrendData(risks: RiskLike[]): CriticalRiskRateDatum[] {
-  const grouped = new Map<string, { medium: number; high: number; extreme: number; total: number }>();
+   const grouped = new Map<string, { medium: number; high: number; extreme: number; total: number }>();
 
-  for (const risk of risks) {
-    const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
-    if (!period) continue;
+   for (const risk of risks) {
+     const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+     if (!period) continue;
 
-    const level = levelFromScore(
-      resolveRiskScoreSemantics({
-        status: risk.status ?? "draft",
-        probability: risk.probability ?? 1,
-        impact: risk.impact ?? 1,
-        weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
-        nilai: risk.nilai ?? undefined,
-        inherentScore: risk.inherentScore ?? 0,
-      }).effective.score,
-    );
+     const level = levelFromScore(
+       resolveRiskScoreSemantics({
+         status: risk.status ?? "assessment_draft",
+         probability: risk.probability ?? 1,
+         impact: risk.impact ?? 1,
+         weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
+         nilai: risk.nilai ?? undefined,
+         inherentScore: risk.inherentScore ?? 0,
+       }).effective.score,
+     );
     const bucket = grouped.get(period) ?? { medium: 0, high: 0, extreme: 0, total: 0 };
     if (level === "Sedang") bucket.medium += 1;
     if (level === "Tinggi") bucket.high += 1;

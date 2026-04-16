@@ -107,7 +107,7 @@ test("buildVersionHistoryItem keeps non-finalized current snapshots on inherent 
       id: "v2",
       code: "R-002",
       title: "Risk Draft",
-      status: "in_approval",
+      status: "assessment_in_review",
       isCurrent: true,
       versionGroupId: "vg-2",
       probability: 5,

@@ -36,17 +36,17 @@ export type ApprovedRiskHistoryLike = {
 };
 
 function resolveTimelineScoreSemantics(item: RiskScoreLike) {
-  const fallbackMetrics = calculateRiskMetrics(item.probability ?? 1, item.impact ?? 1);
+   const fallbackMetrics = calculateRiskMetrics(item.probability ?? 1, item.impact ?? 1);
 
-  return resolveRiskScoreSemantics({
-    status: item.status ?? "draft",
-    probability: item.probability ?? 1,
-    impact: item.impact ?? 1,
-    weight: fallbackMetrics.weight,
-    nilai: item.nilai ?? fallbackMetrics.nilai,
-    inherentScore: item.inherentScore ?? fallbackMetrics.inherentScore,
-  });
-}
+   return resolveRiskScoreSemantics({
+     status: item.status ?? "assessment_draft",
+     probability: item.probability ?? 1,
+     impact: item.impact ?? 1,
+     weight: fallbackMetrics.weight,
+     nilai: item.nilai ?? fallbackMetrics.nilai,
+     inherentScore: item.inherentScore ?? fallbackMetrics.inherentScore,
+   });
+ }
 
 export function buildVersionHistoryItem(
   version: RiskVersionTimelineItem,
@@ -76,14 +76,14 @@ export function buildVersionHistoryItem(
 }
 
 export function buildApprovedRiskHistoryItem(risk: ApprovedRiskHistoryLike) {
-  const currentSemantics = resolveRiskScoreSemantics({
-    status: risk.status ?? "draft",
-    probability: risk.probability ?? 1,
-    impact: risk.impact ?? 1,
-    weight: risk.weight ?? calculateRiskMetrics(risk.probability ?? 1, risk.impact ?? 1).weight,
-    nilai: risk.nilai ?? undefined,
-    inherentScore: risk.inherentScore ?? calculateRiskMetrics(risk.probability ?? 1, risk.impact ?? 1).inherentScore,
-  });
+   const currentSemantics = resolveRiskScoreSemantics({
+     status: risk.status ?? "assessment_draft",
+     probability: risk.probability ?? 1,
+     impact: risk.impact ?? 1,
+     weight: risk.weight ?? calculateRiskMetrics(risk.probability ?? 1, risk.impact ?? 1).weight,
+     nilai: risk.nilai ?? undefined,
+     inherentScore: risk.inherentScore ?? calculateRiskMetrics(risk.probability ?? 1, risk.impact ?? 1).inherentScore,
+   });
   const currentScore = currentSemantics.effective.score;
   const targetScore = risk.targetScore ?? 0;
 

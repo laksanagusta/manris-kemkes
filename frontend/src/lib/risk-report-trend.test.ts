@@ -100,7 +100,7 @@ test("buildRiskTrendData keeps non-finalized drafts on inherent buckets", () => 
   const risks: RiskTrendSourceItem[] = [
     {
       assessmentCycle: "2026-H1",
-      status: "in_approval",
+      status: "assessment_in_review",
       probability: 3,
       impact: 4,
       inherentScore: 12,

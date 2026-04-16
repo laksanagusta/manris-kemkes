@@ -23,7 +23,7 @@ test("normalizeMeetingMinuteDate falls back to today for invalid values", () => 
 test("filterMeetingRiskOptions matches code and title locally", () => {
   const risks = [
     { id: "1", code: "R-001", title: "Distribusi vaksin", status: "approved" },
-    { id: "2", code: "R-002", title: "Keterlambatan laporan", status: "draft" },
+    { id: "2", code: "R-002", title: "Keterlambatan laporan", status: "assessment_draft" },
   ];
 
   assert.deepEqual(filterMeetingRiskOptions(risks, "vaksin").map((item) => item.id), ["1"]);

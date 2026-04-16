@@ -1,7 +1,7 @@
 import { api } from "@/lib/api";
 import type { RiskCategory, RiskStatus } from "@/types/risk";
 
-export type RiskRegisterStatusFilter = "all" | Exclude<RiskStatus, "draft">;
+export type RiskRegisterStatusFilter = "all" | Exclude<RiskStatus, "assessment_draft">;
 export type RiskRegisterCategoryFilter = "all" | Exclude<RiskCategory, "">;
 
 export interface RiskRegisterListItem {
@@ -46,14 +46,14 @@ export interface PaginatedRiskRegisterResponse {
 }
 
 interface ListRiskRegisterParams {
-  q?: string;
-  status?: Exclude<RiskStatus, "draft">;
-  category?: Exclude<RiskCategory, "">;
-  assessment_cycle?: string;
-  created_at?: string;
-  page?: number;
-  limit?: number;
-}
+   q?: string;
+   status?: Exclude<RiskStatus, "assessment_draft">;
+   category?: Exclude<RiskCategory, "">;
+   assessment_cycle?: string;
+   created_at?: string;
+   page?: number;
+   limit?: number;
+ }
 
 export async function listRiskRegister(
   token: string,
