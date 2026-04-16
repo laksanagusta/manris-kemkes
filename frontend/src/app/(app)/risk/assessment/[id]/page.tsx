@@ -14,6 +14,8 @@ import { getBobot, calculateNilai } from "@/lib/risk";
 import type { Risk } from "@/types/risk";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { FormHeader } from "@/components/shared/form-shell";
 import { ProfilRisikoCard } from "../components/profil-risiko-card";
 import {
   HasilPemantauanCard,
@@ -158,44 +160,41 @@ export default function AssessmentFormPage() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-20">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <FormHeader
+        title="Form Pemantauan Risiko"
+        description={`${sourceRisk.code || sourceRisk.riskCode} - ${sourceRisk.title}`}
+        badges={
+          <>
+            <Badge variant="outline" className="font-medium">
+              Status: {draftRisk.status}
+            </Badge>
+            <Badge variant="secondary" className="font-medium">
+              Versi: {draftRisk.versionNumber}
+            </Badge>
+          </>
+        }
+        backLabel="Kembali ke Pemantauan"
+        onBack={() => router.push("/risk/assessment")}
+        actions={
           <Button
-            variant="outline"
-            size="icon"
-            onClick={() => router.push("/risk/assessment")}
+            onClick={form.handleSubmit(onSubmit)}
+            disabled={isSaving}
+            className="gap-2 shadow-lg shadow-primary/20"
           >
-            <ArrowLeft className="size-4" />
-            <span className="sr-only">Kembali</span>
+            {isSaving ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Menyimpan...
+              </>
+            ) : (
+              <>
+                <Save className="size-4" />
+                Simpan Pemantauan
+              </>
+            )}
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Form Pemantauan Risiko
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {sourceRisk.code || sourceRisk.riskCode} - {sourceRisk.title}
-            </p>
-          </div>
-        </div>
-        <Button
-          onClick={form.handleSubmit(onSubmit)}
-          disabled={isSaving}
-          className="gap-2 shadow-lg shadow-primary/20"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              Menyimpan...
-            </>
-          ) : (
-            <>
-              <Save className="size-4" />
-              Simpan Pemantauan
-            </>
-          )}
-        </Button>
-      </div>
+        }
+      />
 
       {/* Form Content */}
       <div className="flex flex-col gap-6">

@@ -7,17 +7,19 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   getBobot,
   calculateNilai,
+  getRiskLevelFromNilai,
+  levelToColor,
   PROBABILITY_LABELS,
   IMPACT_LABELS,
 } from "@/lib/risk";
@@ -53,57 +55,77 @@ export function HasilPemantauanCard({ form }: HasilPemantauanCardProps) {
         <CardTitle>Hasil Pemantauan</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-2">
-            <Label>Skor Probabilitas Baru</Label>
-            <Controller
-              control={form.control}
-              name="probability"
-              render={({ field }) => (
-                <Select
-                  value={field.value ? String(field.value) : ""}
-                  onValueChange={(val) => field.onChange(Number(val))}
-                >
-                  <SelectTrigger data-testid="new-probability">
-                    <SelectValue placeholder="Pilih Probabilitas" />
-                  </SelectTrigger>
-                  <SelectContent>
+        <TooltipProvider>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <Label>Skor Probabilitas Baru</Label>
+              <Controller
+                control={form.control}
+                name="probability"
+                render={({ field }) => (
+                  <div className="grid grid-cols-5 gap-1.5">
                     {[1, 2, 3, 4, 5].map((val) => (
-                      <SelectItem key={val} value={String(val)}>
-                        {val} - {PROBABILITY_LABELS[val]}
-                      </SelectItem>
+                      <Tooltip key={val}>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => field.onChange(val)}
+                            className={cn(
+                              "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                              val === field.value
+                                ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, impact, getBobot(val, impact))))} ring-1 font-bold`
+                                : "bg-muted/30 hover:bg-muted/50"
+                            )}
+                            data-testid={val === field.value ? "new-probability" : undefined}
+                          >
+                            {val}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">
+                          {PROBABILITY_LABELS[val]}
+                        </TooltipContent>
+                      </Tooltip>
                     ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
+                  </div>
+                )}
+              />
+            </div>
 
-          <div className="flex flex-col gap-2">
-            <Label>Skor Dampak Baru</Label>
-            <Controller
-              control={form.control}
-              name="impact"
-              render={({ field }) => (
-                <Select
-                  value={field.value ? String(field.value) : ""}
-                  onValueChange={(val) => field.onChange(Number(val))}
-                >
-                  <SelectTrigger data-testid="new-impact">
-                    <SelectValue placeholder="Pilih Dampak" />
-                  </SelectTrigger>
-                  <SelectContent>
+            <div className="flex flex-col gap-2">
+              <Label>Skor Dampak Baru</Label>
+              <Controller
+                control={form.control}
+                name="impact"
+                render={({ field }) => (
+                  <div className="grid grid-cols-5 gap-1.5">
                     {[1, 2, 3, 4, 5].map((val) => (
-                      <SelectItem key={val} value={String(val)}>
-                        {val} - {IMPACT_LABELS[val]}
-                      </SelectItem>
+                      <Tooltip key={val}>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => field.onChange(val)}
+                            className={cn(
+                              "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                              val === field.value
+                                ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(probability, val, getBobot(probability, val))))} ring-1 font-bold`
+                                : "bg-muted/30 hover:bg-muted/50"
+                            )}
+                            data-testid={val === field.value ? "new-impact" : undefined}
+                          >
+                            {val}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">
+                          {IMPACT_LABELS[val]}
+                        </TooltipContent>
+                      </Tooltip>
                     ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
+                  </div>
+                )}
+              />
+            </div>
           </div>
-        </div>
+        </TooltipProvider>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
