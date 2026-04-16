@@ -727,7 +727,7 @@ func (r *aiRepository) buildIncidentRiskCandidatesJSON(ctx context.Context, orga
 
 	candidates := make([]riskCandidate, 0, len(existingRisks))
 	for _, risk := range existingRisks {
-		if strings.EqualFold(risk.Status, "draft") {
+		if strings.EqualFold(risk.Status, entity.RiskStatusDraft) {
 			continue
 		}
 		candidates = append(candidates, riskCandidate{

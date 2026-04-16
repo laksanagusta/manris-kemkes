@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
@@ -31,7 +32,7 @@ func (uc *DeleteRiskUseCase) Execute(ctx context.Context, id uuid.UUID, orgIDs [
 	}
 
 	// 2. Business rule: only drafts can be deleted.
-	if risk.Status != "draft" {
+	if risk.Status != entity.RiskStatusDraft {
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "only draft risks can be deleted")
 	}
 

@@ -88,9 +88,9 @@ func (r *fakeRiskRepository) CompareCycles(context.Context, string, string, []uu
 func (r *fakeRiskRepository) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeRiskRepository) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
+func (r *fakeRiskRepository) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
- }
+}
 func (r *fakeRiskRepository) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return nil, errors.New("not implemented")
 }
@@ -117,7 +117,7 @@ func TestApplyTranscriptRiskChangesUpdatesDraftRisk(t *testing.T) {
 				Code:           "R-001",
 				Title:          "Pemalsuan data",
 				Description:    "Deskripsi awal",
-				Status:         "draft",
+				Status:         entity.RiskStatusDraft,
 				VersionGroupID: versionGroupID,
 				IsCurrent:      true,
 				Probability:    3,
@@ -252,7 +252,7 @@ func TestApplyTranscriptRiskChangesCreatesNewVersionForApprovedRisk(t *testing.T
 	if created.PreviousRiskID == nil || *created.PreviousRiskID != riskID {
 		t.Fatalf("expected previous risk id to point to archived version, got %v", created.PreviousRiskID)
 	}
-	if created.Status != "draft" {
+	if created.Status != entity.RiskStatusDraft {
 		t.Fatalf("expected new version status draft, got %q", created.Status)
 	}
 	if created.Probability != 4 {
@@ -270,7 +270,7 @@ func TestApplyTranscriptRiskChangesKeepsExistingValuesWhenSuggestedValuesAreEmpt
 				Code:            "R-020",
 				Title:           "Pemalsuan dokumen kesehatan",
 				Description:     "Deskripsi lama yang tetap dipakai",
-				Status:          "approved",
+				Status:          entity.RiskStatusApproved,
 				VersionGroupID:  versionGroupID,
 				IsCurrent:       true,
 				Probability:     4,
@@ -343,7 +343,7 @@ func TestApplyTranscriptRiskChangesRejectsUnauthorizedRole(t *testing.T) {
 				Code:           "R-111",
 				Title:          "Obesitas tidak terpantau",
 				Description:    "Deskripsi",
-				Status:         "draft",
+				Status:         entity.RiskStatusDraft,
 				VersionGroupID: uuid.New(),
 				IsCurrent:      true,
 				Probability:    3,

@@ -54,7 +54,7 @@ func (uc *ApplyTranscriptRiskChangesUseCase) Execute(ctx context.Context, input 
 		return nil, errors.ErrRiskNotFound
 	}
 
-	if existingRisk.Status == "draft" {
+	if existingRisk.Status == entity.RiskStatusDraft {
 		nextRisk := cloneRisk(existingRisk)
 		if err := applyTranscriptChanges(nextRisk, input.SelectedChanges); err != nil {
 			return nil, err
@@ -86,7 +86,7 @@ func (uc *ApplyTranscriptRiskChangesUseCase) Execute(ctx context.Context, input 
 
 		nextRisk := cloneRisk(existingRisk)
 		nextRisk.ID = uuid.New()
-		nextRisk.Status = "draft"
+		nextRisk.Status = entity.RiskStatusDraft
 		nextRisk.PreviousRiskID = &existingRisk.ID
 		nextRisk.IsCurrent = true
 		nextRisk.ArchivedAt = nil
