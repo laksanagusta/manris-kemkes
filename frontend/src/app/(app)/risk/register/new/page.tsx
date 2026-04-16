@@ -531,7 +531,7 @@ export default function RiskInputPage() {
   const { token, user } = useAuth();
 
   const [riskId, setRiskId] = useState<string | null>(null);
-  const [riskStatus, setRiskStatus] = useState<string>("draft");
+  const [riskStatus, setRiskStatus] = useState<string>("assessment_draft");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<
     { id: string; name: string }[]
@@ -741,7 +741,7 @@ export default function RiskInputPage() {
         );
 
         setRiskId(risk.id);
-        setRiskStatus(risk.status || "draft");
+        setRiskStatus(risk.status || "assessment_draft");
 
         const loadedCauses: CauseImpactItem[] = Array.isArray(risk.cause)
           ? risk.cause
@@ -1031,7 +1031,7 @@ export default function RiskInputPage() {
         });
         setAssessmentCycleDisplay(currentAssessmentCycle());
         setRiskId(null);
-        setRiskStatus("draft");
+        setRiskStatus("assessment_draft");
         toast.success(
           "Draft risiko diisi dari rekomendasi Meeting Intelligence.",
         );
@@ -1176,10 +1176,8 @@ export default function RiskInputPage() {
   const missingSections = sectionStatuses.filter((section) => !section.done);
   const isFinalizeReady = missingSections.length === 0;
   const isRiskLocked =
-    riskStatus === "in_review" ||
-    riskStatus === "in_approval" ||
-    riskStatus === "approved" ||
-    riskStatus === "rejected";
+    riskStatus === "assessment_in_review" ||
+    riskStatus === "approved";
 
   const scrollToSection = (sectionId: SectionId) => {
     if (typeof document === "undefined") return;
@@ -1351,7 +1349,7 @@ export default function RiskInputPage() {
     setIsSubmitting(true);
     try {
       const isDraft = submitTarget.current === "draft";
-      const payload = buildPayload(data, "draft");
+      const payload = buildPayload(data, "assessment_draft");
 
       let currentRiskId = riskId;
 
@@ -1812,7 +1810,7 @@ export default function RiskInputPage() {
                 </Sheet>
               )}
 
-              {(riskStatus === "draft" || !riskId) && (
+              {(riskStatus === "assessment_draft" || !riskId) && (
                 <div className="flex items-center gap-2 border-l border-border/40 pl-2 sm:pl-3 ml-1 sm:ml-2">
                   {riskId && (
                     <Tooltip>

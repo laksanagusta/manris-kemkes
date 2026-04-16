@@ -286,20 +286,16 @@ const suggestionTypeConfig: Record<
 const lowConfidenceThreshold = 70;
 
 function isLockedRiskStatus(status?: string) {
-  return status === "in_review" || status === "in_approval" || status === "approved" || status === "rejected";
+  return status === "assessment_in_review" || status === "approved";
 }
 
 function getRiskStatusLabel(status?: string) {
   switch (status) {
-    case "in_review":
+    case "assessment_in_review":
       return "Sedang Ditinjau";
-    case "in_approval":
-      return "Menunggu Approval";
     case "approved":
       return "Approved";
-    case "rejected":
-      return "Rejected";
-    case "draft":
+    case "assessment_draft":
       return "Draft";
     default:
       return "Belum diketahui";

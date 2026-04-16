@@ -25,7 +25,7 @@ function deriveWorkflowStage(
     workflowStatus === "approved" ||
     workflowStatus === "rejected" ||
     riskStatus === "approved" ||
-    riskStatus === "rejected"
+    riskStatus === "approved"
   ) {
     return "final";
   }
@@ -35,8 +35,7 @@ function deriveWorkflowStage(
     if (currentApproverRole === "pimpinan") return "approval";
   }
 
-  if (riskStatus === "in_review") return "review";
-  if (riskStatus === "in_approval") return "approval";
+  if (riskStatus === "assessment_in_review") return "review";
 
   return "unknown";
 }

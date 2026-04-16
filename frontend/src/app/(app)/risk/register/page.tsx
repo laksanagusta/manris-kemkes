@@ -105,19 +105,15 @@ const levelBadgeVariant: Record<string, string> = {
 };
 
 const statusVariant: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground border-border",
-  in_review: "bg-blue-500/15 text-blue-600 border-blue-500/20",
-  in_approval: "bg-primary/15 text-primary border-primary/20",
+  assessment_draft: "bg-muted text-muted-foreground border-border",
+  assessment_in_review: "bg-blue-500/15 text-blue-600 border-blue-500/20",
   approved: "bg-success/15 text-success border-success/20",
-  rejected: "bg-destructive/15 text-destructive border-destructive/20",
 };
 
 const statusLabel: Record<string, string> = {
-  draft: "Draft",
-  in_review: "Sedang Ditinjau",
-  in_approval: "Menunggu Approval",
-  approved: "Approved",
-  rejected: "Ditolak",
+  assessment_draft: "Assessment Draft",
+  assessment_in_review: "Dalam Review",
+  approved: "Disetujui",
 };
 
 type RiskListItem = RiskRegisterListItem;
@@ -157,10 +153,8 @@ function getRiskRegisterStatusFilter(
   value: string | null,
 ): RiskRegisterStatusFilter {
   if (
-    value === "in_review" ||
-    value === "in_approval" ||
-    value === "approved" ||
-    value === "rejected"
+    value === "assessment_in_review" ||
+    value === "approved"
   ) {
     return value;
   }
@@ -210,7 +204,7 @@ function resolveListItemScoreSemantics(risk: RiskListItem) {
   const fallbackMetrics = calculateRiskMetrics(probability, impact);
 
   return resolveRiskScoreSemantics({
-    status: risk.status ?? "draft",
+    status: risk.status ?? "assessment_draft",
     probability,
     impact,
     weight: risk.weight ?? fallbackMetrics.weight,
@@ -601,7 +595,7 @@ export default function RiskRegisterPage() {
         );
         await api.put(
           `/risks/${draft.id}`,
-          { ...fullRisk, status: "in_review" },
+          { ...fullRisk, status: "assessment_in_review" },
           token || undefined,
         );
         if (token) await refreshRegisterData(token);
@@ -830,11 +824,8 @@ export default function RiskRegisterPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="in_review">Sedang Ditinjau</SelectItem>
-                    <SelectItem value="in_approval">
-                      Menunggu Approval
-                    </SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="assessment_in_review">Dalam Review</SelectItem>
+                    <SelectItem value="approved">Disetujui</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select
@@ -1143,7 +1134,7 @@ export default function RiskRegisterPage() {
                             variant="outline"
                             className={cn(
                               "text-[10px] h-5 px-1.5",
-                              draft.status === "draft"
+                              draft.status === "assessment_draft"
                                 ? "text-muted-foreground"
                                 : "text-risk-medium border-risk-medium/50 bg-risk-medium/10",
                             )}
@@ -1176,7 +1167,7 @@ export default function RiskRegisterPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
-                            {draft.status === "draft" && !isReadOnly && (
+                            {draft.status === "assessment_draft" && !isReadOnly && (
                               <Button
                                 variant="outline"
                                 size="sm"

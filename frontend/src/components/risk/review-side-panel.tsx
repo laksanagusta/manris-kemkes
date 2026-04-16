@@ -84,14 +84,11 @@ export function ReviewSidePanel({
   const hasApproval = Boolean(approvalId);
   const isSubmitting = submittingStage !== null;
   const isApproved = riskStatus === "approved";
-  const isRejected = riskStatus === "rejected";
-
   const workflowStage: WorkflowStage = (() => {
     if (
       workflowStatus === "approved" ||
       workflowStatus === "rejected" ||
-      isApproved ||
-      isRejected
+      isApproved
     ) {
       return "final";
     }
@@ -101,8 +98,7 @@ export function ReviewSidePanel({
       if (currentApproverRole === "pimpinan") return "approval";
     }
 
-    if (riskStatus === "in_review") return "review";
-    if (riskStatus === "in_approval") return "approval";
+    if (riskStatus === "assessment_in_review") return "review";
 
     return "unknown";
   })();

@@ -299,7 +299,7 @@ export default function AssessmentFormPage() {
         setApprovalLine([]);
       }
 
-      if (draft.status === "in_review" || draft.status === "in_approval") {
+      if (draft.status === "assessment_in_review") {
         try {
           const approvalResult = await api.get<{
             id?: string;
@@ -477,7 +477,7 @@ export default function AssessmentFormPage() {
         onBack={() => router.push("/risk/assessment")}
         actions={
           <TooltipProvider>
-            {(draftRisk.status === "draft" || !id) && (
+            {(draftRisk.status === "assessment_draft" || !id) && (
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -537,7 +537,7 @@ export default function AssessmentFormPage() {
           </div>
         </div>
 
-        {(draftRisk.status === "draft" || !id) && (
+        {(draftRisk.status === "assessment_draft" || !id) && (
           <div className="rounded-xl border border-border/60 bg-white p-6 space-y-6">
             <div className="space-y-1">
               <h3 className="text-lg font-semibold text-foreground">Approval Line</h3>
