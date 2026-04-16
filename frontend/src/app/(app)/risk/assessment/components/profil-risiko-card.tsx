@@ -19,14 +19,14 @@ export function ProfilRisikoCard({ risk }: ProfilRisikoCardProps) {
   const level = risk.nilai ? getRiskLevelFromNilai(risk.nilai) : undefined;
   
   return (
-    <Card className="bg-muted/50" data-testid="profil-risiko-card">
+    <Card data-testid="profil-risiko-card">
       <CardHeader>
-        <CardTitle className="text-lg flex justify-between items-center">
+        <CardTitle className="flex justify-between items-center">
           Profil Risiko Saat Ini
           <Badge variant="outline" className="font-mono">{code}</Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="grid gap-6">
         <div>
           <p className="text-sm font-medium text-muted-foreground mb-1">Judul Risiko</p>
           <p className="text-base font-medium">{risk.title || "-"}</p>
