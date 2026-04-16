@@ -136,7 +136,7 @@ func (r *fakeApprovalRiskRepo) CompareCycles(context.Context, string, string, []
 func (r *fakeApprovalRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeApprovalRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
+func (r *fakeApprovalRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeApprovalRiskRepo) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
@@ -195,7 +195,7 @@ func TestApprovalActionUseCase_ApproveReassessmentActivatesNewCurrentVersion(t *
 	}}
 	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
 		ID:             riskID,
-		Status:         "reviewed",
+		Status:         entity.RiskStatusInReview,
 		PreviousRiskID: &previousRiskID,
 	}}
 
@@ -232,7 +232,7 @@ func TestApprovalActionUseCase_ReturnsErrorWhenRiskStatusUpdateFails(t *testing.
 	}}
 	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
 		ID:     riskID,
-		Status: "reviewed",
+		Status: entity.RiskStatusInReview,
 	}, updateErr: errors.New("db write failed")}
 
 	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
@@ -254,9 +254,9 @@ func TestApprovalActionUseCase_ReturnsErrorWhenRiskStatusUpdateFails(t *testing.
 	}
 }
 
-// Tests for new status flow: draft -> in_review -> in_approval -> approved
+// Tests for new status flow: assessment_draft -> assessment_in_review -> approved
 
-func TestApprovalActionUseCase_ReviewerApproves_SetsStatusToInApproval(t *testing.T) {
+func TestApprovalActionUseCase_ReviewerApproves_NoLastStep_StatusUnchanged(t *testing.T) {
 	approvalID := uuid.New()
 	riskID := uuid.New()
 	reviewerID := uuid.MustParse("10000000-0000-0000-0000-000000000004")
@@ -278,7 +278,7 @@ func TestApprovalActionUseCase_ReviewerApproves_SetsStatusToInApproval(t *testin
 	}
 	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
 		ID:     riskID,
-		Status: "in_review", // Risk is in_review when reviewer approves
+		Status: entity.RiskStatusInReview,
 	}}
 
 	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
@@ -292,12 +292,14 @@ func TestApprovalActionUseCase_ReviewerApproves_SetsStatusToInApproval(t *testin
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if riskRepo.updatedRiskStatus != "in_approval" {
-		t.Fatalf("expected risk status 'in_approval', got %q", riskRepo.updatedRiskStatus)
+	// Reviewer is the last step here (no nextStep), so approval completes.
+	// But reviewer step type is "review", not final approval — status stays assessment_in_review.
+	if riskRepo.updatedRiskStatus != entity.RiskStatusInReview {
+		t.Fatalf("expected risk status %q, got %q", entity.RiskStatusInReview, riskRepo.updatedRiskStatus)
 	}
 }
 
-func TestApprovalActionUseCase_ReviewerApproves_WithNextApprovalStep_SetsStatusToInApproval(t *testing.T) {
+func TestApprovalActionUseCase_ReviewerApproves_WithNextApprovalStep_StatusUnchanged(t *testing.T) {
 	approvalID := uuid.New()
 	riskID := uuid.New()
 	reviewerID := uuid.MustParse("10000000-0000-0000-0000-000000000004")
@@ -325,7 +327,7 @@ func TestApprovalActionUseCase_ReviewerApproves_WithNextApprovalStep_SetsStatusT
 	}
 	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
 		ID:     riskID,
-		Status: "in_review",
+		Status: entity.RiskStatusInReview,
 	}}
 
 	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
@@ -339,8 +341,8 @@ func TestApprovalActionUseCase_ReviewerApproves_WithNextApprovalStep_SetsStatusT
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if riskRepo.updatedRiskStatus != "in_approval" {
-		t.Fatalf("expected risk status 'in_approval', got %q", riskRepo.updatedRiskStatus)
+	if riskRepo.updatedRiskStatus != "" {
+		t.Fatalf("expected no risk status update (stays assessment_in_review), got %q", riskRepo.updatedRiskStatus)
 	}
 	if approvalRepo.updatedStatus != "" {
 		t.Fatalf("expected approval request to remain pending, got status update %q", approvalRepo.updatedStatus)
@@ -369,7 +371,7 @@ func TestApprovalActionUseCase_PimpinanApproves_SetsStatusToApproved(t *testing.
 	}
 	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
 		ID:     riskID,
-		Status: "in_approval", // Risk is in_approval when pimpinan approves
+		Status: entity.RiskStatusInReview,
 	}}
 
 	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
@@ -383,8 +385,8 @@ func TestApprovalActionUseCase_PimpinanApproves_SetsStatusToApproved(t *testing.
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if riskRepo.updatedRiskStatus != "approved" {
-		t.Fatalf("expected risk status 'approved', got %q", riskRepo.updatedRiskStatus)
+	if riskRepo.updatedRiskStatus != entity.RiskStatusApproved {
+		t.Fatalf("expected risk status %q, got %q", entity.RiskStatusApproved, riskRepo.updatedRiskStatus)
 	}
 }
 
@@ -403,7 +405,7 @@ func TestApprovalActionUseCase_RejectFromInReview_SetsStatusToDraft(t *testing.T
 	}}
 	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
 		ID:     riskID,
-		Status: "in_review",
+		Status: entity.RiskStatusInReview,
 	}}
 
 	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
@@ -418,12 +420,12 @@ func TestApprovalActionUseCase_RejectFromInReview_SetsStatusToDraft(t *testing.T
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if riskRepo.updatedRiskStatus != "draft" {
-		t.Fatalf("expected risk status 'draft' after rejection, got %q", riskRepo.updatedRiskStatus)
+	if riskRepo.updatedRiskStatus != entity.RiskStatusDraft {
+		t.Fatalf("expected risk status %q after rejection, got %q", entity.RiskStatusDraft, riskRepo.updatedRiskStatus)
 	}
 }
 
-func TestApprovalActionUseCase_RejectFromInApproval_SetsStatusToDraft(t *testing.T) {
+func TestApprovalActionUseCase_RejectFromInReview_ByPimpinan_SetsStatusToDraft(t *testing.T) {
 	approvalID := uuid.New()
 	riskID := uuid.New()
 	pimpinanID := uuid.MustParse("10000000-0000-0000-0000-000000000005")
@@ -438,7 +440,7 @@ func TestApprovalActionUseCase_RejectFromInApproval_SetsStatusToDraft(t *testing
 	}}
 	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
 		ID:     riskID,
-		Status: "in_approval",
+		Status: entity.RiskStatusInReview,
 	}}
 
 	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
@@ -453,8 +455,8 @@ func TestApprovalActionUseCase_RejectFromInApproval_SetsStatusToDraft(t *testing
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if riskRepo.updatedRiskStatus != "draft" {
-		t.Fatalf("expected risk status 'draft' after rejection, got %q", riskRepo.updatedRiskStatus)
+	if riskRepo.updatedRiskStatus != entity.RiskStatusDraft {
+		t.Fatalf("expected risk status %q after rejection, got %q", entity.RiskStatusDraft, riskRepo.updatedRiskStatus)
 	}
 }
 
@@ -481,7 +483,7 @@ func TestApprovalActionUseCase_RejectsActorOutsideCurrentPendingStep(t *testing.
 	}
 	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
 		ID:     riskID,
-		Status: "in_review",
+		Status: entity.RiskStatusInReview,
 	}}
 
 	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
@@ -528,7 +530,7 @@ func TestApprovalActionUseCase_AllowsCurrentPendingStepDespiteRoleMismatch(t *te
 	}
 	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
 		ID:     riskID,
-		Status: "in_approval",
+		Status: entity.RiskStatusInReview,
 	}}
 
 	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
@@ -542,8 +544,8 @@ func TestApprovalActionUseCase_AllowsCurrentPendingStepDespiteRoleMismatch(t *te
 	if err != nil {
 		t.Fatalf("expected no error for current approver role mismatch, got %v", err)
 	}
-	if riskRepo.updatedRiskStatus != "approved" {
-		t.Fatalf("expected risk status 'approved', got %q", riskRepo.updatedRiskStatus)
+	if riskRepo.updatedRiskStatus != entity.RiskStatusApproved {
+		t.Fatalf("expected risk status %q, got %q", entity.RiskStatusApproved, riskRepo.updatedRiskStatus)
 	}
 	if approvalRepo.updatedStatus != "approved" {
 		t.Fatalf("expected approval request status 'approved', got %q", approvalRepo.updatedStatus)

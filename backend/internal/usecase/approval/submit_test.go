@@ -116,7 +116,7 @@ func (r *fakeSubmitRiskRepo) CompareCycles(context.Context, string, string, []uu
 func (r *fakeSubmitRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID) ([]*entity.Risk, error) {
+func (r *fakeSubmitRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
 func (r *fakeSubmitRiskRepo) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
@@ -197,7 +197,7 @@ func TestSubmitApprovalUseCase_UnitSubmissionTargetsReviewer(t *testing.T) {
 	riskID := uuid.New()
 	requestedBy := uuid.New()
 	approverID := uuid.New()
-	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: "draft"}}
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
 
 	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo)
@@ -230,7 +230,7 @@ func TestSubmitApprovalUseCase_SubmitDraftRisk_UpdatesStatusToInReview(t *testin
 	riskID := uuid.New()
 	requestedBy := uuid.New()
 	approverID := uuid.New()
-	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: "draft"}}
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
 
 	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo)
@@ -252,7 +252,7 @@ func TestSubmitApprovalUseCase_ReviewSubmission_CreatesReviewStepType(t *testing
 	requestedBy := uuid.New()
 	reviewerID := uuid.New()
 	pimpinanID := uuid.New()
-	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: "draft"}}
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{
 		reviewerID: {ID: reviewerID, Name: "Farah", Role: "reviewer"},
 		pimpinanID: {ID: pimpinanID, Name: "Hendra", Role: "pimpinan"},
@@ -286,7 +286,7 @@ func TestSubmitApprovalUseCase_ApprovalOnlySubmission_CreatesApprovalStepTypes(t
 	riskID := uuid.New()
 	requestedBy := uuid.New()
 	pimpinanID := uuid.New()
-	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: "draft"}}
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{
 		pimpinanID: {ID: pimpinanID, Name: "Hendra", Role: "pimpinan"},
 	}}
@@ -316,7 +316,7 @@ func TestSubmitApprovalUseCase_EmptySubmissionType_DefaultsToApproval(t *testing
 	riskID := uuid.New()
 	requestedBy := uuid.New()
 	reviewerID := uuid.New()
-	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: "draft"}}
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{
 		reviewerID: {ID: reviewerID, Name: "Farah", Role: "reviewer"},
 	}}

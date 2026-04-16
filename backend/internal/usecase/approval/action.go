@@ -101,7 +101,7 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 			newStatus = "approved"
 			if approvalReq.RequestType == "risk" {
 				if currentStep.StepType == "review" {
-					newEntityStatus = entity.RiskStatusInApproval
+					newEntityStatus = entity.RiskStatusInReview
 				} else {
 					newEntityStatus = entity.RiskStatusApproved
 				}
@@ -116,12 +116,6 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 			}
 		} else {
 			newStatus = "pending"
-			if approvalReq.RequestType == "risk" && currentStep.StepType == "review" {
-				newEntityStatus = entity.RiskStatusInApproval
-				if err := uc.updateEntityStatus(ctx, approvalReq, newEntityStatus, input); err != nil {
-					return nil, domainerrors.Wrap(err, "failed to update entity status")
-				}
-			}
 		}
 	} else {
 		if err := uc.approvalRepo.RejectCurrentStep(ctx, approvalID, actorID, input.Comments); err != nil {
