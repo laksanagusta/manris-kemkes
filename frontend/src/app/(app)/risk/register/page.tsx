@@ -635,8 +635,7 @@ export default function RiskRegisterPage() {
         if (result.redirectUrl) {
           router.push(result.redirectUrl);
         } else {
-          setActiveTab("my-drafts");
-          router.push(`/risk/register/${result.id}`);
+          router.push(`/risk/assessment/${result.id}`);
         }
         
         return result;
@@ -1012,7 +1011,7 @@ export default function RiskRegisterPage() {
                                 variant="outline"
                                 size="sm"
                                 className="h-7 gap-1.5 px-2 text-xs"
-                                onClick={() => router.push(`/risk/register/${risk.draftId}`)}
+                                onClick={() => router.push(`/risk/assessment/${risk.draftId}`)}
                               >
                                 <RefreshCcw className="size-3" />
                                 Lanjutkan Penilaian

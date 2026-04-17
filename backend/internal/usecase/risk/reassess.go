@@ -63,7 +63,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 				VersionGroupID: reservedRisk.VersionGroupID,
 				Status:         reservedRisk.Status,
 				Message:        "an in-progress reassessment already exists for this cycle, returning existing draft",
-				RedirectURL:    "/risk/register/" + reservedRisk.ID.String(),
+				RedirectURL:    "/risk/assessment/" + reservedRisk.ID.String(),
 				ExistingDraft:  true,
 			}, nil
 		}
@@ -72,7 +72,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 			VersionGroupID: reservedRisk.VersionGroupID,
 			Status:         reservedRisk.Status,
 			Message:        "risk reassessment draft created",
-			RedirectURL:    "/risk/register/" + reservedRisk.ID.String(),
+			RedirectURL:    "/risk/assessment/" + reservedRisk.ID.String(),
 			ExistingDraft:  false,
 		}, nil
 	}
@@ -87,7 +87,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 			VersionGroupID: existing.VersionGroupID,
 			Status:         existing.Status,
 			Message:        "an in-progress reassessment already exists for this cycle, returning existing draft",
-			RedirectURL:    "/risk/register/" + existing.ID.String(),
+			RedirectURL:    "/risk/assessment/" + existing.ID.String(),
 			ExistingDraft:  true,
 		}, nil
 	}
@@ -104,7 +104,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 		VersionGroupID: reassessment.VersionGroupID,
 		Status:         reassessment.Status,
 		Message:        "risk reassessment draft created",
-		RedirectURL:    "/risk/register/" + reassessment.ID.String(),
+		RedirectURL:    "/risk/assessment/" + reassessment.ID.String(),
 		ExistingDraft:  false,
 	}, nil
 }
