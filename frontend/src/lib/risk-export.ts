@@ -88,9 +88,9 @@ function treatmentOptionLabel(value?: string) {
     case "menerima":
       return "Menerima";
     case "mitigasi":
-      return "Mitigasi";
+      return "Penanganan";
     case "mitigate":
-      return "Mitigasi";
+      return "Penanganan";
     case "accept":
       return "Menerima risiko";
     case "transfer":

@@ -339,7 +339,7 @@ function getFieldLabel(field: TranscriptRiskChange["field"]) {
     case "treatmentOption":
       return "Treatment option";
     case "mitigations":
-      return "Mitigasi";
+      return "Penanganan";
     case "probability":
       return "Probability";
     case "impact":

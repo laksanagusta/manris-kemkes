@@ -1883,7 +1883,7 @@ export default function RiskInputPage() {
                 },
                 {
                   id: "progress" as const,
-                  label: "Progress Mitigasi",
+                  label: "Progress Penanganan",
                   icon: Activity,
                 },
                 {
@@ -2585,7 +2585,7 @@ export default function RiskInputPage() {
                                 Menerima
                               </SelectItem>
                               <SelectItem value="mitigasi" className="text-sm">
-                                Mitigasi
+                                Penanganan
                               </SelectItem>
                             </SelectContent>
                           </Select>

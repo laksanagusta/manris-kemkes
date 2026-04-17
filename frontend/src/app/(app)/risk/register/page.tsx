@@ -879,16 +879,18 @@ export default function RiskRegisterPage() {
               <TableHeader>
                 <TableRow className="border-border/50 hover:bg-transparent">
                   <TableHead className="w-20">Kode</TableHead>
+                  <TableHead className="w-16">Versi</TableHead>
                   <TableHead>Judul Risiko</TableHead>
-                  <TableHead className="w-32">Kategori</TableHead>
-                  <TableHead className="w-28">Periode</TableHead>
-                  <TableHead className="w-32">Unit Kerja</TableHead>
+                  <TableHead className="w-28">Kategori</TableHead>
+                  <TableHead className="text-center w-20">Probabilitas</TableHead>
+                  <TableHead className="text-center w-20">Dampak</TableHead>
                   <TableHead className="text-center w-16">
                     Nilai
                   </TableHead>
-                  <TableHead className="w-24">Level</TableHead>
+                  <TableHead className="w-24">Tingkat Risiko</TableHead>
                   <TableHead className="w-24">Status</TableHead>
-                  <TableHead className="w-28">Perlakuan</TableHead>
+                  <TableHead className="w-24">Penanganan</TableHead>
+                  <TableHead className="w-28">Dibuat</TableHead>
                   <TableHead className="w-28 text-right">
                     Aksi
                   </TableHead>
@@ -926,14 +928,18 @@ export default function RiskRegisterPage() {
                         <TableCell className="font-mono text-muted-foreground">
                           <span className="flex items-center gap-1.5">
                             {risk.code || "-"}
-                            {risk.versionNumber != null && risk.versionNumber > 1 && (
-                              <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-border/50">
-                                v{risk.versionNumber}
-                              </span>
-                            )}
                           </span>
                         </TableCell>
-                        <TableCell className="max-w-[300px]">
+                        <TableCell className="text-center">
+                          {risk.versionNumber != null ? (
+                            <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-border/50">
+                              v{risk.versionNumber}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-[250px]">
                           <Link
                             href={`/risk/register/${risk.id}`}
                             className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80"
@@ -944,25 +950,11 @@ export default function RiskRegisterPage() {
                         <TableCell className="text-muted-foreground">
                           {riskCategoryLabels[risk.category ?? ""]}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatCycleLabel(
-                            risk.assessmentCycle,
-                            risk.updatedAt,
-                          )}
+                        <TableCell className="text-left text-muted-foreground">
+                          {risk.probability ?? "-"}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            {risk.orgName || "-"}
-                            {isReadOnly && (
-                              <Badge
-                                variant="secondary"
-                                className="text-[9px] h-4 px-1"
-                                title="Read-only access"
-                              >
-                                RO
-                              </Badge>
-                            )}
-                          </div>
+                        <TableCell className="text-left text-muted-foreground">
+                          {risk.impact ?? "-"}
                         </TableCell>
                         <TableCell className="text-center">
                           <span className="text-sm font-bold">
@@ -1003,6 +995,15 @@ export default function RiskRegisterPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground capitalize">
                           {risk.treatmentOption || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {risk.createdAt
+                            ? new Date(risk.createdAt).toLocaleDateString("id-ID", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })
+                            : "-"}
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">

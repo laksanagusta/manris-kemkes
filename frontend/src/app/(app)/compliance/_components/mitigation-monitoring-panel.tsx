@@ -223,7 +223,7 @@ export function MitigationMonitoringPanel() {
           Work queue mitigasi
         </p>
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Mitigasi</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Penanganan</h2>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
             Prioritaskan rencana yang mendekati tenggat atau sudah overdue, lalu kirim progres
             pelaksanaannya dari daftar kerja yang sama.
@@ -235,7 +235,7 @@ export function MitigationMonitoringPanel() {
         <Card className="border-border/50 bg-card/80">
           <CardContent className="flex items-center justify-between p-4">
             <div>
-              <p className="text-xs text-muted-foreground">Total Mitigasi</p>
+              <p className="text-xs text-muted-foreground">Total Penanganan</p>
               <p className="mt-1 text-2xl font-bold">{mitigations.length}</p>
             </div>
             <ShieldAlert className="size-5 text-muted-foreground" />
@@ -291,7 +291,7 @@ export function MitigationMonitoringPanel() {
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
               <TableHead className="w-20 text-sm">Kode</TableHead>
-              <TableHead className="text-sm">Rencana Mitigasi</TableHead>
+              <TableHead className="text-sm">Rencana Penanganan</TableHead>
               <TableHead className="w-28 text-sm">Unit / PIC</TableHead>
               <TableHead className="w-24 text-sm">Jatuh Tempo</TableHead>
               <TableHead className="w-20 text-center text-sm">Hari</TableHead>
@@ -458,7 +458,7 @@ export function MitigationMonitoringPanel() {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base">Lapor Progress Mitigasi</DialogTitle>
+            <DialogTitle className="text-base">Lapor Progress Penanganan</DialogTitle>
             <DialogDescription className="text-xs">
               {selectedTask?.mitigationAction} — {selectedTask?.periodLabel}
             </DialogDescription>

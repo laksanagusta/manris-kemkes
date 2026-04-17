@@ -245,7 +245,7 @@ export function MitigationProgressTab({
       <Card className="border-border/50">
         <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-border/50">
           <CardTitle className="text-base font-bold flex items-center gap-2">
-            <Activity className="size-4" /> Progress Aktual Mitigasi
+            <Activity className="size-4" /> Progress Aktual Penanganan
           </CardTitle>
           <div className="flex gap-2">
             <Button
@@ -262,7 +262,7 @@ export function MitigationProgressTab({
           {tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center border-2 border-dashed border-border/60 rounded-lg bg-muted/10">
               <Activity className="size-8 text-muted-foreground/50 mb-3" />
-              <p className="text-sm font-medium">Belum Ada Task Mitigasi</p>
+              <p className="text-sm font-medium">Belum Ada Task Penanganan</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm">
                 Klik &quot;Generate Task&quot; untuk membuat task berdasarkan
                 jadwal mitigasi rutin, atau task akan dibuat otomatis oleh
@@ -407,7 +407,7 @@ export function MitigationProgressTab({
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-base">
-              Lapor Progress Mitigasi
+              Lapor Progress Penanganan
             </DialogTitle>
             <DialogDescription className="text-xs">
               {selectedTask?.mitigationAction} — {selectedTask?.periodLabel}

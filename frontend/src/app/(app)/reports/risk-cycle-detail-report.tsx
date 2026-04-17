@@ -215,7 +215,7 @@ function MitigationDiffTable({ diffs }: { diffs: RiskMitigationDiff[] }) {
             <Badge variant="outline" className={cn("font-normal", changeTypeMeta[diff.changeType] || "border-border text-foreground")}>
               {diff.changeType}
             </Badge>
-            <span className="text-sm font-medium text-foreground">Mitigasi #{diff.rowKey}</span>
+            <span className="text-sm font-medium text-foreground">Penanganan #{diff.rowKey}</span>
             {(diff.afterLabel || diff.beforeLabel) ? (
               <span className="break-words text-xs text-muted-foreground">{diff.beforeLabel || diff.afterLabel}</span>
             ) : null}
@@ -558,7 +558,7 @@ export function RiskCycleDetailReport({
                                   <FieldDiffTable diffs={item.fieldDiffs} />
                                 </div>
                                 <div className="space-y-2">
-                                  <p className="text-sm font-semibold text-foreground">Perubahan Mitigasi</p>
+                                  <p className="text-sm font-semibold text-foreground">Perubahan Penanganan</p>
                                   <MitigationDiffTable diffs={item.mitigationDiffs} />
                                 </div>
                               </div>

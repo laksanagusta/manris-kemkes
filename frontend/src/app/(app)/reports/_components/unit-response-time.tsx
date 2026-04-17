@@ -99,7 +99,7 @@ export function UnitResponseTimeChart({ loading, data = [] }: UnitResponseTimeCh
                   <Tooltip
                     formatter={(value, name) => [
                       `${value} hari`,
-                      name === "avgMitigationDays" ? "Rata-rata Mitigasi" : "Rata-rata Persetujuan",
+                      name === "avgMitigationDays" ? "Rata-rata Penanganan" : "Rata-rata Persetujuan",
                     ]}
                     contentStyle={{
                       background: "oklch(0.15 0.02 265 / 95%)",
@@ -118,7 +118,7 @@ export function UnitResponseTimeChart({ loading, data = [] }: UnitResponseTimeCh
             <div className="mt-3 flex items-center justify-center gap-4 border-t border-border/40 pt-3">
               <div className="flex items-center gap-1.5">
                 <div className="size-2.5 rounded-[3px]" style={{ background: MITIGATION_COLOR }} />
-                <span className="text-[10px] text-muted-foreground">Rata-rata Mitigasi</span>
+                <span className="text-[10px] text-muted-foreground">Rata-rata Penanganan</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="size-2.5 rounded-[3px]" style={{ background: APPROVAL_COLOR }} />

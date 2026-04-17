@@ -17,7 +17,7 @@ const tabMeta: Record<MonitoringTab, { label: string; description: string }> = {
       "Pantau queue reassessment semester global, lihat risiko yang due, draft berjalan, hingga yang sudah approved.",
   },
   mitigations: {
-    label: "Mitigasi",
+    label: "Penanganan",
     description:
       "Lacak rencana yang mendekati tenggat dan laporkan progres pelaksanaannya.",
   },
@@ -96,7 +96,7 @@ export function MonitoringReportingWorkspace() {
               className="h-full min-w-0 basis-0 gap-2 px-5 text-sm"
             >
               <ClipboardCheck className="size-4" />
-              Mitigasi
+              Penanganan
             </TabsTrigger>
           </TabsList>
         </div>

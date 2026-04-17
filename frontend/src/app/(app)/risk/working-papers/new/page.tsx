@@ -125,6 +125,11 @@ interface SortableSignatoryRowProps {
   onUserSelect: (index: number, userId: string) => void;
   onRemove: () => void;
   canRemove: boolean;
+  userSearch: string;
+  setUserSearch: (val: string) => void;
+  userPage: number;
+  setUserPage: (val: number) => void;
+  userTotal: number;
 }
 
 function SortableSignatoryRow({
@@ -138,6 +143,11 @@ function SortableSignatoryRow({
   onUserSelect,
   onRemove,
   canRemove,
+  userSearch,
+  setUserSearch,
+  userPage,
+  setUserPage,
+  userTotal,
 }: SortableSignatoryRowProps) {
   const { ref, handleRef, isDragging } = useSortable({
     id: field.id,
@@ -191,11 +201,58 @@ function SortableSignatoryRow({
                   <SelectValue placeholder="Pilih pengguna..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.name} ({u.email})
-                    </SelectItem>
-                  ))}
+                  <div className="p-2 border-b">
+                    <Input
+                      placeholder="Cari pengguna..."
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                      className="h-8"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="max-h-[200px] overflow-y-auto">
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.email})
+                      </SelectItem>
+                    ))}
+                    {users.length === 0 && (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        Tidak ada pengguna ditemukan
+                      </div>
+                    )}
+                  </div>
+                  {userTotal > 10 && (
+                    <div className="p-2 border-t flex items-center justify-between">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={userPage === 1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUserPage((p) => p - 1);
+                        }}
+                        className="h-6 text-xs"
+                      >
+                        ← Prev
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        {userPage} / {Math.ceil(userTotal / 10)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={userPage >= Math.ceil(userTotal / 10)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUserPage((p) => p + 1);
+                        }}
+                        className="h-6 text-xs"
+                      >
+                        Next →
+                      </Button>
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             )}
@@ -254,6 +311,10 @@ export default function CreateWorkingPaperPage() {
 
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [users, setUsers] = useState<UserOption[]>([]);
+  const [userSearch, setUserSearch] = useState("");
+  const [userSearchDebounced, setUserSearchDebounced] = useState("");
+  const [userPage, setUserPage] = useState(1);
+  const [userTotal, setUserTotal] = useState(0);
 
   const assessmentCycle = (() => {
     const now = new Date();
@@ -299,29 +360,54 @@ export default function CreateWorkingPaperPage() {
   const watchRisks = watch("risks");
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setUserSearchDebounced(userSearch);
+      setUserPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [userSearch]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchUsers = async () => {
+      try {
+        setLoadingUsers(true);
+        const res = await api.get<{ data: UserOption[]; total: number }>(
+          `/users?limit=10&page=${userPage}${userSearchDebounced ? `&q=${encodeURIComponent(userSearchDebounced)}` : ""}`,
+          token,
+        );
+        setUsers(res?.data || []);
+        setUserTotal(res?.total || 0);
+      } catch (error) {
+        console.error("Failed to load users", error);
+        toast.error("Gagal memuat data pengguna");
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, [token, userSearchDebounced, userPage]);
+
+  useEffect(() => {
     if (!token) return;
 
     const fetchInitialData = async () => {
       try {
         setLoadingRisks(true);
-        setLoadingUsers(true);
 
-        const [risksRes, usersRes] = await Promise.all([
-          api.get<RiskOption[]>("/risks?status=approved", token),
-          api.get<{ data: UserOption[] }>("/users?limit=100", token),
-        ]);
+        const risksRes = await api.get<RiskOption[]>("/risks?status=approved", token);
 
         const validRisks = (risksRes || []).filter(
           (r) => r.status === "approved" && r.isCurrent,
         );
         setRisks(validRisks);
-        setUsers(usersRes?.data || []);
       } catch (error) {
         console.error("Failed to load initial data", error);
-        toast.error("Gagal memuat data risiko atau pengguna");
+        toast.error("Gagal memuat data risiko");
       } finally {
         setLoadingRisks(false);
-        setLoadingUsers(false);
       }
     };
 
@@ -766,6 +852,11 @@ export default function CreateWorkingPaperPage() {
                   onUserSelect={handleUserSelect}
                   onRemove={() => removeSignatory(index)}
                   canRemove={signatoryFields.length > 1}
+                  userSearch={userSearch}
+                  setUserSearch={setUserSearch}
+                  userPage={userPage}
+                  setUserPage={setUserPage}
+                  userTotal={userTotal}
                 />
               ))}
             </div>

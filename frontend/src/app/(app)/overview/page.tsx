@@ -271,7 +271,7 @@ export default function DashboardPage() {
           description: "memerlukan perhatian",
         },
         {
-          title: "Mitigasi Overdue",
+          title: "Penanganan Overdue",
           value: summary.overdueMitigations,
           change: "--",
           trend: "stable",
@@ -613,7 +613,7 @@ export default function DashboardPage() {
           <CardHeader>
             <div>
               <CardTitle className="text-base font-semibold">
-                Progress Mitigasi
+                Progress Penanganan
               </CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">
                 Distribusi mitigasi selesai dan overdue per bulan.
@@ -666,7 +666,7 @@ export default function DashboardPage() {
                       />
                       <Bar
                         dataKey="mitigationsCompleted"
-                        name="Mitigasi Selesai"
+                        name="Penanganan Selesai"
                         fill="oklch(0.72 0.17 155)"
                         radius={[4, 4, 0, 0]}
                       />
@@ -682,7 +682,7 @@ export default function DashboardPage() {
                 <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                   <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
                     <p className="text-[10px] text-muted-foreground">
-                      Total Mitigasi
+                      Total Penanganan
                     </p>
                     <p className="mt-1 font-semibold text-foreground">
                       {actionPressureData.reduce(

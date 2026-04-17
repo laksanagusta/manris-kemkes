@@ -106,7 +106,7 @@ export function SimpulanCard({ nilaiCurrent, nilaiBaru, targetScore = 0, probabi
           )}
 
           <div className="flex items-center justify-between border-t border-border/50 pt-4">
-            <p className="text-xs font-medium text-muted-foreground">Efektifitas Mitigasi</p>
+            <p className="text-xs font-medium text-muted-foreground">Efektifitas Penanganan</p>
             <Badge variant="outline" className={cn("border-transparent font-medium", efektifitasColor)}>
               {efektifitasLabel}
             </Badge>
