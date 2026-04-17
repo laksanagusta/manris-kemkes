@@ -335,7 +335,7 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 		filter := fmt.Sprintf(" AND org_id = ANY($%d)", argIdx)
 		countQuery += filter
 		dataQuery += filter
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 		argIdx++
 	}
 
@@ -496,7 +496,7 @@ func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, 
 
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND wp.org_id = ANY($%d)", argIdx)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 		argIdx++
 	}
 

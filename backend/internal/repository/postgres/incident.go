@@ -97,7 +97,7 @@ func (r *incidentRepository) GetByID(ctx context.Context, id string, orgIDs []uu
 	args := []interface{}{id}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND i.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 
 	var incident entity.Incident
@@ -195,7 +195,7 @@ func (r *incidentRepository) List(ctx context.Context, orgIDs []uuid.UUID) ([]*e
 
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND i.organization_id = ANY($%d)", argIdx)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 		argIdx++
 	}
 
@@ -247,7 +247,7 @@ func (r *incidentRepository) GetSummary(ctx context.Context, orgIDs []uuid.UUID)
 
 	if len(orgIDs) > 0 {
 		whereClause += fmt.Sprintf(" AND organization_id = ANY($%d)", argIdx)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 		argIdx++
 	}
 	_ = argIdx

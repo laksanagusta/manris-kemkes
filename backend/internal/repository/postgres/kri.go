@@ -52,7 +52,7 @@ func (r *kriRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid
 	args := []interface{}{id}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND k.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&kri.ID, &kri.RiskID, &kri.RiskCode, &kri.RiskTitle,
@@ -120,7 +120,7 @@ func (r *kriRepository) List(ctx context.Context, orgIDs []uuid.UUID, includeArc
 
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND k.organization_id = ANY($%d)", argIdx)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 		argIdx++
 	}
 
@@ -166,7 +166,7 @@ func (r *kriRepository) GetDashboard(ctx context.Context, orgIDs []uuid.UUID) (m
 	args := []interface{}{}
 	if len(orgIDs) > 0 {
 		query += " AND organization_id = ANY($1)"
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 
 	var total, breached, warning int

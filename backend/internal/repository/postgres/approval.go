@@ -26,14 +26,14 @@ func (r *approvalRepository) List(ctx context.Context, status string, approverRo
 	argIdx := 1
 
 	if len(orgIDs) > 0 {
-		whereClause += ` AND (
+		whereClause += fmt.Sprintf(` AND (
 			(ar.request_type = 'risk' AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($1)))
 			OR 
 			(ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($1)))
 			OR 
 			(ar.request_type NOT IN ('risk', 'incident'))
-		)`
-		args = append(args, orgIDs)
+		)`)
+		args = append(args, uuidArrayToStrings(orgIDs))
 		argIdx++
 	}
 
@@ -430,7 +430,7 @@ func (r *approvalRepository) GetPendingCount(ctx context.Context, approverRole s
 			"OR (ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($%d)))\n"+
 			"OR (ar.request_type NOT IN ('risk', 'incident'))\n"+
 			")", len(args)+1, len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 
 	if approverUserID != nil {

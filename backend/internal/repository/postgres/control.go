@@ -48,7 +48,7 @@ func (r *controlRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []
 	args := []interface{}{id}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND c.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&control.ID, &control.Name, &control.Description, &control.Type, &control.Frequency,
@@ -102,7 +102,7 @@ func (r *controlRepository) List(ctx context.Context, orgIDs []uuid.UUID) ([]*en
 
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND c.organization_id = ANY($%d)", argIdx)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 		argIdx++
 	}
 
@@ -148,7 +148,7 @@ func (r *controlRepository) GetDashboard(ctx context.Context, orgIDs []uuid.UUID
 	args := []interface{}{}
 	if len(orgIDs) > 0 {
 		query += " AND c.organization_id = ANY($1)"
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 
 	var total, effective, ineffective, notTested int

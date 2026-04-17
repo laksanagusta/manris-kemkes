@@ -87,7 +87,7 @@ func (r *meetingMinuteRepository) GetByID(ctx context.Context, id uuid.UUID, org
 	args := []interface{}{id}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND mm.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 
 	err := r.pool.QueryRow(ctx, query, args...).Scan(&mm.ID, &mm.Title, &mm.Date, &mm.Participants, &mm.Agenda, &mm.Summary, &mm.KeyPoints, &mm.Decisions, &mm.OpenIssues, &actionItemsJSON, &mm.NextCheckIn, &mm.Transcript, &mm.OrganizationID, &mm.CreatedBy, &mm.CreatedAt, &mm.UpdatedAt, &mm.CreatedByName)
