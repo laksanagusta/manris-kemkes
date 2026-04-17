@@ -34,6 +34,15 @@ func NewRiskRepository(pool *pgxpool.Pool) repository.RiskRepository {
 	return &riskRepository{pool: pool}
 }
 
+// uuidArrayToStrings converts []uuid.UUID to []string for pgx ANY($N::uuid[]) queries
+func uuidArrayToStrings(ids []uuid.UUID) []string {
+	strs := make([]string, len(ids))
+	for i, id := range ids {
+		strs[i] = id.String()
+	}
+	return strs
+}
+
 // Create inserts a new risk and its mitigations
 func (r *riskRepository) Create(ctx context.Context, risk *entity.Risk) error {
 	return insertRiskWithQueryer(ctx, r.pool, risk)
@@ -134,7 +143,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 	args := []interface{}{id}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 
 	err := r.pool.QueryRow(ctx, query, args...).Scan(
@@ -332,7 +341,7 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 		argIdx++
 	}
 	if status != "" && status != "all" && status != entity.RiskStatusDraft {
@@ -559,7 +568,7 @@ func (r *riskRepository) ListMitigations(ctx context.Context, orgIDs []uuid.UUID
 
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 
 	query += ` ORDER BY m.due_date ASC`
@@ -701,7 +710,7 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle stri
 		args = []interface{}{cycle}
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($2)"
-			args = append(args, orgIDs)
+			args = append(args, uuidArrayToStrings(orgIDs))
 		}
 		query += `
 		 GROUP BY 1
@@ -718,7 +727,7 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle stri
 		 WHERE r.is_current = TRUE AND r.status = 'approved'`, scoreExpr)
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($1)"
-			args = append(args, orgIDs)
+			args = append(args, uuidArrayToStrings(orgIDs))
 		}
 		query += `
 		 GROUP BY 1
@@ -751,7 +760,7 @@ func (r *riskRepository) HeatmapData(ctx context.Context, cycle string, orgIDs [
 		args = []interface{}{cycle}
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($2)"
-			args = append(args, orgIDs)
+			args = append(args, uuidArrayToStrings(orgIDs))
 		}
 		query += " GROUP BY 1, 2"
 	} else {
@@ -759,7 +768,7 @@ func (r *riskRepository) HeatmapData(ctx context.Context, cycle string, orgIDs [
 		 FROM risks r WHERE r.status IN ('assessment_in_review','approved') AND r.is_current = TRUE`
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($1)"
-			args = append(args, orgIDs)
+			args = append(args, uuidArrayToStrings(orgIDs))
 		}
 		query += " GROUP BY 1, 2"
 	}
@@ -793,7 +802,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 		argIdx := 2
 		if len(orgIDs) > 0 {
 			query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
-			args = append(args, orgIDs)
+			args = append(args, uuidArrayToStrings(orgIDs))
 			argIdx++
 		}
 		query += fmt.Sprintf(`
@@ -808,7 +817,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 		argIdx := 1
 		if len(orgIDs) > 0 {
 			query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
-			args = append(args, orgIDs)
+			args = append(args, uuidArrayToStrings(orgIDs))
 			argIdx++
 		}
 		query += fmt.Sprintf(`
@@ -914,7 +923,7 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 	args := []interface{}{cycle}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 	query += " ORDER BY COALESCE(o.name, ''), COALESCE(r.code, ''), r.title"
 
@@ -1215,7 +1224,7 @@ func (r *riskRepository) CompareCycles(ctx context.Context, fromCycle string, to
 	args := []interface{}{fromCycle, toCycle}
 	if len(orgIDs) > 0 {
 		cteQuery += fmt.Sprintf(" AND curr.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 
 	query := cteQuery + `)
@@ -1353,7 +1362,7 @@ func (r *riskRepository) RiskReviewSummary(ctx context.Context, cycle string, or
 		args := []interface{}{targetCycle}
 		if len(orgIDs) > 0 {
 			query += fmt.Sprintf(" AND organization_id = ANY($%d)", len(args)+1)
-			args = append(args, orgIDs)
+			args = append(args, uuidArrayToStrings(orgIDs))
 		}
 		query += " GROUP BY 1, 2"
 		rows, err := r.pool.Query(ctx, query, args...)
@@ -1460,7 +1469,7 @@ func (r *riskRepository) GetHeatmapVelocity(ctx context.Context, fromCycle, toCy
 	args := []interface{}{fromCycle, toCycle}
 	if len(orgIDs) > 0 {
 		query = heatmapVelocityQueryScoped()
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -1512,7 +1521,7 @@ func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context, orgID
 	args := []interface{}{}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" WHERE r.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 	query += ` GROUP BY org.id, org.name
 	ORDER BY org.name ASC`
@@ -1574,7 +1583,7 @@ func (r *riskRepository) GetKRIBreachSummary(ctx context.Context, orgIDs []uuid.
 	args := []interface{}{}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND k.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 	query += `
 	ORDER BY
@@ -1610,7 +1619,7 @@ func (r *riskRepository) GetUnitResponseTime(ctx context.Context, orgIDs []uuid.
 	args := []interface{}{}
 	if len(orgIDs) > 0 {
 		orgFilter = fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		args = append(args, uuidArrayToStrings(orgIDs))
 	}
 	query := fmt.Sprintf(`
 	WITH approval_timing AS (
