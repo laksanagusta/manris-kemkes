@@ -7,11 +7,11 @@ import (
 	"github.com/manris/backend/internal/domain/errors"
 )
 
-// ApprovalRequest represents an approval request for risks/incidents.
+// ApprovalRequest represents an approval request for risks/incidents/assessments.
 // This is a domain entity that contains business logic.
 type ApprovalRequest struct {
 	ID                    uuid.UUID
-	RequestType           string // 'risk' or 'incident'
+	RequestType           string // 'risk', 'incident', or 'assessment'
 	EntityID              uuid.UUID
 	RequestedBy           uuid.UUID
 	RequestedByName       string
@@ -65,7 +65,7 @@ func (a *ApprovalRequest) Validate() error {
 	if a.RequestType == "" {
 		return errors.ErrInvalidRequestType
 	}
-	if a.RequestType != "risk" && a.RequestType != "incident" {
+	if a.RequestType != "risk" && a.RequestType != "incident" && a.RequestType != "assessment" {
 		return errors.ErrInvalidRequestType
 	}
 	if a.CurrentStatus == "" {

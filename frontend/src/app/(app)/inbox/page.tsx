@@ -122,6 +122,11 @@ const requestTypeConfig: Record<
     label: "Risiko",
     href: (id) => `/risk/register/${id}`,
   },
+  assessment: {
+    icon: FileText,
+    label: "Penilaian Risiko",
+    href: (id) => `/risk/assessment/${id}`,
+  },
   incident: {
     icon: AlertTriangle,
     label: "Insiden",

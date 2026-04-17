@@ -33,9 +33,15 @@ export interface AssessmentFormValues {
 
 interface HasilPemantauanCardProps {
   form: UseFormReturn<AssessmentFormValues>;
+  treatmentPlan?: {
+    action?: string;
+    owner?: string;
+    dueDate?: string;
+    frequency?: string;
+  } | null;
 }
 
-export function HasilPemantauanCard({ form }: HasilPemantauanCardProps) {
+export function HasilPemantauanCard({ form, treatmentPlan }: HasilPemantauanCardProps) {
   const probability = form.watch("probability");
   const impact = form.watch("impact");
   const probError = form.formState.errors.probability;
@@ -57,22 +63,35 @@ export function HasilPemantauanCard({ form }: HasilPemantauanCardProps) {
         <CardTitle>Hasil Pemantauan</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-6">
+        {treatmentPlan && (
+          <div className="rounded-lg border border-border/50 bg-muted/20 p-4 space-y-3">
+            <Label className="text-sm font-medium text-foreground">
+              Rencana Penanganan (dari versi terakhir yang disetujui)
+            </Label>
+            {treatmentPlan.action ? (
+              <div className="space-y-2 text-sm">
+                <p><span className="font-medium text-muted-foreground">Tindakan:</span> {treatmentPlan.action}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <p><span className="text-muted-foreground">PIC:</span> {treatmentPlan.owner || "-"}</p>
+                  <p><span className="text-muted-foreground">Tenggat Waktu:</span> {treatmentPlan.dueDate || "-"}</p>
+                  <p><span className="text-muted-foreground">Frekuensi:</span> {treatmentPlan.frequency || "-"}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Belum ada rencana penanganan</p>
+            )}
+          </div>
+        )}
+        
         <TooltipProvider>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label>Skor Probabilitas Baru</Label>
-                {probError && (
-                  <span className="text-xs text-red-500 font-medium">
-                    {probError.message || "Wajib diisi"}
-                  </span>
-                )}
-              </div>
+              <Label>Probabilitas</Label>
               <Controller
                 control={form.control}
                 name="probability"
                 render={({ field }) => (
-                  <div className="grid grid-cols-5 gap-1.5">
+                  <div className="grid grid-cols-5 gap-2">
                     {[1, 2, 3, 4, 5].map((val) => (
                       <Tooltip key={val}>
                         <TooltipTrigger asChild>
@@ -80,10 +99,10 @@ export function HasilPemantauanCard({ form }: HasilPemantauanCardProps) {
                             type="button"
                             onClick={() => field.onChange(val)}
                             className={cn(
-                              "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                              "h-14 rounded-xl border-2 text-lg font-bold transition-all",
                               val === field.value
-                                ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, impact, getBobot(val, impact))))} ring-1 font-bold`
-                                : "bg-muted/30 hover:bg-muted/50"
+                                ? "border-amber-600 bg-amber-50 text-amber-900"
+                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
                             )}
                             data-testid={val === field.value ? "new-probability" : undefined}
                           >
@@ -98,22 +117,20 @@ export function HasilPemantauanCard({ form }: HasilPemantauanCardProps) {
                   </div>
                 )}
               />
+              {probError && (
+                <span className="text-xs text-red-500 font-medium">
+                  {probError.message || "Wajib diisi"}
+                </span>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label>Skor Dampak Baru</Label>
-                {impactError && (
-                  <span className="text-xs text-red-500 font-medium">
-                    {impactError.message || "Wajib diisi"}
-                  </span>
-                )}
-              </div>
+              <Label>Dampak (Residual)</Label>
               <Controller
                 control={form.control}
                 name="impact"
                 render={({ field }) => (
-                  <div className="grid grid-cols-5 gap-1.5">
+                  <div className="grid grid-cols-5 gap-2">
                     {[1, 2, 3, 4, 5].map((val) => (
                       <Tooltip key={val}>
                         <TooltipTrigger asChild>
@@ -121,10 +138,10 @@ export function HasilPemantauanCard({ form }: HasilPemantauanCardProps) {
                             type="button"
                             onClick={() => field.onChange(val)}
                             className={cn(
-                              "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                              "h-14 rounded-xl border-2 text-lg font-bold transition-all",
                               val === field.value
-                                ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(probability, val, getBobot(probability, val))))} ring-1 font-bold`
-                                : "bg-muted/30 hover:bg-muted/50"
+                                ? "border-amber-600 bg-amber-50 text-amber-900"
+                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
                             )}
                             data-testid={val === field.value ? "new-impact" : undefined}
                           >
@@ -139,31 +156,14 @@ export function HasilPemantauanCard({ form }: HasilPemantauanCardProps) {
                   </div>
                 )}
               />
+              {impactError && (
+                <span className="text-xs text-red-500 font-medium">
+                  {impactError.message || "Wajib diisi"}
+                </span>
+              )}
             </div>
           </div>
         </TooltipProvider>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-2">
-            <Label>Bobot (Otomatis)</Label>
-            <div
-              className="flex h-10 w-full items-center rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
-              data-testid="new-bobot"
-            >
-              {bobot ? bobot.toFixed(2) : "-"}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label>Nilai (Otomatis)</Label>
-            <div
-              className="flex h-10 w-full items-center rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
-              data-testid="new-nilai"
-            >
-              {nilai ? nilai.toFixed(2) : "-"}
-            </div>
-          </div>
-        </div>
 
         <div className="flex flex-col gap-2">
           <Label>Alasan Perubahan Skor</Label>

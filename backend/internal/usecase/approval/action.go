@@ -99,7 +99,7 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 		}
 		if nextStep == nil {
 			newStatus = "approved"
-			if approvalReq.RequestType == "risk" {
+			if approvalReq.RequestType == "risk" || approvalReq.RequestType == "assessment" {
 				if currentStep.StepType == "review" {
 					newEntityStatus = entity.RiskStatusInReview
 				} else {
@@ -161,9 +161,9 @@ func validateCurrentApprover(approvalReq *entity.ApprovalRequest, actorID uuid.U
 	return nil
 }
 
-// updateEntityStatus updates the status of the entity (risk or incident).
+// updateEntityStatus updates the status of the entity (risk, assessment, or incident).
 func (uc *ApprovalActionUseCase) updateEntityStatus(ctx context.Context, approvalReq *entity.ApprovalRequest, status string, input ApprovalActionInput) error {
-	if approvalReq.RequestType == "risk" {
+	if approvalReq.RequestType == "risk" || approvalReq.RequestType == "assessment" {
 		risk, err := uc.riskRepo.GetByID(ctx, approvalReq.EntityID, input.OrgIDs)
 		if err != nil {
 			return err

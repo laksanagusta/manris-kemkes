@@ -70,18 +70,38 @@ export function ProfilRisikoCard({ risk }: ProfilRisikoCardProps) {
 
         <div className="pt-4 border-t border-border/50">
           <p className="text-sm font-medium text-muted-foreground mb-3">Rencana Penanganan</p>
-          {risk.mitigation && risk.mitigation.action ? (
-            <div className="bg-background rounded-md p-3 text-sm space-y-2 border border-border/50">
-              <p><span className="font-medium text-muted-foreground">Tindakan:</span> {risk.mitigation.action}</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
-                <p><span className="text-muted-foreground">PIC:</span> {risk.mitigation.owner || "-"}</p>
-                <p><span className="text-muted-foreground">Tenggat Waktu:</span> {risk.mitigation.dueDate || "-"}</p>
-                <p><span className="text-muted-foreground">Frekuensi:</span> {risk.mitigation.frequency || "-"}</p>
+          {(() => {
+            const mitigations = risk.mitigations?.length ? risk.mitigations : (risk.mitigation ? [risk.mitigation] : []);
+            const validMitigations = mitigations.filter(m => m && m.action);
+            return validMitigations.length > 0 ? (
+              <div className="bg-background rounded-md border border-border/50 overflow-hidden overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 border-b border-border/50">
+                    <tr>
+                      <th className="text-left text-muted-foreground font-medium px-4 py-3 w-12">No</th>
+                      <th className="text-left text-muted-foreground font-medium px-4 py-3">Tindakan</th>
+                      <th className="text-left text-muted-foreground font-medium px-4 py-3">PIC</th>
+                      <th className="text-left text-muted-foreground font-medium px-4 py-3">Tenggat Waktu</th>
+                      <th className="text-left text-muted-foreground font-medium px-4 py-3">Frekuensi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {validMitigations.map((m, i) => (
+                      <tr key={i} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
+                        <td className="px-4 py-3">{m.action}</td>
+                        <td className="px-4 py-3">{m.owner || "-"}</td>
+                        <td className="px-4 py-3">{m.dueDate || "-"}</td>
+                        <td className="px-4 py-3">{m.frequency || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">Belum ada rencana penanganan</p>
-          )}
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Belum ada rencana penanganan</p>
+            );
+          })()}
         </div>
 
         <div className="pt-4 border-t border-border/50">

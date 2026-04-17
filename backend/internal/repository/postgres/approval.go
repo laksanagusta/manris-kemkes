@@ -68,12 +68,12 @@ func (r *approvalRepository) List(ctx context.Context, status string, approverRo
 		       COALESCE(u.name, '') as requested_by_name,
 		       COALESCE(cu.name, '') as current_approver_name,
 		       CASE
-			       WHEN ar.request_type = 'risk' THEN (SELECT code FROM risks WHERE id = ar.entity_id)
+			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT code FROM risks WHERE id = ar.entity_id)
 			       WHEN ar.request_type = 'incident' THEN (SELECT code FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_code,
 		       CASE
-			       WHEN ar.request_type = 'risk' THEN (SELECT title FROM risks WHERE id = ar.entity_id)
+			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT title FROM risks WHERE id = ar.entity_id)
 			       WHEN ar.request_type = 'incident' THEN (SELECT title FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_title
@@ -118,12 +118,12 @@ func (r *approvalRepository) FindByID(ctx context.Context, id uuid.UUID, orgIDs 
 		       COALESCE(u.name, '') as requested_by_name,
 		       COALESCE(cu.name, '') as current_approver_name,
 		       CASE
-			       WHEN ar.request_type = 'risk' THEN (SELECT code FROM risks WHERE id = ar.entity_id)
+			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT code FROM risks WHERE id = ar.entity_id)
 			       WHEN ar.request_type = 'incident' THEN (SELECT code FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_code,
 		       CASE
-			       WHEN ar.request_type = 'risk' THEN (SELECT title FROM risks WHERE id = ar.entity_id)
+			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT title FROM risks WHERE id = ar.entity_id)
 			       WHEN ar.request_type = 'incident' THEN (SELECT title FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_title
@@ -169,12 +169,12 @@ func (r *approvalRepository) FindByEntity(ctx context.Context, requestType strin
 		       COALESCE(u.name, '') as requested_by_name,
 		       COALESCE(cu.name, '') as current_approver_name,
 		       CASE
-			       WHEN ar.request_type = 'risk' THEN (SELECT code FROM risks WHERE id = ar.entity_id)
+			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT code FROM risks WHERE id = ar.entity_id)
 			       WHEN ar.request_type = 'incident' THEN (SELECT code FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_code,
 		       CASE
-			       WHEN ar.request_type = 'risk' THEN (SELECT title FROM risks WHERE id = ar.entity_id)
+			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT title FROM risks WHERE id = ar.entity_id)
 			       WHEN ar.request_type = 'incident' THEN (SELECT title FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_title

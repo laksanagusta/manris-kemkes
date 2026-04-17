@@ -63,7 +63,7 @@ export function buildVersionHistoryItem(
 
   return {
     id: version.id,
-    riskId: version.code || current.code || "-",
+    riskId: version.id,
     title: version.title || current.title || "-",
     unit: current.orgName || version.orgName || "—",
     cycle: version.assessmentCycle || new Date(version.createdAt).toLocaleDateString("id-ID", { year: "numeric", month: "short" }),

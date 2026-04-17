@@ -273,6 +273,7 @@ export interface Risk {
   riskAppetite: RiskAppetite;
   treatmentOption: TreatmentOption;
   mitigation: RiskMitigation;
+  mitigations?: RiskMitigation[];
   targetProbability: number;
   targetImpact: number;
   targetWeight: number;

@@ -34,15 +34,15 @@ func NewSubmitApprovalUseCase(
 
 // Input represents the input for submitting approval
 type SubmitApprovalInput struct {
-	RequestType    string   // 'risk' or 'incident'
-	EntityID       string   // entity ID as string
-	RequestedBy    string   // user ID who is submitting
-	ActorName      string   // user name who is submitting
-	Role           string   // user role (unit, reviewer, pimpinan, etc.)
-	ApproverIDs    []string `json:"approverIds"`
-	SubmissionType string   // 'review' (includes reviewer) or 'approval' (approval only)
-	Notes          string   // optional notes
-	OrgIDs         []uuid.UUID
+	RequestType    string      `json:"requestType"`    // 'risk', 'assessment', or 'incident'
+	EntityID       string      `json:"entityId"`       // entity ID as string
+	RequestedBy    string      `json:"-"`              // user ID who is submitting (set by handler)
+	ActorName      string      `json:"-"`              // user name who is submitting (set by handler)
+	Role           string      `json:"-"`              // user role (set by handler)
+	ApproverIDs    []string    `json:"approverIds"`    // approver IDs
+	SubmissionType string      `json:"submissionType"` // 'review' (includes reviewer) or 'approval' (approval only)
+	Notes          string      `json:"notes"`          // optional notes
+	OrgIDs         []uuid.UUID `json:"-"`              // org IDs (set by handler)
 }
 
 // Output represents the output of submitting approval
@@ -67,16 +67,16 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 	}
 
 	// Validate request type
-	if input.RequestType != "risk" && input.RequestType != "incident" {
+	if input.RequestType != "risk" && input.RequestType != "incident" && input.RequestType != "assessment" {
 		return nil, domainerrors.ErrInvalidRequestType
 	}
 
-	if input.RequestType == "risk" && len(input.ApproverIDs) == 0 {
+	if (input.RequestType == "risk" || input.RequestType == "assessment") && len(input.ApproverIDs) == 0 {
 		return nil, domainerrors.ErrInvalidInput
 	}
 
 	// Check entity existence and permissions
-	if input.RequestType == "risk" {
+	if input.RequestType == "risk" || input.RequestType == "assessment" {
 		if err := uc.validateRisk(ctx, entityID, requestedBy, input.Role, input.OrgIDs); err != nil {
 			return nil, err
 		}
@@ -92,7 +92,7 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 		return nil, domainerrors.ErrAlreadyPending
 	}
 
-	if input.RequestType == "risk" {
+	if input.RequestType == "risk" || input.RequestType == "assessment" {
 		risk, err := uc.riskRepo.GetByID(ctx, entityID, input.OrgIDs)
 		if err != nil {
 			return nil, domainerrors.ErrRiskNotFound

@@ -27,7 +27,7 @@ func (e *AppError) Unwrap() error {
 var (
 	// Validation errors
 	ErrInvalidInput        = &AppError{Code: "INVALID_INPUT", Message: "invalid input"}
-	ErrInvalidRequestType  = &AppError{Code: "INVALID_REQUEST_TYPE", Message: "request type must be 'risk' or 'incident'"}
+	ErrInvalidRequestType  = &AppError{Code: "INVALID_REQUEST_TYPE", Message: "request type must be 'risk', 'incident', or 'assessment'"}
 	ErrInvalidStatus       = &AppError{Code: "INVALID_STATUS", Message: "invalid status"}
 	ErrInvalidApproverRole = &AppError{Code: "INVALID_APPROVER_ROLE", Message: "invalid approver role"}
 	ErrInvalidAction       = &AppError{Code: "INVALID_ACTION", Message: "action must be 'approve' or 'reject'"}
