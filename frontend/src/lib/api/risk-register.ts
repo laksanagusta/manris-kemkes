@@ -36,6 +36,9 @@ export interface RiskRegisterListItem {
   assessmentCycle?: string;
   reviewType?: string;
   changeReason?: string;
+  draftId?: string | null;
+  draftStatus?: RiskStatus | null;
+  hasOngoing?: boolean;
 }
 
 export interface PaginatedRiskRegisterResponse {

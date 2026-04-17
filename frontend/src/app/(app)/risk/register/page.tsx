@@ -625,18 +625,28 @@ export default function RiskRegisterPage() {
 
     toast.promise(
       (async () => {
-        const result = await api.post<{ id: string }>(
+        const result = await api.post<{ id: string; redirectUrl?: string; existingDraft?: boolean }>(
           `/risks/${selectedRiskForReassessment.id}/reassess`,
           { cycle },
           token,
         );
         await refreshRegisterData(token);
-        setActiveTab("my-drafts");
-        router.push(`/risk/register/${result.id}`);
+        
+        if (result.redirectUrl) {
+          router.push(result.redirectUrl);
+        } else {
+          setActiveTab("my-drafts");
+          router.push(`/risk/register/${result.id}`);
+        }
+        
+        return result;
       })(),
       {
         loading: `Membuat draft reassessment ${cycle}...`,
-        success: `Draft reassessment ${cycle} berhasil dibuat.`,
+        success: (result) => 
+          result.existingDraft 
+            ? `Melanjutkan draft reassessment ${cycle} yang sudah ada.`
+            : `Draft reassessment ${cycle} berhasil dibuat.`,
         error: (err) =>
           err instanceof Error
             ? err.message
@@ -971,23 +981,44 @@ export default function RiskRegisterPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            className={cn(
-                              "text-[10px] font-medium border h-5 px-1.5",
-                              risk.status
-                                ? statusVariant[risk.status]
-                                : undefined,
+                          <div className="flex gap-1.5">
+                            <Badge
+                              className={cn(
+                                "text-[10px] font-medium border h-5 px-1.5",
+                                risk.status
+                                  ? statusVariant[risk.status]
+                                  : undefined,
+                              )}
+                            >
+                              {risk.status ? statusLabel[risk.status] || risk.status : "-"}
+                            </Badge>
+                            {risk.hasOngoing && risk.draftStatus && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-medium border h-5 px-1.5 bg-amber-50 text-amber-700 border-amber-200"
+                              >
+                                📝 {statusLabel[risk.draftStatus] || risk.draftStatus}
+                              </Badge>
                             )}
-                          >
-                            {risk.status ? statusLabel[risk.status] || risk.status : "-"}
-                          </Badge>
+                          </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground capitalize">
                           {risk.treatmentOption || "-"}
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
-                            {canReassess && (
+                            {canReassess && risk.hasOngoing && risk.draftId && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1.5 px-2 text-xs"
+                                onClick={() => router.push(`/risk/register/${risk.draftId}`)}
+                              >
+                                <RefreshCcw className="size-3" />
+                                Lanjutkan Penilaian
+                              </Button>
+                            )}
+                            {canReassess && !risk.hasOngoing && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -995,7 +1026,7 @@ export default function RiskRegisterPage() {
                                 onClick={() => handleOpenConfirmDialog(risk)}
                               >
                                 <RefreshCcw className="size-3" />
-                                Reassessment
+                                Mulai Reassessment
                               </Button>
                             )}
                           </div>

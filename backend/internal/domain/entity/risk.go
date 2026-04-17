@@ -97,6 +97,11 @@ type Risk struct {
 	ReviewApprovedAt  *time.Time           `json:"reviewApprovedAt,omitempty"`
 	DraftApprovalLine []ApprovalLineMember `json:"draftApprovalLine,omitempty"`
 
+	// Ongoing draft tracking (for list views)
+	DraftID     *uuid.UUID `json:"draftId,omitempty"`
+	DraftStatus *string    `json:"draftStatus,omitempty"`
+	HasOngoing  bool       `json:"hasOngoing"`
+
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

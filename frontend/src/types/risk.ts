@@ -293,6 +293,9 @@ export interface Risk {
   updatedAt?: string;
   fishboneDraft?: import("./fishbone").FishboneDraft | null;
   draftApprovalLine?: DraftApprovalLineMember[];
+  draftId?: string | null;
+  draftStatus?: RiskStatus | null;
+  hasOngoing?: boolean;
 
 }
 

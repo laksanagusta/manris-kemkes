@@ -326,10 +326,18 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
 	                  r.created_at, r.updated_at,
 	                  COALESCE(o.name, '') as org_name,
-	                  COALESCE(u.name, '') as created_by_name
+	                  COALESCE(u.name, '') as created_by_name,
+	                  draft.id as draft_id,
+	                  draft.status as draft_status,
+	                  CASE WHEN draft.id IS NOT NULL THEN true ELSE false END as has_ongoing
 	           FROM risks r
 	           LEFT JOIN organizations o ON r.organization_id = o.id
-	           LEFT JOIN users u ON r.created_by = u.id`
+	           LEFT JOIN users u ON r.created_by = u.id
+	           LEFT JOIN risks draft ON 
+	             draft.code = r.code 
+	             AND draft.status IN ('assessment_draft', 'assessment_in_review')
+	             AND draft.created_at > r.created_at
+	             AND draft.archived_at IS NULL`
 	var args []interface{}
 	argIdx := 1
 
@@ -374,6 +382,7 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 			&risk.NextReviewDate, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
+			&risk.DraftID, &risk.DraftStatus, &risk.HasOngoing,
 		); err != nil {
 			return nil, fmt.Errorf("scan risk: %w", err)
 		}

@@ -33,6 +33,8 @@ type CreateRiskReassessmentOutput struct {
 	VersionGroupID uuid.UUID `json:"versionGroupId"`
 	Status         string    `json:"status"`
 	Message        string    `json:"message"`
+	RedirectURL    string    `json:"redirectUrl"`
+	ExistingDraft  bool      `json:"existingDraft"`
 }
 
 func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input CreateRiskReassessmentInput) (*CreateRiskReassessmentOutput, error) {
@@ -61,6 +63,8 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 				VersionGroupID: reservedRisk.VersionGroupID,
 				Status:         reservedRisk.Status,
 				Message:        "an in-progress reassessment already exists for this cycle, returning existing draft",
+				RedirectURL:    "/risks/" + reservedRisk.ID.String() + "/edit",
+				ExistingDraft:  true,
 			}, nil
 		}
 		return &CreateRiskReassessmentOutput{
@@ -68,6 +72,8 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 			VersionGroupID: reservedRisk.VersionGroupID,
 			Status:         reservedRisk.Status,
 			Message:        "risk reassessment draft created",
+			RedirectURL:    "/risks/" + reservedRisk.ID.String() + "/edit",
+			ExistingDraft:  false,
 		}, nil
 	}
 
@@ -81,6 +87,8 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 			VersionGroupID: existing.VersionGroupID,
 			Status:         existing.Status,
 			Message:        "an in-progress reassessment already exists for this cycle, returning existing draft",
+			RedirectURL:    "/risks/" + existing.ID.String() + "/edit",
+			ExistingDraft:  true,
 		}, nil
 	}
 
@@ -96,6 +104,8 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 		VersionGroupID: reassessment.VersionGroupID,
 		Status:         reassessment.Status,
 		Message:        "risk reassessment draft created",
+		RedirectURL:    "/risks/" + reassessment.ID.String() + "/edit",
+		ExistingDraft:  false,
 	}, nil
 }
 
