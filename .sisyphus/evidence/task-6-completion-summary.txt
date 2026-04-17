@@ -1,0 +1,86 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║         TASK 6: FRONTEND TYPES + STATUS CONSTANTS - COMPLETION          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+OBJECTIVE:
+Update frontend risk status type definitions and status-related constants to use 
+the new 3-status model: "assessment_draft" | "assessment_in_review" | "approved"
+
+FILES MODIFIED: 12
+├── frontend/src/types/risk.ts                    [Type definition updated]
+├── frontend/src/lib/risk.ts                      [No old refs found]
+├── frontend/src/lib/dashboard-insights.ts        [Type + 3 defaults updated]
+├── frontend/src/lib/risk-history.ts              [2 defaults updated]
+├── frontend/src/lib/api/risk-register.ts         [2 Exclude types updated]
+├── frontend/src/lib/dashboard-insights.test.ts   [Status strings updated]
+├── frontend/src/lib/risk.test.ts                 [Status strings updated]
+├── frontend/src/lib/risk-history.test.ts         [Status strings updated]
+├── frontend/src/lib/risk-report-trend.test.ts    [Status strings updated]
+├── frontend/src/lib/risk-cycle-detail-export.test.ts [Status strings updated]
+├── frontend/src/lib/meeting-minutes-utils.test.ts [Status strings updated]
+└── frontend/src/lib/working-paper-linked-risks.test.ts [Status strings updated]
+
+CHANGES SUMMARY:
+
+1. TYPE DEFINITION (types/risk.ts:6)
+   ❌ OLD: "draft" | "in_review" | "in_approval" | "approved" | "rejected"
+   ✅ NEW: "assessment_draft" | "assessment_in_review" | "approved"
+
+2. STATUS TYPE IN UTILS (dashboard-insights.ts:19)
+   ❌ OLD: "draft" | "in_review" | "in_approval" | "approved" | "rejected"
+   ✅ NEW: "assessment_draft" | "assessment_in_review" | "approved"
+
+3. DEFAULT FALLBACK VALUES (5 locations)
+   dashboard-insights.ts:111  → "draft" ⟹ "assessment_draft"
+   dashboard-insights.ts:218  → "draft" ⟹ "assessment_draft"
+   dashboard-insights.ts:420  → "draft" ⟹ "assessment_draft"
+   risk-history.ts:42         → "draft" ⟹ "assessment_draft"
+   risk-history.ts:80         → "draft" ⟹ "assessment_draft"
+
+4. TYPE EXCLUSIONS (api/risk-register.ts)
+   Line 4:  Exclude<RiskStatus, "draft"> ⟹ Exclude<RiskStatus, "assessment_draft">
+   Line 50: Exclude<RiskStatus, "draft"> ⟹ Exclude<RiskStatus, "assessment_draft">
+
+5. TEST FILE MIGRATIONS (7 files)
+   All occurrences of:
+   - "draft"       → "assessment_draft"
+   - "in_review"   → "assessment_in_review"
+   - "in_approval" → "assessment_in_review"
+   - "rejected"    → "assessment_draft"
+
+VERIFICATION RESULTS: ✓ ALL PASS
+
+✓ RiskStatus type definition correct (3 values only)
+✓ No old risk status strings in lib/types files (0 matches)
+✓ All 7 test files updated successfully (0 old strings)
+✓ Type definitions internally consistent
+✓ RiskReviewStatus left unchanged (review workflow state - intentional)
+
+EXPECTED TYPESCRIPT ERRORS IN COMPONENT FILES:
+The following files will have compilation errors until Tasks 7-9 complete:
+- risk/assessment/[id]/page.tsx (old status comparisons)
+- risk/assessment/page.tsx (old status filters)
+- risk/register/page.tsx (old status assignments)
+- inbox/[id]/page.tsx (old status labels)
+- review-side-panel.tsx (old status renders)
+THIS IS EXPECTED AND WILL BE FIXED IN TASKS 7, 8, 9
+
+BLOCKING POINT:
+- Tasks 7-9 depend on this task's completion ✓
+- No blocking issues identified
+
+COMMIT READINESS:
+✅ Ready for commit with message:
+   "refactor(frontend): update risk types and status constants"
+
+Files to commit:
+- frontend/src/types/risk.ts
+- frontend/src/lib/risk.ts
+- frontend/src/lib/dashboard-insights.ts
+- frontend/src/lib/risk-history.ts
+- frontend/src/lib/api/risk-register.ts
+- frontend/src/lib/*.test.ts (7 files)
+
+═══════════════════════════════════════════════════════════════════════════
+STATUS: ✅ COMPLETE - All acceptance criteria met
+═══════════════════════════════════════════════════════════════════════════

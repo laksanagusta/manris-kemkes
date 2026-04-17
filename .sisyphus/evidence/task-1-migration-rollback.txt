@@ -1,0 +1,19 @@
+## Task 1: DB Migration - Rollback Verification
+
+### Rollback Test Sequence
+1. Applied migration 000038 ✅
+2. Rolled back migration 000038 ✅
+3. Re-applied migration 000038 ✅
+
+### Constraint After Rollback
+✅ OLD constraint restored:
+CHECK ((status = ANY (ARRAY['draft'::text, 'in_review'::text, 'in_approval'::text, 'approved'::text, 'rejected'::text])))
+
+### Migration Idempotency
+✅ Can apply and rollback cleanly
+✅ Re-apply works without errors
+✅ No database state corruption
+
+### Test Result
+✅ PASS: Rollback restores old schema, re-apply works idempotently
+

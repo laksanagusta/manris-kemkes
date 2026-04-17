@@ -1,0 +1,23 @@
+=== VERIFICATION: Old Status Strings Sweep ===
+
+Command: grep -rn '"draft"\|"in_review"\|"in_approval"\|"rejected"' \
+  frontend/src/types/risk.ts \
+  frontend/src/lib/risk.ts \
+  frontend/src/lib/dashboard-insights.ts \
+  frontend/src/lib/risk-history.ts \
+  frontend/src/lib/api/risk-register.ts
+
+Expected: ZERO matches (excluding RiskReviewStatus which is review workflow, not risk status)
+
+Result:
+✓ ZERO matches (excluding RiskReviewStatus)
+
+=== Task 6 Acceptance Criteria ===
+✓ types/risk.ts line 6: RiskStatus type changed to 3-status model
+✓ dashboard-insights.ts line 19: status type updated
+✓ dashboard-insights.ts lines 111, 218, 420: defaults updated
+✓ risk-history.ts lines 42, 80: defaults updated
+✓ risk-register.ts lines 4, 50: Exclude types updated
+✓ 7 test files updated (dashboard-insights, risk, risk-history, risk-report-trend, risk-cycle-detail-export, meeting-minutes-utils, working-paper-linked-risks)
+✓ All old status strings removed from lib/types files
+✓ Component file errors expected (Tasks 7-9)

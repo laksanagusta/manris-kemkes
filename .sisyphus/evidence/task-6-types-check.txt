@@ -1,0 +1,44 @@
+=== TASK 6: Frontend Types + Status Constants ===
+
+VERIFICATION 1: RiskStatus Type Definition
+---
+File: frontend/src/types/risk.ts line 6
+Expected: export type RiskStatus = "assessment_draft" | "assessment_in_review" | "approved";
+export type RiskStatus = "assessment_draft" | "assessment_in_review" | "approved";
+export type RiskCategory = "" | "strategis" | "operasional" | "kepatuhan" | "finansial" | "reputasi" | "teknologi_informasi";
+
+✓ PASS: RiskStatus type is correct
+
+VERIFICATION 2: No Old Status Strings in Type/Lib Files
+---
+Checking for old status strings in critical files...
+✓ PASS: Zero old risk status strings found
+
+VERIFICATION 3: Test Files Updated
+---
+Checking test files for old status strings...
+✓ PASS: All 7 test files updated - zero old status strings found
+
+VERIFICATION 4: Specific Files Updated
+---
+1. dashboard-insights.ts line 19 (status type):
+  status?: "assessment_draft" | "assessment_in_review" | "approved";
+
+2. risk-history.ts lines 42, 80 (defaults):
+     status: item.status ?? "assessment_draft",
+     status: risk.status ?? "assessment_draft",
+
+3. risk-register.ts lines 4, 50 (Exclude types):
+export type RiskRegisterStatusFilter = "all" | Exclude<RiskStatus, "assessment_draft">;
+   status?: Exclude<RiskStatus, "assessment_draft">;
+
+=== SUMMARY ===
+✓ All acceptance criteria met:
+  - RiskStatus type updated to 3-status model
+  - Status label/color/utility mappings updated
+  - All old status strings removed from type/lib files
+  - All 7 test files updated with new status values
+  - No references to old statuses ("draft", "in_review", "in_approval", "rejected") remain
+  - RiskReviewStatus left unchanged (intentional - review workflow status)
+
+Status: COMPLETE ✓

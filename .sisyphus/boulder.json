@@ -1,46 +1,85 @@
 {
-  "active_plan": "/Users/dikalaksana/Engineering/manris-v2/.sisyphus/plans/risk-assessment-separation.md",
-  "started_at": "2026-04-16T13:58:57.669Z",
+  "active_plan": "/Users/dikalaksana/Engineering/manris-v2/.sisyphus/plans/reassessment-flow-refactor.md",
+  "started_at": "2026-04-17T00:00:00.000Z",
   "session_ids": [
-    "ses_2697f1744ffeBNGRnDYZ76VPCm",
-    "ses_269681ceaffe4Mn2ieSuE3Kn5h",
-    "ses_269684d06ffewtCyJSu8NqMmyG",
-    "ses_269622be9ffeNirdE0D4YU4cK8",
-    "ses_26961b7a3ffeeK3RVkEKAxHcxw",
-    "ses_269616353ffeZvIH7x2K0gSf5q",
-    "ses_26961e39bffexG6uGQJ9qAikNo",
-    "ses_2695ac1d2ffelElGl8yeBNFrvH",
-    "ses_2695ada43ffebsqdPoy3G0ZVOM",
-    "ses_26955af7bffehl0VY6hqKIAMAY",
-    "ses_26955d2ddffe7ANQGyja9vDMOg",
-    "ses_26954cac3ffe602zxPFn10s30T",
-    "ses_269553643ffePgjUV30JO1IOJ4",
-    "ses_2693475a8ffegd1NPuPm9S2Z2O",
-    "ses_26932a673ffe4kuBgulapTRzQe",
-    "ses_2691e0b89ffemRQ4wAL64qmuEC",
-    "ses_2691dcad3ffezkmHFTb2jMHi7G",
-    "ses_269130db6ffeaf2WzNLoQibnLk",
-    "ses_268f60ceeffeZxErA1WPKW5gcu"
+    "ses_268b78aceffeSVbRM67et7f5Aa",
+    "ses_2686c4dccffeEoSzwFLLFidzEr",
+    "ses_268683659ffeBZcVa41nuHV8iL",
+    "ses_268641293ffeMa134CI98DOSCl",
+    "ses_2685fc06affes0vXCoe2WBO2AO",
+    "ses_268528eceffe4lq6MVjT6e7n2m",
+    "ses_2684f7480ffe9LjFVLF3Na2Mft",
+    "ses_26847f7d6ffeFwth79JHRPvWXK",
+    "ses_26847b445ffeCXFyQZQdBD9WR7",
+    "ses_2684720f4ffe0EE0j5QSzgmb4f",
+    "ses_266f23693ffeAEoY7w26u6SsW1",
+    "ses_266f245defferCComUcrWoyHuL"
   ],
-  "plan_name": "risk-assessment-separation",
+  "plan_name": "reassessment-flow-refactor",
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "API Client Functions — `risk-assessment.ts`",
-      "session_id": "ses_269684d06ffewtCyJSu8NqMmyG",
+      "task_title": "DB Migration: Rename Risk Statuses",
+      "session_id": "ses_2686c4dccffeEoSzwFLLFidzEr",
       "agent": "Sisyphus-Junior",
       "category": "quick",
-      "updated_at": "2026-04-16T14:02:21.280Z"
+      "updated_at": "2026-04-16T18:38:13.991Z"
+    },
+    "todo:2": {
+      "task_key": "todo:2",
+      "task_label": "2",
+      "task_title": "Go Domain Constants + Validation Methods",
+      "session_id": "ses_268683659ffeBZcVa41nuHV8iL",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-16T18:41:32.189Z"
+    },
+    "todo:3": {
+      "task_key": "todo:3",
+      "task_label": "3",
+      "task_title": "Update Approval Workflow for 3-Status Model",
+      "session_id": "ses_268641293ffeMa134CI98DOSCl",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-16T18:48:03.575Z"
     },
     "todo:4": {
       "task_key": "todo:4",
       "task_label": "4",
-      "task_title": "ProfilRisikoCard Component",
-      "session_id": "ses_2695ada43ffebsqdPoy3G0ZVOM",
+      "task_title": "Update Risk Usecases + Repository for New Statuses",
+      "session_id": "ses_2685fc06affes0vXCoe2WBO2AO",
       "agent": "Sisyphus-Junior",
-      "category": "visual-engineering",
-      "updated_at": "2026-04-16T14:18:39.579Z"
+      "category": "unspecified-high",
+      "updated_at": "2026-04-16T18:59:54.574Z"
+    },
+    "todo:5": {
+      "task_key": "todo:5",
+      "task_label": "5",
+      "task_title": "Backend Full Integration Verification",
+      "session_id": "ses_268528eceffe4lq6MVjT6e7n2m",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-16T19:05:24.338Z"
+    },
+    "todo:6": {
+      "task_key": "todo:6",
+      "task_label": "6",
+      "task_title": "Frontend Types + Status Constants",
+      "session_id": "ses_2684f7480ffe9LjFVLF3Na2Mft",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-16T19:13:34.109Z"
+    },
+    "todo:7": {
+      "task_key": "todo:7",
+      "task_label": "7",
+      "task_title": "Remove Assessment List Page + Sidebar Menu + Add Redirect",
+      "session_id": "ses_26847f7d6ffeFwth79JHRPvWXK",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-16T19:17:01.309Z"
     }
-  }
+  },
+  "agent": "atlas"
 }

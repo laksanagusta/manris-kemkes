@@ -504,8 +504,12 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 	argIdx := 1
 
 	if len(orgIDs) > 0 {
-		queryStr += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
-		args = append(args, orgIDs)
+		queryStr += fmt.Sprintf(" AND r.organization_id = ANY($%d::uuid[])", argIdx)
+		uuidStrs := make([]string, len(orgIDs))
+		for i, id := range orgIDs {
+			uuidStrs[i] = id.String()
+		}
+		args = append(args, uuidStrs)
 		argIdx++
 	}
 
@@ -518,7 +522,7 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 
 	queryStr += " ORDER BY r.assessment_cycle, r.created_at DESC"
 
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := r.pool.Query(ctx, queryStr, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list approved risks: %w", err)
 	}
@@ -1061,14 +1065,18 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 
 	args := []interface{}{cycle}
 	if len(orgIDs) > 0 {
-		baseFrom += fmt.Sprintf(" AND base.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, orgIDs)
+		baseFrom += fmt.Sprintf(" AND base.organization_id = ANY($%d::uuid[])", len(args)+1)
+		uuidStrs := make([]string, len(orgIDs))
+		for i, id := range orgIDs {
+			uuidStrs[i] = id.String()
+		}
+		args = append(args, uuidStrs)
 	}
 	if status != "" && status != "all" {
 		baseFrom += fmt.Sprintf(` AND (
 			CASE
 				WHEN base.assessment_cycle = $1 THEN 'approved'
-				WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date < CURRENT_DATE THEN 'overdue'
+				WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < CURRENT_DATE THEN 'overdue'
 				WHEN candidate.id IS NULL THEN 'due'
 				WHEN candidate.status = 'assessment_draft' THEN 'in_draft'
 				WHEN candidate.status = 'assessment_in_review' THEN 'in_review'
@@ -1104,7 +1112,7 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 		base.status,
 		CASE
 			WHEN base.assessment_cycle = $1 THEN 'approved'
-			WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date < CURRENT_DATE THEN 'overdue'
+			WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < CURRENT_DATE THEN 'overdue'
 			WHEN candidate.id IS NULL THEN 'due'
 			WHEN candidate.status = 'assessment_draft' THEN 'in_draft'
 			WHEN candidate.status = 'assessment_in_review' THEN 'in_review'

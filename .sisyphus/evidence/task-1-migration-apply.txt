@@ -1,0 +1,27 @@
+## Task 1: DB Migration - Apply & Verification
+
+### Migration Applied Successfully
+- Migration: 000038_rename_risk_statuses
+- Duration: 8.969105ms (up), 7.821709ms (down)
+
+### Status Values After Migration
+✅ Distinct statuses contain ONLY new 3-status model:
+- assessment_draft
+- assessment_in_review  
+- approved
+
+### Constraint Verification
+✅ CHECK constraint now enforces:
+CHECK ((status = ANY (ARRAY['assessment_draft'::text, 'assessment_in_review'::text, 'approved'::text])))
+
+### Data Migration Mapping
+✅ All rows updated according to plan:
+- draft → assessment_draft
+- in_review → assessment_in_review
+- in_approval → assessment_in_review
+- rejected → assessment_draft
+- approved → approved (unchanged)
+
+### Test Result
+✅ PASS: Migration applies cleanly, statuses correct, constraint enforced
+
