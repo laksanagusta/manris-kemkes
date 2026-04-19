@@ -16,7 +16,7 @@ import {
 } from "@/lib/api/working-papers";
 import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -490,7 +490,14 @@ export default function WorkingPapersPage() {
       </Card>
 
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-        <Table>
+        <CardHeader>
+          <CardTitle className="text-[15px] font-semibold">Daftar Kertas Kerja</CardTitle>
+          <CardDescription className="text-xs text-muted-foreground">
+            Dokumen kertas kerja risiko beserta status dan progres penandatanganan.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
               <TableHead>Judul</TableHead>
@@ -602,6 +609,7 @@ export default function WorkingPapersPage() {
             </Button>
           </div>
         </div>
+        </CardContent>
       </Card>
       </div>
 
