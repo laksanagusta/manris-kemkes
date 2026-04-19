@@ -59,8 +59,21 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /opt/manris
+            set -e
+
+            echo "== Start deploy =="
+            cd /root/opt/manris
+
+            echo "== Checking compose file =="
+            docker compose config
+
+            echo "== Pulling images =="
             docker compose pull backend frontend
+
+            echo "== Starting containers =="
             docker compose up -d --no-deps backend frontend
+
+            echo "== Cleanup images =="
             docker image prune -f
-            echo "Deploy complete: $(date)"
+
+            echo "✅ Deploy complete: $(date)"
