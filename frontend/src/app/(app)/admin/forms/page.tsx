@@ -102,7 +102,8 @@ export default function AdminFormsPage() {
       setLoading(true);
       const filters = statusFilter !== "all" ? { status: statusFilter } : undefined;
       const data = await fetchForms(token, filters);
-      setForms(data);
+      const sorted = [...data].sort((a, b) => new Date(b.createdAt || b.created_at || 0).getTime() - new Date(a.createdAt || a.created_at || 0).getTime());
+      setForms(sorted);
     } catch (err) {
       console.error(err);
       toast.error("Gagal memuat daftar formulir.");
@@ -192,11 +193,11 @@ export default function AdminFormsPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="text-xs">Judul Formulir</TableHead>
-              <TableHead className="text-xs w-28">Status</TableHead>
-              <TableHead className="text-xs w-32">Target Audiens</TableHead>
-              <TableHead className="text-xs w-32">Dibuat</TableHead>
-              <TableHead className="text-xs w-56 text-right">Aksi</TableHead>
+              <TableHead className="text-xs whitespace-nowrap">Judul Formulir</TableHead>
+              <TableHead className="text-xs w-28 whitespace-nowrap">Status</TableHead>
+              <TableHead className="text-xs w-32 whitespace-nowrap">Target Audiens</TableHead>
+              <TableHead className="text-xs w-32 whitespace-nowrap">Dibuat</TableHead>
+              <TableHead className="text-xs w-56 text-right whitespace-nowrap">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

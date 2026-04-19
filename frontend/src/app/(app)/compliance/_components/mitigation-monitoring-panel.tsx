@@ -287,19 +287,19 @@ export function MitigationMonitoringPanel() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold">Daftar mitigasi</CardTitle>
         </CardHeader>
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="w-20 text-sm">Kode</TableHead>
-              <TableHead className="text-sm">Rencana Penanganan</TableHead>
-              <TableHead className="w-28 text-sm">Unit / PIC</TableHead>
-              <TableHead className="w-24 text-sm">Jatuh Tempo</TableHead>
-              <TableHead className="w-20 text-center text-sm">Hari</TableHead>
-              <TableHead className="w-20 text-sm">Status</TableHead>
-                <TableHead className="w-28 text-sm">Eskalasi</TableHead>
-                <TableHead className="w-32 text-sm text-right">Aksi</TableHead>
-              </TableRow>
-          </TableHeader>
+         <Table>
+           <TableHeader>
+             <TableRow className="border-border/50 hover:bg-transparent">
+               <TableHead className="w-20 text-sm whitespace-nowrap">Kode</TableHead>
+               <TableHead className="text-sm whitespace-nowrap">Rencana Penanganan</TableHead>
+               <TableHead className="w-28 text-sm whitespace-nowrap">Unit / PIC</TableHead>
+               <TableHead className="w-24 text-sm whitespace-nowrap">Jatuh Tempo</TableHead>
+               <TableHead className="w-20 text-center text-sm whitespace-nowrap">Hari</TableHead>
+               <TableHead className="w-20 text-sm whitespace-nowrap">Status</TableHead>
+                 <TableHead className="w-28 text-sm whitespace-nowrap">Eskalasi</TableHead>
+                 <TableHead className="w-32 text-sm text-right whitespace-nowrap">Aksi</TableHead>
+               </TableRow>
+           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>

@@ -160,7 +160,8 @@ export default function MinutesPage() {
     setLoading(true);
     listMeetingMinutes({ limit, offset, createdAt: createdAtFilter.trim() || undefined }, token)
       .then((result) => {
-        setItems(result.items || []);
+        const sorted = [...(result.items || [])].sort((a, b) => new Date(b.createdAt || b.created_at || 0).getTime() - new Date(a.createdAt || a.created_at || 0).getTime());
+        setItems(sorted);
         setTotal(result.total ?? 0);
       })
       .catch((error) => {
@@ -287,21 +288,21 @@ export default function MinutesPage() {
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="w-24">Kode</TableHead>
-                  <TableHead>Judul Notulen</TableHead>
-                  <TableHead className="w-32">Tanggal</TableHead>
-                  <TableHead className="w-20 text-center">
-                    Peserta
-                  </TableHead>
-                  <TableHead className="w-36">Dibuat Oleh</TableHead>
-                  <TableHead className="w-20 text-right">
-                    Aksi
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
+             <Table>
+               <TableHeader>
+                 <TableRow className="border-border/50 hover:bg-transparent">
+                   <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
+                   <TableHead className="whitespace-nowrap">Judul Notulen</TableHead>
+                   <TableHead className="w-32 whitespace-nowrap">Tanggal</TableHead>
+                   <TableHead className="w-20 text-center whitespace-nowrap">
+                     Peserta
+                   </TableHead>
+                   <TableHead className="w-36 whitespace-nowrap">Dibuat Oleh</TableHead>
+                   <TableHead className="w-20 text-right whitespace-nowrap">
+                     Aksi
+                   </TableHead>
+                 </TableRow>
+               </TableHeader>
               <TableBody>
                 {filteredItems.map((minute) => (
                   <TableRow

@@ -271,7 +271,8 @@ export default function OrganizationsManagementPage() {
 
         const normalized = (result.data ?? [])
           .map((item) => normalizeOrganization(item))
-          .filter((org): org is Organization => org !== null);
+          .filter((org): org is Organization => org !== null)
+          .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
         setOrganizations(normalized);
         setTotal(result.total ?? 0);
@@ -303,7 +304,8 @@ export default function OrganizationsManagementPage() {
       .then((result) => {
         const normalized = (result.data ?? [])
           .map((item) => normalizeOrganization(item))
-          .filter((org): org is Organization => org !== null);
+          .filter((org): org is Organization => org !== null)
+          .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
         setOrganizations(normalized);
         setTotal(result.total ?? 0);
@@ -424,17 +426,17 @@ export default function OrganizationsManagementPage() {
 
       <Card className="border-border/50 bg-card/80 overflow-hidden">
         <Table>
-          <TableHeader>
-            <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="text-xs">Nama Organisasi</TableHead>
-              <TableHead className="text-xs w-40">Parent Unit</TableHead>
-              <TableHead className="text-xs w-32">Dibuat</TableHead>
-              <TableHead className="text-xs w-24">Tipe</TableHead>
-              <TableHead className="text-xs w-10">
-                <span className="sr-only">Aksi</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
+           <TableHeader>
+             <TableRow className="border-border/50 hover:bg-transparent">
+               <TableHead className="text-xs whitespace-nowrap">Nama Organisasi</TableHead>
+               <TableHead className="text-xs w-40 whitespace-nowrap">Parent Unit</TableHead>
+               <TableHead className="text-xs w-32 whitespace-nowrap">Dibuat</TableHead>
+               <TableHead className="text-xs w-24 whitespace-nowrap">Tipe</TableHead>
+               <TableHead className="text-xs w-10 whitespace-nowrap">
+                 <span className="sr-only">Aksi</span>
+               </TableHead>
+             </TableRow>
+           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>

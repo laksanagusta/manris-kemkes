@@ -269,7 +269,13 @@ export default function InboxPage() {
       setApprovalTotal(approvalsRes.total ?? 0);
       setPage(approvalsRes.page ?? page);
       setLimit(approvalsRes.limit ?? limit);
-      setRequests([...(approvalsRes.data ?? []), ...kriReports, ...wpSigningItems]);
+      setRequests(
+        [...(approvalsRes.data ?? []), ...kriReports, ...wpSigningItems].sort((a, b) => {
+          const dateA = (a as any).requestedAt || (a as any).submittedAt || (a as any).createdAt || (a as any).created_at || 0;
+          const dateB = (b as any).requestedAt || (b as any).submittedAt || (b as any).createdAt || (b as any).created_at || 0;
+          return new Date(dateB).getTime() - new Date(dateA).getTime();
+        })
+      );
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Gagal memuat daftar persetujuan.");
@@ -314,7 +320,13 @@ export default function InboxPage() {
         setApprovalTotal(approvalsRes.total ?? 0);
         setPage(approvalsRes.page ?? page);
         setLimit(approvalsRes.limit ?? limit);
-        setRequests([...(approvalsRes.data ?? []), ...kriReports, ...wpSigningItems]);
+        setRequests(
+          [...(approvalsRes.data ?? []), ...kriReports, ...wpSigningItems].sort((a, b) => {
+            const dateA = (a as any).requestedAt || (a as any).submittedAt || (a as any).createdAt || (a as any).created_at || 0;
+            const dateB = (b as any).requestedAt || (b as any).submittedAt || (b as any).createdAt || (b as any).created_at || 0;
+            return new Date(dateB).getTime() - new Date(dateA).getTime();
+          })
+        );
       } catch (err) {
         console.error(err);
         setError(err instanceof Error ? err.message : "Gagal memuat daftar persetujuan.");
@@ -658,20 +670,20 @@ export default function InboxPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="w-24">Kode</TableHead>
-              <TableHead>Entitas</TableHead>
-              <TableHead className="w-32">Unit Kerja</TableHead>
-              <TableHead className="w-24">Jenis</TableHead>
-              <TableHead className="w-36">Pemohon</TableHead>
-              <TableHead className="w-32">Tanggal</TableHead>
-              <TableHead className="w-28">Status</TableHead>
-              <TableHead className="w-28 text-right">Tindakan</TableHead>
-            </TableRow>
-          </TableHeader>
+       <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+         <Table>
+           <TableHeader>
+             <TableRow className="border-border/50 hover:bg-transparent">
+               <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
+               <TableHead className="whitespace-nowrap">Entitas</TableHead>
+               <TableHead className="w-32 whitespace-nowrap">Unit Kerja</TableHead>
+               <TableHead className="w-24 whitespace-nowrap">Jenis</TableHead>
+               <TableHead className="w-36 whitespace-nowrap">Pemohon</TableHead>
+               <TableHead className="w-32 whitespace-nowrap">Tanggal</TableHead>
+               <TableHead className="w-28 whitespace-nowrap">Status</TableHead>
+               <TableHead className="w-28 text-right whitespace-nowrap">Tindakan</TableHead>
+             </TableRow>
+           </TableHeader>
           <TableBody>
             {filteredRequests.length === 0 ? (
               <TableRow>

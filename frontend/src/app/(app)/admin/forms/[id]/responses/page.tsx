@@ -211,19 +211,19 @@ export default function FormResponsesPage() {
         /* Responses table */
         <div className="rounded-lg border border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
           <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-xs w-12">#</TableHead>
-                <TableHead className="text-xs w-40">Responden</TableHead>
-                <TableHead className="text-xs w-44">Waktu Submit</TableHead>
-                {fields.slice(0, 3).map((f) => (
-                  <TableHead key={f.id} className="text-xs max-w-[180px]">
-                    {f.label}
-                  </TableHead>
-                ))}
-                <TableHead className="text-xs w-20 text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
+             <TableHeader>
+               <TableRow className="border-border/50 hover:bg-transparent">
+                 <TableHead className="text-xs w-12 whitespace-nowrap">#</TableHead>
+                 <TableHead className="text-xs w-40 whitespace-nowrap">Responden</TableHead>
+                 <TableHead className="text-xs w-44 whitespace-nowrap">Waktu Submit</TableHead>
+                 {fields.slice(0, 3).map((f) => (
+                   <TableHead key={f.id} className="text-xs max-w-[180px] whitespace-nowrap">
+                     {f.label}
+                   </TableHead>
+                 ))}
+                 <TableHead className="text-xs w-20 text-right whitespace-nowrap">Aksi</TableHead>
+               </TableRow>
+             </TableHeader>
             <TableBody>
               {responses.map((resp, idx) => (
                 <TableRow

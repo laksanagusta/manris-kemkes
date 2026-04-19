@@ -670,36 +670,36 @@ export default function CreateWorkingPaperPage() {
             ) : (
               <div className="max-h-[400px] overflow-auto">
                 <Table>
-                  <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                    <TableRow>
-                      <TableHead className="w-[50px] text-center">
-                        <Checkbox
-                          checked={
-                            filteredRisks.length > 0 &&
-                            filteredRisks.every((r) =>
-                              selectedRiskIds.includes(r.id),
-                            )
-                          }
-                          onCheckedChange={(checked) =>
-                            handleToggleAll(!!checked)
-                          }
-                          aria-label="Pilih semua risiko"
-                        />
-                      </TableHead>
-                      <TableHead className="w-[100px]">Kode</TableHead>
-                      <TableHead className="max-w-[280px]">
-                        Judul Risiko
-                      </TableHead>
-                      <TableHead className="w-[140px]">Kategori</TableHead>
-                      <TableHead className="w-[120px] text-center">
-                        Nilai
-                      </TableHead>
-                      <TableHead className="w-[140px] text-center">
-                        Tingkat
-                      </TableHead>
-                      <TableHead className="w-[180px]">Sumber Data</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                   <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                     <TableRow>
+                       <TableHead className="w-[50px] text-center whitespace-nowrap">
+                         <Checkbox
+                           checked={
+                             filteredRisks.length > 0 &&
+                             filteredRisks.every((r) =>
+                               selectedRiskIds.includes(r.id),
+                             )
+                           }
+                           onCheckedChange={(checked) =>
+                             handleToggleAll(!!checked)
+                           }
+                           aria-label="Pilih semua risiko"
+                         />
+                       </TableHead>
+                       <TableHead className="w-[100px] whitespace-nowrap">Kode</TableHead>
+                       <TableHead className="max-w-[280px] whitespace-nowrap">
+                         Judul Risiko
+                       </TableHead>
+                       <TableHead className="w-[140px] whitespace-nowrap">Kategori</TableHead>
+                       <TableHead className="w-[120px] text-center whitespace-nowrap">
+                         Nilai
+                       </TableHead>
+                       <TableHead className="w-[140px] text-center whitespace-nowrap">
+                         Tingkat
+                       </TableHead>
+                       <TableHead className="w-[180px] whitespace-nowrap">Sumber Data</TableHead>
+                     </TableRow>
+                   </TableHeader>
                   <TableBody>
                     {filteredRisks.length > 0 ? (
                       filteredRisks.map((risk) => {

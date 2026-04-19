@@ -258,15 +258,15 @@ export default function BulkRiskRegisterPage() {
               Belum ada data. Upload template untuk mulai review.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Baris</TableHead>
-                  <TableHead>Risiko</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Catatan</TableHead>
-                </TableRow>
-              </TableHeader>
+             <Table>
+               <TableHeader>
+                 <TableRow>
+                   <TableHead className="whitespace-nowrap">Baris</TableHead>
+                   <TableHead className="whitespace-nowrap">Risiko</TableHead>
+                   <TableHead className="whitespace-nowrap">Status</TableHead>
+                   <TableHead className="whitespace-nowrap">Catatan</TableHead>
+                 </TableRow>
+               </TableHeader>
               <TableBody>
                 {previews.map((preview) => (
                   <TableRow key={preview.clientKey}>
@@ -305,15 +305,15 @@ export default function BulkRiskRegisterPage() {
               <Badge variant="outline" className="border-success/30 bg-success/10 text-success">{createdCount} created</Badge>
               <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive">{failedCount} failed</Badge>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Client Key</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Pesan</TableHead>
-                </TableRow>
-              </TableHeader>
+             <Table>
+               <TableHeader>
+                 <TableRow>
+                   <TableHead className="whitespace-nowrap">Client Key</TableHead>
+                   <TableHead className="whitespace-nowrap">Status</TableHead>
+                   <TableHead className="whitespace-nowrap">Code</TableHead>
+                   <TableHead className="whitespace-nowrap">Pesan</TableHead>
+                 </TableRow>
+               </TableHeader>
               <TableBody>
                 {resultItems.map((item) => (
                   <TableRow key={item.clientKey}>

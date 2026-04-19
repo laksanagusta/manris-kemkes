@@ -54,7 +54,8 @@ export default function ControlsPage() {
 
     api.get<any[]>("/controls", token)
       .then(data => {
-        setControls(data || []);
+        const sorted = [...(data || [])].sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
+        setControls(sorted);
         setLoading(false);
       })
       .catch(err => {
@@ -170,15 +171,15 @@ export default function ControlsPage() {
                         </Button>
                       )}
                     </div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-border/30 hover:bg-transparent">
-                          <TableHead className="text-[10px] w-28">Tanggal</TableHead>
-                          <TableHead className="text-[10px]">Tester</TableHead>
-                          <TableHead className="text-[10px] w-28">Hasil</TableHead>
-                          <TableHead className="text-[10px]">Temuan</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                     <Table>
+                       <TableHeader>
+                         <TableRow className="border-border/30 hover:bg-transparent">
+                           <TableHead className="text-[10px] w-28 whitespace-nowrap">Tanggal</TableHead>
+                           <TableHead className="text-[10px] whitespace-nowrap">Tester</TableHead>
+                           <TableHead className="text-[10px] w-28 whitespace-nowrap">Hasil</TableHead>
+                           <TableHead className="text-[10px] whitespace-nowrap">Temuan</TableHead>
+                         </TableRow>
+                       </TableHeader>
                       <TableBody>
                         {control.tests && control.tests.length > 0 ? control.tests.map((test: any, i: number) => (
                            <TableRow key={i} className="border-border/20">

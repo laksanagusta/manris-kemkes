@@ -675,43 +675,40 @@ export default function AssessmentFormPage() {
                                 )}
                               </div>
                               <div className="flex-1 min-w-0 pb-2">
-                                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                  <span className="text-sm font-semibold">
-                                    v{versionHistory.length - index} — {item.cycle}
-                                  </span>
-                                  {item.isCurrent && (
-                                    <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
-                                      Current
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1.5 mb-1.5">
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "text-[10px] font-semibold border h-5 px-1.5",
-                                      VERSION_LEVEL_BADGE[item.previousLevel] || "",
-                                    )}
-                                  >
-                                    {item.previousLevel}
-                                  </Badge>
-                                  <span className="text-muted-foreground text-xs">
-                                    →
-                                  </span>
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "text-[10px] font-semibold border h-5 px-1.5",
-                                      VERSION_LEVEL_BADGE[item.currentLevel] || "",
-                                    )}
-                                  >
-                                    {item.currentLevel}
-                                  </Badge>
-                                </div>
-                                <p className="text-[10px] text-muted-foreground italic">
-                                  {item.changeReason}
-                                </p>
-                              </div>
+                                 <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                   <span className="text-sm font-semibold">
+                                     v{versionHistory.length - index} — {item.cycle}
+                                   </span>
+                                   {item.isCurrent && (
+                                     <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
+                                       Current
+                                     </Badge>
+                                   )}
+                                 </div>
+                                 <div className="flex items-center gap-1.5 mb-1.5">
+                                   <Badge
+                                     variant="outline"
+                                     className={cn(
+                                       "text-[10px] font-semibold border h-5 px-1.5",
+                                       VERSION_LEVEL_BADGE[item.previousLevel] || "",
+                                     )}
+                                   >
+                                     {item.previousLevel}
+                                   </Badge>
+                                   <span className="text-muted-foreground text-xs">
+                                     →
+                                   </span>
+                                   <Badge
+                                     variant="outline"
+                                     className={cn(
+                                       "text-[10px] font-semibold border h-5 px-1.5",
+                                       VERSION_LEVEL_BADGE[item.currentLevel] || "",
+                                     )}
+                                   >
+                                     {item.currentLevel}
+                                   </Badge>
+                                 </div>
+                               </div>
                             </div>
                           ))}
                         </div>

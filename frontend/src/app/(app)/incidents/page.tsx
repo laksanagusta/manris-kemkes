@@ -95,7 +95,8 @@ export default function IncidentPage() {
     ])
       .then(([incidentData, summaryData]) => {
         if (cancelled) return;
-        setIncidents(incidentData || []);
+        const sorted = [...(incidentData || [])].sort((a, b) => new Date(b.createdAt || b.created_at || 0).getTime() - new Date(a.createdAt || a.created_at || 0).getTime());
+        setIncidents(sorted);
         setSummary(summaryData);
       })
       .catch((error) => {
@@ -237,13 +238,13 @@ export default function IncidentPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="w-24 text-xs">Kode</TableHead>
-              <TableHead className="text-xs">Insiden</TableHead>
-              <TableHead className="w-40 text-xs">Created By</TableHead>
-              <TableHead className="w-32 text-xs">Kapan</TableHead>
-              <TableHead className="w-28 text-xs">Severity</TableHead>
-              <TableHead className="w-36 text-xs">Status</TableHead>
-              <TableHead className="w-52 text-xs">Risiko Terkait</TableHead>
+              <TableHead className="w-24 text-xs whitespace-nowrap">Kode</TableHead>
+              <TableHead className="text-xs whitespace-nowrap">Insiden</TableHead>
+              <TableHead className="w-40 text-xs whitespace-nowrap">Created By</TableHead>
+              <TableHead className="w-32 text-xs whitespace-nowrap">Kapan</TableHead>
+              <TableHead className="w-28 text-xs whitespace-nowrap">Severity</TableHead>
+              <TableHead className="w-36 text-xs whitespace-nowrap">Status</TableHead>
+              <TableHead className="w-52 text-xs whitespace-nowrap">Risiko Terkait</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -161,15 +161,15 @@ function FieldDiffTable({ diffs }: { diffs: RiskFieldDiff[] }) {
 
   return (
     <div className="overflow-x-auto rounded-md border border-border/60">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-36">Kolom</TableHead>
-            <TableHead className="w-28">Status</TableHead>
-            <TableHead className="min-w-[200px] max-w-[400px]">Sebelum</TableHead>
-            <TableHead className="min-w-[200px] max-w-[400px]">Sesudah</TableHead>
-          </TableRow>
-        </TableHeader>
+       <Table>
+         <TableHeader>
+           <TableRow>
+             <TableHead className="w-36 whitespace-nowrap">Kolom</TableHead>
+             <TableHead className="w-28 whitespace-nowrap">Status</TableHead>
+             <TableHead className="min-w-[200px] max-w-[400px] whitespace-nowrap">Sebelum</TableHead>
+             <TableHead className="min-w-[200px] max-w-[400px] whitespace-nowrap">Sesudah</TableHead>
+           </TableRow>
+         </TableHeader>
         <TableBody>
           {diffs.map((diff) => (
             <TableRow key={`${diff.field}-${diff.changeType}`}>
@@ -495,17 +495,17 @@ export function RiskCycleDetailReport({
             </div>
 
             <div className="overflow-x-auto rounded-lg border border-border/60">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-14" />
-                    <TableHead className="w-24">Kode</TableHead>
-                    <TableHead>Risiko</TableHead>
-                    <TableHead className="w-40">Unit</TableHead>
-                    <TableHead className="w-28 text-center">Status</TableHead>
-                    <TableHead className="w-36 text-center">Perubahan</TableHead>
-                  </TableRow>
-                </TableHeader>
+               <Table>
+                 <TableHeader>
+                   <TableRow>
+                     <TableHead className="w-14 whitespace-nowrap" />
+                     <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
+                     <TableHead className="whitespace-nowrap">Risiko</TableHead>
+                     <TableHead className="w-40 whitespace-nowrap">Unit</TableHead>
+                     <TableHead className="w-28 text-center whitespace-nowrap">Status</TableHead>
+                     <TableHead className="w-36 text-center whitespace-nowrap">Perubahan</TableHead>
+                   </TableRow>
+                 </TableHeader>
                 <TableBody>
                   {filteredItems.length === 0 ? (
                     <TableRow>

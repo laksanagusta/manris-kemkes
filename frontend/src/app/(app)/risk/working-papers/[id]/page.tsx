@@ -451,19 +451,19 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
               </div>
             )}
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/10">
-                     <TableHead className="w-24 text-xs">Kode</TableHead>
-                     <TableHead className="text-xs">Judul Risiko</TableHead>
-                     <TableHead className="hidden xl:table-cell text-xs text-center">Probabilitas</TableHead>
-                     <TableHead className="hidden xl:table-cell text-xs text-center">Dampak</TableHead>
-                     <TableHead className="text-xs text-center">Nilai</TableHead>
-                     <TableHead className="text-xs">Tingkat</TableHead>
-                     <TableHead className="text-xs">Status</TableHead>
-                     <TableHead className="text-xs w-20 text-right">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
+               <Table>
+                 <TableHeader>
+                   <TableRow className="bg-muted/10">
+                      <TableHead className="w-24 text-xs whitespace-nowrap">Kode</TableHead>
+                      <TableHead className="text-xs whitespace-nowrap">Judul Risiko</TableHead>
+                      <TableHead className="hidden xl:table-cell text-xs text-center whitespace-nowrap">Probabilitas</TableHead>
+                      <TableHead className="hidden xl:table-cell text-xs text-center whitespace-nowrap">Dampak</TableHead>
+                      <TableHead className="text-xs text-center whitespace-nowrap">Nilai</TableHead>
+                      <TableHead className="text-xs whitespace-nowrap">Tingkat</TableHead>
+                      <TableHead className="text-xs whitespace-nowrap">Status</TableHead>
+                      <TableHead className="text-xs w-20 text-right whitespace-nowrap">Aksi</TableHead>
+                   </TableRow>
+                 </TableHeader>
                 <TableBody>
                   {(() => {
                     if (!data.risks || data.risks.length === 0) {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { listUsers, type UserListItem } from "@/lib/api/users";
@@ -234,12 +235,12 @@ type RiskApiResponse = {
 };
 
 const riskCategoryValues: RiskCategory[] = [
-  "strategis",
-  "operasional",
-  "kepatuhan",
-  "finansial",
+  "kebijakan",
   "reputasi",
-  "teknologi_informasi",
+  "fraud_korupsi",
+  "legal",
+  "kepatuhan",
+  "operasional",
 ];
 
 const riskCategoryOptions = riskCategoryValues.map((value) => ({
@@ -1168,11 +1169,11 @@ export default function RiskInputPage() {
     {
       id: "jadwal",
       step: "6",
-      title: "Jadwal Review",
+      title: "Jadwal Pelaksanaan",
       description:
-        "Pastikan ada tanggal review agar risiko tidak berhenti di tahap pencatatan.",
+        "Tentukan jadwal pelaksanaan review untuk memastikan risiko dimonitor secara berkala.",
       done: !!nextReviewDate,
-      hint: "Tentukan tanggal review berikutnya.",
+      hint: "Masukkan jadwal pelaksanaan review.",
     },
   ];
 
@@ -1748,69 +1749,72 @@ export default function RiskInputPage() {
                           </p>
                         </div>
                       ) : (
-                        <div className="relative pt-2">
-                          <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border/50" />
-                          <div className="flex flex-col gap-4">
-                            {versionHistory.map((item) => (
-                              <div
-                                key={item.id}
-                                className="flex gap-3 relative"
-                              >
-                                <div className="shrink-0 size-6 rounded-full bg-background border border-border/50 flex items-center justify-center z-10">
-                                  {item.trend === "up" ? (
-                                    <TrendingUp className="size-3.5 text-risk-extreme" />
-                                  ) : item.trend === "down" ? (
-                                    <TrendingDown className="size-3.5 text-success" />
-                                  ) : (
-                                    <Minus className="size-3.5 text-muted-foreground" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0 pb-2">
-                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                    <span className="text-sm font-semibold">
-                                      {item.cycle}
-                                    </span>
-                                    {item.isCurrent && (
-                                      <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
-                                        Current
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-1.5 mb-1.5">
-                                    <Badge
-                                      variant="outline"
-                                      className={cn(
-                                        "text-[10px] font-semibold border h-5 px-1.5",
-                                        VERSION_LEVEL_BADGE[
-                                          item.previousLevel
-                                        ] || "",
-                                      )}
-                                    >
-                                      {item.previousLevel}
-                                    </Badge>
-                                    <span className="text-muted-foreground text-xs">
-                                      →
-                                    </span>
-                                    <Badge
-                                      variant="outline"
-                                      className={cn(
-                                        "text-[10px] font-semibold border h-5 px-1.5",
-                                        VERSION_LEVEL_BADGE[
-                                          item.currentLevel
-                                        ] || "",
-                                      )}
-                                    >
-                                      {item.currentLevel}
-                                    </Badge>
-                                  </div>
-                                  <p className="text-[10px] text-muted-foreground italic">
-                                    {item.changeReason}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                          <div className="relative pt-2">
+                           <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border/50" />
+                           <div className="flex flex-col gap-4">
+                             {versionHistory.map((item, index) => (
+                               <div
+                                 key={item.id}
+                                 className="flex gap-3 relative"
+                               >
+                                 <div className="shrink-0 size-6 rounded-full bg-background border border-border/50 flex items-center justify-center z-10">
+                                   {item.trend === "up" ? (
+                                     <TrendingUp className="size-3.5 text-risk-extreme" />
+                                   ) : item.trend === "down" ? (
+                                     <TrendingDown className="size-3.5 text-success" />
+                                   ) : (
+                                     <Minus className="size-3.5 text-muted-foreground" />
+                                   )}
+                                 </div>
+                                 <div className="flex-1 min-w-0 pb-2">
+                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                     <Link
+                                       href={`/risk/register/new?id=${item.riskId}`}
+                                       className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                                     >
+                                       v{versionHistory.length - index}
+                                     </Link>
+                                     <span className="text-sm font-semibold text-muted-foreground">
+                                       {item.cycle}
+                                     </span>
+                                     {item.isCurrent && (
+                                       <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
+                                         Current
+                                       </Badge>
+                                     )}
+                                   </div>
+                                   <div className="flex items-center gap-1.5 mb-1.5">
+                                     <Badge
+                                       variant="outline"
+                                       className={cn(
+                                         "text-[10px] font-semibold border h-5 px-1.5",
+                                         VERSION_LEVEL_BADGE[
+                                           item.previousLevel
+                                         ] || "",
+                                       )}
+                                     >
+                                       {item.previousLevel}
+                                     </Badge>
+                                     <span className="text-muted-foreground text-xs">
+                                       →
+                                     </span>
+                                     <Badge
+                                       variant="outline"
+                                       className={cn(
+                                         "text-[10px] font-semibold border h-5 px-1.5",
+                                         VERSION_LEVEL_BADGE[
+                                           item.currentLevel
+                                         ] || "",
+                                       )}
+                                     >
+                                       {item.currentLevel}
+                                     </Badge>
+                                   </div>
+                                 </div>
+                               </div>
+                             ))}
+                           </div>
+                         </div>
                       )}
                     </div>
                   </SheetContent>
@@ -2806,42 +2810,22 @@ export default function RiskInputPage() {
 
                     <div className="space-y-1.5 scroll-mt-28" id="jadwal">
                       <Label className="text-sm font-medium">
-                        Jadwal Review
+                        Jadwal Pelaksanaan
                       </Label>
                       <Controller
                         name="nextReviewDate"
                         control={control}
                         render={({ field }) => (
                           <Input
-                            type="date"
+                            type="text"
                             value={field.value || ""}
                             onChange={field.onChange}
                             disabled={isRiskLocked}
+                            placeholder="Contoh: Minggu pertama setiap bulan"
                             className="text-sm"
                           />
                         )}
                       />
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-muted-foreground">
-                          Catatan jadwal review (opsional)
-                        </Label>
-                        <Controller
-                          name="reviewScheduleText"
-                          control={control}
-                          render={({ field }) => (
-                            <Textarea
-                              value={field.value || ""}
-                              onChange={field.onChange}
-                              disabled={isRiskLocked}
-                              placeholder="Contoh: Dibahas pada rapat koordinasi bulanan minggu pertama"
-                              className="min-h-24 text-sm"
-                            />
-                          )}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Tanggal review berikutnya tetap menjadi acuan utama. Kolom ini hanya untuk menjelaskan ritme atau konteks review.
-                        </p>
-                      </div>
                     </div>
                     <div
                       className={cn(

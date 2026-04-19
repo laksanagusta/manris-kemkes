@@ -76,9 +76,10 @@ export default function PredictivePage() {
     try {
       // 1. Fetch all risks (could limit to top 10 as AI endpoint does)
       const risks = await api.get<any[]>("/risks?status=approved", token);
+      const sortedRisks = [...risks].sort((a: any, b: any) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
       
       // 2. Call AI prediction
-      const result = await api.post<any[]>("/ai/predictive-analyses", { risks: risks.slice(0, 10) }, token);
+      const result = await api.post<any[]>("/ai/predictive-analyses", { risks: sortedRisks.slice(0, 10) }, token);
       
       if (Array.isArray(result)) {
         setPredictions(result);
@@ -187,20 +188,20 @@ export default function PredictivePage() {
       </div>
 
       {/* Predictions Table */}
-      <Card className="border-border/50 bg-card/80 overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="w-20 text-xs">Kode</TableHead>
-              <TableHead className="text-xs">Risiko</TableHead>
-              <TableHead className="text-xs w-24">Level Saat Ini</TableHead>
-              <TableHead className="text-xs text-center w-12">→</TableHead>
-              <TableHead className="text-xs w-24">Prediksi Level</TableHead>
-              <TableHead className="text-xs w-16">Tren</TableHead>
-              <TableHead className="text-xs w-28">Confidence</TableHead>
-              <TableHead className="text-xs">Reasoning</TableHead>
-            </TableRow>
-          </TableHeader>
+       <Card className="border-border/50 bg-card/80 overflow-hidden">
+         <Table>
+           <TableHeader>
+             <TableRow className="border-border/50 hover:bg-transparent">
+               <TableHead className="w-20 text-xs whitespace-nowrap">Kode</TableHead>
+               <TableHead className="text-xs whitespace-nowrap">Risiko</TableHead>
+               <TableHead className="text-xs w-24 whitespace-nowrap">Level Saat Ini</TableHead>
+               <TableHead className="text-xs text-center w-12 whitespace-nowrap">→</TableHead>
+               <TableHead className="text-xs w-24 whitespace-nowrap">Prediksi Level</TableHead>
+               <TableHead className="text-xs w-16 whitespace-nowrap">Tren</TableHead>
+               <TableHead className="text-xs w-28 whitespace-nowrap">Confidence</TableHead>
+               <TableHead className="text-xs whitespace-nowrap">Reasoning</TableHead>
+             </TableRow>
+           </TableHeader>
           <TableBody>
             {predictions.length === 0 ? (
               <TableRow>

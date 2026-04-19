@@ -4,7 +4,7 @@ export type MitigationFrequency = "insidental" | "rutin";
 export type RecurringInterval = "harian" | "mingguan" | "bulanan" | "triwulan" | "semesteran" | "tahunan";
 export type TreatmentOption = "" | "menerima" | "mitigasi";
 export type RiskStatus = "assessment_draft" | "assessment_in_review" | "approved";
-export type RiskCategory = "" | "strategis" | "operasional" | "kepatuhan" | "finansial" | "reputasi" | "teknologi_informasi";
+export type RiskCategory = "" | "kebijakan" | "reputasi" | "fraud_korupsi" | "legal" | "kepatuhan" | "operasional";
 export type RiskSource = "" | "internal" | "eksternal";
 export type RiskAppetite = "" | "dalam_batas" | "di_atas_batas";
 

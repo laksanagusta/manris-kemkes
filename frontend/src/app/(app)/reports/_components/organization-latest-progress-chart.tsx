@@ -70,15 +70,15 @@ export function OrganizationLatestProgressChart({
               </div>
             ) : (
               <div className="max-h-[300px] overflow-y-auto rounded-md border border-border/50">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Organisasi</TableHead>
-                      <TableHead>Periode</TableHead>
-                      <TableHead className="w-[40%]">Progress</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                 <Table>
+                   <TableHeader>
+                     <TableRow>
+                       <TableHead className="whitespace-nowrap">Organisasi</TableHead>
+                       <TableHead className="whitespace-nowrap">Periode</TableHead>
+                       <TableHead className="w-[40%] whitespace-nowrap">Progress</TableHead>
+                       <TableHead className="text-right whitespace-nowrap">Status</TableHead>
+                     </TableRow>
+                   </TableHeader>
                   <TableBody>
                     {sortedData.map((row, idx) => (
                       <TableRow key={`${row.orgName}-${idx}`}>

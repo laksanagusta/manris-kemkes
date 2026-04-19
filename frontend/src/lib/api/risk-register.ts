@@ -56,6 +56,8 @@ interface ListRiskRegisterParams {
    category?: Exclude<RiskCategory, "">;
    assessment_cycle?: string;
    created_at?: string;
+   sort_by?: string;
+   sort_order?: "asc" | "desc";
    page?: number;
    limit?: number;
  }
@@ -73,6 +75,8 @@ export async function listRiskRegister(
     searchParams.set("assessment_cycle", params.assessment_cycle);
   }
   if (params?.created_at) searchParams.set("created_at", params.created_at);
+  if (params?.sort_by) searchParams.set("sort_by", params.sort_by);
+  if (params?.sort_order) searchParams.set("sort_order", params.sort_order);
   if (params?.page) searchParams.set("page", params.page.toString());
   if (params?.limit) searchParams.set("limit", params.limit.toString());
 

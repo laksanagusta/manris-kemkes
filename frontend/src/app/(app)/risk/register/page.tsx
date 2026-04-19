@@ -80,6 +80,8 @@ import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Edit3,
   Trash2,
   Clock,
@@ -281,6 +283,12 @@ export default function RiskRegisterPage() {
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
     useState<RiskListItem | null>(null);
   const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
+  const [sortBy, setSortBy] = useState<string>(
+    () => searchParams.get("sort_by") ?? "created_at",
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">(
+    () => (searchParams.get("sort_order") as "asc" | "desc") ?? "desc",
+  );
 
   const deferredSearch = useDeferredValue(search);
   const deferredAssessmentCycleFilter = useDeferredValue(
@@ -301,16 +309,18 @@ export default function RiskRegisterPage() {
     ).trim();
     const normalizedCreatedAt = (queryOverrides?.createdAt ?? createdAtFilter).trim();
 
-    const [allRisksResponse, draftRisks, approvedRisks] = await Promise.all([
-      listRiskRegister(activeToken, {
-        q: normalizedSearch || undefined,
-        status: statusFilter === "all" ? undefined : statusFilter,
-        category: categoryFilter === "all" ? undefined : categoryFilter,
-        assessment_cycle: normalizedAssessmentCycle || undefined,
-        created_at: normalizedCreatedAt || undefined,
-        page,
-        limit,
-      }),
+     const [allRisksResponse, draftRisks, approvedRisks] = await Promise.all([
+       listRiskRegister(activeToken, {
+         q: normalizedSearch || undefined,
+         status: statusFilter === "all" ? undefined : statusFilter,
+         category: categoryFilter === "all" ? undefined : categoryFilter,
+         assessment_cycle: normalizedAssessmentCycle || undefined,
+         created_at: normalizedCreatedAt || undefined,
+         sort_by: sortBy,
+         sort_order: sortOrder,
+         page,
+         limit,
+       }),
       api.get<RiskListItem[]>("/risks?status=draft", activeToken),
       api.get<RiskListItem[]>("/risks?status=approved", activeToken),
     ]);
@@ -344,120 +354,134 @@ export default function RiskRegisterPage() {
     });
   };
 
-  useEffect(() => {
-    const nextSearch = searchParams.get("q") ?? "";
-    const nextStatusFilter = getRiskRegisterStatusFilter(
-      searchParams.get("status"),
-    );
-    const nextCategoryFilter = getRiskRegisterCategoryFilter(
-      searchParams.get("category"),
-    );
-    const nextAssessmentCycleFilter = searchParams.get("assessment_cycle") ?? "";
-    const nextCreatedAtFilter = searchParams.get("created_at") ?? "";
-    const nextPage = parsePositiveInt(searchParams.get("page"), 1);
-    const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
-    const nextTab = getRiskRegisterTab(searchParams.get("tab"));
+   useEffect(() => {
+     const nextSearch = searchParams.get("q") ?? "";
+     const nextStatusFilter = getRiskRegisterStatusFilter(
+       searchParams.get("status"),
+     );
+     const nextCategoryFilter = getRiskRegisterCategoryFilter(
+       searchParams.get("category"),
+     );
+     const nextAssessmentCycleFilter = searchParams.get("assessment_cycle") ?? "";
+     const nextCreatedAtFilter = searchParams.get("created_at") ?? "";
+     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
+     const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
+     const nextTab = getRiskRegisterTab(searchParams.get("tab"));
+     const nextSortBy = searchParams.get("sort_by") ?? "created_at";
+     const nextSortOrder = (searchParams.get("sort_order") as "asc" | "desc") ?? "desc";
 
-    setSearch((current) => (current === nextSearch ? current : nextSearch));
-    setStatusFilter((current) =>
-      current === nextStatusFilter ? current : nextStatusFilter,
-    );
-    setCategoryFilter((current) =>
-      current === nextCategoryFilter ? current : nextCategoryFilter,
-    );
-    setAssessmentCycleFilter((current) =>
-      current === nextAssessmentCycleFilter ? current : nextAssessmentCycleFilter,
-    );
-    setCreatedAtFilter((current) =>
-      current === nextCreatedAtFilter ? current : nextCreatedAtFilter,
-    );
-    setPage((current) => (current === nextPage ? current : nextPage));
-    setLimit((current) => (current === nextLimit ? current : nextLimit));
-    setActiveTab((current) => (current === nextTab ? current : nextTab));
-  }, [searchParams]);
+     setSearch((current) => (current === nextSearch ? current : nextSearch));
+     setStatusFilter((current) =>
+       current === nextStatusFilter ? current : nextStatusFilter,
+     );
+     setCategoryFilter((current) =>
+       current === nextCategoryFilter ? current : nextCategoryFilter,
+     );
+     setAssessmentCycleFilter((current) =>
+       current === nextAssessmentCycleFilter ? current : nextAssessmentCycleFilter,
+     );
+     setCreatedAtFilter((current) =>
+       current === nextCreatedAtFilter ? current : nextCreatedAtFilter,
+     );
+     setPage((current) => (current === nextPage ? current : nextPage));
+     setLimit((current) => (current === nextLimit ? current : nextLimit));
+     setActiveTab((current) => (current === nextTab ? current : nextTab));
+     setSortBy((current) => (current === nextSortBy ? current : nextSortBy));
+     setSortOrder((current) => (current === nextSortOrder ? current : nextSortOrder));
+   }, [searchParams]);
 
-  useEffect(() => {
-    const nextParams = new URLSearchParams(searchParams.toString());
-    const normalizedSearch = search.trim();
-    const normalizedAssessmentCycle = assessmentCycleFilter.trim();
-    const normalizedCreatedAt = createdAtFilter.trim();
+   useEffect(() => {
+     const nextParams = new URLSearchParams(searchParams.toString());
+     const normalizedSearch = search.trim();
+     const normalizedAssessmentCycle = assessmentCycleFilter.trim();
+     const normalizedCreatedAt = createdAtFilter.trim();
 
-    if (activeTab === "all-risks") {
-      nextParams.delete("tab");
-    } else {
-      nextParams.set("tab", activeTab);
-    }
+     if (activeTab === "all-risks") {
+       nextParams.delete("tab");
+     } else {
+       nextParams.set("tab", activeTab);
+     }
 
-    if (normalizedSearch) {
-      nextParams.set("q", normalizedSearch);
-    } else {
-      nextParams.delete("q");
-    }
+     if (normalizedSearch) {
+       nextParams.set("q", normalizedSearch);
+     } else {
+       nextParams.delete("q");
+     }
 
-    if (statusFilter === "all") {
-      nextParams.delete("status");
-    } else {
-      nextParams.set("status", statusFilter);
-    }
+     if (statusFilter === "all") {
+       nextParams.delete("status");
+     } else {
+       nextParams.set("status", statusFilter);
+     }
 
-    if (categoryFilter === "all") {
-      nextParams.delete("category");
-    } else {
-      nextParams.set("category", categoryFilter);
-    }
+     if (categoryFilter === "all") {
+       nextParams.delete("category");
+     } else {
+       nextParams.set("category", categoryFilter);
+     }
 
-    if (normalizedAssessmentCycle) {
-      nextParams.set("assessment_cycle", normalizedAssessmentCycle);
-    } else {
-      nextParams.delete("assessment_cycle");
-    }
+     if (normalizedAssessmentCycle) {
+       nextParams.set("assessment_cycle", normalizedAssessmentCycle);
+     } else {
+       nextParams.delete("assessment_cycle");
+     }
 
-    if (normalizedCreatedAt) {
-      nextParams.set("created_at", normalizedCreatedAt);
-    } else {
-      nextParams.delete("created_at");
-    }
+     if (normalizedCreatedAt) {
+       nextParams.set("created_at", normalizedCreatedAt);
+     } else {
+       nextParams.delete("created_at");
+     }
 
-    if (page === 1) {
-      nextParams.delete("page");
-    } else {
-      nextParams.set("page", page.toString());
-    }
+     if (sortBy === "created_at" && sortOrder === "desc") {
+       nextParams.delete("sort_by");
+       nextParams.delete("sort_order");
+     } else {
+       nextParams.set("sort_by", sortBy);
+       nextParams.set("sort_order", sortOrder);
+     }
 
-    if (limit === 10) {
-      nextParams.delete("limit");
-    } else {
-      nextParams.set("limit", limit.toString());
-    }
+     if (page === 1) {
+       nextParams.delete("page");
+     } else {
+       nextParams.set("page", page.toString());
+     }
 
-    const nextUrl = nextParams.toString()
-      ? `${pathname}?${nextParams.toString()}`
-      : pathname;
-    const currentUrl = searchParams.toString()
-      ? `${pathname}?${searchParams.toString()}`
-      : pathname;
+     if (limit === 10) {
+       nextParams.delete("limit");
+     } else {
+       nextParams.set("limit", limit.toString());
+     }
 
-    if (nextUrl === currentUrl) {
-      return;
-    }
+     const nextUrl = nextParams.toString()
+       ? `${pathname}?${nextParams.toString()}`
+       : pathname;
+     const currentUrl = searchParams.toString()
+       ? `${pathname}?${searchParams.toString()}`
+       : pathname;
 
-    startTransition(() => {
-      router.replace(nextUrl, { scroll: false });
-    });
-  }, [
-    activeTab,
-    assessmentCycleFilter,
-    categoryFilter,
-    createdAtFilter,
-    limit,
-    page,
-    pathname,
-    router,
-    search,
-    searchParams,
-    startTransition,
-    statusFilter,
-  ]);
+     if (nextUrl === currentUrl) {
+       return;
+     }
+
+     startTransition(() => {
+       router.replace(nextUrl, { scroll: false });
+     });
+   }, [
+     activeTab,
+     assessmentCycleFilter,
+     categoryFilter,
+     createdAtFilter,
+     limit,
+     page,
+     pathname,
+     router,
+     search,
+     searchParams,
+     startTransition,
+     statusFilter,
+     sortBy,
+     sortOrder,
+   ]);
 
   useEffect(() => {
     if (!token) {
@@ -487,17 +511,19 @@ export default function RiskRegisterPage() {
       }
     };
 
-    void fetchData();
-  }, [
-    token,
-    statusFilter,
-    categoryFilter,
-    createdAtFilter,
-    deferredSearch,
-    deferredAssessmentCycleFilter,
-    page,
-    limit,
-  ]);
+     void fetchData();
+   }, [
+     token,
+     statusFilter,
+     categoryFilter,
+     createdAtFilter,
+     deferredSearch,
+     deferredAssessmentCycleFilter,
+     page,
+     limit,
+     sortBy,
+     sortOrder,
+   ]);
 
   useEffect(() => {
     if (!token || !historyRiskId) return;
@@ -779,10 +805,10 @@ export default function RiskRegisterPage() {
 
         {/* TAB 1: ALL RISKS */}
         <TabsContent value="all-risks" className="space-y-6 mt-6">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 grid-cols-6">
             {riskSummaryCards.map((card) => (
               <Card key={card.label} className={cn("border shadow-none", card.tone)}>
-                <CardContent className="flex items-end justify-between gap-3 p-4">
+                <CardContent className="flex items-end justify-between gap-3 p-3">
                   <div className="space-y-1">
                     <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
                       {card.label}
@@ -898,18 +924,32 @@ export default function RiskRegisterPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="w-20">Kode</TableHead>
-                  <TableHead className="w-16">Versi</TableHead>
-                  <TableHead>Judul Risiko</TableHead>
-                  <TableHead className="w-28">Kategori</TableHead>
-                  <TableHead className="text-center w-16">
+                  <TableHead className="w-20 whitespace-nowrap">Kode</TableHead>
+                  <TableHead className="w-16 whitespace-nowrap">Versi</TableHead>
+                  <TableHead className="whitespace-nowrap">Judul Risiko</TableHead>
+                  <TableHead className="w-28 whitespace-nowrap">Kategori</TableHead>
+                  <TableHead className="text-center w-16 whitespace-nowrap">
                     Nilai
                   </TableHead>
-                  <TableHead className="w-24">Tingkat Risiko</TableHead>
-                  <TableHead className="w-24">Status</TableHead>
-                  <TableHead className="w-24">Penanganan</TableHead>
-                  <TableHead className="w-28">Dibuat</TableHead>
-                  <TableHead className="w-28 text-right">
+                  <TableHead className="w-24 whitespace-nowrap">Tingkat Risiko</TableHead>
+                  <TableHead className="w-24 whitespace-nowrap">Status</TableHead>
+                  <TableHead className="w-24 whitespace-nowrap">Penanganan</TableHead>
+                  <TableHead className="w-28 cursor-pointer select-none whitespace-nowrap" onClick={() => {
+                    if (sortBy === "created_at") {
+                      setSortOrder(prev => prev === "asc" ? "desc" : "asc");
+                    } else {
+                      setSortBy("created_at");
+                      setSortOrder("desc");
+                    }
+                  }}>
+                    <div className="flex items-center gap-1">
+                      Dibuat
+                      {sortBy === "created_at" && (
+                        sortOrder === "desc" ? <ChevronDown className="size-3" /> : <ChevronUp className="size-3" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-28 text-right whitespace-nowrap">
                     Aksi
                   </TableHead>
                 </TableRow>
@@ -1100,15 +1140,15 @@ export default function RiskRegisterPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="w-20 text-xs">ID</TableHead>
-                  <TableHead className="text-xs">Judul Draf / Risiko</TableHead>
-                  <TableHead className="text-xs w-28">Periode</TableHead>
-                  <TableHead className="text-xs w-32">Status</TableHead>
-                  <TableHead className="text-xs w-32">Pembaruan</TableHead>
-                  <TableHead className="text-xs w-28 text-center">
+                  <TableHead className="w-20 text-xs whitespace-nowrap">ID</TableHead>
+                  <TableHead className="text-xs whitespace-nowrap">Judul Draf / Risiko</TableHead>
+                  <TableHead className="text-xs w-28 whitespace-nowrap">Periode</TableHead>
+                  <TableHead className="text-xs w-32 whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-xs w-32 whitespace-nowrap">Pembaruan</TableHead>
+                  <TableHead className="text-xs w-28 text-center whitespace-nowrap">
                     Progres
                   </TableHead>
-                  <TableHead className="text-xs w-24"></TableHead>
+                  <TableHead className="text-xs w-24 whitespace-nowrap"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1317,20 +1357,20 @@ export default function RiskRegisterPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border/50 hover:bg-transparent">
-                        <TableHead className="w-20 text-xs">Kode</TableHead>
-                        <TableHead className="text-xs">
+                        <TableHead className="w-20 text-xs whitespace-nowrap">Kode</TableHead>
+                        <TableHead className="text-xs whitespace-nowrap">
                           Risiko & Alasan Perubahan
                         </TableHead>
-                        <TableHead className="text-xs w-28">
+                        <TableHead className="text-xs w-28 whitespace-nowrap">
                           Versi Lama
                         </TableHead>
-                        <TableHead className="text-xs text-center w-12">
+                        <TableHead className="text-xs text-center w-12 whitespace-nowrap">
                           →
                         </TableHead>
-                        <TableHead className="text-xs w-28">
+                        <TableHead className="text-xs w-28 whitespace-nowrap">
                           Versi Current
                         </TableHead>
-                        <TableHead className="text-xs w-16 text-center">
+                        <TableHead className="text-xs w-16 text-center whitespace-nowrap">
                           Tren
                         </TableHead>
                       </TableRow>

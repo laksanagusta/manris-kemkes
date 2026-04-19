@@ -55,7 +55,8 @@ export default function RiskHistoryPage() {
     // Since there's no actual snapshot back-end yet, we simulate history by diffing Current vs Target score
     api.get<any[]>("/risks?status=approved", token).then((risks) => {
       const mapped = risks.map((r) => buildApprovedRiskHistoryItem(r));
-      setHistoryData(mapped.slice(0, 10)); // Just show recent
+      const sorted = [...mapped].sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
+      setHistoryData(sorted.slice(0, 10)); // Just show recent
     }).finally(() => setLoading(false));
   }, [token, selectedVersion]);
 
@@ -124,12 +125,12 @@ export default function RiskHistoryPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border/50 hover:bg-transparent">
-                    <TableHead className="w-20 text-xs">Kode</TableHead>
-                    <TableHead className="text-xs">Risiko & Alasan Perubahan</TableHead>
-                    <TableHead className="text-xs w-28">Versi Lama</TableHead>
-                    <TableHead className="text-xs text-center w-12">→</TableHead>
-                    <TableHead className="text-xs w-28">Versi Current</TableHead>
-                    <TableHead className="text-xs w-16 text-center">Tren</TableHead>
+                    <TableHead className="w-20 text-xs whitespace-nowrap">Kode</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Risiko & Alasan Perubahan</TableHead>
+                    <TableHead className="text-xs w-28 whitespace-nowrap">Versi Lama</TableHead>
+                    <TableHead className="text-xs text-center w-12 whitespace-nowrap">→</TableHead>
+                    <TableHead className="text-xs w-28 whitespace-nowrap">Versi Current</TableHead>
+                    <TableHead className="text-xs w-16 text-center whitespace-nowrap">Tren</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

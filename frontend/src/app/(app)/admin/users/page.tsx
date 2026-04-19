@@ -260,7 +260,9 @@ export default function UsersManagementPage() {
     })
       .then((result) => {
         if (!cancelled) {
-          setUsers(result.data ?? []);
+          setUsers(
+            [...(result.data ?? [])].sort((a, b) => new Date(b.createdAt || b.created_at || 0).getTime() - new Date(a.createdAt || a.created_at || 0).getTime())
+          );
           setTotal(result.total ?? 0);
           setPage(result.page ?? page);
           setLimit(result.limit ?? limit);
@@ -424,15 +426,15 @@ export default function UsersManagementPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-xs">User</TableHead>
-                <TableHead className="w-32 text-xs">Username</TableHead>
-                <TableHead className="w-32 text-xs">NIP</TableHead>
-                <TableHead className="w-28 text-xs">Role</TableHead>
-                <TableHead className="w-36 text-xs">Jabatan</TableHead>
-                <TableHead className="w-28 text-xs">Pangkat</TableHead>
-                <TableHead className="w-40 text-xs">Organisasi</TableHead>
-                <TableHead className="w-40 text-xs">Status</TableHead>
-                <TableHead className="w-10 text-xs"></TableHead>
+                <TableHead className="text-xs whitespace-nowrap">User</TableHead>
+                <TableHead className="w-32 text-xs whitespace-nowrap">Username</TableHead>
+                <TableHead className="w-32 text-xs whitespace-nowrap">NIP</TableHead>
+                <TableHead className="w-28 text-xs whitespace-nowrap">Role</TableHead>
+                <TableHead className="w-36 text-xs whitespace-nowrap">Jabatan</TableHead>
+                <TableHead className="w-28 text-xs whitespace-nowrap">Pangkat</TableHead>
+                <TableHead className="w-40 text-xs whitespace-nowrap">Organisasi</TableHead>
+                <TableHead className="w-40 text-xs whitespace-nowrap">Status</TableHead>
+                <TableHead className="w-10 text-xs whitespace-nowrap"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

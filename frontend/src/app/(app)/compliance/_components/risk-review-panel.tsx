@@ -63,6 +63,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getBobot, calculateNilai, getRiskLevelFromNilai } from "@/lib/risk";
+
 type OrganizationOption = OrganizationListItem;
 
 const reviewStatusMeta: Record<string, { label: string; className: string }> = {
@@ -147,10 +150,32 @@ function buildHeatmapGrid(cells: HeatmapCell[]) {
   });
 }
 
-function getHeatmapCellClass(count: number): string {
+function getHeatmapCellClass(
+  count: number,
+  prob: number,
+  impact: number,
+  mode: "intensity" | "riskLevel"
+): string {
+  if (mode === "riskLevel") {
+    const bobot = getBobot(prob, impact);
+    const nilai = calculateNilai(prob, impact, bobot);
+    const level = getRiskLevelFromNilai(nilai);
+    const colorClass = {
+      sangat_rendah: "heatmap-sangat-rendah border-transparent",
+      rendah: "heatmap-rendah border-transparent",
+      sedang: "heatmap-sedang border-transparent",
+      tinggi: "heatmap-tinggi border-transparent",
+      sangat_tinggi: "heatmap-sangat-tinggi border-transparent",
+    }[level];
+    
+    if (count === 0) return cn(colorClass, "opacity-40 font-normal");
+    return cn(colorClass, "font-bold");
+  }
+
+  // mode === "intensity"
   if (count === 0) return "border-border bg-muted/20 text-muted-foreground";
-  if (count <= 2) return "border-primary/20 bg-primary/15 text-foreground";
-  if (count <= 5) return "border-primary/30 bg-primary/30 text-foreground";
+  if (count <= 2) return "border-primary/20 bg-primary/15 text-foreground font-semibold";
+  if (count <= 5) return "border-primary/30 bg-primary/30 text-foreground font-bold";
   return "border-primary/40 bg-primary/50 font-bold text-foreground";
 }
 
@@ -174,6 +199,7 @@ export function RiskReviewPanel() {
   const [limit] = useState(20);
   const [total, setTotal] = useState(0);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [heatmapMode, setHeatmapMode] = useState<"intensity" | "riskLevel">("intensity");
   const [selectedRisk, setSelectedRisk] = useState<RiskReviewQueueItem | null>(
     null,
   );
@@ -465,19 +491,19 @@ export function RiskReviewPanel() {
               Memuat queue reassessment...
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-24">Kode</TableHead>
-                  <TableHead>Risiko</TableHead>
-                  <TableHead className="w-32">Unit</TableHead>
-                  <TableHead className="w-28 text-center">Score</TableHead>
-                  <TableHead className="w-28 text-center">Candidate</TableHead>
-                  <TableHead className="w-32">Review Status</TableHead>
-                  <TableHead className="w-32">Next Review</TableHead>
-                  <TableHead className="w-36 text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
+             <Table>
+               <TableHeader>
+                 <TableRow>
+                   <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
+                   <TableHead className="whitespace-nowrap">Risiko</TableHead>
+                   <TableHead className="w-32 whitespace-nowrap">Unit</TableHead>
+                   <TableHead className="w-28 text-center whitespace-nowrap">Score</TableHead>
+                   <TableHead className="w-28 text-center whitespace-nowrap">Candidate</TableHead>
+                   <TableHead className="w-32 whitespace-nowrap">Review Status</TableHead>
+                   <TableHead className="w-32 whitespace-nowrap">Next Review</TableHead>
+                   <TableHead className="w-36 text-right whitespace-nowrap">Aksi</TableHead>
+                 </TableRow>
+               </TableHeader>
                <TableBody>
                 {filteredItems.length === 0 ? (
                   <TableRow>
@@ -656,17 +682,17 @@ export function RiskReviewPanel() {
                 Memuat completion rate...
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Unit</TableHead>
-                    <TableHead className="w-24 text-center">Assigned</TableHead>
-                    <TableHead className="w-24 text-center">Done</TableHead>
-                    <TableHead className="w-24 text-center">Pending</TableHead>
-                    <TableHead className="w-24 text-center">Overdue</TableHead>
-                    <TableHead className="w-48 text-right">Rate</TableHead>
-                  </TableRow>
-                </TableHeader>
+               <Table>
+                 <TableHeader>
+                   <TableRow>
+                     <TableHead className="whitespace-nowrap">Unit</TableHead>
+                     <TableHead className="w-24 text-center whitespace-nowrap">Assigned</TableHead>
+                     <TableHead className="w-24 text-center whitespace-nowrap">Done</TableHead>
+                     <TableHead className="w-24 text-center whitespace-nowrap">Pending</TableHead>
+                     <TableHead className="w-24 text-center whitespace-nowrap">Overdue</TableHead>
+                     <TableHead className="w-48 text-right whitespace-nowrap">Rate</TableHead>
+                   </TableRow>
+                 </TableHeader>
                 <TableBody>
                   {(summaryData?.unitCompletion.length ?? 0) === 0 ? (
                     <TableRow>
@@ -713,13 +739,25 @@ export function RiskReviewPanel() {
         </Card>
 
         <Card className="border-border/50 bg-card/80">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-base font-semibold text-foreground">
-              Heatmap Compare
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Distribusi risiko approved pada {previousCycle} dan {cycle}.
-            </p>
+          <CardHeader className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
+            <div className="space-y-1">
+              <CardTitle className="text-base font-semibold text-foreground">
+                Heatmap Compare
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Distribusi risiko approved pada {previousCycle} dan {cycle}.
+              </p>
+            </div>
+            <Tabs
+              value={heatmapMode}
+              onValueChange={(v) => setHeatmapMode(v as "intensity" | "riskLevel")}
+              className="w-full sm:w-auto"
+            >
+              <TabsList className="grid w-full grid-cols-2 sm:w-[240px]">
+                <TabsTrigger value="intensity">Intensitas</TabsTrigger>
+                <TabsTrigger value="riskLevel">Level Risiko</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent className="grid gap-6 md:grid-cols-2">
             {summaryLoading ? (
@@ -738,17 +776,21 @@ export function RiskReviewPanel() {
                     </p>
                     <div className="grid grid-cols-5 gap-1">
                       {heatmap.grid.flatMap((row, rowIndex) =>
-                        row.map((count, colIndex) => (
-                          <div
-                            key={`${heatmap.label}-${rowIndex}-${colIndex}`}
-                            className={cn(
-                              "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
-                              getHeatmapCellClass(count),
-                            )}
-                          >
-                            {count}
-                          </div>
-                        )),
+                        row.map((count, colIndex) => {
+                          const prob = colIndex + 1;
+                          const impact = 5 - rowIndex;
+                          return (
+                            <div
+                              key={`${heatmap.label}-${rowIndex}-${colIndex}`}
+                              className={cn(
+                                "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold transition-colors",
+                                getHeatmapCellClass(count, prob, impact, heatmapMode),
+                              )}
+                            >
+                              {heatmapMode === "riskLevel" && count === 0 ? "" : count}
+                            </div>
+                          );
+                        }),
                       )}
                     </div>
                   </div>
@@ -814,16 +856,16 @@ export function RiskReviewPanel() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-24">Kode</TableHead>
-                  <TableHead>Risiko</TableHead>
-                  <TableHead className="w-40">Unit</TableHead>
-                  <TableHead className="w-24 text-center">
+                  <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
+                  <TableHead className="whitespace-nowrap">Risiko</TableHead>
+                  <TableHead className="w-40 whitespace-nowrap">Unit</TableHead>
+                  <TableHead className="w-24 text-center whitespace-nowrap">
                     {previousCycle}
                   </TableHead>
-                  <TableHead className="w-12 text-center" />
-                  <TableHead className="w-24 text-center">{cycle}</TableHead>
-                  <TableHead className="w-24 text-center">Delta</TableHead>
-                  <TableHead className="w-24 text-center">Tren</TableHead>
+                  <TableHead className="w-12 text-center whitespace-nowrap" />
+                  <TableHead className="w-24 text-center whitespace-nowrap">{cycle}</TableHead>
+                  <TableHead className="w-24 text-center whitespace-nowrap">Delta</TableHead>
+                  <TableHead className="w-24 text-center whitespace-nowrap">Tren</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

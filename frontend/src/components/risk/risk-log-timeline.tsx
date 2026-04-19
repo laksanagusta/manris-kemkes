@@ -107,9 +107,11 @@ async function getApprovalHistory(
       `/approvals/by-entity?request_type=${entityType}&entity_id=${entityId}`,
       token,
     );
+    console.log(`[approval-history] type=${entityType} entity=${entityId}`, result);
     if (!result) return [];
     return normalizeApprovalHistoryItems(result.history || result.History || []);
-  } catch {
+  } catch (err) {
+    console.warn(`[approval-history] type=${entityType} entity=${entityId} error:`, err);
     return [];
   }
 }

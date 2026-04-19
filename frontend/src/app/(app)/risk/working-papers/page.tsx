@@ -500,12 +500,12 @@ export default function WorkingPapersPage() {
           <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead>Judul</TableHead>
-              <TableHead className="w-28">Siklus Asesmen</TableHead>
-              <TableHead className="w-28">Status</TableHead>
-              <TableHead className="text-center w-28">Jumlah Risiko</TableHead>
-              <TableHead className="text-center w-32">Progres TTE</TableHead>
-              <TableHead className="w-32">Dibuat Pada</TableHead>
+              <TableHead className="whitespace-nowrap">Judul</TableHead>
+              <TableHead className="w-28 whitespace-nowrap">Siklus Asesmen</TableHead>
+              <TableHead className="w-28 whitespace-nowrap">Status</TableHead>
+              <TableHead className="text-center w-28 whitespace-nowrap">Jumlah Risiko</TableHead>
+              <TableHead className="text-center w-32 whitespace-nowrap">Progres TTE</TableHead>
+              <TableHead className="w-32 whitespace-nowrap">Dibuat Pada</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

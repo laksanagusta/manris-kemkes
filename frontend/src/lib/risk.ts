@@ -64,21 +64,21 @@ export const IMPACT_LABELS: Record<number, string> = {
 
 export const riskCategoryLabels: Record<RiskCategory, string> = {
   "": "Belum dikategorikan",
-  strategis: "Strategis",
-  operasional: "Operasional",
-  kepatuhan: "Kepatuhan",
-  finansial: "Finansial",
+  kebijakan: "Kebijakan",
   reputasi: "Reputasi",
-  teknologi_informasi: "Teknologi Informasi",
+  fraud_korupsi: "Fraud - Korupsi",
+  legal: "Legal",
+  kepatuhan: "Kepatuhan",
+  operasional: "Operasional",
 };
 
 export const dashboardCategoryLabels: Record<string, string> = {
-  strategis: "Strategis",
-  operasional: "Operasional",
-  kepatuhan: "Kepatuhan",
-  finansial: "Finansial",
+  kebijakan: "Kebijakan",
   reputasi: "Reputasi",
-  hukum: "Hukum",
+  fraud_korupsi: "Fraud - Korupsi",
+  legal: "Legal",
+  kepatuhan: "Kepatuhan",
+  operasional: "Operasional",
   uncategorized: "Tanpa Kategori",
 };
 
