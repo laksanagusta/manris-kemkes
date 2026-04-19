@@ -22,38 +22,19 @@ import type { CommunicationLog } from "@/types/communication-log";
 import type { MeetingMinutesRisk } from "@/types/meeting-minute";
 import { getCommunicationLogs } from "@/lib/communication-logs";
 import { getMeetingMinutesByRisk } from "@/lib/meeting-minutes";
+import {
+  mergeApprovalHistories,
+  normalizeApprovalHistoryItems,
+} from "@/lib/risk-activity-history";
+import type {
+  ApprovalHistory,
+  RawApprovalHistory,
+} from "@/lib/risk-activity-history";
 import { CommunicationLogDialog } from "./communication-log-dialog";
 
 interface RiskLogTimelineProps {
   riskId: string;
   token: string;
-}
-
-interface ApprovalHistory {
-  id: string;
-  action: "submitted" | "approved" | "rejected" | "returned";
-  actorId: string;
-  actorName: string;
-  actorRole: string;
-  comments: string;
-  createdAt: string;
-}
-
-interface RawApprovalHistory {
-  id?: string;
-  action?: "submitted" | "approved" | "rejected" | "returned";
-  actorId?: string;
-  actorName?: string;
-  actorRole?: string;
-  comments?: string;
-  createdAt?: string;
-  ID?: string;
-  Action?: "submitted" | "approved" | "rejected" | "returned";
-  ActorID?: string;
-  ActorName?: string;
-  ActorRole?: string;
-  Comments?: string;
-  CreatedAt?: string;
 }
 
 interface RawCommunicationLog {
@@ -127,18 +108,7 @@ async function getApprovalHistory(
       token,
     );
     if (!result) return [];
-    return (result.history || result.History || [])
-      .map((item, index) => ({
-        id: item.id || item.ID || `approval-${index}`,
-        action: item.action || item.Action || "submitted",
-        actorId: item.actorId || item.ActorID || "",
-        actorName: item.actorName || item.ActorName || "-",
-        actorRole: item.actorRole || item.ActorRole || "-",
-        comments: item.comments || item.Comments || "",
-        createdAt:
-          item.createdAt || item.CreatedAt || new Date(0).toISOString(),
-      }))
-      .filter((item) => item.id);
+    return normalizeApprovalHistoryItems(result.history || result.History || []);
   } catch {
     return [];
   }
@@ -165,15 +135,30 @@ function normalizeCommunicationLogs(
 async function getRiskVersions(
   riskId: string,
   token: string,
-): Promise<{ versions: { id: string; createdAt: string }[] } | null> {
+): Promise<Array<{ id: string; createdAt?: string }> | null> {
   try {
-    return await api.get<{ versions: { id: string; createdAt: string }[] }>(
+    return await api.get<Array<{ id: string; createdAt?: string }>>(
       `/risks/${riskId}/versions`,
       token,
     );
   } catch {
     return null;
   }
+}
+
+function getRelatedRiskIds(
+  currentRiskId: string,
+  versions: Array<{ id: string; createdAt?: string }> | null,
+): string[] {
+  const ids = new Set<string>([currentRiskId]);
+
+  for (const version of versions ?? []) {
+    if (version.id) {
+      ids.add(version.id);
+    }
+  }
+
+  return [...ids];
 }
 
 function formatDateTime(dateStr: string): string {
@@ -200,15 +185,25 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [logs, approval, minutesData] = await Promise.all([
+      const [logs, versions, minutesData] = await Promise.all([
         getCommunicationLogs(riskId, token),
-        getApprovalHistory("risk", riskId, token),
+        getRiskVersions(riskId, token),
         getMeetingMinutesByRisk(riskId, token),
       ]);
+      const relatedRiskIds = getRelatedRiskIds(riskId, versions);
+      const approvalHistories = await Promise.all(
+        relatedRiskIds.flatMap((entityId) => [
+          getApprovalHistory("risk", entityId, token),
+          getApprovalHistory("assessment", entityId, token),
+        ]),
+      );
+
       setCommLogs(
         normalizeCommunicationLogs((logs || []) as RawCommunicationLog[]),
       );
-      setApprovalHistory(approval || []);
+      setApprovalHistory(
+        mergeApprovalHistories(...approvalHistories),
+      );
       setMeetingMinutes(minutesData || []);
     } catch {
       toast.error("Gagal memuat log komunikasi");
@@ -284,7 +279,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
     <>
       <Card className="border-border/50">
         <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-border/50">
-          <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+          <CardTitle className="text-base font-bold flex items-center gap-2">
             <History className="size-4" /> Log & Komunikasi
           </CardTitle>
           <Button

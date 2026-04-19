@@ -89,8 +89,8 @@ export default function LoginPage() {
         {/* Login card */}
         <Card className="border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl shadow-primary/5">
           <CardHeader className="pb-4">
-            <CardTitle className="text-[15px] font-semibold">Masuk ke Akun Anda</CardTitle>
-            <CardDescription className="text-xs text-muted-foreground">
+            <CardTitle>Masuk ke Akun Anda</CardTitle>
+            <CardDescription>
               Gunakan kredensial yang telah diberikan administrator
             </CardDescription>
           </CardHeader>

@@ -801,7 +801,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
           <div className="space-y-6">
               <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
                 <CardHeader className="border-b border-border/50">
-                  <CardTitle className="text-[15px] font-semibold text-foreground">
+                  <CardTitle className="text-base font-semibold text-foreground">
                     Upload PDF
                   </CardTitle>
                 </CardHeader>
@@ -863,7 +863,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
 
               <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
                 <CardHeader className="border-b border-border/50">
-                  <CardTitle className="text-[15px] font-semibold text-foreground">
+                  <CardTitle className="text-base font-semibold text-foreground">
                     Kandidat insiden
                   </CardTitle>
                 </CardHeader>
@@ -958,7 +958,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Fakta inti
                     </p>
-                    <CardTitle className="text-[15px] font-semibold text-foreground">
+                    <CardTitle className="text-base font-semibold text-foreground">
                       Form insiden manual
                     </CardTitle>
                     <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -1126,7 +1126,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
                     <ShieldAlert className="size-3.5" />
                     Relasi risiko
                   </p>
-                  <CardTitle className="text-[15px] font-semibold text-foreground">
+                  <CardTitle className="text-base font-semibold text-foreground">
                     Risiko terkait
                   </CardTitle>
                   <p className="text-sm leading-6 text-muted-foreground">

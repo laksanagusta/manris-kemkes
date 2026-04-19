@@ -118,7 +118,7 @@ export function KRIReportsList({ kriId, metric, organizationId }: { kriId: strin
     <>
       <Card className="border-border/50 bg-card/80">
         <CardHeader>
-          <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2">
             <CalendarDays className="size-5 text-primary" />
             Jadwal Pelaporan Berkala
           </CardTitle>

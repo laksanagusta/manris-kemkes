@@ -7,21 +7,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  Loader2,
-  Save,
-  Send,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
-  X,
-  GripVertical,
-  History,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-} from "lucide-react";
+import { ArrowLeft, Loader2, Save, Send, Trash2, ChevronUp, ChevronDown, X, GripVertical, History, GitBranch, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import {
   MitigationTable,
   type MitigationItem,
@@ -30,15 +16,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { getRiskDetail, updateRiskAssessment } from "@/lib/api/risk-assessment";
-import {
-  getBobot,
-  calculateNilai,
-  PROBABILITY_LABELS,
-  IMPACT_LABELS,
-  levelToColor,
-  getRiskLevelFromNilai,
-  getRiskLevelLabel,
-} from "@/lib/risk";
+import { getBobot, calculateNilai, PROBABILITY_LABELS, IMPACT_LABELS, levelToColor, getRiskLevelFromNilai, getRiskLevelLabel } from "@/lib/risk";
 import type { Risk, RiskVersionTimelineItem } from "@/types/risk";
 import { listUsers } from "@/lib/api/users";
 import {
@@ -46,12 +24,8 @@ import {
   type RiskRegisterHistoryItem,
 } from "@/lib/risk-history";
 
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { CircleDot, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -87,10 +61,7 @@ import {
   ReviewSidePanel,
   type RiskWorkflowState,
 } from "@/components/risk/review-side-panel";
-import {
-  filterApproverOptions,
-  type UserPickerOption,
-} from "@/lib/risk-register-user-picker";
+import { filterApproverOptions, type UserPickerOption } from "@/lib/risk-register-user-picker";
 import {
   resolveDraftApprovalLine,
   type DraftApprovalLineMember,
@@ -104,8 +75,7 @@ const VERSION_LEVEL_BADGE: Record<string, string> = {
   Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
   Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
   Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi":
-    "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+  "Sangat Tinggi": "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
 };
 
 const RiskLogTimeline = dynamic(
@@ -126,12 +96,7 @@ const RiskLogTimeline = dynamic(
   },
 );
 
-type ApprovalLineUser = {
-  id: string;
-  name: string;
-  email?: string;
-  role?: string;
-};
+type ApprovalLineUser = { id: string; name: string; email?: string; role?: string };
 
 function dedupeApproverIds(ids: Array<string | undefined>) {
   return [...new Set(ids.filter((id): id is string => Boolean(id)))];
@@ -176,6 +141,8 @@ const formSchema = z.object({
   reviewSummary: z.string().default(""),
 });
 
+type AssessmentFormInput = z.input<typeof formSchema>;
+
 export default function AssessmentFormPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -187,22 +154,17 @@ export default function AssessmentFormPage() {
   const [sourceRisk, setSourceRisk] = useState<Risk | null>(null);
 
   const [reviewerId, setReviewerId] = useState<string>("");
-  const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(
-    null,
-  );
+  const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(null);
   const [approvalLine, setApprovalLine] = useState<ApprovalLineUser[]>([]);
   const [approvalId, setApprovalId] = useState<string | null>(null);
-  const [approvalWorkflow, setApprovalWorkflow] =
-    useState<RiskWorkflowState | null>(null);
+  const [approvalWorkflow, setApprovalWorkflow] = useState<RiskWorkflowState | null>(null);
   const [showSubmitReviewConfirm, setShowSubmitReviewConfirm] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [versionHistory, setVersionHistory] = useState<
-    RiskRegisterHistoryItem[]
-  >([]);
+  const [versionHistory, setVersionHistory] = useState<RiskRegisterHistoryItem[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const submitTarget = useRef<"draft" | "review">("draft");
 
-  const form = useForm<AssessmentFormValues>({
+  const form = useForm<AssessmentFormInput, unknown, AssessmentFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       probability: 1,
@@ -267,10 +229,13 @@ export default function AssessmentFormPage() {
       });
 
       return {
-        options: filterApproverOptions(result.data.map(toUserPickerOption), {
-          reviewerId,
-          selectedApproverIds: approvalLine.map((member) => member.id),
-        }),
+        options: filterApproverOptions(
+          result.data.map(toUserPickerOption),
+          {
+            reviewerId,
+            selectedApproverIds: approvalLine.map((member) => member.id),
+          },
+        ),
         total: result.total,
         page: result.page,
         limit: result.limit,
@@ -375,7 +340,7 @@ export default function AssessmentFormPage() {
 
   const loadRiskData = useCallback(async () => {
     if (!token || !id) return;
-
+    
     try {
       setIsLoading(true);
       const draft = await getRiskDetail(token, id);
@@ -438,8 +403,7 @@ export default function AssessmentFormPage() {
             ? {
                 currentStatus: approvalResult.currentStatus ?? null,
                 currentApproverRole: approvalResult.currentApproverRole ?? null,
-                currentApproverUserId:
-                  approvalResult.currentApproverUserId ?? null,
+                currentApproverUserId: approvalResult.currentApproverUserId ?? null,
                 steps:
                   approvalResult.steps?.map((step) => ({
                     approverUserId: step.approverUserId ?? null,
@@ -488,8 +452,7 @@ export default function AssessmentFormPage() {
       }
     } catch (error) {
       toast.error("Gagal memuat data risiko", {
-        description:
-          (error as Error).message || "Terjadi kesalahan yang tidak diketahui",
+        description: (error as Error).message || "Terjadi kesalahan yang tidak diketahui",
       });
     } finally {
       setIsLoading(false);
@@ -505,11 +468,7 @@ export default function AssessmentFormPage() {
     setIsSaving(true);
     try {
       const newWeight = getBobot(values.probability, values.impact);
-      const newNilai = calculateNilai(
-        values.probability,
-        values.impact,
-        newWeight,
-      );
+      const newNilai = calculateNilai(values.probability, values.impact, newWeight);
       // Merge assessment fields with existing risk data so backend validation passes
       const payload = {
         title: draftRisk.title,
@@ -517,10 +476,7 @@ export default function AssessmentFormPage() {
         category: draftRisk.category,
         status: draftRisk.status,
         unitId: draftRisk.unitId,
-        organizationId:
-          (draftRisk as any).organizationId ||
-          (draftRisk as any).organizationID ||
-          "",
+        organizationId: (draftRisk as any).organizationId || (draftRisk as any).organizationID || "",
         cause: draftRisk.cause || [],
         riskSource: draftRisk.riskSource || "",
         controllability: draftRisk.controllability || "",
@@ -535,11 +491,7 @@ export default function AssessmentFormPage() {
         riskPriority: draftRisk.riskPriority || 0,
         riskAppetite: draftRisk.riskAppetite || "",
         treatmentOption: draftRisk.treatmentOption || "",
-        mitigations: draftRisk.mitigations?.length
-          ? draftRisk.mitigations
-          : draftRisk.mitigation
-            ? [draftRisk.mitigation]
-            : [],
+        mitigations: draftRisk.mitigations?.length ? draftRisk.mitigations : (draftRisk.mitigation ? [draftRisk.mitigation] : []),
         targetProbability: draftRisk.targetProbability || 0,
         targetImpact: draftRisk.targetImpact || 0,
         targetWeight: draftRisk.targetWeight || 0,
@@ -588,14 +540,10 @@ export default function AssessmentFormPage() {
             },
             token,
           );
-          toast.success(
-            "Pemantauan berhasil disimpan dan diajukan untuk review!",
-          );
+          toast.success("Pemantauan berhasil disimpan dan diajukan untuk review!");
           router.push("/risk/assessment");
         } catch (approvalErr: unknown) {
-          toast.error(
-            `Pemantauan disimpan, namun gagal diajukan: ${(approvalErr as Error).message}`,
-          );
+          toast.error(`Pemantauan disimpan, namun gagal diajukan: ${(approvalErr as Error).message}`);
           router.push("/risk/assessment");
         }
       } else {
@@ -626,10 +574,7 @@ export default function AssessmentFormPage() {
     return (
       <div className="flex h-[50vh] w-full flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Data risiko tidak ditemukan.</p>
-        <Button
-          variant="outline"
-          onClick={() => router.push("/risk/assessment")}
-        >
+        <Button variant="outline" onClick={() => router.push("/risk/assessment")}>
           <ArrowLeft className="mr-2 size-4" />
           Kembali
         </Button>
@@ -684,6 +629,7 @@ export default function AssessmentFormPage() {
                 >
                   <SheetHeader className="border-b border-border/50 pb-4">
                     <SheetTitle className="flex items-center gap-2 text-base font-bold">
+                      <History className="size-4" />
                       Riwayat Versi
                     </SheetTitle>
                     <SheetDescription>
@@ -700,6 +646,7 @@ export default function AssessmentFormPage() {
                       </div>
                     ) : versionHistory.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <GitBranch className="size-8 text-muted-foreground/50 mb-3" />
                         <p className="text-sm font-medium">
                           Belum Ada Riwayat Versi
                         </p>
@@ -716,9 +663,7 @@ export default function AssessmentFormPage() {
                             <div
                               key={item.id}
                               className="flex gap-3 relative cursor-pointer hover:bg-muted/30 rounded-md p-1 -m-1 transition-colors"
-                              onClick={() =>
-                                router.push(`/risk/register/${item.riskId}`)
-                              }
+                              onClick={() => router.push(`/risk/register/${item.riskId}`)}
                             >
                               <div className="shrink-0 size-6 rounded-full bg-background border border-border/50 flex items-center justify-center z-10">
                                 {item.trend === "up" ? (
@@ -732,7 +677,7 @@ export default function AssessmentFormPage() {
                               <div className="flex-1 min-w-0 pb-2">
                                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                                   <span className="text-sm font-semibold">
-                                    Versi {versionHistory.length - index}
+                                    v{versionHistory.length - index} — {item.cycle}
                                   </span>
                                   {item.isCurrent && (
                                     <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
@@ -745,8 +690,7 @@ export default function AssessmentFormPage() {
                                     variant="outline"
                                     className={cn(
                                       "text-[10px] font-semibold border h-5 px-1.5",
-                                      VERSION_LEVEL_BADGE[item.previousLevel] ||
-                                        "",
+                                      VERSION_LEVEL_BADGE[item.previousLevel] || "",
                                     )}
                                   >
                                     {item.previousLevel}
@@ -758,13 +702,15 @@ export default function AssessmentFormPage() {
                                     variant="outline"
                                     className={cn(
                                       "text-[10px] font-semibold border h-5 px-1.5",
-                                      VERSION_LEVEL_BADGE[item.currentLevel] ||
-                                        "",
+                                      VERSION_LEVEL_BADGE[item.currentLevel] || "",
                                     )}
                                   >
                                     {item.currentLevel}
                                   </Badge>
                                 </div>
+                                <p className="text-[10px] text-muted-foreground italic">
+                                  {item.changeReason}
+                                </p>
                               </div>
                             </div>
                           ))}
@@ -779,43 +725,44 @@ export default function AssessmentFormPage() {
             <TooltipProvider>
               {(draftRisk.status === "assessment_draft" || !id) && (
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    className="gap-2 text-xs font-medium border-primary/20 hover:bg-primary/5 hover:text-primary"
-                    onClick={handleSaveDraft}
-                    disabled={isSaving}
-                  >
-                    {isSaving && submitTarget.current === "draft" ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Save className="size-3.5" />
-                    )}{" "}
-                    Simpan draft
-                  </Button>
-                  <Button
-                    className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
-                    onClick={openSubmitReviewConfirm}
-                    disabled={isSaving}
-                  >
-                    {isSaving && submitTarget.current === "review" ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Send className="size-4" />
-                    )}{" "}
-                    Ajukan review
-                  </Button>
-                </div>
-              )}
-            </TooltipProvider>
+                <Button
+                  variant="outline"
+                  className="gap-2 text-xs font-medium border-primary/20 hover:bg-primary/5 hover:text-primary"
+                  onClick={handleSaveDraft}
+                  disabled={isSaving}
+                >
+                  {isSaving && submitTarget.current === "draft" ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Save className="size-3.5" />
+                  )}{" "}
+                  Simpan draft
+                </Button>
+                <Button
+                  className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={openSubmitReviewConfirm}
+                  disabled={isSaving}
+                >
+                  {isSaving && submitTarget.current === "review" ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}{" "}
+                  Ajukan review
+                </Button>
+              </div>
+            )}
+          </TooltipProvider>
           </div>
         }
       />
-      {/* Form Content */} {/* Form Content */}
+
+      {/* Form Content */}      {/* Form Content */}
       <div className="flex flex-col xl:flex-row gap-6 items-start">
         {/* Left Column */}
         <div className="w-full xl:w-2/3 space-y-6">
           <ProfilRisikoCard risk={sourceRisk} />
-
+          
           <Accordion
             type="multiple"
             defaultValue={["hasil-pemantauan", "approval-line"]}
@@ -840,32 +787,23 @@ export default function AssessmentFormPage() {
               <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
                 <div className="grid gap-6">
                   {(() => {
-                    const mitigations =
-                      draftRisk?.mitigations ??
-                      sourceRisk.mitigations ??
-                      (sourceRisk.mitigation ? [sourceRisk.mitigation] : []);
-                    const mitigationItems: MitigationItem[] = mitigations.map(
-                      (m) => ({
-                        id: m.id,
-                        action: m.action ?? "",
-                        owner: m.owner ?? "",
-                        treatmentOwnerId: m.treatmentOwnerId,
-                        externalPicId: m.externalPicId,
-                        dueDate: m.dueDate ?? "",
-                        frequency:
-                          (m.frequency as MitigationItem["frequency"]) ??
-                          "insidental",
-                        recurringInterval:
-                          m.recurringInterval as MitigationItem["recurringInterval"],
-                        reportDay: m.reportDay,
-                        reportDate: m.reportDate,
-                      }),
-                    );
+                    const mitigations = draftRisk?.mitigations ?? sourceRisk.mitigations ?? (sourceRisk.mitigation ? [sourceRisk.mitigation] : []);
+                    const mitigationItems: MitigationItem[] = mitigations.map((m) => ({
+                      id: m.id,
+                      action: m.action ?? "",
+                      owner: m.owner ?? "",
+                      treatmentOwnerId: m.treatmentOwnerId,
+                      externalPicId: m.externalPicId,
+                      dueDate: m.dueDate ?? "",
+                      frequency: (m.frequency as MitigationItem["frequency"]) ?? "insidental",
+                      recurringInterval: m.recurringInterval as MitigationItem["recurringInterval"],
+                      reportDay: m.reportDay,
+                      reportDate: m.reportDate,
+                    }));
                     return mitigationItems.length > 0 ? (
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-foreground">
-                          Rencana Penanganan (dari versi terakhir yang
-                          disetujui)
+                          Rencana Penanganan (dari versi terakhir yang disetujui)
                         </Label>
                         <MitigationTable
                           items={mitigationItems}
@@ -878,9 +816,7 @@ export default function AssessmentFormPage() {
                         <Label className="text-sm font-medium text-foreground">
                           Rencana Penanganan
                         </Label>
-                        <p className="text-sm text-muted-foreground italic mt-2">
-                          Belum ada rencana penanganan
-                        </p>
+                        <p className="text-sm text-muted-foreground italic mt-2">Belum ada rencana penanganan</p>
                       </div>
                     );
                   })()}
@@ -904,16 +840,13 @@ export default function AssessmentFormPage() {
                                         "h-10 rounded-lg border text-sm font-semibold transition-colors",
                                         val === field.value
                                           ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, impact, getBobot(val, impact))))} ring-1 font-bold`
-                                          : "bg-muted/30 hover:bg-muted/50",
+                                          : "bg-muted/30 hover:bg-muted/50"
                                       )}
                                     >
                                       {val}
                                     </button>
                                   </TooltipTrigger>
-                                  <TooltipContent
-                                    side="top"
-                                    className="text-xs"
-                                  >
+                                  <TooltipContent side="top" className="text-xs">
                                     {PROBABILITY_LABELS[val]}
                                   </TooltipContent>
                                 </Tooltip>
@@ -923,8 +856,7 @@ export default function AssessmentFormPage() {
                         />
                         {form.formState.errors.probability && (
                           <span className="text-xs text-red-500 font-medium">
-                            {form.formState.errors.probability.message ||
-                              "Wajib diisi"}
+                            {form.formState.errors.probability.message || "Wajib diisi"}
                           </span>
                         )}
                       </div>
@@ -946,16 +878,13 @@ export default function AssessmentFormPage() {
                                         "h-10 rounded-lg border text-sm font-semibold transition-colors",
                                         val === field.value
                                           ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(probability, val, getBobot(probability, val))))} ring-1 font-bold`
-                                          : "bg-muted/30 hover:bg-muted/50",
+                                          : "bg-muted/30 hover:bg-muted/50"
                                       )}
                                     >
                                       {val}
                                     </button>
                                   </TooltipTrigger>
-                                  <TooltipContent
-                                    side="top"
-                                    className="text-xs"
-                                  >
+                                  <TooltipContent side="top" className="text-xs">
                                     {IMPACT_LABELS[val]}
                                   </TooltipContent>
                                 </Tooltip>
@@ -965,8 +894,7 @@ export default function AssessmentFormPage() {
                         />
                         {form.formState.errors.impact && (
                           <span className="text-xs text-red-500 font-medium">
-                            {form.formState.errors.impact.message ||
-                              "Wajib diisi"}
+                            {form.formState.errors.impact.message || "Wajib diisi"}
                           </span>
                         )}
                       </div>
@@ -988,8 +916,7 @@ export default function AssessmentFormPage() {
                     />
                     {form.formState.errors.changeReason && (
                       <span className="text-xs text-red-500 font-medium">
-                        {form.formState.errors.changeReason.message ||
-                          "Wajib diisi"}
+                        {form.formState.errors.changeReason.message || "Wajib diisi"}
                       </span>
                     )}
                   </div>
@@ -1009,8 +936,7 @@ export default function AssessmentFormPage() {
                     />
                     {form.formState.errors.reviewSummary && (
                       <span className="text-xs text-red-500 font-medium">
-                        {form.formState.errors.reviewSummary.message ||
-                          "Wajib diisi"}
+                        {form.formState.errors.reviewSummary.message || "Wajib diisi"}
                       </span>
                     )}
                   </div>
@@ -1044,6 +970,11 @@ export default function AssessmentFormPage() {
                           : "bg-muted/40 text-muted-foreground",
                       )}
                     >
+                      {approvalLine.length > 0 ? (
+                        <CheckCircle2 className="size-3.5" />
+                      ) : (
+                        <CircleDot className="size-3.5" />
+                      )}
                       <span className="hidden sm:inline">
                         {approvalLine.length > 0
                           ? "Lengkap"
@@ -1056,12 +987,11 @@ export default function AssessmentFormPage() {
                   <div className="rounded-xl border border-border/60 bg-white p-5 space-y-3">
                     <div className="space-y-1.5">
                       <Label className="text-sm font-medium text-foreground">
-                        Reviewer (Pemeriksa)
+                        1. Reviewer (Pemeriksa)
                         <span className="text-destructive ml-0.5">*</span>
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        Pilih reviewer yang akan memeriksa dan memberikan skor
-                        penilaian resmi sebelum risiko ini diajukan ke pimpinan.
+                        Pilih reviewer yang akan memeriksa dan memberikan skor penilaian resmi sebelum risiko ini diajukan ke pimpinan.
                       </p>
                     </div>
                     <RemoteUserPicker
@@ -1080,12 +1010,11 @@ export default function AssessmentFormPage() {
                   <div className="rounded-xl border border-primary/10 bg-white p-5 space-y-4">
                     <div className="space-y-1.5">
                       <Label className="text-sm font-medium text-foreground">
-                        Persetujuan
+                        2. Approval Line (Pimpinan)
                         <span className="text-destructive ml-0.5">*</span>
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        Susun rantai persetujuan pimpinan. Persetujuan dilakukan
-                        secara berurutan.
+                        Susun rantai persetujuan pimpinan. Persetujuan dilakukan secara berurutan.
                       </p>
                     </div>
 
@@ -1107,22 +1036,15 @@ export default function AssessmentFormPage() {
                     <div className="space-y-2 pt-4">
                       {approvalLine.length === 0 ? (
                         <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
-                          Belum ada approver. Tambahkan minimal satu user
-                          sebelum klik{" "}
-                          <span className="font-medium text-foreground">
-                            Ajukan review
-                          </span>
-                          .
+                          Belum ada approver. Tambahkan minimal satu user sebelum klik{" "}
+                          <span className="font-medium text-foreground">Ajukan review</span>.
                         </div>
                       ) : (
                         <div className="border border-border/50 rounded-lg overflow-hidden">
                           <table className="w-full">
                             <tbody className="divide-y divide-border/50">
                               {approvalLine.map((approver, index) => (
-                                <tr
-                                  key={approver.id}
-                                  className="hover:bg-muted/30 transition-colors"
-                                >
+                                <tr key={approver.id} className="hover:bg-muted/30 transition-colors">
                                   <td className="w-8 px-2 py-2">
                                     <div className="flex items-center justify-center text-muted-foreground">
                                       <GripVertical className="size-3.5" />
@@ -1158,9 +1080,7 @@ export default function AssessmentFormPage() {
                                         size="icon"
                                         className="size-8"
                                         onClick={() => moveApprover(index, 1)}
-                                        disabled={
-                                          index === approvalLine.length - 1
-                                        }
+                                        disabled={index === approvalLine.length - 1}
                                       >
                                         <ChevronDown className="size-4" />
                                       </Button>
@@ -1169,9 +1089,7 @@ export default function AssessmentFormPage() {
                                         variant="ghost"
                                         size="icon"
                                         className="size-8 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
-                                        onClick={() =>
-                                          removeApprover(approver.id)
-                                        }
+                                        onClick={() => removeApprover(approver.id)}
                                       >
                                         <Trash2 className="size-4" />
                                       </Button>
@@ -1213,7 +1131,8 @@ export default function AssessmentFormPage() {
           />
         </div>
       </div>
-      <AlertDialog
+
+<AlertDialog
         open={showSubmitReviewConfirm}
         onOpenChange={setShowSubmitReviewConfirm}
       >
@@ -1221,9 +1140,9 @@ export default function AssessmentFormPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Ajukan Pemantauan untuk Review?</AlertDialogTitle>
             <AlertDialogDescription>
-              Pemantauan akan disimpan lalu dikirim ke reviewer dan approval
-              line yang sudah dipilih. Pastikan seluruh bagian sudah final
-              sebelum melanjutkan.
+              Pemantauan akan disimpan lalu dikirim ke reviewer dan approval line
+              yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum
+              melanjutkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">

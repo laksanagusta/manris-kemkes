@@ -61,16 +61,8 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	if scope == nil {
+	if scope == nil || scope.IsGlobal || len(scope.AccessibleOrgIDs) == 0 {
 		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "no organization scope")
-	}
-
-	var accessibleOrgIDs []uuid.UUID
-	if !scope.IsGlobal {
-		if len(scope.AccessibleOrgIDs) == 0 {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "no organization scope")
-		}
-		accessibleOrgIDs = scope.AccessibleOrgIDs
 	}
 
 	signatories := make([]workingpaper.CreateSignatoryInput, len(req.Signatories))
@@ -97,7 +89,7 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 		Title:            req.Title,
 		Description:      req.Description,
 		AssessmentCycle:  req.AssessmentCycle,
-		AccessibleOrgIDs: append([]uuid.UUID(nil), accessibleOrgIDs...),
+		AccessibleOrgIDs: append([]uuid.UUID(nil), scope.AccessibleOrgIDs...),
 		CreatedByUserID:  userID,
 		Risks:            risks,
 		Signatories:      signatories,

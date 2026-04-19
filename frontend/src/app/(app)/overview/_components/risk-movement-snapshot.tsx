@@ -88,7 +88,7 @@ export function RiskMovementSnapshot({ data, loading }: RiskMovementSnapshotProp
   return (
     <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="movement-snapshot">
       <CardHeader className="pb-4">
-        <CardTitle className="text-[15px] font-semibold">Gerakan Risiko</CardTitle>
+        <CardTitle className="text-base font-semibold">Gerakan Risiko</CardTitle>
         <p className="mt-1 text-xs text-muted-foreground">
           Perubahan portofolio risiko vs cycle sebelumnya.
         </p>

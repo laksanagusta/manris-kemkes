@@ -15,7 +15,7 @@ import {
 } from "next/navigation";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -423,14 +423,7 @@ export default function OrganizationsManagementPage() {
       </div>
 
       <Card className="border-border/50 bg-card/80 overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-[15px] font-semibold">Daftar Organisasi</CardTitle>
-          <CardDescription className="text-xs text-muted-foreground">
-            Struktur unit organisasi beserta induk dan tingkatannya.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
+        <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
               <TableHead className="text-xs">Nama Organisasi</TableHead>
@@ -514,7 +507,6 @@ export default function OrganizationsManagementPage() {
             </Button>
           </div>
         </div>
-        </CardContent>
       </Card>
 
       <OrganizationFormDialog

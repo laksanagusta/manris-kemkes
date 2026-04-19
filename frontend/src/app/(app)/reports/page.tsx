@@ -484,7 +484,7 @@ export default function ReportsPage() {
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Download className="size-4" />
               Export Data
             </CardTitle>
@@ -584,7 +584,7 @@ export default function ReportsPage() {
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-[15px] font-semibold">
+              <CardTitle className="text-sm font-semibold">
                 Risk Movement Report
               </CardTitle>
               <p className="mt-1 text-[11px] text-muted-foreground">
@@ -691,7 +691,7 @@ export default function ReportsPage() {
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-[15px] font-semibold">
+                <CardTitle className="text-sm font-semibold">
                   Top Unit Exposure
                 </CardTitle>
                 <p className="mt-1 text-[11px] text-muted-foreground">
@@ -793,7 +793,7 @@ export default function ReportsPage() {
         <Card className="border-border/50 bg-card/80">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <TrendingUp className="size-4" />
                 Risk Trend Report
               </CardTitle>

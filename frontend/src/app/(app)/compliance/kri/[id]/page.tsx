@@ -267,7 +267,7 @@ export default function KRIDetailPage() {
         <div className="space-y-6">
           <Card className="border-border/50 bg-card/80">
              <CardHeader className="pb-3">
-               <CardTitle className="text-[15px] font-semibold uppercase tracking-wider text-muted-foreground">Terkait dengan Risiko</CardTitle>
+               <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Terkait dengan Risiko</CardTitle>
              </CardHeader>
              <CardContent>
                <Link href={`/risk/register/${kri.riskId}`}>
@@ -288,7 +288,7 @@ export default function KRIDetailPage() {
 
           <Card className="border-border/50 bg-card/80">
             <CardHeader className="pb-3 border-b border-border/50">
-              <CardTitle className="text-[15px] font-semibold uppercase tracking-wider text-muted-foreground">Metadata KRI</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Metadata KRI</CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
               <div>

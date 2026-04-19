@@ -21,7 +21,7 @@ import {
 import { ApprovalModal } from "@/components/approval-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -411,6 +411,34 @@ export default function InboxPage() {
     [requests]
   );
 
+  const summaryCards = [
+    {
+      label: "Total Permintaan",
+      value: counts.all,
+      tone: "border-border/60 bg-background/60 text-foreground",
+    },
+    {
+      label: "Menunggu Review",
+      value: counts.pendingReview,
+      tone: "border-risk-medium/20 bg-risk-medium/10 text-risk-medium",
+    },
+    {
+      label: "Menunggu Approval",
+      value: counts.pendingApproval,
+      tone: "border-blue-200 bg-blue-50 text-blue-700",
+    },
+    {
+      label: "Disetujui",
+      value: counts.approved,
+      tone: "border-success/20 bg-success/10 text-success",
+    },
+    {
+      label: "Ditolak",
+      value: counts.rejected,
+      tone: "border-destructive/20 bg-destructive/10 text-destructive",
+    },
+  ];
+
   const filteredRequests = useMemo(() => {
     return requests.filter((item) => {
       // Filter by status tab
@@ -582,22 +610,20 @@ export default function InboxPage() {
         </TabsList>
       </Tabs>
 
-      <div className="flex flex-wrap gap-2">
-        <Badge variant="outline" className="text-xs font-medium border">
-          Total: {counts.all}
-        </Badge>
-        <Badge className={cn("text-xs font-medium border", statusVariant.pending)}>
-          Menunggu Review: {counts.pendingReview}
-        </Badge>
-        <Badge className={cn("text-xs font-medium border", statusVariant.pending)}>
-          Menunggu Approval: {counts.pendingApproval}
-        </Badge>
-        <Badge className={cn("text-xs font-medium border", statusVariant.approved)}>
-          Disetujui: {counts.approved}
-        </Badge>
-        <Badge className={cn("text-xs font-medium border", statusVariant.rejected)}>
-          Ditolak: {counts.rejected}
-        </Badge>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {summaryCards.map((card) => (
+          <Card key={card.label} className={cn("border shadow-none", card.tone)}>
+            <CardContent className="flex items-end justify-between gap-3 p-4">
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
+                  {card.label}
+                </p>
+                <p className="text-2xl font-semibold text-foreground">{card.value}</p>
+              </div>
+              <span className="text-xs text-muted-foreground">jumlah</span>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
@@ -633,14 +659,7 @@ export default function InboxPage() {
       </Card>
 
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-[15px] font-semibold">Daftar Persetujuan</CardTitle>
-          <CardDescription className="text-xs text-muted-foreground">
-            Permintaan persetujuan yang masuk untuk ditinjau.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
+        <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
               <TableHead className="w-24">Kode</TableHead>
@@ -865,7 +884,7 @@ const canAction = isKRIReport
               })
             )}
           </TableBody>
-          </Table>
+        </Table>
 
         <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
           <p className="text-xs text-muted-foreground">
@@ -907,7 +926,6 @@ const canAction = isKRIReport
             </Button>
           </div>
         </div>
-        </CardContent>
       </Card>
 
       <ApprovalModal

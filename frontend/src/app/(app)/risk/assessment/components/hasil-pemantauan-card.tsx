@@ -60,7 +60,7 @@ export function HasilPemantauanCard({ form, treatmentPlan }: HasilPemantauanCard
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-[15px] font-semibold">Hasil Pemantauan</CardTitle>
+        <CardTitle>Hasil Pemantauan</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-6">
         {treatmentPlan && (

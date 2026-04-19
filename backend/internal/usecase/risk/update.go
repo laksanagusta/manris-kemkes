@@ -67,17 +67,18 @@ type UpdateRiskInput struct {
 	Mitigations []entity.Mitigation `json:"mitigations"`
 
 	// Section 5: Target Risk
-	TargetProbability int                         `json:"targetProbability"`
-	TargetImpact      int                         `json:"targetImpact"`
-	TargetWeight      float64                     `json:"targetWeight"`
-	TargetNilai       int                         `json:"targetNilai"`
-	TargetScore       int                         `json:"targetScore"`
-	NextReviewDate    *string                     `json:"nextReviewDate"`
-	AssessmentCycle   string                      `json:"assessmentCycle"`
-	ReviewType        string                      `json:"reviewType"`
-	ChangeReason      string                      `json:"changeReason"`
-	ReviewSummary     string                      `json:"reviewSummary"`
-	DraftApprovalLine []entity.ApprovalLineMember `json:"draftApprovalLine"`
+	TargetProbability  int                         `json:"targetProbability"`
+	TargetImpact       int                         `json:"targetImpact"`
+	TargetWeight       float64                     `json:"targetWeight"`
+	TargetNilai        int                         `json:"targetNilai"`
+	TargetScore        int                         `json:"targetScore"`
+	NextReviewDate     *string                     `json:"nextReviewDate"`
+	ReviewScheduleText string                      `json:"reviewScheduleText"`
+	AssessmentCycle    string                      `json:"assessmentCycle"`
+	ReviewType         string                      `json:"reviewType"`
+	ChangeReason       string                      `json:"changeReason"`
+	ReviewSummary      string                      `json:"reviewSummary"`
+	DraftApprovalLine  []entity.ApprovalLineMember `json:"draftApprovalLine"`
 }
 
 type UpdateRiskOutput struct {
@@ -182,6 +183,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		existingRisk.TargetScore = input.TargetScore
 	}
 	existingRisk.NextReviewDate = input.NextReviewDate
+	existingRisk.ReviewScheduleText = input.ReviewScheduleText
 	existingRisk.AssessmentCycle = input.AssessmentCycle
 	existingRisk.ReviewType = input.ReviewType
 	existingRisk.ChangeReason = input.ChangeReason

@@ -115,7 +115,7 @@ export default function RiskHistoryPage() {
         <div className="lg:col-span-3 space-y-4">
           <Card className="border-border/50 bg-card/80">
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <GitBranch className="size-4" />
                 Perbandingan: {versions.find(v => v.id === selectedVersion)?.name} vs Current
               </CardTitle>

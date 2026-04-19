@@ -413,8 +413,8 @@ export default function UsersManagementPage() {
 
       <Card className="overflow-hidden border-border/50 bg-card/80">
         <CardHeader>
-          <CardTitle className="text-[15px] font-semibold">Daftar pengguna</CardTitle>
-          <CardDescription className="text-xs text-muted-foreground">
+          <CardTitle className="text-base">Daftar pengguna</CardTitle>
+          <CardDescription>
             Status <span className="font-medium text-foreground">Menunggu
             aktivasi</span> berarti akun sudah dibuat, tetapi pengguna masih
             harus mengganti password sementara saat login pertama.

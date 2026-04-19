@@ -22,7 +22,7 @@ export function ProfilRisikoCard({ risk }: ProfilRisikoCardProps) {
   return (
     <Card data-testid="profil-risiko-card">
       <CardHeader>
-        <CardTitle className="text-[15px] font-semibold flex justify-between items-center">
+        <CardTitle className="flex justify-between items-center">
           Profil Risiko Saat Ini
           <Badge variant="outline" className="font-mono">{code}</Badge>
         </CardTitle>

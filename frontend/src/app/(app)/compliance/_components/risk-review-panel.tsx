@@ -400,7 +400,7 @@ export function RiskReviewPanel() {
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="text-[15px] font-semibold text-foreground">
+            <CardTitle className="text-base font-semibold text-foreground">
               Risk Review Queue
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -642,7 +642,7 @@ export function RiskReviewPanel() {
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-[15px] font-semibold text-foreground">
+            <CardTitle className="text-base font-semibold text-foreground">
               Completion Rate per Unit
             </CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -714,7 +714,7 @@ export function RiskReviewPanel() {
 
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-[15px] font-semibold text-foreground">
+            <CardTitle className="text-base font-semibold text-foreground">
               Heatmap Compare
             </CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -761,7 +761,7 @@ export function RiskReviewPanel() {
 
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-[15px] font-semibold text-foreground">
+          <CardTitle className="text-base font-semibold text-foreground">
             Perbandingan Cycle {previousCycle} ke {cycle}
           </CardTitle>
           <p className="text-sm text-muted-foreground">

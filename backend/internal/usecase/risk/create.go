@@ -58,15 +58,16 @@ type CreateRiskInput struct {
 	Mitigations []entity.Mitigation `json:"mitigations"`
 
 	// Section 5: Target Risk
-	TargetProbability int                         `json:"targetProbability"`
-	TargetImpact      int                         `json:"targetImpact"`
-	TargetWeight      float64                     `json:"targetWeight"`
-	NextReviewDate    *string                     `json:"nextReviewDate"`
-	AssessmentCycle   string                      `json:"assessmentCycle"`
-	ReviewType        string                      `json:"reviewType"`
-	ChangeReason      string                      `json:"changeReason"`
-	ReviewSummary     string                      `json:"reviewSummary"`
-	DraftApprovalLine []entity.ApprovalLineMember `json:"draftApprovalLine"`
+	TargetProbability  int                         `json:"targetProbability"`
+	TargetImpact       int                         `json:"targetImpact"`
+	TargetWeight       float64                     `json:"targetWeight"`
+	NextReviewDate     *string                     `json:"nextReviewDate"`
+	ReviewScheduleText string                      `json:"reviewScheduleText"`
+	AssessmentCycle    string                      `json:"assessmentCycle"`
+	ReviewType         string                      `json:"reviewType"`
+	ChangeReason       string                      `json:"changeReason"`
+	ReviewSummary      string                      `json:"reviewSummary"`
+	DraftApprovalLine  []entity.ApprovalLineMember `json:"draftApprovalLine"`
 }
 
 type CreateRiskOutput struct {
@@ -157,15 +158,16 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		Mitigations: input.Mitigations,
 
 		// Section 5
-		TargetProbability: input.TargetProbability,
-		TargetImpact:      input.TargetImpact,
-		TargetWeight:      input.TargetWeight,
-		NextReviewDate:    input.NextReviewDate,
-		AssessmentCycle:   input.AssessmentCycle,
-		ReviewType:        input.ReviewType,
-		ChangeReason:      input.ChangeReason,
-		ReviewSummary:     input.ReviewSummary,
-		DraftApprovalLine: input.DraftApprovalLine,
+		TargetProbability:  input.TargetProbability,
+		TargetImpact:       input.TargetImpact,
+		TargetWeight:       input.TargetWeight,
+		NextReviewDate:     input.NextReviewDate,
+		ReviewScheduleText: input.ReviewScheduleText,
+		AssessmentCycle:    input.AssessmentCycle,
+		ReviewType:         input.ReviewType,
+		ChangeReason:       input.ChangeReason,
+		ReviewSummary:      input.ReviewSummary,
+		DraftApprovalLine:  input.DraftApprovalLine,
 	}
 
 	// 7. Validate risk entity

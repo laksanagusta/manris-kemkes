@@ -458,7 +458,7 @@ export default function CBAPage() {
         <div className="space-y-4">
           <Card className="border-border/50 bg-card/80">
             <CardHeader className="pb-3">
-              <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <ShieldAlert className="size-4 text-primary" />
                 Deskripsi Risiko Kesehatan
               </CardTitle>
@@ -690,7 +690,7 @@ export default function CBAPage() {
           {/* Sensitivity sliders */}
           <Card className="border-border/50 bg-card/80">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Target className="size-4 text-primary" />
                 Parameter Simulasi
               </CardTitle>
@@ -819,7 +819,7 @@ export default function CBAPage() {
           {/* Cost of Inaction variable values */}
           <Card className="border-border/50 bg-card/80">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-red-400">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2 text-red-400">
                 <TrendingDown className="size-4" />
                 Cost of Inaction — Kerugian Jika Tidak Bertindak
                 <Badge variant="secondary" className="text-[9px] h-4">
@@ -878,7 +878,7 @@ export default function CBAPage() {
           {/* Cost of Action variables */}
           <Card className="border-border/50 bg-card/80">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-blue-400">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2 text-blue-400">
                 <TrendingUp className="size-4" />
                 Cost of Action — Biaya Program Intervensi
                 <Badge variant="secondary" className="text-[9px] h-4">
@@ -1099,7 +1099,7 @@ export default function CBAPage() {
           {/* Comparative Bar Chart */}
           <Card className="border-border/50 bg-card/80">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <BarChart3 className="size-4 text-primary" />
                 Perbandingan Biaya: Kerugian vs Anggaran Program
               </CardTitle>
@@ -1143,7 +1143,7 @@ export default function CBAPage() {
           {/* Sensitivity playback */}
           <Card className="border-border/50 bg-card/80">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Target className="size-4 text-primary" />
                 Simulasi Sensitivitas (Real-time)
                 <Tooltip>
@@ -1216,7 +1216,7 @@ export default function CBAPage() {
           {/* Breakdown table */}
           <Card className="border-border/50 bg-card/80">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[15px] font-semibold">
+              <CardTitle className="text-sm font-semibold">
                 Rincian Biaya per Kategori
               </CardTitle>
             </CardHeader>

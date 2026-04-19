@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <AppSidebar collapsed={collapsed} inboxBadge={hasFullSession ? inboxCount : 0} />
           <main
             className={cn(
-              "flex-1 px-18 py-6 transition-all duration-300 animate-fade-in",
+              "flex-1 p-6 transition-all duration-300 animate-fade-in",
               collapsed ? "ml-16" : "ml-64"
             )}
           >

@@ -230,7 +230,7 @@ function SortableSignatoryRow({
                         disabled={userPage === 1}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setUserPage((p) => p - 1);
+                          setUserPage(userPage - 1);
                         }}
                         className="h-6 text-xs"
                       >
@@ -245,7 +245,7 @@ function SortableSignatoryRow({
                         disabled={userPage >= Math.ceil(userTotal / 10)}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setUserPage((p) => p + 1);
+                          setUserPage(userPage + 1);
                         }}
                         className="h-6 text-xs"
                       >
@@ -303,7 +303,7 @@ function SortableSignatoryRow({
 
 export default function CreateWorkingPaperPage() {
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { token } = useAuth();
 
   const [loadingRisks, setLoadingRisks] = useState(true);
   const [risks, setRisks] = useState<RiskOption[]>([]);
@@ -373,9 +373,8 @@ export default function CreateWorkingPaperPage() {
     const fetchUsers = async () => {
       try {
         setLoadingUsers(true);
-        const orgFilter = user?.isGlobal ? undefined : user?.organizationId ?? undefined;
         const res = await api.get<{ data: UserOption[]; total: number }>(
-          `/users?limit=10&page=${userPage}${userSearchDebounced ? `&q=${encodeURIComponent(userSearchDebounced)}` : ""}${orgFilter ? `&organizationId=${orgFilter}` : ""}`,
+          `/users?limit=10&page=${userPage}${userSearchDebounced ? `&q=${encodeURIComponent(userSearchDebounced)}` : ""}`,
           token,
         );
         setUsers(res?.data || []);
@@ -389,7 +388,7 @@ export default function CreateWorkingPaperPage() {
     };
 
     fetchUsers();
-  }, [token, userSearchDebounced, userPage, user]);
+  }, [token, userSearchDebounced, userPage]);
 
   useEffect(() => {
     if (!token) return;

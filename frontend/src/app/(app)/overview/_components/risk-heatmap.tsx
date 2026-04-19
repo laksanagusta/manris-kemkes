@@ -78,7 +78,7 @@ export function RiskHeatmap({ data, loading, error, velocityData }: RiskHeatmapP
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-[15px] font-semibold">Heatmap Risiko</CardTitle>
+            <CardTitle className="text-base font-semibold">Heatmap Risiko</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">Distribusi risiko berdasarkan Probabilitas × Dampak</p>
           </div>
           <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground">

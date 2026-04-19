@@ -14,8 +14,8 @@ export interface RiskRegisterListItem {
   organizationId?: string;
   orgName?: string;
   createdByName?: string;
-  updatedAt?: string;
   createdAt?: string;
+  updatedAt?: string;
   probability?: number;
   impact?: number;
   weight?: number;
@@ -30,6 +30,7 @@ export interface RiskRegisterListItem {
   existingControl?: string;
   treatmentOption?: string;
   nextReviewDate?: string;
+  reviewScheduleText?: string;
   versionGroupId?: string;
   versionNumber?: number;
   previousRiskId?: string | null;

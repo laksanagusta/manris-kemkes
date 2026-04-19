@@ -82,20 +82,21 @@ type Risk struct {
 	Mitigations []Mitigation `json:"mitigations,omitempty"`
 
 	// Section 5
-	TargetProbability int                  `json:"targetProbability,omitempty"`
-	TargetImpact      int                  `json:"targetImpact,omitempty"`
-	TargetWeight      float64              `json:"targetWeight,omitempty"`
-	TargetNilai       float64              `json:"targetNilai,omitempty"`
-	TargetScore       int                  `json:"targetScore,omitempty"`
-	NextReviewDate    *string              `json:"nextReviewDate,omitempty"`
-	AssessmentCycle   string               `json:"assessmentCycle,omitempty"`
-	ReviewType        string               `json:"reviewType,omitempty"`
-	ChangeReason      string               `json:"changeReason,omitempty"`
-	ReviewSummary     string               `json:"reviewSummary,omitempty"`
-	ReviewStartedAt   *time.Time           `json:"reviewStartedAt,omitempty"`
-	ReviewSubmittedAt *time.Time           `json:"reviewSubmittedAt,omitempty"`
-	ReviewApprovedAt  *time.Time           `json:"reviewApprovedAt,omitempty"`
-	DraftApprovalLine []ApprovalLineMember `json:"draftApprovalLine,omitempty"`
+	TargetProbability  int                  `json:"targetProbability,omitempty"`
+	TargetImpact       int                  `json:"targetImpact,omitempty"`
+	TargetWeight       float64              `json:"targetWeight,omitempty"`
+	TargetNilai        float64              `json:"targetNilai,omitempty"`
+	TargetScore        int                  `json:"targetScore,omitempty"`
+	NextReviewDate     *string              `json:"nextReviewDate,omitempty"`
+	ReviewScheduleText string               `json:"reviewScheduleText,omitempty"`
+	AssessmentCycle    string               `json:"assessmentCycle,omitempty"`
+	ReviewType         string               `json:"reviewType,omitempty"`
+	ChangeReason       string               `json:"changeReason,omitempty"`
+	ReviewSummary      string               `json:"reviewSummary,omitempty"`
+	ReviewStartedAt    *time.Time           `json:"reviewStartedAt,omitempty"`
+	ReviewSubmittedAt  *time.Time           `json:"reviewSubmittedAt,omitempty"`
+	ReviewApprovedAt   *time.Time           `json:"reviewApprovedAt,omitempty"`
+	DraftApprovalLine  []ApprovalLineMember `json:"draftApprovalLine,omitempty"`
 
 	// Ongoing draft tracking (for list views)
 	DraftID     *uuid.UUID `json:"draftId,omitempty"`

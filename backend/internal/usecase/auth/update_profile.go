@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
@@ -10,26 +11,29 @@ import (
 	"github.com/manris/backend/internal/domain/service"
 )
 
-type GetCurrentUserInput struct {
-	UserID uuid.UUID
+type UpdateProfileInput struct {
+	UserID   uuid.UUID
+	Name     string
+	Username string
+	Email    string
+	NIP      string
+	Jabatan  string
+	Pangkat  string
 }
 
-type GetCurrentUserUseCase struct {
+type UpdateProfileUseCase struct {
 	userRepo     repository.UserRepository
 	hierarchySvc *service.OrganizationHierarchy
 }
 
-func NewGetCurrentUserUseCase(
+func NewUpdateProfileUseCase(
 	userRepo repository.UserRepository,
 	hierarchySvc *service.OrganizationHierarchy,
-) *GetCurrentUserUseCase {
-	return &GetCurrentUserUseCase{
-		userRepo:     userRepo,
-		hierarchySvc: hierarchySvc,
-	}
+) *UpdateProfileUseCase {
+	return &UpdateProfileUseCase{userRepo: userRepo, hierarchySvc: hierarchySvc}
 }
 
-func (uc *GetCurrentUserUseCase) Execute(ctx context.Context, input GetCurrentUserInput) (*entity.UserProfile, error) {
+func (uc *UpdateProfileUseCase) Execute(ctx context.Context, input UpdateProfileInput) (*entity.UserProfile, error) {
 	if input.UserID == uuid.Nil {
 		return nil, errors.ErrInvalidInput
 	}
@@ -38,13 +42,30 @@ func (uc *GetCurrentUserUseCase) Execute(ctx context.Context, input GetCurrentUs
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
+	if user == nil {
+		return nil, errors.ErrNotFound
+	}
+
+	user.Name = strings.TrimSpace(input.Name)
+	user.Username = strings.TrimSpace(input.Username)
+	user.Email = strings.TrimSpace(input.Email)
+	user.NIP = strings.TrimSpace(input.NIP)
+	user.Jabatan = strings.TrimSpace(input.Jabatan)
+	user.Pangkat = strings.TrimSpace(input.Pangkat)
+
+	if err := user.Validate(); err != nil {
+		return nil, err
+	}
+	if err := uc.userRepo.Update(ctx, user); err != nil {
+		return nil, errors.Wrap(err, "failed to update profile")
+	}
 
 	scope, err := uc.hierarchySvc.ResolveAccessScope(ctx, user.ID, user.Role, user.OrganizationID)
 	if err != nil {
 		return nil, err
 	}
 
-	userProfile := &entity.UserProfile{
+	return &entity.UserProfile{
 		ID:                 user.ID,
 		Username:           user.Username,
 		Name:               user.Name,
@@ -61,7 +82,5 @@ func (uc *GetCurrentUserUseCase) Execute(ctx context.Context, input GetCurrentUs
 		MustChangePassword: user.MustChangePassword,
 		CreatedAt:          user.CreatedAt,
 		UpdatedAt:          user.UpdatedAt,
-	}
-
-	return userProfile, nil
+	}, nil
 }

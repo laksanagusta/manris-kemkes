@@ -65,7 +65,7 @@ export default function CriteriaPage() {
         {/* Scope */}
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="pb-3">
-            <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <FileText className="size-4" />
               Objek & Ruang Lingkup
             </CardTitle>
@@ -92,7 +92,7 @@ export default function CriteriaPage() {
         {/* Context */}
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="pb-3">
-            <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Settings2 className="size-4" />
               Konteks Internal & Eksternal
             </CardTitle>
@@ -118,7 +118,7 @@ export default function CriteriaPage() {
         {/* Appetite & Tolerance */}
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="pb-3">
-            <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Target className="size-4" />
               Risk Appetite & Tolerance
             </CardTitle>
@@ -145,7 +145,7 @@ export default function CriteriaPage() {
       {/* Probability Scale */}
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="pb-3">
-          <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Gauge className="size-4" />
             Skala Probabilitas (1-5)
           </CardTitle>
@@ -186,7 +186,7 @@ export default function CriteriaPage() {
       {/* Impact Scale */}
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="pb-3">
-          <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <AlertTriangle className="size-4" />
             Skala Dampak (1-5)
           </CardTitle>

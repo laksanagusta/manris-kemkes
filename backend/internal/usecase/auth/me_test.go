@@ -61,9 +61,14 @@ func TestGetCurrentUser_IncludesAccessibleOrgIDs(t *testing.T) {
 			ID:             userID,
 			Username:       "testuser",
 			Name:           "Test User",
+			Email:          "test-user@manris.local",
 			Role:           "unit",
 			OrganizationID: &orgID,
+			OrgName:        "Unit A",
 			Status:         "active",
+			NIP:            "19880101",
+			Jabatan:        "Koordinator",
+			Pangkat:        "III/c",
 			CreatedAt:      time.Now(),
 			UpdatedAt:      time.Now(),
 		},
@@ -87,6 +92,21 @@ func TestGetCurrentUser_IncludesAccessibleOrgIDs(t *testing.T) {
 	}
 	if profile.MustChangePassword {
 		t.Error("expected MustChangePassword = false when user does not require password change")
+	}
+	if profile.Email != "test-user@manris.local" {
+		t.Fatalf("expected email to be included, got %q", profile.Email)
+	}
+	if profile.OrgName != "Unit A" {
+		t.Fatalf("expected orgName to be included, got %q", profile.OrgName)
+	}
+	if profile.NIP != "19880101" {
+		t.Fatalf("expected NIP to be included, got %q", profile.NIP)
+	}
+	if profile.Jabatan != "Koordinator" {
+		t.Fatalf("expected jabatan to be included, got %q", profile.Jabatan)
+	}
+	if profile.Pangkat != "III/c" {
+		t.Fatalf("expected pangkat to be included, got %q", profile.Pangkat)
 	}
 }
 
@@ -131,9 +151,13 @@ func TestGetCurrentUser_IncludesMustChangePassword(t *testing.T) {
 			ID:                 userID,
 			Username:           "pending-user",
 			Name:               "Pending User",
+			Email:              "pending-user@manris.local",
 			Role:               entity.RoleSuperAdmin,
 			Status:             entity.UserStatusPendingActivation,
 			MustChangePassword: true,
+			NIP:                "19880101",
+			Jabatan:            "Koordinator",
+			Pangkat:            "III/c",
 			CreatedAt:          time.Now(),
 			UpdatedAt:          time.Now(),
 		},
@@ -149,5 +173,17 @@ func TestGetCurrentUser_IncludesMustChangePassword(t *testing.T) {
 	}
 	if !profile.MustChangePassword {
 		t.Fatal("expected MustChangePassword to be preserved in user profile")
+	}
+	if profile.Email != "pending-user@manris.local" {
+		t.Fatalf("expected email to be included, got %q", profile.Email)
+	}
+	if profile.NIP != "19880101" {
+		t.Fatalf("expected NIP to be included, got %q", profile.NIP)
+	}
+	if profile.Jabatan != "Koordinator" {
+		t.Fatalf("expected jabatan to be included, got %q", profile.Jabatan)
+	}
+	if profile.Pangkat != "III/c" {
+		t.Fatalf("expected pangkat to be included, got %q", profile.Pangkat)
 	}
 }

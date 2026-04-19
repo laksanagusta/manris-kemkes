@@ -239,3 +239,80 @@ func TestChangePasswordExecuteRejectsMismatchedConfirmation(t *testing.T) {
 		t.Fatal("expected repository update not to run on invalid input")
 	}
 }
+
+func TestChangePasswordExecuteAllowsActiveUserWithCurrentPassword(t *testing.T) {
+	userID := uuid.New()
+	orgID := uuid.New()
+	currentPassword := "OldPass123!"
+	newPassword := "NewPass123!"
+	currentHash, err := bcrypt.GenerateFromPassword([]byte(currentPassword), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+
+	userRepo := &changePasswordStubUserRepo{user: &entity.User{
+		ID:                 userID,
+		Username:           "active-user",
+		Email:              "active-user@manris.local",
+		Name:               "Active User",
+		Role:               entity.RoleUnit,
+		OrganizationID:     &orgID,
+		Status:             entity.UserStatusActive,
+		MustChangePassword: false,
+		PasswordHash:       string(currentHash),
+		CreatedAt:          time.Now(),
+		UpdatedAt:          time.Now(),
+	}}
+
+	hierarchySvc := service.NewOrganizationHierarchy(&stubOrgRepo{})
+	changePasswordUC := NewChangePasswordUseCase(userRepo, hierarchySvc, "secret", 24)
+
+	result, err := changePasswordUC.Execute(context.Background(), ChangePasswordInput{
+		UserID:          userID,
+		CurrentPassword: currentPassword,
+		NewPassword:     newPassword,
+		ConfirmPassword: newPassword,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result.SessionMode != entity.AuthSessionModeFull {
+		t.Fatalf("expected full session, got %q", result.SessionMode)
+	}
+	if userRepo.updatedUser == nil {
+		t.Fatal("expected repository update")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(userRepo.updatedUser.PasswordHash), []byte(newPassword)); err != nil {
+		t.Fatalf("expected new password hash to match, got %v", err)
+	}
+}
+
+func TestChangePasswordExecuteRejectsActiveUserWithoutCurrentPassword(t *testing.T) {
+	userRepo := &changePasswordStubUserRepo{user: &entity.User{
+		ID:                 uuid.New(),
+		Username:           "active-user",
+		Email:              "active-user@manris.local",
+		Name:               "Active User",
+		Role:               entity.RoleUnit,
+		Status:             entity.UserStatusActive,
+		MustChangePassword: false,
+		PasswordHash:       "hashed",
+	}}
+
+	changePasswordUC := NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24)
+
+	_, err := changePasswordUC.Execute(context.Background(), ChangePasswordInput{
+		UserID:          userRepo.user.ID,
+		NewPassword:     "NewPass123!",
+		ConfirmPassword: "NewPass123!",
+	})
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !stderrors.Is(err, domainErrors.ErrInvalidInput) {
+		t.Fatalf("expected invalid input error, got %v", err)
+	}
+	if userRepo.updatedUser != nil {
+		t.Fatal("expected repository update not to run")
+	}
+}

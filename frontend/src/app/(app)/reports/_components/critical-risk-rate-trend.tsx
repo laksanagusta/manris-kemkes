@@ -35,7 +35,7 @@ export function CriticalRiskRateTrend({
         data-testid="critical-risk-rate-trend"
       >
         <CardHeader>
-          <CardTitle className="text-[15px] font-semibold">
+          <CardTitle className="text-base font-semibold">
             Tingkat Risiko Kritis
           </CardTitle>
         </CardHeader>
@@ -56,7 +56,7 @@ export function CriticalRiskRateTrend({
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-[15px] font-semibold">
+            <CardTitle className="text-base font-semibold">
               Tingkat Risiko Kritis
             </CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">

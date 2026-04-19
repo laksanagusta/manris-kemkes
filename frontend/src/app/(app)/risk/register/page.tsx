@@ -569,6 +569,39 @@ export default function RiskRegisterPage() {
     }, {});
   }, [risks]);
 
+  const riskSummaryCards = [
+    {
+      label: "Total Risiko",
+      value: total,
+      tone: "border-border/60 bg-background/60 text-foreground",
+    },
+    {
+      label: "Sangat Tinggi",
+      value: riskLevelCounts.sangat_tinggi ?? 0,
+      tone: "border-risk-extreme/20 bg-risk-extreme/10 text-risk-extreme",
+    },
+    {
+      label: "Tinggi",
+      value: riskLevelCounts.tinggi ?? 0,
+      tone: "border-risk-high/20 bg-risk-high/10 text-risk-high",
+    },
+    {
+      label: "Sedang",
+      value: riskLevelCounts.sedang ?? 0,
+      tone: "border-risk-medium/20 bg-risk-medium/10 text-risk-medium",
+    },
+    {
+      label: "Rendah",
+      value: riskLevelCounts.rendah ?? 0,
+      tone: "border-risk-low/20 bg-risk-low/10 text-risk-low",
+    },
+    {
+      label: "Sangat Rendah",
+      value: riskLevelCounts.sangat_rendah ?? 0,
+      tone: "border-green-200 bg-green-50 text-green-700",
+    },
+  ];
+
   const totalPages = Math.ceil(total / limit) || 1;
 
   const handleDeleteDraft = async (id: string) => {
@@ -746,39 +779,20 @@ export default function RiskRegisterPage() {
 
         {/* TAB 1: ALL RISKS */}
         <TabsContent value="all-risks" className="space-y-6 mt-6">
-          {/* Summary badges */}
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: `Total: ${total}`, variant: "outline" as const },
-              {
-                label: `Sangat Tinggi: ${riskLevelCounts.sangat_tinggi ?? 0}`,
-                cls: levelBadgeVariant["Sangat Tinggi"],
-              },
-              {
-                label: `Tinggi: ${riskLevelCounts.tinggi ?? 0}`,
-                cls: levelBadgeVariant.Tinggi,
-              },
-              {
-                label: `Sedang: ${riskLevelCounts.sedang ?? 0}`,
-                cls: levelBadgeVariant.Sedang,
-              },
-              {
-                label: `Rendah: ${riskLevelCounts.rendah ?? 0}`,
-                cls: levelBadgeVariant.Rendah,
-              },
-              {
-                label: `Sangat Rendah: ${riskLevelCounts.sangat_rendah ?? 0}`,
-                cls: levelBadgeVariant["Sangat Rendah"],
-              },
-            ].map((b) => (
-                <Badge
-                  key={b.label}
-                  variant={b.variant || "outline"}
-                  className={cn("text-xs font-medium border", b.cls)}
-                >
-                  {b.label}
-                </Badge>
-              ))}
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {riskSummaryCards.map((card) => (
+              <Card key={card.label} className={cn("border shadow-none", card.tone)}>
+                <CardContent className="flex items-end justify-between gap-3 p-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
+                      {card.label}
+                    </p>
+                    <p className="text-2xl font-semibold text-foreground">{card.value}</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground">jumlah</span>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Filters */}
@@ -875,6 +889,12 @@ export default function RiskRegisterPage() {
 
           {/* Table */}
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="border-b border-border/40 pb-4">
+              <CardTitle className="text-[15px] font-semibold">Daftar Risk Register</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Pantau risiko aktif, status penilaian terbaru, dan tindak lanjut reassessment pada satu tabel kerja.
+              </p>
+            </CardHeader>
             <Table>
               <TableHeader>
                 <TableRow className="border-border/50 hover:bg-transparent">
@@ -882,8 +902,6 @@ export default function RiskRegisterPage() {
                   <TableHead className="w-16">Versi</TableHead>
                   <TableHead>Judul Risiko</TableHead>
                   <TableHead className="w-28">Kategori</TableHead>
-                  <TableHead className="text-center w-20">Probabilitas</TableHead>
-                  <TableHead className="text-center w-20">Dampak</TableHead>
                   <TableHead className="text-center w-16">
                     Nilai
                   </TableHead>
@@ -949,12 +967,6 @@ export default function RiskRegisterPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {riskCategoryLabels[risk.category ?? ""]}
-                        </TableCell>
-                        <TableCell className="text-left text-muted-foreground">
-                          {risk.probability ?? "-"}
-                        </TableCell>
-                        <TableCell className="text-left text-muted-foreground">
-                          {risk.impact ?? "-"}
                         </TableCell>
                         <TableCell className="text-center">
                           <span className="text-sm font-bold">
@@ -1294,7 +1306,7 @@ export default function RiskRegisterPage() {
             <div className="lg:col-span-3 space-y-4">
               <Card className="border-border/50 bg-card/80">
                 <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                  <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <GitBranch className="size-4" />
                     Perbandingan: {selectedVersionMeta?.name ||
                       "Pilih versi"}{" "}
