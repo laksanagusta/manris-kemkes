@@ -230,6 +230,7 @@ type RiskApiResponse = {
   targetImpact?: number;
   targetWeight?: number;
   nextReviewDate?: string;
+  reviewScheduleText?: string | null;
 };
 
 const riskCategoryValues: RiskCategory[] = [
@@ -423,6 +424,7 @@ const formSchema = z.object({
   targetWeight: z.number().min(0.1).default(1.0),
   targetNilai: z.number().min(0).default(0),
   nextReviewDate: z.string().optional(),
+  reviewScheduleText: z.string().optional(),
 });
 
 const draftSchema = z
@@ -479,6 +481,7 @@ function normalizeFormValues(values: FormInput): FormValues {
     targetWeight: values.targetWeight ?? 1,
     targetNilai: values.targetNilai ?? 0,
     nextReviewDate: values.nextReviewDate ?? "",
+    reviewScheduleText: values.reviewScheduleText ?? "",
   };
 }
 
@@ -582,6 +585,7 @@ export default function RiskInputPage() {
       targetImpact: 1,
       targetWeight: 1.0,
       nextReviewDate: "",
+      reviewScheduleText: "",
     },
   });
 
@@ -801,6 +805,7 @@ export default function RiskInputPage() {
           targetImpact: risk.targetImpact || 1,
           targetWeight: risk.targetWeight || 1.0,
           nextReviewDate: risk.nextReviewDate || "",
+          reviewScheduleText: risk.reviewScheduleText || "",
         });
 
         setAssessmentCycleDisplay(
@@ -1028,6 +1033,7 @@ export default function RiskInputPage() {
           targetImpact: Math.max(1, (meetingPrefill.impact || 3) - 1),
           targetWeight: 1.0,
           nextReviewDate: "",
+          reviewScheduleText: "",
         });
         setAssessmentCycleDisplay(currentAssessmentCycle());
         setRiskId(null);
@@ -1236,7 +1242,7 @@ export default function RiskInputPage() {
     ) {
       return "target";
     }
-    if (fieldName === "nextReviewDate") {
+    if (fieldName === "nextReviewDate" || fieldName === "reviewScheduleText") {
       return "jadwal";
     }
     return undefined;
@@ -1304,6 +1310,7 @@ export default function RiskInputPage() {
         data.nextReviewDate && data.nextReviewDate.trim() !== ""
           ? data.nextReviewDate
           : null,
+      reviewScheduleText: (data.reviewScheduleText || "").trim(),
       mitigations: (data.mitigations || []).map((mitigation) => ({
         action: mitigation.action,
         owner: mitigation.owner,
@@ -2814,6 +2821,27 @@ export default function RiskInputPage() {
                           />
                         )}
                       />
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          Catatan jadwal review (opsional)
+                        </Label>
+                        <Controller
+                          name="reviewScheduleText"
+                          control={control}
+                          render={({ field }) => (
+                            <Textarea
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              disabled={isRiskLocked}
+                              placeholder="Contoh: Dibahas pada rapat koordinasi bulanan minggu pertama"
+                              className="min-h-24 text-sm"
+                            />
+                          )}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Tanggal review berikutnya tetap menjadi acuan utama. Kolom ini hanya untuk menjelaskan ritme atau konteks review.
+                        </p>
+                      </div>
                     </div>
                     <div
                       className={cn(
