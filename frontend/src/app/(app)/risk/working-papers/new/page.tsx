@@ -230,7 +230,7 @@ function SortableSignatoryRow({
                         disabled={userPage === 1}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setUserPage((p) => p - 1);
+                          setUserPage(userPage - 1);
                         }}
                         className="h-6 text-xs"
                       >
@@ -245,7 +245,7 @@ function SortableSignatoryRow({
                         disabled={userPage >= Math.ceil(userTotal / 10)}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setUserPage((p) => p + 1);
+                          setUserPage(userPage + 1);
                         }}
                         className="h-6 text-xs"
                       >
