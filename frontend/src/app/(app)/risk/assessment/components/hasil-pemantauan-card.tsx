@@ -27,8 +27,8 @@ import {
 export interface AssessmentFormValues {
   probability: number;
   impact: number;
-  changeReason: string;
-  reviewSummary: string;
+  changeReason?: string;
+  reviewSummary?: string;
 }
 
 interface HasilPemantauanCardProps {

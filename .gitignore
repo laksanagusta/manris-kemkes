@@ -48,3 +48,4 @@ vendor/
 *~
 .dockerignore
 .playwright-mcp/
+session-ses_*.md

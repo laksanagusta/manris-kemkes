@@ -128,7 +128,7 @@ interface SortableSignatoryRowProps {
   userSearch: string;
   setUserSearch: (val: string) => void;
   userPage: number;
-  setUserPage: (val: number) => void;
+  setUserPage: React.Dispatch<React.SetStateAction<number>>;
   userTotal: number;
 }
 

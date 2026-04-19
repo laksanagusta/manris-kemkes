@@ -15,6 +15,7 @@ export interface RiskRegisterListItem {
   orgName?: string;
   createdByName?: string;
   updatedAt?: string;
+  createdAt?: string;
   probability?: number;
   impact?: number;
   weight?: number;

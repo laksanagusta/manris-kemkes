@@ -280,7 +280,6 @@ export default function FormResponsesPage() {
               Menampilkan {responses.length} respons
             </p>
           </div>
-            </Table>
           </CardContent>
         </Card>
       )}

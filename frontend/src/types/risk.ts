@@ -24,6 +24,7 @@ export interface RiskMitigation {
   action: string;
   owner: string;
   treatmentOwnerId?: string;
+  externalPicId?: string;
   dueDate: string;
   frequency: MitigationFrequency;
   recurringInterval?: RecurringInterval;

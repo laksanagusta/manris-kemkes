@@ -172,8 +172,8 @@ function toApprovalLineUser(option: UserPickerOption): ApprovalLineUser {
 const formSchema = z.object({
   probability: z.number().min(1).max(5),
   impact: z.number().min(1).max(5),
-  changeReason: z.string().optional().default(""),
-  reviewSummary: z.string().optional().default(""),
+  changeReason: z.string().default(""),
+  reviewSummary: z.string().default(""),
 });
 
 export default function AssessmentFormPage() {
