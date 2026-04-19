@@ -22,7 +22,7 @@ export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
     return (
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2" data-testid="top-risks-panel">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Top Risks</CardTitle>
+          <CardTitle className="text-[15px] font-semibold">Top Risks</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -40,7 +40,7 @@ export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-base font-semibold">Top Risks</CardTitle>
+            <CardTitle className="text-[15px] font-semibold">Top Risks</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">Risiko dengan skor tertinggi pada cycle ini.</p>
           </div>
           <Badge variant="outline" className="text-[10px]">

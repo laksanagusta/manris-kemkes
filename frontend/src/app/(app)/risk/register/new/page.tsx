@@ -230,7 +230,6 @@ type RiskApiResponse = {
   targetImpact?: number;
   targetWeight?: number;
   nextReviewDate?: string;
-  reviewScheduleText?: string | null;
 };
 
 const riskCategoryValues: RiskCategory[] = [
@@ -333,7 +332,7 @@ function SectionHeader({
     <CardHeader className="pb-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1">
-          <CardTitle className="text-base font-semibold text-foreground">
+          <CardTitle className="text-[15px] font-semibold text-foreground">
             {step}. {title}
           </CardTitle>
         </div>
@@ -424,7 +423,6 @@ const formSchema = z.object({
   targetWeight: z.number().min(0.1).default(1.0),
   targetNilai: z.number().min(0).default(0),
   nextReviewDate: z.string().optional(),
-  reviewScheduleText: z.string().optional(),
 });
 
 const draftSchema = z
@@ -481,7 +479,6 @@ function normalizeFormValues(values: FormInput): FormValues {
     targetWeight: values.targetWeight ?? 1,
     targetNilai: values.targetNilai ?? 0,
     nextReviewDate: values.nextReviewDate ?? "",
-    reviewScheduleText: values.reviewScheduleText ?? "",
   };
 }
 
@@ -492,7 +489,8 @@ function dedupeApproverIds(ids: Array<string | undefined>) {
 function toUserPickerOption(
   user: Pick<UserListItem, "id" | "name" | "role" | "orgName">,
 ): UserPickerOption {
-  const subtitle = user.orgName?.trim() || approvalRoleLabels[user.role] || user.role;
+  const subtitle =
+    user.orgName?.trim() || approvalRoleLabels[user.role] || user.role;
 
   return {
     id: user.id,
@@ -585,7 +583,6 @@ export default function RiskInputPage() {
       targetImpact: 1,
       targetWeight: 1.0,
       nextReviewDate: "",
-      reviewScheduleText: "",
     },
   });
 
@@ -657,7 +654,9 @@ export default function RiskInputPage() {
     setApprovalLine((current) => current.filter((item) => item.id !== id));
   };
 
-  const orgFilter = user?.isGlobal ? undefined : user?.organizationId ?? undefined;
+  const orgFilter = user?.isGlobal
+    ? undefined
+    : (user?.organizationId ?? undefined);
 
   const loadReviewerOptions = useCallback(
     async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
@@ -697,13 +696,10 @@ export default function RiskInputPage() {
       });
 
       return {
-        options: filterApproverOptions(
-          result.data.map(toUserPickerOption),
-          {
-            reviewerId,
-            selectedApproverIds: approvalLine.map((member) => member.id),
-          },
-        ),
+        options: filterApproverOptions(result.data.map(toUserPickerOption), {
+          reviewerId,
+          selectedApproverIds: approvalLine.map((member) => member.id),
+        }),
         total: result.total,
         page: result.page,
         limit: result.limit,
@@ -805,7 +801,6 @@ export default function RiskInputPage() {
           targetImpact: risk.targetImpact || 1,
           targetWeight: risk.targetWeight || 1.0,
           nextReviewDate: risk.nextReviewDate || "",
-          reviewScheduleText: risk.reviewScheduleText || "",
         });
 
         setAssessmentCycleDisplay(
@@ -947,7 +942,9 @@ export default function RiskInputPage() {
           const filtered = user?.isGlobal
             ? res
             : filterToAccessibleOrgs(res, user?.accessibleOrgIds || []);
-          setOrganizations(filtered.map((org) => ({ id: org.id, name: org.name })));
+          setOrganizations(
+            filtered.map((org) => ({ id: org.id, name: org.name })),
+          );
         } catch (err) {
           console.error(err);
         }
@@ -1033,7 +1030,6 @@ export default function RiskInputPage() {
           targetImpact: Math.max(1, (meetingPrefill.impact || 3) - 1),
           targetWeight: 1.0,
           nextReviewDate: "",
-          reviewScheduleText: "",
         });
         setAssessmentCycleDisplay(currentAssessmentCycle());
         setRiskId(null);
@@ -1098,13 +1094,7 @@ export default function RiskInputPage() {
         nilai,
         inherentScore: Math.round(nilai),
       }),
-    [
-      impact,
-      nilai,
-      probability,
-      riskStatus,
-      weight,
-    ],
+    [impact, nilai, probability, riskStatus, weight],
   );
   const currentPrimarySnapshot = currentScoreSemantics.effective;
   const currentScoreLabel = "Skor Risiko";
@@ -1182,8 +1172,7 @@ export default function RiskInputPage() {
   const missingSections = sectionStatuses.filter((section) => !section.done);
   const isFinalizeReady = missingSections.length === 0;
   const isRiskLocked =
-    riskStatus === "assessment_in_review" ||
-    riskStatus === "approved";
+    riskStatus === "assessment_in_review" || riskStatus === "approved";
 
   const scrollToSection = (sectionId: SectionId) => {
     if (typeof document === "undefined") return;
@@ -1242,7 +1231,7 @@ export default function RiskInputPage() {
     ) {
       return "target";
     }
-    if (fieldName === "nextReviewDate" || fieldName === "reviewScheduleText") {
+    if (fieldName === "nextReviewDate") {
       return "jadwal";
     }
     return undefined;
@@ -1310,7 +1299,6 @@ export default function RiskInputPage() {
         data.nextReviewDate && data.nextReviewDate.trim() !== ""
           ? data.nextReviewDate
           : null,
-      reviewScheduleText: (data.reviewScheduleText || "").trim(),
       mitigations: (data.mitigations || []).map((mitigation) => ({
         action: mitigation.action,
         owner: mitigation.owner,
@@ -2335,7 +2323,8 @@ export default function RiskInputPage() {
                   </AccordionTrigger>
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
                     <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md border border-border/50">
-                      Nilai probabilitas dan dampak sudah mempertimbangkan kontrol yang ada (residual risk).
+                      Nilai probabilitas dan dampak sudah mempertimbangkan
+                      kontrol yang ada (residual risk).
                     </p>
                     <div className="space-y-1.5">
                       <Label className="text-sm font-medium">
@@ -2425,7 +2414,9 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">Dampak (Residual)</Label>
+                        <Label className="text-sm font-medium">
+                          Dampak (Residual)
+                        </Label>
                         <div className="grid grid-cols-5 gap-1.5">
                           {[1, 2, 3, 4, 5].map((val) => (
                             <Tooltip key={val}>
@@ -2821,27 +2812,6 @@ export default function RiskInputPage() {
                           />
                         )}
                       />
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-muted-foreground">
-                          Catatan jadwal review (opsional)
-                        </Label>
-                        <Controller
-                          name="reviewScheduleText"
-                          control={control}
-                          render={({ field }) => (
-                            <Textarea
-                              value={field.value || ""}
-                              onChange={field.onChange}
-                              disabled={isRiskLocked}
-                              placeholder="Contoh: Dibahas pada rapat koordinasi bulanan minggu pertama"
-                              className="min-h-24 text-sm"
-                            />
-                          )}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Tanggal review berikutnya tetap menjadi acuan utama. Kolom ini hanya untuk menjelaskan ritme atau konteks review.
-                        </p>
-                      </div>
                     </div>
                     <div
                       className={cn(
@@ -2911,7 +2881,7 @@ export default function RiskInputPage() {
                     <div className="rounded-xl border border-border/60 bg-white p-5 space-y-3">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
-                          1. Reviewer (Pemeriksa)
+                          Reviewer (Pemeriksa)
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
                         <p className="text-xs text-muted-foreground">
@@ -2936,7 +2906,7 @@ export default function RiskInputPage() {
                     <div className="rounded-xl border border-primary/10 bg-white p-5 space-y-4">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
-                          2. Approval Line (Pimpinan)
+                          Persetujuan
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
                         <p className="text-xs text-muted-foreground">
@@ -2975,7 +2945,10 @@ export default function RiskInputPage() {
                             <table className="w-full">
                               <tbody className="divide-y divide-border/50">
                                 {approvalLine.map((approver, index) => (
-                                  <tr key={approver.id} className="hover:bg-muted/30 transition-colors">
+                                  <tr
+                                    key={approver.id}
+                                    className="hover:bg-muted/30 transition-colors"
+                                  >
                                     <td className="w-8 px-2 py-2">
                                       <div className="flex items-center justify-center text-muted-foreground">
                                         <GripVertical className="size-3.5" />
@@ -3000,7 +2973,9 @@ export default function RiskInputPage() {
                                           variant="ghost"
                                           size="icon"
                                           className="size-8"
-                                          onClick={() => moveApprover(index, -1)}
+                                          onClick={() =>
+                                            moveApprover(index, -1)
+                                          }
                                           disabled={index === 0}
                                         >
                                           <ChevronUp className="size-4" />
@@ -3011,7 +2986,9 @@ export default function RiskInputPage() {
                                           size="icon"
                                           className="size-8"
                                           onClick={() => moveApprover(index, 1)}
-                                          disabled={index === approvalLine.length - 1}
+                                          disabled={
+                                            index === approvalLine.length - 1
+                                          }
                                         >
                                           <ChevronDown className="size-4" />
                                         </Button>
@@ -3020,7 +2997,9 @@ export default function RiskInputPage() {
                                           variant="ghost"
                                           size="icon"
                                           className="size-8 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
-                                          onClick={() => removeApprover(approver.id)}
+                                          onClick={() =>
+                                            removeApprover(approver.id)
+                                          }
                                           disabled={isRiskLocked}
                                         >
                                           <Trash2 className="size-4" />

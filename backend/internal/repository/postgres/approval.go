@@ -27,11 +27,11 @@ func (r *approvalRepository) List(ctx context.Context, status string, approverRo
 
 	if len(orgIDs) > 0 {
 		whereClause += fmt.Sprintf(` AND (
-			(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($1)))
+			(ar.request_type = 'risk' AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($1)))
 			OR 
 			(ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($1)))
 			OR 
-			(ar.request_type NOT IN ('risk', 'assessment', 'incident'))
+			(ar.request_type NOT IN ('risk', 'incident'))
 		)`)
 		args = append(args, uuidArrayToStrings(orgIDs))
 		argIdx++
@@ -131,11 +131,11 @@ func (r *approvalRepository) FindByID(ctx context.Context, id uuid.UUID, orgIDs 
 		LEFT JOIN users u ON ar.requested_by = u.id
 		LEFT JOIN users cu ON ar.current_approver_user_id = cu.id
 		WHERE ar.id = $1 AND (cardinality($2::uuid[]) = 0 OR (
-			(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($2::uuid[])))
+			(ar.request_type = 'risk' AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($2::uuid[])))
 			OR
 			(ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($2::uuid[])))
 			OR
-			(ar.request_type NOT IN ('risk', 'assessment', 'incident'))
+			(ar.request_type NOT IN ('risk', 'incident'))
 		))`, id, orgIDs,
 	).Scan(
 		&req.ID, &req.RequestType, &req.EntityID, &req.RequestedBy, &req.RequestedAt,
@@ -182,15 +182,8 @@ func (r *approvalRepository) FindByEntity(ctx context.Context, requestType strin
 		LEFT JOIN users u ON ar.requested_by = u.id
 		LEFT JOIN users cu ON ar.current_approver_user_id = cu.id
 		WHERE ar.request_type = $1 AND ar.entity_id = $2
-		  AND (cardinality($3::uuid[]) = 0 OR (
-			(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($3::uuid[])))
-			OR
-			(ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($3::uuid[])))
-			OR
-			(ar.request_type NOT IN ('risk', 'assessment', 'incident'))
-		  ))
 		ORDER BY ar.requested_at DESC, ar.created_at DESC
-		LIMIT 1`, requestType, entityID, orgIDs,
+		LIMIT 1`, requestType, entityID,
 	).Scan(
 		&req.ID, &req.RequestType, &req.EntityID, &req.RequestedBy, &req.RequestedAt,
 		&req.CurrentStatus, &req.CurrentApproverRole, &req.CurrentApproverUserID, &req.Notes,
@@ -433,9 +426,9 @@ func (r *approvalRepository) GetPendingCount(ctx context.Context, approverRole s
 	}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND (\n"+
-			"(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($%d)))\n"+
+			"(ar.request_type = 'risk' AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($%d)))\n"+
 			"OR (ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($%d)))\n"+
-			"OR (ar.request_type NOT IN ('risk', 'assessment', 'incident'))\n"+
+			"OR (ar.request_type NOT IN ('risk', 'incident'))\n"+
 			")", len(args)+1, len(args)+1)
 		args = append(args, uuidArrayToStrings(orgIDs))
 	}

@@ -41,7 +41,7 @@ export function UnitResponseTimeChart({ loading, data = [] }: UnitResponseTimeCh
     return (
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="unit-response-time">
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Waktu Respons Unit</CardTitle>
+          <CardTitle className="text-[15px] font-semibold">Waktu Respons Unit</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
@@ -57,7 +57,7 @@ export function UnitResponseTimeChart({ loading, data = [] }: UnitResponseTimeCh
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-base font-semibold">Waktu Respons Unit</CardTitle>
+            <CardTitle className="text-[15px] font-semibold">Waktu Respons Unit</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
               Rata-rata hari mitigasi dan persetujuan per organisasi
             </p>

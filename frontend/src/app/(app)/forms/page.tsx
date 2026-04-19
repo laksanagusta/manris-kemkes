@@ -100,7 +100,7 @@ export default function MyFormsPage() {
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-sm font-semibold leading-tight line-clamp-2">
+                  <CardTitle className="text-[15px] font-semibold leading-tight line-clamp-2">
                     {form.title}
                   </CardTitle>
                   <Badge

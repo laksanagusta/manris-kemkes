@@ -232,7 +232,7 @@ export default function MinutesPage() {
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="border-b border-border/50 pb-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
               <FileText className="size-4" /> Notulen Tersimpan
             </CardTitle>
             <div className="relative w-full md:w-72">

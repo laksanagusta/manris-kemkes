@@ -37,9 +37,9 @@ func (r *riskRegisterRepoStub) ListMitigations(context.Context, []uuid.UUID) ([]
 	return nil, nil
 }
 func (r *riskRegisterRepoStub) NextRiskCode(context.Context) (string, error) { return "", nil }
-func (r *riskRegisterRepoStub) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
+func (r *riskRegisterRepoStub) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
 	return nil, nil
-}
+ }
 func (r *riskRegisterRepoStub) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, nil
 }
@@ -172,54 +172,5 @@ func TestRiskRegisterListRejectsInvalidCategory(t *testing.T) {
 	if resp.StatusCode != fiber.StatusBadRequest {
 		body, _ := io.ReadAll(resp.Body)
 		t.Fatalf("expected status 400, got %d: %s", resp.StatusCode, body)
-	}
-}
-
-func TestRiskRegisterListSerializesReviewScheduleText(t *testing.T) {
-	reviewDate := "2026-12-31"
-	repo := &riskRegisterRepoStub{
-		registerItems: []*entity.Risk{
-			{
-				ID:                 uuid.New(),
-				Code:               "R-001",
-				Title:              "Server outage",
-				Status:             entity.RiskStatusApproved,
-				Category:           entity.RiskCategoryOperasional,
-				NextReviewDate:     &reviewDate,
-				ReviewScheduleText: "Ditinjau pada rapat koordinasi bulanan",
-			},
-		},
-		registerTotal: 1,
-	}
-	handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repo)}
-
-	app := fiber.New()
-	app.Get("/risks/register", handler.ListRiskRegister)
-
-	resp, err := app.Test(httptest.NewRequest(fiber.MethodGet, "/risks/register", nil))
-	if err != nil {
-		t.Fatalf("app.Test: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != fiber.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, body)
-	}
-
-	var payload struct {
-		Data []map[string]any `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if len(payload.Data) != 1 {
-		t.Fatalf("expected 1 data item, got %d", len(payload.Data))
-	}
-	if payload.Data[0]["reviewScheduleText"] != "Ditinjau pada rapat koordinasi bulanan" {
-		t.Fatalf("expected reviewScheduleText in response, got %#v", payload.Data[0]["reviewScheduleText"])
-	}
-	if payload.Data[0]["nextReviewDate"] != reviewDate {
-		t.Fatalf("expected nextReviewDate %q, got %#v", reviewDate, payload.Data[0]["nextReviewDate"])
 	}
 }

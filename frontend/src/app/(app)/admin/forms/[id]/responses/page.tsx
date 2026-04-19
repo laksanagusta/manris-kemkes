@@ -14,7 +14,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -209,8 +209,15 @@ export default function FormResponsesPage() {
         </Card>
       ) : (
         /* Responses table */
-        <div className="rounded-lg border border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-          <Table>
+        <Card className="overflow-hidden border-border/50 bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-[15px] font-semibold">Daftar Respons</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Respons formulir yang telah diisi oleh pengguna.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
                 <TableHead className="text-xs w-12">#</TableHead>
@@ -273,7 +280,9 @@ export default function FormResponsesPage() {
               Menampilkan {responses.length} respons
             </p>
           </div>
-        </div>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       {/* Detail Dialog */}

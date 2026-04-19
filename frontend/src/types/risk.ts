@@ -24,7 +24,6 @@ export interface RiskMitigation {
   action: string;
   owner: string;
   treatmentOwnerId?: string;
-  externalPicId?: string;
   dueDate: string;
   frequency: MitigationFrequency;
   recurringInterval?: RecurringInterval;
@@ -89,7 +88,6 @@ export interface RiskVersionTimelineItem {
   targetNilai?: number;
   assessmentCycle?: string;
   reviewType?: RiskReviewType | "";
-  reviewScheduleText?: string;
   changeReason?: string;
   reviewSummary?: string;
   createdAt: string;
@@ -282,7 +280,6 @@ export interface Risk {
   targetNilai?: number;
   targetScore: number;
   nextReviewDate: string;
-  reviewScheduleText?: string;
   status: RiskStatus;
   versionGroupId?: string;
   versionNumber?: number;

@@ -244,7 +244,7 @@ export function MitigationProgressTab({
       {/* Task List */}
       <Card className="border-border/50">
         <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-border/50">
-          <CardTitle className="text-base font-bold flex items-center gap-2">
+          <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
             <Activity className="size-4" /> Progress Aktual Penanganan
           </CardTitle>
           <div className="flex gap-2">

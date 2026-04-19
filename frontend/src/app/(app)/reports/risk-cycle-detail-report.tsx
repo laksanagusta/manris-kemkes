@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Download, FileDiff, Minus, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Download } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -51,11 +51,11 @@ const tabOptions: Array<{ value: FilterTab; label: string }> = [
   { value: "stable", label: "Stable" },
 ];
 
-const categoryMeta: Record<string, { label: string; className: string; icon: typeof ChevronRight }> = {
-  changed: { label: "Changed", className: "border-primary/20 bg-primary/10 text-primary", icon: ChevronRight },
-  added: { label: "Added", className: "border-success/20 bg-success/10 text-success", icon: Plus },
-  removed: { label: "Removed", className: "border-destructive/20 bg-destructive/10 text-destructive", icon: Trash2 },
-  stable: { label: "Stable", className: "border-border bg-muted/40 text-muted-foreground", icon: Minus },
+const categoryMeta: Record<string, { label: string; className: string }> = {
+  changed: { label: "Changed", className: "border-primary/20 bg-primary/10 text-primary" },
+  added: { label: "Added", className: "border-success/20 bg-success/10 text-success" },
+  removed: { label: "Removed", className: "border-destructive/20 bg-destructive/10 text-destructive" },
+  stable: { label: "Stable", className: "border-border bg-muted/40 text-muted-foreground" },
 };
 
 const changeTypeMeta: Record<string, string> = {
@@ -387,8 +387,7 @@ export function RiskCycleDetailReport({
       <CardHeader className="space-y-3">
         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-              <FileDiff className="size-4" />
+            <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-foreground">
               Report Perubahan Risiko Antar Periode
             </CardTitle>
             <p className="text-sm text-muted-foreground">Bandingkan snapshot risiko approved antar dua cycle sampai ke level kolom dan mitigasi.</p>
@@ -513,7 +512,6 @@ export function RiskCycleDetailReport({
                     </TableRow>
                   ) : filteredItems.map((item) => {
                     const meta = categoryMeta[item.changeCategory] || categoryMeta.changed;
-                    const Icon = meta.icon;
                     const isExpanded = expandedRows[item.versionGroupId];
                     return (
                       <Fragment key={item.versionGroupId}>
@@ -533,7 +531,7 @@ export function RiskCycleDetailReport({
                           <TableCell className="text-sm text-muted-foreground">{item.orgName || "-"}</TableCell>
                           <TableCell className="text-center">
                             <Badge variant="outline" className={cn("gap-1 font-normal", meta.className)}>
-                              <Icon className="size-3" /> {meta.label}
+                              {meta.label}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center text-sm text-muted-foreground">{fieldDiffLabel(item)}</TableCell>

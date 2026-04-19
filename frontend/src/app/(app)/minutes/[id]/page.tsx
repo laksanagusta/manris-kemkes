@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, CalendarDays, Users, CheckCircle2, Link2, AlertCircle, Clock, User, Trash2 } from "lucide-react";
+import { Loader2, CalendarDays, CheckCircle2, AlertCircle, Clock, User, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -142,7 +142,6 @@ export default function MeetingMinuteDetailPage() {
             <div className="space-y-8">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Users className="size-4.5 text-muted-foreground" />
                   <h3 className="text-sm font-semibold text-foreground">Peserta</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -175,9 +174,6 @@ export default function MeetingMinuteDetailPage() {
 
               {minutes.nextCheckIn && (
                 <div className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-muted/20 p-4 shadow-sm">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <Clock className="size-4 text-primary" />
-                  </div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-xs font-medium text-muted-foreground">Next Check-in</span>
                     <span className="text-sm font-semibold text-foreground">
@@ -211,11 +207,6 @@ export default function MeetingMinuteDetailPage() {
           {minutes.decisions.length > 0 && (
             <FormSection
               title="Keputusan"
-              action={
-                <div className="flex size-8 items-center justify-center rounded-full bg-success/10">
-                  <CheckCircle2 className="size-4.5 text-success" />
-                </div>
-              }
             >
               <ul className="grid gap-4">
                 {minutes.decisions.map((decision, idx) => (
@@ -288,7 +279,6 @@ export default function MeetingMinuteDetailPage() {
         <div className="space-y-8 lg:space-y-10">
           <FormSection
             title="Risiko Terkait"
-            action={<Link2 className="size-4.5 text-muted-foreground" />}
           >
             {(minutes.linkedRisks?.length ?? 0) > 0 ? (
               <div className="grid gap-3">
@@ -312,7 +302,6 @@ export default function MeetingMinuteDetailPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 bg-muted/20 py-8 px-4 text-center">
-                <Link2 className="size-6 text-muted-foreground/50" />
                 <p className="text-xs font-medium text-muted-foreground">
                   Tidak ada risiko yang terkait.
                 </p>

@@ -30,16 +30,11 @@ func TestAuthHandlerLoginReturnsSetupSessionPayloadForPendingActivationUser(t *t
 			ID:                 uuid.New(),
 			Username:           "pending-user",
 			Name:               "Pending User",
-			Email:              "pending-user@manris.local",
 			Role:               entity.RoleSuperAdmin,
 			Status:             entity.UserStatusPendingActivation,
 			MustChangePassword: true,
 			PasswordHash:       string(passwordHash),
-			NIP:                "19880101",
-			Jabatan:            "Koordinator",
-			Pangkat:            "III/c",
 		}}, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24),
-		nil,
 		nil,
 		nil,
 	)
@@ -75,11 +70,7 @@ func TestAuthHandlerLoginReturnsSetupSessionPayloadForPendingActivationUser(t *t
 			SessionMode        string `json:"sessionMode"`
 			MustChangePassword bool   `json:"mustChangePassword"`
 			User               struct {
-				Email              string `json:"email"`
 				Status             string `json:"status"`
-				NIP                string `json:"nip"`
-				Jabatan            string `json:"jabatan"`
-				Pangkat            string `json:"pangkat"`
 				MustChangePassword bool   `json:"mustChangePassword"`
 			} `json:"user"`
 		} `json:"data"`
@@ -102,12 +93,6 @@ func TestAuthHandlerLoginReturnsSetupSessionPayloadForPendingActivationUser(t *t
 	}
 	if !payload.Data.User.MustChangePassword {
 		t.Fatal("expected user.mustChangePassword to be true")
-	}
-	if payload.Data.User.Email != "pending-user@manris.local" {
-		t.Fatalf("expected user.email to be included, got %q", payload.Data.User.Email)
-	}
-	if payload.Data.User.NIP != "19880101" || payload.Data.User.Jabatan != "Koordinator" || payload.Data.User.Pangkat != "III/c" {
-		t.Fatalf("expected profile fields in login payload, got %+v", payload.Data.User)
 	}
 }
 
@@ -134,7 +119,6 @@ func TestAuthHandlerChangePasswordReturnsFullSessionPayload(t *testing.T) {
 	handler := NewAuthHandler(
 		nil,
 		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{})),
-		nil,
 		authuc.NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24),
 	)
 
@@ -220,7 +204,6 @@ func TestAuthHandlerChangePasswordRejectsMalformedInput(t *testing.T) {
 	handler := NewAuthHandler(
 		nil,
 		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{})),
-		nil,
 		authuc.NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24),
 	)
 
@@ -253,147 +236,6 @@ func TestAuthHandlerChangePasswordRejectsMalformedInput(t *testing.T) {
 	}
 	if userRepo.updatedUser != nil {
 		t.Fatal("expected repository update not to run on invalid request")
-	}
-}
-
-func TestAuthHandlerChangePasswordAllowsActiveUserWithCurrentPassword(t *testing.T) {
-	userID := uuid.New()
-	orgID := uuid.New()
-	currentHash, err := bcrypt.GenerateFromPassword([]byte("OldPass123!"), bcrypt.DefaultCost)
-	if err != nil {
-		t.Fatalf("hash password: %v", err)
-	}
-
-	userRepo := &changePasswordHandlerUserRepo{user: &entity.User{
-		ID:                 userID,
-		Username:           "active-user",
-		Email:              "active-user@manris.local",
-		Name:               "Active User",
-		Role:               entity.RoleUnit,
-		OrganizationID:     &orgID,
-		Status:             entity.UserStatusActive,
-		MustChangePassword: false,
-		PasswordHash:       string(currentHash),
-		CreatedAt:          time.Now(),
-		UpdatedAt:          time.Now(),
-	}}
-
-	handler := NewAuthHandler(
-		nil,
-		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{})),
-		nil,
-		authuc.NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24),
-	)
-
-	body, err := json.Marshal(map[string]string{
-		"currentPassword": "OldPass123!",
-		"newPassword":     "NewPass123!",
-		"confirmPassword": "NewPass123!",
-	})
-	if err != nil {
-		t.Fatalf("marshal change-password request: %v", err)
-	}
-
-	app := fiber.New()
-	app.Post("/auth/change-password", func(c *fiber.Ctx) error {
-		c.Locals("userId", userID)
-		return c.Next()
-	}, handler.ChangePassword)
-
-	req := httptest.NewRequest(fiber.MethodPost, "/auth/change-password", bytes.NewReader(body))
-	req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatalf("app.Test: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != fiber.StatusOK {
-		payload, _ := io.ReadAll(resp.Body)
-		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, payload)
-	}
-}
-
-func TestAuthHandlerUpdateProfileReturnsUpdatedProfile(t *testing.T) {
-	userID := uuid.New()
-	orgID := uuid.New()
-	userRepo := &changePasswordHandlerUserRepo{user: &entity.User{
-		ID:                 userID,
-		Username:           "active-user",
-		Email:              "active-user@manris.local",
-		Name:               "Active User",
-		Role:               entity.RoleUnit,
-		OrganizationID:     &orgID,
-		OrgName:            "Direktorat A",
-		Status:             entity.UserStatusActive,
-		MustChangePassword: false,
-		PasswordHash:       "hash",
-		NIP:                "123",
-		Jabatan:            "Analis",
-		Pangkat:            "III/a",
-		CreatedAt:          time.Now(),
-		UpdatedAt:          time.Now(),
-	}}
-
-	hierarchySvc := service.NewOrganizationHierarchy(&stubOrgRepo{descendants: []uuid.UUID{orgID}})
-	handler := NewAuthHandler(
-		nil,
-		authuc.NewGetCurrentUserUseCase(userRepo, hierarchySvc),
-		authuc.NewUpdateProfileUseCase(userRepo, hierarchySvc),
-		nil,
-	)
-
-	body, err := json.Marshal(map[string]string{
-		"name":     "Updated User",
-		"username": "updated-user",
-		"email":    "updated@manris.local",
-		"nip":      "456",
-		"jabatan":  "Koordinator",
-		"pangkat":  "III/b",
-	})
-	if err != nil {
-		t.Fatalf("marshal update-profile request: %v", err)
-	}
-
-	app := fiber.New()
-	app.Put("/auth/me", func(c *fiber.Ctx) error {
-		c.Locals("userId", userID)
-		return c.Next()
-	}, handler.UpdateProfile)
-
-	req := httptest.NewRequest(fiber.MethodPut, "/auth/me", bytes.NewReader(body))
-	req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatalf("app.Test: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != fiber.StatusOK {
-		payload, _ := io.ReadAll(resp.Body)
-		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, payload)
-	}
-
-	var payload struct {
-		Data struct {
-			Email   string `json:"email"`
-			OrgName string `json:"orgName"`
-			NIP     string `json:"nip"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if payload.Data.Email != "updated@manris.local" {
-		t.Fatalf("expected updated email, got %q", payload.Data.Email)
-	}
-	if payload.Data.OrgName != "Direktorat A" {
-		t.Fatalf("expected orgName to be preserved, got %q", payload.Data.OrgName)
-	}
-	if payload.Data.NIP != "456" {
-		t.Fatalf("expected updated NIP, got %q", payload.Data.NIP)
 	}
 }
 

@@ -170,7 +170,6 @@ func main() {
 	// Auth usecases
 	authLoginUC := authuc.NewLoginUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry)
 	authMeUC := authuc.NewGetCurrentUserUseCase(domainUserRepo, orgHierarchySvc)
-	authUpdateProfileUC := authuc.NewUpdateProfileUseCase(domainUserRepo, orgHierarchySvc)
 	authChangePasswordUC := authuc.NewChangePasswordUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry)
 
 	// AI usecases
@@ -279,7 +278,7 @@ func main() {
 	)
 
 	// Auth handlers (Clean Architecture)
-	cleanAuthHandler := httpHandler.NewAuthHandler(authLoginUC, authMeUC, authUpdateProfileUC, authChangePasswordUC)
+	cleanAuthHandler := httpHandler.NewAuthHandler(authLoginUC, authMeUC, authChangePasswordUC)
 
 	// AI handlers (Clean Architecture)
 	cleanAIHandler := httpHandler.NewAIHandler(
@@ -379,7 +378,6 @@ func main() {
 
 	authProtected := api.Group("/auth", middleware.AuthRequired(cfg.JWTSecret))
 	authProtected.Get("/me", cleanAuthHandler.Me)
-	authProtected.Put("/me", middleware.RequireFullSession(), cleanAuthHandler.UpdateProfile)
 	authProtected.Post("/change-password", cleanAuthHandler.ChangePassword)
 
 	protected := api.Group("", middleware.AuthRequired(cfg.JWTSecret), middleware.RequireFullSession(), middleware.ResolveOrgScope(orgHierarchySvc))

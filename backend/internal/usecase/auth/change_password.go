@@ -13,7 +13,6 @@ import (
 
 type ChangePasswordInput struct {
 	UserID          uuid.UUID
-	CurrentPassword string
 	NewPassword     string
 	ConfirmPassword string
 }
@@ -51,23 +50,8 @@ func (uc *ChangePasswordUseCase) Execute(ctx context.Context, input ChangePasswo
 	if user == nil {
 		return nil, errors.ErrNotFound
 	}
-	if user.Status == entity.UserStatusInactive {
+	if !user.IsPendingActivation() || !user.MustChangePassword {
 		return nil, errors.ErrForbidden
-	}
-
-	if user.IsPendingActivation() && user.MustChangePassword {
-		user.Status = entity.UserStatusActive
-		user.MustChangePassword = false
-	} else {
-		if user.Status != entity.UserStatusActive {
-			return nil, errors.ErrForbidden
-		}
-		if input.CurrentPassword == "" {
-			return nil, errors.Wrap(errors.ErrInvalidInput, "currentPassword is required for active users")
-		}
-		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(input.CurrentPassword)); err != nil {
-			return nil, errors.ErrInvalidCredentials
-		}
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
@@ -76,6 +60,8 @@ func (uc *ChangePasswordUseCase) Execute(ctx context.Context, input ChangePasswo
 	}
 
 	user.PasswordHash = string(passwordHash)
+	user.Status = entity.UserStatusActive
+	user.MustChangePassword = false
 
 	if err := uc.userRepo.Update(ctx, user); err != nil {
 		return nil, errors.Wrap(err, "failed to update user")

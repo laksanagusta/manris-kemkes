@@ -752,7 +752,7 @@ export function MeetingIntelligenceWorkspace({
             <CardHeader className="border-b border-border/50 bg-muted/[0.18] pb-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="space-y-1.5">
-                  <CardTitle className="flex items-center gap-2 text-base">
+                  <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
                     <ClipboardPaste className="size-4 text-primary" />
                     Transcript
                   </CardTitle>
@@ -862,7 +862,7 @@ export function MeetingIntelligenceWorkspace({
                         </Button>
                       </div>
                       <div>
-                        <CardTitle className="text-lg">{generatedMinutes.title}</CardTitle>
+                        <CardTitle className="text-[15px] font-semibold">{generatedMinutes.title}</CardTitle>
                         <p className="mt-1 text-sm text-muted-foreground">
                           Tinjau hasil notulen ini sebelum dibagikan ke peserta rapat.
                         </p>

@@ -53,7 +53,7 @@ export function OverdueMitigationTimeline({ loading, data = [] }: OverdueMitigat
     return (
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="overdue-mitigation-timeline">
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Timeline Penanganan Overdue</CardTitle>
+          <CardTitle className="text-[15px] font-semibold">Timeline Penanganan Overdue</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
@@ -69,7 +69,7 @@ export function OverdueMitigationTimeline({ loading, data = [] }: OverdueMitigat
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-base font-semibold">Timeline Penanganan Overdue</CardTitle>
+            <CardTitle className="text-[15px] font-semibold">Timeline Penanganan Overdue</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
               Jumlah mitigasi per organisasi berdasarkan kedatanggal pengaporan
             </p>

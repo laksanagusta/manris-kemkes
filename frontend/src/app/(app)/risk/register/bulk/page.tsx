@@ -220,7 +220,7 @@ export default function BulkRiskRegisterPage() {
 
       <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
         <CardHeader className="border-b border-border/50">
-          <CardTitle className="text-base font-semibold text-foreground">Sumber Data</CardTitle>
+          <CardTitle className="text-[15px] font-semibold text-foreground">Sumber Data</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5 px-6 py-6">
           <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10 text-center transition-colors hover:border-primary/40 hover:bg-muted/[0.28]">
@@ -250,7 +250,7 @@ export default function BulkRiskRegisterPage() {
 
       <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
         <CardHeader className="border-b border-border/50">
-          <CardTitle className="text-base font-semibold text-foreground">Preview Validasi</CardTitle>
+          <CardTitle className="text-[15px] font-semibold text-foreground">Preview Validasi</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 px-6 py-6">
           {previews.length === 0 ? (
@@ -298,7 +298,7 @@ export default function BulkRiskRegisterPage() {
       {resultItems.length > 0 ? (
         <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
           <CardHeader className="border-b border-border/50">
-            <CardTitle className="text-base font-semibold text-foreground">Hasil Submit</CardTitle>
+            <CardTitle className="text-[15px] font-semibold text-foreground">Hasil Submit</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 px-6 py-6">
             <div className="flex flex-wrap gap-2">

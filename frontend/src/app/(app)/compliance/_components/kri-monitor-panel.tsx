@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -279,6 +279,12 @@ export function KRIMonitorPanel() {
       )}
 
       <Card className="border-border/50 bg-card/80">
+        <CardHeader>
+          <CardTitle className="text-[15px] font-semibold">Daftar Indikator</CardTitle>
+          <CardDescription className="text-xs text-muted-foreground">
+            Indikator risiko utama beserta status dan tren terkini.
+          </CardDescription>
+        </CardHeader>
         <CardContent className="space-y-4 p-4 md:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>

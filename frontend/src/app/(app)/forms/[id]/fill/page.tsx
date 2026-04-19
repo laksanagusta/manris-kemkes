@@ -239,11 +239,11 @@ function ReadOnlyView({
           return (
             <Card key={section.id} className="border-border/20 bg-card">
               <CardHeader>
-                <CardTitle className="text-base font-semibold">
+                <CardTitle className="text-[15px] font-semibold">
                   {section.title}
                 </CardTitle>
                 {section.description && (
-                  <CardDescription>{section.description}</CardDescription>
+                  <CardDescription className="text-xs text-muted-foreground">{section.description}</CardDescription>
                 )}
               </CardHeader>
               <CardContent className="flex flex-col gap-5">
@@ -402,11 +402,11 @@ function InteractiveForm({ form }: { form: Form }) {
           return (
             <Card key={section.id} className="border-border/20 bg-card">
               <CardHeader>
-                <CardTitle className="text-base font-semibold">
+                <CardTitle className="text-[15px] font-semibold">
                   {section.title}
                 </CardTitle>
                 {section.description && (
-                  <CardDescription>{section.description}</CardDescription>
+                  <CardDescription className="text-xs text-muted-foreground">{section.description}</CardDescription>
                 )}
               </CardHeader>
               <CardContent className="flex flex-col gap-5">

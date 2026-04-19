@@ -285,7 +285,7 @@ export function MitigationMonitoringPanel() {
 
       <Card className="overflow-hidden border-border/50 bg-card/80">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Daftar mitigasi</CardTitle>
+          <CardTitle className="text-[15px] font-semibold">Daftar mitigasi</CardTitle>
         </CardHeader>
         <Table>
           <TableHeader>

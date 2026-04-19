@@ -96,15 +96,6 @@ export interface AuthTransition {
   redirectTo: string;
 }
 
-export interface UpdateProfileInput {
-  name: string;
-  username: string;
-  email: string;
-  nip: string;
-  jabatan: string;
-  pangkat: string;
-}
-
 function resolveSessionMode(sessionMode: string | undefined, mustChangePassword: boolean): SessionMode {
   if (sessionMode === "setup" || sessionMode === "full") {
     return sessionMode;
@@ -148,8 +139,6 @@ interface AuthContextType {
   loading: boolean;
   login: (username: string, password: string) => Promise<AuthTransition>;
   completeFirstPasswordChange: (newPassword: string, confirmPassword: string) => Promise<AuthTransition>;
-  changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) => Promise<AuthTransition>;
-  updateProfile: (input: UpdateProfileInput) => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
   hasFullSession: boolean;
@@ -167,12 +156,6 @@ const AuthContext = createContext<AuthContextType>({
     throw new Error("Auth context is not available.");
   },
   completeFirstPasswordChange: async () => {
-    throw new Error("Auth context is not available.");
-  },
-  changePassword: async () => {
-    throw new Error("Auth context is not available.");
-  },
-  updateProfile: async () => {
     throw new Error("Auth context is not available.");
   },
   logout: () => {},
@@ -219,19 +202,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       redirectTo: getPostAuthRedirectPath(normalized.mustChangePassword),
     } satisfies AuthTransition;
   }, [clearSession]);
-
-  const applyUserProfile = useCallback((raw: unknown) => {
-    const parsed = parseUser(raw);
-
-    if (!parsed) {
-      throw new ApiError("Respons profil tidak lengkap.", 500);
-    }
-
-    setUser(parsed);
-    setMustChangePassword(parsed.mustChangePassword);
-
-    return parsed;
-  }, []);
 
   // Restore session from localStorage
   useEffect(() => {
@@ -296,33 +266,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return applyAuthState(res, res.token);
   }, [applyAuthState, token]);
 
-  const changePassword = useCallback(async (currentPassword: string, newPassword: string, confirmPassword: string) => {
-    if (!token) {
-      throw new ApiError("Sesi tidak ditemukan. Silakan masuk kembali.", 401);
-    }
-
-    const res = await api.post<AuthPayload>(
-      "/auth/change-password",
-      {
-        currentPassword,
-        newPassword,
-        confirmPassword,
-      },
-      token,
-    );
-
-    return applyAuthState(res, res.token);
-  }, [applyAuthState, token]);
-
-  const updateProfile = useCallback(async (input: UpdateProfileInput) => {
-    if (!token) {
-      throw new ApiError("Sesi tidak ditemukan. Silakan masuk kembali.", 401);
-    }
-
-    const res = await api.put<User>("/auth/me", input, token);
-    return applyUserProfile(res);
-  }, [applyUserProfile, token]);
-
   const logout = useCallback(() => {
     clearSession();
   }, [clearSession]);
@@ -342,8 +285,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     login,
     completeFirstPasswordChange,
-    changePassword,
-    updateProfile,
     logout,
     isAuthenticated,
     hasFullSession,
@@ -357,8 +298,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     login,
     completeFirstPasswordChange,
-    changePassword,
-    updateProfile,
     logout,
     isAuthenticated,
     hasFullSession,

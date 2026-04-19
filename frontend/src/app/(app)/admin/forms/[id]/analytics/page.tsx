@@ -183,7 +183,7 @@ function TextFieldCard({ field, totalResponses }: { field: FormFieldAnalytics; t
       <CardHeader>
         <div className="flex items-center gap-2">
           <FileText className="text-muted-foreground" />
-          <CardTitle className="text-sm font-semibold">{field.label}</CardTitle>
+          <CardTitle className="text-[15px] font-semibold">{field.label}</CardTitle>
           <Badge variant="outline" className="ml-auto text-[10px]">
             {field.fieldType}
           </Badge>
@@ -219,7 +219,7 @@ function FieldTrendChart({ field }: { field: FormFieldAnalytics }) {
       <CardHeader>
         <div className="flex items-center gap-2">
           <TrendingUp className="text-muted-foreground" />
-          <CardTitle className="text-sm font-semibold">Tren: {field.label}</CardTitle>
+          <CardTitle className="text-[15px] font-semibold">Tren: {field.label}</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
@@ -412,7 +412,7 @@ export default function FormAnalyticsPage() {
                       <CardHeader>
                         <div className="flex items-center gap-2">
                           <BarChart3 className="text-muted-foreground" />
-                          <CardTitle className="text-sm font-semibold">{field.label}</CardTitle>
+                          <CardTitle className="text-[15px] font-semibold">{field.label}</CardTitle>
                           <Badge variant="outline" className="ml-auto text-[10px]">
                             {field.fieldType}
                           </Badge>
@@ -426,7 +426,7 @@ export default function FormAnalyticsPage() {
                       <CardHeader>
                         <div className="flex items-center gap-2">
                           <PieChartIcon className="text-muted-foreground" />
-                          <CardTitle className="text-sm font-semibold">{field.label} — Distribusi</CardTitle>
+                          <CardTitle className="text-[15px] font-semibold">{field.label} — Distribusi</CardTitle>
                         </div>
                       </CardHeader>
                       <CardContent>
@@ -445,7 +445,7 @@ export default function FormAnalyticsPage() {
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <BarChart3 className="text-muted-foreground" />
-                      <CardTitle className="text-sm font-semibold">{field.label}</CardTitle>
+                      <CardTitle className="text-[15px] font-semibold">{field.label}</CardTitle>
                       <Badge variant="outline" className="ml-auto text-[10px]">
                         checkbox
                       </Badge>

@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import type { IncidentRecord, IncidentSummary } from "@/types/incident";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -234,7 +234,14 @@ export default function IncidentPage() {
       </Card>
 
       <Card className="overflow-hidden border-border/50 bg-card/80">
-        <Table>
+        <CardHeader>
+          <CardTitle className="text-[15px] font-semibold">Daftar Insiden</CardTitle>
+          <CardDescription className="text-xs text-muted-foreground">
+            Catatan insiden yang terjadi beserta tingkat keparahan dan statusnya.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
               <TableHead className="w-24 text-xs">Kode</TableHead>
@@ -356,6 +363,7 @@ export default function IncidentPage() {
             )}
           </TableBody>
         </Table>
+        </CardContent>
       </Card>
     </div>
   );

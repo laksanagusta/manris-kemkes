@@ -50,7 +50,7 @@ export function RiskMovementByOrg({
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <CardTitle className="text-base font-semibold">Pergerakan Risiko per Organisasi</CardTitle>
+            <CardTitle className="text-[15px] font-semibold">Pergerakan Risiko per Organisasi</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
               Jumlah risiko naik, turun, dan stabil per unit kerja.
             </p>

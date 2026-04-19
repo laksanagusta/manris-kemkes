@@ -114,9 +114,9 @@ export function FormSection({
       <CardHeader>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
+            <CardTitle className="text-[15px] font-semibold text-foreground">{title}</CardTitle>
             {description ? (
-              <CardDescription className="max-w-2xl text-sm leading-6">
+              <CardDescription className="text-xs text-muted-foreground max-w-2xl leading-6">
                 {description}
               </CardDescription>
             ) : null}

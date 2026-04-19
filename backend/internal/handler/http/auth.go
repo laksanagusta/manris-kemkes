@@ -10,7 +10,6 @@ import (
 type AuthHandler struct {
 	loginUC          *authuc.LoginUseCase
 	meUC             *authuc.GetCurrentUserUseCase
-	updateProfileUC  *authuc.UpdateProfileUseCase
 	changePasswordUC *authuc.ChangePasswordUseCase
 }
 
@@ -18,13 +17,11 @@ type AuthHandler struct {
 func NewAuthHandler(
 	loginUC *authuc.LoginUseCase,
 	meUC *authuc.GetCurrentUserUseCase,
-	updateProfileUC *authuc.UpdateProfileUseCase,
 	changePasswordUC *authuc.ChangePasswordUseCase,
 ) *AuthHandler {
 	return &AuthHandler{
 		loginUC:          loginUC,
 		meUC:             meUC,
-		updateProfileUC:  updateProfileUC,
 		changePasswordUC: changePasswordUC,
 	}
 }
@@ -36,18 +33,8 @@ type LoginRequest struct {
 }
 
 type ChangePasswordRequest struct {
-	CurrentPassword string `json:"currentPassword"`
 	NewPassword     string `json:"newPassword"`
 	ConfirmPassword string `json:"confirmPassword"`
-}
-
-type UpdateProfileRequest struct {
-	Name     string `json:"name"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	NIP      string `json:"nip"`
-	Jabatan  string `json:"jabatan"`
-	Pangkat  string `json:"pangkat"`
 }
 
 // Login handles POST /api/v1/auth/login
@@ -103,36 +90,8 @@ func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 
 	result, err := h.changePasswordUC.Execute(c.Context(), authuc.ChangePasswordInput{
 		UserID:          userID,
-		CurrentPassword: req.CurrentPassword,
 		NewPassword:     req.NewPassword,
 		ConfirmPassword: req.ConfirmPassword,
-	})
-	if err != nil {
-		return handleError(c, err)
-	}
-
-	return c.JSON(fiber.Map{"data": result})
-}
-
-func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
-	var req UpdateProfileRequest
-	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
-	}
-
-	userID, err := userIDFromContext(c)
-	if err != nil {
-		return err
-	}
-
-	result, err := h.updateProfileUC.Execute(c.Context(), authuc.UpdateProfileInput{
-		UserID:   userID,
-		Name:     req.Name,
-		Username: req.Username,
-		Email:    req.Email,
-		NIP:      req.NIP,
-		Jabatan:  req.Jabatan,
-		Pangkat:  req.Pangkat,
 	})
 	if err != nil {
 		return handleError(c, err)

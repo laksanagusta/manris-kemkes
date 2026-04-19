@@ -398,7 +398,7 @@ export default function DashboardPage() {
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <div>
-              <CardTitle className="text-base font-semibold">
+              <CardTitle className="text-[15px] font-semibold">
                 Distribusi Kategori Risiko
               </CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -510,7 +510,7 @@ export default function DashboardPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-semibold">
+                <CardTitle className="text-[15px] font-semibold">
                   Risk Trend
                 </CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -612,7 +612,7 @@ export default function DashboardPage() {
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2">
           <CardHeader>
             <div>
-              <CardTitle className="text-base font-semibold">
+              <CardTitle className="text-[15px] font-semibold">
                 Progress Penanganan
               </CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">

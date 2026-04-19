@@ -27,8 +27,8 @@ export function AdminOnlyState({
             <ShieldX />
           </div>
           <div className="space-y-2">
-            <CardTitle>{title}</CardTitle>
-            <CardDescription className="text-sm leading-6">
+            <CardTitle className="text-[15px] font-semibold">{title}</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground leading-6">
               {description}
             </CardDescription>
           </div>
