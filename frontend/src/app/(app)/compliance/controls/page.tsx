@@ -195,8 +195,11 @@ export default function ControlsPage() {
                            </TableRow>
                         )) : (
                            <TableRow>
-                             <TableCell colSpan={4} className="h-24 text-center text-xs text-muted-foreground">
-                               Belum ada testing record untuk control ini.
+                             <TableCell colSpan={4} className="h-24">
+                               <div className="flex flex-col gap-1 text-left">
+                                 <p className="text-sm font-medium text-muted-foreground">Belum ada testing record untuk control ini</p>
+                                 <p className="text-xs text-muted-foreground/70">Tambahkan testing record baru untuk memulai pemantauan</p>
+                               </div>
                              </TableCell>
                            </TableRow>
                         )}

@@ -126,7 +126,7 @@ type transactionalReassessRiskRepo struct {
 	reserveCalls   int
 }
 
-func (r *transactionalReassessRiskRepo) GetOrCreatePeriodicReassessmentInTx(context.Context, *entity.Risk, string) (*entity.Risk, bool, error) {
+func (r *transactionalReassessRiskRepo) GetOrCreatePeriodicReassessmentInTx(_ context.Context, _ *entity.Risk, _ string, _ uuid.UUID) (*entity.Risk, bool, error) {
 	r.reserveCalls++
 	if r.reservedRisk == nil {
 		return nil, r.reserveCreated, r.reserveErr
@@ -576,7 +576,7 @@ func TestBuildPeriodicReassessmentDraftClonesForTargetCycle(t *testing.T) {
 		ReviewSubmittedAt: &startedAt,
 	}
 
-	got := BuildPeriodicReassessmentDraft(source, "2026-H1", startedAt)
+	got := BuildPeriodicReassessmentDraft(source, "2026-H1", startedAt, uuid.New())
 	if got == nil {
 		t.Fatal("expected draft")
 	}

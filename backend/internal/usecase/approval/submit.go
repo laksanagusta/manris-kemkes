@@ -195,14 +195,9 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 
 // validateRisk validates if risk can be submitted for approval
 func (uc *SubmitApprovalUseCase) validateRisk(ctx context.Context, riskID uuid.UUID, userID uuid.UUID, userRole string, orgIDs []uuid.UUID) error {
-	risk, err := uc.riskRepo.GetByID(ctx, riskID, orgIDs)
+	_, err := uc.riskRepo.GetByID(ctx, riskID, orgIDs)
 	if err != nil {
 		return domainerrors.ErrRiskNotFound
-	}
-
-	// Only owner or unit role can submit their own risks
-	if userRole == "unit" && risk.CreatedBy != nil && *risk.CreatedBy != userID {
-		return domainerrors.ErrForbidden
 	}
 
 	return nil

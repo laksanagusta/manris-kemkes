@@ -311,8 +311,11 @@ export function MitigationMonitoringPanel() {
               </TableRow>
             ) : mitigations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                  Tidak ada rencana mitigasi yang overdue.
+                <TableCell colSpan={8} className="h-24">
+                  <div className="flex flex-col gap-1 text-left">
+                    <p className="text-sm font-medium text-muted-foreground">Tidak ada rencana mitigasi yang overdue</p>
+                    <p className="text-xs text-muted-foreground/70">Semua rencana mitigasi telah ditangani atau belum mendekati tenggat</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

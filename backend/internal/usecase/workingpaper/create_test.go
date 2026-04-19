@@ -59,9 +59,9 @@ func (r *fakeCreateRiskRepo) NextRiskCode(context.Context) (string, error) {
 	return "", nil
 }
 
-func (r *fakeCreateRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
+func (r *fakeCreateRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, nil
- }
+}
 
 func (r *fakeCreateRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, nil
@@ -133,7 +133,7 @@ type transactionalCreateRiskRepo struct {
 	reserveCalls   int
 }
 
-func (r *transactionalCreateRiskRepo) GetOrCreatePeriodicReassessmentInTx(context.Context, *entity.Risk, string) (*entity.Risk, bool, error) {
+func (r *transactionalCreateRiskRepo) GetOrCreatePeriodicReassessmentInTx(_ context.Context, _ *entity.Risk, _ string, _ uuid.UUID) (*entity.Risk, bool, error) {
 	r.reserveCalls++
 	if r.reservedRisk == nil {
 		return nil, r.reserveCreated, r.reserveErr

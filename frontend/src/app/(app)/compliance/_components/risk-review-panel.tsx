@@ -21,7 +21,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
+import {
+  listAllOrganizations,
+  type OrganizationListItem,
+} from "@/lib/api/organizations";
 import { useAuth } from "@/contexts/auth-context";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import type {
@@ -95,6 +98,9 @@ const reviewStatusMeta: Record<string, { label: string; className: string }> = {
   },
 };
 
+const impactLabels = ["Tdk Signifikan", "Kecil", "Sedang", "Besar", "Katastropik"];
+const likelihoodLabels = ["Jarang", "Kemungkinan Kecil", "Kemungkinan Sedang", "Kemungkinan Besar", "Hampir Pasti"];
+
 function currentGlobalCycle() {
   const now = new Date();
   const year = now.getFullYear();
@@ -154,7 +160,7 @@ function getHeatmapCellClass(
   count: number,
   prob: number,
   impact: number,
-  mode: "intensity" | "riskLevel"
+  mode: "intensity" | "riskLevel",
 ): string {
   if (mode === "riskLevel") {
     const bobot = getBobot(prob, impact);
@@ -167,15 +173,17 @@ function getHeatmapCellClass(
       tinggi: "heatmap-tinggi border-transparent",
       sangat_tinggi: "heatmap-sangat-tinggi border-transparent",
     }[level];
-    
+
     if (count === 0) return cn(colorClass, "opacity-40 font-normal");
     return cn(colorClass, "font-bold");
   }
 
   // mode === "intensity"
   if (count === 0) return "border-border bg-muted/20 text-muted-foreground";
-  if (count <= 2) return "border-primary/20 bg-primary/15 text-foreground font-semibold";
-  if (count <= 5) return "border-primary/30 bg-primary/30 text-foreground font-bold";
+  if (count <= 2)
+    return "border-primary/20 bg-primary/15 text-foreground font-semibold";
+  if (count <= 5)
+    return "border-primary/30 bg-primary/30 text-foreground font-bold";
   return "border-primary/40 bg-primary/50 font-bold text-foreground";
 }
 
@@ -199,7 +207,9 @@ export function RiskReviewPanel() {
   const [limit] = useState(20);
   const [total, setTotal] = useState(0);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [heatmapMode, setHeatmapMode] = useState<"intensity" | "riskLevel">("intensity");
+  const [heatmapMode, setHeatmapMode] = useState<"intensity" | "riskLevel">(
+    "intensity",
+  );
   const [selectedRisk, setSelectedRisk] = useState<RiskReviewQueueItem | null>(
     null,
   );
@@ -247,11 +257,13 @@ export function RiskReviewPanel() {
         if (deferredSearch.trim()) params.set("search", deferredSearch.trim());
         params.set("page", page.toString());
         params.set("limit", limit.toString());
-        
-        const result = await api.get<{ data: RiskReviewQueueItem[]; total: number; page: number; limit: number }>(
-          `/risks/review-queue?${params.toString()}`,
-          token,
-        );
+
+        const result = await api.get<{
+          data: RiskReviewQueueItem[];
+          total: number;
+          page: number;
+          limit: number;
+        }>(`/risks/review-queue?${params.toString()}`, token);
         setItems(result.data);
         setTotal(result.total);
       } catch (error) {
@@ -436,7 +448,7 @@ export function RiskReviewPanel() {
             <p className="mt-1 text-xs text-muted-foreground">
               Entry point reassessment ada di tombol{" "}
               <span className="font-medium text-foreground">
-                Mulai Reassessment
+                Mulai Pemantauan
               </span>{" "}
               untuk item berstatus Due atau Overdue.
             </p>
@@ -491,27 +503,37 @@ export function RiskReviewPanel() {
               Memuat queue reassessment...
             </div>
           ) : (
-             <Table>
-               <TableHeader>
-                 <TableRow>
-                   <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
-                   <TableHead className="whitespace-nowrap">Risiko</TableHead>
-                   <TableHead className="w-32 whitespace-nowrap">Unit</TableHead>
-                   <TableHead className="w-28 text-center whitespace-nowrap">Score</TableHead>
-                   <TableHead className="w-28 text-center whitespace-nowrap">Candidate</TableHead>
-                   <TableHead className="w-32 whitespace-nowrap">Review Status</TableHead>
-                   <TableHead className="w-32 whitespace-nowrap">Next Review</TableHead>
-                   <TableHead className="w-36 text-right whitespace-nowrap">Aksi</TableHead>
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
+                  <TableHead className="whitespace-nowrap">Risiko</TableHead>
+                  <TableHead className="w-32 whitespace-nowrap">Unit</TableHead>
+                  <TableHead className="w-28 text-center whitespace-nowrap">
+                    Score
+                  </TableHead>
+                  <TableHead className="w-28 text-center whitespace-nowrap">
+                    Candidate
+                  </TableHead>
+                  <TableHead className="w-32 whitespace-nowrap">
+                    Review Status
+                  </TableHead>
+                  <TableHead className="w-32 whitespace-nowrap">
+                    Next Review
+                  </TableHead>
+                  <TableHead className="w-36 text-right whitespace-nowrap">
+                    Aksi
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredItems.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="h-28 text-center text-sm text-muted-foreground"
-                    >
-                      Belum ada risiko untuk filter ini.
+                    <TableCell colSpan={8} className="h-24">
+                      <div className="flex flex-col gap-1 text-left">
+                        <p className="text-sm font-medium text-muted-foreground">Belum ada risiko untuk filter ini</p>
+                        <p className="text-xs text-muted-foreground/70">Ubah filter pencarian Anda untuk melihat data</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -629,11 +651,12 @@ export function RiskReviewPanel() {
               </TableBody>
             </Table>
           )}
-           {!loading && filteredItems.length > 0 && (
-             <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
-               <p className="text-xs text-muted-foreground">
-                 Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} risiko
-               </p>
+          {!loading && filteredItems.length > 0 && (
+            <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+              <p className="text-xs text-muted-foreground">
+                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
+                {Math.min(page * limit, total)} dari {total} risiko
+              </p>
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
@@ -654,8 +677,16 @@ export function RiskReviewPanel() {
                   variant="ghost"
                   size="sm"
                   className="h-7 w-7 p-0 text-muted-foreground"
-                  disabled={page >= (Math.ceil(total / limit) || 1) || total === 0 || loading}
-                  onClick={() => setPage((p) => Math.min(Math.ceil(total / limit) || 1, p + 1))}
+                  disabled={
+                    page >= (Math.ceil(total / limit) || 1) ||
+                    total === 0 ||
+                    loading
+                  }
+                  onClick={() =>
+                    setPage((p) =>
+                      Math.min(Math.ceil(total / limit) || 1, p + 1),
+                    )
+                  }
                 >
                   <ChevronRight className="size-3.5" />
                 </Button>
@@ -682,25 +713,35 @@ export function RiskReviewPanel() {
                 Memuat completion rate...
               </div>
             ) : (
-               <Table>
-                 <TableHeader>
-                   <TableRow>
-                     <TableHead className="whitespace-nowrap">Unit</TableHead>
-                     <TableHead className="w-24 text-center whitespace-nowrap">Assigned</TableHead>
-                     <TableHead className="w-24 text-center whitespace-nowrap">Done</TableHead>
-                     <TableHead className="w-24 text-center whitespace-nowrap">Pending</TableHead>
-                     <TableHead className="w-24 text-center whitespace-nowrap">Overdue</TableHead>
-                     <TableHead className="w-48 text-right whitespace-nowrap">Rate</TableHead>
-                   </TableRow>
-                 </TableHeader>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">Unit</TableHead>
+                    <TableHead className="w-24 text-center whitespace-nowrap">
+                      Assigned
+                    </TableHead>
+                    <TableHead className="w-24 text-center whitespace-nowrap">
+                      Done
+                    </TableHead>
+                    <TableHead className="w-24 text-center whitespace-nowrap">
+                      Pending
+                    </TableHead>
+                    <TableHead className="w-24 text-center whitespace-nowrap">
+                      Overdue
+                    </TableHead>
+                    <TableHead className="w-48 text-right whitespace-nowrap">
+                      Rate
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
                   {(summaryData?.unitCompletion.length ?? 0) === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="h-24 text-center text-sm text-muted-foreground"
-                      >
-                        Belum ada data unit completion untuk cycle ini.
+                      <TableCell colSpan={6} className="h-24">
+                        <div className="flex flex-col gap-1 text-left">
+                          <p className="text-sm font-medium text-muted-foreground">Belum ada data unit completion untuk cycle ini</p>
+                          <p className="text-xs text-muted-foreground/70">Tunggu sampai ada unit completion yang disubmit</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -725,8 +766,13 @@ export function RiskReviewPanel() {
                         </TableCell>
                         <TableCell className="text-right text-sm">
                           <div className="flex items-center gap-2">
-                            <Progress value={unit.completionRate} className="h-2 flex-1" />
-                            <span className="w-12 text-right font-semibold">{unit.completionRate.toFixed(1)}%</span>
+                            <Progress
+                              value={unit.completionRate}
+                              className="h-2 flex-1"
+                            />
+                            <span className="w-12 text-right font-semibold">
+                              {unit.completionRate.toFixed(1)}%
+                            </span>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -750,7 +796,9 @@ export function RiskReviewPanel() {
             </div>
             <Tabs
               value={heatmapMode}
-              onValueChange={(v) => setHeatmapMode(v as "intensity" | "riskLevel")}
+              onValueChange={(v) =>
+                setHeatmapMode(v as "intensity" | "riskLevel")
+              }
               className="w-full sm:w-auto"
             >
               <TabsList className="grid w-full grid-cols-2 sm:w-[240px]">
@@ -776,21 +824,17 @@ export function RiskReviewPanel() {
                     </p>
                     <div className="grid grid-cols-5 gap-1">
                       {heatmap.grid.flatMap((row, rowIndex) =>
-                        row.map((count, colIndex) => {
-                          const prob = colIndex + 1;
-                          const impact = 5 - rowIndex;
-                          return (
-                            <div
-                              key={`${heatmap.label}-${rowIndex}-${colIndex}`}
-                              className={cn(
-                                "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold transition-colors",
-                                getHeatmapCellClass(count, prob, impact, heatmapMode),
-                              )}
-                            >
-                              {heatmapMode === "riskLevel" && count === 0 ? "" : count}
-                            </div>
-                          );
-                        }),
+                        row.map((count, colIndex) => (
+                          <div
+                            key={`${heatmap.label}-${rowIndex}-${colIndex}`}
+                            className={cn(
+                              "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
+                              getHeatmapCellClass(count, 5 - rowIndex, colIndex + 1, heatmapMode),
+                            )}
+                          >
+                            {heatmapMode === "riskLevel" && count === 0 ? "" : count}
+                          </div>
+                        )),
                       )}
                     </div>
                   </div>
@@ -863,20 +907,29 @@ export function RiskReviewPanel() {
                     {previousCycle}
                   </TableHead>
                   <TableHead className="w-12 text-center whitespace-nowrap" />
-                  <TableHead className="w-24 text-center whitespace-nowrap">{cycle}</TableHead>
-                  <TableHead className="w-24 text-center whitespace-nowrap">Delta</TableHead>
-                  <TableHead className="w-24 text-center whitespace-nowrap">Tren</TableHead>
+                  <TableHead className="w-24 text-center whitespace-nowrap">
+                    {cycle}
+                  </TableHead>
+                  <TableHead className="w-24 text-center whitespace-nowrap">
+                    Delta
+                  </TableHead>
+                  <TableHead className="w-24 text-center whitespace-nowrap">
+                    Tren
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {comparisons.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="h-28 text-center text-sm text-muted-foreground"
-                    >
-                      Belum ada pasangan data approved antara {previousCycle}{" "}
-                      dan {cycle}.
+                    <TableCell colSpan={8} className="h-24">
+                      <div className="flex flex-col gap-1 text-left">
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Belum ada pasangan data approved antara {previousCycle} dan {cycle}
+                        </p>
+                        <p className="text-xs text-muted-foreground/70">
+                          Data perbandingan akan muncul setelah ada risiko yang disetujui di kedua cycle
+                        </p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -944,8 +997,8 @@ export function RiskReviewPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Reassessment</AlertDialogTitle>
             <AlertDialogDescription>
-              Anda akan memulai reassessment untuk risiko berikut. Tindakan ini
-              akan membuat draft reassessment baru yang dapat Anda edit sebelum
+              Anda akan memulai pemantauan untuk risiko berikut. Tindakan ini
+              akan membuat draft pemantauan baru yang dapat Anda edit sebelum
               diajukan untuk persetujuan.
             </AlertDialogDescription>
           </AlertDialogHeader>

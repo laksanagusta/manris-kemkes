@@ -95,7 +95,7 @@ export default function IncidentPage() {
     ])
       .then(([incidentData, summaryData]) => {
         if (cancelled) return;
-        const sorted = [...(incidentData || [])].sort((a, b) => new Date(b.createdAt || b.created_at || 0).getTime() - new Date(a.createdAt || a.created_at || 0).getTime());
+        const sorted = [...(incidentData || [])].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
         setIncidents(sorted);
         setSummary(summaryData);
       })

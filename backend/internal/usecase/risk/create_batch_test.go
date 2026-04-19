@@ -71,9 +71,9 @@ func (r *fakeBatchRiskRepo) CompareCycles(context.Context, string, string, []uui
 func (r *fakeBatchRiskRepo) RiskReviewSummary(context.Context, string, []uuid.UUID) (*entity.RiskReviewSummary, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
+func (r *fakeBatchRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, nil
- }
+}
 func (r *fakeBatchRiskRepo) DashboardCategoryCounts(context.Context, string, []uuid.UUID) ([]*entity.DashboardCategoryCount, error) {
 	return nil, nil
 }
@@ -313,6 +313,10 @@ func TestNormalizeTreatmentOption(t *testing.T) {
 		in   string
 		want string
 	}{
+		{name: "menghindari", in: "menghindari", want: "avoid"},
+		{name: "menghindari risiko", in: "Menghindari Risiko", want: "avoid"},
+		{name: "berbagi", in: "berbagi", want: "transfer"},
+		{name: "berbagi risiko", in: "Berbagi Risiko", want: "transfer"},
 		{name: "mitigasi risiko", in: "Mitigasi Risiko", want: "mitigate"},
 		{name: "menerima risiko", in: "Menerima risiko", want: "accept"},
 		{name: "avoid unchanged", in: "avoid", want: "avoid"},

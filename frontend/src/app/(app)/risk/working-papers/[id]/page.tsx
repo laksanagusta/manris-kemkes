@@ -469,12 +469,10 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                     if (!data.risks || data.risks.length === 0) {
                       return (
                         <TableRow>
-                          <TableCell colSpan={8} className="py-10 text-center">
-                            <div className="mx-auto max-w-md space-y-1.5 px-4">
-                              <p className="text-sm font-medium text-foreground">Belum ada risiko</p>
-                              <p className="text-sm leading-6 text-muted-foreground">
-                                Dokumen ini belum memuat risiko apa pun.
-                              </p>
+                          <TableCell colSpan={8} className="h-24">
+                            <div className="flex flex-col gap-1 text-left">
+                              <p className="text-sm font-medium text-muted-foreground">Belum ada risiko</p>
+                              <p className="text-xs text-muted-foreground/70">Dokumen ini belum memuat risiko apa pun</p>
                             </div>
                           </TableCell>
                         </TableRow>

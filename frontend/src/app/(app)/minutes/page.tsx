@@ -160,7 +160,7 @@ export default function MinutesPage() {
     setLoading(true);
     listMeetingMinutes({ limit, offset, createdAt: createdAtFilter.trim() || undefined }, token)
       .then((result) => {
-        const sorted = [...(result.items || [])].sort((a, b) => new Date(b.createdAt || b.created_at || 0).getTime() - new Date(a.createdAt || a.created_at || 0).getTime());
+        const sorted = [...(result.items || [])].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
         setItems(sorted);
         setTotal(result.total ?? 0);
       })
@@ -262,14 +262,11 @@ export default function MinutesPage() {
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>
           ) : total === 0 && !query.trim() && !createdAtFilter.trim() ? (
-            <div className="rounded-2xl border border-dashed border-border/60 bg-muted/[0.12] px-6 py-12 text-center">
-              <p className="text-base font-medium text-foreground">
-                Belum ada notulen tersimpan
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Mulai dari transkrip rapat lalu simpan hasil notulennya agar
-                muncul di daftar ini.
-              </p>
+            <div className="rounded-2xl border border-dashed border-border/60 bg-muted/[0.12] px-6 py-12">
+              <div className="flex flex-col gap-1 text-left">
+                <p className="text-sm font-medium text-muted-foreground">Belum ada notulen tersimpan</p>
+                <p className="text-xs text-muted-foreground/70">Mulai dari transkrip rapat lalu simpan hasil notulennya agar muncul di daftar ini.</p>
+              </div>
               <Button
                 className="mt-5 gap-2 text-xs"
                 onClick={() => router.push("/minutes/new")}
@@ -278,14 +275,11 @@ export default function MinutesPage() {
               </Button>
             </div>
           ) : filteredItems.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border/60 bg-muted/[0.12] px-6 py-12 text-center">
-              <p className="text-base font-medium text-foreground">
-                Tidak ada notulen yang cocok
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Coba kata kunci lain atau kosongkan pencarian untuk melihat
-                semua notulen.
-              </p>
+            <div className="rounded-2xl border border-dashed border-border/60 bg-muted/[0.12] px-6 py-12">
+              <div className="flex flex-col gap-1 text-left">
+                <p className="text-sm font-medium text-muted-foreground">Tidak ada notulen yang cocok</p>
+                <p className="text-xs text-muted-foreground/70">Coba kata kunci lain atau kosongkan pencarian untuk melihat semua notulen.</p>
+              </div>
             </div>
           ) : (
              <Table>

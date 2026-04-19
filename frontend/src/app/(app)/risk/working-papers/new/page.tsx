@@ -159,7 +159,7 @@ function SortableSignatoryRow({
     <div
       ref={ref}
       className={cn(
-        "flex items-start gap-3 p-4 border rounded-lg bg-muted/20 relative group transition-opacity",
+        "flex items-start gap-3 p-4 border border-border/50 rounded-lg bg-muted/20 relative group transition-opacity",
         isDragging && "z-10 opacity-50",
       )}
     >
@@ -643,7 +643,7 @@ export default function CreateWorkingPaperPage() {
             </p>
           )}
 
-          <div className="border rounded-md overflow-hidden bg-card">
+          <div className="border border-border/50 rounded-md overflow-hidden bg-card">
             {loadingRisks ? (
               <div className="p-8 flex justify-center items-center text-muted-foreground">
                 <Loader2 className="h-6 w-6 animate-spin mr-2" /> Memuat daftar
@@ -793,11 +793,11 @@ export default function CreateWorkingPaperPage() {
                       })
                     ) : (
                       <TableRow>
-                        <TableCell
-                          colSpan={7}
-                          className="h-24 text-center text-muted-foreground"
-                        >
-                          Pencarian tidak menemukan risiko.
+                        <TableCell colSpan={7} className="h-24">
+                          <div className="flex flex-col gap-1 text-left">
+                            <p className="text-sm font-medium text-muted-foreground">Pencarian tidak menemukan risiko</p>
+                            <p className="text-xs text-muted-foreground/70">Pastikan unit dan jenis risiko yang dicari sudah benar</p>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}

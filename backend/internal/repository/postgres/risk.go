@@ -85,7 +85,7 @@ func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 	return nil
 }
 
-func (r *riskRepository) GetOrCreatePeriodicReassessmentInTx(ctx context.Context, sourceRisk *entity.Risk, cycle string) (*entity.Risk, bool, error) {
+func (r *riskRepository) GetOrCreatePeriodicReassessmentInTx(ctx context.Context, sourceRisk *entity.Risk, cycle string, createdBy uuid.UUID) (*entity.Risk, bool, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return nil, false, fmt.Errorf("begin reassessment reservation tx: %w", err)
@@ -110,6 +110,9 @@ func (r *riskRepository) GetOrCreatePeriodicReassessmentInTx(ctx context.Context
 	}
 
 	draft := cloneRiskForPeriodicReassessment(sourceRisk, cycle, time.Now().UTC())
+	if createdBy != uuid.Nil {
+		draft.CreatedBy = &createdBy
+	}
 	if err := insertRiskWithQueryer(ctx, tx, draft); err != nil {
 		return nil, false, err
 	}
@@ -684,13 +687,13 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 	}
 	if len(orgIDs) > 0 {
 		err := r.pool.QueryRow(ctx,
-			"SELECT COUNT(*) FROM mitigations m JOIN risks r ON r.id = m.risk_id WHERE m.due_date < CURRENT_DATE AND r.organization_id = ANY($1)",
+			"SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id WHERE t.due_date < CURRENT_DATE AND t.status IN ('pending','overdue') AND r.organization_id = ANY($1)",
 			orgIDs).Scan(&s.OverdueMitig)
 		if err != nil {
 			return nil, fmt.Errorf("count overdue: %w", err)
 		}
 	} else {
-		err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigations WHERE due_date < CURRENT_DATE").Scan(&s.OverdueMitig)
+		err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigation_tasks WHERE due_date < CURRENT_DATE AND status IN ('pending','overdue')").Scan(&s.OverdueMitig)
 		if err != nil {
 			return nil, fmt.Errorf("count overdue: %w", err)
 		}
@@ -1086,10 +1089,14 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 		FROM risks c
 		WHERE c.version_group_id = base.version_group_id
 		  AND c.assessment_cycle = $1
+		  AND c.id != base.id
 		ORDER BY c.created_at DESC
 		LIMIT 1
 	) candidate ON TRUE
-	WHERE base.is_current = TRUE AND base.status = 'approved'`
+	WHERE (
+		(base.is_current = TRUE AND base.status = 'approved')
+		OR (base.assessment_cycle = $1 AND base.status IN ('assessment_draft', 'assessment_in_review') AND base.is_cycle_current = TRUE)
+	)`
 
 	args := []interface{}{cycle}
 	if len(orgIDs) > 0 {
@@ -1103,7 +1110,9 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 	if status != "" && status != "all" {
 		baseFrom += fmt.Sprintf(` AND (
 			CASE
-				WHEN base.assessment_cycle = $1 THEN 'approved'
+				WHEN base.status = 'assessment_draft' THEN 'in_draft'
+				WHEN base.status = 'assessment_in_review' THEN 'in_review'
+				WHEN base.assessment_cycle = $1 AND base.status = 'approved' AND candidate.id IS NULL THEN 'approved'
 				WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < CURRENT_DATE THEN 'overdue'
 				WHEN candidate.id IS NULL THEN 'due'
 				WHEN candidate.status = 'assessment_draft' THEN 'in_draft'
@@ -1139,7 +1148,9 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 		COALESCE(org.name, '') AS org_name,
 		base.status,
 		CASE
-			WHEN base.assessment_cycle = $1 THEN 'approved'
+			WHEN base.status = 'assessment_draft' THEN 'in_draft'
+			WHEN base.status = 'assessment_in_review' THEN 'in_review'
+			WHEN base.assessment_cycle = $1 AND base.status = 'approved' AND candidate.id IS NULL THEN 'approved'
 			WHEN candidate.id IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < CURRENT_DATE THEN 'overdue'
 			WHEN candidate.id IS NULL THEN 'due'
 			WHEN candidate.status = 'assessment_draft' THEN 'in_draft'

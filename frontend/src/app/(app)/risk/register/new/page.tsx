@@ -401,7 +401,7 @@ const formSchema = z.object({
 
   riskPriority: z.number().min(0).default(0),
   riskAppetite: z.enum(["dalam_batas", "di_atas_batas"]).default("dalam_batas"),
-  treatmentOption: z.enum(["menerima", "mitigasi"]).optional(),
+  treatmentOption: z.enum(["menghindari", "berbagi", "mitigasi", "menerima"]).optional(),
 
   mitigations: z
     .array(
@@ -791,10 +791,7 @@ export default function RiskInputPage() {
           riskAppetite: (risk.riskAppetite === "di_atas_batas"
             ? "di_atas_batas"
             : "dalam_batas") as "dalam_batas" | "di_atas_batas",
-          treatmentOption: risk.treatmentOption as
-            | "menerima"
-            | "mitigasi"
-            | undefined,
+          treatmentOption: risk.treatmentOption as "menghindari" | "berbagi" | "mitigasi" | "menerima" | undefined,
           mitigations: Array.isArray(risk.mitigations)
             ? risk.mitigations.map((mitigation) => ({
                 ...mitigation,
@@ -1018,8 +1015,7 @@ export default function RiskInputPage() {
           weight: 1.0,
           riskPriority: 0,
           riskAppetite: "dalam_batas",
-          treatmentOption:
-            (meetingPrefill.treatmentOption as "menerima" | "mitigasi") || "",
+          treatmentOption: (meetingPrefill.treatmentOption as "menghindari" | "berbagi" | "mitigasi" | "menerima" | undefined) || undefined,
           mitigations: meetingPrefill.mitigation
             ? [
                 {
@@ -2592,12 +2588,10 @@ export default function RiskInputPage() {
                               <SelectValue placeholder="Pilih penanganan" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="menerima" className="text-sm">
-                                Menerima
-                              </SelectItem>
-                              <SelectItem value="mitigasi" className="text-sm">
-                                Penanganan
-                              </SelectItem>
+                              <SelectItem value="menghindari" className="text-sm">Menghindari Risiko</SelectItem>
+                              <SelectItem value="berbagi" className="text-sm">Berbagi Risiko</SelectItem>
+                              <SelectItem value="mitigasi" className="text-sm">Mitigasi</SelectItem>
+                              <SelectItem value="menerima" className="text-sm">Menerima Risiko</SelectItem>
                             </SelectContent>
                           </Select>
                         )}

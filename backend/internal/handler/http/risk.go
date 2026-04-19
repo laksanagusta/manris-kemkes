@@ -541,7 +541,9 @@ func (h *RiskHandler) CreateReassessment(c *fiber.Ctx) error {
 		orgIDs = scope.AccessibleOrgIDs
 	}
 
-	result, err := h.reassessUC.Execute(c.Context(), riskuc.CreateRiskReassessmentInput{RiskID: id, Cycle: req.Cycle, OrgIDs: orgIDs})
+	userID, _ := c.Locals("userId").(uuid.UUID)
+
+	result, err := h.reassessUC.Execute(c.Context(), riskuc.CreateRiskReassessmentInput{RiskID: id, Cycle: req.Cycle, OrgIDs: orgIDs, CreatedBy: userID})
 	if err != nil {
 		return handleError(c, err)
 	}

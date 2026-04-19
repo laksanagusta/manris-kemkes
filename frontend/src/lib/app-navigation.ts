@@ -14,10 +14,10 @@ export const mainMenuItems: MainMenuGroup[] = [
   {
     title: "MAIN MENU",
     items: [
-       { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
-       { label: "Persetujuan", href: "/inbox", icon: "Inbox" },
-       { label: "Risk Register", href: "/risk/register", icon: "ShieldAlert" },
-       { label: "Insiden", href: "/incidents", icon: "AlertTriangle" },
+      { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
+      { label: "Persetujuan", href: "/inbox", icon: "Inbox" },
+      { label: "Risiko", href: "/risk/register", icon: "ShieldAlert" },
+      // { label: "Insiden", href: "/incidents", icon: "AlertTriangle" },
       {
         label: "Kertas Kerja",
         href: "/risk/working-papers",
@@ -56,7 +56,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/compliance/kri": "Monitoring & Updates",
   "/compliance/controls": "Control Library",
   "/risk": "Risk Assessments",
-  "/risk/register": "Risk Register",
+  "/risk/register": "Risiko",
   "/risk/new": "New Risk",
   "/risk/history": "Risk History",
   "/risk/working-papers": "Kertas Kerja",

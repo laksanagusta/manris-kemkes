@@ -509,7 +509,12 @@ export function RiskCycleDetailReport({
                 <TableBody>
                   {filteredItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-28 text-center text-sm text-muted-foreground">Tidak ada data untuk filter report ini.</TableCell>
+                      <TableCell colSpan={6} className="h-24">
+                        <div className="flex flex-col gap-1 text-left">
+                          <p className="text-sm font-medium text-muted-foreground">Tidak ada data untuk filter report ini</p>
+                          <p className="text-xs text-muted-foreground/70">Coba ubah kriteria filter untuk melihat hasil yang berbeda</p>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ) : filteredItems.map((item) => {
                     const meta = categoryMeta[item.changeCategory] || categoryMeta.changed;

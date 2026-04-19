@@ -196,15 +196,9 @@ export default function FormResponsesPage() {
       {/* Empty state */}
       {responses.length === 0 ? (
         <Card className="border-border/50">
-          <CardContent className="flex flex-col items-center gap-3 py-16">
-            <Inbox className="size-10 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">
-              Belum ada respons untuk formulir ini.
-            </p>
-            <p className="text-xs text-muted-foreground/70">
-              Bagikan formulir yang sudah diterbitkan untuk mulai mengumpulkan
-              data.
-            </p>
+          <CardContent className="flex flex-col gap-1 py-16 text-left">
+            <p className="text-sm font-medium text-muted-foreground">Belum ada respons untuk formulir ini</p>
+            <p className="text-xs text-muted-foreground/70">Bagikan formulir yang sudah diterbitkan untuk mulai mengumpulkan data</p>
           </CardContent>
         </Card>
       ) : (

@@ -347,8 +347,11 @@ export function KRIMonitorPanel() {
                   </TableRow>
                 ) : filteredKris.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
-                      Tidak ada KRI yang ditemukan.
+                    <TableCell colSpan={8} className="h-24">
+                      <div className="flex flex-col gap-1 text-left">
+                        <p className="text-sm font-medium text-muted-foreground">Tidak ada KRI yang ditemukan</p>
+                        <p className="text-xs text-muted-foreground/70">Ubah filter pencarian Anda untuk melihat data indikator risiko</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (

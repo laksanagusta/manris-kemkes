@@ -8,14 +8,19 @@ import {
   FileBarChart,
   Flame,
   Gauge,
+  Minus,
   ShieldAlert,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
+  Line,
+  LineChart,
   CartesianGrid,
   Legend,
   ResponsiveContainer,
@@ -54,11 +59,6 @@ const executiveTrendLegend = [
   { key: "medium", color: "oklch(0.75 0.15 75)", label: "Sedang" },
   { key: "high", color: "oklch(0.70 0.18 40)", label: "Tinggi" },
   { key: "extreme", color: "oklch(0.62 0.22 27)", label: "Sangat Tinggi" },
-  {
-    key: "exposureScore",
-    color: "oklch(0.55 0.05 260 / 35%)",
-    label: "Exposure Score",
-  },
 ];
 
 type DashboardSummary = {
@@ -96,6 +96,7 @@ function formatMonthPeriod(period: string) {
 export default function DashboardPage() {
   const { token } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [prevSummary, setPrevSummary] = useState<DashboardSummary | null>(null);
   const [heatmapData, setHeatmapData] = useState<number[][]>([]);
   const [trendData, setTrendData] = useState<
     Array<{
@@ -139,6 +140,10 @@ export default function DashboardPage() {
         `/dashboard/summary?cycle=${currentCycle}`,
         token,
       ),
+      api.get<DashboardSummary>(
+        `/dashboard/summary?cycle=${previousCycle}`,
+        token,
+      ),
       api.get<number[][]>(`/dashboard/heatmap?cycle=${currentCycle}`, token),
       api.get<Risk[]>("/risks/trend", token),
       api.get<DashboardActionPressurePoint[]>(
@@ -164,6 +169,7 @@ export default function DashboardPage() {
     ]).then(
       ([
         summaryResult,
+        prevSummaryResult,
         heatmapResult,
         risksResult,
         actionPressureResult,
@@ -175,6 +181,10 @@ export default function DashboardPage() {
         if (summaryResult.status === "fulfilled")
           setSummary(summaryResult.value);
         else console.error(summaryResult.reason);
+
+        if (prevSummaryResult.status === "fulfilled")
+          setPrevSummary(prevSummaryResult.value);
+        else console.error(prevSummaryResult.reason);
 
         if (heatmapResult.status === "fulfilled")
           setHeatmapData(heatmapResult.value);
@@ -248,13 +258,24 @@ export default function DashboardPage() {
     );
   }, [token, currentCycle, previousCycle]);
 
+  const calculateTrend = (current: number, prev: number | undefined): Pick<KpiCard, "trend" | "change"> => {
+    if (prev === undefined || prev === 0) return { trend: "stable", change: "--" };
+    const percent = Math.round(((current - prev) / prev) * 100);
+    const sign = percent > 0 ? "+" : percent < 0 ? "-" : "";
+    const absPercent = Math.abs(percent);
+    let trend: "up" | "down" | "stable" = "stable";
+    if (percent > 0) trend = "up";
+    else if (percent < 0) trend = "down";
+    
+    return { trend, change: percent === 0 ? "0%" : `${sign}${absPercent}%` };
+  };
+
   const kpiCards: KpiCard[] = summary
     ? [
         {
           title: "Total Risiko",
           value: summary.totalRisks,
-          change: "--",
-          trend: "stable",
+          ...calculateTrend(summary.totalRisks, prevSummary?.totalRisks),
           icon: ShieldAlert,
           color: "text-chart-1",
           bgColor: "bg-chart-1/10",
@@ -263,8 +284,7 @@ export default function DashboardPage() {
         {
           title: "Risiko Tinggi & Ekstrem",
           value: summary.highExtreme,
-          change: "--",
-          trend: "stable",
+          ...calculateTrend(summary.highExtreme, prevSummary?.highExtreme),
           icon: Flame,
           color: "text-risk-extreme",
           bgColor: "bg-risk-extreme/10",
@@ -273,8 +293,7 @@ export default function DashboardPage() {
         {
           title: "Penanganan Overdue",
           value: summary.overdueMitigations,
-          change: "--",
-          trend: "stable",
+          ...calculateTrend(summary.overdueMitigations, prevSummary?.overdueMitigations),
           icon: Clock,
           color: "text-warning",
           bgColor: "bg-warning/10",
@@ -283,8 +302,7 @@ export default function DashboardPage() {
         {
           title: "Insiden Bulan Ini",
           value: summary.incidentsThisMonth,
-          change: "--",
-          trend: "stable",
+          ...calculateTrend(summary.incidentsThisMonth, prevSummary?.incidentsThisMonth),
           icon: AlertTriangle,
           color: "text-risk-high",
           bgColor: "bg-risk-high/10",
@@ -361,6 +379,9 @@ export default function DashboardPage() {
                       {kpi.trend === "up" && <TrendingUp className="size-3" />}
                       {kpi.trend === "down" && (
                         <TrendingDown className="size-3" />
+                      )}
+                      {kpi.trend === "stable" && kpi.change !== "--" && (
+                        <Minus className="size-3" />
                       )}
                       {kpi.change}
                     </div>
@@ -536,7 +557,7 @@ export default function DashboardPage() {
             {trendData.length > 0 ? (
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
+                  <LineChart
                     data={trendData}
                     margin={{ top: 4, right: 12, left: -12, bottom: 0 }}
                   >
@@ -552,14 +573,6 @@ export default function DashboardPage() {
                       tickLine={false}
                     />
                     <YAxis
-                      yAxisId="left"
-                      tick={{ fontSize: 11, fill: "oklch(0.6 0.02 265)" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
                       tick={{ fontSize: 11, fill: "oklch(0.6 0.02 265)" }}
                       axisLine={false}
                       tickLine={false}
@@ -574,31 +587,31 @@ export default function DashboardPage() {
                         backdropFilter: "blur(8px)",
                       }}
                     />
-                    <Bar
-                      yAxisId="left"
+                    <Line
+                      type="monotone"
                       dataKey="medium"
-                      fill="oklch(0.75 0.15 75)"
-                      radius={[4, 4, 0, 0]}
+                      stroke="oklch(0.75 0.15 75)"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
                     />
-                    <Bar
-                      yAxisId="left"
+                    <Line
+                      type="monotone"
                       dataKey="high"
-                      fill="oklch(0.70 0.18 40)"
-                      radius={[4, 4, 0, 0]}
+                      stroke="oklch(0.70 0.18 40)"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
                     />
-                    <Bar
-                      yAxisId="left"
+                    <Line
+                      type="monotone"
                       dataKey="extreme"
-                      fill="oklch(0.62 0.22 27)"
-                      radius={[4, 4, 0, 0]}
+                      stroke="oklch(0.62 0.22 27)"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
                     />
-                    <Bar
-                      yAxisId="right"
-                      dataKey="exposureScore"
-                      fill="oklch(0.55 0.05 260 / 35%)"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
+                  </LineChart>
                 </ResponsiveContainer>
               </div>
             ) : (
@@ -717,6 +730,91 @@ export default function DashboardPage() {
             ) : (
               <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
                 Data progress mitigasi belum tersedia untuk periode ini.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-6">
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-semibold">
+                  Risk Exposure
+                </CardTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Skor eksposur tertimbang per semester
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="size-2.5 rounded-full"
+                  style={{ background: "oklch(0.55 0.05 260)" }}
+                />
+                <span className="text-[11px] text-muted-foreground">
+                  Exposure Score
+                </span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {trendData.length > 0 ? (
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={trendData}
+                    margin={{ top: 4, right: 12, left: -12, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="colorExposure" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="oklch(0.55 0.05 260)" stopOpacity={0.25}/>
+                        <stop offset="95%" stopColor="oklch(0.55 0.05 260)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="oklch(0.5 0 0 / 8%)"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="period"
+                      tick={{ fontSize: 11, fill: "oklch(0.6 0.02 265)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "oklch(0.6 0.02 265)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{
+                        background: "var(--popover)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        color: "var(--popover-foreground)",
+                        backdropFilter: "blur(8px)",
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="exposureScore"
+                      stroke="oklch(0.55 0.05 260)"
+                      fillOpacity={1}
+                      fill="url(#colorExposure)"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+                Belum ada data semester untuk menghitung eksposur risiko.
               </div>
             )}
           </CardContent>

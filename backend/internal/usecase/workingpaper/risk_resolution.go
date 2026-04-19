@@ -23,7 +23,7 @@ type resolvedWorkingPaperRisk struct {
 }
 
 type periodicReassessmentReservation interface {
-	GetOrCreatePeriodicReassessmentInTx(ctx context.Context, sourceRisk *entity.Risk, cycle string) (*entity.Risk, bool, error)
+	GetOrCreatePeriodicReassessmentInTx(ctx context.Context, sourceRisk *entity.Risk, cycle string, createdBy uuid.UUID) (*entity.Risk, bool, error)
 }
 
 func normalizeRiskSourceMode(sourceMode string) string {
@@ -33,7 +33,7 @@ func normalizeRiskSourceMode(sourceMode string) string {
 	return sourceMode
 }
 
-func resolveLinkedRisk(ctx context.Context, repo repository.RiskRepository, riskID uuid.UUID, cycle string, sourceMode string, orgIDs []uuid.UUID) (*resolvedWorkingPaperRisk, error) {
+func resolveLinkedRisk(ctx context.Context, repo repository.RiskRepository, riskID uuid.UUID, cycle string, sourceMode string, orgIDs []uuid.UUID, createdBy uuid.UUID) (*resolvedWorkingPaperRisk, error) {
 	sourceRisk, err := repo.GetByID(ctx, riskID, orgIDs)
 	if err != nil {
 		return nil, &domainerrors.AppError{
@@ -63,7 +63,7 @@ func resolveLinkedRisk(ctx context.Context, repo repository.RiskRepository, risk
 			}
 		}
 
-		draftRisk, err := resolveOrCreateReassessmentDraft(ctx, repo, sourceRisk, cycle)
+		draftRisk, err := resolveOrCreateReassessmentDraft(ctx, repo, sourceRisk, cycle, createdBy)
 		if err != nil {
 			return nil, err
 		}
@@ -80,7 +80,7 @@ func resolveLinkedRisk(ctx context.Context, repo repository.RiskRepository, risk
 	}
 }
 
-func resolveOrCreateReassessmentDraft(ctx context.Context, repo repository.RiskRepository, sourceRisk *entity.Risk, cycle string) (*entity.Risk, error) {
+func resolveOrCreateReassessmentDraft(ctx context.Context, repo repository.RiskRepository, sourceRisk *entity.Risk, cycle string, createdBy uuid.UUID) (*entity.Risk, error) {
 	if cycle == "" {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "assessment_cycle is required for review_periodic risk source mode"}
 	}
@@ -88,7 +88,7 @@ func resolveOrCreateReassessmentDraft(ctx context.Context, repo repository.RiskR
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)"}
 	}
 	if manager, ok := repo.(periodicReassessmentReservation); ok {
-		reservedRisk, created, err := manager.GetOrCreatePeriodicReassessmentInTx(ctx, sourceRisk, cycle)
+		reservedRisk, created, err := manager.GetOrCreatePeriodicReassessmentInTx(ctx, sourceRisk, cycle, createdBy)
 		if err != nil {
 			return nil, domainerrors.Wrap(err, "failed to reserve reassessment draft")
 		}
@@ -113,7 +113,7 @@ func resolveOrCreateReassessmentDraft(ctx context.Context, repo repository.RiskR
 		return nil, domainerrors.Wrap(domainerrors.ErrInvalidStatus, "an in-progress reassessment already exists for this cycle")
 	}
 
-	draft := riskusecase.BuildPeriodicReassessmentDraft(sourceRisk, cycle, time.Now().UTC())
+	draft := riskusecase.BuildPeriodicReassessmentDraft(sourceRisk, cycle, time.Now().UTC(), createdBy)
 	if err := repo.Create(ctx, draft); err != nil {
 		return nil, domainerrors.Wrap(err, "failed to create reassessment draft")
 	}

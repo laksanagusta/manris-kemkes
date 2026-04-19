@@ -8,11 +8,7 @@ import {
   useTransition,
 } from "react";
 import Link from "next/link";
-import {
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import {
   listRiskRegister,
@@ -21,10 +17,7 @@ import {
   type RiskRegisterStatusFilter,
 } from "@/lib/api/risk-register";
 import { useAuth } from "@/contexts/auth-context";
-import type {
-  RiskCategory,
-  RiskVersionTimelineItem,
-} from "@/types/risk";
+import type { RiskCategory, RiskVersionTimelineItem } from "@/types/risk";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { toast } from "sonner";
 
@@ -154,10 +147,7 @@ function getRiskRegisterTab(value: string | null): RiskRegisterTab {
 function getRiskRegisterStatusFilter(
   value: string | null,
 ): RiskRegisterStatusFilter {
-  if (
-    value === "assessment_in_review" ||
-    value === "approved"
-  ) {
+  if (value === "assessment_in_review" || value === "approved") {
     return value;
   }
 
@@ -168,12 +158,12 @@ function getRiskRegisterCategoryFilter(
   value: string | null,
 ): RiskRegisterCategoryFilter {
   if (
-    value === "strategis" ||
-    value === "operasional" ||
-    value === "kepatuhan" ||
-    value === "finansial" ||
+    value === "kebijakan" ||
     value === "reputasi" ||
-    value === "teknologi_informasi"
+    value === "fraud_korupsi" ||
+    value === "legal" ||
+    value === "kepatuhan" ||
+    value === "operasional"
   ) {
     return value;
   }
@@ -291,9 +281,7 @@ export default function RiskRegisterPage() {
   );
 
   const deferredSearch = useDeferredValue(search);
-  const deferredAssessmentCycleFilter = useDeferredValue(
-    assessmentCycleFilter,
-  );
+  const deferredAssessmentCycleFilter = useDeferredValue(assessmentCycleFilter);
 
   const refreshRegisterData = async (
     activeToken: string,
@@ -307,20 +295,22 @@ export default function RiskRegisterPage() {
     const normalizedAssessmentCycle = (
       queryOverrides?.assessmentCycle ?? assessmentCycleFilter
     ).trim();
-    const normalizedCreatedAt = (queryOverrides?.createdAt ?? createdAtFilter).trim();
+    const normalizedCreatedAt = (
+      queryOverrides?.createdAt ?? createdAtFilter
+    ).trim();
 
-     const [allRisksResponse, draftRisks, approvedRisks] = await Promise.all([
-       listRiskRegister(activeToken, {
-         q: normalizedSearch || undefined,
-         status: statusFilter === "all" ? undefined : statusFilter,
-         category: categoryFilter === "all" ? undefined : categoryFilter,
-         assessment_cycle: normalizedAssessmentCycle || undefined,
-         created_at: normalizedCreatedAt || undefined,
-         sort_by: sortBy,
-         sort_order: sortOrder,
-         page,
-         limit,
-       }),
+    const [allRisksResponse, draftRisks, approvedRisks] = await Promise.all([
+      listRiskRegister(activeToken, {
+        q: normalizedSearch || undefined,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        category: categoryFilter === "all" ? undefined : categoryFilter,
+        assessment_cycle: normalizedAssessmentCycle || undefined,
+        created_at: normalizedCreatedAt || undefined,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+        page,
+        limit,
+      }),
       api.get<RiskListItem[]>("/risks?status=draft", activeToken),
       api.get<RiskListItem[]>("/risks?status=approved", activeToken),
     ]);
@@ -354,134 +344,140 @@ export default function RiskRegisterPage() {
     });
   };
 
-   useEffect(() => {
-     const nextSearch = searchParams.get("q") ?? "";
-     const nextStatusFilter = getRiskRegisterStatusFilter(
-       searchParams.get("status"),
-     );
-     const nextCategoryFilter = getRiskRegisterCategoryFilter(
-       searchParams.get("category"),
-     );
-     const nextAssessmentCycleFilter = searchParams.get("assessment_cycle") ?? "";
-     const nextCreatedAtFilter = searchParams.get("created_at") ?? "";
-     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
-     const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
-     const nextTab = getRiskRegisterTab(searchParams.get("tab"));
-     const nextSortBy = searchParams.get("sort_by") ?? "created_at";
-     const nextSortOrder = (searchParams.get("sort_order") as "asc" | "desc") ?? "desc";
+  useEffect(() => {
+    const nextSearch = searchParams.get("q") ?? "";
+    const nextStatusFilter = getRiskRegisterStatusFilter(
+      searchParams.get("status"),
+    );
+    const nextCategoryFilter = getRiskRegisterCategoryFilter(
+      searchParams.get("category"),
+    );
+    const nextAssessmentCycleFilter =
+      searchParams.get("assessment_cycle") ?? "";
+    const nextCreatedAtFilter = searchParams.get("created_at") ?? "";
+    const nextPage = parsePositiveInt(searchParams.get("page"), 1);
+    const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
+    const nextTab = getRiskRegisterTab(searchParams.get("tab"));
+    const nextSortBy = searchParams.get("sort_by") ?? "created_at";
+    const nextSortOrder =
+      (searchParams.get("sort_order") as "asc" | "desc") ?? "desc";
 
-     setSearch((current) => (current === nextSearch ? current : nextSearch));
-     setStatusFilter((current) =>
-       current === nextStatusFilter ? current : nextStatusFilter,
-     );
-     setCategoryFilter((current) =>
-       current === nextCategoryFilter ? current : nextCategoryFilter,
-     );
-     setAssessmentCycleFilter((current) =>
-       current === nextAssessmentCycleFilter ? current : nextAssessmentCycleFilter,
-     );
-     setCreatedAtFilter((current) =>
-       current === nextCreatedAtFilter ? current : nextCreatedAtFilter,
-     );
-     setPage((current) => (current === nextPage ? current : nextPage));
-     setLimit((current) => (current === nextLimit ? current : nextLimit));
-     setActiveTab((current) => (current === nextTab ? current : nextTab));
-     setSortBy((current) => (current === nextSortBy ? current : nextSortBy));
-     setSortOrder((current) => (current === nextSortOrder ? current : nextSortOrder));
-   }, [searchParams]);
+    setSearch((current) => (current === nextSearch ? current : nextSearch));
+    setStatusFilter((current) =>
+      current === nextStatusFilter ? current : nextStatusFilter,
+    );
+    setCategoryFilter((current) =>
+      current === nextCategoryFilter ? current : nextCategoryFilter,
+    );
+    setAssessmentCycleFilter((current) =>
+      current === nextAssessmentCycleFilter
+        ? current
+        : nextAssessmentCycleFilter,
+    );
+    setCreatedAtFilter((current) =>
+      current === nextCreatedAtFilter ? current : nextCreatedAtFilter,
+    );
+    setPage((current) => (current === nextPage ? current : nextPage));
+    setLimit((current) => (current === nextLimit ? current : nextLimit));
+    setActiveTab((current) => (current === nextTab ? current : nextTab));
+    setSortBy((current) => (current === nextSortBy ? current : nextSortBy));
+    setSortOrder((current) =>
+      current === nextSortOrder ? current : nextSortOrder,
+    );
+  }, [searchParams]);
 
-   useEffect(() => {
-     const nextParams = new URLSearchParams(searchParams.toString());
-     const normalizedSearch = search.trim();
-     const normalizedAssessmentCycle = assessmentCycleFilter.trim();
-     const normalizedCreatedAt = createdAtFilter.trim();
+  useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    const normalizedSearch = search.trim();
+    const normalizedAssessmentCycle = assessmentCycleFilter.trim();
+    const normalizedCreatedAt = createdAtFilter.trim();
 
-     if (activeTab === "all-risks") {
-       nextParams.delete("tab");
-     } else {
-       nextParams.set("tab", activeTab);
-     }
+    if (activeTab === "all-risks") {
+      nextParams.delete("tab");
+    } else {
+      nextParams.set("tab", activeTab);
+    }
 
-     if (normalizedSearch) {
-       nextParams.set("q", normalizedSearch);
-     } else {
-       nextParams.delete("q");
-     }
+    if (normalizedSearch) {
+      nextParams.set("q", normalizedSearch);
+    } else {
+      nextParams.delete("q");
+    }
 
-     if (statusFilter === "all") {
-       nextParams.delete("status");
-     } else {
-       nextParams.set("status", statusFilter);
-     }
+    if (statusFilter === "all") {
+      nextParams.delete("status");
+    } else {
+      nextParams.set("status", statusFilter);
+    }
 
-     if (categoryFilter === "all") {
-       nextParams.delete("category");
-     } else {
-       nextParams.set("category", categoryFilter);
-     }
+    if (categoryFilter === "all") {
+      nextParams.delete("category");
+    } else {
+      nextParams.set("category", categoryFilter);
+    }
 
-     if (normalizedAssessmentCycle) {
-       nextParams.set("assessment_cycle", normalizedAssessmentCycle);
-     } else {
-       nextParams.delete("assessment_cycle");
-     }
+    if (normalizedAssessmentCycle) {
+      nextParams.set("assessment_cycle", normalizedAssessmentCycle);
+    } else {
+      nextParams.delete("assessment_cycle");
+    }
 
-     if (normalizedCreatedAt) {
-       nextParams.set("created_at", normalizedCreatedAt);
-     } else {
-       nextParams.delete("created_at");
-     }
+    if (normalizedCreatedAt) {
+      nextParams.set("created_at", normalizedCreatedAt);
+    } else {
+      nextParams.delete("created_at");
+    }
 
-     if (sortBy === "created_at" && sortOrder === "desc") {
-       nextParams.delete("sort_by");
-       nextParams.delete("sort_order");
-     } else {
-       nextParams.set("sort_by", sortBy);
-       nextParams.set("sort_order", sortOrder);
-     }
+    if (sortBy === "created_at" && sortOrder === "desc") {
+      nextParams.delete("sort_by");
+      nextParams.delete("sort_order");
+    } else {
+      nextParams.set("sort_by", sortBy);
+      nextParams.set("sort_order", sortOrder);
+    }
 
-     if (page === 1) {
-       nextParams.delete("page");
-     } else {
-       nextParams.set("page", page.toString());
-     }
+    if (page === 1) {
+      nextParams.delete("page");
+    } else {
+      nextParams.set("page", page.toString());
+    }
 
-     if (limit === 10) {
-       nextParams.delete("limit");
-     } else {
-       nextParams.set("limit", limit.toString());
-     }
+    if (limit === 10) {
+      nextParams.delete("limit");
+    } else {
+      nextParams.set("limit", limit.toString());
+    }
 
-     const nextUrl = nextParams.toString()
-       ? `${pathname}?${nextParams.toString()}`
-       : pathname;
-     const currentUrl = searchParams.toString()
-       ? `${pathname}?${searchParams.toString()}`
-       : pathname;
+    const nextUrl = nextParams.toString()
+      ? `${pathname}?${nextParams.toString()}`
+      : pathname;
+    const currentUrl = searchParams.toString()
+      ? `${pathname}?${searchParams.toString()}`
+      : pathname;
 
-     if (nextUrl === currentUrl) {
-       return;
-     }
+    if (nextUrl === currentUrl) {
+      return;
+    }
 
-     startTransition(() => {
-       router.replace(nextUrl, { scroll: false });
-     });
-   }, [
-     activeTab,
-     assessmentCycleFilter,
-     categoryFilter,
-     createdAtFilter,
-     limit,
-     page,
-     pathname,
-     router,
-     search,
-     searchParams,
-     startTransition,
-     statusFilter,
-     sortBy,
-     sortOrder,
-   ]);
+    startTransition(() => {
+      router.replace(nextUrl, { scroll: false });
+    });
+  }, [
+    activeTab,
+    assessmentCycleFilter,
+    categoryFilter,
+    createdAtFilter,
+    limit,
+    page,
+    pathname,
+    router,
+    search,
+    searchParams,
+    startTransition,
+    statusFilter,
+    sortBy,
+    sortOrder,
+  ]);
 
   useEffect(() => {
     if (!token) {
@@ -511,19 +507,19 @@ export default function RiskRegisterPage() {
       }
     };
 
-     void fetchData();
-   }, [
-     token,
-     statusFilter,
-     categoryFilter,
-     createdAtFilter,
-     deferredSearch,
-     deferredAssessmentCycleFilter,
-     page,
-     limit,
-     sortBy,
-     sortOrder,
-   ]);
+    void fetchData();
+  }, [
+    token,
+    statusFilter,
+    categoryFilter,
+    createdAtFilter,
+    deferredSearch,
+    deferredAssessmentCycleFilter,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  ]);
 
   useEffect(() => {
     if (!token || !historyRiskId) return;
@@ -684,25 +680,29 @@ export default function RiskRegisterPage() {
 
     toast.promise(
       (async () => {
-        const result = await api.post<{ id: string; redirectUrl?: string; existingDraft?: boolean }>(
+        const result = await api.post<{
+          id: string;
+          redirectUrl?: string;
+          existingDraft?: boolean;
+        }>(
           `/risks/${selectedRiskForReassessment.id}/reassess`,
           { cycle },
           token,
         );
         await refreshRegisterData(token);
-        
+
         if (result.redirectUrl) {
           router.push(result.redirectUrl);
         } else {
           router.push(`/risk/assessment/${result.id}`);
         }
-        
+
         return result;
       })(),
       {
         loading: `Membuat draft reassessment ${cycle}...`,
-        success: (result) => 
-          result.existingDraft 
+        success: (result) =>
+          result.existingDraft
             ? `Melanjutkan draft reassessment ${cycle} yang sudah ada.`
             : `Draft reassessment ${cycle} berhasil dibuat.`,
         error: (err) =>
@@ -720,7 +720,12 @@ export default function RiskRegisterPage() {
     (history) => history.id === selectedVersion,
   );
 
-  if (loading && risks.length === 0 && drafts.length === 0 && historyRisks.length === 0) {
+  if (
+    loading &&
+    risks.length === 0 &&
+    drafts.length === 0 &&
+    historyRisks.length === 0
+  ) {
     return (
       <div className="p-8 text-center text-muted-foreground animate-pulse">
         Memuat daftar risiko...
@@ -754,7 +759,7 @@ export default function RiskRegisterPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Risk Register</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Risiko</h1>
           <p className="text-sm text-muted-foreground">
             Kelola seluruh risiko organisasi sesuai ISO 31000:2018
           </p>
@@ -807,15 +812,20 @@ export default function RiskRegisterPage() {
         <TabsContent value="all-risks" className="space-y-6 mt-6">
           <div className="grid gap-3 grid-cols-6">
             {riskSummaryCards.map((card) => (
-              <Card key={card.label} className={cn("border shadow-none", card.tone)}>
+              <Card
+                key={card.label}
+                className={cn("border shadow-none", card.tone)}
+              >
                 <CardContent className="flex items-end justify-between gap-3 p-3">
                   <div className="space-y-1">
                     <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
                       {card.label}
                     </p>
-                    <p className="text-2xl font-semibold text-foreground">{card.value}</p>
+                    <p className="text-2xl font-semibold text-foreground">
+                      {card.value}
+                    </p>
                   </div>
-                  <span className="text-xs text-muted-foreground">jumlah</span>
+                  {/*<span className="text-xs text-muted-foreground">jumlah</span>*/}
                 </CardContent>
               </Card>
             ))}
@@ -873,7 +883,9 @@ export default function RiskRegisterPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="assessment_in_review">Dalam Review</SelectItem>
+                    <SelectItem value="assessment_in_review">
+                      Dalam Review
+                    </SelectItem>
                     <SelectItem value="approved">Disetujui</SelectItem>
                   </SelectContent>
                 </Select>
@@ -889,23 +901,23 @@ export default function RiskRegisterPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Kategori</SelectItem>
-                    <SelectItem value="strategis">
-                      {riskCategoryLabels.strategis}
-                    </SelectItem>
-                    <SelectItem value="operasional">
-                      {riskCategoryLabels.operasional}
-                    </SelectItem>
-                    <SelectItem value="kepatuhan">
-                      {riskCategoryLabels.kepatuhan}
-                    </SelectItem>
-                    <SelectItem value="finansial">
-                      {riskCategoryLabels.finansial}
+                    <SelectItem value="kebijakan">
+                      {riskCategoryLabels.kebijakan}
                     </SelectItem>
                     <SelectItem value="reputasi">
                       {riskCategoryLabels.reputasi}
                     </SelectItem>
-                    <SelectItem value="teknologi_informasi">
-                      {riskCategoryLabels.teknologi_informasi}
+                    <SelectItem value="fraud_korupsi">
+                      {riskCategoryLabels.fraud_korupsi}
+                    </SelectItem>
+                    <SelectItem value="legal">
+                      {riskCategoryLabels.legal}
+                    </SelectItem>
+                    <SelectItem value="kepatuhan">
+                      {riskCategoryLabels.kepatuhan}
+                    </SelectItem>
+                    <SelectItem value="operasional">
+                      {riskCategoryLabels.operasional}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -916,37 +928,60 @@ export default function RiskRegisterPage() {
           {/* Table */}
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
             <CardHeader className="border-b border-border/40 pb-4">
-              <CardTitle className="text-[15px] font-semibold">Daftar Risk Register</CardTitle>
+              <CardTitle className="text-[15px] font-semibold">
+                Daftar Risiko
+              </CardTitle>
               <p className="text-xs text-muted-foreground">
-                Pantau risiko aktif, status penilaian terbaru, dan tindak lanjut reassessment pada satu tabel kerja.
+                Pantau risiko aktif, status penilaian terbaru, dan tindak lanjut
+                reassessment pada satu tabel kerja.
               </p>
             </CardHeader>
             <Table>
               <TableHeader>
                 <TableRow className="border-border/50 hover:bg-transparent">
                   <TableHead className="w-20 whitespace-nowrap">Kode</TableHead>
-                  <TableHead className="w-16 whitespace-nowrap">Versi</TableHead>
-                  <TableHead className="whitespace-nowrap">Judul Risiko</TableHead>
-                  <TableHead className="w-28 whitespace-nowrap">Kategori</TableHead>
+                  <TableHead className="w-16 whitespace-nowrap">
+                    Versi
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Judul Risiko
+                  </TableHead>
+                  <TableHead className="w-28 whitespace-nowrap">
+                    Kategori
+                  </TableHead>
                   <TableHead className="text-center w-16 whitespace-nowrap">
                     Nilai
                   </TableHead>
-                  <TableHead className="w-24 whitespace-nowrap">Tingkat Risiko</TableHead>
-                  <TableHead className="w-24 whitespace-nowrap">Status</TableHead>
-                  <TableHead className="w-24 whitespace-nowrap">Penanganan</TableHead>
-                  <TableHead className="w-28 cursor-pointer select-none whitespace-nowrap" onClick={() => {
-                    if (sortBy === "created_at") {
-                      setSortOrder(prev => prev === "asc" ? "desc" : "asc");
-                    } else {
-                      setSortBy("created_at");
-                      setSortOrder("desc");
-                    }
-                  }}>
+                  <TableHead className="w-24 whitespace-nowrap">
+                    Tingkat Risiko
+                  </TableHead>
+                  <TableHead className="w-24 whitespace-nowrap">
+                    Status
+                  </TableHead>
+                  <TableHead className="w-24 whitespace-nowrap">
+                    Penanganan
+                  </TableHead>
+                  <TableHead
+                    className="w-28 cursor-pointer select-none whitespace-nowrap"
+                    onClick={() => {
+                      if (sortBy === "created_at") {
+                        setSortOrder((prev) =>
+                          prev === "asc" ? "desc" : "asc",
+                        );
+                      } else {
+                        setSortBy("created_at");
+                        setSortOrder("desc");
+                      }
+                    }}
+                  >
                     <div className="flex items-center gap-1">
                       Dibuat
-                      {sortBy === "created_at" && (
-                        sortOrder === "desc" ? <ChevronDown className="size-3" /> : <ChevronUp className="size-3" />
-                      )}
+                      {sortBy === "created_at" &&
+                        (sortOrder === "desc" ? (
+                          <ChevronDown className="size-3" />
+                        ) : (
+                          <ChevronUp className="size-3" />
+                        ))}
                     </div>
                   </TableHead>
                   <TableHead className="w-28 text-right whitespace-nowrap">
@@ -1033,14 +1068,18 @@ export default function RiskRegisterPage() {
                                   : undefined,
                               )}
                             >
-                              {risk.status ? statusLabel[risk.status] || risk.status : "-"}
+                              {risk.status
+                                ? statusLabel[risk.status] || risk.status
+                                : "-"}
                             </Badge>
                             {risk.hasOngoing && risk.draftStatus && (
                               <Badge
                                 variant="outline"
                                 className="text-[10px] font-medium border h-5 px-1.5 bg-amber-50 text-amber-700 border-amber-200"
                               >
-                                📝 {statusLabel[risk.draftStatus] || risk.draftStatus}
+                                📝{" "}
+                                {statusLabel[risk.draftStatus] ||
+                                  risk.draftStatus}
                               </Badge>
                             )}
                           </div>
@@ -1050,11 +1089,14 @@ export default function RiskRegisterPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs">
                           {risk.createdAt
-                            ? new Date(risk.createdAt).toLocaleDateString("id-ID", {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                              })
+                            ? new Date(risk.createdAt).toLocaleDateString(
+                                "id-ID",
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                },
+                              )
                             : "-"}
                         </TableCell>
                         <TableCell>
@@ -1064,7 +1106,11 @@ export default function RiskRegisterPage() {
                                 variant="outline"
                                 size="sm"
                                 className="h-7 gap-1.5 px-2 text-xs"
-                                onClick={() => router.push(`/risk/assessment/${risk.draftId}`)}
+                                onClick={() =>
+                                  router.push(
+                                    `/risk/assessment/${risk.draftId}`,
+                                  )
+                                }
                               >
                                 <RefreshCcw className="size-3" />
                                 Lanjutkan Penilaian
@@ -1078,7 +1124,7 @@ export default function RiskRegisterPage() {
                                 onClick={() => handleOpenConfirmDialog(risk)}
                               >
                                 <RefreshCcw className="size-3" />
-                                Mulai Reassessment
+                                Mulai Pemantauan
                               </Button>
                             )}
                           </div>
@@ -1093,7 +1139,8 @@ export default function RiskRegisterPage() {
             {/* Pagination */}
             <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
               <p className="text-xs text-muted-foreground">
-                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} risiko
+                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
+                {Math.min(page * limit, total)} dari {total} risiko
               </p>
               <div className="flex items-center gap-1">
                 <Button
@@ -1140,11 +1187,21 @@ export default function RiskRegisterPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="w-20 text-xs whitespace-nowrap">ID</TableHead>
-                  <TableHead className="text-xs whitespace-nowrap">Judul Draf / Risiko</TableHead>
-                  <TableHead className="text-xs w-28 whitespace-nowrap">Periode</TableHead>
-                  <TableHead className="text-xs w-32 whitespace-nowrap">Status</TableHead>
-                  <TableHead className="text-xs w-32 whitespace-nowrap">Pembaruan</TableHead>
+                  <TableHead className="w-20 text-xs whitespace-nowrap">
+                    ID
+                  </TableHead>
+                  <TableHead className="text-xs whitespace-nowrap">
+                    Judul Draf / Risiko
+                  </TableHead>
+                  <TableHead className="text-xs w-28 whitespace-nowrap">
+                    Periode
+                  </TableHead>
+                  <TableHead className="text-xs w-32 whitespace-nowrap">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-xs w-32 whitespace-nowrap">
+                    Pembaruan
+                  </TableHead>
                   <TableHead className="text-xs w-28 text-center whitespace-nowrap">
                     Progres
                   </TableHead>
@@ -1250,17 +1307,18 @@ export default function RiskRegisterPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
-                            {draft.status === "assessment_draft" && !isReadOnly && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                onClick={() => setDraftToDelete(draft)}
-                              >
-                                <Trash2 className="size-3" />
-                                Hapus
-                              </Button>
-                            )}
+                            {draft.status === "assessment_draft" &&
+                              !isReadOnly && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  onClick={() => setDraftToDelete(draft)}
+                                >
+                                  <Trash2 className="size-3" />
+                                  Hapus
+                                </Button>
+                              )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1285,20 +1343,20 @@ export default function RiskRegisterPage() {
                   reassessment dan membandingkannya dengan versi aktif saat ini.
                 </p>
               </div>
-                <Select value={historyRiskId} onValueChange={setHistoryRiskId}>
-                  <SelectTrigger className="w-full md:w-[340px]">
-                    <SelectValue placeholder="Pilih risiko untuk history" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {historyRisks.map((risk) => (
-                        <SelectItem key={risk.id} value={risk.id}>
-                          {(risk.code || "Risk") +
-                            " • " +
-                            (risk.title || "Tanpa judul")}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+              <Select value={historyRiskId} onValueChange={setHistoryRiskId}>
+                <SelectTrigger className="w-full md:w-[340px]">
+                  <SelectValue placeholder="Pilih risiko untuk history" />
+                </SelectTrigger>
+                <SelectContent>
+                  {historyRisks.map((risk) => (
+                    <SelectItem key={risk.id} value={risk.id}>
+                      {(risk.code || "Risk") +
+                        " • " +
+                        (risk.title || "Tanpa judul")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </CardContent>
           </Card>
 
@@ -1324,7 +1382,10 @@ export default function RiskRegisterPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-sm">
-                          {ver.versionNumber != null && ver.versionNumber > 0 ? `v${ver.versionNumber} — ` : ""}{ver.name}
+                          {ver.versionNumber != null && ver.versionNumber > 0
+                            ? `v${ver.versionNumber} — `
+                            : ""}
+                          {ver.name}
                         </span>
                         {ver.isCurrent && (
                           <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5 ml-1">
@@ -1357,7 +1418,9 @@ export default function RiskRegisterPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border/50 hover:bg-transparent">
-                        <TableHead className="w-20 text-xs whitespace-nowrap">Kode</TableHead>
+                        <TableHead className="w-20 text-xs whitespace-nowrap">
+                          Kode
+                        </TableHead>
                         <TableHead className="text-xs whitespace-nowrap">
                           Risiko & Alasan Perubahan
                         </TableHead>
@@ -1499,7 +1562,7 @@ export default function RiskRegisterPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Reassessment</AlertDialogTitle>
             <AlertDialogDescription>
-              Anda akan memulai reassessment untuk risiko berikut. Tindakan ini
+              Anda akan memulai pemantauan untuk risiko berikut. Tindakan ini
               akan membuat draft reassessment baru yang dapat Anda edit sebelum
               diajukan untuk persetujuan.
             </AlertDialogDescription>

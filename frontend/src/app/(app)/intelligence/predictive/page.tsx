@@ -205,8 +205,11 @@ export default function PredictivePage() {
           <TableBody>
             {predictions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
-                  Data prediksi kosong.
+                <TableCell colSpan={8} className="h-24">
+                  <div className="flex flex-col gap-1 text-left">
+                    <p className="text-sm font-medium text-muted-foreground">Data prediksi kosong</p>
+                    <p className="text-xs text-muted-foreground/70">Klik tombol "Run Prediction" untuk memulai analisis profil risiko</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : predictions.map((pred) => (

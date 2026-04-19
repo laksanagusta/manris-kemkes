@@ -4,14 +4,14 @@ import "strings"
 
 func normalizeTreatmentOption(value string) string {
 	switch strings.TrimSpace(strings.ToLower(value)) {
+	case "avoid", "hindari", "menghindari", "menghindari risiko":
+		return "avoid"
+	case "transfer", "berbagi", "berbagi risiko":
+		return "transfer"
 	case "mitigate", "mitigasi", "mitigasi risiko":
 		return "mitigate"
-	case "accept", "terima", "menerima risiko":
+	case "accept", "terima", "menerima", "menerima risiko":
 		return "accept"
-	case "transfer":
-		return "transfer"
-	case "avoid", "hindari":
-		return "avoid"
 	default:
 		return strings.TrimSpace(strings.ToLower(value))
 	}

@@ -54,7 +54,7 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 	resolvedOrgID := input.OrgID
 	for idx, ri := range input.Risks {
 		sourceMode := normalizeRiskSourceMode(ri.SourceMode)
-		resolvedRisk, err := resolveLinkedRisk(ctx, uc.riskRepo, ri.RiskID, input.AssessmentCycle, sourceMode, lookupOrgIDs)
+		resolvedRisk, err := resolveLinkedRisk(ctx, uc.riskRepo, ri.RiskID, input.AssessmentCycle, sourceMode, lookupOrgIDs, input.CreatedByUserID)
 		if err != nil {
 			return nil, err
 		}

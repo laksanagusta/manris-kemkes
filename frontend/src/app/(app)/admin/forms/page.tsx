@@ -102,7 +102,7 @@ export default function AdminFormsPage() {
       setLoading(true);
       const filters = statusFilter !== "all" ? { status: statusFilter } : undefined;
       const data = await fetchForms(token, filters);
-      const sorted = [...data].sort((a, b) => new Date(b.createdAt || b.created_at || 0).getTime() - new Date(a.createdAt || a.created_at || 0).getTime());
+      const sorted = [...data].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
       setForms(sorted);
     } catch (err) {
       console.error(err);

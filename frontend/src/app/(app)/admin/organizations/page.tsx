@@ -446,11 +446,11 @@ export default function OrganizationsManagementPage() {
               </TableRow>
             ) : organizations.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="h-24 text-center text-muted-foreground text-xs"
-                >
-                  Belum ada data organisasi.
+                <TableCell colSpan={5} className="h-24">
+                  <div className="flex flex-col gap-1 text-left">
+                    <p className="text-sm font-medium text-muted-foreground">Belum ada data organisasi</p>
+                    <p className="text-xs text-muted-foreground/70">Tambahkan organisasi baru untuk memulai</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

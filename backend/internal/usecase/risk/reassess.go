@@ -15,7 +15,7 @@ type CreateRiskReassessmentUseCase struct {
 }
 
 type periodicReassessmentReservation interface {
-	GetOrCreatePeriodicReassessmentInTx(ctx context.Context, sourceRisk *entity.Risk, cycle string) (*entity.Risk, bool, error)
+	GetOrCreatePeriodicReassessmentInTx(ctx context.Context, sourceRisk *entity.Risk, cycle string, createdBy uuid.UUID) (*entity.Risk, bool, error)
 }
 
 func NewCreateRiskReassessmentUseCase(riskRepo repository.RiskRepository) *CreateRiskReassessmentUseCase {
@@ -23,9 +23,10 @@ func NewCreateRiskReassessmentUseCase(riskRepo repository.RiskRepository) *Creat
 }
 
 type CreateRiskReassessmentInput struct {
-	RiskID uuid.UUID
-	Cycle  string
-	OrgIDs []uuid.UUID
+	RiskID    uuid.UUID
+	Cycle     string
+	OrgIDs    []uuid.UUID
+	CreatedBy uuid.UUID
 }
 
 type CreateRiskReassessmentOutput struct {
@@ -53,7 +54,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "only current approved risks can be reassessed")
 	}
 	if manager, ok := uc.riskRepo.(periodicReassessmentReservation); ok {
-		reservedRisk, created, err := manager.GetOrCreatePeriodicReassessmentInTx(ctx, sourceRisk, input.Cycle)
+		reservedRisk, created, err := manager.GetOrCreatePeriodicReassessmentInTx(ctx, sourceRisk, input.Cycle, input.CreatedBy)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to reserve reassessment draft")
 		}
@@ -93,7 +94,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 	}
 
 	now := time.Now().UTC()
-	reassessment := BuildPeriodicReassessmentDraft(sourceRisk, input.Cycle, now)
+	reassessment := BuildPeriodicReassessmentDraft(sourceRisk, input.Cycle, now, input.CreatedBy)
 
 	if err := uc.riskRepo.Create(ctx, reassessment); err != nil {
 		return nil, errors.Wrap(err, "failed to create reassessment draft")
@@ -118,10 +119,13 @@ func FindInProgressReassessmentForCycle(versions []*entity.Risk, cycle string) *
 	return nil
 }
 
-func BuildPeriodicReassessmentDraft(source *entity.Risk, cycle string, startedAt time.Time) *entity.Risk {
+func BuildPeriodicReassessmentDraft(source *entity.Risk, cycle string, startedAt time.Time, createdBy uuid.UUID) *entity.Risk {
 	clone := *source
 	clone.ID = uuid.Nil
 	clone.PreviousRiskID = &source.ID
+	if createdBy != uuid.Nil {
+		clone.CreatedBy = &createdBy
+	}
 	clone.IsCurrent = false
 	clone.IsCycleCurrent = false
 	clone.Status = entity.RiskStatusDraft

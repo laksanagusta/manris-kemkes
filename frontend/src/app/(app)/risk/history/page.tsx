@@ -55,8 +55,7 @@ export default function RiskHistoryPage() {
     // Since there's no actual snapshot back-end yet, we simulate history by diffing Current vs Target score
     api.get<any[]>("/risks?status=approved", token).then((risks) => {
       const mapped = risks.map((r) => buildApprovedRiskHistoryItem(r));
-      const sorted = [...mapped].sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
-      setHistoryData(sorted.slice(0, 10)); // Just show recent
+      setHistoryData(mapped.slice(0, 10)); // Just show recent
     }).finally(() => setLoading(false));
   }, [token, selectedVersion]);
 
@@ -142,8 +141,11 @@ export default function RiskHistoryPage() {
                     </TableRow>
                   ) : historyData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                        Belum ada history untuk snapshot ini.
+                      <TableCell colSpan={6} className="h-24">
+                        <div className="flex flex-col gap-1 text-left">
+                          <p className="text-sm font-medium text-muted-foreground">Belum ada history untuk snapshot ini</p>
+                          <p className="text-xs text-muted-foreground/70">Snapshot ini tidak memiliki rekam jejak yang tercatat</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : historyData.map((history) => (

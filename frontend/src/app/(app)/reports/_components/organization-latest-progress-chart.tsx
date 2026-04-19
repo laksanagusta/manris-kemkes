@@ -70,27 +70,27 @@ export function OrganizationLatestProgressChart({
               </div>
             ) : (
               <div className="max-h-[300px] overflow-y-auto rounded-md border border-border/50">
-                 <Table>
-                   <TableHeader>
-                     <TableRow>
-                       <TableHead className="whitespace-nowrap">Organisasi</TableHead>
-                       <TableHead className="whitespace-nowrap">Periode</TableHead>
-                       <TableHead className="w-[40%] whitespace-nowrap">Progress</TableHead>
-                       <TableHead className="text-right whitespace-nowrap">Status</TableHead>
-                     </TableRow>
-                   </TableHeader>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap">Organisasi</TableHead>
+                      <TableHead className="whitespace-nowrap">Periode</TableHead>
+                      <TableHead className="w-[40%] whitespace-nowrap">Progress</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
                     {sortedData.map((row, idx) => (
                       <TableRow key={`${row.orgName}-${idx}`}>
-                        <TableCell className="font-medium text-sm">{row.orgName}</TableCell>
+                        <TableCell className="text-sm font-medium">{row.orgName}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{row.period}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Progress 
-                              value={row.approvedPercent} 
-                              className={`h-2 ${PROGRESS_COLOR_CLASS}`} 
+                            <Progress
+                              value={row.approvedPercent}
+                              className={`h-2 ${PROGRESS_COLOR_CLASS}`}
                             />
-                            <span className="text-xs text-muted-foreground w-8 text-right">
+                            <span className="w-8 text-right text-xs text-muted-foreground">
                               {row.approvedPercent}%
                             </span>
                           </div>

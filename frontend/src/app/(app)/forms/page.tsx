@@ -81,14 +81,11 @@ export default function MyFormsPage() {
 
       {forms.length === 0 ? (
         <Card className="border-border/50 bg-card/80 py-16">
-          <CardContent className="flex flex-col items-center gap-3">
-            <FileText className="size-10 text-muted-foreground/40" />
-            <p className="text-sm font-medium text-muted-foreground">
-              Tidak ada formulir yang ditugaskan kepada Anda
-            </p>
-            <p className="text-xs text-muted-foreground/70">
-              Formulir akan muncul di sini setelah admin mempublikasikannya
-            </p>
+          <CardContent>
+            <div className="flex flex-col gap-1 text-left">
+              <p className="text-sm font-medium text-muted-foreground">Tidak ada formulir yang ditugaskan kepada Anda</p>
+              <p className="text-xs text-muted-foreground/70">Formulir akan muncul di sini setelah admin mempublikasikannya</p>
+            </div>
           </CardContent>
         </Card>
       ) : (

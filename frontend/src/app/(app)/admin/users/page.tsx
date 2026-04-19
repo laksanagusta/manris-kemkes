@@ -260,9 +260,7 @@ export default function UsersManagementPage() {
     })
       .then((result) => {
         if (!cancelled) {
-          setUsers(
-            [...(result.data ?? [])].sort((a, b) => new Date(b.createdAt || b.created_at || 0).getTime() - new Date(a.createdAt || a.created_at || 0).getTime())
-          );
+          setUsers(result.data ?? []);
           setTotal(result.total ?? 0);
           setPage(result.page ?? page);
           setLimit(result.limit ?? limit);
@@ -440,11 +438,11 @@ export default function UsersManagementPage() {
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={9}
-                    className="h-24 text-center text-xs text-muted-foreground"
-                  >
-                    Belum ada data pengguna.
+                  <TableCell colSpan={9} className="h-24">
+                    <div className="flex flex-col gap-1 text-left">
+                      <p className="text-sm font-medium text-muted-foreground">Belum ada data pengguna</p>
+                      <p className="text-xs text-muted-foreground/70">Tambahkan pengguna baru untuk memulai</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (

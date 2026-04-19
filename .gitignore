@@ -46,6 +46,10 @@ vendor/
 *.swp
 *.swo
 *~
-.dockerignore
 .playwright-mcp/
 session-ses_*.md
+
+# Production environment
+.env.production
+.env.staging
+*.pem

@@ -81,7 +81,7 @@ export function AppHeader({
           collapsed ? "w-16 justify-center" : "pl-6 pr-2",
         )}
       >
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-primary/10 p-1.5">
+        {/*<div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-primary/10 p-1.5">
           <Image
             src="/logo.svg"
             alt="MANRIS logo"
@@ -89,11 +89,11 @@ export function AppHeader({
             height={20}
             className="object-contain"
           />
-        </div>
+        </div>*/}
         {!collapsed && (
           <div className="flex flex-col overflow-hidden whitespace-nowrap">
-            <span className="text-sm font-bold tracking-tight text-foreground">
-              MR-V0
+            <span className="text-md font-bold tracking-tight text-foreground">
+              M A N R I S
             </span>
           </div>
         )}
