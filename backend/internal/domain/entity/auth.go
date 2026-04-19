@@ -25,11 +25,16 @@ type UserPublic struct {
 	ID                 uuid.UUID   `json:"id"`
 	Username           string      `json:"username"`
 	Name               string      `json:"name"`
+	Email              string      `json:"email"`
 	Role               string      `json:"role"`
 	OrganizationID     *uuid.UUID  `json:"organizationId,omitempty"`
+	OrgName            string      `json:"orgName,omitempty"`
 	AccessibleOrgIDs   []uuid.UUID `json:"accessibleOrgIds,omitempty"`
 	IsGlobal           bool        `json:"isGlobal"`
 	Status             string      `json:"status"`
+	NIP                string      `json:"nip,omitempty"`
+	Jabatan            string      `json:"jabatan,omitempty"`
+	Pangkat            string      `json:"pangkat,omitempty"`
 	MustChangePassword bool        `json:"mustChangePassword"`
 }
 
@@ -55,11 +60,16 @@ type UserProfile struct {
 	ID                 uuid.UUID   `json:"id"`
 	Username           string      `json:"username"`
 	Name               string      `json:"name"`
+	Email              string      `json:"email"`
 	Role               string      `json:"role"`
 	OrganizationID     *uuid.UUID  `json:"organizationId,omitempty"`
+	OrgName            string      `json:"orgName,omitempty"`
 	AccessibleOrgIDs   []uuid.UUID `json:"accessibleOrgIds,omitempty"`
 	IsGlobal           bool        `json:"isGlobal"`
 	Status             string      `json:"status"`
+	NIP                string      `json:"nip,omitempty"`
+	Jabatan            string      `json:"jabatan,omitempty"`
+	Pangkat            string      `json:"pangkat,omitempty"`
 	MustChangePassword bool        `json:"mustChangePassword"`
 	CreatedAt          time.Time   `json:"createdAt"`
 	UpdatedAt          time.Time   `json:"updatedAt"`
@@ -71,11 +81,16 @@ func (u *UserProfile) ToPublic() *UserPublic {
 		ID:                 u.ID,
 		Username:           u.Username,
 		Name:               u.Name,
+		Email:              u.Email,
 		Role:               u.Role,
 		OrganizationID:     u.OrganizationID,
+		OrgName:            u.OrgName,
 		AccessibleOrgIDs:   u.AccessibleOrgIDs,
 		IsGlobal:           u.IsGlobal,
 		Status:             u.Status,
+		NIP:                u.NIP,
+		Jabatan:            u.Jabatan,
+		Pangkat:            u.Pangkat,
 		MustChangePassword: u.MustChangePassword,
 	}
 }
