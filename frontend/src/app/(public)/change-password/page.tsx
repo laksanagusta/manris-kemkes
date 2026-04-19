@@ -19,16 +19,18 @@ import { useAuth } from "@/contexts/auth-context";
 export default function ChangePasswordPage() {
   const router = useRouter();
   const {
+    changePassword,
     completeFirstPasswordChange,
     isAuthenticated,
     loading,
-    postAuthRedirectPath,
     requiresPasswordChange,
   } = useAuth();
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSetupFlow = requiresPasswordChange;
 
   const getErrorMessage = (error: unknown) => {
     return error instanceof Error
@@ -46,15 +48,12 @@ export default function ChangePasswordPage() {
       return;
     }
 
-    if (!requiresPasswordChange) {
-      router.replace(postAuthRedirectPath);
-    }
-  }, [isAuthenticated, loading, postAuthRedirectPath, requiresPasswordChange, router]);
+  }, [isAuthenticated, loading, router]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!newPassword || !confirmPassword) {
+    if ((!isSetupFlow && !currentPassword) || !newPassword || !confirmPassword) {
       setError("Isi password baru dan konfirmasi password terlebih dahulu.");
       return;
     }
@@ -68,8 +67,11 @@ export default function ChangePasswordPage() {
     setIsSubmitting(true);
 
     try {
-      const result = await completeFirstPasswordChange(newPassword, confirmPassword);
-      router.replace(result.redirectTo);
+      const result = isSetupFlow
+        ? await completeFirstPasswordChange(newPassword, confirmPassword)
+        : await changePassword(currentPassword, newPassword, confirmPassword);
+
+      router.replace(isSetupFlow ? result.redirectTo : "/account");
     } catch (error: unknown) {
       setError(getErrorMessage(error));
     } finally {
@@ -77,7 +79,7 @@ export default function ChangePasswordPage() {
     }
   };
 
-  if (loading || !isAuthenticated || !requiresPasswordChange) {
+  if (loading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -111,7 +113,9 @@ export default function ChangePasswordPage() {
             <span className="gradient-text">MANRIS</span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Aktivasi akun pada login pertama
+            {isSetupFlow
+              ? "Aktivasi akun pada login pertama"
+              : "Kelola keamanan akun Anda"}
           </p>
         </div>
 
@@ -119,10 +123,12 @@ export default function ChangePasswordPage() {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2">
               <KeyRound className="size-4 text-primary" />
-              Ubah Password Sementara
+              {isSetupFlow ? "Ubah Password Sementara" : "Ubah Password"}
             </CardTitle>
             <CardDescription>
-              Password baru wajib dibuat sebelum Anda dapat mengakses dashboard dan menu aplikasi.
+              {isSetupFlow
+                ? "Password baru wajib dibuat sebelum Anda dapat mengakses dashboard dan menu aplikasi."
+                : "Perbarui password akun dengan memasukkan password saat ini terlebih dahulu."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -130,6 +136,23 @@ export default function ChangePasswordPage() {
               {error && (
                 <div aria-live="polite" className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                   {error}
+                </div>
+              )}
+
+              {!isSetupFlow && (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="current-password" className="text-xs font-medium">
+                    Password Saat Ini
+                  </Label>
+                  <Input
+                    id="current-password"
+                    type="password"
+                    placeholder="masukkan password saat ini"
+                    className="h-10 border-border/50 bg-muted/30 focus-visible:ring-primary/30"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    required
+                  />
                 </div>
               )}
 
@@ -179,7 +202,9 @@ export default function ChangePasswordPage() {
               </Button>
 
               <p className="text-center text-xs text-muted-foreground">
-                Setelah berhasil, sesi setup akan ditukar menjadi sesi penuh dan Anda akan diarahkan ke overview.
+                {isSetupFlow
+                  ? "Setelah berhasil, sesi setup akan ditukar menjadi sesi penuh dan Anda akan diarahkan ke overview."
+                  : "Setelah berhasil, Anda akan kembali ke halaman account."}
               </p>
             </form>
           </CardContent>
