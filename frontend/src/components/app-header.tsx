@@ -160,7 +160,7 @@ export function AppHeader({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/account")}>
               <User className="mr-2 size-4" />
               Profile
             </DropdownMenuItem>

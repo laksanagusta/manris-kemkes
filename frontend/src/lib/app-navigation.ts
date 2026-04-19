@@ -64,6 +64,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/controls": "Control Library",
   "/monitoring/overdue": "Overdue",
   "/reports": "Reports & Export",
+  "/account": "Account",
   "/incident": "Insiden",
   "/incident/new": "New Incident",
   "/incidents": "Insiden",
