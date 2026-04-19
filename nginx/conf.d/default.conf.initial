@@ -1,0 +1,43 @@
+# Initial HTTP-only config - use before SSL certs exist
+# Usage:
+#   1. Copy this to default.conf: cp default.conf.initial default.conf
+#   2. Start services: docker compose up -d
+#   3. Obtain certs: docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d api-manris.marvcore.com -d manris.marvcore.com
+#   4. Restore SSL config from git: git checkout nginx/conf.d/default.conf
+#   5. Reload nginx: docker compose exec nginx nginx -s reload
+
+# Backend API
+server {
+    listen 80;
+    server_name api-manris.marvcore.com;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        proxy_pass http://backend:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Frontend
+server {
+    listen 80;
+    server_name manris.marvcore.com;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        proxy_pass http://frontend:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

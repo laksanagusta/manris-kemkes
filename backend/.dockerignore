@@ -1,0 +1,16 @@
+.env
+.env.*
+server
+main
+bin/
+tmp/
+*.test
+.git
+.gitignore
+README.md
+Makefile
+.DS_Store
+*.log
+cron
+hash.go
+token.txt
