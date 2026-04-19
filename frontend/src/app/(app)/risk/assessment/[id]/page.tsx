@@ -141,6 +141,8 @@ const formSchema = z.object({
   reviewSummary: z.string().optional().default(""),
 });
 
+type AssessmentFormInput = z.input<typeof formSchema>;
+
 export default function AssessmentFormPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -162,7 +164,7 @@ export default function AssessmentFormPage() {
   const [loadingVersions, setLoadingVersions] = useState(false);
   const submitTarget = useRef<"draft" | "review">("draft");
 
-  const form = useForm<AssessmentFormValues>({
+  const form = useForm<AssessmentFormInput, unknown, AssessmentFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       probability: 1,
