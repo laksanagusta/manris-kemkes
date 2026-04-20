@@ -28,7 +28,6 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import type {
-  HeatmapCell,
   RiskCycleComparisonItem,
   RiskReviewQueueItem,
   RiskReviewStatus,
@@ -98,9 +97,6 @@ const reviewStatusMeta: Record<string, { label: string; className: string }> = {
   },
 };
 
-const impactLabels = ["Tdk Signifikan", "Kecil", "Sedang", "Besar", "Katastropik"];
-const likelihoodLabels = ["Jarang", "Kemungkinan Kecil", "Kemungkinan Sedang", "Kemungkinan Besar", "Hampir Pasti"];
-
 function currentGlobalCycle() {
   const now = new Date();
   const year = now.getFullYear();
@@ -142,20 +138,6 @@ function dedupeOrganizations(items: OrganizationOption[]) {
   return result;
 }
 
-function buildHeatmapGrid(cells: HeatmapCell[]) {
-  return Array.from({ length: 5 }, (_, rowIndex) => {
-    const impact = 5 - rowIndex;
-    return Array.from({ length: 5 }, (_, colIndex) => {
-      const probability = colIndex + 1;
-      return (
-        cells.find(
-          (cell) => cell.probability === probability && cell.impact === impact,
-        )?.count ?? 0
-      );
-    });
-  });
-}
-
 function getHeatmapCellClass(
   count: number,
   prob: number,
@@ -195,6 +177,8 @@ export function RiskReviewPanel() {
   const [summaryData, setSummaryData] = useState<RiskReviewSummary | null>(
     null,
   );
+  const [previousHeatmapData, setPreviousHeatmapData] = useState<number[][]>([]);
+  const [currentHeatmapData, setCurrentHeatmapData] = useState<number[][]>([]);
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [comparisonLoading, setComparisonLoading] = useState(true);
@@ -208,7 +192,7 @@ export function RiskReviewPanel() {
   const [total, setTotal] = useState(0);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [heatmapMode, setHeatmapMode] = useState<"intensity" | "riskLevel">(
-    "intensity",
+    "riskLevel",
   );
   const [selectedRisk, setSelectedRisk] = useState<RiskReviewQueueItem | null>(
     null,
@@ -317,11 +301,46 @@ export function RiskReviewPanel() {
       try {
         const params = new URLSearchParams({ cycle });
         if (orgFilter !== "all") params.set("org_id", orgFilter);
-        const data = await api.get<RiskReviewSummary>(
-          `/dashboard/risk-review-summary?${params.toString()}`,
-          token,
-        );
-        setSummaryData(data);
+        const buildHeatmapPath = (heatmapCycle: string) => {
+          const heatmapParams = new URLSearchParams({ cycle: heatmapCycle });
+          if (orgFilter !== "all") heatmapParams.set("org_id", orgFilter);
+          return `/dashboard/heatmap?${heatmapParams.toString()}`;
+        };
+
+        const [summaryResult, previousHeatmapResult, currentHeatmapResult] =
+          await Promise.allSettled([
+            api.get<RiskReviewSummary>(
+              `/dashboard/risk-review-summary?${params.toString()}`,
+              token,
+            ),
+            api.get<number[][]>(buildHeatmapPath(previousCycle), token),
+            api.get<number[][]>(buildHeatmapPath(cycle), token),
+          ]);
+
+        if (summaryResult.status === "fulfilled") {
+          setSummaryData(summaryResult.value);
+        } else {
+          console.error(summaryResult.reason);
+          toast.error(
+            summaryResult.reason instanceof Error
+              ? summaryResult.reason.message
+              : "Ringkasan semester belum berhasil dimuat.",
+          );
+        }
+
+        if (previousHeatmapResult.status === "fulfilled") {
+          setPreviousHeatmapData(previousHeatmapResult.value);
+        } else {
+          console.error(previousHeatmapResult.reason);
+          setPreviousHeatmapData([]);
+        }
+
+        if (currentHeatmapResult.status === "fulfilled") {
+          setCurrentHeatmapData(currentHeatmapResult.value);
+        } else {
+          console.error(currentHeatmapResult.reason);
+          setCurrentHeatmapData([]);
+        }
       } catch (error) {
         console.error(error);
         toast.error(
@@ -335,7 +354,7 @@ export function RiskReviewPanel() {
     };
 
     loadSummary();
-  }, [token, cycle, orgFilter]);
+  }, [token, previousCycle, cycle, orgFilter]);
 
   const summary = useMemo(() => {
     const counts = {
@@ -366,15 +385,6 @@ export function RiskReviewPanel() {
     }
     return result;
   }, [comparisons]);
-
-  const previousHeatmapGrid = useMemo(
-    () => buildHeatmapGrid(summaryData?.previousHeatmap ?? []),
-    [summaryData],
-  );
-  const currentHeatmapGrid = useMemo(
-    () => buildHeatmapGrid(summaryData?.currentHeatmap ?? []),
-    [summaryData],
-  );
 
   const handleOpenConfirmDialog = (item: RiskReviewQueueItem) => {
     setSelectedRisk(item);
@@ -713,73 +723,75 @@ export function RiskReviewPanel() {
                 Memuat completion rate...
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="whitespace-nowrap">Unit</TableHead>
-                    <TableHead className="w-24 text-center whitespace-nowrap">
-                      Assigned
-                    </TableHead>
-                    <TableHead className="w-24 text-center whitespace-nowrap">
-                      Done
-                    </TableHead>
-                    <TableHead className="w-24 text-center whitespace-nowrap">
-                      Pending
-                    </TableHead>
-                    <TableHead className="w-24 text-center whitespace-nowrap">
-                      Overdue
-                    </TableHead>
-                    <TableHead className="w-48 text-right whitespace-nowrap">
-                      Rate
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(summaryData?.unitCompletion.length ?? 0) === 0 ? (
+              <div className="h-[320px] overflow-y-auto rounded-md border border-border/50">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24">
-                        <div className="flex flex-col gap-1 text-left">
-                          <p className="text-sm font-medium text-muted-foreground">Belum ada data unit completion untuk cycle ini</p>
-                          <p className="text-xs text-muted-foreground/70">Tunggu sampai ada unit completion yang disubmit</p>
-                        </div>
-                      </TableCell>
+                      <TableHead className="whitespace-nowrap">Unit</TableHead>
+                      <TableHead className="w-24 text-center whitespace-nowrap">
+                        Assigned
+                      </TableHead>
+                      <TableHead className="w-24 text-center whitespace-nowrap">
+                        Done
+                      </TableHead>
+                      <TableHead className="w-24 text-center whitespace-nowrap">
+                        Pending
+                      </TableHead>
+                      <TableHead className="w-24 text-center whitespace-nowrap">
+                        Overdue
+                      </TableHead>
+                      <TableHead className="w-48 text-right whitespace-nowrap">
+                        Rate
+                      </TableHead>
                     </TableRow>
-                  ) : (
-                    summaryData?.unitCompletion.map((unit) => (
-                      <TableRow key={unit.orgName}>
-                        <TableCell className="max-w-[200px] text-sm font-medium text-foreground">
-                          <span className="block truncate">
-                            {unit.orgName || "-"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center text-sm">
-                          {unit.totalAssigned}
-                        </TableCell>
-                        <TableCell className="text-center text-sm">
-                          {unit.completed}
-                        </TableCell>
-                        <TableCell className="text-center text-sm">
-                          {unit.pending}
-                        </TableCell>
-                        <TableCell className="text-center text-sm">
-                          {unit.overdue}
-                        </TableCell>
-                        <TableCell className="text-right text-sm">
-                          <div className="flex items-center gap-2">
-                            <Progress
-                              value={unit.completionRate}
-                              className="h-2 flex-1"
-                            />
-                            <span className="w-12 text-right font-semibold">
-                              {unit.completionRate.toFixed(1)}%
-                            </span>
+                  </TableHeader>
+                  <TableBody>
+                    {(summaryData?.unitCompletion.length ?? 0) === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-24">
+                          <div className="flex flex-col gap-1 text-left">
+                            <p className="text-sm font-medium text-muted-foreground">Belum ada data unit completion untuk cycle ini</p>
+                            <p className="text-xs text-muted-foreground/70">Tunggu sampai ada unit completion yang disubmit</p>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      summaryData?.unitCompletion.map((unit) => (
+                        <TableRow key={unit.orgName}>
+                          <TableCell className="max-w-[200px] text-sm font-medium text-foreground">
+                            <span className="block truncate">
+                              {unit.orgName || "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center text-sm">
+                            {unit.totalAssigned}
+                          </TableCell>
+                          <TableCell className="text-center text-sm">
+                            {unit.completed}
+                          </TableCell>
+                          <TableCell className="text-center text-sm">
+                            {unit.pending}
+                          </TableCell>
+                          <TableCell className="text-center text-sm">
+                            {unit.overdue}
+                          </TableCell>
+                          <TableCell className="text-right text-sm">
+                            <div className="flex items-center gap-2">
+                              <Progress
+                                value={unit.completionRate}
+                                className="h-2 flex-1"
+                              />
+                              <span className="w-12 text-right font-semibold">
+                                {unit.completionRate.toFixed(1)}%
+                              </span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -815,21 +827,26 @@ export function RiskReviewPanel() {
             ) : (
               <>
                 {[
-                  { label: previousCycle, grid: previousHeatmapGrid },
-                  { label: cycle, grid: currentHeatmapGrid },
+                  { label: previousCycle, grid: previousHeatmapData },
+                  { label: cycle, grid: currentHeatmapData },
                 ].map((heatmap) => (
                   <div key={heatmap.label} className="space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       {heatmap.label}
                     </p>
                     <div className="grid grid-cols-5 gap-1">
-                      {heatmap.grid.flatMap((row, rowIndex) =>
+                      {[...heatmap.grid].reverse().flatMap((row, rowIndex) =>
                         row.map((count, colIndex) => (
                           <div
                             key={`${heatmap.label}-${rowIndex}-${colIndex}`}
                             className={cn(
                               "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
-                              getHeatmapCellClass(count, 5 - rowIndex, colIndex + 1, heatmapMode),
+                              getHeatmapCellClass(
+                                count,
+                                5 - rowIndex,
+                                colIndex + 1,
+                                heatmapMode,
+                              ),
                             )}
                           >
                             {heatmapMode === "riskLevel" && count === 0 ? "" : count}

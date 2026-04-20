@@ -7,6 +7,7 @@ export type RiskRegisterHistoryItem = {
   title: string;
   unit: string;
   cycle: string;
+  status?: Risk["status"] | RiskVersionTimelineItem["status"];
   currentLevel: string;
   previousLevel: string;
   trend: "up" | "down" | "stable";
@@ -67,12 +68,19 @@ export function buildVersionHistoryItem(
     title: version.title || current.title || "-",
     unit: current.orgName || version.orgName || "—",
     cycle: version.assessmentCycle || new Date(version.createdAt).toLocaleDateString("id-ID", { year: "numeric", month: "short" }),
+    status: version.status,
     previousLevel: getRiskLevelLabel(previousSemantics.effective.level),
     currentLevel: getRiskLevelLabel(currentSemantics.effective.level),
     trend,
     changeReason: version.changeReason || `Skor ${previousScore} dibanding current ${currentScore}`,
     isCurrent: version.isCurrent,
   };
+}
+
+export function getRiskVersionDetailHref(
+  item: Pick<RiskRegisterHistoryItem, "riskId">,
+) {
+  return `/risk/register/${item.riskId}`;
 }
 
 export function buildApprovedRiskHistoryItem(risk: ApprovedRiskHistoryLike) {

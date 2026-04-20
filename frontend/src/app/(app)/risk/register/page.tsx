@@ -4,6 +4,7 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
@@ -67,6 +68,11 @@ import {
   riskCategoryLabels,
 } from "@/lib/risk";
 import { buildVersionHistoryItem } from "@/lib/risk-history";
+import {
+  buildRiskRegisterQueryString,
+  parseRiskRegisterQueryState,
+  shouldReplaceRiskRegisterUrl,
+} from "@/lib/risk-register-query";
 import {
   Plus,
   Search,
@@ -136,51 +142,6 @@ type VersionOption = {
 
 type RiskRegisterTab = "all-risks" | "my-drafts" | "history";
 
-function getRiskRegisterTab(value: string | null): RiskRegisterTab {
-  if (value === "my-drafts" || value === "history") {
-    return value;
-  }
-
-  return "all-risks";
-}
-
-function getRiskRegisterStatusFilter(
-  value: string | null,
-): RiskRegisterStatusFilter {
-  if (value === "assessment_in_review" || value === "approved") {
-    return value;
-  }
-
-  return "all";
-}
-
-function getRiskRegisterCategoryFilter(
-  value: string | null,
-): RiskRegisterCategoryFilter {
-  if (
-    value === "kebijakan" ||
-    value === "reputasi" ||
-    value === "fraud_korupsi" ||
-    value === "legal" ||
-    value === "kepatuhan" ||
-    value === "operasional"
-  ) {
-    return value;
-  }
-
-  return "all";
-}
-
-function parsePositiveInt(value: string | null, fallback: number): number {
-  const parsed = Number(value);
-
-  if (!Number.isFinite(parsed) || parsed < 1) {
-    return fallback;
-  }
-
-  return Math.floor(parsed);
-}
-
 function getRiskLevel(nilai: number | undefined): string {
   if (nilai === undefined || isNaN(nilai)) return "Sangat Rendah";
   if (nilai >= 20) return "Sangat Tinggi";
@@ -236,6 +197,7 @@ export default function RiskRegisterPage() {
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
   const [isPending, startTransition] = useTransition();
+  const isApplyingSearchParamsRef = useRef(false);
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
   const [historyRisks, setHistoryRisks] = useState<RiskListItem[]>([]);
@@ -244,40 +206,56 @@ export default function RiskRegisterPage() {
   const [versions, setVersions] = useState<VersionOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [search, setSearch] = useState(
+    () =>
+      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+        .search,
+  );
   const [statusFilter, setStatusFilter] = useState<RiskRegisterStatusFilter>(
-    () => getRiskRegisterStatusFilter(searchParams.get("status")),
+    () =>
+      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+        .statusFilter,
   );
   const [categoryFilter, setCategoryFilter] =
     useState<RiskRegisterCategoryFilter>(() =>
-      getRiskRegisterCategoryFilter(searchParams.get("category")),
+      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+        .categoryFilter,
     );
   const [assessmentCycleFilter, setAssessmentCycleFilter] = useState(
-    () => searchParams.get("assessment_cycle") ?? "",
+    () =>
+      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+        .assessmentCycleFilter,
   );
   const [createdAtFilter, setCreatedAtFilter] = useState(
-    () => searchParams.get("created_at") ?? "",
+    () =>
+      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+        .createdAtFilter,
   );
   const [page, setPage] = useState(() =>
-    parsePositiveInt(searchParams.get("page"), 1),
+    parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString())).page,
   );
   const [limit, setLimit] = useState(() =>
-    parsePositiveInt(searchParams.get("limit"), 10),
+    parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString())).limit,
   );
   const [total, setTotal] = useState(0);
   const [selectedVersion, setSelectedVersion] = useState("");
   const [activeTab, setActiveTab] = useState<RiskRegisterTab>(() =>
-    getRiskRegisterTab(searchParams.get("tab")),
+    parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+      .activeTab,
   );
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
     useState<RiskListItem | null>(null);
   const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
   const [sortBy, setSortBy] = useState<string>(
-    () => searchParams.get("sort_by") ?? "created_at",
+    () =>
+      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+        .sortBy,
   );
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">(
-    () => (searchParams.get("sort_order") as "asc" | "desc") ?? "desc",
+    () =>
+      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+        .sortOrder,
   );
 
   const deferredSearch = useDeferredValue(search);
@@ -345,119 +323,71 @@ export default function RiskRegisterPage() {
   };
 
   useEffect(() => {
-    const nextSearch = searchParams.get("q") ?? "";
-    const nextStatusFilter = getRiskRegisterStatusFilter(
-      searchParams.get("status"),
+    const nextState = parseRiskRegisterQueryState(
+      new URLSearchParams(searchParams.toString()),
     );
-    const nextCategoryFilter = getRiskRegisterCategoryFilter(
-      searchParams.get("category"),
-    );
-    const nextAssessmentCycleFilter =
-      searchParams.get("assessment_cycle") ?? "";
-    const nextCreatedAtFilter = searchParams.get("created_at") ?? "";
-    const nextPage = parsePositiveInt(searchParams.get("page"), 1);
-    const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
-    const nextTab = getRiskRegisterTab(searchParams.get("tab"));
-    const nextSortBy = searchParams.get("sort_by") ?? "created_at";
-    const nextSortOrder =
-      (searchParams.get("sort_order") as "asc" | "desc") ?? "desc";
 
-    setSearch((current) => (current === nextSearch ? current : nextSearch));
+    isApplyingSearchParamsRef.current = true;
+
+    setSearch((current) =>
+      current === nextState.search ? current : nextState.search,
+    );
     setStatusFilter((current) =>
-      current === nextStatusFilter ? current : nextStatusFilter,
+      current === nextState.statusFilter ? current : nextState.statusFilter,
     );
     setCategoryFilter((current) =>
-      current === nextCategoryFilter ? current : nextCategoryFilter,
+      current === nextState.categoryFilter ? current : nextState.categoryFilter,
     );
     setAssessmentCycleFilter((current) =>
-      current === nextAssessmentCycleFilter
+      current === nextState.assessmentCycleFilter
         ? current
-        : nextAssessmentCycleFilter,
+        : nextState.assessmentCycleFilter,
     );
     setCreatedAtFilter((current) =>
-      current === nextCreatedAtFilter ? current : nextCreatedAtFilter,
+      current === nextState.createdAtFilter ? current : nextState.createdAtFilter,
     );
-    setPage((current) => (current === nextPage ? current : nextPage));
-    setLimit((current) => (current === nextLimit ? current : nextLimit));
-    setActiveTab((current) => (current === nextTab ? current : nextTab));
-    setSortBy((current) => (current === nextSortBy ? current : nextSortBy));
+    setPage((current) => (current === nextState.page ? current : nextState.page));
+    setLimit((current) => (current === nextState.limit ? current : nextState.limit));
+    setActiveTab((current) =>
+      current === nextState.activeTab ? current : nextState.activeTab,
+    );
+    setSortBy((current) =>
+      current === nextState.sortBy ? current : nextState.sortBy,
+    );
     setSortOrder((current) =>
-      current === nextSortOrder ? current : nextSortOrder,
+      current === nextState.sortOrder ? current : nextState.sortOrder,
     );
   }, [searchParams]);
 
   useEffect(() => {
-    const nextParams = new URLSearchParams(searchParams.toString());
-    const normalizedSearch = search.trim();
-    const normalizedAssessmentCycle = assessmentCycleFilter.trim();
-    const normalizedCreatedAt = createdAtFilter.trim();
+    const nextState = {
+      activeTab,
+      search,
+      statusFilter,
+      categoryFilter,
+      assessmentCycleFilter,
+      createdAtFilter,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    };
+    const currentSearchParams = new URLSearchParams(searchParams.toString());
 
-    if (activeTab === "all-risks") {
-      nextParams.delete("tab");
-    } else {
-      nextParams.set("tab", activeTab);
-    }
-
-    if (normalizedSearch) {
-      nextParams.set("q", normalizedSearch);
-    } else {
-      nextParams.delete("q");
-    }
-
-    if (statusFilter === "all") {
-      nextParams.delete("status");
-    } else {
-      nextParams.set("status", statusFilter);
-    }
-
-    if (categoryFilter === "all") {
-      nextParams.delete("category");
-    } else {
-      nextParams.set("category", categoryFilter);
-    }
-
-    if (normalizedAssessmentCycle) {
-      nextParams.set("assessment_cycle", normalizedAssessmentCycle);
-    } else {
-      nextParams.delete("assessment_cycle");
-    }
-
-    if (normalizedCreatedAt) {
-      nextParams.set("created_at", normalizedCreatedAt);
-    } else {
-      nextParams.delete("created_at");
-    }
-
-    if (sortBy === "created_at" && sortOrder === "desc") {
-      nextParams.delete("sort_by");
-      nextParams.delete("sort_order");
-    } else {
-      nextParams.set("sort_by", sortBy);
-      nextParams.set("sort_order", sortOrder);
-    }
-
-    if (page === 1) {
-      nextParams.delete("page");
-    } else {
-      nextParams.set("page", page.toString());
-    }
-
-    if (limit === 10) {
-      nextParams.delete("limit");
-    } else {
-      nextParams.set("limit", limit.toString());
-    }
-
-    const nextUrl = nextParams.toString()
-      ? `${pathname}?${nextParams.toString()}`
-      : pathname;
-    const currentUrl = searchParams.toString()
-      ? `${pathname}?${searchParams.toString()}`
-      : pathname;
-
-    if (nextUrl === currentUrl) {
+    if (
+      !shouldReplaceRiskRegisterUrl({
+        hasPendingUrlStateSync: isApplyingSearchParamsRef.current,
+        currentSearchParams,
+        nextState,
+      })
+    ) {
+      isApplyingSearchParamsRef.current = false;
       return;
     }
+
+    isApplyingSearchParamsRef.current = false;
+    const nextQueryString = buildRiskRegisterQueryString(nextState);
+    const nextUrl = nextQueryString ? `${pathname}?${nextQueryString}` : pathname;
 
     startTransition(() => {
       router.replace(nextUrl, { scroll: false });
@@ -786,7 +716,7 @@ export default function RiskRegisterPage() {
       <Tabs
         defaultValue="all-risks"
         value={activeTab}
-        onValueChange={(value) => setActiveTab(getRiskRegisterTab(value))}
+        onValueChange={(value) => setActiveTab(value as RiskRegisterTab)}
       >
         <TabsList className="bg-muted/40 border border-border/50">
           <TabsTrigger value="all-risks" className="gap-2">
@@ -874,7 +804,7 @@ export default function RiskRegisterPage() {
                 <Select
                   value={statusFilter}
                   onValueChange={(value) => {
-                    setStatusFilter(getRiskRegisterStatusFilter(value));
+                    setStatusFilter(value as RiskRegisterStatusFilter);
                     setPage(1);
                   }}
                 >
@@ -892,7 +822,7 @@ export default function RiskRegisterPage() {
                 <Select
                   value={categoryFilter}
                   onValueChange={(value) => {
-                    setCategoryFilter(getRiskRegisterCategoryFilter(value));
+                    setCategoryFilter(value as RiskRegisterCategoryFilter);
                     setPage(1);
                   }}
                 >

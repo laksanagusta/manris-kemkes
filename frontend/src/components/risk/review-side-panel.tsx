@@ -386,7 +386,6 @@ export function ReviewSidePanel({
                         <div className="flex gap-2 pt-1">
                           <Button
                             size="sm"
-                            variant="outline"
                             onClick={() => {
                               if (node.label === "Ditinjau") {
                                 setReviewModalOpen(true);
@@ -395,7 +394,7 @@ export function ReviewSidePanel({
                               }
                             }}
                             disabled={submittingStage !== null}
-                            className="text-xs"
+                            className="text-xs shadow-sm"
                           >
                             {node.label === "Ditinjau"
                               ? "Lakukan Penilaian"
@@ -412,14 +411,16 @@ export function ReviewSidePanel({
 
           {onNavigateToLog && (
             <div className="mt-3 flex justify-end border-t border-border/10 pt-3">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={onNavigateToLog}
-                className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                className="h-auto gap-1.5 px-0 text-xs text-primary hover:bg-transparent hover:text-primary"
               >
                 <History className="size-3" />
                 Lihat riwayat →
-              </button>
+              </Button>
             </div>
           )}
         </div>

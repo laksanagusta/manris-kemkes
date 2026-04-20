@@ -913,7 +913,9 @@ export default function InboxPage() {
                 const displaySubtitle = isKRIReport
                   ? `${kriItem!.periodLabel} • Nilai: ${kriItem!.value !== null ? kriItem!.value : "—"} ${kriItem!.kriMetric || ""}`
                   : isWorkingPaper
-                    ? `Penandatangan #${wpItem!.sequenceNo} (${wpItem!.signerPangkat})`
+                    ? wpItem!.signerPangkat
+                      ? `Penandatangan #${wpItem!.sequenceNo} (${wpItem!.signerPangkat})`
+                      : `Penandatangan #${wpItem!.sequenceNo}`
                     : approvalItem!.notes ||
                       `Menunggu review ${approvalItem!.currentApproverRole}`;
                 const displayOrg = isKRIReport
@@ -1002,7 +1004,6 @@ export default function InboxPage() {
                       <div className="flex justify-end gap-1">
                         {isWorkingPaper ? (
                           <Button
-                            variant="outline"
                             size="sm"
                             asChild
                             className="h-7 gap-1.5 px-2 text-xs"
@@ -1029,7 +1030,7 @@ export default function InboxPage() {
                                 className="h-7 gap-1.5 px-2 text-xs"
                               >
                                 <Check className="size-3" />
-                                Terima
+                                Setujui
                               </Button>
                               <Button
                                 variant="outline"
@@ -1159,16 +1160,32 @@ export default function InboxPage() {
       />
 
       <Dialog open={kriModalOpen} onOpenChange={setKriModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {kriModalAction === "accept"
-                ? "Terima Laporan KRI"
-                : "Minta Revisi Laporan KRI"}
-            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <div
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-lg",
+                  kriModalAction === "accept"
+                    ? "bg-primary/15 text-primary"
+                    : "bg-orange-500/15 text-orange-600",
+                )}
+              >
+                {kriModalAction === "accept" ? (
+                  <Check className="size-4" />
+                ) : (
+                  <AlertCircle className="size-4" />
+                )}
+              </div>
+              <DialogTitle>
+                {kriModalAction === "accept"
+                  ? "Setujui Laporan KRI"
+                  : "Minta Revisi Laporan KRI"}
+              </DialogTitle>
+            </div>
             <DialogDescription>
               {kriModalAction === "accept"
-                ? `Terima laporan "${selectedKRIReport?.title}"? Nilai akan diperbarui secara otomatis.`
+                ? `Setujui laporan "${selectedKRIReport?.title}"? Nilai akan diperbarui secara otomatis.`
                 : `Minta revisi untuk laporan "${selectedKRIReport?.title}". Unit pelapor dapat mengirim ulang setelah revisi.`}
             </DialogDescription>
           </DialogHeader>
@@ -1197,7 +1214,7 @@ export default function InboxPage() {
               }
               className={
                 kriModalAction === "revision"
-                  ? "bg-orange-600 hover:bg-orange-700"
+                  ? "bg-orange-600 text-white hover:bg-orange-700"
                   : ""
               }
             >
@@ -1205,7 +1222,7 @@ export default function InboxPage() {
                 <Loader2 className="mr-2 size-4 animate-spin" />
               )}
               {kriModalAction === "accept"
-                ? "Terima"
+                ? "Setujui"
                 : "Kirim Permintaan Revisi"}
             </Button>
           </DialogFooter>

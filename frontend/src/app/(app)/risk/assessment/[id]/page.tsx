@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +22,7 @@ import type { Risk, RiskVersionTimelineItem } from "@/types/risk";
 import { listUsers } from "@/lib/api/users";
 import {
   buildVersionHistoryItem,
+  getRiskVersionDetailHref,
   type RiskRegisterHistoryItem,
 } from "@/lib/risk-history";
 
@@ -328,11 +330,19 @@ export default function AssessmentFormPage() {
   };
 
   const handleSaveDraft = async () => {
+    if (draftRisk?.status === "assessment_in_review" || draftRisk?.status === "approved") {
+      toast.info("Pemantauan yang sudah diajukan tidak dapat diedit lagi.");
+      return;
+    }
     submitTarget.current = "draft";
     await form.handleSubmit(onSubmit)();
   };
 
   const handleSubmitForReview = async () => {
+    if (draftRisk?.status === "assessment_in_review" || draftRisk?.status === "approved") {
+      toast.info("Pemantauan yang sudah diajukan tidak dapat diedit lagi.");
+      return;
+    }
     submitTarget.current = "review";
     setShowSubmitReviewConfirm(false);
     await form.handleSubmit(onSubmit)();
@@ -465,6 +475,13 @@ export default function AssessmentFormPage() {
 
   const onSubmit = async (values: AssessmentFormValues) => {
     if (!token || !id || !draftRisk) return;
+    if (
+      draftRisk.status === "assessment_in_review" ||
+      draftRisk.status === "approved"
+    ) {
+      toast.info("Pemantauan yang sudah diajukan tidak dapat diedit lagi.");
+      return;
+    }
     setIsSaving(true);
     try {
       const newWeight = getBobot(values.probability, values.impact);
@@ -582,6 +599,10 @@ export default function AssessmentFormPage() {
     );
   }
 
+  const isAssessmentLocked =
+    draftRisk.status === "assessment_in_review" ||
+    draftRisk.status === "approved";
+
   return (
     <div className="space-y-6 animate-fade-in pb-20">
       <FormHeader
@@ -662,8 +683,7 @@ export default function AssessmentFormPage() {
                           {versionHistory.map((item, index) => (
                             <div
                               key={item.id}
-                              className="flex gap-3 relative cursor-pointer hover:bg-muted/30 rounded-md p-1 -m-1 transition-colors"
-                              onClick={() => router.push(`/risk/register/${item.riskId}`)}
+                              className="flex gap-3 relative rounded-md p-1 -m-1 transition-colors hover:bg-muted/30"
                             >
                               <div className="shrink-0 size-6 rounded-full bg-background border border-border/50 flex items-center justify-center z-10">
                                 {item.trend === "up" ? (
@@ -676,9 +696,15 @@ export default function AssessmentFormPage() {
                               </div>
                               <div className="flex-1 min-w-0 pb-2">
                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                   <span className="text-sm font-semibold">
-                                     v{versionHistory.length - index} — {item.cycle}
-                                   </span>
+                                    <Link
+                                      href={getRiskVersionDetailHref(item)}
+                                      className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:no-underline"
+                                    >
+                                      v{versionHistory.length - index}
+                                    </Link>
+                                    <span className="text-sm font-semibold text-muted-foreground">
+                                      {item.cycle}
+                                    </span>
                                    {item.isCurrent && (
                                      <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
                                        Current
@@ -722,12 +748,12 @@ export default function AssessmentFormPage() {
             <TooltipProvider>
               {(draftRisk.status === "assessment_draft" || !id) && (
                 <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  className="gap-2 text-xs font-medium border-primary/20 hover:bg-primary/5 hover:text-primary"
-                  onClick={handleSaveDraft}
-                  disabled={isSaving}
-                >
+                  <Button
+                    variant="outline"
+                    className="gap-2 text-xs font-medium border-primary/20 hover:bg-primary/5 hover:text-primary"
+                    onClick={handleSaveDraft}
+                    disabled={isSaving || isAssessmentLocked}
+                  >
                   {isSaving && submitTarget.current === "draft" ? (
                     <Loader2 className="size-3.5 animate-spin" />
                   ) : (
@@ -735,11 +761,11 @@ export default function AssessmentFormPage() {
                   )}{" "}
                   Simpan draft
                 </Button>
-                <Button
-                  className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={openSubmitReviewConfirm}
-                  disabled={isSaving}
-                >
+                  <Button
+                    className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                    onClick={openSubmitReviewConfirm}
+                    disabled={isSaving || isAssessmentLocked}
+                  >
                   {isSaving && submitTarget.current === "review" ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
@@ -832,9 +858,10 @@ export default function AssessmentFormPage() {
                                   <TooltipTrigger asChild>
                                     <button
                                       type="button"
+                                      disabled={isAssessmentLocked}
                                       onClick={() => field.onChange(val)}
                                       className={cn(
-                                        "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                                        "h-10 rounded-lg border text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
                                         val === field.value
                                           ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, impact, getBobot(val, impact))))} ring-1 font-bold`
                                           : "bg-muted/30 hover:bg-muted/50"
@@ -870,9 +897,10 @@ export default function AssessmentFormPage() {
                                   <TooltipTrigger asChild>
                                     <button
                                       type="button"
+                                      disabled={isAssessmentLocked}
                                       onClick={() => field.onChange(val)}
                                       className={cn(
-                                        "h-10 rounded-lg border text-sm font-semibold transition-colors",
+                                        "h-10 rounded-lg border text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
                                         val === field.value
                                           ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(probability, val, getBobot(probability, val))))} ring-1 font-bold`
                                           : "bg-muted/30 hover:bg-muted/50"
@@ -908,6 +936,7 @@ export default function AssessmentFormPage() {
                           {...field}
                           placeholder="Tuliskan alasan mengapa skor probabilitas/dampak diubah..."
                           className="min-h-[100px]"
+                          disabled={isAssessmentLocked}
                         />
                       )}
                     />
@@ -928,6 +957,7 @@ export default function AssessmentFormPage() {
                           {...field}
                           placeholder="Tuliskan ringkasan dari hasil review dan rekomendasi tindakan..."
                           className="min-h-[100px]"
+                          disabled={isAssessmentLocked}
                         />
                       )}
                     />
@@ -1124,7 +1154,7 @@ export default function AssessmentFormPage() {
             inherentScore={Math.round(computedNilai)}
             token={token || undefined}
             onActionComplete={loadRiskData}
-            onNavigateToLog={() => {}}
+            onNavigateToLog={() => router.push(`/risk/register/${sourceRisk.id}`)}
           />
         </div>
       </div>
@@ -1160,7 +1190,10 @@ export default function AssessmentFormPage() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSubmitForReview}>
+            <AlertDialogAction
+              onClick={handleSubmitForReview}
+              disabled={isSaving || isAssessmentLocked}
+            >
               Lanjutkan
             </AlertDialogAction>
           </AlertDialogFooter>

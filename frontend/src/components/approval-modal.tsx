@@ -43,19 +43,28 @@ export function ApprovalModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isApprove = approvalType === "approve";
-  const isRisk = requestType === "risk";
   const isReviewer = approverRole === "reviewer";
+  const requestLabel =
+    requestType === "assessment"
+      ? "Pemantauan"
+      : requestType === "incident"
+        ? "Insiden"
+        : requestType === "working_paper"
+          ? "Kertas Kerja"
+          : requestType === "kri_report"
+            ? "Laporan KRI"
+            : "Risiko";
 
   const title = isApprove
     ? isReviewer
       ? "Setujui Review"
-      : "Setujui Approval"
-    : "Tolak Risiko";
+      : `Setujui ${requestLabel}`
+    : `Tolak ${requestLabel}`;
   const description = isApprove
     ? isReviewer
       ? "Setujui hasil review risiko ini dan berikan skor penilaian Anda."
-      : "Apakah Anda yakin ingin menyetujui risiko ini?"
-    : "Apakah Anda yakin ingin menolak risiko ini?";
+      : `Apakah Anda yakin ingin menyetujui ${requestLabel.toLowerCase()} ini?`
+    : `Apakah Anda yakin ingin menolak ${requestLabel.toLowerCase()} ini?`;
 
   const handleSubmit = async () => {
     if (!approvalId || !token) {
@@ -117,7 +126,7 @@ export function ApprovalModal({
             <div
               className={`flex size-8 items-center justify-center rounded-lg ${
                 isApprove
-                  ? "bg-green-500/15 text-green-600"
+                  ? "bg-primary/15 text-primary"
                   : "bg-red-500/15 text-red-600"
               }`}
             >
@@ -199,7 +208,7 @@ export function ApprovalModal({
                 {isApprove
                   ? isReviewer
                     ? "Setujui Review"
-                    : "Setujui Approval"
+                    : `Setujui ${requestLabel}`
                   : "Tolak"}
               </>
             )}

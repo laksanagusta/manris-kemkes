@@ -365,7 +365,11 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
             </div>
 
             {viewModel.canSign && viewModel.currentAction.buttonLabel ? (
-              <Button size="lg" className="shadow-sm" onClick={() => setSignDialogOpen(true)}>
+              <Button
+                size="lg"
+                className="shadow-sm"
+                onClick={() => setSignDialogOpen(true)}
+              >
                 <FileSignature className="mr-2 size-4" />
                 {viewModel.currentAction.buttonLabel}
               </Button>
@@ -630,7 +634,11 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                         ) : null}
 
                         {item.isActionOwner && viewModel.canSign ? (
-                          <Button size="sm" className="mt-3 w-full shadow-sm" onClick={() => setSignDialogOpen(true)}>
+                          <Button
+                            size="sm"
+                            className="mt-3 w-full shadow-sm"
+                            onClick={() => setSignDialogOpen(true)}
+                          >
                             <FileSignature className="mr-2 size-4" />
                             Tanda tangani sekarang
                           </Button>
@@ -656,7 +664,9 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSign}>Tanda Tangani</AlertDialogAction>
+            <AlertDialogAction onClick={handleSign}>
+              Tanda Tangani
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

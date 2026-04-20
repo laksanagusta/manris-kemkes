@@ -3,8 +3,15 @@ import test from "node:test";
 
 import type { Risk } from "../types/risk";
 
-// @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
-import { buildApprovedRiskHistoryItem, buildVersionHistoryItem } from "./risk-history.ts";
+const riskHistoryLib = await import(
+  new URL("./risk-history.ts", import.meta.url).href,
+);
+
+const {
+  buildApprovedRiskHistoryItem,
+  buildVersionHistoryItem,
+  getRiskVersionDetailHref,
+} = riskHistoryLib as typeof import("./risk-history");
 
 test("buildVersionHistoryItem uses inherent semantics", () => {
   const item = buildVersionHistoryItem(
@@ -121,4 +128,16 @@ test("buildVersionHistoryItem keeps non-finalized current snapshots on inherent 
   assert.equal(item.currentLevel, "Sangat Tinggi");
   assert.equal(item.trend, "up");
   assert.equal(item.changeReason, "Skor 16 dibanding current 20");
+});
+
+test("getRiskVersionDetailHref routes version items to risk detail", () => {
+  assert.equal(
+    getRiskVersionDetailHref({ riskId: "risk-approved" }),
+    "/risk/register/risk-approved",
+  );
+
+  assert.equal(
+    getRiskVersionDetailHref({ riskId: "risk-review" }),
+    "/risk/register/risk-review",
+  );
 });

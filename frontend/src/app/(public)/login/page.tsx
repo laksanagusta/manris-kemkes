@@ -1,7 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
@@ -69,7 +75,7 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md px-4 animate-fade-in">
         {/* Logo & title */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 p-2.5">
+          {/*<div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 p-2.5">
             <Image
               src="/logo.svg"
               alt="MANRIS logo"
@@ -77,13 +83,10 @@ export default function LoginPage() {
               height={44}
               className="object-contain"
             />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            <span className="gradient-text">Manris</span>
+          </div>*/}
+          <h1 className="text-2xl font-medium tracking-tight">
+            <span className="gradient-text">M A N R I S</span>
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            AI-Driven Risk & Incident Management
-          </p>
         </div>
 
         {/* Login card */}
@@ -91,13 +94,16 @@ export default function LoginPage() {
           <CardHeader className="pb-4">
             <CardTitle>Masuk ke Akun Anda</CardTitle>
             <CardDescription>
-              Gunakan kredensial yang telah diberikan administrator
+              Gunakan kredensial yang telah anda buat
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               {error && (
-                <div aria-live="polite" className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                <div
+                  aria-live="polite"
+                  className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                >
                   {error}
                 </div>
               )}
@@ -163,7 +169,8 @@ export default function LoginPage() {
                 )}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                Jika ini login pertama Anda, sistem akan meminta penggantian password sementara.
+                Jika ini login pertama Anda, sistem akan meminta penggantian
+                password sementara.
               </p>
             </form>
           </CardContent>

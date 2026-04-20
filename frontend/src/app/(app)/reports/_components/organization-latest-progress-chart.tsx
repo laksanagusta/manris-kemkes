@@ -32,7 +32,7 @@ export function OrganizationLatestProgressChart({
 }: OrganizationLatestProgressChartProps) {
   const [isOpen, setIsOpen] = useState(true);
   const hasData = data.length > 0;
-  const sortedData = [...data].sort((a, b) => b.approvedPercent - a.approvedPercent);
+  const sortedData = [...data].sort((a, b) => b.progressPercent - a.progressPercent);
 
   return (
     <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
@@ -51,7 +51,7 @@ export function OrganizationLatestProgressChart({
                   Progress Kertas Kerja Terakhir
                 </CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Persentase risiko approved pada cycle terbaru tiap organisasi.
+                  Persentase risiko approved pada kertas kerja terbaru tiap organisasi.
                 </p>
               </div>
             </CollapsibleTrigger>
@@ -76,27 +76,27 @@ export function OrganizationLatestProgressChart({
                       <TableHead className="whitespace-nowrap">Organisasi</TableHead>
                       <TableHead className="whitespace-nowrap">Periode</TableHead>
                       <TableHead className="w-[40%] whitespace-nowrap">Progress</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">Status</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Approved</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedData.map((row, idx) => (
-                      <TableRow key={`${row.orgName}-${idx}`}>
+                    {sortedData.map((row) => (
+                      <TableRow key={row.orgName}>
                         <TableCell className="text-sm font-medium">{row.orgName}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{row.period}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Progress
-                              value={row.approvedPercent}
+                              value={row.progressPercent}
                               className={`h-2 ${PROGRESS_COLOR_CLASS}`}
                             />
                             <span className="w-8 text-right text-xs text-muted-foreground">
-                              {row.approvedPercent}%
+                              {row.progressPercent}%
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right text-sm text-muted-foreground">
-                          {row.approvedCount}/{row.totalCount}
+                          {row.progressCount}/{row.totalCount}
                         </TableCell>
                       </TableRow>
                     ))}

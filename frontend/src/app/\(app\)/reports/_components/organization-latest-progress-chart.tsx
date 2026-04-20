@@ -33,7 +33,7 @@ export function OrganizationLatestProgressChart({
               Progress Kertas Kerja Terakhir
             </CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              Persentase risiko approved pada cycle terbaru tiap organisasi.
+              Progress monitoring pada kertas kerja terbaru tiap organisasi.
             </p>
           </div>
           {hasData ? (
@@ -73,7 +73,7 @@ export function OrganizationLatestProgressChart({
                     const payload = item.payload as LatestOrganizationProgressDatum;
                     return [
                       `${value}%`,
-                      `${payload.approvedCount}/${payload.totalCount} approved · ${payload.period}`,
+                      `${payload.progressCount}/${payload.totalCount} progres · ${payload.period}`,
                     ];
                   }}
                   contentStyle={{
@@ -83,7 +83,7 @@ export function OrganizationLatestProgressChart({
                     fontSize: "11px",
                   }}
                 />
-                <Bar dataKey="approvedPercent" fill={PROGRESS_COLOR} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="progressPercent" fill={PROGRESS_COLOR} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

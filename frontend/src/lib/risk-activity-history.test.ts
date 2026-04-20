@@ -95,7 +95,7 @@ test("mergeApprovalHistories dedupes duplicate entries and sorts newest first", 
   );
 
   assert.deepEqual(
-    merged.map((item) => item.id),
+    merged.map((item: { id: string }) => item.id),
     ["approval-2", "approval-3", "approval-1"],
   );
 });

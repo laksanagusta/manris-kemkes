@@ -22,6 +22,20 @@ type DashboardRiskInput = Parameters<typeof buildUnitExposureData>[0][number] & 
   nilai?: number | null;
 };
 
+type LatestOrganizationProgressInput = {
+  id?: string;
+  org_id?: string;
+  assessment_cycle?: string;
+  created_at?: string;
+  signatories?: Array<{ status?: string | null }>;
+  risks?: Array<{
+    risk?: {
+      org_name?: string | null;
+      status?: string | null;
+    } | null;
+  }>;
+};
+
 function makeDashboardRisk(
   overrides: Partial<DashboardRiskInput> = {},
 ): Parameters<typeof buildUnitExposureData>[0][number] {
@@ -38,6 +52,20 @@ function makeDashboardRisk(
     status: "assessment_draft",
     ...overrides,
   } as Parameters<typeof buildUnitExposureData>[0][number];
+}
+
+function makeWorkingPaper(
+  overrides: Partial<LatestOrganizationProgressInput> = {},
+): LatestOrganizationProgressInput {
+  return {
+    id: "wp-1",
+    org_id: "org-1",
+    assessment_cycle: "2026-H1",
+    created_at: "2026-02-01T00:00:00.000Z",
+    signatories: [{ status: "signed" }, { status: "pending" }],
+    risks: [{ risk: { org_name: "Direktorat A", status: "approved" } }],
+    ...overrides,
+  } as LatestOrganizationProgressInput;
 }
 
 test("buildUnitExposureData ranks units by weighted exposure score", () => {
@@ -351,46 +379,82 @@ test("buildInherentResidualTrendData uses base values for all approved risks", (
   ]);
 });
 
-test("buildLatestOrganizationProgressData keeps only latest cycle per organization", () => {
+test("buildLatestOrganizationProgressData keeps only the newest work paper per organization", () => {
   const result = buildLatestOrganizationProgressData([
-    makeDashboardRisk({ code: "R-001", orgName: "Direktorat A", assessmentCycle: "2025-H2", status: "approved" }),
-    makeDashboardRisk({ code: "R-002", orgName: "Direktorat A", assessmentCycle: "2026-H1", status: "approved" }),
-    makeDashboardRisk({ code: "R-003", orgName: "Direktorat A", assessmentCycle: "2026-H1", status: "assessment_draft" }),
-    makeDashboardRisk({ code: "R-004", orgName: "Direktorat B", assessmentCycle: "2025-H2", status: "assessment_draft" }),
-    makeDashboardRisk({ code: "R-005", orgName: "Direktorat B", assessmentCycle: "2025-H2", status: "approved" }),
+    makeWorkingPaper({
+      id: "wp-a-old",
+      assessment_cycle: "2025-H2",
+      created_at: "2025-10-01T00:00:00.000Z",
+      signatories: [{ status: "signed" }, { status: "pending" }],
+      risks: [
+        { risk: { org_name: "Direktorat A", status: "approved" } },
+        { risk: { org_name: "Direktorat A", status: "assessment_in_review" } },
+      ],
+    }),
+    makeWorkingPaper({
+      id: "wp-a-new",
+      assessment_cycle: "2026-H1",
+      created_at: "2026-02-10T00:00:00.000Z",
+      signatories: [
+        { status: "signed" },
+        { status: "signed" },
+        { status: "pending" },
+      ],
+      risks: [
+        { risk: { org_name: "Direktorat A", status: "approved" } },
+        { risk: { org_name: "Direktorat A", status: "approved" } },
+        { risk: { org_name: "Direktorat A", status: "assessment_in_review" } },
+        { risk: { org_name: "Direktorat A", status: "assessment_draft" } },
+      ],
+    }),
+    makeWorkingPaper({
+      id: "wp-b-new",
+      assessment_cycle: "2025-H2",
+      created_at: "2025-11-05T00:00:00.000Z",
+      signatories: [{ status: "signed" }, { status: "pending" }],
+      risks: [
+        { risk: { org_name: "Direktorat B", status: "approved" } },
+        { risk: { org_name: "Direktorat B", status: "assessment_in_review" } },
+      ],
+    }),
   ]);
 
   assert.deepEqual(result, [
     {
       orgName: "Direktorat A",
       period: "2026-H1",
-      approvedCount: 1,
-      totalCount: 2,
-      approvedPercent: 50,
+      progressCount: 2,
+      totalCount: 4,
+      progressPercent: 50,
     },
     {
       orgName: "Direktorat B",
       period: "2025-H2",
-      approvedCount: 1,
+      progressCount: 1,
       totalCount: 2,
-      approvedPercent: 50,
+      progressPercent: 50,
     },
   ]);
 });
 
-test("buildLatestOrganizationProgressData keeps zero-approved latest cycles visible", () => {
+test("buildLatestOrganizationProgressData keeps zero-progress newest work papers visible", () => {
   const result = buildLatestOrganizationProgressData([
-    makeDashboardRisk({ code: "R-010", orgName: "Direktorat C", assessmentCycle: "2026-H1", status: "assessment_draft" }),
-    makeDashboardRisk({ code: "R-011", orgName: "Direktorat C", assessmentCycle: "2026-H1", status: "assessment_in_review" }),
+    makeWorkingPaper({
+      id: "wp-c-new",
+      assessment_cycle: "2026-H1",
+      created_at: "2026-03-03T00:00:00.000Z",
+      signatories: [{ status: "pending" }, { status: "pending" }],
+      risks: [{ risk: { org_name: "Direktorat C", status: "assessment_in_review" } }],
+    }),
   ]);
 
   assert.deepEqual(result, [
     {
       orgName: "Direktorat C",
       period: "2026-H1",
-      approvedCount: 0,
-      totalCount: 2,
-      approvedPercent: 0,
+      progressCount: 0,
+      totalCount: 1,
+      progressPercent: 0,
     },
   ]);
 });

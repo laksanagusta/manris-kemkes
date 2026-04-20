@@ -28,6 +28,20 @@ type ComparisonLike = {
   movement?: string;
 };
 
+type WorkingPaperLike = {
+  id?: string;
+  org_id?: string;
+  assessment_cycle?: string;
+  created_at?: string;
+  signatories?: Array<{ status?: string | null }>;
+  risks?: Array<{
+    risk?: {
+      org_name?: string | null;
+      status?: string | null;
+    } | null;
+  }>;
+};
+
 export type UnitExposureDatum = {
   orgName: string;
   exposureScore: number;
@@ -322,61 +336,72 @@ export function buildDashboardRiskCategoryData(
 export type LatestOrganizationProgressDatum = {
   orgName: string;
   period: string;
-  approvedCount: number;
+  progressCount: number;
   totalCount: number;
-  approvedPercent: number;
+  progressPercent: number;
 };
 
-function resolveRiskPeriod(risk: Pick<RiskLike, "assessmentCycle" | "createdAt">) {
-  return normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+function resolveWorkingPaperPeriod(
+  workingPaper: Pick<WorkingPaperLike, "assessment_cycle" | "created_at">,
+) {
+  return (
+    normalizeSemesterKey(workingPaper.assessment_cycle) ||
+    deriveSemester(workingPaper.created_at)
+  );
 }
 
 export function buildLatestOrganizationProgressData(
-  risks: RiskLike[],
+  workingPapers: WorkingPaperLike[],
 ): LatestOrganizationProgressDatum[] {
   const grouped = new Map<
     string,
-    { period: string; sortValue: number; approvedCount: number; totalCount: number }
+    { period: string; sortValue: number; progressCount: number; totalCount: number }
   >();
 
-  for (const risk of risks) {
-    const orgName = risk.orgName?.trim() || "Tanpa Unit";
-    const period = resolveRiskPeriod(risk);
+  for (const workingPaper of workingPapers) {
+    const orgName =
+      workingPaper.risks
+        ?.map((item) => item.risk?.org_name?.trim())
+        .find(Boolean) ||
+      workingPaper.org_id?.trim() ||
+      "Tanpa Unit";
+    const period = resolveWorkingPaperPeriod(workingPaper);
     if (!period) continue;
 
-    const sortValue = semesterSortValue(period);
+    const createdAt = new Date(workingPaper.created_at ?? "").getTime();
+    const sortValue = Number.isNaN(createdAt)
+      ? semesterSortValue(period)
+      : createdAt;
+    const linkedRisks = workingPaper.risks ?? [];
+    const progressCount = linkedRisks.filter(
+      (linkedRisk) => linkedRisk.risk?.status === "approved",
+    ).length;
+
     const existing = grouped.get(orgName);
+    if (existing && sortValue <= existing.sortValue) continue;
 
-    if (!existing || sortValue > existing.sortValue) {
-      grouped.set(orgName, {
-        period,
-        sortValue,
-        approvedCount: risk.status === "approved" ? 1 : 0,
-        totalCount: 1,
-      });
-      continue;
-    }
-
-    if (sortValue === existing.sortValue) {
-      existing.totalCount += 1;
-      if (risk.status === "approved") existing.approvedCount += 1;
-    }
+    grouped.set(orgName, {
+      period,
+      sortValue,
+      progressCount,
+      totalCount: linkedRisks.length,
+    });
   }
 
   return [...grouped.entries()]
     .map(([orgName, bucket]) => ({
       orgName,
       period: bucket.period,
-      approvedCount: bucket.approvedCount,
+      progressCount: bucket.progressCount,
       totalCount: bucket.totalCount,
-      approvedPercent:
+      progressPercent:
         bucket.totalCount === 0
           ? 0
-          : Math.round((bucket.approvedCount / bucket.totalCount) * 1000) / 10,
+          : Math.round((bucket.progressCount / bucket.totalCount) * 1000) / 10,
     }))
     .sort(
       (left, right) =>
-        right.approvedPercent - left.approvedPercent ||
+        right.progressPercent - left.progressPercent ||
         right.totalCount - left.totalCount ||
         left.orgName.localeCompare(right.orgName),
     );

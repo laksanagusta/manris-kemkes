@@ -32,6 +32,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import { listWorkingPapers } from "@/lib/api/working-papers";
 import { useAuth } from "@/contexts/auth-context";
 import { RiskCycleDetailReport } from "./risk-cycle-detail-report";
 import { OverdueMitigationTimeline } from "./_components/overdue-mitigation-timeline";
@@ -72,6 +73,7 @@ import type {
   RiskCycleComparisonItem,
   UnitResponseTime,
 } from "@/types/risk";
+import type { WorkingPaper } from "@/types/working-paper";
 
 type RiskCycleSnapshotItem = RiskExportItem & {
   assessmentCycle?: string;
@@ -162,6 +164,39 @@ function buildRecentCycleOptions(count = 6) {
   return result;
 }
 
+const WORKING_PAPER_PAGE_SIZE = 100;
+
+async function listAllWorkingPapers(token: string): Promise<WorkingPaper[]> {
+  const firstPage = await listWorkingPapers(token, {
+    page: 1,
+    limit: WORKING_PAPER_PAGE_SIZE,
+  });
+  const initialData = firstPage.data ?? [];
+  const pageSize = firstPage.limit ?? WORKING_PAPER_PAGE_SIZE;
+  const totalPages = Math.max(
+    1,
+    Math.ceil((firstPage.total ?? initialData.length) / pageSize),
+  );
+
+  if (totalPages === 1) {
+    return initialData;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      listWorkingPapers(token, {
+        page: index + 2,
+        limit: pageSize,
+      }),
+    ),
+  );
+
+  return [
+    ...initialData,
+    ...remainingPages.flatMap((page) => page.data ?? []),
+  ];
+}
+
 export default function ReportsPage() {
   const { token } = useAuth();
   const [trendRisks, setTrendRisks] = useState<RiskTrendSourceItem[]>([]);
@@ -184,7 +219,7 @@ export default function ReportsPage() {
   );
   const [movementByOrgSort, setMovementByOrgSort] =
     useState<MovementByOrgSortKey>("total");
-  const [allRisks, setAllRisks] = useState<Risk[]>([]);
+  const [workingPapers, setWorkingPapers] = useState<WorkingPaper[]>([]);
 
   const cycleOptions = useMemo(() => buildRecentCycleOptions(), []);
   const previousCycle = useMemo(
@@ -225,8 +260,8 @@ export default function ReportsPage() {
     [comparisons, movementByOrgSort],
   );
   const organizationProgressData = useMemo(
-    () => buildLatestOrganizationProgressData(allRisks),
-    [allRisks],
+    () => buildLatestOrganizationProgressData(workingPapers),
+    [workingPapers],
   );
   const hasTrendData = trendData.length > 0;
   const hasMovementData = movementData.some((item) => item.value > 0);
@@ -268,7 +303,7 @@ export default function ReportsPage() {
       ),
       api.get<KRIBreachItem[]>("/dashboard/kri-breach-summary", token),
       api.get<UnitResponseTime[]>("/dashboard/unit-response-time", token),
-      api.get<Risk[]>("/risks", token),
+      listAllWorkingPapers(token),
     ]).then(
       ([
         riskResult,
@@ -278,7 +313,7 @@ export default function ReportsPage() {
         overdueResult,
         kriBreachResult,
         responseTimeResult,
-        allRiskResult,
+        workingPaperResult,
       ]) => {
         if (riskResult.status === "fulfilled") {
           setTrendRisks(riskResult.value);
@@ -329,9 +364,12 @@ export default function ReportsPage() {
           setResponseTimeData([]);
         }
 
-        if (allRiskResult.status === "fulfilled")
-          setAllRisks(allRiskResult.value);
-        else setAllRisks([]);
+        if (workingPaperResult.status === "fulfilled") {
+          setWorkingPapers(workingPaperResult.value);
+        } else {
+          console.error(workingPaperResult.reason);
+          setWorkingPapers([]);
+        }
       },
     );
   }, [token, exportCycle, previousCycle]);

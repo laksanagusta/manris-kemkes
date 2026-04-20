@@ -139,6 +139,7 @@ import {
 } from "@/lib/risk-register-user-picker";
 import {
   buildVersionHistoryItem,
+  getRiskVersionDetailHref,
   type RiskRegisterHistoryItem,
 } from "@/lib/risk-history";
 
@@ -207,6 +208,8 @@ type RiskApiMitigation = MitigationItem & {
 type RiskApiResponse = {
   id: string;
   status?: string;
+  draftId?: string | null;
+  hasOngoing?: boolean;
   title?: string;
   description?: string;
   category?: RiskCategory | "" | null;
@@ -536,6 +539,9 @@ export default function RiskInputPage() {
 
   const [riskId, setRiskId] = useState<string | null>(null);
   const [riskStatus, setRiskStatus] = useState<string>("assessment_draft");
+  const [ongoingAssessmentId, setOngoingAssessmentId] = useState<string | null>(
+    null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<
     { id: string; name: string }[]
@@ -747,6 +753,9 @@ export default function RiskInputPage() {
 
         setRiskId(risk.id);
         setRiskStatus(risk.status || "assessment_draft");
+        setOngoingAssessmentId(
+          risk.hasOngoing && risk.draftId ? risk.draftId : null,
+        );
 
         const loadedCauses: CauseImpactItem[] = Array.isArray(risk.cause)
           ? risk.cause
@@ -1690,8 +1699,21 @@ export default function RiskInputPage() {
           onBack={() => router.push("/risk/register")}
           actions={
             <div className="flex items-center gap-2 sm:gap-3">
-              {riskId && (
-                <Sheet
+               {ongoingAssessmentId && riskStatus === "approved" && (
+                 <Button
+                   variant="outline"
+                   className="gap-2 border-primary/20 text-primary hover:bg-primary/5 hover:text-primary"
+                   onClick={() =>
+                     router.push(`/risk/assessment/${ongoingAssessmentId}`)
+                   }
+                 >
+                   <Activity className="size-4" />
+                   Detail pemantauan
+                 </Button>
+               )}
+
+               {riskId && (
+                 <Sheet
                   open={historyOpen}
                   onOpenChange={(open) => {
                     setHistoryOpen(open);
@@ -1764,12 +1786,12 @@ export default function RiskInputPage() {
                                  </div>
                                  <div className="flex-1 min-w-0 pb-2">
                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                     <Link
-                                       href={`/risk/register/new?id=${item.riskId}`}
-                                       className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
-                                     >
-                                       v{versionHistory.length - index}
-                                     </Link>
+                                      <Link
+                                        href={getRiskVersionDetailHref(item)}
+                                        className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:no-underline"
+                                      >
+                                        v{versionHistory.length - index}
+                                      </Link>
                                      <span className="text-sm font-semibold text-muted-foreground">
                                        {item.cycle}
                                      </span>
