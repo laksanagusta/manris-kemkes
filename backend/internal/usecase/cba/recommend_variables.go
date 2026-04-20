@@ -4,34 +4,39 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
-// RecommendVariablesInput represents input for variable recommendation
 type RecommendVariablesInput struct {
 	RiskDescription string
+	OrganizationID  *uuid.UUID
 }
 
-// RecommendVariablesUseCase handles AI-driven CBA variable recommendation
 type RecommendVariablesUseCase struct {
 	cbaRepo repository.CBARepository
+	orgRepo repository.OrganizationRepository
 }
 
-// NewRecommendVariablesUseCase creates a new recommend variables use case
-func NewRecommendVariablesUseCase(cbaRepo repository.CBARepository) *RecommendVariablesUseCase {
+func NewRecommendVariablesUseCase(cbaRepo repository.CBARepository, orgRepo repository.OrganizationRepository) *RecommendVariablesUseCase {
 	return &RecommendVariablesUseCase{
 		cbaRepo: cbaRepo,
+		orgRepo: orgRepo,
 	}
 }
 
-// Execute generates CBA variable recommendations from a risk description
 func (uc *RecommendVariablesUseCase) Execute(ctx context.Context, input RecommendVariablesInput) (*entity.CBARecommendation, error) {
 	if input.RiskDescription == "" {
 		return nil, fmt.Errorf("risk description is required")
 	}
 
-	recommendation, err := uc.cbaRepo.RecommendVariables(ctx, input.RiskDescription)
+	var orgContext string
+	if input.OrganizationID != nil {
+		orgContext, _ = uc.orgRepo.GetContext(ctx, *input.OrganizationID)
+	}
+
+	recommendation, err := uc.cbaRepo.RecommendVariables(ctx, input.RiskDescription, orgContext)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate recommendations: %w", err)
 	}

@@ -140,6 +140,9 @@ func (r *reviewScheduleOrgRepo) ListWithFilter(context.Context, repository.Organ
 func (r *reviewScheduleOrgRepo) GetDescendants(context.Context, uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil
 }
+func (r *reviewScheduleOrgRepo) GetContext(context.Context, uuid.UUID) (string, error) {
+	return "", nil
+}
 
 func TestCreateRiskUseCase_ExecutePersistsReviewScheduleText(t *testing.T) {
 	reviewScheduleText := "Setiap akhir semester"

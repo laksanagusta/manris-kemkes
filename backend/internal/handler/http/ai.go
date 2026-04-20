@@ -17,6 +17,14 @@ import (
 	aiuc "github.com/manris/backend/internal/usecase/ai"
 )
 
+// scopeOrgID extracts the OrganizationID from an AccessScope, returning nil if scope is nil.
+func scopeOrgID(scope *entity.AccessScope) *uuid.UUID {
+	if scope == nil {
+		return nil
+	}
+	return scope.OrganizationID
+}
+
 // AIHandler handles AI-related HTTP requests using clean architecture
 type AIHandler struct {
 	fishboneUC        *aiuc.GenerateFishboneUseCase
@@ -89,10 +97,13 @@ func (h *AIHandler) GenerateCause(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
 	}
 
+	scope := middleware.GetAccessScope(c)
+
 	// 2. Execute use case
 	result, err := h.fishboneUC.Execute(c.Context(), aiuc.GenerateFishboneInput{
-		Title:       req.Title,
-		Description: req.Description,
+		Title:          req.Title,
+		Description:    req.Description,
+		OrganizationID: scopeOrgID(scope),
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -110,10 +121,13 @@ func (h *AIHandler) GenerateImpact(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
 	}
 
+	scope := middleware.GetAccessScope(c)
+
 	// 2. Execute use case
 	result, err := h.impactUC.Execute(c.Context(), aiuc.GenerateImpactInput{
-		Title:       req.Title,
-		Description: req.Description,
+		Title:          req.Title,
+		Description:    req.Description,
+		OrganizationID: scopeOrgID(scope),
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -133,12 +147,15 @@ func (h *AIHandler) GenerateMitigation(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
 	}
 
+	scope := middleware.GetAccessScope(c)
+
 	// 2. Execute use case
 	result, err := h.mitigationUC.Execute(c.Context(), aiuc.GenerateMitigationInput{
-		Title:       req.Title,
-		Description: req.Description,
-		Cause:       req.Cause,
-		Impact:      req.Impact,
+		Title:          req.Title,
+		Description:    req.Description,
+		Cause:          req.Cause,
+		Impact:         req.Impact,
+		OrganizationID: scopeOrgID(scope),
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -161,9 +178,12 @@ func (h *AIHandler) GenerateMinutes(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
 	}
 
+	scope := middleware.GetAccessScope(c)
+
 	// 2. Execute use case
 	result, err := h.minutesUC.Execute(c.Context(), aiuc.GenerateMinutesInput{
-		Transcript: req.Transcript,
+		Transcript:     req.Transcript,
+		OrganizationID: scopeOrgID(scope),
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -191,9 +211,12 @@ func (h *AIHandler) GenerateTranscript(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
 	}
 
+	scope := middleware.GetAccessScope(c)
+
 	// 2. Execute use case
 	result, err := h.transcriptUC.Execute(c.Context(), aiuc.AnalyzeTranscriptInput{
-		Transcript: req.Transcript,
+		Transcript:     req.Transcript,
+		OrganizationID: scopeOrgID(scope),
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -261,7 +284,8 @@ func (h *AIHandler) GeneratePredictive(c *fiber.Ctx) error {
 
 	// 2. Execute use case
 	result, err := h.predictiveUC.Execute(c.Context(), aiuc.GeneratePredictiveInput{
-		Risks: risks,
+		Risks:          risks,
+		OrganizationID: scopeOrgID(middleware.GetAccessScope(c)),
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -283,7 +307,8 @@ func (h *AIHandler) GenerateRiskSuggestion(c *fiber.Ctx) error {
 	}
 
 	result, err := h.riskSuggestionUC.Execute(c.Context(), aiuc.GenerateRiskSuggestionsInput{
-		OrgIDs: orgIDs,
+		OrgIDs:         orgIDs,
+		OrganizationID: scope.OrganizationID,
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -317,10 +342,13 @@ func (h *AIHandler) GenerateKRI(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
 	}
 
+	scope := middleware.GetAccessScope(c)
+
 	// 2. Execute use case
 	result, err := h.kriUC.Execute(c.Context(), aiuc.GenerateKRIInput{
-		Title:       req.Title,
-		Description: req.Description,
+		Title:          req.Title,
+		Description:    req.Description,
+		OrganizationID: scopeOrgID(scope),
 	})
 	if err != nil {
 		return handleError(c, err)

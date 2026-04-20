@@ -69,6 +69,10 @@ func (s *handlerOrgRepo) GetDescendants(_ context.Context, _ uuid.UUID) ([]uuid.
 	return nil, nil
 }
 
+func (s *handlerOrgRepo) GetContext(_ context.Context, _ uuid.UUID) (string, error) {
+	return "", nil
+}
+
 func (s *handlerOrgRepo) GetByID(_ context.Context, id uuid.UUID) (*entity.Organization, error) {
 	if org, ok := s.orgs[id]; ok {
 		return org, nil

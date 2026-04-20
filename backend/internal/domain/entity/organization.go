@@ -12,6 +12,7 @@ type Organization struct {
 	ID        uuid.UUID  `json:"id"`
 	Name      string     `json:"name"`
 	ParentID  *uuid.UUID `json:"parentId,omitempty"`
+	Context   string     `json:"context,omitempty"`
 	CreatedAt time.Time  `json:"createdAt"`
 }
 

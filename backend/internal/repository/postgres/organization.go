@@ -10,9 +10,15 @@ import (
 	"github.com/manris/backend/internal/domain/repository"
 )
 
-// organizationRepository is the PostgreSQL implementation of repository.OrganizationRepository
 type organizationRepository struct {
 	pool *pgxpool.Pool
+}
+
+func nilIfEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 // NewOrganizationRepository creates a new organization repository
@@ -23,8 +29,8 @@ func NewOrganizationRepository(pool *pgxpool.Pool) repository.OrganizationReposi
 // Create inserts a new organization
 func (r *organizationRepository) Create(ctx context.Context, org *entity.Organization) error {
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO organizations (name, parent_id, created_at) VALUES ($1,$2,NOW()) RETURNING id, created_at`,
-		org.Name, org.ParentID,
+		`INSERT INTO organizations (name, parent_id, context, created_at) VALUES ($1,$2,$3,NOW()) RETURNING id, created_at`,
+		org.Name, org.ParentID, nilIfEmpty(org.Context),
 	).Scan(&org.ID, &org.CreatedAt)
 
 	if err != nil {
@@ -37,9 +43,13 @@ func (r *organizationRepository) Create(ctx context.Context, org *entity.Organiz
 // GetByID retrieves an organization by ID
 func (r *organizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Organization, error) {
 	org := &entity.Organization{}
+	var context *string
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, parent_id, created_at FROM organizations WHERE id = $1`, id,
-	).Scan(&org.ID, &org.Name, &org.ParentID, &org.CreatedAt)
+		`SELECT id, name, parent_id, context, created_at FROM organizations WHERE id = $1`, id,
+	).Scan(&org.ID, &org.Name, &org.ParentID, &context, &org.CreatedAt)
+	if context != nil {
+		org.Context = *context
+	}
 
 	if err != nil {
 		return nil, fmt.Errorf("find organization by id: %w", err)
@@ -51,8 +61,8 @@ func (r *organizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 // Update updates an organization
 func (r *organizationRepository) Update(ctx context.Context, org *entity.Organization) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE organizations SET name=$2, parent_id=$3 WHERE id=$1`,
-		org.ID, org.Name, org.ParentID,
+		`UPDATE organizations SET name=$2, parent_id=$3, context=$4 WHERE id=$1`,
+		org.ID, org.Name, org.ParentID, nilIfEmpty(org.Context),
 	)
 
 	if err != nil {
@@ -73,7 +83,7 @@ func (r *organizationRepository) Delete(ctx context.Context, id uuid.UUID) error
 
 // List retrieves all organizations
 func (r *organizationRepository) List(ctx context.Context) ([]*entity.Organization, error) {
-	rows, err := r.pool.Query(ctx, `SELECT id, name, parent_id, created_at FROM organizations ORDER BY name ASC`)
+	rows, err := r.pool.Query(ctx, `SELECT id, name, parent_id, context, created_at FROM organizations ORDER BY name ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("list organizations: %w", err)
 	}
@@ -82,8 +92,12 @@ func (r *organizationRepository) List(ctx context.Context) ([]*entity.Organizati
 	var orgs []*entity.Organization
 	for rows.Next() {
 		var org entity.Organization
-		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &org.CreatedAt); err != nil {
+		var ctxVal *string
+		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &ctxVal, &org.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan organization: %w", err)
+		}
+		if ctxVal != nil {
+			org.Context = *ctxVal
 		}
 		orgs = append(orgs, &org)
 	}
@@ -93,7 +107,7 @@ func (r *organizationRepository) List(ctx context.Context) ([]*entity.Organizati
 
 func (r *organizationRepository) ListWithFilter(ctx context.Context, filter repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
 	countQuery := `SELECT COUNT(*) FROM organizations WHERE 1=1`
-	dataQuery := `SELECT id, name, parent_id, created_at FROM organizations WHERE 1=1`
+	dataQuery := `SELECT id, name, parent_id, context, created_at FROM organizations WHERE 1=1`
 
 	var args []interface{}
 	argIdx := 1
@@ -125,13 +139,31 @@ func (r *organizationRepository) ListWithFilter(ctx context.Context, filter repo
 	var orgs []*entity.Organization
 	for rows.Next() {
 		var org entity.Organization
-		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &org.CreatedAt); err != nil {
+		var ctxVal *string
+		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &ctxVal, &org.CreatedAt); err != nil {
 			return nil, 0, fmt.Errorf("list organizations scan: %w", err)
+		}
+		if ctxVal != nil {
+			org.Context = *ctxVal
 		}
 		orgs = append(orgs, &org)
 	}
 
 	return orgs, total, nil
+}
+
+func (r *organizationRepository) GetContext(ctx context.Context, orgID uuid.UUID) (string, error) {
+	var context *string
+	err := r.pool.QueryRow(ctx,
+		`SELECT context FROM organizations WHERE id = $1`, orgID,
+	).Scan(&context)
+	if err != nil {
+		return "", fmt.Errorf("get organization context: %w", err)
+	}
+	if context == nil {
+		return "", nil
+	}
+	return *context, nil
 }
 
 func (r *organizationRepository) GetDescendants(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {

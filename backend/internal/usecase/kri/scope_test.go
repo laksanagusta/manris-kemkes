@@ -66,9 +66,9 @@ func (r *scopeKRIRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*ent
 	return nil, nil
 }
 func (r *scopeKRIRiskRepo) NextRiskCode(context.Context) (string, error) { return "", nil }
-func (r *scopeKRIRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
+func (r *scopeKRIRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, nil
- }
+}
 func (r *scopeKRIRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, nil
 }
@@ -126,6 +126,9 @@ func (r *scopeKRIOrgRepo) ListWithFilter(context.Context, repo.OrganizationListF
 }
 func (r *scopeKRIOrgRepo) GetDescendants(_ context.Context, id uuid.UUID) ([]uuid.UUID, error) {
 	return []uuid.UUID{id}, nil
+}
+func (r *scopeKRIOrgRepo) GetContext(_ context.Context, _ uuid.UUID) (string, error) {
+	return "", nil
 }
 
 func TestGetKRIScopedAllowsAccessibleOrg(t *testing.T) {

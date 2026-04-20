@@ -3,6 +3,7 @@ package http
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/middleware"
 	cbauc "github.com/manris/backend/internal/usecase/cba"
 )
 
@@ -41,6 +42,7 @@ func (h *CBAHandler) RecommendVariables(c *fiber.Ctx) error {
 
 	result, err := h.recommendUC.Execute(c.Context(), cbauc.RecommendVariablesInput{
 		RiskDescription: req.RiskDescription,
+		OrganizationID:  scopeOrgID(middleware.GetAccessScope(c)),
 	})
 	if err != nil {
 		return handleError(c, err)

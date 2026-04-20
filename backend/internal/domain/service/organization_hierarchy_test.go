@@ -46,6 +46,10 @@ func (m *mockOrgRepo) GetDescendants(ctx context.Context, orgID uuid.UUID) ([]uu
 	return m.descendants, nil
 }
 
+func (m *mockOrgRepo) GetContext(_ context.Context, _ uuid.UUID) (string, error) {
+	return "", nil
+}
+
 func TestOrganizationHierarchy_GetAccessibleOrgs(t *testing.T) {
 	t.Run("returns descendants for user's organization", func(t *testing.T) {
 		orgID := uuid.New()

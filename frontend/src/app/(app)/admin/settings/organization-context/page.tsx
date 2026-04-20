@@ -47,7 +47,7 @@ export default function OrganizationContextPage() {
       try {
         setIsLoading(true);
         if (isSuperAdmin) {
-          const res = await api.get<{ data: Organization[] }>("/organizations", authToken);
+          const res = await api.get<{ data: Organization[] }>("/organizations?limit=100", authToken);
           const orgs = res.data || [];
           setOrganizations(orgs);
           
@@ -74,8 +74,7 @@ export default function OrganizationContextPage() {
   const fetchOrgDetails = async (id: string) => {
     if (!id) return;
     try {
-      const res = await api.get<{ data: Organization }>(`/organizations/${id}`, authToken);
-      const org = res.data;
+      const org = await api.get<Organization>(`/organizations/${id}`, authToken);
       if (org) {
         setOrgName(org.name || "");
         setContext(org.context || "");

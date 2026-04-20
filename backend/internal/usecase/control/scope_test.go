@@ -65,9 +65,9 @@ func (r *scopeCtrlRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*en
 	return nil, nil
 }
 func (r *scopeCtrlRiskRepo) NextRiskCode(context.Context) (string, error) { return "", nil }
-func (r *scopeCtrlRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
+func (r *scopeCtrlRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, nil
- }
+}
 func (r *scopeCtrlRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, nil
 }
@@ -125,6 +125,9 @@ func (r *scopeCtrlOrgRepo) ListWithFilter(context.Context, repository.Organizati
 }
 func (r *scopeCtrlOrgRepo) GetDescendants(_ context.Context, id uuid.UUID) ([]uuid.UUID, error) {
 	return []uuid.UUID{id}, nil
+}
+func (r *scopeCtrlOrgRepo) GetContext(_ context.Context, _ uuid.UUID) (string, error) {
+	return "", nil
 }
 
 func TestGetControlScopedAllowsAccessibleOrg(t *testing.T) {

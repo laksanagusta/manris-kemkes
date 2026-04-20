@@ -1,56 +1,23 @@
 {
-  "active_plan": "/Users/dikalaksana/Engineering/manris-v2/.sisyphus/plans/docker-deploy.md",
-  "started_at": "2026-04-19T13:44:47.203Z",
+  "active_plan": "/Users/dikalaksana/Engineering/manris-v2/.sisyphus/plans/org-context.md",
+  "started_at": "2026-04-20T17:00:00.000Z",
   "session_ids": [
-    "ses_25a0c3e59ffeVDNmbXq1aD3UPt",
-    "ses_25a029fa2ffe3Y5yVv13p050i7",
-    "ses_25a026c57ffe4xFN40CEWugGn7",
-    "ses_25a0236e7ffe59fMCV0AZk4Ggs",
-    "ses_259f981d1ffeKnSiEBo9b5uV3n",
-    "ses_259f9b948ffeimAXdq5u3BcOdn",
-    "ses_259f79f36ffeFu1cSQ7ML7Xmt8",
-    "ses_259f4a465ffeLBS9CrzqmiHraN",
-    "ses_259f37f5affeJ7a0O9Q7wRGc0N",
-    "ses_259f2162affenaQJ3CPjoVrhqE",
-    "ses_259f00684ffe2823WS24fbhvjn"
+    "ses_2546baf9fffe4R0OhvBAPathIg",
+    "ses_25426587fffey38mnMVLe2sAYH",
+    "ses_254267266ffeUhcve9OA5EzAjQ",
+    "ses_25425e59bffeHXdyVxaCkXdpcf",
+    "ses_254262860ffeE23NPzRaz4jWNt"
   ],
-  "plan_name": "docker-deploy",
+  "plan_name": "org-context",
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "Backend Dockerfile + .dockerignore + entrypoint.sh",
-      "session_id": "ses_25a029fa2ffe3Y5yVv13p050i7",
+      "task_title": "DB Migration: Add `context` column to organizations",
+      "session_id": "ses_2542a7f3fffeBESycdLt0lNsYA",
       "agent": "Sisyphus-Junior",
       "category": "quick",
-      "updated_at": "2026-04-19T13:46:10.560Z"
-    },
-    "todo:4": {
-      "task_key": "todo:4",
-      "task_label": "4",
-      "task_title": "docker-compose.yml + Nginx configuration",
-      "session_id": "ses_259f9b948ffeimAXdq5u3BcOdn",
-      "agent": "Sisyphus-Junior",
-      "category": "unspecified-high",
-      "updated_at": "2026-04-19T13:56:50.952Z"
-    },
-    "todo:6": {
-      "task_key": "todo:6",
-      "task_label": "6",
-      "task_title": "Server setup script + Deployment documentation",
-      "session_id": "ses_259f79f36ffeFu1cSQ7ML7Xmt8",
-      "agent": "Sisyphus-Junior",
-      "category": "writing",
-      "updated_at": "2026-04-19T13:59:19.124Z"
-    },
-    "final-wave:f1": {
-      "task_key": "final-wave:f1",
-      "task_label": "F1",
-      "task_title": "**Plan Compliance Audit** — `oracle`",
-      "session_id": "ses_259f00684ffe2823WS24fbhvjn",
-      "agent": "Sisyphus-Junior",
-      "category": "deep",
-      "updated_at": "2026-04-19T14:06:59.535Z"
+      "updated_at": "2026-04-20T17:01:53.996Z"
     }
   },
   "agent": "atlas"

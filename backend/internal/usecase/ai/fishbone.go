@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
@@ -10,19 +11,22 @@ import (
 
 // GenerateFishboneInput represents input for fishbone generation
 type GenerateFishboneInput struct {
-	Title       string
-	Description string
+	Title          string
+	Description    string
+	OrganizationID *uuid.UUID
 }
 
 // GenerateFishboneUseCase handles fishbone diagram generation
 type GenerateFishboneUseCase struct {
-	aiRepo repository.AIRepository
+	aiRepo  repository.AIRepository
+	orgRepo repository.OrganizationRepository
 }
 
 // NewGenerateFishboneUseCase creates a new fishbone use case
-func NewGenerateFishboneUseCase(aiRepo repository.AIRepository) *GenerateFishboneUseCase {
+func NewGenerateFishboneUseCase(aiRepo repository.AIRepository, orgRepo repository.OrganizationRepository) *GenerateFishboneUseCase {
 	return &GenerateFishboneUseCase{
-		aiRepo: aiRepo,
+		aiRepo:  aiRepo,
+		orgRepo: orgRepo,
 	}
 }
 
@@ -42,7 +46,12 @@ func (uc *GenerateFishboneUseCase) Execute(ctx context.Context, input GenerateFi
 		Description: input.Description,
 	}
 
-	analysis, err := uc.aiRepo.GenerateFishbone(ctx, req)
+	var orgContext string
+	if input.OrganizationID != nil {
+		orgContext, _ = uc.orgRepo.GetContext(ctx, *input.OrganizationID)
+	}
+
+	analysis, err := uc.aiRepo.GenerateFishbone(ctx, req, orgContext)
 	if err != nil {
 		return nil, err
 	}

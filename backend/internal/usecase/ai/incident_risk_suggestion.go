@@ -12,11 +12,15 @@ import (
 )
 
 type GenerateManualIncidentRiskSuggestionsUseCase struct {
-	aiRepo repository.AIRepository
+	aiRepo  repository.AIRepository
+	orgRepo repository.OrganizationRepository
 }
 
-func NewGenerateManualIncidentRiskSuggestionsUseCase(aiRepo repository.AIRepository) *GenerateManualIncidentRiskSuggestionsUseCase {
-	return &GenerateManualIncidentRiskSuggestionsUseCase{aiRepo: aiRepo}
+func NewGenerateManualIncidentRiskSuggestionsUseCase(aiRepo repository.AIRepository, orgRepo repository.OrganizationRepository) *GenerateManualIncidentRiskSuggestionsUseCase {
+	return &GenerateManualIncidentRiskSuggestionsUseCase{
+		aiRepo:  aiRepo,
+		orgRepo: orgRepo,
+	}
 }
 
 type GenerateManualIncidentRiskSuggestionsInput struct {
@@ -39,6 +43,11 @@ func (uc *GenerateManualIncidentRiskSuggestionsUseCase) Execute(ctx context.Cont
 		return nil, errors.ErrInvalidInput
 	}
 
+	var orgContext string
+	if input.OrganizationID != nil {
+		orgContext, _ = uc.orgRepo.GetContext(ctx, *input.OrganizationID)
+	}
+
 	return uc.aiRepo.GenerateManualIncidentRiskSuggestions(ctx, entity.ManualIncidentRiskSuggestionRequest{
 		Title:          strings.TrimSpace(input.Title),
 		What:           strings.TrimSpace(input.What),
@@ -48,5 +57,5 @@ func (uc *GenerateManualIncidentRiskSuggestionsUseCase) Execute(ctx context.Cont
 		WhyHow:         strings.TrimSpace(input.WhyHow),
 		Severity:       normalizeIncidentSeverity(input.Severity),
 		OrganizationID: input.OrganizationID,
-	})
+	}, orgContext)
 }

@@ -808,19 +808,19 @@ Wave FINAL (After ALL tasks):
 
 > 4 review agents run in PARALLEL. ALL must APPROVE. Present consolidated results to user and get explicit "okay" before completing.
 
-- [ ] F1. **Plan Compliance Audit** — `oracle`
+- [x] F1. **Plan Compliance Audit** — `oracle`
   Read the plan end-to-end. For each "Must Have": verify implementation exists (read file, run command). For each "Must NOT Have": search codebase for forbidden patterns — reject with file:line if found. Check evidence files exist in .sisyphus/evidence/. Compare deliverables against plan.
   Output: `Must Have [N/N] | Must NOT Have [N/N] | Tasks [N/N] | VERDICT: APPROVE/REJECT`
 
-- [ ] F2. **Code Quality Review** — `unspecified-high`
+- [x] F2. **Code Quality Review** — `unspecified-high`
   Review all Docker/Nginx/workflow files for: security issues (secrets exposure, root containers, exposed ports), best practices (multi-stage builds, layer caching, .dockerignore), syntax correctness. Run `docker compose config` to validate.
   Output: `Security [PASS/FAIL] | Best Practices [PASS/FAIL] | Syntax [PASS/FAIL] | VERDICT`
 
-- [ ] F3. **Real Manual QA** — `unspecified-high`
+- [x] F3. **Real Manual QA** — `unspecified-high`
   Run `docker compose build` locally. Run `docker compose config`. Verify Nginx config with `docker run --rm -v ./nginx:/etc/nginx nginx:alpine nginx -t`. Check all file references exist. Verify GitHub Actions YAML syntax.
   Output: `Build [PASS/FAIL] | Config [PASS/FAIL] | Nginx [PASS/FAIL] | VERDICT`
 
-- [ ] F4. **Scope Fidelity Check** — `deep`
+- [x] F4. **Scope Fidelity Check** — `deep`
   For each task: read "What to do", read actual files created. Verify 1:1 — everything in spec was built (no missing), nothing beyond spec was built (no creep). Check "Must NOT do" compliance. Flag unaccounted changes.
   Output: `Tasks [N/N compliant] | Creep [CLEAN/N issues] | VERDICT`
 

@@ -36,7 +36,7 @@ func NewAIRepository(apiKey string, riskRepo repository.RiskRepository, modelPro
 }
 
 // GenerateFishbone generates root cause analysis using fishbone diagram
-func (r *aiRepository) GenerateFishbone(ctx context.Context, req entity.AIRequest) (*entity.FishboneAnalysis, error) {
+func (r *aiRepository) GenerateFishbone(ctx context.Context, req entity.AIRequest, orgContext string) (*entity.FishboneAnalysis, error) {
 	if r.client == nil {
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
@@ -50,7 +50,7 @@ func (r *aiRepository) GenerateFishbone(ctx context.Context, req entity.AIReques
 	prompt := r.buildFishbonePrompt(req.Title, req.Description)
 
 	// Call OpenAI API
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko profesional. Anda hanya merespons menggunakan JSON yang tersusun rapi dan valid.", "cause")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko profesional. Anda hanya merespons menggunakan JSON yang tersusun rapi dan valid.", "cause", orgContext)
 	if err != nil {
 		return nil, err
 	}
@@ -65,14 +65,14 @@ func (r *aiRepository) GenerateFishbone(ctx context.Context, req entity.AIReques
 }
 
 // GenerateImpact generates impact description for a risk
-func (r *aiRepository) GenerateImpact(ctx context.Context, req entity.AIRequest) (string, error) {
+func (r *aiRepository) GenerateImpact(ctx context.Context, req entity.AIRequest, orgContext string) (string, error) {
 	if r.client == nil {
 		return "", fmt.Errorf("OpenAI client is not configured")
 	}
 
 	prompt := r.buildImpactPrompt(req.Title, req.Description)
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko andal. Berikan respon sesuai instruksi secara langsung tanpa basa-basi.", "impact")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko andal. Berikan respon sesuai instruksi secara langsung tanpa basa-basi.", "impact", orgContext)
 	if err != nil {
 		return "", err
 	}
@@ -81,14 +81,14 @@ func (r *aiRepository) GenerateImpact(ctx context.Context, req entity.AIRequest)
 }
 
 // GenerateMitigation generates mitigation action recommendations
-func (r *aiRepository) GenerateMitigation(ctx context.Context, req entity.AIRequest) (entity.MitigationAction, error) {
+func (r *aiRepository) GenerateMitigation(ctx context.Context, req entity.AIRequest, orgContext string) (entity.MitigationAction, error) {
 	if r.client == nil {
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
 
 	prompt := r.buildMitigationPrompt(req.Title, req.Description, req.Cause, req.Impact)
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah pakar manajemen resiko. Anda hanya merespons menggunakan JSON array yang berisi 5 (lima) baris aksi mitigasi.", "mitigation")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah pakar manajemen resiko. Anda hanya merespons menggunakan JSON array yang berisi 5 (lima) baris aksi mitigasi.", "mitigation", orgContext)
 	if err != nil {
 		return nil, err
 	}
@@ -106,14 +106,14 @@ func (r *aiRepository) GenerateMitigation(ctx context.Context, req entity.AIRequ
 }
 
 // GenerateMeetingMinutes generates structured meeting minutes from transcript
-func (r *aiRepository) GenerateMeetingMinutes(ctx context.Context, transcript string) (*entity.MeetingMinutes, error) {
+func (r *aiRepository) GenerateMeetingMinutes(ctx context.Context, transcript string, orgContext string) (*entity.MeetingMinutes, error) {
 	if r.client == nil {
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
 
 	prompt := r.buildMinutesPrompt(transcript)
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah notulis profesional. Hanya merespons menggunakan JSON yang tersusun rapi.", "minutes")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah notulis profesional. Hanya merespons menggunakan JSON yang tersusun rapi.", "minutes", orgContext)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (r *aiRepository) GenerateMeetingMinutes(ctx context.Context, transcript st
 }
 
 // AnalyzeTranscript analyzes meeting transcript and extracts risk suggestions
-func (r *aiRepository) AnalyzeTranscript(ctx context.Context, transcript string) (*entity.TranscriptAnalysis, error) {
+func (r *aiRepository) AnalyzeTranscript(ctx context.Context, transcript string, orgContext string) (*entity.TranscriptAnalysis, error) {
 	if r.client == nil {
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
@@ -161,7 +161,7 @@ func (r *aiRepository) AnalyzeTranscript(ctx context.Context, transcript string)
 	existingRisksJSON, _ := json.Marshal(candidates)
 	prompt := r.buildTranscriptPrompt(transcript, string(existingRisksJSON))
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko. Hanya merespons menggunakan JSON valid tanpa markdown.", "transcript")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko. Hanya merespons menggunakan JSON valid tanpa markdown.", "transcript", orgContext)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (r *aiRepository) AnalyzeTranscript(ctx context.Context, transcript string)
 }
 
 // GeneratePredictive generates predictive risk scoring based on historical data
-func (r *aiRepository) GeneratePredictive(ctx context.Context, risks []entity.Risk) ([]entity.PredictiveRisk, error) {
+func (r *aiRepository) GeneratePredictive(ctx context.Context, risks []entity.Risk, orgContext string) ([]entity.PredictiveRisk, error) {
 	if r.client == nil {
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
@@ -196,7 +196,7 @@ func (r *aiRepository) GeneratePredictive(ctx context.Context, risks []entity.Ri
 
 	prompt := r.buildPredictivePrompt(risks[:limit])
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko AI. Hanya balas dengan valid array of JSON objects.", "predictive")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis resiko AI. Hanya balas dengan valid array of JSON objects.", "predictive", orgContext)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (r *aiRepository) GeneratePredictive(ctx context.Context, risks []entity.Ri
 }
 
 // GenerateRiskSuggestions generates unique risk suggestions different from existing ones
-func (r *aiRepository) GenerateRiskSuggestions(ctx context.Context) (*entity.RiskSuggestions, error) {
+func (r *aiRepository) GenerateRiskSuggestions(ctx context.Context, orgContext string) (*entity.RiskSuggestions, error) {
 	if r.client == nil {
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
@@ -243,7 +243,7 @@ func (r *aiRepository) GenerateRiskSuggestions(ctx context.Context) (*entity.Ris
 	// Build prompt
 	prompt := r.buildRiskSuggestionPrompt(string(existingTitlesJSON))
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis risiko profesional di sektor kesehatan pemerintahan. Anda hanya merespons menggunakan JSON yang valid.", "risk-suggestion")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis risiko profesional di sektor kesehatan pemerintahan. Anda hanya merespons menggunakan JSON yang valid.", "risk-suggestion", orgContext)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +261,7 @@ func (r *aiRepository) GenerateRiskSuggestions(ctx context.Context) (*entity.Ris
 }
 
 // GenerateIncidentBatchExtraction extracts one or more incident candidates from a PDF-derived text document.
-func (r *aiRepository) GenerateIncidentBatchExtraction(ctx context.Context, req entity.IncidentExtractionRequest) (*entity.IncidentBatchExtraction, error) {
+func (r *aiRepository) GenerateIncidentBatchExtraction(ctx context.Context, req entity.IncidentExtractionRequest, orgContext string) (*entity.IncidentBatchExtraction, error) {
 	if r.client == nil {
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
@@ -272,7 +272,7 @@ func (r *aiRepository) GenerateIncidentBatchExtraction(ctx context.Context, req 
 	}
 	prompt := r.buildIncidentBatchExtractionPrompt(req.DocumentText, string(riskCandidatesJSON))
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis insiden dan risiko di sektor kesehatan pemerintahan. Kembalikan JSON valid saja, tanpa markdown.", "incident")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis insiden dan risiko di sektor kesehatan pemerintahan. Kembalikan JSON valid saja, tanpa markdown.", "incident", orgContext)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +289,7 @@ func (r *aiRepository) GenerateIncidentBatchExtraction(ctx context.Context, req 
 }
 
 // GenerateManualIncidentRiskSuggestions suggests related risks for a manual incident form input.
-func (r *aiRepository) GenerateManualIncidentRiskSuggestions(ctx context.Context, req entity.ManualIncidentRiskSuggestionRequest) ([]entity.IncidentRiskSuggestion, error) {
+func (r *aiRepository) GenerateManualIncidentRiskSuggestions(ctx context.Context, req entity.ManualIncidentRiskSuggestionRequest, orgContext string) ([]entity.IncidentRiskSuggestion, error) {
 	if r.client == nil {
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
@@ -300,7 +300,7 @@ func (r *aiRepository) GenerateManualIncidentRiskSuggestions(ctx context.Context
 	}
 
 	prompt := r.buildManualIncidentRiskSuggestionPrompt(req, string(riskCandidatesJSON))
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis insiden dan risiko di sektor kesehatan pemerintahan. Kembalikan JSON valid saja, tanpa markdown.", "incident")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis insiden dan risiko di sektor kesehatan pemerintahan. Kembalikan JSON valid saja, tanpa markdown.", "incident", orgContext)
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +324,11 @@ func (r *aiRepository) GenerateManualIncidentRiskSuggestions(ctx context.Context
 
 // Helper methods
 
-func (r *aiRepository) callOpenAI(ctx context.Context, prompt string, systemMessage string, feature string) (string, error) {
+func (r *aiRepository) callOpenAI(ctx context.Context, prompt string, systemMessage string, feature string, orgContext string) (string, error) {
+	if orgContext != "" {
+		systemMessage = "Konteks Organisasi:\n" + orgContext + "\n\n" + systemMessage
+	}
+
 	model := "gpt-4o-mini"
 	if r.modelProvider != nil {
 		model = r.modelProvider.GetModelForFeature(feature)
@@ -748,7 +752,7 @@ func truncateText(value string, limit int) string {
 }
 
 // GenerateKRI generates KRI suggestions for a given risk
-func (r *aiRepository) GenerateKRI(ctx context.Context, req entity.AIRequest) (*entity.KRISuggestions, error) {
+func (r *aiRepository) GenerateKRI(ctx context.Context, req entity.AIRequest, orgContext string) (*entity.KRISuggestions, error) {
 	if r.client == nil {
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
@@ -759,7 +763,7 @@ func (r *aiRepository) GenerateKRI(ctx context.Context, req entity.AIRequest) (*
 
 	prompt := r.buildKRIPrompt(req.Title, req.Description)
 
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis risiko profesional di sektor kesehatan pemerintahan. Anda hanya merespons menggunakan JSON yang valid.", "kri")
+	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis risiko profesional di sektor kesehatan pemerintahan. Anda hanya merespons menggunakan JSON yang valid.", "kri", orgContext)
 	if err != nil {
 		return nil, err
 	}

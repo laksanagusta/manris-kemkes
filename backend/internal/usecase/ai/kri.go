@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
@@ -10,19 +11,22 @@ import (
 
 // GenerateKRIInput represents input for KRI generation
 type GenerateKRIInput struct {
-	Title       string
-	Description string
+	Title          string
+	Description    string
+	OrganizationID *uuid.UUID
 }
 
 // GenerateKRIUseCase handles KRI suggestion generation
 type GenerateKRIUseCase struct {
-	aiRepo repository.AIRepository
+	aiRepo  repository.AIRepository
+	orgRepo repository.OrganizationRepository
 }
 
 // NewGenerateKRIUseCase creates a new KRI generation use case
-func NewGenerateKRIUseCase(aiRepo repository.AIRepository) *GenerateKRIUseCase {
+func NewGenerateKRIUseCase(aiRepo repository.AIRepository, orgRepo repository.OrganizationRepository) *GenerateKRIUseCase {
 	return &GenerateKRIUseCase{
-		aiRepo: aiRepo,
+		aiRepo:  aiRepo,
+		orgRepo: orgRepo,
 	}
 }
 
@@ -42,7 +46,12 @@ func (uc *GenerateKRIUseCase) Execute(ctx context.Context, input GenerateKRIInpu
 		Description: input.Description,
 	}
 
-	suggestions, err := uc.aiRepo.GenerateKRI(ctx, req)
+	var orgContext string
+	if input.OrganizationID != nil {
+		orgContext, _ = uc.orgRepo.GetContext(ctx, *input.OrganizationID)
+	}
+
+	suggestions, err := uc.aiRepo.GenerateKRI(ctx, req, orgContext)
 	if err != nil {
 		return nil, err
 	}

@@ -3,24 +3,28 @@ package ai
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
 // GeneratePredictiveInput represents input for predictive risk scoring
 type GeneratePredictiveInput struct {
-	Risks []entity.Risk
+	Risks          []entity.Risk
+	OrganizationID *uuid.UUID
 }
 
 // GeneratePredictiveUseCase handles predictive risk scoring
 type GeneratePredictiveUseCase struct {
-	aiRepo repository.AIRepository
+	aiRepo  repository.AIRepository
+	orgRepo repository.OrganizationRepository
 }
 
 // NewGeneratePredictiveUseCase creates a new generate predictive use case
-func NewGeneratePredictiveUseCase(aiRepo repository.AIRepository) *GeneratePredictiveUseCase {
+func NewGeneratePredictiveUseCase(aiRepo repository.AIRepository, orgRepo repository.OrganizationRepository) *GeneratePredictiveUseCase {
 	return &GeneratePredictiveUseCase{
-		aiRepo: aiRepo,
+		aiRepo:  aiRepo,
+		orgRepo: orgRepo,
 	}
 }
 
@@ -32,7 +36,12 @@ func (uc *GeneratePredictiveUseCase) Execute(ctx context.Context, input Generate
 	}
 
 	// 2. Call AI repository
-	predictions, err := uc.aiRepo.GeneratePredictive(ctx, input.Risks)
+	var orgContext string
+	if input.OrganizationID != nil {
+		orgContext, _ = uc.orgRepo.GetContext(ctx, *input.OrganizationID)
+	}
+
+	predictions, err := uc.aiRepo.GeneratePredictive(ctx, input.Risks, orgContext)
 	if err != nil {
 		return nil, err
 	}

@@ -80,6 +80,9 @@ func (s *createUserStubOrgRepo) ListWithFilter(_ context.Context, _ repository.O
 func (s *createUserStubOrgRepo) GetDescendants(_ context.Context, _ uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil
 }
+func (s *createUserStubOrgRepo) GetContext(_ context.Context, _ uuid.UUID) (string, error) {
+	return "", nil
+}
 
 func (s *createUserStubOrgRepo) GetByID(_ context.Context, id uuid.UUID) (*entity.Organization, error) {
 	if org, ok := s.orgs[id]; ok {

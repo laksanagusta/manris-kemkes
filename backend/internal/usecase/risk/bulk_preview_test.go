@@ -36,6 +36,9 @@ func (r *fakePreviewOrgRepo) ListWithFilter(context.Context, repo.OrganizationLi
 func (r *fakePreviewOrgRepo) GetDescendants(context.Context, uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil
 }
+func (r *fakePreviewOrgRepo) GetContext(context.Context, uuid.UUID) (string, error) {
+	return "", nil
+}
 
 var _ repo.OrganizationRepository = (*fakePreviewOrgRepo)(nil)
 

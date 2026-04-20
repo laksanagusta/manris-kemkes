@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
@@ -10,18 +11,21 @@ import (
 
 // AnalyzeTranscriptInput represents input for transcript analysis
 type AnalyzeTranscriptInput struct {
-	Transcript string
+	Transcript     string
+	OrganizationID *uuid.UUID
 }
 
 // AnalyzeTranscriptUseCase handles transcript analysis
 type AnalyzeTranscriptUseCase struct {
-	aiRepo repository.AIRepository
+	aiRepo  repository.AIRepository
+	orgRepo repository.OrganizationRepository
 }
 
 // NewAnalyzeTranscriptUseCase creates a new analyze transcript use case
-func NewAnalyzeTranscriptUseCase(aiRepo repository.AIRepository) *AnalyzeTranscriptUseCase {
+func NewAnalyzeTranscriptUseCase(aiRepo repository.AIRepository, orgRepo repository.OrganizationRepository) *AnalyzeTranscriptUseCase {
 	return &AnalyzeTranscriptUseCase{
-		aiRepo: aiRepo,
+		aiRepo:  aiRepo,
+		orgRepo: orgRepo,
 	}
 }
 
@@ -33,7 +37,12 @@ func (uc *AnalyzeTranscriptUseCase) Execute(ctx context.Context, input AnalyzeTr
 	}
 
 	// 2. Call AI repository
-	analysis, err := uc.aiRepo.AnalyzeTranscript(ctx, input.Transcript)
+	var orgContext string
+	if input.OrganizationID != nil {
+		orgContext, _ = uc.orgRepo.GetContext(ctx, *input.OrganizationID)
+	}
+
+	analysis, err := uc.aiRepo.AnalyzeTranscript(ctx, input.Transcript, orgContext)
 	if err != nil {
 		return nil, err
 	}

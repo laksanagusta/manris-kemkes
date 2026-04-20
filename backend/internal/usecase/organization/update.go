@@ -24,13 +24,15 @@ type UpdateOrganizationInput struct {
 	ID       uuid.UUID
 	Name     string
 	ParentID *uuid.UUID
+	Context  *string `json:"context"`
 }
 
 type UpdateOrganizationOutput struct {
-	ID       uuid.UUID
-	Name     string
-	ParentID *uuid.UUID
-	Message  string
+	ID       uuid.UUID  `json:"id"`
+	Name     string     `json:"name"`
+	ParentID *uuid.UUID `json:"parentId,omitempty"`
+	Context  string     `json:"context,omitempty"`
+	Message  string     `json:"message"`
 }
 
 func (uc *UpdateOrganizationUseCase) Execute(ctx context.Context, input UpdateOrganizationInput) (*UpdateOrganizationOutput, error) {
@@ -64,6 +66,13 @@ func (uc *UpdateOrganizationUseCase) Execute(ctx context.Context, input UpdateOr
 	existingOrg.Name = input.Name
 	existingOrg.ParentID = input.ParentID
 
+	if input.Context != nil {
+		if len(*input.Context) > 2000 {
+			return nil, errors.Wrap(errors.ErrInvalidInput, "context must not exceed 2000 characters")
+		}
+		existingOrg.Context = *input.Context
+	}
+
 	if err := existingOrg.Validate(); err != nil {
 		return nil, err
 	}
@@ -76,6 +85,7 @@ func (uc *UpdateOrganizationUseCase) Execute(ctx context.Context, input UpdateOr
 		ID:       existingOrg.ID,
 		Name:     existingOrg.Name,
 		ParentID: existingOrg.ParentID,
+		Context:  existingOrg.Context,
 		Message:  "Organization updated successfully",
 	}, nil
 }

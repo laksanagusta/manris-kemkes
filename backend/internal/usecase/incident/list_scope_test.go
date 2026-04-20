@@ -44,6 +44,9 @@ func (r *stubOrgRepo) ListWithFilter(context.Context, repository.OrganizationLis
 func (r *stubOrgRepo) GetDescendants(context.Context, uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil
 }
+func (r *stubOrgRepo) GetContext(context.Context, uuid.UUID) (string, error) {
+	return "", nil
+}
 
 func TestListIncidents_PassesOrgIDsDirectly(t *testing.T) {
 	repo := &stubIncidentRepo{}

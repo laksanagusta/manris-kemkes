@@ -132,6 +132,9 @@ func (r *categoryOrgRepo) ListWithFilter(context.Context, repo.OrganizationListF
 func (r *categoryOrgRepo) GetDescendants(_ context.Context, id uuid.UUID) ([]uuid.UUID, error) {
 	return []uuid.UUID{id}, nil
 }
+func (r *categoryOrgRepo) GetContext(_ context.Context, _ uuid.UUID) (string, error) {
+	return "", nil
+}
 
 func TestCreateRiskUseCase_ExecutePersistsCategory(t *testing.T) {
 	riskRepo := &categoryRiskRepo{}

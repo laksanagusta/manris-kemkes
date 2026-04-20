@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/domain/repository"
 )
 
 type fakeIncidentSuggestionAIRepository struct {
@@ -17,49 +18,68 @@ type fakeIncidentSuggestionAIRepository struct {
 	err         error
 }
 
-func (r *fakeIncidentSuggestionAIRepository) GenerateFishbone(context.Context, entity.AIRequest) (*entity.FishboneAnalysis, error) {
+func (r *fakeIncidentSuggestionAIRepository) GenerateFishbone(context.Context, entity.AIRequest, string) (*entity.FishboneAnalysis, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeIncidentSuggestionAIRepository) GenerateImpact(context.Context, entity.AIRequest) (string, error) {
+func (r *fakeIncidentSuggestionAIRepository) GenerateImpact(context.Context, entity.AIRequest, string) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-func (r *fakeIncidentSuggestionAIRepository) GenerateMitigation(context.Context, entity.AIRequest) (entity.MitigationAction, error) {
+func (r *fakeIncidentSuggestionAIRepository) GenerateMitigation(context.Context, entity.AIRequest, string) (entity.MitigationAction, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeIncidentSuggestionAIRepository) GenerateMeetingMinutes(context.Context, string) (*entity.MeetingMinutes, error) {
+func (r *fakeIncidentSuggestionAIRepository) GenerateMeetingMinutes(context.Context, string, string) (*entity.MeetingMinutes, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeIncidentSuggestionAIRepository) AnalyzeTranscript(context.Context, string) (*entity.TranscriptAnalysis, error) {
+func (r *fakeIncidentSuggestionAIRepository) AnalyzeTranscript(context.Context, string, string) (*entity.TranscriptAnalysis, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeIncidentSuggestionAIRepository) GeneratePredictive(context.Context, []entity.Risk) ([]entity.PredictiveRisk, error) {
+func (r *fakeIncidentSuggestionAIRepository) GeneratePredictive(context.Context, []entity.Risk, string) ([]entity.PredictiveRisk, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeIncidentSuggestionAIRepository) GenerateRiskSuggestions(context.Context) (*entity.RiskSuggestions, error) {
+func (r *fakeIncidentSuggestionAIRepository) GenerateRiskSuggestions(context.Context, string) (*entity.RiskSuggestions, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeIncidentSuggestionAIRepository) GenerateKRI(context.Context, entity.AIRequest) (*entity.KRISuggestions, error) {
+func (r *fakeIncidentSuggestionAIRepository) GenerateKRI(context.Context, entity.AIRequest, string) (*entity.KRISuggestions, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeIncidentSuggestionAIRepository) GenerateIncidentBatchExtraction(context.Context, entity.IncidentExtractionRequest) (*entity.IncidentBatchExtraction, error) {
+func (r *fakeIncidentSuggestionAIRepository) GenerateIncidentBatchExtraction(context.Context, entity.IncidentExtractionRequest, string) (*entity.IncidentBatchExtraction, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeIncidentSuggestionAIRepository) GenerateManualIncidentRiskSuggestions(_ context.Context, req entity.ManualIncidentRiskSuggestionRequest) ([]entity.IncidentRiskSuggestion, error) {
+func (r *fakeIncidentSuggestionAIRepository) GenerateManualIncidentRiskSuggestions(_ context.Context, req entity.ManualIncidentRiskSuggestionRequest, _ string) ([]entity.IncidentRiskSuggestion, error) {
 	r.lastRequest = &req
 	return r.response, r.err
 }
 
+type fakeOrgRepo struct{}
+
+func (r *fakeOrgRepo) Create(context.Context, *entity.Organization) error { return nil }
+func (r *fakeOrgRepo) GetByID(context.Context, uuid.UUID) (*entity.Organization, error) {
+	return nil, nil
+}
+func (r *fakeOrgRepo) Update(context.Context, *entity.Organization) error   { return nil }
+func (r *fakeOrgRepo) Delete(context.Context, uuid.UUID) error              { return nil }
+func (r *fakeOrgRepo) List(context.Context) ([]*entity.Organization, error) { return nil, nil }
+func (r *fakeOrgRepo) ListWithFilter(context.Context, repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
+}
+func (r *fakeOrgRepo) GetDescendants(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (r *fakeOrgRepo) GetContext(context.Context, uuid.UUID) (string, error) {
+	return "", nil
+}
+
 func TestGenerateManualIncidentRiskSuggestionsRejectsIncompleteInput(t *testing.T) {
-	uc := NewGenerateManualIncidentRiskSuggestionsUseCase(&fakeIncidentSuggestionAIRepository{})
+	uc := NewGenerateManualIncidentRiskSuggestionsUseCase(&fakeIncidentSuggestionAIRepository{}, &fakeOrgRepo{})
 
 	_, err := uc.Execute(context.Background(), GenerateManualIncidentRiskSuggestionsInput{
 		What:     "Gangguan sistem cold chain",
@@ -83,7 +103,7 @@ func TestGenerateManualIncidentRiskSuggestionsNormalizesSeverityAndPassesRequest
 		}},
 	}
 
-	uc := NewGenerateManualIncidentRiskSuggestionsUseCase(repo)
+	uc := NewGenerateManualIncidentRiskSuggestionsUseCase(repo, &fakeOrgRepo{})
 	result, err := uc.Execute(context.Background(), GenerateManualIncidentRiskSuggestionsInput{
 		Title:          "Gangguan genset gudang vaksin",
 		What:           "Temperatur cold room meningkat di luar ambang batas.",

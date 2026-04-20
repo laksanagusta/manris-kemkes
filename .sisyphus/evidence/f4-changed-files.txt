@@ -1,0 +1,195 @@
+[SCOPE FIDELITY CHECK]
+
+Commit: 0c33fbe (latest) + uncommitted working tree changes
+Note: Most org-context changes are UNCOMMITTED (working tree modifications + untracked files)
+
+Changed Files [uncommitted working tree]:
+  Task 1: backend/db/migrations/000042_add_context_to_organizations.up.sql ✅ (untracked)
+  Task 1: backend/db/migrations/000042_add_context_to_organizations.down.sql ✅ (untracked)
+  Task 2: backend/internal/domain/entity/organization.go ✅
+  Task 2: backend/internal/domain/repository/organization.go ✅
+  Task 2: backend/internal/repository/postgres/organization.go ✅
+  Task 3: frontend/src/app/(app)/admin/settings/organization-context/page.tsx ✅ (committed in 0c33fbe)
+  Task 3: frontend/src/lib/app-navigation.ts ✅ (nav link added)
+  Task 4: backend/internal/usecase/organization/update.go ✅
+  Task 4: backend/internal/usecase/organization/create.go ✅
+  Task 4: backend/internal/handler/http/organization.go ✅
+  Task 5: backend/internal/domain/repository/ai.go ✅
+  Task 5: backend/internal/domain/repository/cba.go ✅
+  Task 5: backend/internal/repository/openai/ai.go ✅
+  Task 5: backend/internal/repository/openai/cba.go ✅
+  Task 6: backend/internal/usecase/ai/fishbone.go ✅
+  Task 6: backend/internal/usecase/ai/impact.go ✅
+  Task 6: backend/internal/usecase/ai/mitigation.go ✅
+  Task 6: backend/internal/usecase/ai/minutes.go ✅
+  Task 6: backend/internal/usecase/ai/transcript.go ✅
+  Task 6: backend/internal/usecase/ai/predictive.go ✅
+  Task 6: backend/internal/usecase/ai/suggestion.go ✅
+  Task 6: backend/internal/usecase/ai/kri.go ✅
+  Task 6: backend/internal/usecase/ai/extract_batch.go ✅
+  Task 6: backend/internal/usecase/ai/incident_risk_suggestion.go ✅
+  Task 6: backend/internal/usecase/cba/recommend_variables.go ✅
+  Task 7: backend/internal/handler/http/ai.go ✅
+  Task 7: backend/internal/handler/http/cba.go ✅
+  Task 7: backend/cmd/server/main.go ✅
+  Task 8: frontend/src/app/(app)/admin/settings/organization-context/page.tsx ✅ (committed in 0c33fbe)
+  
+  UNACCOUNTED: frontend/src/app/(app)/risk/register/new/page.tsx ❌ (adds PROBABILITY_DESCRIPTIONS, IMPACT_DESCRIPTIONS imports + tooltip changes — NOT in any task spec)
+  UNACCOUNTED: frontend/src/lib/risk.ts ❌ (adds PROBABILITY_DESCRIPTIONS, IMPACT_DESCRIPTIONS constants — NOT in any task spec)
+  UNACCOUNTED: .sisyphus/boulder.json ⚠️ (internal sisyphus state — acceptable)
+  UNACCOUNTED: .sisyphus/plans/docker-deploy.md ⚠️ (plan file change — acceptable)
+  UNACCOUNTED: .sisyphus/plans/org-context.md ⚠️ (plan file — acceptable, untracked)
+
+  TEST FILES (interface compliance — required by Task 2 adding GetContext to OrganizationRepository):
+  backend/internal/domain/service/organization_hierarchy_test.go ✅ (adds GetContext stub)
+  backend/internal/handler/http/auth_test.go ✅ (adds GetContext stub)
+  backend/internal/handler/http/user_test.go ✅ (adds GetContext stub)
+  backend/internal/usecase/ai/incident_risk_suggestion_test.go ✅ (updates AI interface mocks for orgContext param)
+  backend/internal/usecase/auth/me_test.go ✅ (adds GetContext stub)
+  backend/internal/usecase/control/list_scope_test.go ✅ (adds GetContext stub)
+  backend/internal/usecase/control/scope_test.go ✅ (adds GetContext stub + whitespace fix)
+  backend/internal/usecase/incident/list_scope_test.go ✅ (adds GetContext stub)
+  backend/internal/usecase/kri/scope_test.go ✅ (adds GetContext stub + whitespace fix)
+  backend/internal/usecase/risk/bulk_preview_test.go ✅ (adds GetContext stub)
+  backend/internal/usecase/risk/category_persistence_test.go ✅ (adds GetContext stub)
+  backend/internal/usecase/risk/create_batch_test.go ✅ (adds GetContext stub)
+  backend/internal/usecase/risk/review_schedule_text_test.go ✅ (adds GetContext stub)
+  backend/internal/usecase/user/create_test.go ✅ (adds GetContext stub)
+
+Task Compliance:
+  Task 1 (Migration): COMPLIANT ✅
+    - up.sql: ALTER TABLE organizations ADD COLUMN context TEXT; ✅
+    - down.sql: ALTER TABLE organizations DROP COLUMN IF EXISTS context; ✅
+    - No NOT NULL ✅, No DEFAULT ✅, No INDEX ✅
+  
+  Task 2 (Entity+Repo): COMPLIANT ✅
+    - Entity has `Context string` with `json:"context,omitempty"` ✅
+    - Create() includes context in INSERT + params ✅
+    - GetByID() includes context in SELECT + Scan (via *string for nullable) ✅
+    - Update() includes context in UPDATE SET ✅
+    - List() includes context in SELECT + Scan ✅
+    - ListWithFilter() includes context in SELECT + Scan ✅
+    - GetContext(ctx, orgID) (string, error) exists on interface + implementation ✅
+    - No validation in entity.Validate() ✅
+    - No length validation in repo ✅
+  
+  Task 3 (Frontend): COMPLIANT ✅
+    - File at frontend/src/app/(app)/admin/settings/organization-context/page.tsx ✅
+    - Uses plain <Textarea> (not rich editor) ✅
+    - maxLength={MAX_LENGTH} where MAX_LENGTH=2000 ✅
+    - isSuperAdmin check → Select dropdown for org ✅
+    - Non-super admin → read-only org display ✅
+    - Save button present ✅
+    - Character counter present ✅
+    - No context preview ✅, No templates ✅, No examples ✅
+    - Nav link added in app-navigation.ts ✅
+  
+  Task 4 (Org usecase+handler): COMPLIANT ✅
+    - UpdateOrganizationInput has Context *string ✅
+    - UpdateOrganizationOutput has Context string ✅
+    - Update Execute sets existingOrg.Context = *input.Context when provided ✅
+    - 2000 char validation in update usecase ✅
+    - CreateOrganizationInput has Context string ✅
+    - 2000 char validation in create usecase ✅
+    - No separate endpoint created ✅
+    - Handler uses existing org update endpoint ✅
+  
+  Task 5 (AIRepository interface + callOpenAI): COMPLIANT ✅
+    - AIRepository interface: all 10 methods have orgContext string param ✅
+      Count: Fishbone, Impact, Mitigation, MeetingMinutes, AnalyzeTranscript, Predictive, RiskSuggestions, KRI, IncidentBatchExtraction, ManualIncidentRiskSuggestions = 10 ✅
+    - CBARepository: RecommendVariables has orgContext string param ✅
+    - callOpenAI signature: (ctx, prompt, systemMessage, feature, orgContext string) ✅
+    - Context injection: if orgContext != "" { systemMessage = "Konteks Organisasi:\n" + orgContext + "\n\n" + systemMessage } ✅
+    - All 10 ai.go callers pass orgContext ✅
+    - cba.go caller passes orgContext ✅
+    - No new methods added ✅
+    - No existing system message content changed ✅
+  
+  Task 6 (AI usecases threading): COMPLIANT ✅
+    - All 10 AI usecases have orgRepo OrganizationRepository field ✅
+    - All 10 AI usecase Input structs have OrganizationID *uuid.UUID ✅
+    - All 10 Execute() methods call orgRepo.GetContext when OrganizationID != nil ✅
+    - All 10 pass orgContext to AIRepository method ✅
+    - CBA RecommendVariables usecase also has orgRepo + OrganizationID + GetContext ✅
+    - Total: 11 usecases (10 AI + 1 CBA) ✅
+    - Errors silently ignored (_, _ = uc.orgRepo.GetContext) ✅
+    - No caching ✅
+  
+  Task 7 (AI handlers + main.go wiring): COMPLIANT ✅
+    - scopeOrgID() helper function extracts OrganizationID from scope ✅
+    - GenerateCause: scope = middleware.GetAccessScope(c), passes scopeOrgID(scope) ✅
+    - GenerateImpact: scope + scopeOrgID ✅
+    - GenerateMitigation: scope + scopeOrgID ✅
+    - GenerateMinutes: scope + scopeOrgID ✅
+    - GenerateTranscript: scope + scopeOrgID ✅
+    - GeneratePredictive: scopeOrgID(middleware.GetAccessScope(c)) ✅
+    - GenerateRiskSuggestion: scope.OrganizationID (already had scope) ✅
+    - GenerateKRI: scope + scopeOrgID ✅
+    - GenerateIncidentBatch: uses organizationID from form value (existing pattern) ✅
+    - GenerateManualIncidentRiskSuggestions: uses req.OrganizationID from body ✅
+    - CBA RecommendVariables: scopeOrgID(middleware.GetAccessScope(c)) ✅
+    - main.go: all 10 AI UC constructors receive domainOrgRepo ✅
+    - main.go: CBA UC constructor receives domainOrgRepo ✅
+    - No new routes ✅, No new middleware ✅
+  
+  Task 8 (Frontend API integration): COMPLIANT ✅
+    - page.tsx imports useAuth and extracts { user, token } ✅
+    - api.get() calls include authToken param ✅
+    - api.put() calls include authToken param ✅
+    - No hardcoded URLs or tokens ✅
+    - Uses existing /organizations and /organizations/:id endpoints ✅
+    - No new backend endpoints ✅
+
+Must NOT Do Compliance:
+  Task 1 NOT NULL check: ✅ (no NOT NULL in migration)
+  Task 1 DEFAULT check: ✅ (no DEFAULT in migration)
+  Task 1 INDEX check: ✅ (no CREATE INDEX in migration)
+  Task 2 entity validation: ✅ (Validate() unchanged, no context check)
+  Task 2 length validation in repo: ✅ (no len() check in repo layer)
+  Task 3 rich text editor: ✅ (uses plain <Textarea>)
+  Task 3 context preview: ✅ (none present)
+  Task 3 templates/examples: ✅ (none present)
+  Task 4 separate endpoint: ✅ (uses existing org update endpoint)
+  Task 5 org repo injection into AI repo: ✅ (context comes as string param)
+  Task 5 system message content changes: ✅ (existing messages unchanged)
+  Task 5 interface changes beyond orgContext: ✅ (only orgContext string added)
+  Task 6 fail on context fetch error: ✅ (error silently ignored, empty string fallback)
+  Task 6 caching: ✅ (no cache)
+  Task 7 route changes: ✅ (no new routes)
+  Task 7 middleware changes: ✅ (no new middleware)
+  Task 8 API client pattern changes: ✅ (uses existing api.get/api.put)
+  Task 8 new npm dependencies: ✅ (none added)
+  Global "Must NOT Have" - structured fields: ✅
+  Global "Must NOT Have" - rich text editor: ✅
+  Global "Must NOT Have" - context versioning: ✅
+  Global "Must NOT Have" - context templates: ✅
+  Global "Must NOT Have" - per-feature context: ✅
+  Global "Must NOT Have" - replace hardcoded prompts: ✅ (existing "sektor kesehatan pemerintahan" strings untouched)
+  Global "Must NOT Have" - caching layer: ✅
+  Global "Must NOT Have" - context preview/test: ✅
+  Global "Must NOT Have" - interface changes beyond orgContext: ✅
+
+Cross-Task Contamination:
+  Test files: CLEAN ✅ — All 14 test files modified only to satisfy interface compliance (adding GetContext stub to mock OrganizationRepository implementations). This is a necessary consequence of Task 2 adding GetContext to the interface. No test logic changed.
+  Shared code: CLEAN ✅ — No unintended cross-task dependencies.
+
+Unaccounted Changes:
+  frontend/src/app/(app)/risk/register/new/page.tsx: SCOPE CREEP ❌
+    - Adds PROBABILITY_DESCRIPTIONS and IMPACT_DESCRIPTIONS imports
+    - Modifies tooltip content for probability/impact score buttons
+    - NOT specified in any task 1-8
+  frontend/src/lib/risk.ts: SCOPE CREEP ❌
+    - Adds PROBABILITY_DESCRIPTIONS and IMPACT_DESCRIPTIONS constants
+    - NOT specified in any task 1-8
+  .sisyphus/boulder.json: ACCEPTABLE ⚠️ (internal tooling state)
+  .sisyphus/plans/docker-deploy.md: ACCEPTABLE ⚠️ (plan doc)
+
+VERDICT: VIOLATIONS — 2 unaccounted files with scope creep
+
+Violations:
+1. frontend/src/app/(app)/risk/register/new/page.tsx — unauthorized changes to risk form tooltips (not in any task spec)
+2. frontend/src/lib/risk.ts — unauthorized addition of PROBABILITY_DESCRIPTIONS and IMPACT_DESCRIPTIONS constants (not in any task spec)
+
+All 8 tasks themselves are COMPLIANT. The only issue is 2 unrelated files modified outside of scope.
+
+Tasks [8/8 compliant] | Contamination [CLEAN] | Unaccounted [2 files ❌] | VERDICT: VIOLATIONS (minor — scope creep in 2 unrelated frontend files)

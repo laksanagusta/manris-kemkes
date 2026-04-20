@@ -127,6 +127,9 @@ func (r *fakeBatchOrgRepo) ListWithFilter(context.Context, repo.OrganizationList
 func (r *fakeBatchOrgRepo) GetDescendants(context.Context, uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil
 }
+func (r *fakeBatchOrgRepo) GetContext(context.Context, uuid.UUID) (string, error) {
+	return "", nil
+}
 
 var _ repo.OrganizationRepository = (*fakeBatchOrgRepo)(nil)
 

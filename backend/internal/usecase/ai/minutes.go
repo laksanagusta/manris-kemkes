@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
@@ -10,18 +11,21 @@ import (
 
 // GenerateMinutesInput represents input for meeting minutes generation
 type GenerateMinutesInput struct {
-	Transcript string
+	Transcript     string
+	OrganizationID *uuid.UUID
 }
 
 // GenerateMinutesUseCase handles meeting minutes generation
 type GenerateMinutesUseCase struct {
-	aiRepo repository.AIRepository
+	aiRepo  repository.AIRepository
+	orgRepo repository.OrganizationRepository
 }
 
 // NewGenerateMinutesUseCase creates a new generate minutes use case
-func NewGenerateMinutesUseCase(aiRepo repository.AIRepository) *GenerateMinutesUseCase {
+func NewGenerateMinutesUseCase(aiRepo repository.AIRepository, orgRepo repository.OrganizationRepository) *GenerateMinutesUseCase {
 	return &GenerateMinutesUseCase{
-		aiRepo: aiRepo,
+		aiRepo:  aiRepo,
+		orgRepo: orgRepo,
 	}
 }
 
@@ -33,7 +37,12 @@ func (uc *GenerateMinutesUseCase) Execute(ctx context.Context, input GenerateMin
 	}
 
 	// 2. Call AI repository
-	minutes, err := uc.aiRepo.GenerateMeetingMinutes(ctx, input.Transcript)
+	var orgContext string
+	if input.OrganizationID != nil {
+		orgContext, _ = uc.orgRepo.GetContext(ctx, *input.OrganizationID)
+	}
+
+	minutes, err := uc.aiRepo.GenerateMeetingMinutes(ctx, input.Transcript, orgContext)
 	if err != nil {
 		return nil, err
 	}

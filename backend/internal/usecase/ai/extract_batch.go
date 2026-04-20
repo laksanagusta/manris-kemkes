@@ -12,12 +12,14 @@ import (
 
 // GenerateIncidentBatchExtractionUseCase extracts multiple incident candidates from a document.
 type GenerateIncidentBatchExtractionUseCase struct {
-	aiRepo repository.AIRepository
+	aiRepo  repository.AIRepository
+	orgRepo repository.OrganizationRepository
 }
 
-func NewGenerateIncidentBatchExtractionUseCase(aiRepo repository.AIRepository) *GenerateIncidentBatchExtractionUseCase {
+func NewGenerateIncidentBatchExtractionUseCase(aiRepo repository.AIRepository, orgRepo repository.OrganizationRepository) *GenerateIncidentBatchExtractionUseCase {
 	return &GenerateIncidentBatchExtractionUseCase{
-		aiRepo: aiRepo,
+		aiRepo:  aiRepo,
+		orgRepo: orgRepo,
 	}
 }
 
@@ -31,10 +33,15 @@ func (uc *GenerateIncidentBatchExtractionUseCase) Execute(ctx context.Context, i
 		return nil, errors.ErrDocumentUnreadable
 	}
 
+	var orgContext string
+	if input.OrganizationID != nil {
+		orgContext, _ = uc.orgRepo.GetContext(ctx, *input.OrganizationID)
+	}
+
 	result, err := uc.aiRepo.GenerateIncidentBatchExtraction(ctx, entity.IncidentExtractionRequest{
 		DocumentText:   input.DocumentText,
 		OrganizationID: input.OrganizationID,
-	})
+	}, orgContext)
 	if err != nil {
 		return nil, err
 	}

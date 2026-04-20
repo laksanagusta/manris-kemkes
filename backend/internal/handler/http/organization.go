@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/errors"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
 )
 
@@ -116,5 +117,16 @@ func (h *OrganizationHandler) Delete(c *fiber.Ctx) error {
 }
 
 func handleOrganizationError(c *fiber.Ctx, err error) error {
-	return sendProblemDetails(c, fiber.StatusInternalServerError, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
+	switch {
+	case errors.IsNotFound(err):
+		return sendProblemDetails(c, fiber.StatusNotFound, "Not Found", "https://api.manris.com/errors/not-found", err.Error())
+	case errors.IsValidation(err):
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/validation", err.Error())
+	case errors.IsForbidden(err):
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", err.Error())
+	case errors.IsUnauthorized(err):
+		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", err.Error())
+	default:
+		return sendProblemDetails(c, fiber.StatusInternalServerError, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
+	}
 }

@@ -50,6 +50,7 @@ export const adminMenuGroup: MainMenuGroup = {
       icon: "Building2",
     },
     { label: "Settings", href: "/admin/settings", icon: "Settings2" },
+    { label: "Konteks Organisasi", href: "/admin/settings/organization-context", icon: "Settings2" },
   ],
 };
 
@@ -87,6 +88,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/admin/users/new": "Tambah Pengguna",
   "/admin/organizations": "Organisasi",
   "/admin/settings": "Pengaturan",
+  "/admin/settings/organization-context": "Konteks Organisasi",
   "/management/criteria": "Scope & Criteria",
   "/admin/forms": "Form Builder",
   "/admin/forms/new": "New Form",

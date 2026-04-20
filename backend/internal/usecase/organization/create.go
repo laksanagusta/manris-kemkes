@@ -25,6 +25,7 @@ func NewCreateOrganizationUseCase(
 type CreateOrganizationInput struct {
 	Name     string
 	ParentID *uuid.UUID
+	Context  string `json:"context"`
 }
 
 type CreateOrganizationOutput struct {
@@ -47,9 +48,14 @@ func (uc *CreateOrganizationUseCase) Execute(ctx context.Context, input CreateOr
 		}
 	}
 
+	if len(input.Context) > 2000 {
+		return nil, errors.Wrap(errors.ErrInvalidInput, "context must not exceed 2000 characters")
+	}
+
 	org := &entity.Organization{
 		Name:     input.Name,
 		ParentID: input.ParentID,
+		Context:  input.Context,
 	}
 
 	if err := org.Validate(); err != nil {

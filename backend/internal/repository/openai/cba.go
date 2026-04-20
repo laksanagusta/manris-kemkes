@@ -22,7 +22,7 @@ func NewCBARepository(ai repository.AIRepository) repository.CBARepository {
 }
 
 // RecommendVariables generates CBA variable recommendations
-func (r *cbaRepository) RecommendVariables(ctx context.Context, riskDescription string) (*entity.CBARecommendation, error) {
+func (r *cbaRepository) RecommendVariables(ctx context.Context, riskDescription string, orgContext string) (*entity.CBARecommendation, error) {
 	if r.ai.client == nil {
 		return nil, fmt.Errorf("OpenAI client is not configured")
 	}
@@ -33,7 +33,7 @@ func (r *cbaRepository) RecommendVariables(ctx context.Context, riskDescription 
 
 	prompt := r.buildRecommendPrompt(riskDescription)
 
-	content, err := r.ai.callOpenAI(ctx, prompt, "Anda adalah ekonom kesehatan profesional yang ahli dalam Evaluasi Ekonomi Kesehatan (Health Economic Evaluation) menggunakan pendekatan Perspektif Sosial sesuai standar WHO. Anda hanya merespons menggunakan JSON yang valid.", "cba")
+	content, err := r.ai.callOpenAI(ctx, prompt, "Anda adalah ekonom kesehatan profesional yang ahli dalam Evaluasi Ekonomi Kesehatan (Health Economic Evaluation) menggunakan pendekatan Perspektif Sosial sesuai standar WHO. Anda hanya merespons menggunakan JSON yang valid.", "cba", orgContext)
 	if err != nil {
 		return nil, err
 	}

@@ -9,5 +9,5 @@ import (
 // CBARepository defines the interface for CBA AI operations
 type CBARepository interface {
 	// RecommendVariables generates CBA variable recommendations based on risk description
-	RecommendVariables(ctx context.Context, riskDescription string) (*entity.CBARecommendation, error)
+	RecommendVariables(ctx context.Context, riskDescription string, orgContext string) (*entity.CBARecommendation, error)
 }

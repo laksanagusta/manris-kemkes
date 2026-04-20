@@ -174,20 +174,20 @@ func main() {
 	authChangePasswordUC := authuc.NewChangePasswordUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry)
 
 	// AI usecases
-	aiFishboneUC := aiuc.NewGenerateFishboneUseCase(domainAIRepo)
-	aiImpactUC := aiuc.NewGenerateImpactUseCase(domainAIRepo)
-	aiMitigationUC := aiuc.NewGenerateMitigationUseCase(domainAIRepo)
-	aiMinutesUC := aiuc.NewGenerateMinutesUseCase(domainAIRepo)
-	aiTranscriptUC := aiuc.NewAnalyzeTranscriptUseCase(domainAIRepo)
+	aiFishboneUC := aiuc.NewGenerateFishboneUseCase(domainAIRepo, domainOrgRepo)
+	aiImpactUC := aiuc.NewGenerateImpactUseCase(domainAIRepo, domainOrgRepo)
+	aiMitigationUC := aiuc.NewGenerateMitigationUseCase(domainAIRepo, domainOrgRepo)
+	aiMinutesUC := aiuc.NewGenerateMinutesUseCase(domainAIRepo, domainOrgRepo)
+	aiTranscriptUC := aiuc.NewAnalyzeTranscriptUseCase(domainAIRepo, domainOrgRepo)
 	aiApplyTranscriptRiskChangeUC := aiuc.NewApplyTranscriptRiskChangesUseCase(domainRiskRepo)
-	aiPredictiveUC := aiuc.NewGeneratePredictiveUseCase(domainAIRepo)
-	aiRiskSuggestionUC := aiuc.NewGenerateRiskSuggestionsUseCase(domainAIRepo)
-	aiKRIUC := aiuc.NewGenerateKRIUseCase(domainAIRepo)
-	aiIncidentBatchUC := aiuc.NewGenerateIncidentBatchExtractionUseCase(domainAIRepo)
-	aiIncidentRiskUC := aiuc.NewGenerateManualIncidentRiskSuggestionsUseCase(domainAIRepo)
+	aiPredictiveUC := aiuc.NewGeneratePredictiveUseCase(domainAIRepo, domainOrgRepo)
+	aiRiskSuggestionUC := aiuc.NewGenerateRiskSuggestionsUseCase(domainAIRepo, domainOrgRepo)
+	aiKRIUC := aiuc.NewGenerateKRIUseCase(domainAIRepo, domainOrgRepo)
+	aiIncidentBatchUC := aiuc.NewGenerateIncidentBatchExtractionUseCase(domainAIRepo, domainOrgRepo)
+	aiIncidentRiskUC := aiuc.NewGenerateManualIncidentRiskSuggestionsUseCase(domainAIRepo, domainOrgRepo)
 
 	// CBA usecases
-	cbaRecommendUC := cbauc.NewRecommendVariablesUseCase(domainCBARepo)
+	cbaRecommendUC := cbauc.NewRecommendVariablesUseCase(domainCBARepo, domainOrgRepo)
 	cbaCalculateUC := cbauc.NewCalculateUseCase()
 
 	// Organization usecases

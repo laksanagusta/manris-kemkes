@@ -50,6 +50,9 @@ func (s *stubOrgRepo) ListWithFilter(_ context.Context, _ repository.Organizatio
 func (s *stubOrgRepo) GetDescendants(_ context.Context, _ uuid.UUID) ([]uuid.UUID, error) {
 	return s.descendants, nil
 }
+func (s *stubOrgRepo) GetContext(_ context.Context, _ uuid.UUID) (string, error) {
+	return "", nil
+}
 
 func TestGetCurrentUser_IncludesAccessibleOrgIDs(t *testing.T) {
 	orgID := uuid.New()
