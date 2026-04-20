@@ -1,0 +1,2 @@
+ALTER TABLE risks DROP CONSTRAINT IF EXISTS risks_treatment_option_check;
+ALTER TABLE risks ADD CONSTRAINT risks_treatment_option_check CHECK (treatment_option IN ('', 'menerima', 'mitigasi', 'menghindari', 'berbagi', 'avoid', 'mitigate', 'transfer', 'accept'));

@@ -85,6 +85,10 @@ function controlEffectivenessLabel(value?: string) {
 
 function treatmentOptionLabel(value?: string) {
   switch (value) {
+    case "menghindari":
+      return "Menghindari Risiko";
+    case "berbagi":
+      return "Berbagi Risiko";
     case "menerima":
       return "Menerima";
     case "mitigasi":

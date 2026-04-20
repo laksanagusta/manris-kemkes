@@ -5,6 +5,7 @@ import { Sparkles, Loader2, Check } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { AiSuggestionModal, type SuggestionItem } from "./ai-suggestion-modal";
 
 interface MitigationPickerProps {
   title: string;
@@ -20,11 +21,12 @@ interface MitigationPickerProps {
 export function MitigationPicker({ title, description, cause, impactDescription, onSelect, existingActions, disabled }: MitigationPickerProps) {
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
 
   async function handleGenerate() {
     setLoading(true);
+    setModalOpen(true);
     try {
       const payload = {
         title: title || description,
@@ -34,22 +36,28 @@ export function MitigationPicker({ title, description, cause, impactDescription,
       };
       
       const res = await api.post<string[]>("/ai/mitigations", payload, token || undefined);
-      if (Array.isArray(res)) setSuggestions(res);
+      if (Array.isArray(res)) {
+        setSuggestions(res.map((text, idx) => ({
+          id: `mitigation-suggestion-${Date.now()}-${idx}`,
+          text,
+        })));
+      }
     } catch (err) {
       console.error(err);
+      setModalOpen(false);
     } finally {
       setLoading(false);
     }
   }
 
-  function handleSelect(s: string) {
-    if (selected.has(s)) return;
-    setSelected((prev) => new Set(prev).add(s));
-    onSelect(s);
-  }
+  const handleApply = (selectedItems: SuggestionItem[]) => {
+    selectedItems.forEach((item) => {
+      onSelect(item.text);
+    });
+  };
 
-  if (suggestions.length === 0) {
-    return (
+  return (
+    <>
       <Button
         type="button"
         variant="outline"
@@ -61,38 +69,16 @@ export function MitigationPicker({ title, description, cause, impactDescription,
         {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
         {loading ? "AI sedang menyiapkan opsi..." : "Minta rekomendasi mitigasi"}
       </Button>
-    );
-  }
 
-  return (
-    <div className="mt-3 rounded-lg border border-primary/20 bg-primary/[0.03] p-3 space-y-2">
-      <p className="text-[11px] font-semibold text-primary flex items-center gap-1.5">
-        <Sparkles className="size-3" /> Rekomendasi AI untuk mempercepat drafting mitigasi
-      </p>
-      <p className="text-[11px] leading-relaxed text-muted-foreground">
-        Gunakan sebagai titik awal, lalu sesuaikan dengan kapasitas unit, PIC, dan tenggat yang realistis.
-      </p>
-      {suggestions.map((s, i) => {
-        const isUsed = selected.has(s) || existingActions.some((a) => a.includes(s));
-        return (
-          <button
-            key={i}
-            type="button"
-            onClick={() => handleSelect(s)}
-            disabled={isUsed}
-            className={`w-full text-left rounded-md border px-3 py-2 text-[11px] transition-all ${
-              isUsed
-                ? "border-primary/30 bg-primary/10 text-primary/70 cursor-default"
-                : "border-border bg-card hover:border-primary/40 hover:bg-primary/5 text-foreground"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              {isUsed && <Check className="size-3 text-primary shrink-0" />}
-              {s}
-            </span>
-          </button>
-        );
-      })}
-    </div>
+      <AiSuggestionModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        title="Rekomendasi AI untuk Mitigasi"
+        description="Gunakan saran ini sebagai titik awal, lalu sesuaikan dengan kapasitas unit dan tenggat yang realistis."
+        suggestions={suggestions.filter((s) => !existingActions.some((a) => a.includes(s.text)))}
+        isLoading={loading}
+        onApply={handleApply}
+      />
+    </>
   );
 }

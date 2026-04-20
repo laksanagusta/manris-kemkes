@@ -142,6 +142,7 @@ import {
   getRiskVersionDetailHref,
   type RiskRegisterHistoryItem,
 } from "@/lib/risk-history";
+import { AiSuggestionModal, type SuggestionItem } from "@/components/shared/ai-suggestion-modal";
 
 const RiskLogTimeline = dynamic(
   () =>
@@ -1060,7 +1061,11 @@ export default function RiskInputPage() {
 
   // UI state
   const [generatingCause, setGeneratingCause] = useState(false);
+  const [causeModalOpen, setCauseModalOpen] = useState(false);
+  const [causeSuggestions, setCauseSuggestions] = useState<SuggestionItem[]>([]);
   const [generatingImpact, setGeneratingImpact] = useState(false);
+  const [impactModalOpen, setImpactModalOpen] = useState(false);
+  const [impactSuggestions, setImpactSuggestions] = useState<SuggestionItem[]>([]);
   const [generatingRisk, setGeneratingRisk] = useState(false);
   const [riskSuggestions, setRiskSuggestions] = useState<RiskSuggestion[]>([]);
   const [showRiskSuggestions, setShowRiskSuggestions] = useState(false);
@@ -1595,29 +1600,29 @@ export default function RiskInputPage() {
       return;
     }
     setGeneratingCause(true);
+    setCauseModalOpen(true);
     try {
       const res = await api.post<CausesResponse>(
         "/ai/causes",
         { title, description },
         token || undefined,
       );
-      const newItems: { id: string; text: string }[] = [];
+      const newItems: SuggestionItem[] = [];
       let idx = 0;
       CATEGORY_ORDER.forEach((category) => {
         const categoryKey = category as CategoryKey;
         const categoryItems = res.categories[categoryKey] || [];
         categoryItems.forEach((itemText: string) => {
           newItems.push({
-            id: `cause-${Date.now()}-${idx++}`,
+            id: `cause-suggestion-${Date.now()}-${idx++}`,
             text: `[${CATEGORY_TITLES[categoryKey]}] ${itemText}`,
           });
         });
       });
-      setValue("causes", newItems.length > 0 ? newItems : [], {
-        shouldValidate: true,
-      });
+      setCauseSuggestions(newItems);
     } catch (err) {
       console.error(err);
+      setCauseModalOpen(false);
     } finally {
       setGeneratingCause(false);
     }
@@ -1630,6 +1635,7 @@ export default function RiskInputPage() {
       return;
     }
     setGeneratingImpact(true);
+    setImpactModalOpen(true);
     try {
       const res = await api.post<ImpactsResponse>(
         "/ai/impacts",
@@ -1642,21 +1648,22 @@ export default function RiskInputPage() {
           .filter((line: string) => line.trim());
         const items = lines
           .map((line: string, idx: number) => ({
-            id: `impact-${Date.now()}-${idx}`,
+            id: `impact-suggestion-${Date.now()}-${idx}`,
             text: line.replace(/^\d+\.\s*/, "").trim(),
           }))
           .filter((item) => item.text);
 
-        setValue(
-          "impacts",
+        setImpactSuggestions(
           items.length > 0
             ? items
-            : [{ id: "impact-1", text: res.impactDescription }],
-          { shouldValidate: true },
+            : [{ id: "impact-suggestion-1", text: res.impactDescription }]
         );
+      } else {
+        setImpactSuggestions([]);
       }
     } catch (err) {
       console.error(err);
+      setImpactModalOpen(false);
     } finally {
       setGeneratingImpact(false);
     }
@@ -2702,17 +2709,18 @@ export default function RiskInputPage() {
                       impactDescription={(impacts || [])
                         .map((impactItem) => impactItem.text)
                         .join("\n")}
-                      onSelect={(action) =>
+                      onSelect={(action) => {
+                        const current = form.getValues("mitigations") || [];
                         setValue("mitigations", [
-                          ...(mitigations || []),
+                          ...current,
                           {
                             action,
                             owner: "",
                             dueDate: "",
                             frequency: "insidental",
                           },
-                        ])
-                      }
+                        ], { shouldValidate: true });
+                      }}
                       existingActions={(mitigations || []).map(
                         (mitigation) => mitigation.action,
                       )}
@@ -3192,6 +3200,41 @@ export default function RiskInputPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <AiSuggestionModal
+          open={causeModalOpen}
+          onOpenChange={setCauseModalOpen}
+          title="Saran Penyebab Risiko"
+          description="Pilih penyebab yang relevan dari saran AI di bawah ini untuk ditambahkan ke daftar sebab."
+          suggestions={causeSuggestions}
+          isLoading={generatingCause}
+          onApply={(selectedItems) => {
+            const newItems = selectedItems.map((item, idx) => ({
+              id: `cause-applied-${Date.now()}-${idx}`,
+              text: item.text,
+            }));
+            const currentCauses = form.getValues("causes") || [];
+            setValue("causes", [...currentCauses, ...newItems], { shouldValidate: true });
+          }}
+        />
+
+        <AiSuggestionModal
+          open={impactModalOpen}
+          onOpenChange={setImpactModalOpen}
+          title="Saran Dampak Risiko"
+          description="Pilih dampak yang relevan dari saran AI di bawah ini untuk ditambahkan ke daftar dampak."
+          suggestions={impactSuggestions}
+          isLoading={generatingImpact}
+          onApply={(selectedItems) => {
+            const newItems = selectedItems.map((item, idx) => ({
+              id: `impact-applied-${Date.now()}-${idx}`,
+              text: item.text,
+            }));
+            const currentImpacts = form.getValues("impacts") || [];
+            setValue("impacts", [...currentImpacts, ...newItems], { shouldValidate: true });
+          }}
+        />
+
       </div>
     </TooltipProvider>
   );

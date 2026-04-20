@@ -174,6 +174,9 @@ function buildProfilRisikoSheet(
   const FIRST_COL = DATA_START_COL; // B = col 2
   const LAST_COL = FIRST_COL + COL_COUNT - 1; // col 19 (S)
 
+  // Column A is an empty margin; set explicit width for accurate pixel calculations
+  ws.getColumn(1).width = 3;
+
   const columnWidths = [
     5,   // NO
     40,  // UNIT KERJA PEMILIK RISIKO (was 30)
@@ -313,6 +316,8 @@ function buildPenilaianRisikoSheet(
   const COL_COUNT = 25;
   const FIRST_COL = DATA_START_COL; // col 2 (B)
   const LAST_COL = FIRST_COL + COL_COUNT - 1; // col 26 (Z)
+
+  ws.getColumn(1).width = 3;
 
   const columnWidths = [
     5,   // NO
@@ -481,6 +486,8 @@ function buildPemantauanReviuSheet(
   const FIRST_COL = DATA_START_COL; // col 2 (B)
   const LAST_COL = FIRST_COL + COL_COUNT - 1; // col 17
   const C = FIRST_COL;
+
+  ws.getColumn(1).width = 3;
 
   const columnWidths = [
     5,   // NO
@@ -784,6 +791,7 @@ function appendSignatureBlock(
   const GAP_ROW_HEIGHT = 28;
   const GAP_ROW_COUNT = 3;
   const PT_TO_PX = 1.333;
+  const DEFAULT_COL_WIDTH = 8.43;
   const gapHeightPx = GAP_ROW_COUNT * GAP_ROW_HEIGHT * PT_TO_PX;
 
   for (let r = jabatanRow + 1; r <= jabatanRow + GAP_ROW_COUNT; r++) {
@@ -825,20 +833,19 @@ function appendSignatureBlock(
       const PX_PER_CHAR = 7.5;
       let pxBefore = 0;
       for (let c = 1; c < sigStartCol; c++) {
-        pxBefore += (ws.getColumn(c).width ?? 10) * PX_PER_CHAR;
+        pxBefore += (ws.getColumn(c).width ?? DEFAULT_COL_WIDTH) * PX_PER_CHAR;
       }
       let rangePx = 0;
       for (let c = sigStartCol; c <= sigEndCol; c++) {
-        rangePx += (ws.getColumn(c).width ?? 10) * PX_PER_CHAR;
+        rangePx += (ws.getColumn(c).width ?? DEFAULT_COL_WIDTH) * PX_PER_CHAR;
       }
       const centerXPx = pxBefore + rangePx / 2;
       const qrLeftPx = centerXPx - QR_SIZE / 2;
 
-      // Pixel X → fractional 0-based column
       let accPx = 0;
       let fracCol = 0;
       for (let c = 1; c <= endCol; c++) {
-        const colWidthPx = (ws.getColumn(c).width ?? 10) * PX_PER_CHAR;
+        const colWidthPx = (ws.getColumn(c).width ?? DEFAULT_COL_WIDTH) * PX_PER_CHAR;
         if (accPx + colWidthPx > qrLeftPx) {
           fracCol = (c - 1) + (qrLeftPx - accPx) / colWidthPx;
           break;

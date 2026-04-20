@@ -15,6 +15,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -421,9 +428,34 @@ export function MitigationMonitoringPanel() {
         </Table>
 
         <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
-          <p className="text-xs text-muted-foreground">
-            Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} mitigasi
-          </p>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Baris per halaman:</span>
+              <Select
+                value={limit.toString()}
+                onValueChange={(val) => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set("limit", val);
+                  params.set("page", "1");
+                  router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+                }}
+              >
+                <SelectTrigger className="h-7 w-[65px] border-none bg-muted/30 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 50, 100].map((pageSize) => (
+                    <SelectItem key={pageSize} value={pageSize.toString()}>
+                      {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} mitigasi
+            </p>
+          </div>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"

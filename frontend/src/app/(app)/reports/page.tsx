@@ -191,10 +191,7 @@ async function listAllWorkingPapers(token: string): Promise<WorkingPaper[]> {
     ),
   );
 
-  return [
-    ...initialData,
-    ...remainingPages.flatMap((page) => page.data ?? []),
-  ];
+  return [...initialData, ...remainingPages.flatMap((page) => page.data ?? [])];
 }
 
 export default function ReportsPage() {
@@ -492,7 +489,7 @@ export default function ReportsPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Reports & Export</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
         <p className="text-sm text-muted-foreground">
           Untuk review analitis, perbandingan antar-cycle, dan export formal.
           Pembaruan operasional mitigasi/KRI tetap dilakukan di Monitoring &
@@ -507,14 +504,14 @@ export default function ReportsPage() {
           </p>
           <p className="text-xs text-muted-foreground">
             Halaman ini dipakai untuk analisis dan unduhan data. Untuk
-            memperbarui mitigasi atau KRI, gunakan Monitoring & Updates.
+            memperbarui mitigasi atau KRI, gunakan Monitoring.
           </p>
         </div>
         <Link
           href="/compliance/monitoring"
           className="inline-flex h-8 items-center rounded-md border border-border/60 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted/50"
         >
-          Buka Monitoring & Updates
+          Buka Monitoring
         </Link>
       </div>
 

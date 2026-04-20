@@ -183,28 +183,20 @@ export function ReviewSidePanel({
     <Dialog open={reviewModalOpen} onOpenChange={setReviewModalOpen}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Lakukan Penilaian</DialogTitle>
+          <DialogTitle>Tinjau pemantauan risiko</DialogTitle>
           <DialogDescription>
-            Tentukan skor probabilitas dan dampak berdasarkan hasil penilaian Anda.
+            Pastikan pemantauan telah sesuai dengan kondisi terkini
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <Textarea
-            placeholder="Tambahkan catatan review atau alasan keputusan..."
+            placeholder="Tambahkan catatan peninjauan"
             value={reviewMessage}
             onChange={(e) => setReviewMessage(e.target.value)}
             disabled={submittingStage === "review"}
             className="min-h-[80px] resize-none"
           />
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setReviewModalOpen(false)}
-              disabled={submittingStage === "review"}
-              className="flex-1"
-            >
-              Batal
-            </Button>
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               variant="outline"
               onClick={() => handleAction("reject", "review")}
@@ -212,9 +204,9 @@ export function ReviewSidePanel({
               className="flex-1 border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20"
             >
               {submittingStage === "review" ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
               ) : (
-                <X className="mr-2 size-4" />
+                <X className="size-4" />
               )}
               Tolak
             </Button>
@@ -224,9 +216,9 @@ export function ReviewSidePanel({
               className="flex-1"
             >
               {submittingStage === "review" ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
               ) : (
-                <Check className="mr-2 size-4" />
+                <Check className="size-4" />
               )}
               Setujui
             </Button>
@@ -256,22 +248,14 @@ export function ReviewSidePanel({
           <div className="flex gap-2 pt-2">
             <Button
               variant="outline"
-              onClick={() => setApprovalModalOpen(false)}
-              disabled={submittingStage === "approval"}
-              className="flex-1"
-            >
-              Batal
-            </Button>
-            <Button
-              variant="outline"
               onClick={() => handleAction("reject", "approval")}
               disabled={submittingStage === "approval"}
               className="flex-1 border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20"
             >
               {submittingStage === "approval" ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
               ) : (
-                <X className="mr-2 size-4" />
+                <X className="size-4" />
               )}
               Tolak
             </Button>
@@ -281,9 +265,9 @@ export function ReviewSidePanel({
               className="flex-1"
             >
               {submittingStage === "approval" ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
               ) : (
-                <Check className="mr-2 size-4" />
+                <Check className="size-4" />
               )}
               Setujui
             </Button>

@@ -68,7 +68,7 @@ jobs:
             docker compose config
 
             echo "== Starting containers =="
-            docker compose up -d
+            docker compose up -d --pull always --force-recreate
 
             echo "== Cleanup images =="
             docker image prune -f

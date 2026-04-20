@@ -10,7 +10,7 @@ export function MonitoringReportingWorkspace() {
           Compliance workspace
         </p>
         <h1 className="text-[clamp(1.8rem,3vw,2.4rem)] font-semibold tracking-[-0.03em] text-foreground">
-          Monitoring & Updates
+          Monitoring
         </h1>
         <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
           Pantau queue reassessment semester global, lihat risiko yang due,
