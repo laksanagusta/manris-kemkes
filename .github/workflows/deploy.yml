@@ -62,13 +62,14 @@ jobs:
             set -e
 
             echo "== Start deploy =="
-            cd /root/opt/manris
+            cd /opt/manris
 
             echo "== Checking compose file =="
             docker compose config
 
             echo "== Starting containers =="
-            docker compose up -d --pull always --force-recreate
+            docker compose pull backend frontend
+            docker compose up -d --force-recreate backend frontend
 
             echo "== Cleanup images =="
             docker image prune -f

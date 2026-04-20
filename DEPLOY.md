@@ -174,9 +174,9 @@ docker compose run --rm certbot certonly --webroot \
 
 ### Step 5: Enable SSL Configuration
 
-Switch to SSL-enabled nginx config:
+Restore SSL-enabled nginx config from git:
 ```bash
-cp nginx/conf.d/default.conf.ssl nginx/conf.d/default.conf
+git checkout nginx/conf.d/default.conf
 docker compose exec nginx nginx -s reload
 ```
 
