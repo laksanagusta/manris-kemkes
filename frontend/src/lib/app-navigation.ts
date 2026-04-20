@@ -49,8 +49,8 @@ export const adminMenuGroup: MainMenuGroup = {
       href: "/admin/organizations",
       icon: "Building2",
     },
-    { label: "Settings", href: "/admin/settings", icon: "Settings2" },
-    { label: "Konteks Organisasi", href: "/admin/settings/organization-context", icon: "Settings2" },
+    // { label: "Settings", href: "/admin/settings", icon: "Settings2" },
+    { label: "Context", href: "/admin/settings/organization-context", icon: "Settings2" },
   ],
 };
 
