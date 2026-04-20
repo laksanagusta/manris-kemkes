@@ -159,7 +159,7 @@ function SortableSignatoryRow({
     <div
       ref={ref}
       className={cn(
-        "flex items-start gap-3 p-4 border border-border/50 rounded-lg bg-muted/20 relative group transition-opacity",
+        "flex items-start gap-3 p-4 border border-border/50 rounded-lg bg-card shadow-sm relative group transition-opacity",
         isDragging && "z-10 opacity-50",
       )}
     >
@@ -174,7 +174,7 @@ function SortableSignatoryRow({
         {index + 1}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+      <div className="flex flex-col gap-4 flex-1">
         <div className="space-y-2">
           <Label>
             Pengguna <span className="text-destructive">*</span>
@@ -264,24 +264,36 @@ function SortableSignatoryRow({
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label>NIP</Label>
-          <Input
-            placeholder="Otomatis dari data pengguna"
-            {...register(`signatories.${index}.signer_nip`)}
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label className="text-muted-foreground text-xs uppercase tracking-wider">NIP</Label>
+            <Input
+              placeholder="Otomatis dari data pengguna"
+              {...register(`signatories.${index}.signer_nip`)}
+              disabled
+              className="bg-muted/30 text-foreground cursor-default"
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label>Jabatan</Label>
-          <Input
-            placeholder="Otomatis dari data pengguna"
-            {...register(`signatories.${index}.signer_jabatan`)}
-            disabled
-            className="bg-muted/50"
-          />
+          <div className="space-y-2">
+            <Label className="text-muted-foreground text-xs uppercase tracking-wider">Jabatan</Label>
+            <Input
+              placeholder="Otomatis dari data pengguna"
+              {...register(`signatories.${index}.signer_jabatan`)}
+              disabled
+              className="bg-muted/30 text-foreground cursor-default"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-muted-foreground text-xs uppercase tracking-wider">Pangkat</Label>
+            <Input
+              placeholder="Otomatis dari data pengguna"
+              {...register(`signatories.${index}.signer_pangkat`)}
+              disabled
+              className="bg-muted/30 text-foreground cursor-default"
+            />
+          </div>
         </div>
       </div>
 
@@ -479,7 +491,7 @@ export default function CreateWorkingPaperPage() {
       });
       setValue(
         `signatories.${index}.signer_nip`,
-        user.nip || user.username || "",
+        user.nip || "",
         { shouldValidate: true },
       );
       setValue(`signatories.${index}.signer_jabatan`, user.jabatan || "", {

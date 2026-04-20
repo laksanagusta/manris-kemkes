@@ -217,9 +217,11 @@ export default function RiskRegisterPage() {
         .statusFilter,
   );
   const [categoryFilter, setCategoryFilter] =
-    useState<RiskRegisterCategoryFilter>(() =>
-      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
-        .categoryFilter,
+    useState<RiskRegisterCategoryFilter>(
+      () =>
+        parseRiskRegisterQueryState(
+          new URLSearchParams(searchParams.toString()),
+        ).categoryFilter,
     );
   const [assessmentCycleFilter, setAssessmentCycleFilter] = useState(
     () =>
@@ -231,17 +233,22 @@ export default function RiskRegisterPage() {
       parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
         .createdAtFilter,
   );
-  const [page, setPage] = useState(() =>
-    parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString())).page,
+  const [page, setPage] = useState(
+    () =>
+      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+        .page,
   );
-  const [limit, setLimit] = useState(() =>
-    parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString())).limit,
+  const [limit, setLimit] = useState(
+    () =>
+      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+        .limit,
   );
   const [total, setTotal] = useState(0);
   const [selectedVersion, setSelectedVersion] = useState("");
-  const [activeTab, setActiveTab] = useState<RiskRegisterTab>(() =>
-    parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
-      .activeTab,
+  const [activeTab, setActiveTab] = useState<RiskRegisterTab>(
+    () =>
+      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+        .activeTab,
   );
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
@@ -344,10 +351,16 @@ export default function RiskRegisterPage() {
         : nextState.assessmentCycleFilter,
     );
     setCreatedAtFilter((current) =>
-      current === nextState.createdAtFilter ? current : nextState.createdAtFilter,
+      current === nextState.createdAtFilter
+        ? current
+        : nextState.createdAtFilter,
     );
-    setPage((current) => (current === nextState.page ? current : nextState.page));
-    setLimit((current) => (current === nextState.limit ? current : nextState.limit));
+    setPage((current) =>
+      current === nextState.page ? current : nextState.page,
+    );
+    setLimit((current) =>
+      current === nextState.limit ? current : nextState.limit,
+    );
     setActiveTab((current) =>
       current === nextState.activeTab ? current : nextState.activeTab,
     );
@@ -387,7 +400,9 @@ export default function RiskRegisterPage() {
 
     isApplyingSearchParamsRef.current = false;
     const nextQueryString = buildRiskRegisterQueryString(nextState);
-    const nextUrl = nextQueryString ? `${pathname}?${nextQueryString}` : pathname;
+    const nextUrl = nextQueryString
+      ? `${pathname}?${nextQueryString}`
+      : pathname;
 
     startTransition(() => {
       router.replace(nextUrl, { scroll: false });
@@ -999,7 +1014,10 @@ export default function RiskRegisterPage() {
                               )}
                             >
                               {risk.status
-                                ? risk.versionNumber == 1 && risk.status == "assessment_draft" ? "Draft" : statusLabel[risk.status] || risk.status
+                                ? risk.versionNumber == 1 &&
+                                  risk.status == "assessment_draft"
+                                  ? "Draft"
+                                  : statusLabel[risk.status] || risk.status
                                 : "-"}
                             </Badge>
                             {risk.hasOngoing && risk.draftStatus && (
@@ -1043,7 +1061,7 @@ export default function RiskRegisterPage() {
                                 }
                               >
                                 <RefreshCcw className="size-3" />
-                                Lanjutkan Penilaian
+                                Lanjutkan Pemantauan
                               </Button>
                             )}
                             {canReassess && !risk.hasOngoing && (
@@ -1070,7 +1088,9 @@ export default function RiskRegisterPage() {
             <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Baris per halaman:</span>
+                  <span className="text-xs text-muted-foreground">
+                    Baris per halaman:
+                  </span>
                   <Select
                     value={limit.toString()}
                     onValueChange={(val) => {

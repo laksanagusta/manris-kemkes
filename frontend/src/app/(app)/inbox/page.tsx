@@ -10,6 +10,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   Clock,
   FileSignature,
   FileText,
@@ -18,7 +19,6 @@ import {
   X,
 } from "lucide-react";
 
-import { ApprovalModal } from "@/components/approval-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -292,8 +292,9 @@ export default function InboxPage() {
     parsePositiveInt(searchParams.get("limit"), 10),
   );
   const [approvalTotal, setApprovalTotal] = useState(0);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<"approve" | "reject">("approve");
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [selectedApproval, setSelectedApproval] = useState<{
     id: string;
     title: string;
@@ -491,7 +492,6 @@ export default function InboxPage() {
     limit,
     pathname,
     router,
-    searchParams,
     startTransition,
   ]);
 
@@ -677,8 +677,8 @@ export default function InboxPage() {
     approverRole: string,
   ) => {
     setSelectedApproval({ id, title, requestType: reqType, approverRole });
-    setModalType(type);
-    setModalOpen(true);
+    setReviewMessage("");
+    setReviewModalOpen(true);
   };
 
   const openKRIReportModal = (
@@ -724,6 +724,36 @@ export default function InboxPage() {
       toast.error(err instanceof Error ? err.message : "Gagal memproses aksi");
     } finally {
       setKriSubmitting(false);
+    }
+  };
+
+  const handleReviewAction = async (action: "approve" | "reject") => {
+    if (!token || !selectedApproval) return;
+    
+    try {
+      setReviewSubmitting(true);
+      await api.post(
+        `/approvals/${selectedApproval.id}/action`,
+        { action, comments: reviewMessage },
+        token
+      );
+      toast.success(
+        action === "approve" ? "Persetujuan berhasil disimpan" : "Penolakan berhasil disimpan"
+      );
+      setReviewModalOpen(false);
+      refreshRequests();
+    } catch (error) {
+      console.error("Failed to process approval action:", error);
+      toast.error(
+        action === "approve"
+          ? "Gagal menyimpan persetujuan"
+          : "Gagal menyimpan penolakan",
+        {
+          description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        }
+      );
+    } finally {
+      setReviewSubmitting(false);
     }
   };
 
@@ -1049,41 +1079,23 @@ export default function InboxPage() {
                               </Button>
                             </>
                           ) : (
-                            <>
-                              <Button
-                                size="sm"
-                                onClick={() =>
-                                  openApprovalModal(
-                                    item.id,
-                                    displayTitle || "Tanpa judul",
-                                    "approve",
-                                    item.requestType,
-                                    approvalItem!.currentApproverRole,
-                                  )
-                                }
-                                className="h-7 gap-1.5 px-2 text-xs"
-                              >
-                                <Check className="size-3" />
-                                Setuju
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  openApprovalModal(
-                                    item.id,
-                                    displayTitle || "Tanpa judul",
-                                    "reject",
-                                    item.requestType,
-                                    approvalItem!.currentApproverRole,
-                                  )
-                                }
-                                className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                              >
-                                <X className="size-3" />
-                                Tolak
-                              </Button>
-                            </>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                openApprovalModal(
+                                  item.id,
+                                  displayTitle || "Tanpa judul",
+                                  "approve",
+                                  item.requestType,
+                                  approvalItem!.currentApproverRole,
+                                )
+                              }
+                              className="h-7 gap-1.5 px-2.5 text-xs"
+                            >
+                              <ClipboardCheck className="size-3" />
+                              Tinjau
+                            </Button>
                           )
                         ) : (
                           <span className="px-2 text-[10px] text-muted-foreground">
@@ -1170,18 +1182,6 @@ export default function InboxPage() {
         </div>
       </Card>
 
-      <ApprovalModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        approvalId={selectedApproval?.id || null}
-        approvalType={modalType}
-        entityTitle={selectedApproval?.title}
-        requestType={selectedApproval?.requestType}
-        approverRole={selectedApproval?.approverRole}
-        onSuccess={() => refreshRequests()}
-        token={token || undefined}
-      />
-
       <Dialog open={kriModalOpen} onOpenChange={setKriModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1249,6 +1249,57 @@ export default function InboxPage() {
                 : "Kirim Permintaan Revisi"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={reviewModalOpen} onOpenChange={setReviewModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedApproval?.approverRole === "reviewer"
+                ? "Tinjau Pemantauan"
+                : "Beri Persetujuan"}
+            </DialogTitle>
+            <DialogDescription>
+              Berikan keputusan persetujuan atau penolakan untuk item ini.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Textarea
+              placeholder="Tambahkan pesan persetujuan atau alasan penolakan..."
+              value={reviewMessage}
+              onChange={(e) => setReviewMessage(e.target.value)}
+              disabled={reviewSubmitting}
+              className="min-h-[80px] resize-none"
+            />
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => handleReviewAction("reject")}
+                disabled={reviewSubmitting}
+                className="flex-1 border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20"
+              >
+                {reviewSubmitting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <X className="size-4" />
+                )}
+                Tolak
+              </Button>
+              <Button
+                onClick={() => handleReviewAction("approve")}
+                disabled={reviewSubmitting}
+                className="flex-1"
+              >
+                {reviewSubmitting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Check className="size-4" />
+                )}
+                Setujui
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

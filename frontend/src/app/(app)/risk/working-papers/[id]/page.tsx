@@ -217,7 +217,7 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
           onBack={() => router.push("/risk/working-papers")}
         />
 
-        <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-[24px] border border-border/50 bg-muted/20 px-6 py-12 text-center">
+        <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-xl border border-border/50 bg-muted/20 px-6 py-12 text-center">
           <Loader2 className="size-6 animate-spin text-primary" />
           <p className="text-sm font-medium text-foreground">Memuat detail kertas kerja…</p>
         </div>
@@ -235,7 +235,7 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
           onBack={() => router.push("/risk/working-papers")}
         />
 
-        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-[24px] border border-destructive/20 bg-destructive/5 px-6 py-12 text-center">
+        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-xl border border-destructive/20 bg-destructive/5 px-6 py-12 text-center">
           <div className="inline-flex size-12 items-center justify-center rounded-full bg-destructive/10">
             <ShieldAlert className="size-6 text-destructive" />
           </div>
@@ -266,7 +266,7 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
           onBack={() => router.push("/risk/working-papers")}
         />
 
-        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-[24px] border border-border/50 bg-muted/20 px-6 py-12 text-center">
+        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-xl border border-border/50 bg-muted/20 px-6 py-12 text-center">
           <AlertCircle className="size-10 text-muted-foreground" />
           <div className="space-y-1.5">
             <h2 className="text-lg font-semibold">Dokumen tidak ditemukan</h2>
@@ -342,7 +342,7 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
       {viewModel.currentAction ? (
         <section
           className={cn(
-            "rounded-2xl border px-5 py-5",
+            "rounded-xl border px-5 py-5",
             actionToneClassName[viewModel.currentAction.tone],
           )}
         >

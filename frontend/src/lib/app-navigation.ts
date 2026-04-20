@@ -17,6 +17,11 @@ export const mainMenuItems: MainMenuGroup[] = [
       { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
       { label: "Persetujuan", href: "/inbox", icon: "Inbox" },
       { label: "Risiko", href: "/risk/register", icon: "ShieldAlert" },
+      {
+        label: "Penanganan",
+        href: "/compliance/penanganan",
+        icon: "ClipboardCheck",
+      },
       // { label: "Insiden", href: "/incidents", icon: "AlertTriangle" },
       {
         label: "Kertas Kerja",
@@ -28,11 +33,6 @@ export const mainMenuItems: MainMenuGroup[] = [
         href: "/compliance/monitoring",
         icon: "ClipboardCheck",
         matchHrefs: ["/compliance/monitoring", "/compliance/kri"],
-      },
-      {
-        label: "Penanganan",
-        href: "/compliance/penanganan",
-        icon: "ClipboardCheck",
       },
       { label: "Reports", href: "/reports", icon: "FileBarChart" },
       // { label: "My Forms", href: "/forms", icon: "ClipboardList" },
