@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -40,9 +39,9 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
 
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<number>(defaultYear ?? currentYear);
-  const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>("intensity");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const heatmapMode: HeatmapMode = "riskLevel";
 
   const [data, setData] = useState<Record<PhaseKey, number[][]>>({
     initial: emptyHeatmap,
@@ -129,16 +128,6 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
             </SelectContent>
           </Select>
 
-          <Tabs
-            value={heatmapMode}
-            onValueChange={(v) => setHeatmapMode(v as HeatmapMode)}
-            className="w-full sm:w-auto"
-          >
-            <TabsList className="grid w-full grid-cols-2 sm:w-[240px]">
-              <TabsTrigger value="intensity">Intensitas</TabsTrigger>
-              <TabsTrigger value="riskLevel">Level Risiko</TabsTrigger>
-            </TabsList>
-          </Tabs>
         </div>
       </CardHeader>
 

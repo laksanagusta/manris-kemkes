@@ -4,16 +4,17 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray, Controller, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DragDropProvider } from "@dnd-kit/react";
+import { isSortable } from "@dnd-kit/dom/sortable";
+import { useSortable } from "@dnd-kit/react/sortable";
 import * as z from "zod";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { createWorkingPaper } from "@/lib/api/working-papers";
-
-import { DragDropProvider } from "@dnd-kit/react";
-import { useSortable } from "@dnd-kit/react/sortable";
-import { isSortable } from "@dnd-kit/dom/sortable";
+import { getWorkingPaperCreateErrorMessage } from "@/lib/api/working-paper-create-error";
+import { createEmptyWorkingPaperSignatory } from "@/lib/working-paper-signatories";
 
 import {
   FormPage,
@@ -21,6 +22,7 @@ import {
   FormSection,
 } from "@/components/shared/form-shell";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,18 +38,20 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   Loader2,
   Save,
+  FileSearch,
+  GripVertical,
   Plus,
   Trash2,
-  GripVertical,
-  FileSearch,
   X,
 } from "lucide-react";
 import {
@@ -55,7 +59,6 @@ import {
   riskCategoryLabels,
   getRiskLevelFromNilai,
 } from "@/lib/risk";
-import { cn } from "@/lib/utils";
 
 const levelBadgeVariant: Record<string, string> = {
   "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
@@ -92,6 +95,7 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+type SignatoryValue = FormValues["signatories"][number];
 
 type RiskOption = {
   id: string;
@@ -112,140 +116,153 @@ type UserOption = {
   pangkat?: string;
 };
 
-/* ── Sortable signatory row ─────────────────────────────────── */
+type SortableDragEndEvent = {
+  canceled: boolean;
+  operation: {
+    source: { id: unknown; index?: number; initialIndex?: number } | null;
+    target: { id: unknown; index?: number } | null;
+  };
+};
 
 interface SortableSignatoryRowProps {
-  field: { id: string };
+  rowId: string;
   index: number;
-  control: ReturnType<typeof useForm<FormValues>>["control"];
-  register: ReturnType<typeof useForm<FormValues>>["register"];
-  errors: ReturnType<typeof useForm<FormValues>>["formState"]["errors"];
-  users: UserOption[];
+  control: Control<FormValues>;
+  signatory: SignatoryValue | undefined;
+  userIdError?: string;
   loadingUsers: boolean;
-  onUserSelect: (index: number, userId: string) => void;
-  onRemove: () => void;
-  canRemove: boolean;
+  users: UserOption[];
   userSearch: string;
-  setUserSearch: (val: string) => void;
   userPage: number;
-  setUserPage: React.Dispatch<React.SetStateAction<number>>;
   userTotal: number;
+  onUserSearchChange: (value: string) => void;
+  onUserSelect: (index: number, userId: string) => void;
+  onPreviousUserPage: () => void;
+  onNextUserPage: () => void;
+  canGoToPreviousUserPage: boolean;
+  canGoToNextUserPage: boolean;
+  onRemove: (index: number) => void;
+  canRemove: boolean;
 }
 
 function SortableSignatoryRow({
-  field,
+  rowId,
   index,
   control,
-  register,
-  errors,
-  users,
+  signatory,
+  userIdError,
   loadingUsers,
+  users,
+  userSearch,
+  userPage,
+  userTotal,
+  onUserSearchChange,
   onUserSelect,
+  onPreviousUserPage,
+  onNextUserPage,
+  canGoToPreviousUserPage,
+  canGoToNextUserPage,
   onRemove,
   canRemove,
-  userSearch,
-  setUserSearch,
-  userPage,
-  setUserPage,
-  userTotal,
 }: SortableSignatoryRowProps) {
   const { ref, handleRef, isDragging } = useSortable({
-    id: field.id,
+    id: rowId,
     index,
-    group: "signatories",
+    group: "working-paper-signatories",
   });
 
   return (
-    <div
+    <tr
       ref={ref}
       className={cn(
-        "flex items-start gap-3 p-4 border border-border/50 rounded-lg bg-card shadow-sm relative group transition-opacity",
-        isDragging && "z-10 opacity-50",
+        "border-b border-border/30 transition-colors hover:bg-muted/30",
+        isDragging && "bg-muted/40 opacity-60",
       )}
     >
-      <div
-        ref={handleRef}
-        className="flex h-10 w-8 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground/40 transition-colors hover:bg-muted hover:text-muted-foreground active:cursor-grabbing"
-      >
-        <GripVertical className="size-4" />
-      </div>
-
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-        {index + 1}
-      </div>
-
-      <div className="flex flex-col gap-4 flex-1">
+      <TableCell className="w-10">
+        <button
+          type="button"
+          ref={handleRef}
+          className="flex size-7 cursor-grab items-center justify-center rounded-md text-muted-foreground/40 transition-colors hover:bg-muted hover:text-muted-foreground active:cursor-grabbing"
+          aria-label={`Ubah urutan penandatangan ${index + 1}`}
+        >
+          <GripVertical className="size-3.5" />
+        </button>
+      </TableCell>
+      <TableCell className="w-10">
+        <span className="flex size-5 items-center justify-center rounded-full bg-muted/70 text-[10px] font-semibold text-muted-foreground">
+          {index + 1}
+        </span>
+      </TableCell>
+      <TableCell className="align-top">
         <div className="space-y-2">
-          <Label>
-            Pengguna <span className="text-destructive">*</span>
-          </Label>
           <Controller
             control={control}
-            name={`signatories.${index}.user_id`}
+            name={`signatories.${index}.user_id` as const}
             render={({ field: { value, onChange } }) => (
               <Select
                 value={value}
-                onValueChange={(val) => {
-                  onChange(val);
-                  onUserSelect(index, val);
+                onValueChange={(nextValue) => {
+                  onChange(nextValue);
+                  onUserSelect(index, nextValue);
                 }}
                 disabled={loadingUsers}
               >
                 <SelectTrigger
-                  className={
-                    errors.signatories?.[index]?.user_id
-                      ? "border-destructive"
-                      : ""
-                  }
+                  className={cn("h-8 text-xs", userIdError && "border-destructive")}
                 >
-                  <SelectValue placeholder="Pilih pengguna..." />
+                  <SelectValue placeholder="Pilih penandatangan..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <div className="p-2 border-b">
+                  <div className="border-b p-2">
                     <Input
                       placeholder="Cari pengguna..."
                       value={userSearch}
-                      onChange={(e) => setUserSearch(e.target.value)}
+                      onChange={(event) => onUserSearchChange(event.target.value)}
                       className="h-8"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(event) => event.stopPropagation()}
                     />
                   </div>
                   <div className="max-h-[200px] overflow-y-auto">
-                    {users.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name} ({u.email})
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      {users.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.name} ({option.email})
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                     {users.length === 0 && (
-                      <div className="p-2 text-sm text-muted-foreground text-center">
+                      <div className="p-2 text-center text-sm text-muted-foreground">
                         Tidak ada pengguna ditemukan
                       </div>
                     )}
                   </div>
                   {userTotal > 10 && (
-                    <div className="p-2 border-t flex items-center justify-between">
+                    <div className="flex items-center justify-between border-t p-2">
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
-                        disabled={userPage === 1}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setUserPage((p) => p - 1);
+                        disabled={!canGoToPreviousUserPage}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onPreviousUserPage();
                         }}
                         className="h-6 text-xs"
                       >
                         ← Prev
                       </Button>
                       <span className="text-xs text-muted-foreground">
-                        {userPage} / {Math.ceil(userTotal / 10)}
+                        {userPage} / {Math.max(1, Math.ceil(userTotal / 10))}
                       </span>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
-                        disabled={userPage >= Math.ceil(userTotal / 10)}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setUserPage((p) => p + 1);
+                        disabled={!canGoToNextUserPage}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onNextUserPage();
                         }}
                         className="h-6 text-xs"
                       >
@@ -257,57 +274,31 @@ function SortableSignatoryRow({
               </Select>
             )}
           />
-          {errors.signatories?.[index]?.user_id && (
-            <p className="text-xs text-destructive">
-              {errors.signatories[index]?.user_id?.message}
-            </p>
-          )}
+          {userIdError && <p className="text-xs text-destructive">{userIdError}</p>}
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label className="text-muted-foreground text-xs uppercase tracking-wider">NIP</Label>
-            <Input
-              placeholder="Otomatis dari data pengguna"
-              {...register(`signatories.${index}.signer_nip`)}
-              disabled
-              className="bg-muted/30 text-foreground cursor-default"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-muted-foreground text-xs uppercase tracking-wider">Jabatan</Label>
-            <Input
-              placeholder="Otomatis dari data pengguna"
-              {...register(`signatories.${index}.signer_jabatan`)}
-              disabled
-              className="bg-muted/30 text-foreground cursor-default"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-muted-foreground text-xs uppercase tracking-wider">Pangkat</Label>
-            <Input
-              placeholder="Otomatis dari data pengguna"
-              {...register(`signatories.${index}.signer_pangkat`)}
-              disabled
-              className="bg-muted/30 text-foreground cursor-default"
-            />
-          </div>
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {signatory?.signer_nip || "-"}
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between gap-3">
+          <span className="truncate" title={signatory?.signer_jabatan || "-"}>
+            {signatory?.signer_jabatan || "-"}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 shrink-0 text-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => onRemove(index)}
+            disabled={!canRemove}
+            aria-label={`Hapus penandatangan ${index + 1}`}
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
         </div>
-      </div>
-
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={onRemove}
-        disabled={!canRemove}
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </div>
+      </TableCell>
+    </tr>
   );
 }
 
@@ -347,29 +338,22 @@ export default function CreateWorkingPaperPage() {
       description: "",
       assessment_cycle: assessmentCycle,
       risks: [],
-      signatories: [
-        {
-          user_id: "",
-          signer_jabatan: "",
-          signer_pangkat: "",
-          signer_name: "",
-          signer_nip: "",
-        },
-      ],
+      signatories: [createEmptyWorkingPaperSignatory()],
     },
   });
 
   const {
     fields: signatoryFields,
     append: appendSignatory,
-    remove: removeSignatory,
     move: moveSignatory,
+    remove: removeSignatory,
   } = useFieldArray({
     control,
     name: "signatories",
   });
 
   const watchRisks = watch("risks");
+  const watchedSignatories = watch("signatories") ?? [];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -480,7 +464,7 @@ export default function CreateWorkingPaperPage() {
     );
   };
 
-  const handleUserSelect = (index: number, userId: string) => {
+  const handleUserSelect = useCallback((index: number, userId: string) => {
     const user = users.find((u) => u.id === userId);
     if (user) {
       setValue(`signatories.${index}.user_id`, userId, {
@@ -501,24 +485,41 @@ export default function CreateWorkingPaperPage() {
         shouldValidate: true,
       });
     }
-  };
+  }, [setValue, users]);
+
+  const handleAddSignatory = useCallback(() => {
+    appendSignatory(createEmptyWorkingPaperSignatory());
+  }, [appendSignatory]);
+
+  const handleRemoveSignatory = useCallback((index: number) => {
+    removeSignatory(index);
+  }, [removeSignatory]);
+
+  const totalUserPages = Math.max(1, Math.ceil(userTotal / 10));
+
+  const handlePreviousUserPage = useCallback(() => {
+    setUserPage((page) => Math.max(1, page - 1));
+  }, []);
+
+  const handleNextUserPage = useCallback(() => {
+    setUserPage((page) => Math.min(totalUserPages, page + 1));
+  }, [totalUserPages]);
 
   const handleSignatoryDragEnd = useCallback(
-    (event: {
-      canceled: boolean;
-      operation: {
-        source: { id: unknown; index?: number; initialIndex?: number } | null;
-        target: { id: unknown; index?: number } | null;
-      };
-    }) => {
+    (event: SortableDragEndEvent) => {
       if (event.canceled) return;
+
       const { source, target } = event.operation;
+
       if (!source || !target) return;
       if (!isSortable(source as never) || !isSortable(target as never)) return;
-      const from = (source as unknown as { initialIndex: number }).initialIndex;
-      const to = (target as unknown as { index: number }).index;
-      if (from === to) return;
-      moveSignatory(from, to);
+
+      const fromIndex = (source as { initialIndex: number }).initialIndex;
+      const toIndex = (target as { index: number }).index;
+
+      if (fromIndex === toIndex) return;
+
+      moveSignatory(fromIndex, toIndex);
     },
     [moveSignatory],
   );
@@ -546,7 +547,7 @@ export default function CreateWorkingPaperPage() {
       router.push(`/risk/working-papers/${result.id}`);
     } catch (error) {
       console.error(error);
-      toast.error("Gagal membuat kertas kerja");
+      toast.error(getWorkingPaperCreateErrorMessage(error));
     }
   };
 
@@ -655,225 +656,250 @@ export default function CreateWorkingPaperPage() {
             </p>
           )}
 
-          <div className="border border-border/50 rounded-md overflow-hidden bg-card">
-            {loadingRisks ? (
-              <div className="p-8 flex justify-center items-center text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin mr-2" /> Memuat daftar
-                risiko...
-              </div>
-            ) : risks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-                <div className="inline-flex size-12 items-center justify-center rounded-full bg-muted">
-                  <FileSearch className="size-6 text-muted-foreground" />
+          <Card className="overflow-hidden border-border/50 bg-card/80 py-0 backdrop-blur-sm">
+            <CardContent className="p-0">
+              {loadingRisks ? (
+                <div className="flex items-center justify-center p-8 text-muted-foreground">
+                  <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Memuat daftar
+                  risiko...
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">
-                    Belum ada risiko yang disetujui
-                  </p>
-                  <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-                    Kertas kerja membutuhkan risiko berstatus disetujui. Buat
-                    dan ajukan risiko terlebih dahulu.
-                  </p>
+              ) : risks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+                  <div className="inline-flex size-12 items-center justify-center rounded-full bg-muted">
+                    <FileSearch className="size-6 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">
+                      Belum ada risiko yang disetujui
+                    </p>
+                    <p className="max-w-sm text-sm leading-6 text-muted-foreground">
+                      Kertas kerja membutuhkan risiko berstatus disetujui. Buat
+                      dan ajukan risiko terlebih dahulu.
+                    </p>
+                  </div>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/risk/register">Buka Register Risiko</Link>
+                  </Button>
                 </div>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/risk/register">Buka Register Risiko</Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="max-h-[400px] overflow-auto">
-                <Table>
-                   <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                     <TableRow>
-                       <TableHead className="w-[50px] text-center whitespace-nowrap">
-                         <Checkbox
-                           checked={
-                             filteredRisks.length > 0 &&
-                             filteredRisks.every((r) =>
-                               selectedRiskIds.includes(r.id),
-                             )
-                           }
-                           onCheckedChange={(checked) =>
-                             handleToggleAll(!!checked)
-                           }
-                           aria-label="Pilih semua risiko"
-                         />
-                       </TableHead>
-                       <TableHead className="w-[100px] whitespace-nowrap">Kode</TableHead>
-                       <TableHead className="max-w-[280px] whitespace-nowrap">
-                         Judul Risiko
-                       </TableHead>
-                       <TableHead className="w-[140px] whitespace-nowrap">Kategori</TableHead>
-                       <TableHead className="w-[120px] text-center whitespace-nowrap">
-                         Nilai
-                       </TableHead>
-                       <TableHead className="w-[140px] text-center whitespace-nowrap">
-                         Tingkat
-                       </TableHead>
-                       <TableHead className="w-[180px] whitespace-nowrap">Sumber Data</TableHead>
-                     </TableRow>
-                   </TableHeader>
-                  <TableBody>
-                    {filteredRisks.length > 0 ? (
-                      filteredRisks.map((risk) => {
-                        const isChecked = selectedRiskIds.includes(risk.id);
-                        const riskEntry = watchRisks.find(
-                          (r) => r.risk_id === risk.id,
-                        );
-                        const displayNilai = risk.nilai ?? 0;
-                        const lvlLabel = getRiskLevelLabel(
-                          getRiskLevelFromNilai(displayNilai),
-                        );
-                        return (
-                          <TableRow
-                            key={risk.id}
-                            className={isChecked ? "bg-primary/5" : ""}
-                          >
-                            <TableCell className="text-center">
-                              <Checkbox
-                                checked={isChecked}
-                                onCheckedChange={(checked) =>
-                                  handleToggleRisk(risk.id, !!checked)
-                                }
-                                aria-label={`Pilih ${risk.code}`}
-                              />
-                            </TableCell>
-                            <TableCell className="font-mono text-xs text-muted-foreground">
-                              {risk.code}
-                            </TableCell>
-                            <TableCell className="font-medium max-w-[280px]">
-                              <span
-                                className="block truncate"
-                                title={risk.title}
-                              >
-                                {risk.title}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {riskCategoryLabels[
-                                risk.category as keyof typeof riskCategoryLabels
-                              ] || risk.category}
-                            </TableCell>
-                            <TableCell className="text-center font-mono text-xs">
-                              {Math.round(displayNilai)}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge
-                                variant="outline"
-                                className={
-                                  levelBadgeVariant[lvlLabel] ||
-                                  "bg-muted text-muted-foreground"
-                                }
-                              >
-                                {lvlLabel}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {isChecked ? (
-                                <Select
-                                  value={
-                                    riskEntry?.source_mode || "latest_approved"
+              ) : (
+                <div className="max-h-[400px] overflow-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 z-10 bg-muted/50">
+                      <TableRow>
+                        <TableHead className="w-[50px] text-center whitespace-nowrap">
+                          <Checkbox
+                            checked={
+                              filteredRisks.length > 0 &&
+                              filteredRisks.every((r) =>
+                                selectedRiskIds.includes(r.id),
+                              )
+                            }
+                            onCheckedChange={(checked) =>
+                              handleToggleAll(!!checked)
+                            }
+                            aria-label="Pilih semua risiko"
+                          />
+                        </TableHead>
+                        <TableHead className="w-[100px] whitespace-nowrap">Kode</TableHead>
+                        <TableHead className="max-w-[280px] whitespace-nowrap">
+                          Judul Risiko
+                        </TableHead>
+                        <TableHead className="w-[140px] whitespace-nowrap">Kategori</TableHead>
+                        <TableHead className="w-[120px] text-center whitespace-nowrap">
+                          Nilai
+                        </TableHead>
+                        <TableHead className="w-[140px] text-center whitespace-nowrap">
+                          Tingkat
+                        </TableHead>
+                        <TableHead className="w-[180px] whitespace-nowrap">Sumber Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRisks.length > 0 ? (
+                        filteredRisks.map((risk) => {
+                          const isChecked = selectedRiskIds.includes(risk.id);
+                          const riskEntry = watchRisks.find(
+                            (r) => r.risk_id === risk.id,
+                          );
+                          const displayNilai = risk.nilai ?? 0;
+                          const lvlLabel = getRiskLevelLabel(
+                            getRiskLevelFromNilai(displayNilai),
+                          );
+                          return (
+                            <TableRow
+                              key={risk.id}
+                              className={isChecked ? "bg-primary/5" : ""}
+                            >
+                              <TableCell className="text-center">
+                                <Checkbox
+                                  checked={isChecked}
+                                  onCheckedChange={(checked) =>
+                                    handleToggleRisk(risk.id, !!checked)
                                   }
-                                  onValueChange={(val) =>
-                                    handleSourceModeChange(
-                                      risk.id,
-                                      val as
-                                        | "latest_approved"
-                                        | "review_periodic",
-                                    )
+                                  aria-label={`Pilih ${risk.code}`}
+                                />
+                              </TableCell>
+                              <TableCell className="font-mono text-xs text-muted-foreground">
+                                {risk.code}
+                              </TableCell>
+                              <TableCell className="max-w-[280px] font-medium">
+                                <span className="block truncate" title={risk.title}>
+                                  {risk.title}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {riskCategoryLabels[
+                                  risk.category as keyof typeof riskCategoryLabels
+                                ] || risk.category}
+                              </TableCell>
+                              <TableCell className="text-center font-mono text-xs">
+                                {Math.round(displayNilai)}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    levelBadgeVariant[lvlLabel] ||
+                                    "bg-muted text-muted-foreground"
                                   }
                                 >
-                                  <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="latest_approved">
-                                      Versi Terakhir Disetujui
-                                    </SelectItem>
-                                    <SelectItem value="review_periodic">
-                                      Tinjauan Periodik
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">
-                                  &mdash;
-                                </span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-24">
-                          <div className="flex flex-col gap-1 text-left">
-                            <p className="text-sm font-medium text-muted-foreground">Pencarian tidak menemukan risiko</p>
-                            <p className="text-xs text-muted-foreground/70">Pastikan unit dan jenis risiko yang dicari sudah benar</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
+                                  {lvlLabel}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {isChecked ? (
+                                  <Select
+                                    value={riskEntry?.source_mode || "latest_approved"}
+                                    onValueChange={(val) =>
+                                      handleSourceModeChange(
+                                        risk.id,
+                                        val as
+                                          | "latest_approved"
+                                          | "review_periodic",
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="latest_approved">
+                                        Versi Terakhir Disetujui
+                                      </SelectItem>
+                                      <SelectItem value="review_periodic">
+                                        Tinjauan Periodik
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">
+                                    &mdash;
+                                  </span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-24">
+                            <div className="flex flex-col gap-1 text-left">
+                              <p className="text-sm font-medium text-muted-foreground">
+                                Pencarian tidak menemukan risiko
+                              </p>
+                              <p className="text-xs text-muted-foreground/70">
+                                Pastikan unit dan jenis risiko yang dicari sudah benar
+                              </p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </FormSection>
 
         {/* ── Konfigurasi Penandatangan ──────────────────── */}
         <FormSection
           title="Konfigurasi Penandatangan"
-          description="Seret untuk mengatur urutan penandatangan dokumen"
+          description="Tambah penandatangan, atur urutan dengan drag handle, dan tentukan sequence penandatanganan dokumen"
           action={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                appendSignatory({
-                  user_id: "",
-                  signer_jabatan: "",
-                  signer_pangkat: "",
-                  signer_name: "",
-                  signer_nip: "",
-                })
-              }
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Baris
-            </Button>
+            <Badge variant="secondary" className="px-2.5 py-0.5">
+              {signatoryFields.length} penandatangan
+            </Badge>
           }
         >
-          {errors.signatories?.root && (
-            <p className="text-xs text-destructive">
-              {errors.signatories.root.message}
-            </p>
-          )}
+          <div className="space-y-3">
+            {errors.signatories && typeof errors.signatories.message === "string" && (
+              <p className="text-xs text-destructive">{errors.signatories.message}</p>
+            )}
 
-          <DragDropProvider onDragEnd={handleSignatoryDragEnd}>
-            <div className="space-y-4">
-              {signatoryFields.map((field, index) => (
-                <SortableSignatoryRow
-                  key={field.id}
-                  field={field}
-                  index={index}
-                  control={control}
-                  register={register}
-                  errors={errors}
-                  users={users}
-                  loadingUsers={loadingUsers}
-                  onUserSelect={handleUserSelect}
-                  onRemove={() => removeSignatory(index)}
-                  canRemove={signatoryFields.length > 1}
-                  userSearch={userSearch}
-                  setUserSearch={setUserSearch}
-                  userPage={userPage}
-                  setUserPage={setUserPage}
-                  userTotal={userTotal}
-                />
-              ))}
-            </div>
-          </DragDropProvider>
+            <DragDropProvider onDragEnd={handleSignatoryDragEnd}>
+              <Card className="overflow-hidden border-border/50 bg-card/80 py-0 backdrop-blur-sm">
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-10">
+                          <span className="sr-only">Pegangan drag</span>
+                        </TableHead>
+                        <TableHead className="w-10 text-center">
+                          <span className="sr-only">Urutan</span>
+                        </TableHead>
+                        <TableHead className="w-[360px] whitespace-nowrap">Nama</TableHead>
+                        <TableHead className="w-[220px] whitespace-nowrap">NIP</TableHead>
+                        <TableHead className="whitespace-nowrap">Jabatan</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {signatoryFields.map((field, index) => (
+                        <SortableSignatoryRow
+                          key={field.id}
+                          rowId={field.id}
+                          index={index}
+                          control={control}
+                          signatory={watchedSignatories[index]}
+                          userIdError={errors.signatories?.[index]?.user_id?.message}
+                          loadingUsers={loadingUsers}
+                          users={users}
+                          userSearch={userSearch}
+                          userPage={userPage}
+                          userTotal={userTotal}
+                          onUserSearchChange={setUserSearch}
+                          onUserSelect={handleUserSelect}
+                          onPreviousUserPage={handlePreviousUserPage}
+                          onNextUserPage={handleNextUserPage}
+                          canGoToPreviousUserPage={userPage > 1}
+                          canGoToNextUserPage={userPage < totalUserPages}
+                          onRemove={handleRemoveSignatory}
+                          canRemove={signatoryFields.length > 1}
+                        />
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  <div className="flex items-center justify-between gap-3 border-t border-border/30 px-4 py-3">
+                    <p className="text-xs text-muted-foreground">
+                      Urutan baris menentukan sequence penandatangan pada payload dokumen.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddSignatory}
+                      className="gap-2 border-dashed text-xs text-muted-foreground hover:border-primary/50 hover:text-primary"
+                    >
+                      <Plus className="size-3.5" />
+                      Tambah Penandatangan
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </DragDropProvider>
+          </div>
         </FormSection>
       </form>
     </FormPage>

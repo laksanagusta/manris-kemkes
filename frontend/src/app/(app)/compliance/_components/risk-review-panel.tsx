@@ -67,8 +67,6 @@ import { cn } from "@/lib/utils";
 import { getHeatmapCellClass } from "@/lib/heatmap-utils";
 import { MultiPhaseHeatmapCompareCard } from "./multi-phase-heatmap-compare";
 
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 type OrganizationOption = OrganizationListItem;
 
 const reviewStatusMeta: Record<string, { label: string; className: string }> = {
@@ -161,14 +159,12 @@ export function RiskReviewPanel() {
   const [limit, setLimit] = useState(20);
   const [total, setTotal] = useState(0);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [heatmapMode, setHeatmapMode] = useState<"intensity" | "riskLevel">(
-    "riskLevel",
-  );
   const [selectedRisk, setSelectedRisk] = useState<RiskReviewQueueItem | null>(
     null,
   );
   const cycle = useMemo(() => currentGlobalCycle(), []);
   const previousCycle = useMemo(() => previousGlobalCycle(cycle), [cycle]);
+  const heatmapMode = "riskLevel" as const;
 
   useEffect(() => {
     if (user?.role === "unit" && user.organizationId) {
@@ -193,7 +189,7 @@ export function RiskReviewPanel() {
     };
 
     loadOrganizations();
-  }, [token]);
+  }, [token, user?.accessibleOrgIds, user?.isGlobal]);
 
   useEffect(() => {
     setPage(1);
@@ -483,153 +479,149 @@ export function RiskReviewPanel() {
               Memuat queue reassessment...
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
-                  <TableHead className="whitespace-nowrap">Risiko</TableHead>
-                  <TableHead className="w-32 whitespace-nowrap">Unit</TableHead>
-                  <TableHead className="w-28 text-center whitespace-nowrap">
-                    Score
-                  </TableHead>
-                  <TableHead className="w-28 text-center whitespace-nowrap">
-                    Candidate
-                  </TableHead>
-                  <TableHead className="w-32 whitespace-nowrap">
-                    Review Status
-                  </TableHead>
-                  <TableHead className="w-32 whitespace-nowrap">
-                    Next Review
-                  </TableHead>
-                  <TableHead className="w-36 text-right whitespace-nowrap">
-                    Aksi
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItems.length === 0 ? (
+            <div className="max-h-[420px] overflow-auto rounded-md border border-border/50">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24">
-                      <div className="flex flex-col gap-1 text-left">
-                        <p className="text-sm font-medium text-muted-foreground">Belum ada risiko untuk filter ini</p>
-                        <p className="text-xs text-muted-foreground/70">Ubah filter pencarian Anda untuk melihat data</p>
-                      </div>
-                    </TableCell>
+                    <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
+                    <TableHead className="whitespace-nowrap">Risiko</TableHead>
+                    <TableHead className="w-32 whitespace-nowrap">Unit</TableHead>
+                    <TableHead className="w-28 text-center whitespace-nowrap">
+                      Score
+                    </TableHead>
+                    <TableHead className="w-28 text-center whitespace-nowrap">
+                      Target
+                    </TableHead>
+                    <TableHead className="w-32 whitespace-nowrap">
+                      Review Status
+                    </TableHead>
+                    <TableHead className="w-36 text-right whitespace-nowrap">
+                      Aksi
+                    </TableHead>
                   </TableRow>
-                ) : (
-                  filteredItems.map((item) => {
-                    const meta =
-                      reviewStatusMeta[item.reviewStatus] ||
-                      reviewStatusMeta.due;
-                    return (
-                      <TableRow key={item.versionGroupId}>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {item.code || "-"}
-                        </TableCell>
-                        <TableCell className="max-w-[300px]">
-                          <div className="space-y-1">
-                            <p className="truncate text-sm font-medium text-foreground">
-                              {item.title}
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {item.changeReason ||
-                                item.reviewSummary ||
-                                "Belum ada ringkasan perubahan pada cycle ini."}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {item.orgName || "-"}
-                        </TableCell>
-                        <TableCell className="text-center text-sm">
-                          <span className="font-semibold">
-                            {item.currentScore}
-                          </span>
-                          <span className="ml-1 text-muted-foreground">
-                            {formatRiskLevel(item.currentLevel)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center text-sm">
-                          {item.candidateScore ? (
-                            <>
-                              <span className="font-semibold">
-                                {item.candidateScore}
-                              </span>
-                              <span className="ml-1 text-muted-foreground">
-                                {formatRiskLevel(item.candidateLevel)}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn("border font-normal", meta.className)}
-                          >
-                            {meta.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {item.nextReviewDate || "-"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex justify-end gap-2">
-                            {item.reviewStatus === "due" ||
-                            item.reviewStatus === "overdue" ? (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                className="h-8 gap-1 text-xs"
-                                onClick={() => handleOpenConfirmDialog(item)}
-                              >
-                                <RefreshCcw className="size-3.5" />
-                                Reassessment
-                              </Button>
-                            ) : null}
-                            <Link
-                              href={`/risk/register/${item.candidateRiskId || item.riskId}`}
+                </TableHeader>
+                <TableBody>
+                  {filteredItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-24">
+                        <div className="flex flex-col gap-1 text-left">
+                          <p className="text-sm font-medium text-muted-foreground">Belum ada risiko untuk filter ini</p>
+                          <p className="text-xs text-muted-foreground/70">Ubah filter pencarian Anda untuk melihat data</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredItems.map((item) => {
+                      const meta =
+                        reviewStatusMeta[item.reviewStatus] ||
+                        reviewStatusMeta.due;
+                      return (
+                        <TableRow key={item.versionGroupId}>
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            {item.code || "-"}
+                          </TableCell>
+                          <TableCell className="max-w-[300px]">
+                            <div className="space-y-1">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {item.title}
+                              </p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {item.changeReason ||
+                                  item.reviewSummary ||
+                                  "Belum ada ringkasan perubahan pada cycle ini."}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {item.orgName || "-"}
+                          </TableCell>
+                          <TableCell className="text-center text-sm">
+                            <span className="font-semibold">
+                              {item.currentScore}
+                            </span>
+                            <span className="ml-1 text-muted-foreground">
+                              {formatRiskLevel(item.currentLevel)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center text-sm">
+                            {typeof item.candidateScore === "number" ? (
+                              <>
+                                <span className="font-semibold">
+                                  {item.candidateScore}
+                                </span>
+                                <span className="ml-1 text-muted-foreground">
+                                  {formatRiskLevel(item.candidateLevel)}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={cn("border font-normal", meta.className)}
                             >
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 gap-1 text-xs"
-                              >
-                                <ShieldAlert className="size-3.5" />
-                                Buka
-                              </Button>
-                            </Link>
-                            {item.reviewStatus === "pending_approval" ? (
+                              {meta.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex justify-end gap-2">
+                              {item.reviewStatus === "due" ||
+                              item.reviewStatus === "overdue" ? (
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  className="h-8 gap-1 text-xs"
+                                  onClick={() => handleOpenConfirmDialog(item)}
+                                >
+                                  <RefreshCcw className="size-3.5" />
+                                  Reassessment
+                                </Button>
+                              ) : null}
                               <Link
-                                href={`/inbox?status=pending&type=risk&search=${encodeURIComponent(item.code)}`}
+                                href={`/risk/register/${item.candidateRiskId || item.riskId}`}
                               >
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 gap-1 text-xs text-primary"
+                                  className="h-8 gap-1 text-xs"
                                 >
-                                  <Send className="size-3.5" /> Inbox
+                                  <ShieldAlert className="size-3.5" />
+                                  Buka
                                 </Button>
                               </Link>
-                            ) : null}
-                            {item.reviewStatus === "in_draft" ||
-                            item.reviewStatus === "pending_approval" ? (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 text-[11px] text-muted-foreground">
-                                <Clock3 className="size-3" />{" "}
-                                {item.reviewStatus === "pending_approval"
-                                  ? "Menunggu"
-                                  : "Berjalan"}
-                              </span>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+                              {item.reviewStatus === "pending_approval" ? (
+                                <Link
+                                  href={`/inbox?status=pending&type=risk&search=${encodeURIComponent(item.code)}`}
+                                >
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 gap-1 text-xs text-primary"
+                                  >
+                                    <Send className="size-3.5" /> Inbox
+                                  </Button>
+                                </Link>
+                              ) : null}
+                              {item.reviewStatus === "in_draft" ||
+                              item.reviewStatus === "pending_approval" ? (
+                                <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 text-[11px] text-muted-foreground">
+                                  <Clock3 className="size-3" />{" "}
+                                  {item.reviewStatus === "pending_approval"
+                                    ? "Menunggu"
+                                    : "Berjalan"}
+                                </span>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
           {!loading && filteredItems.length > 0 && (
             <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
@@ -801,18 +793,6 @@ export function RiskReviewPanel() {
                 Distribusi risiko approved pada {previousCycle} dan {cycle}.
               </p>
             </div>
-            <Tabs
-              value={heatmapMode}
-              onValueChange={(v) =>
-                setHeatmapMode(v as "intensity" | "riskLevel")
-              }
-              className="w-full sm:w-auto"
-            >
-              <TabsList className="grid w-full grid-cols-2 sm:w-[240px]">
-                <TabsTrigger value="intensity">Intensitas</TabsTrigger>
-                <TabsTrigger value="riskLevel">Level Risiko</TabsTrigger>
-              </TabsList>
-            </Tabs>
           </CardHeader>
           <CardContent className="grid gap-6 md:grid-cols-2">
             {summaryLoading ? (
