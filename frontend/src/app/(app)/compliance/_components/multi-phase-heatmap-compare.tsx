@@ -37,13 +37,13 @@ const emptyHeatmap = Array(5).fill(Array(5).fill(0));
 
 export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
   const { token } = useAuth();
-  
+
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<number>(defaultYear ?? currentYear);
   const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>("intensity");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [data, setData] = useState<Record<PhaseKey, number[][]>>({
     initial: emptyHeatmap,
     semester1: emptyHeatmap,
@@ -51,13 +51,15 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
     target: emptyHeatmap,
   });
 
-  const uniqueYearOptions = Array.from(new Set([
-    currentYear - 2,
-    currentYear - 1,
-    currentYear,
-    currentYear + 1,
-    year
-  ])).sort((a, b) => a - b);
+  const uniqueYearOptions = Array.from(
+    new Set([
+      currentYear - 2,
+      currentYear - 1,
+      currentYear,
+      currentYear + 1,
+      year,
+    ]),
+  ).sort((a, b) => a - b);
 
   useEffect(() => {
     if (!token) return;
@@ -68,9 +70,9 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
       try {
         const response = await api.get<MultiPhaseHeatmapResponse>(
           `/dashboard/heatmap-multi?year=${year}`,
-          token
+          token,
         );
-        
+
         setData({
           initial: response?.initial ?? emptyHeatmap,
           semester1: response?.semester1 ?? emptyHeatmap,
@@ -95,7 +97,7 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
   }, [token, year]);
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader className="flex flex-col gap-4 space-y-0 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2">
@@ -109,7 +111,7 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
             )}
           </p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
           <Select
             value={year.toString()}
@@ -139,12 +141,18 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
           </Tabs>
         </div>
       </CardHeader>
-      
+
       <CardContent className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {(Object.keys(labelMap) as PhaseKey[]).map((phase) => {
           const gridData = data[phase];
           return (
-            <div key={phase} className={cn("space-y-2", loading && "opacity-50 transition-opacity")}>
+            <div
+              key={phase}
+              className={cn(
+                "space-y-2",
+                loading && "opacity-50 transition-opacity",
+              )}
+            >
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {labelMap[phase]}
               </p>
@@ -159,14 +167,14 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
                           count,
                           5 - rowIndex,
                           colIndex + 1,
-                          heatmapMode
-                        )
+                          heatmapMode,
+                        ),
                       )}
                       title={`Probabilitas: ${5 - rowIndex}, Dampak: ${colIndex + 1}`}
                     >
                       {heatmapMode === "riskLevel" && count === 0 ? "" : count}
                     </div>
-                  ))
+                  )),
                 )}
               </div>
             </div>

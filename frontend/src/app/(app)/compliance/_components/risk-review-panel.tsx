@@ -855,9 +855,9 @@ export function RiskReviewPanel() {
             )}
           </CardContent>
         </Card>
-
-        <MultiPhaseHeatmapCompareCard />
       </div>
+
+      <MultiPhaseHeatmapCompareCard />
 
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="space-y-1">
