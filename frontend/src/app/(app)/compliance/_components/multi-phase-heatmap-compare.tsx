@@ -22,9 +22,9 @@ interface Props {
 
 type PhaseKey = "initial" | "semester1" | "semester2" | "target";
 
-interface MultiPhaseHeatmapResponse {
-  data: Record<PhaseKey, number[][]>;
-}
+// NOTE: `api.get` auto-unwraps the `{ data: ... }` envelope,
+// so the helper returns the inner object directly.
+type MultiPhaseHeatmapResponse = Record<PhaseKey, number[][]>;
 
 const labelMap: Record<PhaseKey, string> = {
   initial: "Skor Awal",
@@ -51,13 +51,6 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
     target: emptyHeatmap,
   });
 
-  const yearOptions = [
-    year - 2,
-    year - 1,
-    year,
-    year + 1,
-  ].sort();
-
   const uniqueYearOptions = Array.from(new Set([
     currentYear - 2,
     currentYear - 1,
@@ -79,10 +72,10 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
         );
         
         setData({
-          initial: response.data?.initial ?? emptyHeatmap,
-          semester1: response.data?.semester1 ?? emptyHeatmap,
-          semester2: response.data?.semester2 ?? emptyHeatmap,
-          target: response.data?.target ?? emptyHeatmap,
+          initial: response?.initial ?? emptyHeatmap,
+          semester1: response?.semester1 ?? emptyHeatmap,
+          semester2: response?.semester2 ?? emptyHeatmap,
+          target: response?.target ?? emptyHeatmap,
         });
       } catch (err) {
         console.error("Failed to load multi-phase heatmap", err);
