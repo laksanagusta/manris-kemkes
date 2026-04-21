@@ -114,22 +114,22 @@ type ApprovalLineMember struct {
 }
 
 const (
-	RiskCategoryStrategis          = "strategis"
-	RiskCategoryOperasional        = "operasional"
-	RiskCategoryKepatuhan          = "kepatuhan"
-	RiskCategoryFinansial          = "finansial"
-	RiskCategoryReputasi           = "reputasi"
-	RiskCategoryTeknologiInformasi = "teknologi_informasi"
+	RiskCategoryKebijakan   = "kebijakan"
+	RiskCategoryOperasional = "operasional"
+	RiskCategoryKepatuhan   = "kepatuhan"
+	RiskCategoryFraud       = "fraud_korupsi"
+	RiskCategoryReputasi    = "reputasi"
+	RiskCategoryLegal       = "legal"
 )
 
 var allowedRiskCategories = map[string]struct{}{
-	"":                             {},
-	RiskCategoryStrategis:          {},
-	RiskCategoryOperasional:        {},
-	RiskCategoryKepatuhan:          {},
-	RiskCategoryFinansial:          {},
-	RiskCategoryReputasi:           {},
-	RiskCategoryTeknologiInformasi: {},
+	"":                      {},
+	RiskCategoryKebijakan:   {},
+	RiskCategoryOperasional: {},
+	RiskCategoryKepatuhan:   {},
+	RiskCategoryFraud:       {},
+	RiskCategoryReputasi:    {},
+	RiskCategoryLegal:       {},
 }
 
 func IsValidRiskCategory(category string) bool {

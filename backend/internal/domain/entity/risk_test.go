@@ -19,12 +19,12 @@ func makeValidRiskForCategoryValidation(category string) *Risk {
 
 func TestRiskCategoryAllowsConfiguredKeys(t *testing.T) {
 	allowedCategories := []string{
-		RiskCategoryStrategis,
+		RiskCategoryKebijakan,
 		RiskCategoryOperasional,
 		RiskCategoryKepatuhan,
-		RiskCategoryFinansial,
+		RiskCategoryFraud,
 		RiskCategoryReputasi,
-		RiskCategoryTeknologiInformasi,
+		RiskCategoryLegal,
 	}
 
 	for _, category := range allowedCategories {

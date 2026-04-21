@@ -32,6 +32,16 @@ type HeatmapCell struct {
 	Count       int `json:"count"`
 }
 
+// HeatmapMultiPhase holds four 5x5 heatmap matrices for a given year:
+// Initial (first assessment/v1), Semester 1, Semester 2, and Target.
+// Each matrix is indexed as matrix[probability-1][impact-1] = count.
+type HeatmapMultiPhase struct {
+	Initial   [5][5]int `json:"initial"`
+	Semester1 [5][5]int `json:"semester1"`
+	Semester2 [5][5]int `json:"semester2"`
+	Target    [5][5]int `json:"target"`
+}
+
 // DashboardCategoryCount holds the count of risks per category with severity breakdown
 type DashboardCategoryCount struct {
 	Category     string `json:"category"`

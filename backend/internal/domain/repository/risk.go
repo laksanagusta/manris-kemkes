@@ -35,6 +35,7 @@ type RiskRepository interface {
 	DashboardSummary(ctx context.Context, cycle string, orgIDs []uuid.UUID) (*entity.DashboardSummary, error)
 	DashboardCategoryCounts(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.DashboardCategoryCount, error)
 	HeatmapData(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.HeatmapCell, error)
+	HeatmapMultiPhase(ctx context.Context, year int, orgIDs []uuid.UUID) (*entity.HeatmapMultiPhase, error)
 	TopRisks(ctx context.Context, cycle string, limit int, orgIDs []uuid.UUID) ([]*entity.Risk, error)
 	ListVersions(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.Risk, error)
 	ListCycleSnapshot(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error)

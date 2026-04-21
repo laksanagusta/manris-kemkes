@@ -65,6 +65,9 @@ func (r *fakeReportRiskRepo) DashboardCategoryCounts(context.Context, string, []
 func (r *fakeReportRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, errors.New("not implemented")
 }
+func (r *fakeReportRiskRepo) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	return nil, errors.New("not implemented")
+}
 
 func (r *fakeReportRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
@@ -180,13 +183,13 @@ func (r *fakeReportKRIRepo) GetDashboard(context.Context, []uuid.UUID) (map[stri
 }
 
 func TestGenerateReportUseCase_ExecuteUsesEffectiveSemanticsForPrimaryOutputs(t *testing.T) {
-	alpha := approvedRiskWithReviewedBundle("R-ALPHA", "Alpha", entity.RiskCategoryStrategis, "2026-H1", 5, 4, 23)
+	alpha := approvedRiskWithReviewedBundle("R-ALPHA", "Alpha", entity.RiskCategoryKebijakan, "2026-H1", 5, 4, 23)
 	alpha.Mitigations = []entity.Mitigation{{Action: "Escalate vendor"}}
 
 	beta := approvedRiskWithReviewedBundle("R-BETA", "Beta", entity.RiskCategoryOperasional, "2026-H1", 1, 1, 1)
 	gamma := approvedRiskWithReviewedBundle("R-GAMMA", "Gamma", entity.RiskCategoryKepatuhan, "2026-H1", 5, 2, 12)
 
-	trendExtreme := approvedRiskWithReviewedBundle("R-TREND-1", "Trend Extreme", entity.RiskCategoryStrategis, "2025-H2", 5, 4, 23)
+	trendExtreme := approvedRiskWithReviewedBundle("R-TREND-1", "Trend Extreme", entity.RiskCategoryKebijakan, "2025-H2", 5, 4, 23)
 	trendLow := approvedRiskWithReviewedBundle("R-TREND-2", "Trend Low", entity.RiskCategoryOperasional, "2026-H1", 1, 1, 1)
 	trendMedium := approvedRiskWithReviewedBundle("R-TREND-3", "Trend Medium", entity.RiskCategoryKepatuhan, "2026-H1", 5, 2, 12)
 
@@ -257,7 +260,7 @@ func TestGenerateReportUseCase_ExecuteUsesEffectiveSemanticsForPrimaryOutputs(t 
 
 func TestGenerateReportUseCase_ExecuteKeepsFallbackAndDraftIsolationCompatible(t *testing.T) {
 	legacyApproved := approvedRiskWithPartialReviewedBundle("R-LEGACY", "Legacy", entity.RiskCategoryOperasional, "2026-H1", 5, 4, 20)
-	draftReviewed := nonFinalizedRiskWithReviewedDraft("R-DRAFT", "Draft", entity.RiskCategoryStrategis, "2026-H1", entity.RiskStatusInReview, 4, 4, 16)
+	draftReviewed := nonFinalizedRiskWithReviewedDraft("R-DRAFT", "Draft", entity.RiskCategoryKebijakan, "2026-H1", entity.RiskStatusInReview, 4, 4, 16)
 	finalizedZero := approvedRiskWithReviewedBundle("R-ZERO", "Zero", entity.RiskCategoryKepatuhan, "2026-H1", 1, 1, 1)
 
 	riskRepo := &fakeReportRiskRepo{

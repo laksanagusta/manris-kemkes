@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
+	"golang.org/x/sync/errgroup"
 )
 
 // riskRepository is the PostgreSQL implementation of repository.RiskRepository
@@ -811,7 +812,127 @@ func (r *riskRepository) HeatmapData(ctx context.Context, cycle string, orgIDs [
 	return cells, nil
 }
 
-// TopRisks returns the highest-scoring risks for a specific cycle (or all cycles if empty)
+func (r *riskRepository) HeatmapMultiPhase(ctx context.Context, year int, orgIDs []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	h1Cycle := fmt.Sprintf("%d-H1", year)
+	h2Cycle := fmt.Sprintf("%d-H2", year)
+	yearLike := fmt.Sprintf("%d-%%", year)
+
+	fillMatrix := func(rows pgx.Rows) ([5][5]int, error) {
+		var m [5][5]int
+		defer rows.Close()
+		for rows.Next() {
+			var p, i, cnt int
+			if err := rows.Scan(&p, &i, &cnt); err != nil {
+				return m, err
+			}
+			if p < 1 || p > 5 || i < 1 || i > 5 {
+				continue
+			}
+			m[p-1][i-1] = cnt
+		}
+		return m, rows.Err()
+	}
+
+	runQuery := func(query string, args []interface{}) ([5][5]int, error) {
+		rows, err := r.pool.Query(ctx, query, args...)
+		if err != nil {
+			return [5][5]int{}, fmt.Errorf("heatmap multiphase query: %w", err)
+		}
+		return fillMatrix(rows)
+	}
+
+	orgFilter := func(col string, startIdx int) (string, []interface{}) {
+		if len(orgIDs) == 0 {
+			return "", nil
+		}
+		return fmt.Sprintf(" AND %s = ANY($%d)", col, startIdx), []interface{}{uuidArrayToStrings(orgIDs)}
+	}
+
+	var result entity.HeatmapMultiPhase
+	var eg errgroup.Group
+
+	eg.Go(func() error {
+		scope := `SELECT DISTINCT version_group_id FROM risks
+			WHERE assessment_cycle LIKE $1
+			  AND status IN ('assessment_in_review','approved')`
+		args := []interface{}{yearLike}
+		if clause, extra := orgFilter("organization_id", 2); clause != "" {
+			scope += clause
+			args = append(args, extra...)
+		}
+		query := `SELECT probability, impact, COUNT(*) FROM risks
+			WHERE version_number = 1
+			  AND probability IS NOT NULL AND impact IS NOT NULL
+			  AND version_group_id IN (` + scope + `)
+			GROUP BY 1, 2`
+		m, err := runQuery(query, args)
+		if err != nil {
+			return err
+		}
+		result.Initial = m
+		return nil
+	})
+
+	semesterQuery := func(cycle string) (string, []interface{}) {
+		query := `SELECT probability, impact, COUNT(*) FROM risks
+			WHERE status IN ('assessment_in_review','approved')
+			  AND is_cycle_current = TRUE
+			  AND assessment_cycle = $1
+			  AND probability IS NOT NULL AND impact IS NOT NULL`
+		args := []interface{}{cycle}
+		if clause, extra := orgFilter("organization_id", 2); clause != "" {
+			query += clause
+			args = append(args, extra...)
+		}
+		query += " GROUP BY 1, 2"
+		return query, args
+	}
+
+	eg.Go(func() error {
+		q, args := semesterQuery(h1Cycle)
+		m, err := runQuery(q, args)
+		if err != nil {
+			return err
+		}
+		result.Semester1 = m
+		return nil
+	})
+
+	eg.Go(func() error {
+		q, args := semesterQuery(h2Cycle)
+		m, err := runQuery(q, args)
+		if err != nil {
+			return err
+		}
+		result.Semester2 = m
+		return nil
+	})
+
+	eg.Go(func() error {
+		query := `SELECT target_probability, target_impact, COUNT(*) FROM risks
+			WHERE status IN ('assessment_in_review','approved')
+			  AND is_cycle_current = TRUE
+			  AND assessment_cycle LIKE $1
+			  AND target_probability IS NOT NULL AND target_impact IS NOT NULL`
+		args := []interface{}{yearLike}
+		if clause, extra := orgFilter("organization_id", 2); clause != "" {
+			query += clause
+			args = append(args, extra...)
+		}
+		query += " GROUP BY 1, 2"
+		m, err := runQuery(query, args)
+		if err != nil {
+			return err
+		}
+		result.Target = m
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
 func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
 	var query string
 	var args []interface{}

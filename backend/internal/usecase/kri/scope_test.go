@@ -78,6 +78,9 @@ func (r *scopeKRIRiskRepo) DashboardCategoryCounts(context.Context, string, []uu
 func (r *scopeKRIRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
+func (r *scopeKRIRiskRepo) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	return nil, nil
+}
 func (r *scopeKRIRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }

@@ -65,6 +65,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { getHeatmapCellClass } from "@/lib/heatmap-utils";
+import { MultiPhaseHeatmapCompareCard } from "./multi-phase-heatmap-compare";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -854,6 +855,8 @@ export function RiskReviewPanel() {
             )}
           </CardContent>
         </Card>
+
+        <MultiPhaseHeatmapCompareCard />
       </div>
 
       <Card className="border-border/50 bg-card/80">

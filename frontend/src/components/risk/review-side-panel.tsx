@@ -73,7 +73,9 @@ export function ReviewSidePanel({
 }: ReviewSidePanelProps) {
   const [reviewMessage, setReviewMessage] = useState("");
   const [approvalMessage, setApprovalMessage] = useState("");
-  const [submittingStage, setSubmittingStage] = useState<ActionStage | null>(null);
+  const [submittingStage, setSubmittingStage] = useState<ActionStage | null>(
+    null,
+  );
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
 
@@ -330,7 +332,9 @@ export function ReviewSidePanel({
                     )}
                   </div>
 
-                  <div className={cn("min-w-0 flex-1", !isLast ? "pb-5" : "pb-0")}>
+                  <div
+                    className={cn("min-w-0 flex-1", !isLast ? "pb-5" : "pb-0")}
+                  >
                     <div className="space-y-3">
                       <div className="space-y-0.5">
                         <div className="flex flex-wrap items-center gap-2">
@@ -366,26 +370,28 @@ export function ReviewSidePanel({
                         </p>
                       </div>
 
-                      {node.isActionOwner && isCurrent && workflowStage !== "final" && (
-                        <div className="flex gap-2 pt-1">
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              if (node.label === "Ditinjau") {
-                                setReviewModalOpen(true);
-                              } else if (node.label === "Persetujuan") {
-                                setApprovalModalOpen(true);
-                              }
-                            }}
-                            disabled={submittingStage !== null}
-                            className="text-xs shadow-sm"
-                          >
-                            {node.label === "Ditinjau"
-                              ? "Lakukan Penilaian"
-                              : "Beri Persetujuan"}
-                          </Button>
-                        </div>
-                      )}
+                      {node.isActionOwner &&
+                        isCurrent &&
+                        workflowStage !== "final" && (
+                          <div className="flex gap-2 pt-1">
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                if (node.label === "Ditinjau") {
+                                  setReviewModalOpen(true);
+                                } else if (node.label === "Persetujuan") {
+                                  setApprovalModalOpen(true);
+                                }
+                              }}
+                              disabled={submittingStage !== null}
+                              className="text-xs shadow-sm"
+                            >
+                              {node.label === "Ditinjau"
+                                ? "Tinjau"
+                                : "Beri Persetujuan"}
+                            </Button>
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>

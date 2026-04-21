@@ -70,6 +70,7 @@ jobs:
             echo "== Starting containers =="
             docker compose pull backend frontend
             docker compose up -d --force-recreate backend frontend
+            docker compose restart nginx
 
             echo "== Cleanup images =="
             docker image prune -f

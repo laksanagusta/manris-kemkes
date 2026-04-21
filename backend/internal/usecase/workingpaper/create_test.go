@@ -74,6 +74,9 @@ func (r *fakeCreateRiskRepo) DashboardCategoryCounts(context.Context, string, []
 func (r *fakeCreateRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
+func (r *fakeCreateRiskRepo) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	return nil, errors.New("not implemented")
+}
 
 func (r *fakeCreateRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil

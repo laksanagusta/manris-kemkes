@@ -40,6 +40,9 @@ func (r *fakeCycleSnapshotRiskRepo) DashboardSummary(context.Context, string, []
 func (r *fakeCycleSnapshotRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
+func (r *fakeCycleSnapshotRiskRepo) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	return nil, nil
+}
 func (r *fakeCycleSnapshotRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }

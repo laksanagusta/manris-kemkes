@@ -300,7 +300,7 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteIncludesCategoryDiff(t *testing.T
 		}
 		switch cycle {
 		case "2025-H2":
-			base.Category = entity.RiskCategoryStrategis
+			base.Category = entity.RiskCategoryKebijakan
 		case "2026-H1":
 			base.Category = entity.RiskCategoryOperasional
 		}
@@ -322,8 +322,8 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteIncludesCategoryDiff(t *testing.T
 	if item.FromSnapshot == nil || item.ToSnapshot == nil {
 		t.Fatal("expected snapshots to be present")
 	}
-	if item.FromSnapshot.Category != entity.RiskCategoryStrategis {
-		t.Fatalf("expected from snapshot category %q, got %q", entity.RiskCategoryStrategis, item.FromSnapshot.Category)
+	if item.FromSnapshot.Category != entity.RiskCategoryKebijakan {
+		t.Fatalf("expected from snapshot category %q, got %q", entity.RiskCategoryKebijakan, item.FromSnapshot.Category)
 	}
 	if item.ToSnapshot.Category != entity.RiskCategoryOperasional {
 		t.Fatalf("expected to snapshot category %q, got %q", entity.RiskCategoryOperasional, item.ToSnapshot.Category)

@@ -49,6 +49,9 @@ func (r *riskRegisterRepoStub) DashboardCategoryCounts(context.Context, string, 
 func (r *riskRegisterRepoStub) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
+func (r *riskRegisterRepoStub) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	return nil, nil
+}
 func (r *riskRegisterRepoStub) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }

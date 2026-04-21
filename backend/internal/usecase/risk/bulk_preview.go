@@ -363,18 +363,20 @@ func normalizeBulkRiskText(value string) string {
 func normalizeBulkRiskCategory(value string) string {
 	normalized := normalizeBulkRiskText(value)
 	switch normalized {
-	case entity.RiskCategoryStrategis:
-		return entity.RiskCategoryStrategis
+	case entity.RiskCategoryKebijakan:
+		return entity.RiskCategoryKebijakan
 	case entity.RiskCategoryOperasional:
 		return entity.RiskCategoryOperasional
 	case entity.RiskCategoryKepatuhan:
 		return entity.RiskCategoryKepatuhan
-	case entity.RiskCategoryFinansial:
-		return entity.RiskCategoryFinansial
+	case entity.RiskCategoryFraud:
+		return entity.RiskCategoryFraud
 	case entity.RiskCategoryReputasi:
 		return entity.RiskCategoryReputasi
-	case "teknologi informasi", "teknologi_informasi":
-		return entity.RiskCategoryTeknologiInformasi
+	case "legal":
+		return entity.RiskCategoryLegal
+	case "fraud korupsi", "fraud", "korupsi":
+		return entity.RiskCategoryFraud
 	default:
 		return strings.ReplaceAll(normalized, " ", "_")
 	}

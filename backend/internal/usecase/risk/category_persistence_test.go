@@ -62,6 +62,9 @@ func (r *categoryRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID
 func (r *categoryRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
+func (r *categoryRiskRepo) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	return nil, errors.New("not implemented")
+}
 func (r *categoryRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
@@ -143,7 +146,7 @@ func TestCreateRiskUseCase_ExecutePersistsCategory(t *testing.T) {
 
 	_, err := uc.Execute(context.Background(), CreateRiskInput{
 		Title:             "Risk title",
-		Category:          entity.RiskCategoryStrategis,
+		Category:          entity.RiskCategoryKebijakan,
 		CreatedBy:         &createdBy,
 		Probability:       3,
 		Impact:            3,
@@ -156,8 +159,8 @@ func TestCreateRiskUseCase_ExecutePersistsCategory(t *testing.T) {
 	if riskRepo.created == nil {
 		t.Fatal("expected risk to be created")
 	}
-	if riskRepo.created.Category != entity.RiskCategoryStrategis {
-		t.Fatalf("expected category %q, got %q", entity.RiskCategoryStrategis, riskRepo.created.Category)
+	if riskRepo.created.Category != entity.RiskCategoryKebijakan {
+		t.Fatalf("expected category %q, got %q", entity.RiskCategoryKebijakan, riskRepo.created.Category)
 	}
 }
 
@@ -186,7 +189,7 @@ func TestUpdateRiskUseCase_ExecutePersistsCategory(t *testing.T) {
 		ID:             riskID,
 		Code:           "R-001",
 		Title:          "Old title",
-		Category:       entity.RiskCategoryStrategis,
+		Category:       entity.RiskCategoryKebijakan,
 		Status:         entity.RiskStatusDraft,
 		VersionGroupID: uuid.New(),
 		OrganizationID: uuidPtr(uuid.New()),
@@ -222,7 +225,7 @@ func TestUpdateRiskUseCase_ExecuteRejectsInvalidCategory(t *testing.T) {
 		ID:             riskID,
 		Code:           "R-001",
 		Title:          "Old title",
-		Category:       entity.RiskCategoryStrategis,
+		Category:       entity.RiskCategoryKebijakan,
 		Status:         entity.RiskStatusDraft,
 		VersionGroupID: uuid.New(),
 		OrganizationID: uuidPtr(uuid.New()),
@@ -283,7 +286,7 @@ func TestUpdateRiskUseCase_ExecuteRejectsRiskLinkedToSigningWorkingPaper(t *test
 		ID:             riskID,
 		Code:           "R-001",
 		Title:          "Old title",
-		Category:       entity.RiskCategoryStrategis,
+		Category:       entity.RiskCategoryKebijakan,
 		Status:         entity.RiskStatusDraft,
 		VersionGroupID: uuid.New(),
 		OrganizationID: uuidPtr(uuid.New()),
@@ -298,7 +301,7 @@ func TestUpdateRiskUseCase_ExecuteRejectsRiskLinkedToSigningWorkingPaper(t *test
 		ID:             riskID,
 		Title:          "Updated title",
 		Description:    "Updated desc",
-		Category:       entity.RiskCategoryStrategis,
+		Category:       entity.RiskCategoryKebijakan,
 		Status:         entity.RiskStatusDraft,
 		OrganizationID: riskRepo.byID.OrganizationID,
 		Probability:    3,

@@ -60,6 +60,9 @@ func (r *fakeReassessRiskRepo) DashboardSummary(context.Context, string, []uuid.
 func (r *fakeReassessRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, errors.New("not implemented")
 }
+func (r *fakeReassessRiskRepo) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	return nil, errors.New("not implemented")
+}
 func (r *fakeReassessRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
@@ -511,7 +514,7 @@ func TestListRiskVersionsUseCase_ExecuteReturnsCategory(t *testing.T) {
 				ID:              uuid.New(),
 				VersionGroupID:  versionGroupID,
 				AssessmentCycle: "2025-H2",
-				Category:        entity.RiskCategoryStrategis,
+				Category:        entity.RiskCategoryKebijakan,
 			},
 			{
 				ID:              uuid.New(),
@@ -530,8 +533,8 @@ func TestListRiskVersionsUseCase_ExecuteReturnsCategory(t *testing.T) {
 	if len(versions) != 2 {
 		t.Fatalf("expected 2 versions, got %d", len(versions))
 	}
-	if versions[0].Category != entity.RiskCategoryStrategis {
-		t.Fatalf("expected first version category %q, got %q", entity.RiskCategoryStrategis, versions[0].Category)
+	if versions[0].Category != entity.RiskCategoryKebijakan {
+		t.Fatalf("expected first version category %q, got %q", entity.RiskCategoryKebijakan, versions[0].Category)
 	}
 	if versions[1].Category != entity.RiskCategoryOperasional {
 		t.Fatalf("expected second version category %q, got %q", entity.RiskCategoryOperasional, versions[1].Category)

@@ -66,6 +66,9 @@ func (r *fakeRiskRepository) DashboardSummary(context.Context, string, []uuid.UU
 func (r *fakeRiskRepository) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, errors.New("not implemented")
 }
+func (r *fakeRiskRepository) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	return nil, errors.New("not implemented")
+}
 
 func (r *fakeRiskRepository) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")

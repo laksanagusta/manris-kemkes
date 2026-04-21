@@ -114,6 +114,9 @@ func (r *fakeApprovalRiskRepo) DashboardSummary(context.Context, string, []uuid.
 func (r *fakeApprovalRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, errors.New("not implemented")
 }
+func (r *fakeApprovalRiskRepo) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	return nil, errors.New("not implemented")
+}
 func (r *fakeApprovalRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }

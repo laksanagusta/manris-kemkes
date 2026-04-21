@@ -60,6 +60,9 @@ func (r *reviewScheduleRiskRepo) DashboardCategoryCounts(context.Context, string
 func (r *reviewScheduleRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
+func (r *reviewScheduleRiskRepo) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	return nil, nil
+}
 
 func (r *reviewScheduleRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
@@ -153,7 +156,7 @@ func TestCreateRiskUseCase_ExecutePersistsReviewScheduleText(t *testing.T) {
 
 	_, err := uc.Execute(context.Background(), CreateRiskInput{
 		Title:              "Risk review cadence",
-		Category:           entity.RiskCategoryStrategis,
+		Category:           entity.RiskCategoryKebijakan,
 		CreatedBy:          &createdBy,
 		Probability:        3,
 		Impact:             4,
@@ -186,7 +189,7 @@ func TestUpdateRiskUseCase_ExecutePersistsReviewScheduleText(t *testing.T) {
 			ID:                 riskID,
 			Code:               "R-001",
 			Title:              "Existing risk",
-			Category:           entity.RiskCategoryStrategis,
+			Category:           entity.RiskCategoryKebijakan,
 			Status:             entity.RiskStatusDraft,
 			VersionGroupID:     uuid.New(),
 			OrganizationID:     &organizationID,

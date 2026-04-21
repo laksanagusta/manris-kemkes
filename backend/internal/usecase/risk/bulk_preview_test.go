@@ -125,7 +125,7 @@ func TestBulkRiskSpreadsheetUseCase_Preview_UsesUploaderOrganizationForUnitRole(
 	)
 
 	headers := []string{"Risiko", "Deskripsi", "Kategori Risiko", "C/UC", "P", "D", "Target P", "Target D", "Target Bobot"}
-	row := []string{"Risiko A", "Deskripsi A", "strategis", "C", "2", "2", "1", "1", "1.0"}
+	row := []string{"Risiko A", "Deskripsi A", "kebijakan", "C", "2", "2", "1", "1", "1.0"}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, [][]string{headers, row}), UploaderID: uploaderID})
 	if err != nil {

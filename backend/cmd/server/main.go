@@ -118,6 +118,7 @@ func main() {
 	riskActionPressureUC := riskuc.NewDashboardActionPressureUseCase(domainIncidentRepo, domainMitigationTaskRepo)
 	riskExecutiveAlertsUC := riskuc.NewExecutiveAlertsUseCase(domainRiskRepo, domainMitigationTaskRepo)
 	riskHeatmapDataUC := riskuc.NewHeatmapDataUseCase(domainRiskRepo)
+	riskHeatmapMultiUC := riskuc.NewHeatmapMultiUseCase(domainRiskRepo)
 	riskTopRisksUC := riskuc.NewTopRisksUseCase(domainRiskRepo)
 	riskDashboardCategoriesUC := riskuc.NewDashboardRiskCategoriesUseCase(domainRiskRepo)
 	riskListApprovedUC := riskuc.NewListApprovedRisksUseCase(domainRiskRepo, orgHierarchySvc)
@@ -259,7 +260,7 @@ func main() {
 	// Clean architecture handlers
 	cleanRiskHandler := httpHandler.NewRiskHandler(
 		riskCreateUC, riskCreateBatchUC, riskSpreadsheetUC, riskGetUC, riskReassessUC, riskUpdateUC, riskDeleteUC, riskListUC, riskListRegisterUC, riskListCycleSnapshotUC, riskListVersionsUC, riskReviewQueueUC, riskCompareCyclesUC, riskCompareCycleDetailsUC, riskReviewSummaryUC,
-		riskDashboardSummaryUC, riskActionPressureUC, riskExecutiveAlertsUC, riskHeatmapDataUC, riskTopRisksUC, riskDashboardCategoriesUC, riskListApprovedUC,
+		riskDashboardSummaryUC, riskActionPressureUC, riskExecutiveAlertsUC, riskHeatmapDataUC, riskHeatmapMultiUC, riskTopRisksUC, riskDashboardCategoriesUC, riskListApprovedUC,
 		riskHeatmapVelocityUC, riskOverdueTimelineUC, riskKRIBreachUC, riskUnitResponseUC, domainMMRepo,
 	)
 	cleanIncidentHandler := httpHandler.NewIncidentHandler(
@@ -435,6 +436,7 @@ func main() {
 	protected.Get("/dashboard/executive-alerts", cleanRiskHandler.ExecutiveAlerts)
 	protected.Get("/dashboard/risk-review-summary", cleanRiskHandler.ReviewSummary)
 	protected.Get("/dashboard/heatmap", cleanRiskHandler.HeatmapData)
+	protected.Get("/dashboard/heatmap-multi", cleanRiskHandler.HeatmapMulti)
 	protected.Get("/dashboard/top-risks", cleanRiskHandler.TopRisks)
 	protected.Get("/dashboard/risk-categories", cleanRiskHandler.GetDashboardRiskCategories)
 	protected.Get("/dashboard/heatmap-velocity", cleanRiskHandler.GetHeatmapVelocity)

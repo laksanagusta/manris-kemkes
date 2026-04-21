@@ -50,6 +50,9 @@ func (r *fakeBatchRiskRepo) DashboardSummary(context.Context, string, []uuid.UUI
 func (r *fakeBatchRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
+func (r *fakeBatchRiskRepo) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
+	return nil, errors.New("not implemented")
+}
 func (r *fakeBatchRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
@@ -244,7 +247,7 @@ func TestCreateRiskBatchUseCase_ExecutePersistsCategory(t *testing.T) {
 			ClientKey:         "row-1",
 			Title:             "Gangguan layanan",
 			Description:       "Layanan tidak tersedia",
-			Category:          entity.RiskCategoryTeknologiInformasi,
+			Category:          entity.RiskCategoryLegal,
 			Controllability:   "C",
 			Probability:       3,
 			Impact:            4,
@@ -266,8 +269,8 @@ func TestCreateRiskBatchUseCase_ExecutePersistsCategory(t *testing.T) {
 	if len(riskRepo.created) != 1 {
 		t.Fatalf("expected 1 created risk, got %d", len(riskRepo.created))
 	}
-	if riskRepo.created[0].Category != entity.RiskCategoryTeknologiInformasi {
-		t.Fatalf("expected category %q, got %q", entity.RiskCategoryTeknologiInformasi, riskRepo.created[0].Category)
+	if riskRepo.created[0].Category != entity.RiskCategoryLegal {
+		t.Fatalf("expected category %q, got %q", entity.RiskCategoryLegal, riskRepo.created[0].Category)
 	}
 }
 
@@ -283,7 +286,7 @@ func TestCreateRiskBatchUseCase_ExecuteTrimsCategory(t *testing.T) {
 			ClientKey:         "row-1",
 			Title:             "Gangguan layanan",
 			Description:       "Layanan tidak tersedia",
-			Category:          "  teknologi_informasi  ",
+			Category:          "  legal  ",
 			Controllability:   "C",
 			Probability:       3,
 			Impact:            4,
@@ -305,8 +308,8 @@ func TestCreateRiskBatchUseCase_ExecuteTrimsCategory(t *testing.T) {
 	if len(riskRepo.created) != 1 {
 		t.Fatalf("expected 1 created risk, got %d", len(riskRepo.created))
 	}
-	if riskRepo.created[0].Category != entity.RiskCategoryTeknologiInformasi {
-		t.Fatalf("expected trimmed canonical category %q, got %q", entity.RiskCategoryTeknologiInformasi, riskRepo.created[0].Category)
+	if riskRepo.created[0].Category != entity.RiskCategoryLegal {
+		t.Fatalf("expected trimmed canonical category %q, got %q", entity.RiskCategoryLegal, riskRepo.created[0].Category)
 	}
 }
 

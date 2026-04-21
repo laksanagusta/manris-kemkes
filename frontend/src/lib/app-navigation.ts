@@ -15,14 +15,13 @@ export const mainMenuItems: MainMenuGroup[] = [
     title: "MAIN MENU",
     items: [
       { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
-      { label: "Persetujuan", href: "/inbox", icon: "Inbox" },
       { label: "Risiko", href: "/risk/register", icon: "ShieldAlert" },
+      { label: "Persetujuan", href: "/inbox", icon: "Inbox" },
       {
         label: "Penanganan",
         href: "/compliance/penanganan",
         icon: "ClipboardCheck",
       },
-      // { label: "Insiden", href: "/incidents", icon: "AlertTriangle" },
       {
         label: "Kertas Kerja",
         href: "/risk/working-papers",
@@ -50,7 +49,11 @@ export const adminMenuGroup: MainMenuGroup = {
       icon: "Building2",
     },
     // { label: "Settings", href: "/admin/settings", icon: "Settings2" },
-    { label: "Context", href: "/admin/settings/organization-context", icon: "Settings2" },
+    {
+      label: "Context",
+      href: "/admin/settings/organization-context",
+      icon: "Settings2",
+    },
   ],
 };
 

@@ -36,6 +36,7 @@ type RiskHandler struct {
 	actionPressureUC      *riskuc.DashboardActionPressureUseCase
 	executiveAlertsUC     *riskuc.ExecutiveAlertsUseCase
 	heatmapDataUC         *riskuc.HeatmapDataUseCase
+	heatmapMultiUC        *riskuc.HeatmapMultiUseCase
 	dashboardCategoriesUC *riskuc.DashboardRiskCategoriesUseCase
 	topRisksUC            *riskuc.TopRisksUseCase
 	listApprovedUC        *riskuc.ListApprovedRisksUseCase
@@ -66,6 +67,7 @@ func NewRiskHandler(
 	actionPressureUC *riskuc.DashboardActionPressureUseCase,
 	executiveAlertsUC *riskuc.ExecutiveAlertsUseCase,
 	heatmapDataUC *riskuc.HeatmapDataUseCase,
+	heatmapMultiUC *riskuc.HeatmapMultiUseCase,
 	topRisksUC *riskuc.TopRisksUseCase,
 	dashboardCategoriesUC *riskuc.DashboardRiskCategoriesUseCase,
 	listApprovedUC *riskuc.ListApprovedRisksUseCase,
@@ -95,6 +97,7 @@ func NewRiskHandler(
 		actionPressureUC:      actionPressureUC,
 		executiveAlertsUC:     executiveAlertsUC,
 		heatmapDataUC:         heatmapDataUC,
+		heatmapMultiUC:        heatmapMultiUC,
 		topRisksUC:            topRisksUC,
 		dashboardCategoriesUC: dashboardCategoriesUC,
 		listApprovedUC:        listApprovedUC,
@@ -790,6 +793,23 @@ func (h *RiskHandler) HeatmapData(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"data": matrix})
+}
+
+func (h *RiskHandler) HeatmapMulti(c *fiber.Ctx) error {
+	year, err := strconv.Atoi(c.Query("year"))
+	if err != nil || year <= 0 {
+		year = time.Now().Year()
+	}
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+	data, err := h.heatmapMultiUC.Execute(c.Context(), riskuc.HeatmapMultiInput{Year: year, OrgIDs: orgIDs})
+	if err != nil {
+		return handleError(c, err)
+	}
+	return c.JSON(fiber.Map{"data": data})
 }
 
 // TopRisks handles GET /api/risks/dashboard/top
