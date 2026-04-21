@@ -62,7 +62,7 @@ jobs:
             set -e
 
             echo "== Start deploy =="
-            cd /opt/manris
+            cd /root/opt/manris
 
             echo "== Checking compose file =="
             docker compose config
