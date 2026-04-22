@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
@@ -135,12 +135,7 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  useEffect(() => {
-    if (!token) return;
-    loadData();
-  }, [token, id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -151,7 +146,12 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    loadData();
+  }, [loadData, token]);
 
   const handleExport = async () => {
     if (!data) return;
@@ -633,16 +633,6 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                           </div>
                         ) : null}
 
-                        {item.isActionOwner && viewModel.canSign ? (
-                          <Button
-                            size="sm"
-                            className="mt-3 w-full shadow-sm"
-                            onClick={() => setSignDialogOpen(true)}
-                          >
-                            <FileSignature className="mr-2 size-4" />
-                            Tanda tangani sekarang
-                          </Button>
-                        ) : null}
                       </div>
                     </div>
                   );

@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, Send, Trash2, ChevronUp, ChevronDown, X, GripVertical, History, GitBranch, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Send, History, GitBranch, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import {
   MitigationTable,
   type MitigationItem,
@@ -17,7 +16,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { getRiskDetail, updateRiskAssessment } from "@/lib/api/risk-assessment";
-import { getBobot, calculateNilai, PROBABILITY_LABELS, IMPACT_LABELS, levelToColor, getRiskLevelFromNilai, getRiskLevelLabel } from "@/lib/risk";
+import { getBobot, calculateNilai, PROBABILITY_LABELS, IMPACT_LABELS, levelToColor, getRiskLevelFromNilai } from "@/lib/risk";
 import type { Risk, RiskVersionTimelineItem } from "@/types/risk";
 import { listUsers } from "@/lib/api/users";
 import {
@@ -34,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FormHeader } from "@/components/shared/form-shell";
+import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,7 +66,9 @@ import {
 import { filterApproverOptions, type UserPickerOption } from "@/lib/risk-register-user-picker";
 import {
   resolveDraftApprovalLine,
-  type DraftApprovalLineMember,
+  createApprovalLineRow,
+  moveApprovalLineRows,
+  type ApprovalLineRow,
 } from "@/lib/risk-approval-line";
 import { ProfilRisikoCard } from "../components/profil-risiko-card";
 import { type AssessmentFormValues } from "../components/hasil-pemantauan-card";
@@ -80,28 +82,17 @@ const VERSION_LEVEL_BADGE: Record<string, string> = {
   "Sangat Tinggi": "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
 };
 
-const RiskLogTimeline = dynamic(
-  () =>
-    import("@/components/risk/risk-log-timeline").then(
-      (mod) => mod.RiskLogTimeline,
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-sm text-muted-foreground">
-          Memuat log...
-        </span>
-      </div>
-    ),
-  },
-);
-
-type ApprovalLineUser = { id: string; name: string; email?: string; role?: string };
-
 function dedupeApproverIds(ids: Array<string | undefined>) {
   return [...new Set(ids.filter((id): id is string => Boolean(id)))];
+}
+
+function getRiskOrganizationId(risk: Risk): string {
+  const riskWithOrganizationId = risk as Risk & {
+    organizationId?: string | null;
+    organizationID?: string | null;
+  };
+
+  return riskWithOrganizationId.organizationId ?? riskWithOrganizationId.organizationID ?? "";
 }
 
 const approvalRoleLabels: Record<string, string> = {
@@ -113,6 +104,9 @@ function toHydratedUserPickerOption(user: {
   id?: string | null;
   name?: string | null;
   role?: string | null;
+  nip?: string | null;
+  jabatan?: string | null;
+  pangkat?: string | null;
 }): UserPickerOption | null {
   if (!user.id || !user.name) {
     return null;
@@ -125,14 +119,9 @@ function toHydratedUserPickerOption(user: {
     name: user.name,
     role,
     subtitle: role ? approvalRoleLabels[role] || role : undefined,
-  };
-}
-
-function toApprovalLineUser(option: UserPickerOption): ApprovalLineUser {
-  return {
-    id: option.id,
-    name: option.name,
-    role: option.role,
+    nip: user.nip ?? undefined,
+    jabatan: user.jabatan ?? undefined,
+    pangkat: user.pangkat ?? undefined,
   };
 }
 
@@ -157,7 +146,7 @@ export default function AssessmentFormPage() {
 
   const [reviewerId, setReviewerId] = useState<string>("");
   const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(null);
-  const [approvalLine, setApprovalLine] = useState<ApprovalLineUser[]>([]);
+  const [approvalLine, setApprovalLine] = useState<ApprovalLineRow[]>([]);
   const [approvalId, setApprovalId] = useState<string | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] = useState<RiskWorkflowState | null>(null);
   const [showSubmitReviewConfirm, setShowSubmitReviewConfirm] = useState(false);
@@ -181,19 +170,35 @@ export default function AssessmentFormPage() {
 
   const computedBobot = getBobot(probability, impact);
   const computedNilai = calculateNilai(probability, impact, computedBobot);
+  const selectedApprovalLine = approvalLine.filter((member) => member.id);
+  const isApprovalLineReady =
+    selectedApprovalLine.length > 0 && approvalLine.every((member) => member.id);
 
-  const toUserPickerOption = (user: any): UserPickerOption => ({
-    id: user.id,
-    name: user.name,
-    role: user.role,
-    subtitle: user.organizationName,
-  });
-
-  const toApprovalLineUser = (option: UserPickerOption): ApprovalLineUser => ({
-    id: option.id,
-    name: option.name,
-    role: option.role,
-  });
+  const toUserPickerOption = useCallback(
+    (user: {
+      id: string;
+      name: string;
+      role: string;
+      email?: string;
+      username?: string;
+      nip?: string | null;
+      jabatan?: string | null;
+      pangkat?: string | null;
+      orgName?: string | null;
+    }): UserPickerOption => ({
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      subtitle: user.jabatan || user.orgName || undefined,
+      email: user.email,
+      username: user.username,
+      nip: user.nip,
+      jabatan: user.jabatan,
+      pangkat: user.pangkat,
+      orgName: user.orgName,
+    }),
+    [],
+  );
 
   const loadReviewerOptions = useCallback(
     async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
@@ -215,11 +220,14 @@ export default function AssessmentFormPage() {
         limit: result.limit,
       };
     },
-    [token],
+    [toUserPickerOption, token],
   );
 
   const loadApproverOptions = useCallback(
-    async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
+    async (
+      { q, page, limit }: { q: string; page: number; limit: number },
+      row: ApprovalLineRow,
+    ) => {
       if (!token) {
         return { options: [], total: 0, page, limit };
       }
@@ -235,7 +243,10 @@ export default function AssessmentFormPage() {
           result.data.map(toUserPickerOption),
           {
             reviewerId,
-            selectedApproverIds: approvalLine.map((member) => member.id),
+            selectedApproverIds: approvalLine
+              .filter((member) => member.rowId !== row.rowId)
+              .map((member) => member.id)
+              .filter(Boolean),
           },
         ),
         total: result.total,
@@ -243,7 +254,7 @@ export default function AssessmentFormPage() {
         limit: result.limit,
       };
     },
-    [approvalLine, reviewerId, token],
+    [approvalLine, reviewerId, toUserPickerOption, token],
   );
 
   const handleReviewerSelect = useCallback((option: UserPickerOption) => {
@@ -251,27 +262,33 @@ export default function AssessmentFormPage() {
     setReviewerOption(option);
   }, []);
 
+  const handleAddApproverRow = useCallback(() => {
+    setApprovalLine((current) => [...current, createApprovalLineRow()]);
+  }, []);
+
   const handleApproverSelect = useCallback(
-    (option: UserPickerOption) => {
-      const filteredOption = filterApproverOptions([option], {
-        reviewerId,
-        selectedApproverIds: approvalLine.map((member) => member.id),
-      })[0];
-
-      if (!filteredOption) {
-        return;
-      }
-
-      const selectedUser = toApprovalLineUser(filteredOption);
+    (rowId: string, option: UserPickerOption) => {
       setApprovalLine((current) => {
-        if (current.some((item) => item.id === selectedUser.id)) {
+        const filteredOption = filterApproverOptions([option], {
+          reviewerId,
+          selectedApproverIds: current
+            .filter((member) => member.rowId !== rowId)
+            .map((member) => member.id)
+            .filter(Boolean),
+        })[0];
+
+        if (!filteredOption) {
           return current;
         }
 
-        return [...current, selectedUser];
+        return current.map((member) =>
+          member.rowId === rowId
+            ? createApprovalLineRow(filteredOption, member.rowId)
+            : member,
+        );
       });
     },
-    [approvalLine, reviewerId],
+    [reviewerId],
   );
 
   const fetchVersionHistory = useCallback(
@@ -303,27 +320,27 @@ export default function AssessmentFormPage() {
     [token],
   );
 
-  const moveApprover = (index: number, direction: -1 | 1) => {
-    setApprovalLine((current) => {
-      const nextIndex = index + direction;
-      if (nextIndex < 0 || nextIndex >= current.length) return current;
-      const copy = [...current];
-      [copy[index], copy[nextIndex]] = [copy[nextIndex], copy[index]];
-      return copy;
-    });
-  };
+  const moveApprover = useCallback((fromIndex: number, toIndex: number) => {
+    setApprovalLine((current) => moveApprovalLineRows(current, fromIndex, toIndex));
+  }, []);
 
-  const removeApprover = (id: string) => {
-    setApprovalLine((current) => current.filter((item) => item.id !== id));
-  };
+  const removeApprover = useCallback((rowId: string) => {
+    setApprovalLine((current) =>
+      current.filter((item) => item.rowId !== rowId),
+    );
+  }, []);
 
   const openSubmitReviewConfirm = () => {
     const approverIds = dedupeApproverIds([
       reviewerId,
-      ...approvalLine.map((member) => member.id),
+      ...selectedApprovalLine.map((member) => member.id),
     ]);
     if (approverIds.length === 0) {
       toast.error("Pilih reviewer dan susun approval line terlebih dahulu.");
+      return;
+    }
+    if (!isApprovalLineReady) {
+      toast.error("Lengkapi setiap baris approver atau hapus baris yang masih kosong.");
       return;
     }
     setShowSubmitReviewConfirm(true);
@@ -380,7 +397,11 @@ export default function AssessmentFormPage() {
         );
         setReviewerId(resolvedApprovalLine.reviewerId);
         setReviewerOption(toHydratedUserPickerOption(reviewerMember ?? {}));
-        setApprovalLine(resolvedApprovalLine.approvalLine);
+        setApprovalLine(
+          resolvedApprovalLine.approvalLine.map((member) =>
+            createApprovalLineRow(member),
+          ),
+        );
       } else {
         setReviewerId("");
         setReviewerOption(null);
@@ -436,10 +457,12 @@ export default function AssessmentFormPage() {
                 step.approverUserId &&
                 step.approverName,
             )
-            .map((step) => ({
-              id: step.approverUserId!,
-              name: step.approverName!,
-            }));
+            .map((step) =>
+              createApprovalLineRow({
+                id: step.approverUserId!,
+                name: step.approverName!,
+              }),
+            );
           if (reviewerStep?.approverUserId) {
             setReviewerId(reviewerStep.approverUserId);
             setReviewerOption(
@@ -456,7 +479,7 @@ export default function AssessmentFormPage() {
         setApprovalId(null);
         setApprovalWorkflow(null);
         // 404 is expected when no approval exists yet
-        if (approvalErr instanceof Error && !(approvalErr as any).status) {
+        if (!(approvalErr instanceof Error && "status" in approvalErr)) {
           console.error("Failed to load approval workflow:", approvalErr);
         }
       }
@@ -493,7 +516,7 @@ export default function AssessmentFormPage() {
         category: draftRisk.category,
         status: draftRisk.status,
         unitId: draftRisk.unitId,
-        organizationId: (draftRisk as any).organizationId || (draftRisk as any).organizationID || "",
+        organizationId: getRiskOrganizationId(draftRisk),
         cause: draftRisk.cause || [],
         riskSource: draftRisk.riskSource || "",
         controllability: draftRisk.controllability || "",
@@ -527,7 +550,7 @@ export default function AssessmentFormPage() {
                 },
               ]
             : []),
-          ...approvalLine
+          ...selectedApprovalLine
             .filter((member) => member.id && member.id !== reviewerId)
             .map((member) => ({
               id: member.id,
@@ -542,7 +565,7 @@ export default function AssessmentFormPage() {
       if (submitTarget.current === "review") {
         const approverIds = dedupeApproverIds([
           reviewerId,
-          ...approvalLine.map((member) => member.id),
+          ...selectedApprovalLine.map((member) => member.id),
         ]);
 
         try {
@@ -992,18 +1015,18 @@ export default function AssessmentFormPage() {
                       variant="outline"
                       className={cn(
                         "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                        approvalLine.length > 0
+                        isApprovalLineReady
                           ? "bg-success/10 text-success border-success/20"
                           : "bg-muted/40 text-muted-foreground",
                       )}
                     >
-                      {approvalLine.length > 0 ? (
+                      {isApprovalLineReady ? (
                         <CheckCircle2 className="size-3.5" />
                       ) : (
                         <CircleDot className="size-3.5" />
                       )}
                       <span className="hidden sm:inline">
-                        {approvalLine.length > 0
+                        {isApprovalLineReady
                           ? "Lengkap"
                           : "Perlu dilengkapi"}
                       </span>
@@ -1045,90 +1068,23 @@ export default function AssessmentFormPage() {
                       </p>
                     </div>
 
-                    <div className="flex flex-col gap-3">
-                      <RemoteUserPicker
-                        title="Tambah Approver"
-                        description="Cari approver untuk disusun ke dalam rantai persetujuan berurutan."
-                        placeholder="Pilih approver"
-                        searchPlaceholder="Cari nama approver"
-                        emptyMessage="Approver tidak ditemukan."
-                        value={null}
-                        onSelect={handleApproverSelect}
-                        loadOptions={loadApproverOptions}
-                        disabled={false}
-                        className="md:w-[320px]"
-                      />
-                    </div>
-
-                    <div className="space-y-2 pt-4">
-                      {approvalLine.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
-                          Belum ada approver. Tambahkan minimal satu user sebelum klik{" "}
-                          <span className="font-medium text-foreground">Ajukan review</span>.
-                        </div>
-                      ) : (
-                        <div className="border border-border/50 rounded-lg overflow-hidden">
-                          <table className="w-full">
-                            <tbody className="divide-y divide-border/50">
-                              {approvalLine.map((approver, index) => (
-                                <tr key={approver.id} className="hover:bg-muted/30 transition-colors">
-                                  <td className="w-8 px-2 py-2">
-                                    <div className="flex items-center justify-center text-muted-foreground">
-                                      <GripVertical className="size-3.5" />
-                                    </div>
-                                  </td>
-                                  <td className="w-8 px-2 py-2">
-                                    <span className="text-[10px] font-semibold text-muted-foreground bg-muted/50 rounded-full w-5 h-5 flex items-center justify-center">
-                                      {index + 1}
-                                    </span>
-                                  </td>
-                                  <td className="flex-1 px-2 py-2">
-                                    <div>
-                                      <p className="text-sm font-medium text-foreground">
-                                        {approver.name}
-                                      </p>
-                                    </div>
-                                  </td>
-                                  <td className="w-auto px-2 py-2">
-                                    <div className="flex items-center justify-end gap-1">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-8"
-                                        onClick={() => moveApprover(index, -1)}
-                                        disabled={index === 0}
-                                      >
-                                        <ChevronUp className="size-4" />
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-8"
-                                        onClick={() => moveApprover(index, 1)}
-                                        disabled={index === approvalLine.length - 1}
-                                      >
-                                        <ChevronDown className="size-4" />
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-8 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
-                                        onClick={() => removeApprover(approver.id)}
-                                      >
-                                        <Trash2 className="size-4" />
-                                      </Button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
+                    <OrderedUserSelectionTable
+                      rows={approvalLine}
+                      loadOptions={loadApproverOptions}
+                      onSelectRow={handleApproverSelect}
+                      onAddRow={handleAddApproverRow}
+                      onRemoveRow={removeApprover}
+                      onMoveRow={moveApprover}
+                      pickerTitle="Pilih approver"
+                      pickerDescription="Cari approver untuk disusun ke dalam rantai persetujuan berurutan."
+                      pickerPlaceholder="Pilih approver"
+                      pickerSearchPlaceholder="Cari nama approver"
+                      pickerEmptyMessage="Approver tidak ditemukan."
+                      emptyStateMessage="Belum ada approver. Tambahkan minimal satu user sebelum klik Ajukan review."
+                      addRowLabel="Tambah Approver"
+                      footerNote="Urutan baris menentukan sequence persetujuan pimpinan."
+                      dndGroup="assessment-approval-line"
+                    />
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -1184,7 +1140,7 @@ export default function AssessmentFormPage() {
                 Approval line:{" "}
               </span>
               <span className="text-muted-foreground">
-                {approvalLine.length} orang
+                {selectedApprovalLine.length} orang
               </span>
             </div>
           </div>

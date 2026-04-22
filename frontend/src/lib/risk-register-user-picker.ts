@@ -3,6 +3,12 @@ export type UserPickerOption = {
   name: string;
   role?: string;
   subtitle?: string;
+  email?: string;
+  username?: string;
+  nip?: string | null;
+  jabatan?: string | null;
+  pangkat?: string | null;
+  orgName?: string | null;
 };
 
 export function appendUniqueUserOptions(

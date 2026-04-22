@@ -4,23 +4,23 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
-import { useForm, useFieldArray, Controller, type Control } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DragDropProvider } from "@dnd-kit/react";
-import { isSortable } from "@dnd-kit/dom/sortable";
-import { useSortable } from "@dnd-kit/react/sortable";
 import * as z from "zod";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { listUsers, type UserListItem } from "@/lib/api/users";
 import { createWorkingPaper } from "@/lib/api/working-papers";
 import { getWorkingPaperCreateErrorMessage } from "@/lib/api/working-paper-create-error";
 import { createEmptyWorkingPaperSignatory } from "@/lib/working-paper-signatories";
+import type { UserPickerOption } from "@/lib/risk-register-user-picker";
 
 import {
   FormPage,
   FormHeader,
   FormSection,
 } from "@/components/shared/form-shell";
+import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,22 +38,12 @@ import {
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import {
-  Loader2,
-  Save,
-  FileSearch,
-  GripVertical,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Loader2, Save, FileSearch, X } from "lucide-react";
 import {
   getRiskLevelLabel,
   riskCategoryLabels,
@@ -95,7 +85,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-type SignatoryValue = FormValues["signatories"][number];
 
 type RiskOption = {
   id: string;
@@ -106,200 +95,20 @@ type RiskOption = {
   isCurrent: boolean;
   nilai: number;
 };
-type UserOption = {
-  id: string;
-  name: string;
-  email: string;
-  username: string;
-  nip?: string;
-  jabatan?: string;
-  pangkat?: string;
-};
 
-type SortableDragEndEvent = {
-  canceled: boolean;
-  operation: {
-    source: { id: unknown; index?: number; initialIndex?: number } | null;
-    target: { id: unknown; index?: number } | null;
+function toUserPickerOption(user: UserListItem): UserPickerOption {
+  return {
+    id: user.id,
+    name: user.name,
+    role: user.role,
+    subtitle: user.orgName || user.email,
+    email: user.email,
+    username: user.username,
+    nip: user.nip,
+    jabatan: user.jabatan,
+    pangkat: user.pangkat,
+    orgName: user.orgName,
   };
-};
-
-interface SortableSignatoryRowProps {
-  rowId: string;
-  index: number;
-  control: Control<FormValues>;
-  signatory: SignatoryValue | undefined;
-  userIdError?: string;
-  loadingUsers: boolean;
-  users: UserOption[];
-  userSearch: string;
-  userPage: number;
-  userTotal: number;
-  onUserSearchChange: (value: string) => void;
-  onUserSelect: (index: number, userId: string) => void;
-  onPreviousUserPage: () => void;
-  onNextUserPage: () => void;
-  canGoToPreviousUserPage: boolean;
-  canGoToNextUserPage: boolean;
-  onRemove: (index: number) => void;
-  canRemove: boolean;
-}
-
-function SortableSignatoryRow({
-  rowId,
-  index,
-  control,
-  signatory,
-  userIdError,
-  loadingUsers,
-  users,
-  userSearch,
-  userPage,
-  userTotal,
-  onUserSearchChange,
-  onUserSelect,
-  onPreviousUserPage,
-  onNextUserPage,
-  canGoToPreviousUserPage,
-  canGoToNextUserPage,
-  onRemove,
-  canRemove,
-}: SortableSignatoryRowProps) {
-  const { ref, handleRef, isDragging } = useSortable({
-    id: rowId,
-    index,
-    group: "working-paper-signatories",
-  });
-
-  return (
-    <tr
-      ref={ref}
-      className={cn(
-        "border-b border-border/30 transition-colors hover:bg-muted/30",
-        isDragging && "bg-muted/40 opacity-60",
-      )}
-    >
-      <TableCell className="w-10">
-        <button
-          type="button"
-          ref={handleRef}
-          className="flex size-7 cursor-grab items-center justify-center rounded-md text-muted-foreground/40 transition-colors hover:bg-muted hover:text-muted-foreground active:cursor-grabbing"
-          aria-label={`Ubah urutan penandatangan ${index + 1}`}
-        >
-          <GripVertical className="size-3.5" />
-        </button>
-      </TableCell>
-      <TableCell className="w-10">
-        <span className="flex size-5 items-center justify-center rounded-full bg-muted/70 text-[10px] font-semibold text-muted-foreground">
-          {index + 1}
-        </span>
-      </TableCell>
-      <TableCell className="align-top">
-        <div className="space-y-2">
-          <Controller
-            control={control}
-            name={`signatories.${index}.user_id` as const}
-            render={({ field: { value, onChange } }) => (
-              <Select
-                value={value}
-                onValueChange={(nextValue) => {
-                  onChange(nextValue);
-                  onUserSelect(index, nextValue);
-                }}
-                disabled={loadingUsers}
-              >
-                <SelectTrigger
-                  className={cn("h-8 text-xs", userIdError && "border-destructive")}
-                >
-                  <SelectValue placeholder="Pilih penandatangan..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <div className="border-b p-2">
-                    <Input
-                      placeholder="Cari pengguna..."
-                      value={userSearch}
-                      onChange={(event) => onUserSearchChange(event.target.value)}
-                      className="h-8"
-                      onClick={(event) => event.stopPropagation()}
-                    />
-                  </div>
-                  <div className="max-h-[200px] overflow-y-auto">
-                    <SelectGroup>
-                      {users.map((option) => (
-                        <SelectItem key={option.id} value={option.id}>
-                          {option.name} ({option.email})
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                    {users.length === 0 && (
-                      <div className="p-2 text-center text-sm text-muted-foreground">
-                        Tidak ada pengguna ditemukan
-                      </div>
-                    )}
-                  </div>
-                  {userTotal > 10 && (
-                    <div className="flex items-center justify-between border-t p-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={!canGoToPreviousUserPage}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onPreviousUserPage();
-                        }}
-                        className="h-6 text-xs"
-                      >
-                        ← Prev
-                      </Button>
-                      <span className="text-xs text-muted-foreground">
-                        {userPage} / {Math.max(1, Math.ceil(userTotal / 10))}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={!canGoToNextUserPage}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onNextUserPage();
-                        }}
-                        className="h-6 text-xs"
-                      >
-                        Next →
-                      </Button>
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {userIdError && <p className="text-xs text-destructive">{userIdError}</p>}
-        </div>
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {signatory?.signer_nip || "-"}
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        <div className="flex items-center justify-between gap-3">
-          <span className="truncate" title={signatory?.signer_jabatan || "-"}>
-            {signatory?.signer_jabatan || "-"}
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0 text-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => onRemove(index)}
-            disabled={!canRemove}
-            aria-label={`Hapus penandatangan ${index + 1}`}
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
-        </div>
-      </TableCell>
-    </tr>
-  );
 }
 
 /* ── Page component ─────────────────────────────────────────── */
@@ -311,13 +120,6 @@ export default function CreateWorkingPaperPage() {
   const [loadingRisks, setLoadingRisks] = useState(true);
   const [risks, setRisks] = useState<RiskOption[]>([]);
   const [searchRisk, setSearchRisk] = useState("");
-
-  const [loadingUsers, setLoadingUsers] = useState(true);
-  const [users, setUsers] = useState<UserOption[]>([]);
-  const [userSearch, setUserSearch] = useState("");
-  const [userSearchDebounced, setUserSearchDebounced] = useState("");
-  const [userPage, setUserPage] = useState(1);
-  const [userTotal, setUserTotal] = useState(0);
 
   const assessmentCycle = (() => {
     const now = new Date();
@@ -354,38 +156,6 @@ export default function CreateWorkingPaperPage() {
 
   const watchRisks = watch("risks");
   const watchedSignatories = watch("signatories") ?? [];
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setUserSearchDebounced(userSearch);
-      setUserPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [userSearch]);
-
-  useEffect(() => {
-    if (!token) return;
-
-    const fetchUsers = async () => {
-      try {
-        setLoadingUsers(true);
-        const orgFilter = user?.isGlobal ? undefined : user?.organizationId ?? undefined;
-        const res = await api.get<{ data: UserOption[]; total: number }>(
-          `/users?limit=10&page=${userPage}${userSearchDebounced ? `&q=${encodeURIComponent(userSearchDebounced)}` : ""}${orgFilter ? `&organizationId=${orgFilter}` : ""}`,
-          token,
-        );
-        setUsers(res?.data || []);
-        setUserTotal(res?.total || 0);
-      } catch (error) {
-        console.error("Failed to load users", error);
-        toast.error("Gagal memuat data pengguna");
-      } finally {
-        setLoadingUsers(false);
-      }
-    };
-
-    fetchUsers();
-  }, [token, userSearchDebounced, userPage, user]);
 
   useEffect(() => {
     if (!token) return;
@@ -464,65 +234,82 @@ export default function CreateWorkingPaperPage() {
     );
   };
 
-  const handleUserSelect = useCallback((index: number, userId: string) => {
-    const user = users.find((u) => u.id === userId);
-    if (user) {
-      setValue(`signatories.${index}.user_id`, userId, {
+  const loadSignatoryOptions = useCallback(
+    async (
+      { q, page, limit }: { q: string; page: number; limit: number },
+    ) => {
+      if (!token) {
+        return { options: [], total: 0, page, limit };
+      }
+
+      const orgFilter = user?.isGlobal ? undefined : user?.organizationId ?? undefined;
+      const result = await listUsers(token, {
+        q: q || undefined,
+        page,
+        limit,
+        organizationId: orgFilter,
+      });
+
+      return {
+        options: result.data.map(toUserPickerOption),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      };
+    },
+    [token, user],
+  );
+
+  const handleUserSelect = useCallback(
+    (rowId: string, option: UserPickerOption) => {
+      const index = signatoryFields.findIndex((field) => field.id === rowId);
+
+      if (index < 0) {
+        return;
+      }
+
+      setValue(`signatories.${index}.user_id`, option.id, {
         shouldValidate: true,
       });
-      setValue(`signatories.${index}.signer_name`, user.name, {
+      setValue(`signatories.${index}.signer_name`, option.name, {
         shouldValidate: true,
       });
-      setValue(
-        `signatories.${index}.signer_nip`,
-        user.nip || "",
-        { shouldValidate: true },
-      );
-      setValue(`signatories.${index}.signer_jabatan`, user.jabatan || "", {
+      setValue(`signatories.${index}.signer_nip`, option.nip || "", {
         shouldValidate: true,
       });
-      setValue(`signatories.${index}.signer_pangkat`, user.pangkat || "", {
+      setValue(`signatories.${index}.signer_jabatan`, option.jabatan || "", {
         shouldValidate: true,
       });
-    }
-  }, [setValue, users]);
+      setValue(`signatories.${index}.signer_pangkat`, option.pangkat || "", {
+        shouldValidate: true,
+      });
+    },
+    [setValue, signatoryFields],
+  );
 
   const handleAddSignatory = useCallback(() => {
     appendSignatory(createEmptyWorkingPaperSignatory());
   }, [appendSignatory]);
 
-  const handleRemoveSignatory = useCallback((index: number) => {
-    removeSignatory(index);
-  }, [removeSignatory]);
+  const handleRemoveSignatory = useCallback(
+    (rowId: string) => {
+      const index = signatoryFields.findIndex((field) => field.id === rowId);
 
-  const totalUserPages = Math.max(1, Math.ceil(userTotal / 10));
-
-  const handlePreviousUserPage = useCallback(() => {
-    setUserPage((page) => Math.max(1, page - 1));
-  }, []);
-
-  const handleNextUserPage = useCallback(() => {
-    setUserPage((page) => Math.min(totalUserPages, page + 1));
-  }, [totalUserPages]);
-
-  const handleSignatoryDragEnd = useCallback(
-    (event: SortableDragEndEvent) => {
-      if (event.canceled) return;
-
-      const { source, target } = event.operation;
-
-      if (!source || !target) return;
-      if (!isSortable(source as never) || !isSortable(target as never)) return;
-
-      const fromIndex = (source as { initialIndex: number }).initialIndex;
-      const toIndex = (target as { index: number }).index;
-
-      if (fromIndex === toIndex) return;
-
-      moveSignatory(fromIndex, toIndex);
+      if (index >= 0) {
+        removeSignatory(index);
+      }
     },
-    [moveSignatory],
+    [removeSignatory, signatoryFields],
   );
+
+  const signatoryRows = signatoryFields.map((field, index) => ({
+    rowId: field.id,
+    id: watchedSignatories[index]?.user_id ?? "",
+    name: watchedSignatories[index]?.signer_name ?? "",
+    nip: watchedSignatories[index]?.signer_nip ?? "",
+    jabatan: watchedSignatories[index]?.signer_jabatan ?? "",
+    pangkat: watchedSignatories[index]?.signer_pangkat ?? "",
+  }));
 
   const onSubmit = async (data: FormValues) => {
     if (!token) return;
@@ -837,68 +624,25 @@ export default function CreateWorkingPaperPage() {
               <p className="text-xs text-destructive">{errors.signatories.message}</p>
             )}
 
-            <DragDropProvider onDragEnd={handleSignatoryDragEnd}>
-              <Card className="overflow-hidden border-border/50 bg-card/80 py-0 backdrop-blur-sm">
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-10">
-                          <span className="sr-only">Pegangan drag</span>
-                        </TableHead>
-                        <TableHead className="w-10 text-center">
-                          <span className="sr-only">Urutan</span>
-                        </TableHead>
-                        <TableHead className="w-[360px] whitespace-nowrap">Nama</TableHead>
-                        <TableHead className="w-[220px] whitespace-nowrap">NIP</TableHead>
-                        <TableHead className="whitespace-nowrap">Jabatan</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {signatoryFields.map((field, index) => (
-                        <SortableSignatoryRow
-                          key={field.id}
-                          rowId={field.id}
-                          index={index}
-                          control={control}
-                          signatory={watchedSignatories[index]}
-                          userIdError={errors.signatories?.[index]?.user_id?.message}
-                          loadingUsers={loadingUsers}
-                          users={users}
-                          userSearch={userSearch}
-                          userPage={userPage}
-                          userTotal={userTotal}
-                          onUserSearchChange={setUserSearch}
-                          onUserSelect={handleUserSelect}
-                          onPreviousUserPage={handlePreviousUserPage}
-                          onNextUserPage={handleNextUserPage}
-                          canGoToPreviousUserPage={userPage > 1}
-                          canGoToNextUserPage={userPage < totalUserPages}
-                          onRemove={handleRemoveSignatory}
-                          canRemove={signatoryFields.length > 1}
-                        />
-                      ))}
-                    </TableBody>
-                  </Table>
-
-                  <div className="flex items-center justify-between gap-3 border-t border-border/30 px-4 py-3">
-                    <p className="text-xs text-muted-foreground">
-                      Urutan baris menentukan sequence penandatangan pada payload dokumen.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddSignatory}
-                      className="gap-2 border-dashed text-xs text-muted-foreground hover:border-primary/50 hover:text-primary"
-                    >
-                      <Plus className="size-3.5" />
-                      Tambah Penandatangan
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </DragDropProvider>
+            <OrderedUserSelectionTable
+              rows={signatoryRows}
+              loadOptions={loadSignatoryOptions}
+              onSelectRow={handleUserSelect}
+              onAddRow={handleAddSignatory}
+              onRemoveRow={handleRemoveSignatory}
+              onMoveRow={moveSignatory}
+              pickerTitle="Pilih penandatangan"
+              pickerDescription="Cari penandatangan yang akan dimasukkan ke urutan dokumen kertas kerja."
+              pickerPlaceholder="Pilih penandatangan"
+              pickerSearchPlaceholder="Cari pengguna"
+              pickerEmptyMessage="Penandatangan tidak ditemukan."
+              emptyStateMessage="Belum ada penandatangan. Tambahkan minimal satu user untuk menyusun urutan tanda tangan."
+              addRowLabel="Tambah Penandatangan"
+              footerNote="Urutan baris menentukan sequence penandatangan pada payload dokumen."
+              canRemoveRow={() => signatoryFields.length > 1}
+              getRowError={(_, index) => errors.signatories?.[index]?.user_id?.message}
+              dndGroup="working-paper-signatories"
+            />
           </div>
         </FormSection>
       </form>
