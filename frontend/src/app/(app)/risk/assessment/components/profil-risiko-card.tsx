@@ -1,5 +1,8 @@
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Risk } from "@/types/risk";
 import {
   PROBABILITY_LABELS,
@@ -11,9 +14,10 @@ import {
 
 interface ProfilRisikoCardProps {
   risk: Risk;
+  detailHref?: string;
 }
 
-export function ProfilRisikoCard({ risk }: ProfilRisikoCardProps) {
+export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
   const code = risk.riskCode || risk.code || "-";
   const inherentScore = risk.inherentScore ?? risk.nilai;
   const targetNilai = risk.targetNilai ?? risk.targetScore;
@@ -21,11 +25,24 @@ export function ProfilRisikoCard({ risk }: ProfilRisikoCardProps) {
   
   return (
     <Card data-testid="profil-risiko-card">
-      <CardHeader>
+      <CardHeader className="gap-3">
         <CardTitle className="flex justify-between items-center">
           Profil Risiko Saat Ini
           <Badge variant="outline" className="font-mono">{code}</Badge>
         </CardTitle>
+        {detailHref ? (
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="ml-auto gap-1.5 border-primary/20 text-primary hover:bg-primary/5 hover:text-primary"
+          >
+            <Link href={detailHref}>
+              <ArrowUpRight className="size-3.5" />
+              Lihat detail risiko
+            </Link>
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent className="grid gap-6">
         <div>

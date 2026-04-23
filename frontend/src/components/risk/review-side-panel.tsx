@@ -80,8 +80,8 @@ export function ReviewSidePanel({
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
 
   const workflowStatus = approvalWorkflow?.currentStatus ?? null;
-  const currentApproverRole = approvalWorkflow?.currentApproverRole ?? null;
   const currentApproverUserId = approvalWorkflow?.currentApproverUserId ?? null;
+  const steps = approvalWorkflow?.steps ?? [];
 
   const hasApproval = Boolean(approvalId);
   const isSubmitting = submittingStage !== null;
@@ -96,8 +96,16 @@ export function ReviewSidePanel({
     }
 
     if (workflowStatus === "pending") {
-      if (currentApproverRole === "reviewer") return "review";
-      if (currentApproverRole === "pimpinan") return "approval";
+      const activeStep =
+        steps.find(
+          (s) =>
+            s.approverUserId &&
+            s.approverUserId === currentApproverUserId &&
+            s.status === "pending",
+        ) ?? steps.find((s) => s.status === "pending");
+
+      if (activeStep?.stepType === "review") return "review";
+      if (activeStep?.stepType === "approval") return "approval";
     }
 
     if (riskStatus === "assessment_in_review") return "review";
@@ -109,7 +117,6 @@ export function ReviewSidePanel({
     workflowStage,
     currentApproverUserId,
     currentUserId,
-    userRole,
   });
   const approvalIsActive = canActivateApprovalPanel({
     workflowStage,

@@ -1,6 +1,10 @@
 import type { RiskWorkflowState } from "@/components/risk/review-side-panel";
 
-export type StepperNodeState = "completed" | "current" | "upcoming" | "rejected";
+export type StepperNodeState =
+  | "completed"
+  | "current"
+  | "upcoming"
+  | "rejected";
 
 export type ApprovalStepperNode = {
   label: string;
@@ -19,20 +23,28 @@ function deriveWorkflowStage(
   riskStatus: string,
 ): "review" | "approval" | "final" | "unknown" {
   const workflowStatus = approvalWorkflow.currentStatus ?? null;
-  const currentApproverRole = approvalWorkflow.currentApproverRole ?? null;
+  const currentApproverUserId = approvalWorkflow.currentApproverUserId ?? null;
+  const steps = approvalWorkflow.steps ?? [];
 
   if (
     workflowStatus === "approved" ||
     workflowStatus === "rejected" ||
-    riskStatus === "approved" ||
     riskStatus === "approved"
   ) {
     return "final";
   }
 
   if (workflowStatus === "pending") {
-    if (currentApproverRole === "reviewer") return "review";
-    if (currentApproverRole === "pimpinan") return "approval";
+    const activeStep =
+      steps.find(
+        (s) =>
+          s.approverUserId &&
+          s.approverUserId === currentApproverUserId &&
+          s.status === "pending",
+      ) ?? steps.find((s) => s.status === "pending");
+
+    if (activeStep?.stepType === "review") return "review";
+    if (activeStep?.stepType === "approval") return "approval";
   }
 
   if (riskStatus === "assessment_in_review") return "review";
@@ -109,10 +121,15 @@ export function buildApprovalStepperViewModel(
   // Generate dynamic approval nodes for each approver
   const approvalNodes: ApprovalStepperNode[] = approvalSteps.map((step) => {
     const actorName = step.approverName ?? "Pimpinan";
+
     const isMyTurn = Boolean(
-      currentUserId && step.approverUserId === currentUserId && approvalWorkflow.currentApproverUserId === step.approverUserId
+      currentUserId &&
+      step.approverUserId === currentUserId &&
+      approvalWorkflow.currentApproverUserId === step.approverUserId,
     );
-    const isActiveStep = workflowStage === "approval" && approvalWorkflow.currentApproverUserId === step.approverUserId;
+    const isActiveStep =
+      workflowStage === "approval" &&
+      approvalWorkflow.currentApproverUserId === step.approverUserId;
 
     if (step.status === "approved") {
       return {

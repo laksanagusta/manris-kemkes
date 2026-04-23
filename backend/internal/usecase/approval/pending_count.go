@@ -32,25 +32,12 @@ type GetPendingCountOutput struct {
 	Count int
 }
 
-// Execute executes the get pending count usecase
 func (uc *GetPendingCountUseCase) Execute(ctx context.Context, input GetPendingCountInput) (*GetPendingCountOutput, error) {
-	var approverRole string
-
-	// Determine approver role based on user role
-	switch input.Role {
-	case "reviewer":
-		approverRole = "reviewer"
-	case "pimpinan":
-		approverRole = "pimpinan"
-	case "superadmin":
-		// Superadmin can see all, return 0 for now
-		return &GetPendingCountOutput{Count: 0}, nil
-	default:
-		// Other roles don't have pending approvals
+	if input.Role == "superadmin" || input.UserID == nil {
 		return &GetPendingCountOutput{Count: 0}, nil
 	}
 
-	count, err := uc.approvalRepo.GetPendingCount(ctx, approverRole, input.UserID, input.OrgIDs)
+	count, err := uc.approvalRepo.GetPendingCount(ctx, "", input.UserID, input.OrgIDs)
 	if err != nil {
 		return nil, domainerrors.Wrap(err, "failed to get pending count")
 	}

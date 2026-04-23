@@ -65,6 +65,7 @@ interface ApprovalRequest {
   requestedAt: string;
   currentStatus: "pending" | "approved" | "rejected";
   currentApproverRole: string;
+  currentApproverUserId?: string | null;
   notes?: string;
 }
 
@@ -253,20 +254,22 @@ export default function InboxPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const currentUserId = user?.id ?? "";
   const [isPending, startTransition] = useTransition();
   const [filter, setFilter] = useState<
-    "all" | "pending_review" | "pending_approval" | "approved" | "rejected"
+    "all" | "my_approvals" | "approved" | "rejected"
   >(() => {
     const value = searchParams.get("status");
+    if (value === "all" || value === "approved" || value === "rejected") {
+      return value;
+    }
     if (
-      value === "all" ||
-      value === "approved" ||
-      value === "rejected" ||
+      value === "my_approvals" ||
       value === "pending_review" ||
       value === "pending_approval"
     ) {
-      return value;
+      return "my_approvals";
     }
     return "all";
   });
@@ -365,11 +368,15 @@ export default function InboxPage() {
     if (
       queryStatus === "all" ||
       queryStatus === "approved" ||
-      queryStatus === "rejected" ||
+      queryStatus === "rejected"
+    ) {
+      setFilter(queryStatus);
+    } else if (
+      queryStatus === "my_approvals" ||
       queryStatus === "pending_review" ||
       queryStatus === "pending_approval"
     ) {
-      setFilter(queryStatus);
+      setFilter("my_approvals");
     } else {
       setFilter("all");
     }
@@ -505,45 +512,25 @@ export default function InboxPage() {
     return (item as ApprovalRequest).currentStatus;
   };
 
+  const isMyApproval = (item: InboxItem): boolean => {
+    if (item.requestType === "kri_report") {
+      return (item as KRIReportReview).status === "submitted";
+    }
+    if (item.requestType === "working_paper") {
+      return true;
+    }
+    const approvalItem = item as ApprovalRequest;
+    if (approvalItem.currentStatus !== "pending") return false;
+    if (approvalItem.currentApproverUserId) {
+      return approvalItem.currentApproverUserId === currentUserId;
+    }
+    return false;
+  };
+
   const counts = useMemo(
     () => ({
       all: requests.length,
-      pendingReview: requests.filter((item) => {
-        if (item.requestType === "kri_report") {
-          const kriItem = item as KRIReportReview;
-          return kriItem.status === "submitted";
-        }
-        if (item.requestType === "working_paper") {
-          return true; // WP signing items are always pending
-        }
-        const approvalItem = item as ApprovalRequest;
-        return (
-          approvalItem.currentStatus === "pending" &&
-          approvalItem.currentApproverRole === "reviewer"
-        );
-      }).length,
-      pendingApproval: requests.filter((item) => {
-        if (item.requestType === "kri_report") return false;
-        if (item.requestType === "working_paper") return false;
-        const approvalItem = item as ApprovalRequest;
-        return (
-          approvalItem.currentStatus === "pending" &&
-          approvalItem.currentApproverRole === "pimpinan"
-        );
-      }).length,
-      pending:
-        requests.filter(
-          (item) =>
-            item.requestType !== "kri_report" &&
-            item.requestType !== "working_paper" &&
-            (item as ApprovalRequest).currentStatus === "pending",
-        ).length +
-        requests.filter(
-          (item) =>
-            item.requestType === "kri_report" &&
-            (item as KRIReportReview).status === "submitted",
-        ).length +
-        requests.filter((item) => item.requestType === "working_paper").length,
+      myApprovals: requests.filter(isMyApproval).length,
       approved: requests.filter(
         (item) =>
           item.requestType !== "kri_report" &&
@@ -557,7 +544,7 @@ export default function InboxPage() {
           (item as ApprovalRequest).currentStatus === "rejected",
       ).length,
     }),
-    [requests],
+    [requests, currentUserId],
   );
 
   const summaryCards = [
@@ -567,14 +554,9 @@ export default function InboxPage() {
       tone: "border-border/60 bg-background/60 text-foreground",
     },
     {
-      label: "Menunggu Review",
-      value: counts.pendingReview,
-      tone: "border-risk-medium/20 bg-risk-medium/10 text-risk-medium",
-    },
-    {
-      label: "Menunggu Approval",
-      value: counts.pendingApproval,
-      tone: "border-blue-200 bg-blue-50 text-blue-700",
+      label: "My Approvals",
+      value: counts.myApprovals,
+      tone: "border-primary/20 bg-primary/10 text-primary",
     },
     {
       label: "Disetujui",
@@ -590,30 +572,8 @@ export default function InboxPage() {
 
   const filteredRequests = useMemo(() => {
     return requests.filter((item) => {
-      // Filter by status tab
-      if (filter === "pending_review") {
-        if (item.requestType === "kri_report") {
-          const kriItem = item as KRIReportReview;
-          if (kriItem.status !== "submitted") return false;
-        } else if (item.requestType === "working_paper") {
-          // WP signing items always show under "Menunggu Review"
-        } else {
-          const approvalItem = item as ApprovalRequest;
-          if (
-            approvalItem.currentStatus !== "pending" ||
-            approvalItem.currentApproverRole !== "reviewer"
-          )
-            return false;
-        }
-      } else if (filter === "pending_approval") {
-        if (item.requestType === "kri_report") return false;
-        if (item.requestType === "working_paper") return false;
-        const approvalItem = item as ApprovalRequest;
-        if (
-          approvalItem.currentStatus !== "pending" ||
-          approvalItem.currentApproverRole !== "pimpinan"
-        )
-          return false;
+      if (filter === "my_approvals") {
+        if (!isMyApproval(item)) return false;
       } else if (filter === "approved") {
         if (item.requestType === "kri_report") return false;
         if (item.requestType === "working_paper") return false;
@@ -667,7 +627,7 @@ export default function InboxPage() {
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(keyword));
     });
-  }, [filter, requests, search, typeFilter]);
+  }, [filter, requests, search, typeFilter, currentUserId]);
 
   const openApprovalModal = (
     id: string,
@@ -802,19 +762,11 @@ export default function InboxPage() {
       >
         <TabsList className="bg-muted/40 border border-border/50">
           <TabsTrigger value="all">Semua</TabsTrigger>
-          <TabsTrigger value="pending_review" className="gap-2">
-            Menunggu Review
-            {counts.pendingReview > 0 && (
+          <TabsTrigger value="my_approvals" className="gap-2">
+            My Approvals
+            {counts.myApprovals > 0 && (
               <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
-                {counts.pendingReview}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="pending_approval" className="gap-2">
-            Menunggu Approval
-            {counts.pendingApproval > 0 && (
-              <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
-                {counts.pendingApproval}
+                {counts.myApprovals}
               </Badge>
             )}
           </TabsTrigger>
@@ -823,7 +775,7 @@ export default function InboxPage() {
         </TabsList>
       </Tabs>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (
           <Card
             key={card.label}

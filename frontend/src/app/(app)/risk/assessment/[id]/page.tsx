@@ -200,6 +200,8 @@ export default function AssessmentFormPage() {
     [],
   );
 
+  const riskOrganizationId = draftRisk ? getRiskOrganizationId(draftRisk) : "";
+
   const loadReviewerOptions = useCallback(
     async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
       if (!token) {
@@ -211,6 +213,7 @@ export default function AssessmentFormPage() {
         role: "reviewer",
         page,
         limit,
+        organizationId: riskOrganizationId || undefined,
       });
 
       return {
@@ -220,7 +223,7 @@ export default function AssessmentFormPage() {
         limit: result.limit,
       };
     },
-    [toUserPickerOption, token],
+    [toUserPickerOption, token, riskOrganizationId],
   );
 
   const loadApproverOptions = useCallback(
@@ -236,6 +239,7 @@ export default function AssessmentFormPage() {
         q: q || undefined,
         page,
         limit,
+        organizationId: riskOrganizationId || undefined,
       });
 
       return {
@@ -254,7 +258,7 @@ export default function AssessmentFormPage() {
         limit: result.limit,
       };
     },
-    [approvalLine, reviewerId, toUserPickerOption, token],
+    [approvalLine, reviewerId, toUserPickerOption, token, riskOrganizationId],
   );
 
   const handleReviewerSelect = useCallback((option: UserPickerOption) => {
@@ -807,7 +811,10 @@ export default function AssessmentFormPage() {
       <div className="flex flex-col xl:flex-row gap-6 items-start">
         {/* Left Column */}
         <div className="w-full xl:w-2/3 space-y-6">
-          <ProfilRisikoCard risk={sourceRisk} />
+          <ProfilRisikoCard
+            risk={sourceRisk}
+            detailHref={`/risk/register/${sourceRisk.id}`}
+          />
           
           <Accordion
             type="multiple"
@@ -1094,24 +1101,31 @@ export default function AssessmentFormPage() {
 
         {/* Right Column / Side Panel */}
         <div className="w-full space-y-4 xl:sticky xl:top-24 xl:w-1/3">
-          <SimpulanCard
-            nilaiCurrent={sourceRisk.inherentScore || sourceRisk.nilai || 0}
-            nilaiBaru={computedNilai}
-            probability={probability}
-            impact={impact}
-            targetScore={sourceRisk.targetNilai ?? sourceRisk.targetScore ?? 0}
-          />
+          <div className="rounded-xl border border-border/40 bg-card shadow-sm overflow-hidden">
+            <div className="border-b border-border/40 bg-muted/20 px-4 py-3">
+              <p className="text-sm font-semibold text-foreground">Simpulan Pemantauan</p>
+            </div>
+            <div className="p-4">
+              <SimpulanCard
+                nilaiCurrent={sourceRisk.inherentScore || sourceRisk.nilai || 0}
+                nilaiBaru={computedNilai}
+                probability={probability}
+                impact={impact}
+                targetScore={sourceRisk.targetNilai ?? sourceRisk.targetScore ?? 0}
+              />
+            </div>
+          </div>
           <ReviewSidePanel
-            approvalId={approvalId}
-            approvalWorkflow={approvalWorkflow}
-            currentUserId={user?.id}
-            riskStatus={draftRisk.status}
-            userRole={user?.role || ""}
-            inherentScore={Math.round(computedNilai)}
-            token={token || undefined}
-            onActionComplete={loadRiskData}
-            onNavigateToLog={() => router.push(`/risk/register/${sourceRisk.id}`)}
-          />
+              approvalId={approvalId}
+              approvalWorkflow={approvalWorkflow}
+              currentUserId={user?.id}
+              riskStatus={draftRisk.status}
+              userRole={user?.role || ""}
+              inherentScore={Math.round(computedNilai)}
+              token={token || undefined}
+              onActionComplete={loadRiskData}
+              onNavigateToLog={() => router.push(`/risk/register/${sourceRisk.id}`)}
+            />
         </div>
       </div>
 
