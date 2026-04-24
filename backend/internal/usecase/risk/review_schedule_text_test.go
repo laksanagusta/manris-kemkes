@@ -10,9 +10,11 @@ import (
 )
 
 type reviewScheduleRiskRepo struct {
-	created *entity.Risk
-	updated *entity.Risk
-	byID    *entity.Risk
+	created         *entity.Risk
+	updated         *entity.Risk
+	byID            *entity.Risk
+	activatedRiskID uuid.UUID
+	activateCount   int
 }
 
 func (r *reviewScheduleRiskRepo) Create(_ context.Context, risk *entity.Risk) error {
@@ -77,6 +79,8 @@ func (r *reviewScheduleRiskRepo) ListCycleSnapshot(context.Context, string, []uu
 }
 
 func (r *reviewScheduleRiskRepo) ActivateApprovedVersion(context.Context, uuid.UUID) error {
+	r.activateCount++
+	r.activatedRiskID = r.byID.ID
 	return nil
 }
 
@@ -224,6 +228,50 @@ func TestUpdateRiskUseCase_ExecutePersistsReviewScheduleText(t *testing.T) {
 	}
 	if repo.updated.NextReviewDate == nil || *repo.updated.NextReviewDate != updatedReviewDate {
 		t.Fatalf("expected next review date %q, got %v", updatedReviewDate, repo.updated.NextReviewDate)
+	}
+}
+
+func TestUpdateRiskUseCase_ExecuteActivatesApprovedReassessmentVersion(t *testing.T) {
+	riskID := uuid.New()
+	previousRiskID := uuid.New()
+	organizationID := uuid.New()
+	repo := &reviewScheduleRiskRepo{
+		byID: &entity.Risk{
+			ID:             riskID,
+			PreviousRiskID: &previousRiskID,
+			Code:           "R-001",
+			Title:          "Existing reassessment",
+			Category:       entity.RiskCategoryKebijakan,
+			Status:         entity.RiskStatusDraft,
+			VersionGroupID: uuid.New(),
+			OrganizationID: &organizationID,
+			Probability:    3,
+			Impact:         3,
+		},
+	}
+	uc := NewUpdateRiskUseCase(repo, &reviewScheduleUserRepo{}, &reviewScheduleOrgRepo{}, nil)
+
+	_, err := uc.Execute(context.Background(), UpdateRiskInput{
+		ID:             riskID,
+		Title:          "Finalized reassessment",
+		Description:    "Updated desc",
+		Category:       entity.RiskCategoryOperasional,
+		Status:         entity.RiskStatusApproved,
+		OrganizationID: &organizationID,
+		Probability:    4,
+		Impact:         3,
+	}, nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if repo.updated == nil {
+		t.Fatal("expected risk to be updated before activation")
+	}
+	if repo.activateCount != 1 {
+		t.Fatalf("expected ActivateApprovedVersion to be called once, got %d", repo.activateCount)
+	}
+	if repo.activatedRiskID != riskID {
+		t.Fatalf("expected ActivateApprovedVersion risk %s, got %s", riskID, repo.activatedRiskID)
 	}
 }
 

@@ -38,7 +38,7 @@ func TestAuthHandlerLoginReturnsSetupSessionPayloadForPendingActivationUser(t *t
 			NIP:                "19880101",
 			Jabatan:            "Koordinator",
 			Pangkat:            "III/c",
-		}}, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24),
+		}}, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24, true),
 		nil,
 		nil,
 		nil,
@@ -81,6 +81,9 @@ func TestAuthHandlerLoginReturnsSetupSessionPayloadForPendingActivationUser(t *t
 				Jabatan            string `json:"jabatan"`
 				Pangkat            string `json:"pangkat"`
 				MustChangePassword bool   `json:"mustChangePassword"`
+				Capabilities       struct {
+					RiskApprovalWorkflowEnabled bool `json:"riskApprovalWorkflowEnabled"`
+				} `json:"capabilities"`
 			} `json:"user"`
 		} `json:"data"`
 	}
@@ -109,6 +112,9 @@ func TestAuthHandlerLoginReturnsSetupSessionPayloadForPendingActivationUser(t *t
 	if payload.Data.User.NIP != "19880101" || payload.Data.User.Jabatan != "Koordinator" || payload.Data.User.Pangkat != "III/c" {
 		t.Fatalf("expected profile fields in login payload, got %+v", payload.Data.User)
 	}
+	if !payload.Data.User.Capabilities.RiskApprovalWorkflowEnabled {
+		t.Fatal("expected user.capabilities.riskApprovalWorkflowEnabled to be true")
+	}
 }
 
 func TestAuthHandlerChangePasswordReturnsFullSessionPayload(t *testing.T) {
@@ -133,9 +139,9 @@ func TestAuthHandlerChangePasswordReturnsFullSessionPayload(t *testing.T) {
 
 	handler := NewAuthHandler(
 		nil,
-		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{})),
+		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), false),
 		nil,
-		authuc.NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24),
+		authuc.NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24, false),
 	)
 
 	body, err := json.Marshal(map[string]string{
@@ -174,6 +180,9 @@ func TestAuthHandlerChangePasswordReturnsFullSessionPayload(t *testing.T) {
 			User               struct {
 				Status             string `json:"status"`
 				MustChangePassword bool   `json:"mustChangePassword"`
+				Capabilities       struct {
+					RiskApprovalWorkflowEnabled bool `json:"riskApprovalWorkflowEnabled"`
+				} `json:"capabilities"`
 			} `json:"user"`
 		} `json:"data"`
 	}
@@ -194,6 +203,9 @@ func TestAuthHandlerChangePasswordReturnsFullSessionPayload(t *testing.T) {
 	}
 	if payload.Data.User.MustChangePassword {
 		t.Fatal("expected user.mustChangePassword to be false")
+	}
+	if payload.Data.User.Capabilities.RiskApprovalWorkflowEnabled {
+		t.Fatal("expected user.capabilities.riskApprovalWorkflowEnabled to be false")
 	}
 }
 
@@ -219,9 +231,9 @@ func TestAuthHandlerChangePasswordRejectsMalformedInput(t *testing.T) {
 
 	handler := NewAuthHandler(
 		nil,
-		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{})),
+		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), false),
 		nil,
-		authuc.NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24),
+		authuc.NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24, false),
 	)
 
 	body, err := json.Marshal(map[string]string{
@@ -280,9 +292,9 @@ func TestAuthHandlerChangePasswordAllowsActiveUserWithCurrentPassword(t *testing
 
 	handler := NewAuthHandler(
 		nil,
-		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{})),
+		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), false),
 		nil,
-		authuc.NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24),
+		authuc.NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24, false),
 	)
 
 	body, err := json.Marshal(map[string]string{
@@ -339,8 +351,8 @@ func TestAuthHandlerUpdateProfileReturnsUpdatedProfile(t *testing.T) {
 	hierarchySvc := service.NewOrganizationHierarchy(&stubOrgRepo{descendants: []uuid.UUID{orgID}})
 	handler := NewAuthHandler(
 		nil,
-		authuc.NewGetCurrentUserUseCase(userRepo, hierarchySvc),
-		authuc.NewUpdateProfileUseCase(userRepo, hierarchySvc),
+		authuc.NewGetCurrentUserUseCase(userRepo, hierarchySvc, false),
+		authuc.NewUpdateProfileUseCase(userRepo, hierarchySvc, false),
 		nil,
 	)
 

@@ -162,17 +162,17 @@ func main() {
 
 	// Approval usecases
 	approvalListUC := approvaluc.NewListApprovalUseCase(domainApprovalRepo)
-	approvalSubmitUC := approvaluc.NewSubmitApprovalUseCase(domainApprovalRepo, domainRiskRepo, domainIncidentRepo, domainUserRepo)
+	approvalSubmitUC := approvaluc.NewSubmitApprovalUseCase(domainApprovalRepo, domainRiskRepo, domainIncidentRepo, domainUserRepo, cfg.RiskApprovalWorkflowEnabled)
 	approvalActionUC := approvaluc.NewApprovalActionUseCase(domainApprovalRepo, domainRiskRepo, domainIncidentRepo)
 	approvalGetDetailUC := approvaluc.NewGetApprovalDetailUseCase(domainApprovalRepo)
 	approvalGetPendingCountUC := approvaluc.NewGetPendingCountUseCase(domainApprovalRepo)
 	approvalGetByEntityUC := approvaluc.NewGetApprovalByEntityUseCase(domainApprovalRepo)
 
 	// Auth usecases
-	authLoginUC := authuc.NewLoginUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry)
-	authMeUC := authuc.NewGetCurrentUserUseCase(domainUserRepo, orgHierarchySvc)
-	authUpdateProfileUC := authuc.NewUpdateProfileUseCase(domainUserRepo, orgHierarchySvc)
-	authChangePasswordUC := authuc.NewChangePasswordUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry)
+	authLoginUC := authuc.NewLoginUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry, cfg.RiskApprovalWorkflowEnabled)
+	authMeUC := authuc.NewGetCurrentUserUseCase(domainUserRepo, orgHierarchySvc, cfg.RiskApprovalWorkflowEnabled)
+	authUpdateProfileUC := authuc.NewUpdateProfileUseCase(domainUserRepo, orgHierarchySvc, cfg.RiskApprovalWorkflowEnabled)
+	authChangePasswordUC := authuc.NewChangePasswordUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry, cfg.RiskApprovalWorkflowEnabled)
 
 	// AI usecases
 	aiFishboneUC := aiuc.NewGenerateFishboneUseCase(domainAIRepo, domainOrgRepo)

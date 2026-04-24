@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { api, ApiError } from "@/lib/api";
+import type { RiskApprovalCapabilities } from "@/lib/risk-approval-capability";
 
 const AUTH_TOKEN_STORAGE_KEY = "manris_token";
 const LOGIN_ROUTE = "/login";
@@ -33,7 +34,13 @@ export interface User {
   accessibleOrgIds: string[];
   isGlobal: boolean;
   mustChangePassword: boolean;
+  capabilities?: RiskApprovalCapabilities;
 }
+
+type RawUserCapabilities = {
+  riskApprovalWorkflowEnabled?: boolean;
+  risk_approval_workflow_enabled?: boolean;
+};
 
 type RawUser = {
   id?: string;
@@ -55,7 +62,16 @@ type RawUser = {
   is_global?: boolean;
   mustChangePassword?: boolean;
   must_change_password?: boolean;
+  capabilities?: RawUserCapabilities;
 };
+
+function parseRiskApprovalCapabilities(raw: RawUserCapabilities | null | undefined): RiskApprovalCapabilities {
+  return {
+    riskApprovalWorkflowEnabled: Boolean(
+      raw?.riskApprovalWorkflowEnabled ?? raw?.risk_approval_workflow_enabled,
+    ),
+  };
+}
 
 function parseUser(raw: unknown): User | null {
   if (!raw || typeof raw !== "object") {
@@ -79,6 +95,7 @@ function parseUser(raw: unknown): User | null {
     accessibleOrgIds: user.accessibleOrgIds ?? user.accessible_org_ids ?? [],
     isGlobal: user.isGlobal ?? user.is_global ?? false,
     mustChangePassword: user.mustChangePassword ?? user.must_change_password ?? false,
+    capabilities: parseRiskApprovalCapabilities(user.capabilities),
   };
 }
 

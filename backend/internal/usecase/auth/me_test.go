@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -80,7 +81,7 @@ func TestGetCurrentUser_IncludesAccessibleOrgIDs(t *testing.T) {
 	orgRepo := &stubOrgRepo{descendants: []uuid.UUID{orgID, childOrg}}
 	hierarchySvc := service.NewOrganizationHierarchy(orgRepo)
 
-	uc := NewGetCurrentUserUseCase(userRepo, hierarchySvc)
+	uc := NewGetCurrentUserUseCase(userRepo, hierarchySvc, true)
 
 	profile, err := uc.Execute(context.Background(), GetCurrentUserInput{UserID: userID})
 	if err != nil {
@@ -111,6 +112,26 @@ func TestGetCurrentUser_IncludesAccessibleOrgIDs(t *testing.T) {
 	if profile.Pangkat != "III/c" {
 		t.Fatalf("expected pangkat to be included, got %q", profile.Pangkat)
 	}
+
+	serialized, err := json.Marshal(profile)
+	if err != nil {
+		t.Fatalf("marshal user profile: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(serialized, &payload); err != nil {
+		t.Fatalf("unmarshal user profile json: %v", err)
+	}
+	capabilities, ok := payload["capabilities"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected capabilities payload, got %#v", payload["capabilities"])
+	}
+	riskApprovalWorkflowEnabled, ok := capabilities["riskApprovalWorkflowEnabled"].(bool)
+	if !ok {
+		t.Fatalf("expected boolean riskApprovalWorkflowEnabled, got %#v", capabilities["riskApprovalWorkflowEnabled"])
+	}
+	if !riskApprovalWorkflowEnabled {
+		t.Fatal("expected riskApprovalWorkflowEnabled to be true")
+	}
 }
 
 func TestGetCurrentUser_SuperadminIsGlobal(t *testing.T) {
@@ -131,7 +152,7 @@ func TestGetCurrentUser_SuperadminIsGlobal(t *testing.T) {
 	orgRepo := &stubOrgRepo{}
 	hierarchySvc := service.NewOrganizationHierarchy(orgRepo)
 
-	uc := NewGetCurrentUserUseCase(userRepo, hierarchySvc)
+	uc := NewGetCurrentUserUseCase(userRepo, hierarchySvc, true)
 
 	profile, err := uc.Execute(context.Background(), GetCurrentUserInput{UserID: userID})
 	if err != nil {
@@ -168,7 +189,7 @@ func TestGetCurrentUser_IncludesMustChangePassword(t *testing.T) {
 
 	orgRepo := &stubOrgRepo{}
 	hierarchySvc := service.NewOrganizationHierarchy(orgRepo)
-	uc := NewGetCurrentUserUseCase(userRepo, hierarchySvc)
+	uc := NewGetCurrentUserUseCase(userRepo, hierarchySvc, false)
 
 	profile, err := uc.Execute(context.Background(), GetCurrentUserInput{UserID: userID})
 	if err != nil {
@@ -188,5 +209,25 @@ func TestGetCurrentUser_IncludesMustChangePassword(t *testing.T) {
 	}
 	if profile.Pangkat != "III/c" {
 		t.Fatalf("expected pangkat to be included, got %q", profile.Pangkat)
+	}
+
+	serialized, err := json.Marshal(profile)
+	if err != nil {
+		t.Fatalf("marshal user profile: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(serialized, &payload); err != nil {
+		t.Fatalf("unmarshal user profile json: %v", err)
+	}
+	capabilities, ok := payload["capabilities"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected capabilities payload, got %#v", payload["capabilities"])
+	}
+	riskApprovalWorkflowEnabled, ok := capabilities["riskApprovalWorkflowEnabled"].(bool)
+	if !ok {
+		t.Fatalf("expected boolean riskApprovalWorkflowEnabled, got %#v", capabilities["riskApprovalWorkflowEnabled"])
+	}
+	if riskApprovalWorkflowEnabled {
+		t.Fatal("expected riskApprovalWorkflowEnabled to be false")
 	}
 }

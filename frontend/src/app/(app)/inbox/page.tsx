@@ -554,7 +554,7 @@ export default function InboxPage() {
       tone: "border-border/60 bg-background/60 text-foreground",
     },
     {
-      label: "My Approvals",
+      label: "Persetujuan Saya",
       value: counts.myApprovals,
       tone: "border-primary/20 bg-primary/10 text-primary",
     },
@@ -689,16 +689,18 @@ export default function InboxPage() {
 
   const handleReviewAction = async (action: "approve" | "reject") => {
     if (!token || !selectedApproval) return;
-    
+
     try {
       setReviewSubmitting(true);
       await api.post(
         `/approvals/${selectedApproval.id}/action`,
         { action, comments: reviewMessage },
-        token
+        token,
       );
       toast.success(
-        action === "approve" ? "Persetujuan berhasil disimpan" : "Penolakan berhasil disimpan"
+        action === "approve"
+          ? "Persetujuan berhasil disimpan"
+          : "Penolakan berhasil disimpan",
       );
       setReviewModalOpen(false);
       refreshRequests();
@@ -709,8 +711,9 @@ export default function InboxPage() {
           ? "Gagal menyimpan persetujuan"
           : "Gagal menyimpan penolakan",
         {
-          description: error instanceof Error ? error.message : "Terjadi kesalahan",
-        }
+          description:
+            error instanceof Error ? error.message : "Terjadi kesalahan",
+        },
       );
     } finally {
       setReviewSubmitting(false);
@@ -746,7 +749,7 @@ export default function InboxPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Approval</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Persetujuan</h1>
         <p className="text-sm text-muted-foreground">
           Tinjau permintaan persetujuan dengan pola kerja yang sama seperti risk
           register.
@@ -763,7 +766,7 @@ export default function InboxPage() {
         <TabsList className="bg-muted/40 border border-border/50">
           <TabsTrigger value="all">Semua</TabsTrigger>
           <TabsTrigger value="my_approvals" className="gap-2">
-            My Approvals
+            Persetujuan Saya
             {counts.myApprovals > 0 && (
               <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
                 {counts.myApprovals}
@@ -854,8 +857,13 @@ export default function InboxPage() {
               <TableRow>
                 <TableCell colSpan={8} className="h-24">
                   <div className="flex flex-col gap-1 text-left">
-                    <p className="text-sm font-medium text-muted-foreground">Belum ada permintaan persetujuan yang sesuai filter</p>
-                    <p className="text-xs text-muted-foreground/70">Ubah filter pencarian atau tab status untuk melihat data lain</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Belum ada permintaan persetujuan yang sesuai filter
+                    </p>
+                    <p className="text-xs text-muted-foreground/70">
+                      Ubah filter pencarian atau tab status untuk melihat data
+                      lain
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -1070,7 +1078,9 @@ export default function InboxPage() {
         <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Baris per halaman:</span>
+              <span className="text-xs text-muted-foreground">
+                Baris per halaman:
+              </span>
               <Select
                 value={limit.toString()}
                 onValueChange={(val) => {

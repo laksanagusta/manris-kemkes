@@ -22,8 +22,11 @@ func TestUserProfileToPublicIncludesLifecycleState(t *testing.T) {
 		IsGlobal:           false,
 		Status:             UserStatusPendingActivation,
 		MustChangePassword: true,
-		CreatedAt:          now,
-		UpdatedAt:          now,
+		Capabilities: UserCapabilities{
+			RiskApprovalWorkflowEnabled: true,
+		},
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 
 	public := profile.ToPublic()
@@ -42,5 +45,9 @@ func TestUserProfileToPublicIncludesLifecycleState(t *testing.T) {
 
 	if len(public.AccessibleOrgIDs) != 1 || public.AccessibleOrgIDs[0] != accessibleOrgID {
 		t.Fatalf("AccessibleOrgIDs = %v, want [%v]", public.AccessibleOrgIDs, accessibleOrgID)
+	}
+
+	if !public.Capabilities.RiskApprovalWorkflowEnabled {
+		t.Fatal("expected capabilities.riskApprovalWorkflowEnabled to be preserved")
 	}
 }

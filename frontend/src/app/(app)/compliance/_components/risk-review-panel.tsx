@@ -65,6 +65,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { getHeatmapCellClass } from "@/lib/heatmap-utils";
+import { getVisibleRiskReviewItems } from "@/lib/risk-review-panel";
 import { MultiPhaseHeatmapCompareCard } from "./multi-phase-heatmap-compare";
 
 type OrganizationOption = OrganizationListItem;
@@ -79,7 +80,7 @@ const reviewStatusMeta: Record<string, { label: string; className: string }> = {
     className: "bg-primary/15 text-primary border-primary/20",
   },
   pending_approval: {
-    label: "Pending Approval",
+    label: "Pending Approval (Legacy)",
     className: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
   },
   approved: {
@@ -145,7 +146,9 @@ export function RiskReviewPanel() {
   const [summaryData, setSummaryData] = useState<RiskReviewSummary | null>(
     null,
   );
-  const [previousHeatmapData, setPreviousHeatmapData] = useState<number[][]>([]);
+  const [previousHeatmapData, setPreviousHeatmapData] = useState<number[][]>(
+    [],
+  );
   const [currentHeatmapData, setCurrentHeatmapData] = useState<number[][]>([]);
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -339,7 +342,7 @@ export function RiskReviewPanel() {
   }, [items]);
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) => item.reviewStatus !== "approved");
+    return getVisibleRiskReviewItems(items);
   }, [items]);
 
   const movementSummary = useMemo(() => {
@@ -391,7 +394,11 @@ export function RiskReviewPanel() {
         {[
           { label: "Due", value: summary.due, icon: CalendarClock },
           { label: "In Draft", value: summary.in_draft, icon: RefreshCcw },
-          { label: "Pending", value: summary.pending_approval, icon: Send },
+          {
+            label: "Pending (Legacy)",
+            value: summary.pending_approval,
+            icon: Send,
+          },
           { label: "Approved", value: summary.approved, icon: CheckCircle2 },
           { label: "Overdue", value: summary.overdue, icon: AlertCircle },
         ].map((metric) => (
@@ -415,11 +422,12 @@ export function RiskReviewPanel() {
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle className="text-base font-semibold text-foreground">
-              Risk Review Queue
+              Peninjauan Risiko
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Cycle aktif {cycle}. Risiko yang belum approved diklasifikasikan
-              menjadi due, in draft, pending approval, atau overdue.
+              Cycle aktif {cycle}. Item baru mengikuti mode approval backend
+              yang aktif; pending approval hanya ditampilkan untuk tracking item
+              legacy.
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Entry point reassessment ada di tombol{" "}
@@ -466,7 +474,7 @@ export function RiskReviewPanel() {
                 <SelectItem value="due">Due</SelectItem>
                 <SelectItem value="in_draft">In Draft</SelectItem>
                 <SelectItem value="pending_approval">
-                  Pending Approval
+                  Pending Approval (Legacy)
                 </SelectItem>
                 <SelectItem value="overdue">Overdue</SelectItem>
               </SelectContent>
@@ -483,9 +491,13 @@ export function RiskReviewPanel() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
+                    <TableHead className="w-24 whitespace-nowrap">
+                      Kode
+                    </TableHead>
                     <TableHead className="whitespace-nowrap">Risiko</TableHead>
-                    <TableHead className="w-32 whitespace-nowrap">Unit</TableHead>
+                    <TableHead className="w-32 whitespace-nowrap">
+                      Unit
+                    </TableHead>
                     <TableHead className="w-28 text-center whitespace-nowrap">
                       Score
                     </TableHead>
@@ -505,8 +517,12 @@ export function RiskReviewPanel() {
                     <TableRow>
                       <TableCell colSpan={7} className="h-24">
                         <div className="flex flex-col gap-1 text-left">
-                          <p className="text-sm font-medium text-muted-foreground">Belum ada risiko untuk filter ini</p>
-                          <p className="text-xs text-muted-foreground/70">Ubah filter pencarian Anda untuk melihat data</p>
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Belum ada risiko untuk filter ini
+                          </p>
+                          <p className="text-xs text-muted-foreground/70">
+                            Ubah filter pencarian Anda untuk melihat data
+                          </p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -560,7 +576,10 @@ export function RiskReviewPanel() {
                           <TableCell>
                             <Badge
                               variant="outline"
-                              className={cn("border font-normal", meta.className)}
+                              className={cn(
+                                "border font-normal",
+                                meta.className,
+                              )}
                             >
                               {meta.label}
                             </Badge>
@@ -609,7 +628,7 @@ export function RiskReviewPanel() {
                                 <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 text-[11px] text-muted-foreground">
                                   <Clock3 className="size-3" />{" "}
                                   {item.reviewStatus === "pending_approval"
-                                    ? "Menunggu"
+                                    ? "Legacy"
                                     : "Berjalan"}
                                 </span>
                               ) : null}
@@ -737,8 +756,12 @@ export function RiskReviewPanel() {
                       <TableRow>
                         <TableCell colSpan={6} className="h-24">
                           <div className="flex flex-col gap-1 text-left">
-                            <p className="text-sm font-medium text-muted-foreground">Belum ada data unit completion untuk cycle ini</p>
-                            <p className="text-xs text-muted-foreground/70">Tunggu sampai ada unit completion yang disubmit</p>
+                            <p className="text-sm font-medium text-muted-foreground">
+                              Belum ada data unit completion untuk cycle ini
+                            </p>
+                            <p className="text-xs text-muted-foreground/70">
+                              Tunggu sampai ada unit completion yang disubmit
+                            </p>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -824,7 +847,9 @@ export function RiskReviewPanel() {
                               ),
                             )}
                           >
-                            {heatmapMode === "riskLevel" && count === 0 ? "" : count}
+                            {heatmapMode === "riskLevel" && count === 0
+                              ? ""
+                              : count}
                           </div>
                         )),
                       )}
@@ -918,10 +943,12 @@ export function RiskReviewPanel() {
                     <TableCell colSpan={8} className="h-24">
                       <div className="flex flex-col gap-1 text-left">
                         <p className="text-sm font-medium text-muted-foreground">
-                          Belum ada pasangan data approved antara {previousCycle} dan {cycle}
+                          Belum ada pasangan data approved antara{" "}
+                          {previousCycle} dan {cycle}
                         </p>
                         <p className="text-xs text-muted-foreground/70">
-                          Data perbandingan akan muncul setelah ada risiko yang disetujui di kedua cycle
+                          Data perbandingan akan muncul setelah ada risiko yang
+                          disetujui di kedua cycle
                         </p>
                       </div>
                     </TableCell>

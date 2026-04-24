@@ -16,7 +16,6 @@ export const mainMenuItems: MainMenuGroup[] = [
     items: [
       { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
       { label: "Risiko", href: "/risk/register", icon: "ShieldAlert" },
-      { label: "Persetujuan", href: "/inbox", icon: "Inbox" },
       {
         label: "Penanganan",
         href: "/compliance/penanganan",
@@ -27,6 +26,7 @@ export const mainMenuItems: MainMenuGroup[] = [
         href: "/risk/working-papers",
         icon: "FileSignature",
       },
+      { label: "Persetujuan", href: "/inbox", icon: "Inbox" },
       {
         label: "Monitoring",
         href: "/compliance/monitoring",

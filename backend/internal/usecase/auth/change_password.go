@@ -19,10 +19,11 @@ type ChangePasswordInput struct {
 }
 
 type ChangePasswordUseCase struct {
-	userRepo     repository.UserRepository
-	hierarchySvc *service.OrganizationHierarchy
-	jwtSecret    string
-	jwtExpiry    int
+	userRepo                    repository.UserRepository
+	hierarchySvc                *service.OrganizationHierarchy
+	jwtSecret                   string
+	jwtExpiry                   int
+	riskApprovalWorkflowEnabled bool
 }
 
 func NewChangePasswordUseCase(
@@ -30,12 +31,14 @@ func NewChangePasswordUseCase(
 	hierarchySvc *service.OrganizationHierarchy,
 	jwtSecret string,
 	jwtExpiry int,
+	riskApprovalWorkflowEnabled bool,
 ) *ChangePasswordUseCase {
 	return &ChangePasswordUseCase{
-		userRepo:     userRepo,
-		hierarchySvc: hierarchySvc,
-		jwtSecret:    jwtSecret,
-		jwtExpiry:    jwtExpiry,
+		userRepo:                    userRepo,
+		hierarchySvc:                hierarchySvc,
+		jwtSecret:                   jwtSecret,
+		jwtExpiry:                   jwtExpiry,
+		riskApprovalWorkflowEnabled: riskApprovalWorkflowEnabled,
 	}
 }
 
@@ -81,7 +84,7 @@ func (uc *ChangePasswordUseCase) Execute(ctx context.Context, input ChangePasswo
 		return nil, errors.Wrap(err, "failed to update user")
 	}
 
-	return buildAuthToken(ctx, uc.hierarchySvc, uc.jwtSecret, uc.jwtExpiry, user, entity.AuthSessionModeFull, false)
+	return buildAuthToken(ctx, uc.hierarchySvc, uc.jwtSecret, uc.jwtExpiry, uc.riskApprovalWorkflowEnabled, user, entity.AuthSessionModeFull, false)
 }
 
 func validateChangePasswordInput(input ChangePasswordInput) error {

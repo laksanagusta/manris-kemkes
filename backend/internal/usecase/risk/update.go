@@ -94,6 +94,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	if err != nil {
 		return nil, errors.ErrRiskNotFound
 	}
+	wasApproved := existingRisk.Status == entity.RiskStatusApproved
 
 	// 2. Block updates when risk is locked by a signing/completed working paper
 	if uc.wpRepo != nil {
@@ -198,6 +199,11 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	// 8. Save to database
 	if err := uc.riskRepo.Update(ctx, existingRisk); err != nil {
 		return nil, errors.Wrap(err, "failed to update risk")
+	}
+	if input.Status == entity.RiskStatusApproved && existingRisk.PreviousRiskID != nil && !wasApproved {
+		if err := uc.riskRepo.ActivateApprovedVersion(ctx, existingRisk.ID); err != nil {
+			return nil, errors.Wrap(err, "failed to activate approved risk version")
+		}
 	}
 
 	// 9. Return result

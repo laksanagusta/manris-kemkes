@@ -15,6 +15,10 @@ type AuthToken struct {
 	User               *UserPublic `json:"user"`
 }
 
+type UserCapabilities struct {
+	RiskApprovalWorkflowEnabled bool `json:"riskApprovalWorkflowEnabled"`
+}
+
 const (
 	AuthSessionModeSetup = "setup"
 	AuthSessionModeFull  = "full"
@@ -22,20 +26,21 @@ const (
 
 // UserPublic represents user information that can be exposed publicly
 type UserPublic struct {
-	ID                 uuid.UUID   `json:"id"`
-	Username           string      `json:"username"`
-	Name               string      `json:"name"`
-	Email              string      `json:"email"`
-	Role               string      `json:"role"`
-	OrganizationID     *uuid.UUID  `json:"organizationId,omitempty"`
-	OrgName            string      `json:"orgName,omitempty"`
-	AccessibleOrgIDs   []uuid.UUID `json:"accessibleOrgIds,omitempty"`
-	IsGlobal           bool        `json:"isGlobal"`
-	Status             string      `json:"status"`
-	NIP                string      `json:"nip,omitempty"`
-	Jabatan            string      `json:"jabatan,omitempty"`
-	Pangkat            string      `json:"pangkat,omitempty"`
-	MustChangePassword bool        `json:"mustChangePassword"`
+	ID                 uuid.UUID        `json:"id"`
+	Username           string           `json:"username"`
+	Name               string           `json:"name"`
+	Email              string           `json:"email"`
+	Role               string           `json:"role"`
+	OrganizationID     *uuid.UUID       `json:"organizationId,omitempty"`
+	OrgName            string           `json:"orgName,omitempty"`
+	AccessibleOrgIDs   []uuid.UUID      `json:"accessibleOrgIds,omitempty"`
+	IsGlobal           bool             `json:"isGlobal"`
+	Status             string           `json:"status"`
+	NIP                string           `json:"nip,omitempty"`
+	Jabatan            string           `json:"jabatan,omitempty"`
+	Pangkat            string           `json:"pangkat,omitempty"`
+	Capabilities       UserCapabilities `json:"capabilities"`
+	MustChangePassword bool             `json:"mustChangePassword"`
 }
 
 // LoginCredentials represents user login input
@@ -57,22 +62,23 @@ func (c *LoginCredentials) Validate() error {
 
 // UserProfile represents detailed user profile information
 type UserProfile struct {
-	ID                 uuid.UUID   `json:"id"`
-	Username           string      `json:"username"`
-	Name               string      `json:"name"`
-	Email              string      `json:"email"`
-	Role               string      `json:"role"`
-	OrganizationID     *uuid.UUID  `json:"organizationId,omitempty"`
-	OrgName            string      `json:"orgName,omitempty"`
-	AccessibleOrgIDs   []uuid.UUID `json:"accessibleOrgIds,omitempty"`
-	IsGlobal           bool        `json:"isGlobal"`
-	Status             string      `json:"status"`
-	NIP                string      `json:"nip,omitempty"`
-	Jabatan            string      `json:"jabatan,omitempty"`
-	Pangkat            string      `json:"pangkat,omitempty"`
-	MustChangePassword bool        `json:"mustChangePassword"`
-	CreatedAt          time.Time   `json:"createdAt"`
-	UpdatedAt          time.Time   `json:"updatedAt"`
+	ID                 uuid.UUID        `json:"id"`
+	Username           string           `json:"username"`
+	Name               string           `json:"name"`
+	Email              string           `json:"email"`
+	Role               string           `json:"role"`
+	OrganizationID     *uuid.UUID       `json:"organizationId,omitempty"`
+	OrgName            string           `json:"orgName,omitempty"`
+	AccessibleOrgIDs   []uuid.UUID      `json:"accessibleOrgIds,omitempty"`
+	IsGlobal           bool             `json:"isGlobal"`
+	Status             string           `json:"status"`
+	NIP                string           `json:"nip,omitempty"`
+	Jabatan            string           `json:"jabatan,omitempty"`
+	Pangkat            string           `json:"pangkat,omitempty"`
+	Capabilities       UserCapabilities `json:"capabilities"`
+	MustChangePassword bool             `json:"mustChangePassword"`
+	CreatedAt          time.Time        `json:"createdAt"`
+	UpdatedAt          time.Time        `json:"updatedAt"`
 }
 
 // ToPublic converts UserProfile to UserPublic
@@ -91,6 +97,7 @@ func (u *UserProfile) ToPublic() *UserPublic {
 		NIP:                u.NIP,
 		Jabatan:            u.Jabatan,
 		Pangkat:            u.Pangkat,
+		Capabilities:       u.Capabilities,
 		MustChangePassword: u.MustChangePassword,
 	}
 }

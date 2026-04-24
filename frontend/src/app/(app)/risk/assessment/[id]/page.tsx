@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, Send, History, GitBranch, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Save,
+  Send,
+  History,
+  GitBranch,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+} from "lucide-react";
 import {
   MitigationTable,
   type MitigationItem,
@@ -16,7 +26,14 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { getRiskDetail, updateRiskAssessment } from "@/lib/api/risk-assessment";
-import { getBobot, calculateNilai, PROBABILITY_LABELS, IMPACT_LABELS, levelToColor, getRiskLevelFromNilai } from "@/lib/risk";
+import {
+  getBobot,
+  calculateNilai,
+  PROBABILITY_LABELS,
+  IMPACT_LABELS,
+  levelToColor,
+  getRiskLevelFromNilai,
+} from "@/lib/risk";
 import type { Risk, RiskVersionTimelineItem } from "@/types/risk";
 import { listUsers } from "@/lib/api/users";
 import {
@@ -25,7 +42,12 @@ import {
   type RiskRegisterHistoryItem,
 } from "@/lib/risk-history";
 
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 import { CircleDot, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -63,13 +85,17 @@ import {
   ReviewSidePanel,
   type RiskWorkflowState,
 } from "@/components/risk/review-side-panel";
-import { filterApproverOptions, type UserPickerOption } from "@/lib/risk-register-user-picker";
+import {
+  filterApproverOptions,
+  type UserPickerOption,
+} from "@/lib/risk-register-user-picker";
 import {
   resolveDraftApprovalLine,
   createApprovalLineRow,
   moveApprovalLineRows,
   type ApprovalLineRow,
 } from "@/lib/risk-approval-line";
+import { getRiskApprovalCapabilityBehavior } from "@/lib/risk-approval-capability";
 import { ProfilRisikoCard } from "../components/profil-risiko-card";
 import { type AssessmentFormValues } from "../components/hasil-pemantauan-card";
 import { SimpulanCard } from "../components/simpulan-card";
@@ -79,7 +105,8 @@ const VERSION_LEVEL_BADGE: Record<string, string> = {
   Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
   Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
   Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi": "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+  "Sangat Tinggi":
+    "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
 };
 
 function dedupeApproverIds(ids: Array<string | undefined>) {
@@ -92,7 +119,11 @@ function getRiskOrganizationId(risk: Risk): string {
     organizationID?: string | null;
   };
 
-  return riskWithOrganizationId.organizationId ?? riskWithOrganizationId.organizationID ?? "";
+  return (
+    riskWithOrganizationId.organizationId ??
+    riskWithOrganizationId.organizationID ??
+    ""
+  );
 }
 
 const approvalRoleLabels: Record<string, string> = {
@@ -138,6 +169,10 @@ export default function AssessmentFormPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { token, user } = useAuth();
+  const riskApprovalCapabilityBehavior = useMemo(
+    () => getRiskApprovalCapabilityBehavior(user?.capabilities),
+    [user?.capabilities],
+  );
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -145,13 +180,18 @@ export default function AssessmentFormPage() {
   const [sourceRisk, setSourceRisk] = useState<Risk | null>(null);
 
   const [reviewerId, setReviewerId] = useState<string>("");
-  const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(null);
+  const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(
+    null,
+  );
   const [approvalLine, setApprovalLine] = useState<ApprovalLineRow[]>([]);
   const [approvalId, setApprovalId] = useState<string | null>(null);
-  const [approvalWorkflow, setApprovalWorkflow] = useState<RiskWorkflowState | null>(null);
+  const [approvalWorkflow, setApprovalWorkflow] =
+    useState<RiskWorkflowState | null>(null);
   const [showSubmitReviewConfirm, setShowSubmitReviewConfirm] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [versionHistory, setVersionHistory] = useState<RiskRegisterHistoryItem[]>([]);
+  const [versionHistory, setVersionHistory] = useState<
+    RiskRegisterHistoryItem[]
+  >([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const submitTarget = useRef<"draft" | "review">("draft");
 
@@ -172,7 +212,12 @@ export default function AssessmentFormPage() {
   const computedNilai = calculateNilai(probability, impact, computedBobot);
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
-    selectedApprovalLine.length > 0 && approvalLine.every((member) => member.id);
+    selectedApprovalLine.length > 0 &&
+    approvalLine.every((member) => member.id);
+  const submitActionLabel =
+    riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+      ? "Finalisasi pemantauan"
+      : "Ajukan review";
 
   const toUserPickerOption = useCallback(
     (user: {
@@ -243,16 +288,13 @@ export default function AssessmentFormPage() {
       });
 
       return {
-        options: filterApproverOptions(
-          result.data.map(toUserPickerOption),
-          {
-            reviewerId,
-            selectedApproverIds: approvalLine
-              .filter((member) => member.rowId !== row.rowId)
-              .map((member) => member.id)
-              .filter(Boolean),
-          },
-        ),
+        options: filterApproverOptions(result.data.map(toUserPickerOption), {
+          reviewerId,
+          selectedApproverIds: approvalLine
+            .filter((member) => member.rowId !== row.rowId)
+            .map((member) => member.id)
+            .filter(Boolean),
+        }),
         total: result.total,
         page: result.page,
         limit: result.limit,
@@ -325,7 +367,9 @@ export default function AssessmentFormPage() {
   );
 
   const moveApprover = useCallback((fromIndex: number, toIndex: number) => {
-    setApprovalLine((current) => moveApprovalLineRows(current, fromIndex, toIndex));
+    setApprovalLine((current) =>
+      moveApprovalLineRows(current, fromIndex, toIndex),
+    );
   }, []);
 
   const removeApprover = useCallback((rowId: string) => {
@@ -335,23 +379,34 @@ export default function AssessmentFormPage() {
   }, []);
 
   const openSubmitReviewConfirm = () => {
-    const approverIds = dedupeApproverIds([
-      reviewerId,
-      ...selectedApprovalLine.map((member) => member.id),
-    ]);
-    if (approverIds.length === 0) {
-      toast.error("Pilih reviewer dan susun approval line terlebih dahulu.");
+    submitTarget.current = "review";
+
+    if (
+      riskApprovalCapabilityBehavior.requiresReviewerSelection &&
+      !reviewerId
+    ) {
+      toast.error("Pilih reviewer terlebih dahulu.");
       return;
     }
-    if (!isApprovalLineReady) {
-      toast.error("Lengkapi setiap baris approver atau hapus baris yang masih kosong.");
+
+    if (
+      riskApprovalCapabilityBehavior.requiresApprovalLineSelection &&
+      !isApprovalLineReady
+    ) {
+      toast.error(
+        "Lengkapi setiap baris approver atau hapus baris yang masih kosong.",
+      );
       return;
     }
+
     setShowSubmitReviewConfirm(true);
   };
 
   const handleSaveDraft = async () => {
-    if (draftRisk?.status === "assessment_in_review" || draftRisk?.status === "approved") {
+    if (
+      draftRisk?.status === "assessment_in_review" ||
+      draftRisk?.status === "approved"
+    ) {
       toast.info("Pemantauan yang sudah diajukan tidak dapat diedit lagi.");
       return;
     }
@@ -360,7 +415,10 @@ export default function AssessmentFormPage() {
   };
 
   const handleSubmitForReview = async () => {
-    if (draftRisk?.status === "assessment_in_review" || draftRisk?.status === "approved") {
+    if (
+      draftRisk?.status === "assessment_in_review" ||
+      draftRisk?.status === "approved"
+    ) {
       toast.info("Pemantauan yang sudah diajukan tidak dapat diedit lagi.");
       return;
     }
@@ -371,7 +429,7 @@ export default function AssessmentFormPage() {
 
   const loadRiskData = useCallback(async () => {
     if (!token || !id) return;
-    
+
     try {
       setIsLoading(true);
       const draft = await getRiskDetail(token, id);
@@ -438,7 +496,8 @@ export default function AssessmentFormPage() {
             ? {
                 currentStatus: approvalResult.currentStatus ?? null,
                 currentApproverRole: approvalResult.currentApproverRole ?? null,
-                currentApproverUserId: approvalResult.currentApproverUserId ?? null,
+                currentApproverUserId:
+                  approvalResult.currentApproverUserId ?? null,
                 steps:
                   approvalResult.steps?.map((step) => ({
                     approverUserId: step.approverUserId ?? null,
@@ -489,7 +548,8 @@ export default function AssessmentFormPage() {
       }
     } catch (error) {
       toast.error("Gagal memuat data risiko", {
-        description: (error as Error).message || "Terjadi kesalahan yang tidak diketahui",
+        description:
+          (error as Error).message || "Terjadi kesalahan yang tidak diketahui",
       });
     } finally {
       setIsLoading(false);
@@ -512,13 +572,44 @@ export default function AssessmentFormPage() {
     setIsSaving(true);
     try {
       const newWeight = getBobot(values.probability, values.impact);
-      const newNilai = calculateNilai(values.probability, values.impact, newWeight);
+      const newNilai = calculateNilai(
+        values.probability,
+        values.impact,
+        newWeight,
+      );
+      const isDraftSubmission = submitTarget.current === "draft";
+      const submissionStatus =
+        isDraftSubmission || riskApprovalCapabilityBehavior.submitsForApproval
+          ? draftRisk.status
+          : "approved";
+      const draftApprovalLinePayload =
+        riskApprovalCapabilityBehavior.showsApprovalLineEditor
+          ? [
+              ...(reviewerId
+                ? [
+                    {
+                      id: reviewerId,
+                      name: reviewerOption?.name || "Reviewer",
+                      type: "review" as const,
+                    },
+                  ]
+                : []),
+              ...selectedApprovalLine
+                .filter((member) => member.id && member.id !== reviewerId)
+                .map((member) => ({
+                  id: member.id,
+                  name: member.name,
+                  type: "approval" as const,
+                })),
+            ]
+          : [];
+
       // Merge assessment fields with existing risk data so backend validation passes
       const payload = {
         title: draftRisk.title,
         description: draftRisk.description,
         category: draftRisk.category,
-        status: draftRisk.status,
+        status: submissionStatus,
         unitId: draftRisk.unitId,
         organizationId: getRiskOrganizationId(draftRisk),
         cause: draftRisk.cause || [],
@@ -535,7 +626,11 @@ export default function AssessmentFormPage() {
         riskPriority: draftRisk.riskPriority || 0,
         riskAppetite: draftRisk.riskAppetite || "",
         treatmentOption: draftRisk.treatmentOption || "",
-        mitigations: draftRisk.mitigations?.length ? draftRisk.mitigations : (draftRisk.mitigation ? [draftRisk.mitigation] : []),
+        mitigations: draftRisk.mitigations?.length
+          ? draftRisk.mitigations
+          : draftRisk.mitigation
+            ? [draftRisk.mitigation]
+            : [],
         targetProbability: draftRisk.targetProbability || 0,
         targetImpact: draftRisk.targetImpact || 0,
         targetWeight: draftRisk.targetWeight || 0,
@@ -544,29 +639,15 @@ export default function AssessmentFormPage() {
         reviewType: draftRisk.reviewType || "assessment",
         changeReason: values.changeReason,
         reviewSummary: values.reviewSummary,
-        draftApprovalLine: [
-          ...(reviewerId
-            ? [
-                {
-                  id: reviewerId,
-                  name: reviewerOption?.name || "Reviewer",
-                  type: "review" as const,
-                },
-              ]
-            : []),
-          ...selectedApprovalLine
-            .filter((member) => member.id && member.id !== reviewerId)
-            .map((member) => ({
-              id: member.id,
-              name: member.name,
-              type: "approval" as const,
-            })),
-        ],
+        draftApprovalLine: draftApprovalLinePayload,
       };
 
       await updateRiskAssessment(token, id, payload);
 
-      if (submitTarget.current === "review") {
+      if (
+        submitTarget.current === "review" &&
+        riskApprovalCapabilityBehavior.submitsForApproval
+      ) {
         const approverIds = dedupeApproverIds([
           reviewerId,
           ...selectedApprovalLine.map((member) => member.id),
@@ -584,12 +665,19 @@ export default function AssessmentFormPage() {
             },
             token,
           );
-          toast.success("Pemantauan berhasil disimpan dan diajukan untuk review!");
+          toast.success(
+            "Pemantauan berhasil disimpan dan diajukan untuk review!",
+          );
           router.push("/risk/assessment");
         } catch (approvalErr: unknown) {
-          toast.error(`Pemantauan disimpan, namun gagal diajukan: ${(approvalErr as Error).message}`);
+          toast.error(
+            `Pemantauan disimpan, namun gagal diajukan: ${(approvalErr as Error).message}`,
+          );
           router.push("/risk/assessment");
         }
+      } else if (submitTarget.current === "review") {
+        toast.success("Pemantauan berhasil disimpan dan langsung disetujui!");
+        router.push("/risk/assessment");
       } else {
         toast.success("Pemantauan risiko berhasil disimpan");
         router.push("/risk/assessment");
@@ -618,7 +706,10 @@ export default function AssessmentFormPage() {
     return (
       <div className="flex h-[50vh] w-full flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Data risiko tidak ditemukan.</p>
-        <Button variant="outline" onClick={() => router.push("/risk/assessment")}>
+        <Button
+          variant="outline"
+          onClick={() => router.push("/risk/assessment")}
+        >
           <ArrowLeft className="mr-2 size-4" />
           Kembali
         </Button>
@@ -629,6 +720,10 @@ export default function AssessmentFormPage() {
   const isAssessmentLocked =
     draftRisk.status === "assessment_in_review" ||
     draftRisk.status === "approved";
+  const defaultAccordionSections =
+    riskApprovalCapabilityBehavior.showsApprovalLineEditor
+      ? ["hasil-pemantauan", "approval-line"]
+      : ["hasil-pemantauan"];
 
   return (
     <div className="space-y-6 animate-fade-in pb-20">
@@ -722,46 +817,48 @@ export default function AssessmentFormPage() {
                                 )}
                               </div>
                               <div className="flex-1 min-w-0 pb-2">
-                                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                    <Link
-                                      href={getRiskVersionDetailHref(item)}
-                                      className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:no-underline"
-                                    >
-                                      v{versionHistory.length - index}
-                                    </Link>
-                                    <span className="text-sm font-semibold text-muted-foreground">
-                                      {item.cycle}
-                                    </span>
-                                   {item.isCurrent && (
-                                     <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
-                                       Current
-                                     </Badge>
-                                   )}
-                                 </div>
-                                 <div className="flex items-center gap-1.5 mb-1.5">
-                                   <Badge
-                                     variant="outline"
-                                     className={cn(
-                                       "text-[10px] font-semibold border h-5 px-1.5",
-                                       VERSION_LEVEL_BADGE[item.previousLevel] || "",
-                                     )}
-                                   >
-                                     {item.previousLevel}
-                                   </Badge>
-                                   <span className="text-muted-foreground text-xs">
-                                     →
-                                   </span>
-                                   <Badge
-                                     variant="outline"
-                                     className={cn(
-                                       "text-[10px] font-semibold border h-5 px-1.5",
-                                       VERSION_LEVEL_BADGE[item.currentLevel] || "",
-                                     )}
-                                   >
-                                     {item.currentLevel}
-                                   </Badge>
-                                 </div>
-                               </div>
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <Link
+                                    href={getRiskVersionDetailHref(item)}
+                                    className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:no-underline"
+                                  >
+                                    v{versionHistory.length - index}
+                                  </Link>
+                                  <span className="text-sm font-semibold text-muted-foreground">
+                                    {item.cycle}
+                                  </span>
+                                  {item.isCurrent && (
+                                    <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
+                                      Current
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 mb-1.5">
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "text-[10px] font-semibold border h-5 px-1.5",
+                                      VERSION_LEVEL_BADGE[item.previousLevel] ||
+                                        "",
+                                    )}
+                                  >
+                                    {item.previousLevel}
+                                  </Badge>
+                                  <span className="text-muted-foreground text-xs">
+                                    →
+                                  </span>
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "text-[10px] font-semibold border h-5 px-1.5",
+                                      VERSION_LEVEL_BADGE[item.currentLevel] ||
+                                        "",
+                                    )}
+                                  >
+                                    {item.currentLevel}
+                                  </Badge>
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -781,33 +878,32 @@ export default function AssessmentFormPage() {
                     onClick={handleSaveDraft}
                     disabled={isSaving || isAssessmentLocked}
                   >
-                  {isSaving && submitTarget.current === "draft" ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Save className="size-3.5" />
-                  )}{" "}
-                  Simpan draft
-                </Button>
+                    {isSaving && submitTarget.current === "draft" ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Save className="size-3.5" />
+                    )}{" "}
+                    Simpan draft
+                  </Button>
                   <Button
                     className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={openSubmitReviewConfirm}
                     disabled={isSaving || isAssessmentLocked}
                   >
-                  {isSaving && submitTarget.current === "review" ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Send className="size-4" />
-                  )}{" "}
-                  Ajukan review
-                </Button>
-              </div>
-            )}
-          </TooltipProvider>
+                    {isSaving && submitTarget.current === "review" ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Send className="size-4" />
+                    )}{" "}
+                    {submitActionLabel}
+                  </Button>
+                </div>
+              )}
+            </TooltipProvider>
           </div>
         }
       />
-
-      {/* Form Content */}      {/* Form Content */}
+      {/* Form Content */} {/* Form Content */}
       <div className="flex flex-col xl:flex-row gap-6 items-start">
         {/* Left Column */}
         <div className="w-full xl:w-2/3 space-y-6">
@@ -815,10 +911,10 @@ export default function AssessmentFormPage() {
             risk={sourceRisk}
             detailHref={`/risk/register/${sourceRisk.id}`}
           />
-          
+
           <Accordion
             type="multiple"
-            defaultValue={["hasil-pemantauan", "approval-line"]}
+            defaultValue={defaultAccordionSections}
             className="space-y-4"
           >
             <AccordionItem
@@ -840,23 +936,32 @@ export default function AssessmentFormPage() {
               <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
                 <div className="grid gap-6">
                   {(() => {
-                    const mitigations = draftRisk?.mitigations ?? sourceRisk.mitigations ?? (sourceRisk.mitigation ? [sourceRisk.mitigation] : []);
-                    const mitigationItems: MitigationItem[] = mitigations.map((m) => ({
-                      id: m.id,
-                      action: m.action ?? "",
-                      owner: m.owner ?? "",
-                      treatmentOwnerId: m.treatmentOwnerId,
-                      externalPicId: m.externalPicId,
-                      dueDate: m.dueDate ?? "",
-                      frequency: (m.frequency as MitigationItem["frequency"]) ?? "insidental",
-                      recurringInterval: m.recurringInterval as MitigationItem["recurringInterval"],
-                      reportDay: m.reportDay,
-                      reportDate: m.reportDate,
-                    }));
+                    const mitigations =
+                      draftRisk?.mitigations ??
+                      sourceRisk.mitigations ??
+                      (sourceRisk.mitigation ? [sourceRisk.mitigation] : []);
+                    const mitigationItems: MitigationItem[] = mitigations.map(
+                      (m) => ({
+                        id: m.id,
+                        action: m.action ?? "",
+                        owner: m.owner ?? "",
+                        treatmentOwnerId: m.treatmentOwnerId,
+                        externalPicId: m.externalPicId,
+                        dueDate: m.dueDate ?? "",
+                        frequency:
+                          (m.frequency as MitigationItem["frequency"]) ??
+                          "insidental",
+                        recurringInterval:
+                          m.recurringInterval as MitigationItem["recurringInterval"],
+                        reportDay: m.reportDay,
+                        reportDate: m.reportDate,
+                      }),
+                    );
                     return mitigationItems.length > 0 ? (
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-foreground">
-                          Rencana Penanganan (dari versi terakhir yang disetujui)
+                          Rencana Penanganan (dari versi terakhir yang
+                          disetujui)
                         </Label>
                         <MitigationTable
                           items={mitigationItems}
@@ -869,7 +974,9 @@ export default function AssessmentFormPage() {
                         <Label className="text-sm font-medium text-foreground">
                           Rencana Penanganan
                         </Label>
-                        <p className="text-sm text-muted-foreground italic mt-2">Belum ada rencana penanganan</p>
+                        <p className="text-sm text-muted-foreground italic mt-2">
+                          Belum ada rencana penanganan
+                        </p>
                       </div>
                     );
                   })()}
@@ -894,13 +1001,16 @@ export default function AssessmentFormPage() {
                                         "h-10 rounded-lg border text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
                                         val === field.value
                                           ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, impact, getBobot(val, impact))))} ring-1 font-bold`
-                                          : "bg-muted/30 hover:bg-muted/50"
+                                          : "bg-muted/30 hover:bg-muted/50",
                                       )}
                                     >
                                       {val}
                                     </button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top" className="text-xs">
+                                  <TooltipContent
+                                    side="top"
+                                    className="text-xs"
+                                  >
                                     {PROBABILITY_LABELS[val]}
                                   </TooltipContent>
                                 </Tooltip>
@@ -910,7 +1020,8 @@ export default function AssessmentFormPage() {
                         />
                         {form.formState.errors.probability && (
                           <span className="text-xs text-red-500 font-medium">
-                            {form.formState.errors.probability.message || "Wajib diisi"}
+                            {form.formState.errors.probability.message ||
+                              "Wajib diisi"}
                           </span>
                         )}
                       </div>
@@ -933,13 +1044,16 @@ export default function AssessmentFormPage() {
                                         "h-10 rounded-lg border text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
                                         val === field.value
                                           ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(probability, val, getBobot(probability, val))))} ring-1 font-bold`
-                                          : "bg-muted/30 hover:bg-muted/50"
+                                          : "bg-muted/30 hover:bg-muted/50",
                                       )}
                                     >
                                       {val}
                                     </button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top" className="text-xs">
+                                  <TooltipContent
+                                    side="top"
+                                    className="text-xs"
+                                  >
                                     {IMPACT_LABELS[val]}
                                   </TooltipContent>
                                 </Tooltip>
@@ -949,7 +1063,8 @@ export default function AssessmentFormPage() {
                         />
                         {form.formState.errors.impact && (
                           <span className="text-xs text-red-500 font-medium">
-                            {form.formState.errors.impact.message || "Wajib diisi"}
+                            {form.formState.errors.impact.message ||
+                              "Wajib diisi"}
                           </span>
                         )}
                       </div>
@@ -972,7 +1087,8 @@ export default function AssessmentFormPage() {
                     />
                     {form.formState.errors.changeReason && (
                       <span className="text-xs text-red-500 font-medium">
-                        {form.formState.errors.changeReason.message || "Wajib diisi"}
+                        {form.formState.errors.changeReason.message ||
+                          "Wajib diisi"}
                       </span>
                     )}
                   </div>
@@ -993,7 +1109,8 @@ export default function AssessmentFormPage() {
                     />
                     {form.formState.errors.reviewSummary && (
                       <span className="text-xs text-red-500 font-medium">
-                        {form.formState.errors.reviewSummary.message || "Wajib diisi"}
+                        {form.formState.errors.reviewSummary.message ||
+                          "Wajib diisi"}
                       </span>
                     )}
                   </div>
@@ -1002,100 +1119,102 @@ export default function AssessmentFormPage() {
             </AccordionItem>
 
             {/* Accordion Approval Line */}
-            {(!id || draftRisk.status === "assessment_draft") && (
-              <AccordionItem
-                value="approval-line"
-                id="approval-line"
-                className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
-              >
-                <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                  <div className="flex flex-1 items-center justify-between pr-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                        2
+            {riskApprovalCapabilityBehavior.showsApprovalLineEditor &&
+              (!id || draftRisk.status === "assessment_draft") && (
+                <AccordionItem
+                  value="approval-line"
+                  id="approval-line"
+                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                >
+                  <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
+                    <div className="flex flex-1 items-center justify-between pr-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
+                          2
+                        </div>
+                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
+                          Approval Line
+                        </p>
                       </div>
-                      <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
-                        Approval Line
-                      </p>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                          isApprovalLineReady
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-muted/40 text-muted-foreground",
+                        )}
+                      >
+                        {isApprovalLineReady ? (
+                          <CheckCircle2 className="size-3.5" />
+                        ) : (
+                          <CircleDot className="size-3.5" />
+                        )}
+                        <span className="hidden sm:inline">
+                          {isApprovalLineReady ? "Lengkap" : "Perlu dilengkapi"}
+                        </span>
+                      </Badge>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                        isApprovalLineReady
-                          ? "bg-success/10 text-success border-success/20"
-                          : "bg-muted/40 text-muted-foreground",
-                      )}
-                    >
-                      {isApprovalLineReady ? (
-                        <CheckCircle2 className="size-3.5" />
-                      ) : (
-                        <CircleDot className="size-3.5" />
-                      )}
-                      <span className="hidden sm:inline">
-                        {isApprovalLineReady
-                          ? "Lengkap"
-                          : "Perlu dilengkapi"}
-                      </span>
-                    </Badge>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
-                  <div className="rounded-xl border border-border/60 bg-white p-5 space-y-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-medium text-foreground">
-                        1. Reviewer (Pemeriksa)
-                        <span className="text-destructive ml-0.5">*</span>
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Pilih reviewer yang akan memeriksa dan memberikan skor penilaian resmi sebelum risiko ini diajukan ke pimpinan.
-                      </p>
-                    </div>
-                    <RemoteUserPicker
-                      title="Pilih Reviewer"
-                      description="Cari reviewer yang akan memeriksa dan memberikan penilaian resmi untuk pemantauan ini."
-                      placeholder="Pilih reviewer"
-                      searchPlaceholder="Cari nama reviewer"
-                      emptyMessage="Reviewer tidak ditemukan."
-                      value={reviewerOption}
-                      onSelect={handleReviewerSelect}
-                      loadOptions={loadReviewerOptions}
-                      disabled={false}
-                    />
-                  </div>
-
-                  <div className="rounded-xl border border-primary/10 bg-white p-5 space-y-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-medium text-foreground">
-                        2. Approval Line (Pimpinan)
-                        <span className="text-destructive ml-0.5">*</span>
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Susun rantai persetujuan pimpinan. Persetujuan dilakukan secara berurutan.
-                      </p>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
+                    <div className="rounded-xl border border-border/60 bg-white p-5 space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium text-foreground">
+                          1. Reviewer (Pemeriksa)
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Pilih reviewer yang akan memeriksa dan memberikan skor
+                          penilaian resmi sebelum risiko ini diajukan ke
+                          pimpinan.
+                        </p>
+                      </div>
+                      <RemoteUserPicker
+                        title="Pilih Reviewer"
+                        description="Cari reviewer yang akan memeriksa dan memberikan penilaian resmi untuk pemantauan ini."
+                        placeholder="Pilih reviewer"
+                        searchPlaceholder="Cari nama reviewer"
+                        emptyMessage="Reviewer tidak ditemukan."
+                        value={reviewerOption}
+                        onSelect={handleReviewerSelect}
+                        loadOptions={loadReviewerOptions}
+                        disabled={false}
+                      />
                     </div>
 
-                    <OrderedUserSelectionTable
-                      rows={approvalLine}
-                      loadOptions={loadApproverOptions}
-                      onSelectRow={handleApproverSelect}
-                      onAddRow={handleAddApproverRow}
-                      onRemoveRow={removeApprover}
-                      onMoveRow={moveApprover}
-                      pickerTitle="Pilih approver"
-                      pickerDescription="Cari approver untuk disusun ke dalam rantai persetujuan berurutan."
-                      pickerPlaceholder="Pilih approver"
-                      pickerSearchPlaceholder="Cari nama approver"
-                      pickerEmptyMessage="Approver tidak ditemukan."
-                      emptyStateMessage="Belum ada approver. Tambahkan minimal satu user sebelum klik Ajukan review."
-                      addRowLabel="Tambah Approver"
-                      footerNote="Urutan baris menentukan sequence persetujuan pimpinan."
-                      dndGroup="assessment-approval-line"
-                    />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
+                    <div className="rounded-xl border border-primary/10 bg-white p-5 space-y-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium text-foreground">
+                          2. Approval Line (Pimpinan)
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Susun rantai persetujuan pimpinan. Persetujuan
+                          dilakukan secara berurutan.
+                        </p>
+                      </div>
+
+                      <OrderedUserSelectionTable
+                        rows={approvalLine}
+                        loadOptions={loadApproverOptions}
+                        onSelectRow={handleApproverSelect}
+                        onAddRow={handleAddApproverRow}
+                        onRemoveRow={removeApprover}
+                        onMoveRow={moveApprover}
+                        pickerTitle="Pilih approver"
+                        pickerDescription="Cari approver untuk disusun ke dalam rantai persetujuan berurutan."
+                        pickerPlaceholder="Pilih approver"
+                        pickerSearchPlaceholder="Cari nama approver"
+                        pickerEmptyMessage="Approver tidak ditemukan."
+                        emptyStateMessage="Belum ada approver. Tambahkan minimal satu user sebelum klik Ajukan review."
+                        addRowLabel="Tambah Approver"
+                        footerNote="Urutan baris menentukan sequence persetujuan pimpinan."
+                        dndGroup="assessment-approval-line"
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
           </Accordion>
         </div>
 
@@ -1103,7 +1222,9 @@ export default function AssessmentFormPage() {
         <div className="w-full space-y-4 xl:sticky xl:top-24 xl:w-1/3">
           <div className="rounded-xl border border-border/40 bg-card shadow-sm overflow-hidden">
             <div className="border-b border-border/40 bg-muted/20 px-4 py-3">
-              <p className="text-sm font-semibold text-foreground">Simpulan Pemantauan</p>
+              <p className="text-sm font-semibold text-foreground">
+                Simpulan Pemantauan
+              </p>
             </div>
             <div className="p-4">
               <SimpulanCard
@@ -1111,53 +1232,65 @@ export default function AssessmentFormPage() {
                 nilaiBaru={computedNilai}
                 probability={probability}
                 impact={impact}
-                targetScore={sourceRisk.targetNilai ?? sourceRisk.targetScore ?? 0}
+                targetScore={
+                  sourceRisk.targetNilai ?? sourceRisk.targetScore ?? 0
+                }
               />
             </div>
           </div>
           <ReviewSidePanel
-              approvalId={approvalId}
-              approvalWorkflow={approvalWorkflow}
-              currentUserId={user?.id}
-              riskStatus={draftRisk.status}
-              userRole={user?.role || ""}
-              inherentScore={Math.round(computedNilai)}
-              token={token || undefined}
-              onActionComplete={loadRiskData}
-              onNavigateToLog={() => router.push(`/risk/register/${sourceRisk.id}`)}
-            />
+            approvalId={approvalId}
+            approvalWorkflow={approvalWorkflow}
+            currentUserId={user?.id}
+            riskStatus={draftRisk.status}
+            userRole={user?.role || ""}
+            inherentScore={Math.round(computedNilai)}
+            token={token || undefined}
+            allowStatusFallbackWorkflowStage={
+              riskApprovalCapabilityBehavior.riskApprovalWorkflowEnabled
+            }
+            onActionComplete={loadRiskData}
+            onNavigateToLog={() =>
+              router.push(`/risk/register/${sourceRisk.id}`)
+            }
+          />
         </div>
       </div>
-
-<AlertDialog
+      <AlertDialog
         open={showSubmitReviewConfirm}
         onOpenChange={setShowSubmitReviewConfirm}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ajukan Pemantauan untuk Review?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+                ? "Finalisasi Pemantauan?"
+                : "Ajukan Pemantauan untuk Review?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Pemantauan akan disimpan lalu dikirim ke reviewer dan approval line
-              yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum
-              melanjutkan.
+              {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+                ? "Pastikan seluruh bagian sudah final sebelum melanjutkan."
+                : "Pemantauan akan disimpan lalu dikirim ke reviewer dan approval line yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
-            <div>
-              <span className="font-medium text-foreground">Reviewer: </span>
-              <span className="text-muted-foreground">
-                {reviewerOption?.name || "-"}
-              </span>
+          {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
+            <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+              <div>
+                <span className="font-medium text-foreground">Reviewer: </span>
+                <span className="text-muted-foreground">
+                  {reviewerOption?.name || "-"}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium text-foreground">
+                  Approval line:{" "}
+                </span>
+                <span className="text-muted-foreground">
+                  {selectedApprovalLine.length} orang
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="font-medium text-foreground">
-                Approval line:{" "}
-              </span>
-              <span className="text-muted-foreground">
-                {selectedApprovalLine.length} orang
-              </span>
-            </div>
-          </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction

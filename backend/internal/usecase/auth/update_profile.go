@@ -22,15 +22,17 @@ type UpdateProfileInput struct {
 }
 
 type UpdateProfileUseCase struct {
-	userRepo     repository.UserRepository
-	hierarchySvc *service.OrganizationHierarchy
+	userRepo                    repository.UserRepository
+	hierarchySvc                *service.OrganizationHierarchy
+	riskApprovalWorkflowEnabled bool
 }
 
 func NewUpdateProfileUseCase(
 	userRepo repository.UserRepository,
 	hierarchySvc *service.OrganizationHierarchy,
+	riskApprovalWorkflowEnabled bool,
 ) *UpdateProfileUseCase {
-	return &UpdateProfileUseCase{userRepo: userRepo, hierarchySvc: hierarchySvc}
+	return &UpdateProfileUseCase{userRepo: userRepo, hierarchySvc: hierarchySvc, riskApprovalWorkflowEnabled: riskApprovalWorkflowEnabled}
 }
 
 func (uc *UpdateProfileUseCase) Execute(ctx context.Context, input UpdateProfileInput) (*entity.UserProfile, error) {
@@ -65,22 +67,5 @@ func (uc *UpdateProfileUseCase) Execute(ctx context.Context, input UpdateProfile
 		return nil, err
 	}
 
-	return &entity.UserProfile{
-		ID:                 user.ID,
-		Username:           user.Username,
-		Name:               user.Name,
-		Email:              user.Email,
-		Role:               user.Role,
-		OrganizationID:     user.OrganizationID,
-		OrgName:            user.OrgName,
-		AccessibleOrgIDs:   scope.AccessibleOrgIDs,
-		IsGlobal:           scope.IsGlobal,
-		Status:             user.Status,
-		NIP:                user.NIP,
-		Jabatan:            user.Jabatan,
-		Pangkat:            user.Pangkat,
-		MustChangePassword: user.MustChangePassword,
-		CreatedAt:          user.CreatedAt,
-		UpdatedAt:          user.UpdatedAt,
-	}, nil
+	return buildUserProfile(user, scope, uc.riskApprovalWorkflowEnabled), nil
 }

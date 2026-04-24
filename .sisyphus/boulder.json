@@ -1,65 +1,29 @@
 {
-  "active_plan": "/Users/dikalaksana/Engineering/manris-v2/.sisyphus/plans/heatmap-compare-4x.md",
-  "started_at": "2026-04-21T06:59:15.520Z",
+  "active_plan": "/Users/dikalaksana/Engineering/manris-v2/.sisyphus/plans/risk-approval-env-toggle.md",
+  "started_at": "2026-04-24T05:41:50.994Z",
   "session_ids": [
-    "ses_2515d049cffe8Wpf65ZM2MaDVB",
-    "ses_251290c1dffenF7LzoaABRQ1Ik",
-    "ses_251231011ffebEvYkenprxZA5D",
-    "ses_2511f6c72ffe21TxKc7vUrBZOn",
-    "ses_2511ee606ffeeCOTUc73Cp9uhc",
-    "ses_2511a1fb9ffewobNDJvkNZcwNl",
-    "ses_25118cf11ffeAtx0iT4kfbdgIM",
-    "ses_25118e1c1ffeFArPo16PgaCG9H",
-    "ses_25118a63cffe9vrm2x5VS6MOMU",
-    "ses_2510796e6ffeoRnCxEIVtKXzJ0"
+    "ses_246d7a0fcffe37Lya2E9NsGXjG",
+    "ses_241e9c2c2ffevSnuH2xlKZL1vO",
+    "ses_241e9c231ffeUuXCSVSs6clpkt",
+    "ses_241e7cbadffe8LzMdfsxZ9pUa3",
+    "ses_241e50786ffe4Gus0165CdpkLI",
+    "ses_241de16d9ffex1hSeFykds2uB2",
+    "ses_241de1640ffeLiHnXFyZarFvI0",
+    "ses_241dc46e5ffeW3BEMRkourVQ65",
+    "ses_241d80ce1ffe4GyaMBnItpNcG5",
+    "ses_241d4a2e5ffe8nXcVYNcsHxqc5",
+    "ses_241d4a32affeC79Jl7CYJqhiCb",
+    "ses_241d31af4ffeQ87x33nqVESeuC",
+    "ses_241cc893affeiWPkUMmCCxwKfB",
+    "ses_241cd12e8ffe37k3HaPoynlPMi",
+    "ses_241c35418ffevAPCrAdtGyHAva",
+    "ses_240785ecaffesx7D19Rd00I0B5",
+    "ses_2401dea1dffe33pW63WbCvpj11",
+    "ses_2401de9b2ffekvtWFIfOsKhW9f",
+    "ses_2400c5ec1ffedxO0p4NLNQzlFD",
+    "ses_240056dfbffes2ngvDrWUSoiDN"
   ],
-  "plan_name": "heatmap-compare-4x",
+  "plan_name": "risk-approval-env-toggle",
   "agent": "atlas",
-  "task_sessions": {
-    "todo:1": {
-      "task_key": "todo:1",
-      "task_label": "1",
-      "task_title": "Backend — Repository HeatmapMultiPhase method",
-      "session_id": "ses_251290c1dffenF7LzoaABRQ1Ik",
-      "agent": "Sisyphus-Junior",
-      "category": "deep",
-      "updated_at": "2026-04-21T07:04:14.214Z"
-    },
-    "todo:2": {
-      "task_key": "todo:2",
-      "task_label": "2",
-      "task_title": "Frontend — Extract getHeatmapCellClass to shared util",
-      "session_id": "ses_251231011ffebEvYkenprxZA5D",
-      "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-04-21T07:09:00.936Z"
-    },
-    "todo:3": {
-      "task_key": "todo:3",
-      "task_label": "3",
-      "task_title": "Backend — UseCase + Handler + Route wiring",
-      "session_id": "ses_2511f6c72ffe21TxKc7vUrBZOn",
-      "agent": "Sisyphus-Junior",
-      "category": "unspecified-high",
-      "updated_at": "2026-04-21T07:12:53.326Z"
-    },
-    "todo:5": {
-      "task_key": "todo:5",
-      "task_label": "5",
-      "task_title": "Frontend — Integrate card into monitoring page",
-      "session_id": "ses_2511a1fb9ffewobNDJvkNZcwNl",
-      "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-04-21T07:17:09.434Z"
-    },
-    "final-wave:f1": {
-      "task_key": "final-wave:f1",
-      "task_label": "F1",
-      "task_title": "**Plan Compliance Audit** — `oracle`",
-      "session_id": "ses_25118a63cffe9vrm2x5VS6MOMU",
-      "agent": "Sisyphus-Junior",
-      "category": "deep",
-      "updated_at": "2026-04-21T07:19:46.921Z"
-    }
-  }
+  "task_sessions": {}
 }

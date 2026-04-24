@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -37,7 +38,7 @@ func (s *loginStubUserRepo) ListWithFilter(_ context.Context, _ repository.UserL
 func TestLoginExecuteReturnsInvalidCredentialsForUnknownUser(t *testing.T) {
 	orgRepo := &stubOrgRepo{}
 	hierarchySvc := service.NewOrganizationHierarchy(orgRepo)
-	uc := NewLoginUseCase(&loginStubUserRepo{err: pgx.ErrNoRows}, hierarchySvc, "secret", 24)
+	uc := NewLoginUseCase(&loginStubUserRepo{err: pgx.ErrNoRows}, hierarchySvc, "secret", 24, true)
 
 	_, err := uc.Execute(context.Background(), LoginInput{
 		Username: "missing-user",
@@ -66,7 +67,7 @@ func TestLoginExecuteReturnsTokenForActiveUser(t *testing.T) {
 		Role:         entity.RoleSuperAdmin,
 		Status:       entity.UserStatusActive,
 		PasswordHash: string(passwordHash),
-	}}, hierarchySvc, "secret", 24)
+	}}, hierarchySvc, "secret", 24, true)
 
 	result, err := uc.Execute(context.Background(), LoginInput{
 		Username: "active-user",
@@ -92,6 +93,30 @@ func TestLoginExecuteReturnsTokenForActiveUser(t *testing.T) {
 	}
 	if result.User.MustChangePassword {
 		t.Fatal("expected user mustChangePassword to be false for active user")
+	}
+
+	serialized, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("marshal auth token: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(serialized, &payload); err != nil {
+		t.Fatalf("unmarshal auth token json: %v", err)
+	}
+	userPayload, ok := payload["user"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected user payload map, got %#v", payload["user"])
+	}
+	capabilities, ok := userPayload["capabilities"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected nested capabilities payload, got %#v", userPayload["capabilities"])
+	}
+	riskApprovalWorkflowEnabled, ok := capabilities["riskApprovalWorkflowEnabled"].(bool)
+	if !ok {
+		t.Fatalf("expected boolean riskApprovalWorkflowEnabled, got %#v", capabilities["riskApprovalWorkflowEnabled"])
+	}
+	if !riskApprovalWorkflowEnabled {
+		t.Fatal("expected riskApprovalWorkflowEnabled to be true")
 	}
 
 	claims := &middleware.JWTClaims{}
@@ -125,7 +150,7 @@ func TestLoginExecuteReturnsSetupTokenForPendingActivationUser(t *testing.T) {
 		Status:             entity.UserStatusPendingActivation,
 		MustChangePassword: true,
 		PasswordHash:       string(passwordHash),
-	}}, hierarchySvc, "secret", 24)
+	}}, hierarchySvc, "secret", 24, true)
 
 	result, err := uc.Execute(context.Background(), LoginInput{
 		Username: "pending-user",
@@ -183,7 +208,7 @@ func TestLoginExecuteRejectsInactiveUser(t *testing.T) {
 		Role:         entity.RoleUnit,
 		Status:       entity.UserStatusInactive,
 		PasswordHash: string(passwordHash),
-	}}, hierarchySvc, "secret", 24)
+	}}, hierarchySvc, "secret", 24, true)
 
 	_, err = uc.Execute(context.Background(), LoginInput{
 		Username: "inactive-user",
@@ -213,7 +238,7 @@ func TestLoginExecuteReturnsFullSessionForActiveUserEvenIfPasswordChangeRequired
 		Status:             entity.UserStatusActive,
 		MustChangePassword: true,
 		PasswordHash:       string(passwordHash),
-	}}, hierarchySvc, "secret", 24)
+	}}, hierarchySvc, "secret", 24, false)
 
 	result, err := uc.Execute(context.Background(), LoginInput{
 		Username: "active-reset-user",
@@ -243,5 +268,29 @@ func TestLoginExecuteReturnsFullSessionForActiveUserEvenIfPasswordChangeRequired
 	}
 	if claims.SetupOnly {
 		t.Fatal("expected active-user token to remain full-session even with mustChangePassword=true")
+	}
+
+	serialized, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("marshal auth token: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(serialized, &payload); err != nil {
+		t.Fatalf("unmarshal auth token json: %v", err)
+	}
+	userPayload, ok := payload["user"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected user payload map, got %#v", payload["user"])
+	}
+	capabilities, ok := userPayload["capabilities"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected nested capabilities payload, got %#v", userPayload["capabilities"])
+	}
+	riskApprovalWorkflowEnabled, ok := capabilities["riskApprovalWorkflowEnabled"].(bool)
+	if !ok {
+		t.Fatalf("expected boolean riskApprovalWorkflowEnabled, got %#v", capabilities["riskApprovalWorkflowEnabled"])
+	}
+	if riskApprovalWorkflowEnabled {
+		t.Fatal("expected riskApprovalWorkflowEnabled to be false")
 	}
 }

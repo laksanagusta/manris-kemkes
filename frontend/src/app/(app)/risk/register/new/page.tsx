@@ -137,6 +137,7 @@ import {
   filterApproverOptions,
   type UserPickerOption,
 } from "@/lib/risk-register-user-picker";
+import { getRiskApprovalCapabilityBehavior } from "@/lib/risk-approval-capability";
 import {
   buildVersionHistoryItem,
   getRiskVersionDetailHref,
@@ -516,6 +517,10 @@ function toHydratedUserPickerOption(user: {
 export default function RiskInputPage() {
   const router = useRouter();
   const { token, user } = useAuth();
+  const riskApprovalCapabilityBehavior = useMemo(
+    () => getRiskApprovalCapabilityBehavior(user?.capabilities),
+    [user?.capabilities],
+  );
 
   const [riskId, setRiskId] = useState<string | null>(null);
   const [riskStatus, setRiskStatus] = useState<string>("assessment_draft");
@@ -604,6 +609,9 @@ export default function RiskInputPage() {
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
     selectedApprovalLine.length > 0 && approvalLine.every((member) => member.id);
+  const submitActionLabel = riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+    ? "Finalisasi risiko"
+    : "Ajukan review";
 
   const handleReviewerSelect = useCallback((option: UserPickerOption) => {
     setReviewerId(option.id);
@@ -1368,9 +1376,17 @@ export default function RiskInputPage() {
     setIsSubmitting(true);
     try {
       const isDraft = submitTarget.current === "draft";
-      const payload = buildPayload(data, "assessment_draft");
+      const submissionStatus =
+        isDraft || riskApprovalCapabilityBehavior.submitsForApproval
+          ? "assessment_draft"
+          : "approved";
+      const payload = buildPayload(data, submissionStatus);
 
       let currentRiskId = riskId;
+      const needsDirectApprovalUpdate =
+        !isDraft &&
+        !riskApprovalCapabilityBehavior.submitsForApproval &&
+        !currentRiskId;
 
       if (currentRiskId) {
         await api.put(`/risks/${currentRiskId}`, payload, token || undefined);
@@ -1385,6 +1401,14 @@ export default function RiskInputPage() {
         currentRiskId = res.id;
       }
 
+      if (needsDirectApprovalUpdate && currentRiskId) {
+        await api.put(
+          `/risks/${currentRiskId}`,
+          buildPayload(data, "approved"),
+          token || undefined,
+        );
+      }
+
       if (isDraft) {
         toast.success("Draft berhasil disimpan!");
         if (!riskId && currentRiskId) {
@@ -1397,18 +1421,33 @@ export default function RiskInputPage() {
           return;
         }
       } else {
-        if (!reviewerId) {
+        if (
+          riskApprovalCapabilityBehavior.requiresReviewerSelection &&
+          !reviewerId
+        ) {
           toast.error("Pilih Reviewer sebelum mengajukan review.");
           return;
         }
+
         const approverIds = dedupeApproverIds([
           reviewerId,
           ...selectedApprovalLine.map((member) => member.id),
         ]);
-        if (approverIds.length === 0) {
+
+        if (
+          riskApprovalCapabilityBehavior.requiresApprovalLineSelection &&
+          approverIds.length === 0
+        ) {
           toast.error("Susun reviewer dan approval line terlebih dahulu.");
           return;
         }
+
+        if (!riskApprovalCapabilityBehavior.submitsForApproval) {
+          toast.success("Risk berhasil disimpan dan langsung disetujui!");
+          router.push("/risk/register");
+          return;
+        }
+
         try {
           await api.post(
             "/approvals/submit",
@@ -1499,7 +1538,10 @@ export default function RiskInputPage() {
     submitTarget.current = "review";
     clearErrors();
 
-    if (!reviewerId) {
+    if (
+      riskApprovalCapabilityBehavior.requiresReviewerSelection &&
+      !reviewerId
+    ) {
       toast.error("Pilih Reviewer terlebih dahulu.");
       return;
     }
@@ -1510,7 +1552,10 @@ export default function RiskInputPage() {
       return;
     }
 
-    if (!isApprovalLineReady) {
+    if (
+      riskApprovalCapabilityBehavior.requiresApprovalLineSelection &&
+      !isApprovalLineReady
+    ) {
       toast.error("Lengkapi setiap baris approver atau hapus baris yang masih kosong.");
       return;
     }
@@ -1679,7 +1724,9 @@ export default function RiskInputPage() {
           description={
             isRiskLocked
               ? "Dokumen ini terkunci karena sudah final. Gunakan draft baru jika perlu perubahan."
-              : "Lengkapi identifikasi, analisis, dan rencana penanganan sebelum diajukan untuk approval."
+              : riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+                ? "Lengkapi identifikasi, analisis, dan rencana penanganan sebelum risiko difinalisasi langsung."
+                : "Lengkapi identifikasi, analisis, dan rencana penanganan sebelum diajukan untuk approval."
           }
           badges={
             <>
@@ -1883,14 +1930,14 @@ export default function RiskInputPage() {
                     className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={openSubmitReviewConfirm}
                     disabled={isSubmitting}
-                  >
-                    {isSubmitting && submitTarget.current === "review" ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Send className="size-4" />
-                    )}{" "}
-                    Ajukan review
-                  </Button>
+                   >
+                     {isSubmitting && submitTarget.current === "review" ? (
+                       <Loader2 className="size-4 animate-spin" />
+                     ) : (
+                       <Send className="size-4" />
+                     )}{" "}
+                     {submitActionLabel}
+                   </Button>
                 </div>
               )}
             </div>
@@ -2880,102 +2927,104 @@ export default function RiskInputPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem
-                  value="approval-line"
-                  id="approval-line"
-                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
-                >
-                  <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                    <div className="flex flex-1 items-center justify-between pr-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                          6
+                {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
+                  <AccordionItem
+                    value="approval-line"
+                    id="approval-line"
+                    className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                  >
+                    <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
+                      <div className="flex flex-1 items-center justify-between pr-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
+                            6
+                          </div>
+                          <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
+                            Approval Line
+                          </p>
                         </div>
-                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
-                          Approval Line
-                        </p>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                            isApprovalLineReady
+                              ? "bg-success/10 text-success border-success/20"
+                              : "bg-muted/40 text-muted-foreground",
+                          )}
+                        >
+                          {isApprovalLineReady ? (
+                            <CheckCircle2 className="size-3.5" />
+                          ) : (
+                            <CircleDot className="size-3.5" />
+                          )}
+                          <span className="hidden sm:inline">
+                            {isApprovalLineReady
+                              ? "Lengkap"
+                              : "Perlu dilengkapi"}
+                          </span>
+                        </Badge>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                          isApprovalLineReady
-                            ? "bg-success/10 text-success border-success/20"
-                            : "bg-muted/40 text-muted-foreground",
-                        )}
-                      >
-                        {isApprovalLineReady ? (
-                          <CheckCircle2 className="size-3.5" />
-                        ) : (
-                          <CircleDot className="size-3.5" />
-                        )}
-                        <span className="hidden sm:inline">
-                          {isApprovalLineReady
-                            ? "Lengkap"
-                            : "Perlu dilengkapi"}
-                        </span>
-                      </Badge>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
-                    <div className="rounded-xl border border-border/60 bg-white p-5 space-y-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-foreground">
-                          1. Reviewer (Pemeriksa)
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
-                        <p className="text-xs text-muted-foreground">
-                          Pilih reviewer yang akan memeriksa dan memberikan skor
-                          penilaian resmi sebelum risiko ini diajukan ke
-                          pimpinan.
-                        </p>
-                      </div>
-                      <RemoteUserPicker
-                        title="Pilih Reviewer"
-                        description="Cari reviewer yang akan memeriksa dan memberikan penilaian resmi untuk risiko ini."
-                        placeholder="Pilih reviewer"
-                        searchPlaceholder="Cari nama reviewer"
-                        emptyMessage="Reviewer tidak ditemukan."
-                        value={reviewerOption}
-                        onSelect={handleReviewerSelect}
-                        loadOptions={loadReviewerOptions}
-                        disabled={isRiskLocked}
-                      />
-                    </div>
-
-                    <div className="rounded-xl border border-primary/10 bg-white p-5 space-y-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-foreground">
-                          2. Approval Line (Pimpinan)
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
-                        <p className="text-xs text-muted-foreground">
-                          Susun rantai persetujuan pimpinan. Persetujuan
-                          dilakukan secara berurutan.
-                        </p>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
+                      <div className="rounded-xl border border-border/60 bg-white p-5 space-y-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium text-foreground">
+                            1. Reviewer (Pemeriksa)
+                            <span className="text-destructive ml-0.5">*</span>
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Pilih reviewer yang akan memeriksa dan memberikan skor
+                            penilaian resmi sebelum risiko ini diajukan ke
+                            pimpinan.
+                          </p>
+                        </div>
+                        <RemoteUserPicker
+                          title="Pilih Reviewer"
+                          description="Cari reviewer yang akan memeriksa dan memberikan penilaian resmi untuk risiko ini."
+                          placeholder="Pilih reviewer"
+                          searchPlaceholder="Cari nama reviewer"
+                          emptyMessage="Reviewer tidak ditemukan."
+                          value={reviewerOption}
+                          onSelect={handleReviewerSelect}
+                          loadOptions={loadReviewerOptions}
+                          disabled={isRiskLocked}
+                        />
                       </div>
 
-                      <OrderedUserSelectionTable
-                        rows={approvalLine}
-                        loadOptions={loadApproverOptions}
-                        onSelectRow={handleApproverSelect}
-                        onAddRow={handleAddApproverRow}
-                        onRemoveRow={removeApprover}
-                        onMoveRow={moveApprover}
-                        pickerTitle="Pilih approver"
-                        pickerDescription="Cari approver untuk disusun ke dalam rantai persetujuan berurutan."
-                        pickerPlaceholder="Pilih approver"
-                        pickerSearchPlaceholder="Cari nama approver"
-                        pickerEmptyMessage="Approver tidak ditemukan."
-                        emptyStateMessage="Belum ada approver. Tambahkan minimal satu user sebelum klik Ajukan approval."
-                        addRowLabel="Tambah Approver"
-                        footerNote="Urutan baris menentukan sequence persetujuan pimpinan."
-                        disabled={isRiskLocked}
-                        dndGroup="risk-register-approval-line"
-                      />
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
+                      <div className="rounded-xl border border-primary/10 bg-white p-5 space-y-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium text-foreground">
+                            2. Approval Line (Pimpinan)
+                            <span className="text-destructive ml-0.5">*</span>
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Susun rantai persetujuan pimpinan. Persetujuan
+                            dilakukan secara berurutan.
+                          </p>
+                        </div>
+
+                        <OrderedUserSelectionTable
+                          rows={approvalLine}
+                          loadOptions={loadApproverOptions}
+                          onSelectRow={handleApproverSelect}
+                          onAddRow={handleAddApproverRow}
+                          onRemoveRow={removeApprover}
+                          onMoveRow={moveApprover}
+                          pickerTitle="Pilih approver"
+                          pickerDescription="Cari approver untuk disusun ke dalam rantai persetujuan berurutan."
+                          pickerPlaceholder="Pilih approver"
+                          pickerSearchPlaceholder="Cari nama approver"
+                          pickerEmptyMessage="Approver tidak ditemukan."
+                          emptyStateMessage="Belum ada approver. Tambahkan minimal satu user sebelum klik Ajukan approval."
+                          addRowLabel="Tambah Approver"
+                          footerNote="Urutan baris menentukan sequence persetujuan pimpinan."
+                          disabled={isRiskLocked}
+                          dndGroup="risk-register-approval-line"
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
               </Accordion>
             </form>
 
@@ -3086,28 +3135,36 @@ export default function RiskInputPage() {
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Ajukan Risiko untuk Review?</AlertDialogTitle>
+              <AlertDialogTitle>
+                {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+                  ? "Finalisasi Risiko?"
+                  : "Ajukan Risiko untuk Review?"}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                Risiko akan disimpan lalu dikirim ke reviewer dan approval line
-                yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum
-                melanjutkan.
+                {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+                  ? "Risiko akan disimpan dan langsung disetujui tanpa melalui reviewer atau approval line. Pastikan seluruh bagian sudah final sebelum melanjutkan."
+                  : "Risiko akan disimpan lalu dikirim ke reviewer dan approval line yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan."}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
-              <div>
-                <span className="font-medium text-foreground">Reviewer: </span>
-                <span className="text-muted-foreground">
-                  {reviewerOption?.name || "-"}
-                </span>
-              </div>
-              <div>
-                <span className="font-medium text-foreground">
-                  Approval line:{" "}
-                </span>
-                <span className="text-muted-foreground">
-                  {selectedApprovalLine.length} orang
-                </span>
-              </div>
+              {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
+                <>
+                  <div>
+                    <span className="font-medium text-foreground">Reviewer: </span>
+                    <span className="text-muted-foreground">
+                      {reviewerOption?.name || "-"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">
+                      Approval line:{" "}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {selectedApprovalLine.length} orang
+                    </span>
+                  </div>
+                </>
+              )}
               <div>
                 <span className="font-medium text-foreground">
                   Bagian siap:{" "}

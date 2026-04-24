@@ -12,8 +12,11 @@ import (
 )
 
 type fakeSubmitApprovalRepo struct {
-	created *entity.ApprovalRequest
-	steps   []entity.ApprovalStep
+	created          *entity.ApprovalRequest
+	createdCount     int
+	steps            []entity.ApprovalStep
+	createStepsCount int
+	histories        []*entity.ApprovalHistory
 }
 
 func (r *fakeSubmitApprovalRepo) List(context.Context, string, string, *uuid.UUID, []uuid.UUID, int, int) ([]*entity.ApprovalRequest, int, error) {
@@ -31,12 +34,14 @@ func (r *fakeSubmitApprovalRepo) GetHistoryByEntity(context.Context, string, uui
 func (r *fakeSubmitApprovalRepo) Create(_ context.Context, req *entity.ApprovalRequest) error {
 	copyReq := *req
 	r.created = &copyReq
+	r.createdCount++
 	return nil
 }
 func (r *fakeSubmitApprovalRepo) UpdateStatus(context.Context, uuid.UUID, string) error {
 	return errors.New("not implemented")
 }
-func (r *fakeSubmitApprovalRepo) AddHistory(context.Context, *entity.ApprovalHistory) error {
+func (r *fakeSubmitApprovalRepo) AddHistory(_ context.Context, history *entity.ApprovalHistory) error {
+	r.histories = append(r.histories, history)
 	return nil
 }
 func (r *fakeSubmitApprovalRepo) GetHistory(context.Context, uuid.UUID) ([]*entity.ApprovalHistory, error) {
@@ -47,6 +52,7 @@ func (r *fakeSubmitApprovalRepo) GetPendingCount(context.Context, string, *uuid.
 }
 func (r *fakeSubmitApprovalRepo) CreateSteps(_ context.Context, _ uuid.UUID, steps []entity.ApprovalStep) error {
 	r.steps = append([]entity.ApprovalStep(nil), steps...)
+	r.createStepsCount++
 	return nil
 }
 func (r *fakeSubmitApprovalRepo) GetSteps(context.Context, uuid.UUID) ([]*entity.ApprovalStep, error) {
@@ -61,7 +67,13 @@ func (r *fakeSubmitApprovalRepo) RejectCurrentStep(context.Context, uuid.UUID, u
 
 var _ repo.ApprovalRepository = (*fakeSubmitApprovalRepo)(nil)
 
-type fakeSubmitRiskRepo struct{ risk *entity.Risk }
+type fakeSubmitRiskRepo struct {
+	risk              *entity.Risk
+	updatedRiskStatus string
+	updateCount       int
+	activatedRiskID   uuid.UUID
+	activateCount     int
+}
 
 func (r *fakeSubmitRiskRepo) Create(context.Context, *entity.Risk) error {
 	return errors.New("not implemented")
@@ -73,7 +85,14 @@ func (r *fakeSubmitRiskRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UU
 	copyRisk := *r.risk
 	return &copyRisk, nil
 }
-func (r *fakeSubmitRiskRepo) Update(context.Context, *entity.Risk) error { return nil }
+func (r *fakeSubmitRiskRepo) Update(_ context.Context, risk *entity.Risk) error {
+	r.updatedRiskStatus = risk.Status
+	r.updateCount++
+	if r.risk != nil {
+		r.risk.Status = risk.Status
+	}
+	return nil
+}
 func (r *fakeSubmitRiskRepo) Delete(context.Context, uuid.UUID) error {
 	return errors.New("not implemented")
 }
@@ -108,7 +127,12 @@ func (r *fakeSubmitRiskRepo) ListCycleSnapshot(context.Context, string, []uuid.U
 	return nil, errors.New("not implemented")
 }
 func (r *fakeSubmitRiskRepo) ActivateApprovedVersion(context.Context, uuid.UUID) error {
-	return errors.New("not implemented")
+	r.activateCount++
+	r.activatedRiskID = r.risk.ID
+	if r.risk != nil {
+		r.risk.Status = entity.RiskStatusApproved
+	}
+	return nil
 }
 func (r *fakeSubmitRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string, string, int, int) ([]*entity.RiskReviewQueueItem, int, error) {
 	return nil, 0, errors.New("not implemented")
@@ -189,7 +213,7 @@ func (r *fakeSubmitIncidentRepo) Delete(context.Context, string) error {
 func (r *fakeSubmitIncidentRepo) List(context.Context, []uuid.UUID) ([]*entity.Incident, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitIncidentRepo) GetSummary(context.Context, []uuid.UUID) (map[string]interface{}, error) {
+func (r *fakeSubmitIncidentRepo) GetSummary(context.Context, []uuid.UUID) (map[string]any, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -203,7 +227,7 @@ func TestSubmitApprovalUseCase_UnitSubmissionTargetsReviewer(t *testing.T) {
 	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo)
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, true)
 	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType: "risk",
 		EntityID:    riskID.String(),
@@ -236,8 +260,8 @@ func TestSubmitApprovalUseCase_SubmitDraftRisk_UpdatesStatusToInReview(t *testin
 	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo)
-	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, true)
+	output, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType: "risk",
 		EntityID:    riskID.String(),
 		RequestedBy: requestedBy.String(),
@@ -246,6 +270,109 @@ func TestSubmitApprovalUseCase_SubmitDraftRisk_UpdatesStatusToInReview(t *testin
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+	if output == nil {
+		t.Fatal("expected output")
+	}
+	if output.Status != "pending" {
+		t.Fatalf("expected output status %q, got %q", "pending", output.Status)
+	}
+	if riskRepo.updatedRiskStatus != entity.RiskStatusInReview {
+		t.Fatalf("expected risk status %q, got %q", entity.RiskStatusInReview, riskRepo.updatedRiskStatus)
+	}
+	if approvalRepo.createdCount != 1 {
+		t.Fatalf("expected 1 approval request creation, got %d", approvalRepo.createdCount)
+	}
+	if approvalRepo.createStepsCount != 1 {
+		t.Fatalf("expected 1 approval step creation, got %d", approvalRepo.createStepsCount)
+	}
+	if len(approvalRepo.histories) != 1 {
+		t.Fatalf("expected 1 history entry, got %d", len(approvalRepo.histories))
+	}
+}
+
+func TestSubmitApprovalUseCase_DisabledRiskSubmission_AutoApprovesWithoutApprovalRows(t *testing.T) {
+	approvalRepo := &fakeSubmitApprovalRepo{}
+	riskID := uuid.New()
+	requestedBy := uuid.New()
+	approverID := uuid.New()
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
+	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
+
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, false)
+	output, err := uc.Execute(context.Background(), SubmitApprovalInput{
+		RequestType: "risk",
+		EntityID:    riskID.String(),
+		RequestedBy: requestedBy.String(),
+		Role:        "unit",
+		ApproverIDs: []string{approverID.String()},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if output == nil {
+		t.Fatal("expected output")
+	}
+	if output.Status != entity.RiskStatusApproved {
+		t.Fatalf("expected output status %q, got %q", entity.RiskStatusApproved, output.Status)
+	}
+	if riskRepo.updatedRiskStatus != entity.RiskStatusApproved {
+		t.Fatalf("expected risk status %q, got %q", entity.RiskStatusApproved, riskRepo.updatedRiskStatus)
+	}
+	if approvalRepo.createdCount != 0 {
+		t.Fatalf("expected no approval request creation, got %d", approvalRepo.createdCount)
+	}
+	if approvalRepo.createStepsCount != 0 {
+		t.Fatalf("expected no approval step creation, got %d", approvalRepo.createStepsCount)
+	}
+	if len(approvalRepo.histories) != 0 {
+		t.Fatalf("expected no history entries, got %d", len(approvalRepo.histories))
+	}
+}
+
+func TestSubmitApprovalUseCase_DisabledAssessmentSubmission_AutoApprovesWithoutApprovalRows(t *testing.T) {
+	approvalRepo := &fakeSubmitApprovalRepo{}
+	riskID := uuid.New()
+	requestedBy := uuid.New()
+	approverID := uuid.New()
+	previousRiskID := uuid.New()
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, PreviousRiskID: &previousRiskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
+	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
+
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, false)
+	output, err := uc.Execute(context.Background(), SubmitApprovalInput{
+		RequestType: "assessment",
+		EntityID:    riskID.String(),
+		RequestedBy: requestedBy.String(),
+		Role:        "unit",
+		ApproverIDs: []string{approverID.String()},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if output == nil {
+		t.Fatal("expected output")
+	}
+	if output.Status != entity.RiskStatusApproved {
+		t.Fatalf("expected output status %q, got %q", entity.RiskStatusApproved, output.Status)
+	}
+	if riskRepo.activateCount != 1 {
+		t.Fatalf("expected ActivateApprovedVersion to be called once, got %d", riskRepo.activateCount)
+	}
+	if riskRepo.activatedRiskID != riskID {
+		t.Fatalf("expected ActivateApprovedVersion risk %s, got %s", riskID, riskRepo.activatedRiskID)
+	}
+	if riskRepo.updateCount != 0 {
+		t.Fatalf("expected no direct risk update, got %d", riskRepo.updateCount)
+	}
+	if approvalRepo.createdCount != 0 {
+		t.Fatalf("expected no approval request creation, got %d", approvalRepo.createdCount)
+	}
+	if approvalRepo.createStepsCount != 0 {
+		t.Fatalf("expected no approval step creation, got %d", approvalRepo.createStepsCount)
+	}
+	if len(approvalRepo.histories) != 0 {
+		t.Fatalf("expected no history entries, got %d", len(approvalRepo.histories))
 	}
 }
 
@@ -261,7 +388,7 @@ func TestSubmitApprovalUseCase_ReviewSubmission_CreatesReviewStepType(t *testing
 		pimpinanID: {ID: pimpinanID, Name: "Hendra", Role: "pimpinan"},
 	}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo)
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, true)
 	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType:    "risk",
 		EntityID:       riskID.String(),
@@ -294,7 +421,7 @@ func TestSubmitApprovalUseCase_ApprovalOnlySubmission_CreatesApprovalStepTypes(t
 		pimpinanID: {ID: pimpinanID, Name: "Hendra", Role: "pimpinan"},
 	}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo)
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, true)
 	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType:    "risk",
 		EntityID:       riskID.String(),
@@ -324,7 +451,7 @@ func TestSubmitApprovalUseCase_EmptySubmissionType_DefaultsToApproval(t *testing
 		reviewerID: {ID: reviewerID, Name: "Farah", Role: "reviewer"},
 	}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo)
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, true)
 	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType:    "risk",
 		EntityID:       riskID.String(),
