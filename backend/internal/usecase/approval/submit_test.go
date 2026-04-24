@@ -71,6 +71,8 @@ type fakeSubmitRiskRepo struct {
 	risk              *entity.Risk
 	updatedRiskStatus string
 	updateCount       int
+	activatedRiskID   uuid.UUID
+	activateCount     int
 }
 
 func (r *fakeSubmitRiskRepo) Create(context.Context, *entity.Risk) error {
@@ -125,7 +127,12 @@ func (r *fakeSubmitRiskRepo) ListCycleSnapshot(context.Context, string, []uuid.U
 	return nil, errors.New("not implemented")
 }
 func (r *fakeSubmitRiskRepo) ActivateApprovedVersion(context.Context, uuid.UUID) error {
-	return errors.New("not implemented")
+	r.activateCount++
+	r.activatedRiskID = r.risk.ID
+	if r.risk != nil {
+		r.risk.Status = entity.RiskStatusApproved
+	}
+	return nil
 }
 func (r *fakeSubmitRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string, string, int, int) ([]*entity.RiskReviewQueueItem, int, error) {
 	return nil, 0, errors.New("not implemented")
@@ -328,7 +335,8 @@ func TestSubmitApprovalUseCase_DisabledAssessmentSubmission_AutoApprovesWithoutA
 	riskID := uuid.New()
 	requestedBy := uuid.New()
 	approverID := uuid.New()
-	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
+	previousRiskID := uuid.New()
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, PreviousRiskID: &previousRiskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
 
 	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, false)
@@ -348,8 +356,14 @@ func TestSubmitApprovalUseCase_DisabledAssessmentSubmission_AutoApprovesWithoutA
 	if output.Status != entity.RiskStatusApproved {
 		t.Fatalf("expected output status %q, got %q", entity.RiskStatusApproved, output.Status)
 	}
-	if riskRepo.updatedRiskStatus != entity.RiskStatusApproved {
-		t.Fatalf("expected risk status %q, got %q", entity.RiskStatusApproved, riskRepo.updatedRiskStatus)
+	if riskRepo.activateCount != 1 {
+		t.Fatalf("expected ActivateApprovedVersion to be called once, got %d", riskRepo.activateCount)
+	}
+	if riskRepo.activatedRiskID != riskID {
+		t.Fatalf("expected ActivateApprovedVersion risk %s, got %s", riskID, riskRepo.activatedRiskID)
+	}
+	if riskRepo.updateCount != 0 {
+		t.Fatalf("expected no direct risk update, got %d", riskRepo.updateCount)
 	}
 	if approvalRepo.createdCount != 0 {
 		t.Fatalf("expected no approval request creation, got %d", approvalRepo.createdCount)

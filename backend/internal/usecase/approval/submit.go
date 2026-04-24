@@ -100,6 +100,16 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 		if err != nil {
 			return nil, domainerrors.ErrRiskNotFound
 		}
+		if input.RequestType == "assessment" {
+			if err := uc.riskRepo.ActivateApprovedVersion(ctx, entityID); err != nil {
+				return nil, domainerrors.Wrap(err, "failed to activate approved assessment version")
+			}
+
+			return &SubmitApprovalOutput{
+				Status:  entity.RiskStatusApproved,
+				Message: "successfully approved",
+			}, nil
+		}
 		risk.Status = entity.RiskStatusApproved
 		if err := uc.riskRepo.Update(ctx, risk); err != nil {
 			return nil, domainerrors.Wrap(err, "failed to update risk status")

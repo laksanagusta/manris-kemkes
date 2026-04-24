@@ -65,6 +65,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { getHeatmapCellClass } from "@/lib/heatmap-utils";
+import { getVisibleRiskReviewItems } from "@/lib/risk-review-panel";
 import { MultiPhaseHeatmapCompareCard } from "./multi-phase-heatmap-compare";
 
 type OrganizationOption = OrganizationListItem;
@@ -145,7 +146,9 @@ export function RiskReviewPanel() {
   const [summaryData, setSummaryData] = useState<RiskReviewSummary | null>(
     null,
   );
-  const [previousHeatmapData, setPreviousHeatmapData] = useState<number[][]>([]);
+  const [previousHeatmapData, setPreviousHeatmapData] = useState<number[][]>(
+    [],
+  );
   const [currentHeatmapData, setCurrentHeatmapData] = useState<number[][]>([]);
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -339,7 +342,7 @@ export function RiskReviewPanel() {
   }, [items]);
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) => item.reviewStatus !== "approved");
+    return getVisibleRiskReviewItems(items);
   }, [items]);
 
   const movementSummary = useMemo(() => {
@@ -419,12 +422,12 @@ export function RiskReviewPanel() {
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle className="text-base font-semibold text-foreground">
-              Risk Review Queue
+              Peninjauan Risiko
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
               Cycle aktif {cycle}. Item baru mengikuti mode approval backend
-              yang aktif; pending approval hanya ditampilkan untuk tracking
-              item legacy.
+              yang aktif; pending approval hanya ditampilkan untuk tracking item
+              legacy.
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Entry point reassessment ada di tombol{" "}
@@ -488,9 +491,13 @@ export function RiskReviewPanel() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
+                    <TableHead className="w-24 whitespace-nowrap">
+                      Kode
+                    </TableHead>
                     <TableHead className="whitespace-nowrap">Risiko</TableHead>
-                    <TableHead className="w-32 whitespace-nowrap">Unit</TableHead>
+                    <TableHead className="w-32 whitespace-nowrap">
+                      Unit
+                    </TableHead>
                     <TableHead className="w-28 text-center whitespace-nowrap">
                       Score
                     </TableHead>
@@ -510,8 +517,12 @@ export function RiskReviewPanel() {
                     <TableRow>
                       <TableCell colSpan={7} className="h-24">
                         <div className="flex flex-col gap-1 text-left">
-                          <p className="text-sm font-medium text-muted-foreground">Belum ada risiko untuk filter ini</p>
-                          <p className="text-xs text-muted-foreground/70">Ubah filter pencarian Anda untuk melihat data</p>
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Belum ada risiko untuk filter ini
+                          </p>
+                          <p className="text-xs text-muted-foreground/70">
+                            Ubah filter pencarian Anda untuk melihat data
+                          </p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -565,7 +576,10 @@ export function RiskReviewPanel() {
                           <TableCell>
                             <Badge
                               variant="outline"
-                              className={cn("border font-normal", meta.className)}
+                              className={cn(
+                                "border font-normal",
+                                meta.className,
+                              )}
                             >
                               {meta.label}
                             </Badge>
@@ -742,8 +756,12 @@ export function RiskReviewPanel() {
                       <TableRow>
                         <TableCell colSpan={6} className="h-24">
                           <div className="flex flex-col gap-1 text-left">
-                            <p className="text-sm font-medium text-muted-foreground">Belum ada data unit completion untuk cycle ini</p>
-                            <p className="text-xs text-muted-foreground/70">Tunggu sampai ada unit completion yang disubmit</p>
+                            <p className="text-sm font-medium text-muted-foreground">
+                              Belum ada data unit completion untuk cycle ini
+                            </p>
+                            <p className="text-xs text-muted-foreground/70">
+                              Tunggu sampai ada unit completion yang disubmit
+                            </p>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -829,7 +847,9 @@ export function RiskReviewPanel() {
                               ),
                             )}
                           >
-                            {heatmapMode === "riskLevel" && count === 0 ? "" : count}
+                            {heatmapMode === "riskLevel" && count === 0
+                              ? ""
+                              : count}
                           </div>
                         )),
                       )}
@@ -923,10 +943,12 @@ export function RiskReviewPanel() {
                     <TableCell colSpan={8} className="h-24">
                       <div className="flex flex-col gap-1 text-left">
                         <p className="text-sm font-medium text-muted-foreground">
-                          Belum ada pasangan data approved antara {previousCycle} dan {cycle}
+                          Belum ada pasangan data approved antara{" "}
+                          {previousCycle} dan {cycle}
                         </p>
                         <p className="text-xs text-muted-foreground/70">
-                          Data perbandingan akan muncul setelah ada risiko yang disetujui di kedua cycle
+                          Data perbandingan akan muncul setelah ada risiko yang
+                          disetujui di kedua cycle
                         </p>
                       </div>
                     </TableCell>
