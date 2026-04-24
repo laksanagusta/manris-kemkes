@@ -11,10 +11,11 @@ import (
 
 // SubmitApprovalUseCase handles submitting entities for approval
 type SubmitApprovalUseCase struct {
-	approvalRepo repository.ApprovalRepository
-	riskRepo     repository.RiskRepository
-	incidentRepo repository.IncidentRepository
-	userRepo     repository.UserRepository
+	approvalRepo                repository.ApprovalRepository
+	riskRepo                    repository.RiskRepository
+	incidentRepo                repository.IncidentRepository
+	userRepo                    repository.UserRepository
+	riskApprovalWorkflowEnabled bool
 }
 
 // NewSubmitApprovalUseCase creates a new submit approval usecase
@@ -23,12 +24,14 @@ func NewSubmitApprovalUseCase(
 	riskRepo repository.RiskRepository,
 	incidentRepo repository.IncidentRepository,
 	userRepo repository.UserRepository,
+	riskApprovalWorkflowEnabled bool,
 ) *SubmitApprovalUseCase {
 	return &SubmitApprovalUseCase{
-		approvalRepo: approvalRepo,
-		riskRepo:     riskRepo,
-		incidentRepo: incidentRepo,
-		userRepo:     userRepo,
+		approvalRepo:                approvalRepo,
+		riskRepo:                    riskRepo,
+		incidentRepo:                incidentRepo,
+		userRepo:                    userRepo,
+		riskApprovalWorkflowEnabled: riskApprovalWorkflowEnabled,
 	}
 }
 
@@ -71,7 +74,7 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 		return nil, domainerrors.ErrInvalidRequestType
 	}
 
-	if (input.RequestType == "risk" || input.RequestType == "assessment") && len(input.ApproverIDs) == 0 {
+	if (input.RequestType == "risk" || input.RequestType == "assessment") && uc.riskApprovalWorkflowEnabled && len(input.ApproverIDs) == 0 {
 		return nil, domainerrors.ErrInvalidInput
 	}
 
@@ -90,6 +93,22 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 	existingReq, _ := uc.approvalRepo.FindByEntity(ctx, input.RequestType, entityID, input.OrgIDs)
 	if existingReq != nil && existingReq.IsPending() {
 		return nil, domainerrors.ErrAlreadyPending
+	}
+
+	if (input.RequestType == "risk" || input.RequestType == "assessment") && !uc.riskApprovalWorkflowEnabled {
+		risk, err := uc.riskRepo.GetByID(ctx, entityID, input.OrgIDs)
+		if err != nil {
+			return nil, domainerrors.ErrRiskNotFound
+		}
+		risk.Status = entity.RiskStatusApproved
+		if err := uc.riskRepo.Update(ctx, risk); err != nil {
+			return nil, domainerrors.Wrap(err, "failed to update risk status")
+		}
+
+		return &SubmitApprovalOutput{
+			Status:  entity.RiskStatusApproved,
+			Message: "successfully approved",
+		}, nil
 	}
 
 	if input.RequestType == "risk" || input.RequestType == "assessment" {
@@ -194,7 +213,7 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 }
 
 // validateRisk validates if risk can be submitted for approval
-func (uc *SubmitApprovalUseCase) validateRisk(ctx context.Context, riskID uuid.UUID, userID uuid.UUID, userRole string, orgIDs []uuid.UUID) error {
+func (uc *SubmitApprovalUseCase) validateRisk(ctx context.Context, riskID uuid.UUID, _ uuid.UUID, _ string, orgIDs []uuid.UUID) error {
 	_, err := uc.riskRepo.GetByID(ctx, riskID, orgIDs)
 	if err != nil {
 		return domainerrors.ErrRiskNotFound

@@ -10,12 +10,13 @@ import (
 
 // Config holds the application configuration loaded from environment variables.
 type Config struct {
-	Port        string
-	DatabaseURL string
-	JWTSecret   string
-	JWTExpiry   int // hours
-	CORSOrigins string
-	OpenAIKey   string
+	Port                        string
+	DatabaseURL                 string
+	JWTSecret                   string
+	JWTExpiry                   int // hours
+	CORSOrigins                 string
+	OpenAIKey                   string
+	RiskApprovalWorkflowEnabled bool
 }
 
 // DefaultAIModels returns fallback AI model configuration when database is unavailable
@@ -49,12 +50,13 @@ func Load() *Config {
 	expiry, _ := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", "24"))
 
 	return &Config{
-		Port:        getEnv("PORT", "8080"),
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/manris?sslmode=disable"),
-		JWTSecret:   getEnv("JWT_SECRET", "change-me"),
-		JWTExpiry:   expiry,
-		CORSOrigins: getEnv("CORS_ORIGINS", "http://localhost:3000"),
-		OpenAIKey:   getEnv("OPENAI_API_KEY", ""),
+		Port:                        getEnv("PORT", "8080"),
+		DatabaseURL:                 getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/manris?sslmode=disable"),
+		JWTSecret:                   getEnv("JWT_SECRET", "change-me"),
+		JWTExpiry:                   expiry,
+		CORSOrigins:                 getEnv("CORS_ORIGINS", "http://localhost:3000"),
+		OpenAIKey:                   getEnv("OPENAI_API_KEY", ""),
+		RiskApprovalWorkflowEnabled: getEnvBool("RISK_APPROVAL_WORKFLOW_ENABLED", true),
 	}
 }
 
@@ -63,4 +65,18 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+
+	parsed, err := strconv.ParseBool(v)
+	if err != nil {
+		return fallback
+	}
+
+	return parsed
 }

@@ -15,17 +15,20 @@ type GetCurrentUserInput struct {
 }
 
 type GetCurrentUserUseCase struct {
-	userRepo     repository.UserRepository
-	hierarchySvc *service.OrganizationHierarchy
+	userRepo                    repository.UserRepository
+	hierarchySvc                *service.OrganizationHierarchy
+	riskApprovalWorkflowEnabled bool
 }
 
 func NewGetCurrentUserUseCase(
 	userRepo repository.UserRepository,
 	hierarchySvc *service.OrganizationHierarchy,
+	riskApprovalWorkflowEnabled bool,
 ) *GetCurrentUserUseCase {
 	return &GetCurrentUserUseCase{
-		userRepo:     userRepo,
-		hierarchySvc: hierarchySvc,
+		userRepo:                    userRepo,
+		hierarchySvc:                hierarchySvc,
+		riskApprovalWorkflowEnabled: riskApprovalWorkflowEnabled,
 	}
 }
 
@@ -44,24 +47,5 @@ func (uc *GetCurrentUserUseCase) Execute(ctx context.Context, input GetCurrentUs
 		return nil, err
 	}
 
-	userProfile := &entity.UserProfile{
-		ID:                 user.ID,
-		Username:           user.Username,
-		Name:               user.Name,
-		Email:              user.Email,
-		Role:               user.Role,
-		OrganizationID:     user.OrganizationID,
-		OrgName:            user.OrgName,
-		AccessibleOrgIDs:   scope.AccessibleOrgIDs,
-		IsGlobal:           scope.IsGlobal,
-		Status:             user.Status,
-		NIP:                user.NIP,
-		Jabatan:            user.Jabatan,
-		Pangkat:            user.Pangkat,
-		MustChangePassword: user.MustChangePassword,
-		CreatedAt:          user.CreatedAt,
-		UpdatedAt:          user.UpdatedAt,
-	}
-
-	return userProfile, nil
+	return buildUserProfile(user, scope, uc.riskApprovalWorkflowEnabled), nil
 }

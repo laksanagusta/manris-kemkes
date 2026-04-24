@@ -24,8 +24,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  canActivateApprovalPanel,
-  canActivateReviewerPanel,
+  shouldRenderReviewSidePanelWorkflow,
   type ReviewWorkflowStage,
 } from "@/lib/review-side-panel-access";
 import {
@@ -56,6 +55,7 @@ interface ReviewSidePanelProps {
   userRole: string;
   inherentScore?: number;
   token?: string;
+  allowStatusFallbackWorkflowStage?: boolean;
   onActionComplete?: () => void;
   onNavigateToLog?: () => void;
 }
@@ -68,6 +68,7 @@ export function ReviewSidePanel({
   userRole,
   inherentScore,
   token,
+  allowStatusFallbackWorkflowStage = true,
   onActionComplete,
   onNavigateToLog,
 }: ReviewSidePanelProps) {
@@ -83,7 +84,12 @@ export function ReviewSidePanel({
   const currentApproverUserId = approvalWorkflow?.currentApproverUserId ?? null;
   const steps = approvalWorkflow?.steps ?? [];
 
-  const hasApproval = Boolean(approvalId);
+  const shouldRenderWorkflow = shouldRenderReviewSidePanelWorkflow({
+    approvalId,
+    approvalWorkflow,
+    riskStatus,
+    allowStatusFallbackWorkflowStage,
+  });
   const isSubmitting = submittingStage !== null;
   const isApproved = riskStatus === "approved";
   const workflowStage: WorkflowStage = (() => {
@@ -108,23 +114,17 @@ export function ReviewSidePanel({
       if (activeStep?.stepType === "approval") return "approval";
     }
 
-    if (riskStatus === "assessment_in_review") return "review";
+    if (
+      allowStatusFallbackWorkflowStage &&
+      riskStatus === "assessment_in_review"
+    ) {
+      return "review";
+    }
 
     return "unknown";
   })();
 
-  const reviewerIsActive = canActivateReviewerPanel({
-    workflowStage,
-    currentApproverUserId,
-    currentUserId,
-  });
-  const approvalIsActive = canActivateApprovalPanel({
-    workflowStage,
-    currentApproverUserId,
-    currentUserId,
-  });
-
-  if (!hasApproval) {
+  if (!shouldRenderWorkflow) {
     return null;
   }
 

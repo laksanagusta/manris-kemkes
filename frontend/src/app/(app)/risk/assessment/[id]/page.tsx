@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
@@ -70,6 +70,7 @@ import {
   moveApprovalLineRows,
   type ApprovalLineRow,
 } from "@/lib/risk-approval-line";
+import { getRiskApprovalCapabilityBehavior } from "@/lib/risk-approval-capability";
 import { ProfilRisikoCard } from "../components/profil-risiko-card";
 import { type AssessmentFormValues } from "../components/hasil-pemantauan-card";
 import { SimpulanCard } from "../components/simpulan-card";
@@ -138,6 +139,10 @@ export default function AssessmentFormPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { token, user } = useAuth();
+  const riskApprovalCapabilityBehavior = useMemo(
+    () => getRiskApprovalCapabilityBehavior(user?.capabilities),
+    [user?.capabilities],
+  );
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -173,6 +178,9 @@ export default function AssessmentFormPage() {
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
     selectedApprovalLine.length > 0 && approvalLine.every((member) => member.id);
+  const submitActionLabel = riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+    ? "Finalisasi pemantauan"
+    : "Ajukan review";
 
   const toUserPickerOption = useCallback(
     (user: {
@@ -335,18 +343,24 @@ export default function AssessmentFormPage() {
   }, []);
 
   const openSubmitReviewConfirm = () => {
-    const approverIds = dedupeApproverIds([
-      reviewerId,
-      ...selectedApprovalLine.map((member) => member.id),
-    ]);
-    if (approverIds.length === 0) {
-      toast.error("Pilih reviewer dan susun approval line terlebih dahulu.");
+    submitTarget.current = "review";
+
+    if (
+      riskApprovalCapabilityBehavior.requiresReviewerSelection &&
+      !reviewerId
+    ) {
+      toast.error("Pilih reviewer terlebih dahulu.");
       return;
     }
-    if (!isApprovalLineReady) {
+
+    if (
+      riskApprovalCapabilityBehavior.requiresApprovalLineSelection &&
+      !isApprovalLineReady
+    ) {
       toast.error("Lengkapi setiap baris approver atau hapus baris yang masih kosong.");
       return;
     }
+
     setShowSubmitReviewConfirm(true);
   };
 
@@ -513,12 +527,39 @@ export default function AssessmentFormPage() {
     try {
       const newWeight = getBobot(values.probability, values.impact);
       const newNilai = calculateNilai(values.probability, values.impact, newWeight);
+      const isDraftSubmission = submitTarget.current === "draft";
+      const submissionStatus =
+        isDraftSubmission || riskApprovalCapabilityBehavior.submitsForApproval
+          ? draftRisk.status
+          : "approved";
+      const draftApprovalLinePayload =
+        riskApprovalCapabilityBehavior.showsApprovalLineEditor
+          ? [
+              ...(reviewerId
+                ? [
+                    {
+                      id: reviewerId,
+                      name: reviewerOption?.name || "Reviewer",
+                      type: "review" as const,
+                    },
+                  ]
+                : []),
+              ...selectedApprovalLine
+                .filter((member) => member.id && member.id !== reviewerId)
+                .map((member) => ({
+                  id: member.id,
+                  name: member.name,
+                  type: "approval" as const,
+                })),
+            ]
+          : [];
+
       // Merge assessment fields with existing risk data so backend validation passes
       const payload = {
         title: draftRisk.title,
         description: draftRisk.description,
         category: draftRisk.category,
-        status: draftRisk.status,
+        status: submissionStatus,
         unitId: draftRisk.unitId,
         organizationId: getRiskOrganizationId(draftRisk),
         cause: draftRisk.cause || [],
@@ -544,29 +585,15 @@ export default function AssessmentFormPage() {
         reviewType: draftRisk.reviewType || "assessment",
         changeReason: values.changeReason,
         reviewSummary: values.reviewSummary,
-        draftApprovalLine: [
-          ...(reviewerId
-            ? [
-                {
-                  id: reviewerId,
-                  name: reviewerOption?.name || "Reviewer",
-                  type: "review" as const,
-                },
-              ]
-            : []),
-          ...selectedApprovalLine
-            .filter((member) => member.id && member.id !== reviewerId)
-            .map((member) => ({
-              id: member.id,
-              name: member.name,
-              type: "approval" as const,
-            })),
-        ],
+        draftApprovalLine: draftApprovalLinePayload,
       };
 
       await updateRiskAssessment(token, id, payload);
 
-      if (submitTarget.current === "review") {
+      if (
+        submitTarget.current === "review" &&
+        riskApprovalCapabilityBehavior.submitsForApproval
+      ) {
         const approverIds = dedupeApproverIds([
           reviewerId,
           ...selectedApprovalLine.map((member) => member.id),
@@ -590,6 +617,9 @@ export default function AssessmentFormPage() {
           toast.error(`Pemantauan disimpan, namun gagal diajukan: ${(approvalErr as Error).message}`);
           router.push("/risk/assessment");
         }
+      } else if (submitTarget.current === "review") {
+        toast.success("Pemantauan berhasil disimpan dan langsung disetujui!");
+        router.push("/risk/assessment");
       } else {
         toast.success("Pemantauan risiko berhasil disimpan");
         router.push("/risk/assessment");
@@ -629,6 +659,9 @@ export default function AssessmentFormPage() {
   const isAssessmentLocked =
     draftRisk.status === "assessment_in_review" ||
     draftRisk.status === "approved";
+  const defaultAccordionSections = riskApprovalCapabilityBehavior.showsApprovalLineEditor
+    ? ["hasil-pemantauan", "approval-line"]
+    : ["hasil-pemantauan"];
 
   return (
     <div className="space-y-6 animate-fade-in pb-20">
@@ -798,10 +831,10 @@ export default function AssessmentFormPage() {
                   ) : (
                     <Send className="size-4" />
                   )}{" "}
-                  Ajukan review
-                </Button>
-              </div>
-            )}
+                  {submitActionLabel}
+                 </Button>
+               </div>
+             )}
           </TooltipProvider>
           </div>
         }
@@ -818,7 +851,7 @@ export default function AssessmentFormPage() {
           
           <Accordion
             type="multiple"
-            defaultValue={["hasil-pemantauan", "approval-line"]}
+            defaultValue={defaultAccordionSections}
             className="space-y-4"
           >
             <AccordionItem
@@ -1002,7 +1035,8 @@ export default function AssessmentFormPage() {
             </AccordionItem>
 
             {/* Accordion Approval Line */}
-            {(!id || draftRisk.status === "assessment_draft") && (
+            {riskApprovalCapabilityBehavior.showsApprovalLineEditor &&
+              (!id || draftRisk.status === "assessment_draft") && (
               <AccordionItem
                 value="approval-line"
                 id="approval-line"
@@ -1123,6 +1157,9 @@ export default function AssessmentFormPage() {
               userRole={user?.role || ""}
               inherentScore={Math.round(computedNilai)}
               token={token || undefined}
+              allowStatusFallbackWorkflowStage={
+                riskApprovalCapabilityBehavior.riskApprovalWorkflowEnabled
+              }
               onActionComplete={loadRiskData}
               onNavigateToLog={() => router.push(`/risk/register/${sourceRisk.id}`)}
             />
@@ -1133,31 +1170,39 @@ export default function AssessmentFormPage() {
         open={showSubmitReviewConfirm}
         onOpenChange={setShowSubmitReviewConfirm}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ajukan Pemantauan untuk Review?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Pemantauan akan disimpan lalu dikirim ke reviewer dan approval line
-              yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum
-              melanjutkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
-            <div>
-              <span className="font-medium text-foreground">Reviewer: </span>
-              <span className="text-muted-foreground">
-                {reviewerOption?.name || "-"}
-              </span>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+                  ? "Finalisasi Pemantauan?"
+                  : "Ajukan Pemantauan untuk Review?"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+                  ? "Pemantauan akan disimpan dan langsung disetujui tanpa melalui reviewer atau approval line. Pastikan seluruh bagian sudah final sebelum melanjutkan."
+                  : "Pemantauan akan disimpan lalu dikirim ke reviewer dan approval line yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+              {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
+                <>
+                  <div>
+                    <span className="font-medium text-foreground">Reviewer: </span>
+                    <span className="text-muted-foreground">
+                      {reviewerOption?.name || "-"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">
+                      Approval line:{" "}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {selectedApprovalLine.length} orang
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
-            <div>
-              <span className="font-medium text-foreground">
-                Approval line:{" "}
-              </span>
-              <span className="text-muted-foreground">
-                {selectedApprovalLine.length} orang
-              </span>
-            </div>
-          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction

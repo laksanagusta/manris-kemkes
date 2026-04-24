@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -56,7 +57,7 @@ func TestUpdateProfileUseCase_UpdatesEditableFieldsOnly(t *testing.T) {
 		UpdatedAt:          time.Now(),
 	}}
 
-	uc := NewUpdateProfileUseCase(repo, service.NewOrganizationHierarchy(&stubOrgRepo{descendants: []uuid.UUID{orgID}}))
+	uc := NewUpdateProfileUseCase(repo, service.NewOrganizationHierarchy(&stubOrgRepo{descendants: []uuid.UUID{orgID}}), false)
 	profile, err := uc.Execute(context.Background(), UpdateProfileInput{
 		UserID:   userID,
 		Name:     "New Name",
@@ -86,5 +87,25 @@ func TestUpdateProfileUseCase_UpdatesEditableFieldsOnly(t *testing.T) {
 	}
 	if profile.OrgName != "Direktorat A" {
 		t.Fatalf("expected orgName to stay available, got %q", profile.OrgName)
+	}
+
+	serialized, err := json.Marshal(profile)
+	if err != nil {
+		t.Fatalf("marshal user profile: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(serialized, &payload); err != nil {
+		t.Fatalf("unmarshal user profile json: %v", err)
+	}
+	capabilities, ok := payload["capabilities"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected capabilities payload, got %#v", payload["capabilities"])
+	}
+	riskApprovalWorkflowEnabled, ok := capabilities["riskApprovalWorkflowEnabled"].(bool)
+	if !ok {
+		t.Fatalf("expected boolean riskApprovalWorkflowEnabled, got %#v", capabilities["riskApprovalWorkflowEnabled"])
+	}
+	if riskApprovalWorkflowEnabled {
+		t.Fatal("expected riskApprovalWorkflowEnabled to be false")
 	}
 }

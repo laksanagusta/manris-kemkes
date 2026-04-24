@@ -79,7 +79,7 @@ const reviewStatusMeta: Record<string, { label: string; className: string }> = {
     className: "bg-primary/15 text-primary border-primary/20",
   },
   pending_approval: {
-    label: "Pending Approval",
+    label: "Pending Approval (Legacy)",
     className: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
   },
   approved: {
@@ -391,7 +391,11 @@ export function RiskReviewPanel() {
         {[
           { label: "Due", value: summary.due, icon: CalendarClock },
           { label: "In Draft", value: summary.in_draft, icon: RefreshCcw },
-          { label: "Pending", value: summary.pending_approval, icon: Send },
+          {
+            label: "Pending (Legacy)",
+            value: summary.pending_approval,
+            icon: Send,
+          },
           { label: "Approved", value: summary.approved, icon: CheckCircle2 },
           { label: "Overdue", value: summary.overdue, icon: AlertCircle },
         ].map((metric) => (
@@ -418,8 +422,9 @@ export function RiskReviewPanel() {
               Risk Review Queue
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Cycle aktif {cycle}. Risiko yang belum approved diklasifikasikan
-              menjadi due, in draft, pending approval, atau overdue.
+              Cycle aktif {cycle}. Item baru mengikuti mode approval backend
+              yang aktif; pending approval hanya ditampilkan untuk tracking
+              item legacy.
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Entry point reassessment ada di tombol{" "}
@@ -466,7 +471,7 @@ export function RiskReviewPanel() {
                 <SelectItem value="due">Due</SelectItem>
                 <SelectItem value="in_draft">In Draft</SelectItem>
                 <SelectItem value="pending_approval">
-                  Pending Approval
+                  Pending Approval (Legacy)
                 </SelectItem>
                 <SelectItem value="overdue">Overdue</SelectItem>
               </SelectContent>
@@ -609,7 +614,7 @@ export function RiskReviewPanel() {
                                 <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 text-[11px] text-muted-foreground">
                                   <Clock3 className="size-3" />{" "}
                                   {item.reviewStatus === "pending_approval"
-                                    ? "Menunggu"
+                                    ? "Legacy"
                                     : "Berjalan"}
                                 </span>
                               ) : null}

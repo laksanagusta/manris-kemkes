@@ -16,10 +16,11 @@ type LoginInput struct {
 }
 
 type LoginUseCase struct {
-	userRepo     repository.UserRepository
-	hierarchySvc *service.OrganizationHierarchy
-	jwtSecret    string
-	jwtExpiry    int
+	userRepo                    repository.UserRepository
+	hierarchySvc                *service.OrganizationHierarchy
+	jwtSecret                   string
+	jwtExpiry                   int
+	riskApprovalWorkflowEnabled bool
 }
 
 func NewLoginUseCase(
@@ -27,12 +28,14 @@ func NewLoginUseCase(
 	hierarchySvc *service.OrganizationHierarchy,
 	jwtSecret string,
 	jwtExpiry int,
+	riskApprovalWorkflowEnabled bool,
 ) *LoginUseCase {
 	return &LoginUseCase{
-		userRepo:     userRepo,
-		hierarchySvc: hierarchySvc,
-		jwtSecret:    jwtSecret,
-		jwtExpiry:    jwtExpiry,
+		userRepo:                    userRepo,
+		hierarchySvc:                hierarchySvc,
+		jwtSecret:                   jwtSecret,
+		jwtExpiry:                   jwtExpiry,
+		riskApprovalWorkflowEnabled: riskApprovalWorkflowEnabled,
 	}
 }
 
@@ -67,7 +70,7 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*entity.
 		setupOnly = true
 	}
 
-	return buildAuthToken(ctx, uc.hierarchySvc, uc.jwtSecret, uc.jwtExpiry, user, sessionMode, setupOnly)
+	return buildAuthToken(ctx, uc.hierarchySvc, uc.jwtSecret, uc.jwtExpiry, uc.riskApprovalWorkflowEnabled, user, sessionMode, setupOnly)
 }
 
 func validateLoginInput(input LoginInput) error {

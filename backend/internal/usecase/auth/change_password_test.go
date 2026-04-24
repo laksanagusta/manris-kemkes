@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	stderrors "errors"
 	"testing"
 	"time"
@@ -86,7 +87,7 @@ func TestChangePasswordExecuteActivatesPendingUserAndReturnsFullSession(t *testi
 	}}
 
 	hierarchySvc := service.NewOrganizationHierarchy(&stubOrgRepo{})
-	changePasswordUC := NewChangePasswordUseCase(userRepo, hierarchySvc, "secret", 24)
+	changePasswordUC := NewChangePasswordUseCase(userRepo, hierarchySvc, "secret", 24, false)
 
 	result, err := changePasswordUC.Execute(context.Background(), ChangePasswordInput{
 		UserID:          userID,
@@ -130,6 +131,30 @@ func TestChangePasswordExecuteActivatesPendingUserAndReturnsFullSession(t *testi
 		t.Fatal("expected user mustChangePassword to be false after activation")
 	}
 
+	serialized, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("marshal auth token: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(serialized, &payload); err != nil {
+		t.Fatalf("unmarshal auth token json: %v", err)
+	}
+	userPayload, ok := payload["user"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected user payload map, got %#v", payload["user"])
+	}
+	capabilities, ok := userPayload["capabilities"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected nested capabilities payload, got %#v", userPayload["capabilities"])
+	}
+	riskApprovalWorkflowEnabled, ok := capabilities["riskApprovalWorkflowEnabled"].(bool)
+	if !ok {
+		t.Fatalf("expected boolean riskApprovalWorkflowEnabled, got %#v", capabilities["riskApprovalWorkflowEnabled"])
+	}
+	if riskApprovalWorkflowEnabled {
+		t.Fatal("expected riskApprovalWorkflowEnabled to be false")
+	}
+
 	claims := &middleware.JWTClaims{}
 	parsedToken, err := jwt.ParseWithClaims(result.Token, claims, func(token *jwt.Token) (any, error) {
 		return []byte("secret"), nil
@@ -144,7 +169,7 @@ func TestChangePasswordExecuteActivatesPendingUserAndReturnsFullSession(t *testi
 		t.Fatal("expected change-password response to issue full-session token")
 	}
 
-	profile, err := NewGetCurrentUserUseCase(userRepo, hierarchySvc).Execute(context.Background(), GetCurrentUserInput{UserID: userID})
+	profile, err := NewGetCurrentUserUseCase(userRepo, hierarchySvc, false).Execute(context.Background(), GetCurrentUserInput{UserID: userID})
 	if err != nil {
 		t.Fatalf("expected updated /auth/me profile, got %v", err)
 	}
@@ -153,6 +178,26 @@ func TestChangePasswordExecuteActivatesPendingUserAndReturnsFullSession(t *testi
 	}
 	if profile.MustChangePassword {
 		t.Fatal("expected /auth/me mustChangePassword to be false after activation")
+	}
+
+	serializedProfile, err := json.Marshal(profile)
+	if err != nil {
+		t.Fatalf("marshal user profile: %v", err)
+	}
+	var profilePayload map[string]any
+	if err := json.Unmarshal(serializedProfile, &profilePayload); err != nil {
+		t.Fatalf("unmarshal user profile json: %v", err)
+	}
+	profileCapabilities, ok := profilePayload["capabilities"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected profile capabilities payload, got %#v", profilePayload["capabilities"])
+	}
+	profileRiskApprovalWorkflowEnabled, ok := profileCapabilities["riskApprovalWorkflowEnabled"].(bool)
+	if !ok {
+		t.Fatalf("expected boolean profile riskApprovalWorkflowEnabled, got %#v", profileCapabilities["riskApprovalWorkflowEnabled"])
+	}
+	if profileRiskApprovalWorkflowEnabled {
+		t.Fatal("expected /auth/me riskApprovalWorkflowEnabled to be false")
 	}
 }
 
@@ -179,7 +224,7 @@ func TestChangePasswordExecuteInvalidatesOldTemporaryPassword(t *testing.T) {
 	}}
 
 	hierarchySvc := service.NewOrganizationHierarchy(&stubOrgRepo{})
-	changePasswordUC := NewChangePasswordUseCase(userRepo, hierarchySvc, "secret", 24)
+	changePasswordUC := NewChangePasswordUseCase(userRepo, hierarchySvc, "secret", 24, true)
 	if _, err := changePasswordUC.Execute(context.Background(), ChangePasswordInput{
 		UserID:          userID,
 		NewPassword:     newPassword,
@@ -188,7 +233,7 @@ func TestChangePasswordExecuteInvalidatesOldTemporaryPassword(t *testing.T) {
 		t.Fatalf("expected no error changing password, got %v", err)
 	}
 
-	loginUC := NewLoginUseCase(userRepo, hierarchySvc, "secret", 24)
+	loginUC := NewLoginUseCase(userRepo, hierarchySvc, "secret", 24, true)
 	if _, err := loginUC.Execute(context.Background(), LoginInput{
 		Username: "pending-user",
 		Password: temporaryPassword,
@@ -222,7 +267,7 @@ func TestChangePasswordExecuteRejectsMismatchedConfirmation(t *testing.T) {
 		MustChangePassword: true,
 	}}
 
-	changePasswordUC := NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24)
+	changePasswordUC := NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24, true)
 
 	_, err := changePasswordUC.Execute(context.Background(), ChangePasswordInput{
 		UserID:          userRepo.user.ID,
@@ -265,7 +310,7 @@ func TestChangePasswordExecuteAllowsActiveUserWithCurrentPassword(t *testing.T) 
 	}}
 
 	hierarchySvc := service.NewOrganizationHierarchy(&stubOrgRepo{})
-	changePasswordUC := NewChangePasswordUseCase(userRepo, hierarchySvc, "secret", 24)
+	changePasswordUC := NewChangePasswordUseCase(userRepo, hierarchySvc, "secret", 24, true)
 
 	result, err := changePasswordUC.Execute(context.Background(), ChangePasswordInput{
 		UserID:          userID,
@@ -299,7 +344,7 @@ func TestChangePasswordExecuteRejectsActiveUserWithoutCurrentPassword(t *testing
 		PasswordHash:       "hashed",
 	}}
 
-	changePasswordUC := NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24)
+	changePasswordUC := NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24, true)
 
 	_, err := changePasswordUC.Execute(context.Background(), ChangePasswordInput{
 		UserID:          userRepo.user.ID,
