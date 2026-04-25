@@ -123,7 +123,7 @@ func ToUpdateRiskInput(args map[string]any, sess *session.Session) (risk.UpdateR
 	input.Impact = getIntField(args, "impact")
 	input.Weight = getFloatField(args, "weight")
 	input.Nilai = getIntField(args, "nilai")
-	input.InherentScore = getIntField(args, "inheritScore")
+	input.InherentScore = getIntField(args, "inherentScore")
 
 	input.RiskPriority = getIntField(args, "riskPriority")
 	input.RiskAppetite = getStringField(args, "riskAppetite")

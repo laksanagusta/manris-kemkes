@@ -2,14 +2,20 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/mcp/mapping"
 	"github.com/manris/backend/internal/mcp/session"
 	approvaluc "github.com/manris/backend/internal/usecase/approval"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
+
+// ErrMonitoringNotDraft is returned when the monitoring draft update target
+// is not in the assessment_draft status.
+var ErrMonitoringNotDraft = errors.New("can only update monitoring drafts in assessment_draft status")
 
 type RiskReassessmentUseCaseI interface {
 	Execute(ctx context.Context, input riskuc.CreateRiskReassessmentInput) (*riskuc.CreateRiskReassessmentOutput, error)
@@ -88,7 +94,7 @@ func HandleMonitorAndApproveRisk(ctx context.Context, reassessmentUC RiskReasses
 	}, nil
 }
 
-func HandleUpdateMonitoringDraft(ctx context.Context, updateUC RiskUpdateUseCaseI, sess *session.Session, args map[string]any) (map[string]interface{}, error) {
+func HandleUpdateMonitoringDraft(ctx context.Context, updateUC RiskUpdateUseCaseI, getUC RiskGetUseCaseI, sess *session.Session, args map[string]any) (map[string]interface{}, error) {
 	if sess == nil {
 		return nil, ErrNotAuthenticated
 	}
@@ -96,6 +102,14 @@ func HandleUpdateMonitoringDraft(ctx context.Context, updateUC RiskUpdateUseCase
 	updateInput, err := mapping.ToUpdateRiskInput(args, sess)
 	if err != nil {
 		return nil, fmt.Errorf("invalid update input: %w", err)
+	}
+
+	current, err := getUC.Execute(ctx, updateInput.ID, sess.AccessibleOrgIDs)
+	if err != nil {
+		return nil, err
+	}
+	if current.Status != entity.RiskStatusDraft {
+		return nil, ErrMonitoringNotDraft
 	}
 
 	output, err := updateUC.Execute(ctx, updateInput, sess.AccessibleOrgIDs)

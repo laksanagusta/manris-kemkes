@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/mcp/session"
 	approvaluc "github.com/manris/backend/internal/usecase/approval"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
@@ -85,6 +86,7 @@ func TestHandleUpdateMonitoringDraft_Success(t *testing.T) {
 	}
 
 	mockUpdateUC := &mockRiskUpdateUC{output: updateOutput}
+	mockGetUC := &mockRiskGetUC{risk: &entity.Risk{ID: riskID, Status: entity.RiskStatusDraft}}
 
 	sess := &session.Session{
 		UserID:           userID,
@@ -98,7 +100,7 @@ func TestHandleUpdateMonitoringDraft_Success(t *testing.T) {
 		"assessmentCycle": "2026-H1",
 	}
 
-	output, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, sess, args)
+	output, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, mockGetUC, sess, args)
 	if err != nil {
 		t.Fatalf("HandleUpdateMonitoringDraft failed: %v", err)
 	}
@@ -116,10 +118,32 @@ func TestHandleUpdateMonitoringDraft_Success(t *testing.T) {
 	}
 }
 
+func TestHandleUpdateMonitoringDraft_NotDraft(t *testing.T) {
+	riskID := uuid.New()
+	orgID := uuid.New()
+	userID := uuid.New()
+
+	mockUpdateUC := &mockRiskUpdateUC{}
+	mockGetUC := &mockRiskGetUC{risk: &entity.Risk{ID: riskID, Status: entity.RiskStatusApproved}}
+
+	sess := &session.Session{
+		UserID:           userID,
+		AccessibleOrgIDs: []uuid.UUID{orgID},
+	}
+
+	args := map[string]any{"id": riskID.String()}
+
+	_, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, mockGetUC, sess, args)
+	if err != ErrMonitoringNotDraft {
+		t.Errorf("expected ErrMonitoringNotDraft, got %v", err)
+	}
+}
+
 func TestHandleUpdateMonitoringDraft_NoSession(t *testing.T) {
 	mockUpdateUC := &mockRiskUpdateUC{}
+	mockGetUC := &mockRiskGetUC{}
 
-	output, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, nil, map[string]any{})
+	output, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, mockGetUC, nil, map[string]any{})
 	if err != ErrNotAuthenticated {
 		t.Errorf("expected ErrNotAuthenticated, got %v", err)
 	}

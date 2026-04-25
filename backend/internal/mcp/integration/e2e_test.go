@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -44,7 +45,7 @@ func TestE2E_AllToolsAvailable(t *testing.T) {
 	for _, tool := range tools {
 		result, err := harness.Call(ctx, tool.name, tool.args)
 
-		if err != nil && err.Error() == "request timeout" {
+		if err != nil && strings.Contains(err.Error(), "request timeout") {
 			t.Errorf("Tool '%s' timed out - MCP binary not responding", tool.name)
 			continue
 		}
@@ -154,7 +155,7 @@ func TestE2E_ResponseErrorMapping(t *testing.T) {
 	defer harness.Close()
 
 	result, err := harness.Call(ctx, "get_risk", map[string]interface{}{
-		"riskId": "not-a-uuid",
+		"id": "not-a-uuid",
 	})
 
 	if err == nil && (result == nil || result["isError"] == false) {
@@ -226,11 +227,11 @@ func TestE2E_TextResponseIsValidJSON(t *testing.T) {
 
 func findMCPBinary() string {
 	locations := []string{
-		"./server-mcp",
-		"../server-mcp",
-		"../../server-mcp",
-		"backend/server-mcp",
-		filepath.Join(os.Getenv("HOME"), "Engineering/manris-v2/backend/server-mcp"),
+		"./bin/mcp",
+		"../bin/mcp",
+		"../../bin/mcp",
+		"backend/bin/mcp",
+		filepath.Join(os.Getenv("HOME"), "Engineering/manris-v2/backend/bin/mcp"),
 	}
 
 	for _, loc := range locations {

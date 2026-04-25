@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/manris/backend/internal/domain/entity"
-	authuc "github.com/manris/backend/internal/usecase/auth"
 	"github.com/manris/backend/internal/mcp/session"
+	authuc "github.com/manris/backend/internal/usecase/auth"
 )
 
 var (
@@ -22,6 +22,9 @@ type AuthLoginUseCaseI interface {
 type Deps struct {
 	AuthLoginUC    AuthLoginUseCaseI
 	SessionManager *session.Manager
+	// SessionTTL controls how long an MCP session remains valid before
+	// requiring a fresh login. Falls back to 24h when zero.
+	SessionTTL time.Duration
 }
 
 func HandleLogin(ctx context.Context, deps Deps, email, password string) (map[string]interface{}, error) {
@@ -37,11 +40,19 @@ func HandleLogin(ctx context.Context, deps Deps, email, password string) (map[st
 		return nil, err
 	}
 
+	if result == nil {
+		return nil, errors.New("login failed: no result")
+	}
+
 	if result.User == nil {
 		return nil, ErrUserNotFound
 	}
 
-	expiryTime := time.Now().Add(24 * time.Hour)
+	ttl := deps.SessionTTL
+	if ttl <= 0 {
+		ttl = 24 * time.Hour
+	}
+	expiryTime := time.Now().Add(ttl)
 
 	sessionData := &session.Session{
 		UserID:           result.User.ID,
