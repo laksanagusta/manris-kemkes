@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -16,10 +17,70 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Printf("mcp: no .env file loaded: %v", err)
+// loadEnvFile attempts to load .env file from multiple locations with fallback chain.
+// Lookup order (first hit wins):
+// 1. MANRIS_ENV_FILE env var (if set, MUST exist or logs error)
+// 2. .env in current working directory
+// 3. .env in the directory containing the executable
+// 4. .env in the parent of the executable's directory
+// Returns the resolved absolute path on success, empty string if all attempts fail.
+// Does NOT fail if .env is not found — env vars may come from parent process.
+func loadEnvFile() string {
+	// Attempt 1: MANRIS_ENV_FILE env var
+	if envPath := os.Getenv("MANRIS_ENV_FILE"); envPath != "" {
+		if _, err := os.Stat(envPath); err == nil {
+			if err := godotenv.Load(envPath); err != nil {
+				log.Printf("mcp: failed to load MANRIS_ENV_FILE=%s: %v", envPath, err)
+			} else {
+				absPath, _ := filepath.Abs(envPath)
+				log.Printf("mcp: loaded env from MANRIS_ENV_FILE: %s", absPath)
+				return absPath
+			}
+		} else {
+			log.Printf("mcp: MANRIS_ENV_FILE=%s not found: %v", envPath, err)
+		}
 	}
+
+	// Attempt 2: .env in current working directory
+	if err := godotenv.Load(".env"); err == nil {
+		absPath, _ := filepath.Abs(".env")
+		log.Printf("mcp: loaded env from cwd: %s", absPath)
+		return absPath
+	}
+
+	// Attempt 3: .env in executable's directory
+	exePath, err := os.Executable()
+	if err == nil {
+		exePath, _ = filepath.EvalSymlinks(exePath)
+		exeDir := filepath.Dir(exePath)
+		envPath := filepath.Join(exeDir, ".env")
+		if err := godotenv.Load(envPath); err == nil {
+			absPath, _ := filepath.Abs(envPath)
+			log.Printf("mcp: loaded env from exe dir: %s", absPath)
+			return absPath
+		}
+	}
+
+	// Attempt 4: .env in parent of executable's directory
+	if err == nil {
+		exePath, _ := filepath.EvalSymlinks(exePath)
+		exeDir := filepath.Dir(exePath)
+		parentDir := filepath.Dir(exeDir)
+		envPath := filepath.Join(parentDir, ".env")
+		if err := godotenv.Load(envPath); err == nil {
+			absPath, _ := filepath.Abs(envPath)
+			log.Printf("mcp: loaded env from parent dir: %s", absPath)
+			return absPath
+		}
+	}
+
+	// No .env found in any location
+	log.Println("mcp: no .env file found in any fallback location — env vars may be set by parent process")
+	return ""
+}
+
+func main() {
+	loadEnvFile()
 
 	cfg := config.Load()
 
