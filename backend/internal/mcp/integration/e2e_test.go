@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestE2E_LoginAndQueryRisks(t *testing.T) {
+func TestE2E_AllToolsAvailable(t *testing.T) {
 	if os.Getenv("SKIP_INTEGRATION_TESTS") != "" {
 		t.Skip("Skipping integration tests")
 	}
@@ -19,7 +19,7 @@ func TestE2E_LoginAndQueryRisks(t *testing.T) {
 		t.Skip("MCP binary not found")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	harness, err := NewMCPServerHarness(ctx, binaryPath)
@@ -28,64 +28,39 @@ func TestE2E_LoginAndQueryRisks(t *testing.T) {
 	}
 	defer harness.Close()
 
-	t.Run("login", func(t *testing.T) {
-		result, err := harness.Call(ctx, "login", map[string]interface{}{
-			"email":    "test@example.com",
-			"password": "password123",
-		})
+	tools := []struct {
+		name string
+		args map[string]interface{}
+	}{
+		{"login", map[string]interface{}{"email": "test@example.com", "password": "pass"}},
+		{"get_risk", map[string]interface{}{"id": "00000000-0000-0000-0000-000000000000"}},
+		{"list_risks", map[string]interface{}{}},
+		{"create_and_approve_risk", map[string]interface{}{"title": "Test", "category": "financial", "organizationId": "00000000-0000-0000-0000-000000000000", "probability": 1, "impact": 1}},
+		{"update_risk_draft", map[string]interface{}{"id": "00000000-0000-0000-0000-000000000000"}},
+		{"monitor_and_approve_risk", map[string]interface{}{"riskId": "00000000-0000-0000-0000-000000000000", "assessmentCycle": "Q1"}},
+		{"update_monitoring_draft", map[string]interface{}{"id": "00000000-0000-0000-0000-000000000000"}},
+	}
 
-		if result != nil && result.IsError {
-			t.Log("Expected error for non-existent user (OK for integration test)")
-			return
+	for _, tool := range tools {
+		result, err := harness.Call(ctx, tool.name, tool.args)
+
+		if err != nil && err.Error() == "request timeout" {
+			t.Errorf("Tool '%s' timed out - MCP binary not responding", tool.name)
+			continue
 		}
 
-		if err != nil && err.Error() == "session expired" {
-			t.Log("Session timeout (OK for integration test)")
-			return
+		if result != nil {
+			contentRaw, ok := result["content"]
+			if !ok {
+				t.Errorf("Tool '%s' returned no content", tool.name)
+				continue
+			}
+
+			contentList, ok := contentRaw.([]interface{})
+			if !ok || len(contentList) == 0 {
+				t.Errorf("Tool '%s' returned empty content array", tool.name)
+			}
 		}
-	})
-
-	t.Run("list_risks_no_session", func(t *testing.T) {
-		result, err := harness.Call(ctx, "list_risks", map[string]interface{}{})
-
-		if err != nil || (result != nil && result.IsError) {
-			t.Log("Expected error for unauthenticated request (OK)")
-			return
-		}
-	})
-}
-
-func TestE2E_MultipleRequests(t *testing.T) {
-	if os.Getenv("SKIP_INTEGRATION_TESTS") != "" {
-		t.Skip("Skipping integration tests")
-	}
-
-	binaryPath := findMCPBinary()
-	if binaryPath == "" {
-		t.Skip("MCP binary not found")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	harness, err := NewMCPServerHarness(ctx, binaryPath)
-	if err != nil {
-		t.Fatalf("Failed to start MCP server: %v", err)
-	}
-	defer harness.Close()
-
-	requests := []map[string]interface{}{
-		{"method": "login", "args": map[string]interface{}{"email": "test@example.com", "password": "pass"}},
-		{"method": "get_risk", "args": map[string]interface{}{"id": "00000000-0000-0000-0000-000000000000"}},
-		{"method": "list_risks", "args": map[string]interface{}{"limit": 10}},
-	}
-
-	for i, req := range requests {
-		method := req["method"].(string)
-		args := req["args"].(map[string]interface{})
-
-		_, _ = harness.Call(ctx, method, args)
-		t.Logf("Request %d: %s completed (may fail due to auth/data - OK for harness test)", i+1, method)
 	}
 }
 
@@ -99,7 +74,7 @@ func TestE2E_JSONRPCResponseFormat(t *testing.T) {
 		t.Skip("MCP binary not found")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	harness, err := NewMCPServerHarness(ctx, binaryPath)
@@ -111,17 +86,93 @@ func TestE2E_JSONRPCResponseFormat(t *testing.T) {
 	result, _ := harness.Call(ctx, "list_risks", map[string]interface{}{})
 
 	if result != nil {
-		if len(result.Content) == 0 {
-			t.Error("Expected at least one content item in response")
+		contentRaw, ok := result["content"]
+		if !ok {
+			t.Error("Expected 'content' in response")
 		}
 
-		for _, content := range result.Content {
-			if content.Type != "text" {
-				t.Errorf("Expected content type 'text', got %s", content.Type)
-			}
+		contentList, ok := contentRaw.([]interface{})
+		if !ok || len(contentList) == 0 {
+			t.Error("Expected non-empty content array")
+		}
 
-			if content.Text == "" && !result.IsError {
-				t.Log("Response text is empty (may be expected for error case)")
+		if contentList != nil && len(contentList) > 0 {
+			firstContent, ok := contentList[0].(map[string]interface{})
+			if ok {
+				typeVal, _ := firstContent["type"].(string)
+				if typeVal != "text" {
+					t.Errorf("Expected content type 'text', got %s", typeVal)
+				}
+			}
+		}
+	}
+}
+
+func TestE2E_UnauthenticatedRequest(t *testing.T) {
+	if os.Getenv("SKIP_INTEGRATION_TESTS") != "" {
+		t.Skip("Skipping integration tests")
+	}
+
+	binaryPath := findMCPBinary()
+	if binaryPath == "" {
+		t.Skip("MCP binary not found")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	harness, err := NewMCPServerHarness(ctx, binaryPath)
+	if err != nil {
+		t.Fatalf("Failed to start MCP server: %v", err)
+	}
+	defer harness.Close()
+
+	result, err := harness.Call(ctx, "list_risks", map[string]interface{}{})
+
+	if err == nil && (result == nil || result["isError"] == false) {
+		t.Error("Expected list_risks to fail without authentication")
+	}
+}
+
+func TestE2E_ResponseErrorMapping(t *testing.T) {
+	if os.Getenv("SKIP_INTEGRATION_TESTS") != "" {
+		t.Skip("Skipping integration tests")
+	}
+
+	binaryPath := findMCPBinary()
+	if binaryPath == "" {
+		t.Skip("MCP binary not found")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	harness, err := NewMCPServerHarness(ctx, binaryPath)
+	if err != nil {
+		t.Fatalf("Failed to start MCP server: %v", err)
+	}
+	defer harness.Close()
+
+	result, err := harness.Call(ctx, "get_risk", map[string]interface{}{
+		"riskId": "not-a-uuid",
+	})
+
+	if err == nil && (result == nil || result["isError"] == false) {
+		t.Error("Expected get_risk to fail with invalid UUID")
+	}
+
+	if result != nil && result["isError"] == true {
+		contentRaw, ok := result["content"]
+		if ok {
+			contentList, ok := contentRaw.([]interface{})
+			if ok && len(contentList) > 0 {
+				firstContent, ok := contentList[0].(map[string]interface{})
+				if ok {
+					text, ok := firstContent["text"].(string)
+					if !ok || text == "" {
+						t.Error("Expected error message in response")
+					}
+				}
 			}
 		}
 	}
@@ -137,7 +188,7 @@ func TestE2E_TextResponseIsValidJSON(t *testing.T) {
 		t.Skip("MCP binary not found")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	harness, err := NewMCPServerHarness(ctx, binaryPath)
@@ -151,14 +202,23 @@ func TestE2E_TextResponseIsValidJSON(t *testing.T) {
 		"password": "password",
 	})
 
-	if result != nil && len(result.Content) > 0 {
-		text := result.Content[0].Text
-		if text != "" {
-			var data map[string]interface{}
-			if err := json.Unmarshal([]byte(text), &data); err != nil {
-				t.Logf("Response is error text (not JSON): %s", text)
-			} else {
-				t.Logf("Response is valid JSON: %v", data)
+	if result != nil {
+		contentRaw, ok := result["content"]
+		if ok {
+			contentList, ok := contentRaw.([]interface{})
+			if ok && len(contentList) > 0 {
+				firstContent, ok := contentList[0].(map[string]interface{})
+				if ok {
+					text, ok := firstContent["text"].(string)
+					if ok && text != "" {
+						var data map[string]interface{}
+						if err := json.Unmarshal([]byte(text), &data); err != nil {
+							t.Logf("Response is error text (not JSON): %s", text)
+						} else {
+							t.Logf("Response is valid JSON: %v", data)
+						}
+					}
+				}
 			}
 		}
 	}
