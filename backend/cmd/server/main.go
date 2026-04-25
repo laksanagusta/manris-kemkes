@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -13,245 +14,25 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
+	"github.com/manris/backend/internal/bootstrap"
 	"github.com/manris/backend/internal/config"
-	"github.com/manris/backend/internal/database"
-	domainsvc "github.com/manris/backend/internal/domain/service"
 	httpHandler "github.com/manris/backend/internal/handler/http"
 	"github.com/manris/backend/internal/middleware"
-	openairepo "github.com/manris/backend/internal/repository/openai"
-	postgresrepo "github.com/manris/backend/internal/repository/postgres"
-	reportpdf "github.com/manris/backend/internal/service/pdfreport"
-	aiuc "github.com/manris/backend/internal/usecase/ai"
-	approvaluc "github.com/manris/backend/internal/usecase/approval"
-	authuc "github.com/manris/backend/internal/usecase/auth"
-	cbauc "github.com/manris/backend/internal/usecase/cba"
-	commloguc "github.com/manris/backend/internal/usecase/communication_log"
-	controluc "github.com/manris/backend/internal/usecase/control"
-	externalextPICuc "github.com/manris/backend/internal/usecase/external_pic"
-	formusecase "github.com/manris/backend/internal/usecase/form"
-	incidentuc "github.com/manris/backend/internal/usecase/incident"
-	kriuc "github.com/manris/backend/internal/usecase/kri"
-	krireportuc "github.com/manris/backend/internal/usecase/kri_report"
-	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
-	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
-	organizationuc "github.com/manris/backend/internal/usecase/organization"
-	reportuc "github.com/manris/backend/internal/usecase/report"
-	riskuc "github.com/manris/backend/internal/usecase/risk"
-	systemuc "github.com/manris/backend/internal/usecase/system"
-	systemsettinguc "github.com/manris/backend/internal/usecase/system_setting"
-	useruc "github.com/manris/backend/internal/usecase/user"
-	workingpaperusecase "github.com/manris/backend/internal/usecase/workingpaper"
 )
 
 func main() {
 	cfg := config.Load()
 
-	// Connect to database
-	pool, err := database.Connect(cfg.DatabaseURL)
+	// ============================================================================
+	// Dependency Injection Bootstrap
+	// ============================================================================
+
+	ctx := context.Background()
+	container, err := bootstrap.Build(ctx, cfg)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to bootstrap application: %v", err)
 	}
-	defer pool.Close()
-
-	// ============================================================================
-	// CLEAN ARCHITECTURE - Repository Layer (Domain Layer Interfaces)
-	// ============================================================================
-
-	// Domain repositories
-	domainUserRepo := postgresrepo.NewUserRepository(pool)
-	domainOrgRepo := postgresrepo.NewOrganizationRepository(pool)
-	domainRiskRepo := postgresrepo.NewRiskRepository(pool)
-	domainIncidentRepo := postgresrepo.NewIncidentRepository(pool)
-	domainKRiRepo := postgresrepo.NewKRIRepository(pool)
-	domainControlRepo := postgresrepo.NewControlRepository(pool)
-	domainApprovalRepo := postgresrepo.NewApprovalRepository(pool)
-	domainSystemRepo := postgresrepo.NewSystemRepository(pool)
-	domainSystemSettingRepo := postgresrepo.NewSystemSettingRepository(pool)
-	domainMitigationTaskRepo := postgresrepo.NewMitigationTaskRepository(pool)
-	domainKRIReportRepo := postgresrepo.NewKRIReportRepository(pool)
-	domainCommLogRepo := postgresrepo.NewCommunicationLogRepository(pool)
-	domainMMRepo := postgresrepo.NewMeetingMinuteRepository(pool)
-	domainFormRepo := postgresrepo.NewFormRepository(pool)
-	domainFormAssignmentRepo := postgresrepo.NewFormAssignmentRepository(pool)
-	domainFormResponseRepo := postgresrepo.NewFormResponseRepository(pool)
-	domainExternalPICRepo := postgresrepo.NewExternalPICRepository(pool)
-	domainWPRepo := postgresrepo.NewWorkingPaperRepository(pool)
-
-	// Domain services
-	orgHierarchySvc := domainsvc.NewOrganizationHierarchy(domainOrgRepo)
-
-	// System settings services with shared cache
-	systemSettingGetUC := systemsettinguc.NewGetSettingService(domainSystemSettingRepo)
-	systemSettingCache := systemsettinguc.GetSharedCache(systemSettingGetUC)
-	systemSettingUpsertUC := systemsettinguc.NewUpsertSettingService(domainSystemSettingRepo, systemSettingCache)
-	systemSettingDeleteUC := systemsettinguc.NewDeleteSettingService(domainSystemSettingRepo, systemSettingCache)
-
-	// AI model provider (uses settings from database with in-memory cache)
-	modelProvider := openairepo.NewModelProviderAdapter(systemSettingGetUC)
-
-	// AI repository (OpenAI)
-	domainAIRepo := openairepo.NewAIRepository(cfg.OpenAIKey, domainRiskRepo, modelProvider)
-
-	// CBA repository (OpenAI-backed)
-	domainCBARepo := openairepo.NewCBARepository(domainAIRepo)
-
-	// ============================================================================
-	// CLEAN ARCHITECTURE - UseCase Layer (Business Logic)
-	// ============================================================================
-
-	// Risk usecases
-	riskCreateUC := riskuc.NewCreateRiskUseCase(domainRiskRepo, domainUserRepo, domainOrgRepo)
-	riskCreateBatchUC := riskuc.NewCreateRiskBatchUseCase(riskCreateUC)
-	riskSpreadsheetUC := riskuc.NewBulkRiskSpreadsheetUseCase(domainOrgRepo, domainUserRepo)
-	riskGetUC := riskuc.NewGetRiskUseCase(domainRiskRepo)
-	riskReassessUC := riskuc.NewCreateRiskReassessmentUseCase(domainRiskRepo)
-	riskUpdateUC := riskuc.NewUpdateRiskUseCase(domainRiskRepo, domainUserRepo, domainOrgRepo, domainWPRepo)
-	riskDeleteUC := riskuc.NewDeleteRiskUseCase(domainRiskRepo)
-	riskListUC := riskuc.NewListRisksUseCase(domainRiskRepo, orgHierarchySvc)
-	riskListRegisterUC := riskuc.NewListRiskRegisterUseCase(domainRiskRepo)
-	riskListVersionsUC := riskuc.NewListRiskVersionsUseCase(domainRiskRepo)
-	riskReviewQueueUC := riskuc.NewListRiskReviewQueueUseCase(domainRiskRepo, orgHierarchySvc)
-	riskCompareCyclesUC := riskuc.NewCompareRiskCyclesUseCase(domainRiskRepo, orgHierarchySvc)
-	riskCompareCycleDetailsUC := riskuc.NewCompareRiskCycleDetailsUseCase(domainRiskRepo, orgHierarchySvc)
-	riskReviewSummaryUC := riskuc.NewRiskReviewSummaryUseCase(domainRiskRepo, orgHierarchySvc)
-	riskDashboardSummaryUC := riskuc.NewDashboardSummaryUseCase(domainRiskRepo)
-	riskActionPressureUC := riskuc.NewDashboardActionPressureUseCase(domainIncidentRepo, domainMitigationTaskRepo)
-	riskExecutiveAlertsUC := riskuc.NewExecutiveAlertsUseCase(domainRiskRepo, domainMitigationTaskRepo)
-	riskHeatmapDataUC := riskuc.NewHeatmapDataUseCase(domainRiskRepo)
-	riskHeatmapMultiUC := riskuc.NewHeatmapMultiUseCase(domainRiskRepo)
-	riskTopRisksUC := riskuc.NewTopRisksUseCase(domainRiskRepo)
-	riskDashboardCategoriesUC := riskuc.NewDashboardRiskCategoriesUseCase(domainRiskRepo)
-	riskListApprovedUC := riskuc.NewListApprovedRisksUseCase(domainRiskRepo, orgHierarchySvc)
-	riskHeatmapVelocityUC := riskuc.NewHeatmapVelocityUseCase(domainRiskRepo)
-	riskOverdueTimelineUC := riskuc.NewOverdueMitigationTimelineUseCase(domainRiskRepo)
-	riskKRIBreachUC := riskuc.NewKRIBreachSummaryUseCase(domainRiskRepo)
-	riskUnitResponseUC := riskuc.NewUnitResponseTimeUseCase(domainRiskRepo)
-
-	// Incident usecases
-	incidentCreateUC := incidentuc.NewCreateIncidentUseCase(domainIncidentRepo, domainUserRepo, domainOrgRepo, domainRiskRepo)
-	incidentCreateBatchUC := incidentuc.NewCreateIncidentBatchUseCase(incidentCreateUC)
-	incidentGetUC := incidentuc.NewGetIncidentUseCase(domainIncidentRepo)
-	incidentUpdateUC := incidentuc.NewUpdateIncidentUseCase(domainIncidentRepo, domainRiskRepo)
-	incidentDeleteUC := incidentuc.NewDeleteIncidentUseCase(domainIncidentRepo)
-	incidentListUC := incidentuc.NewListIncidentsUseCase(domainIncidentRepo, orgHierarchySvc)
-	incidentSummaryUC := incidentuc.NewGetIncidentSummaryUseCase(domainIncidentRepo)
-
-	// User usecases
-	userCreateUC := useruc.NewCreateUserUseCase(domainUserRepo, domainOrgRepo)
-	userGetUC := useruc.NewGetUserUseCase(domainUserRepo)
-	userUpdateUC := useruc.NewUpdateUserUseCase(domainUserRepo, domainOrgRepo)
-	userDeleteUC := useruc.NewDeleteUserUseCase(domainUserRepo)
-	userListUC := useruc.NewListUsersUseCase(domainUserRepo)
-	userListFilterUC := useruc.NewListUsersWithFilterUseCase(domainUserRepo)
-
-	// Control usecases
-	controlCreateUC := controluc.NewCreateControlUseCase(domainControlRepo, domainRiskRepo, domainOrgRepo)
-	controlGetUC := controluc.NewGetControlUseCase(domainControlRepo)
-	controlUpdateUC := controluc.NewUpdateControlUseCase(domainControlRepo, domainRiskRepo, domainOrgRepo)
-	controlDeleteUC := controluc.NewDeleteControlUseCase(domainControlRepo)
-	controlListUC := controluc.NewListControlsUseCase(domainControlRepo, orgHierarchySvc)
-	controlDashboardUC := controluc.NewControlDashboardUseCase(domainControlRepo, orgHierarchySvc)
-
-	// KRI usecases
-	kriCreateUC := kriuc.NewCreateKRIUseCase(domainKRiRepo, domainRiskRepo, domainOrgRepo)
-	kriGetUC := kriuc.NewGetKRIUseCase(domainKRiRepo)
-	kriUpdateUC := kriuc.NewUpdateKRIUseCase(domainKRiRepo, domainRiskRepo, domainOrgRepo)
-	kriArchiveUC := kriuc.NewArchiveKRIUseCase(domainKRiRepo)
-	kriListUC := kriuc.NewListKRIsUseCase(domainKRiRepo, orgHierarchySvc)
-	kriDashboardUC := kriuc.NewKRIDashboardUseCase(domainKRiRepo, orgHierarchySvc)
-
-	// Approval usecases
-	approvalListUC := approvaluc.NewListApprovalUseCase(domainApprovalRepo)
-	approvalSubmitUC := approvaluc.NewSubmitApprovalUseCase(domainApprovalRepo, domainRiskRepo, domainIncidentRepo, domainUserRepo, cfg.RiskApprovalWorkflowEnabled)
-	approvalActionUC := approvaluc.NewApprovalActionUseCase(domainApprovalRepo, domainRiskRepo, domainIncidentRepo)
-	approvalGetDetailUC := approvaluc.NewGetApprovalDetailUseCase(domainApprovalRepo)
-	approvalGetPendingCountUC := approvaluc.NewGetPendingCountUseCase(domainApprovalRepo)
-	approvalGetByEntityUC := approvaluc.NewGetApprovalByEntityUseCase(domainApprovalRepo)
-
-	// Auth usecases
-	authLoginUC := authuc.NewLoginUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry, cfg.RiskApprovalWorkflowEnabled)
-	authMeUC := authuc.NewGetCurrentUserUseCase(domainUserRepo, orgHierarchySvc, cfg.RiskApprovalWorkflowEnabled)
-	authUpdateProfileUC := authuc.NewUpdateProfileUseCase(domainUserRepo, orgHierarchySvc, cfg.RiskApprovalWorkflowEnabled)
-	authChangePasswordUC := authuc.NewChangePasswordUseCase(domainUserRepo, orgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry, cfg.RiskApprovalWorkflowEnabled)
-
-	// AI usecases
-	aiFishboneUC := aiuc.NewGenerateFishboneUseCase(domainAIRepo, domainOrgRepo)
-	aiImpactUC := aiuc.NewGenerateImpactUseCase(domainAIRepo, domainOrgRepo)
-	aiMitigationUC := aiuc.NewGenerateMitigationUseCase(domainAIRepo, domainOrgRepo)
-	aiMinutesUC := aiuc.NewGenerateMinutesUseCase(domainAIRepo, domainOrgRepo)
-	aiTranscriptUC := aiuc.NewAnalyzeTranscriptUseCase(domainAIRepo, domainOrgRepo)
-	aiApplyTranscriptRiskChangeUC := aiuc.NewApplyTranscriptRiskChangesUseCase(domainRiskRepo)
-	aiPredictiveUC := aiuc.NewGeneratePredictiveUseCase(domainAIRepo, domainOrgRepo)
-	aiRiskSuggestionUC := aiuc.NewGenerateRiskSuggestionsUseCase(domainAIRepo, domainOrgRepo)
-	aiKRIUC := aiuc.NewGenerateKRIUseCase(domainAIRepo, domainOrgRepo)
-	aiIncidentBatchUC := aiuc.NewGenerateIncidentBatchExtractionUseCase(domainAIRepo, domainOrgRepo)
-	aiIncidentRiskUC := aiuc.NewGenerateManualIncidentRiskSuggestionsUseCase(domainAIRepo, domainOrgRepo)
-
-	// CBA usecases
-	cbaRecommendUC := cbauc.NewRecommendVariablesUseCase(domainCBARepo, domainOrgRepo)
-	cbaCalculateUC := cbauc.NewCalculateUseCase()
-
-	// Organization usecases
-	orgCreateUC := organizationuc.NewCreateOrganizationUseCase(domainOrgRepo)
-	orgGetUC := organizationuc.NewGetOrganizationUseCase(domainOrgRepo)
-	orgUpdateUC := organizationuc.NewUpdateOrganizationUseCase(domainOrgRepo)
-	orgDeleteUC := organizationuc.NewDeleteOrganizationUseCase(domainOrgRepo)
-	orgListUC := organizationuc.NewListOrganizationsUseCase(domainOrgRepo)
-	orgListFilterUC := organizationuc.NewListOrganizationsWithFilterUseCase(domainOrgRepo)
-
-	// External PIC usecases
-	externalextPICGetOrCreateUC := externalextPICuc.NewGetOrCreateByNameUseCase(domainExternalPICRepo)
-	externalextPICListUC := externalextPICuc.NewListExternalPICsUseCase(domainExternalPICRepo)
-	externalextPICDeleteUC := externalextPICuc.NewDeleteExternalPICUseCase(domainExternalPICRepo)
-
-	// System usecases
-	systemSlowQueriesUC := systemuc.NewGetSlowQueriesUseCase(domainSystemRepo)
-
-	// Mitigation Task usecases
-	mtListUC := mtuc.NewListTasksUseCase(domainMitigationTaskRepo, domainRiskRepo)
-	mtSubmitUC := mtuc.NewSubmitProgressUseCase(domainMitigationTaskRepo, domainRiskRepo)
-	mtGenerateUC := mtuc.NewGenerateTasksUseCase(domainMitigationTaskRepo)
-	mtOverdueUC := mtuc.NewMarkOverdueUseCase(domainMitigationTaskRepo)
-
-	// KRI Report usecases
-	kriReportListUC := krireportuc.NewListReportsUseCase(domainKRIReportRepo, domainKRiRepo)
-	kriReportSubmitUC := krireportuc.NewSubmitReportUseCase(domainKRIReportRepo, domainKRiRepo)
-	kriReportAcceptUC := krireportuc.NewAcceptReportUseCase(domainKRIReportRepo, domainKRiRepo)
-	kriReportRevisionUC := krireportuc.NewRequestRevisionUseCase(domainKRIReportRepo, domainKRiRepo)
-	kriReportSkipUC := krireportuc.NewSkipReportUseCase(domainKRIReportRepo, domainKRiRepo)
-	kriReportGenerateUC := krireportuc.NewGenerateReportsUseCase(domainKRIReportRepo)
-	kriReportOverdueUC := krireportuc.NewMarkOverdueUseCase(domainKRIReportRepo)
-
-	// Communication Log usecases
-	commLogCreateUC := commloguc.NewCreateCommunicationLogUseCase(domainCommLogRepo, domainRiskRepo, domainUserRepo)
-	commLogListUC := commloguc.NewListCommunicationLogsUseCase(domainCommLogRepo, domainRiskRepo)
-	commLogDeleteUC := commloguc.NewDeleteCommunicationLogUseCase(domainCommLogRepo, domainRiskRepo)
-
-	// Meeting Minute usecases
-	mmCreateUC := mmuc.NewCreateMeetingMinuteUseCase(domainMMRepo, domainUserRepo)
-	mmGetUC := mmuc.NewGetMeetingMinuteUseCase(domainMMRepo)
-	mmListUC := mmuc.NewListMeetingMinutesUseCase(domainMMRepo)
-	mmDeleteUC := mmuc.NewDeleteMeetingMinuteUseCase(domainMMRepo)
-	mmLinkUC := mmuc.NewLinkRisksUseCase(domainMMRepo)
-	riskListCycleSnapshotUC := riskuc.NewListRiskCycleSnapshotUseCase(domainRiskRepo, orgHierarchySvc)
-
-	formCreateUC := formusecase.NewCreateFormUseCase(domainFormRepo, domainFormAssignmentRepo)
-	formGetUC := formusecase.NewGetFormUseCase(domainFormRepo, domainFormAssignmentRepo)
-	formListUC := formusecase.NewListFormsUseCase(domainFormRepo, domainFormAssignmentRepo)
-	formUpdateUC := formusecase.NewUpdateFormUseCase(domainFormRepo, domainFormAssignmentRepo)
-	formDeleteUC := formusecase.NewDeleteFormUseCase(domainFormRepo)
-	formPublishUC := formusecase.NewPublishFormUseCase(domainFormRepo, domainFormAssignmentRepo)
-	formCloseUC := formusecase.NewCloseFormUseCase(domainFormRepo)
-	formSubmitUC := formusecase.NewSubmitResponseUseCase(domainFormRepo, domainFormResponseRepo, domainFormAssignmentRepo)
-	formListResponsesUC := formusecase.NewListResponsesUseCase(domainFormRepo, domainFormResponseRepo)
-	formAnalyticsUC := formusecase.NewFormAnalyticsUseCase(domainFormRepo, domainFormResponseRepo)
-
-	// Working Paper usecases
-	wpUseCase := workingpaperusecase.NewWorkingPaperUseCase(domainWPRepo, domainRiskRepo)
-
-	// Report usecases
-	generateReportUC := reportuc.NewGenerateReportUseCase(domainRiskRepo, domainIncidentRepo, domainKRiRepo)
-	pdfReportRenderer := reportpdf.NewPDFReportRenderer()
+	defer container.Close()
 
 	// ============================================================================
 	// CLEAN ARCHITECTURE - Handler Layer (Presentation / HTTP)
@@ -259,92 +40,92 @@ func main() {
 
 	// Clean architecture handlers
 	cleanRiskHandler := httpHandler.NewRiskHandler(
-		riskCreateUC, riskCreateBatchUC, riskSpreadsheetUC, riskGetUC, riskReassessUC, riskUpdateUC, riskDeleteUC, riskListUC, riskListRegisterUC, riskListCycleSnapshotUC, riskListVersionsUC, riskReviewQueueUC, riskCompareCyclesUC, riskCompareCycleDetailsUC, riskReviewSummaryUC,
-		riskDashboardSummaryUC, riskActionPressureUC, riskExecutiveAlertsUC, riskHeatmapDataUC, riskHeatmapMultiUC, riskTopRisksUC, riskDashboardCategoriesUC, riskListApprovedUC,
-		riskHeatmapVelocityUC, riskOverdueTimelineUC, riskKRIBreachUC, riskUnitResponseUC, domainMMRepo,
+		container.RiskCreateUC, container.RiskCreateBatchUC, container.RiskSpreadsheetUC, container.RiskGetUC, container.RiskReassessUC, container.RiskUpdateUC, container.RiskDeleteUC, container.RiskListUC, container.RiskListRegisterUC, container.RiskListCycleSnapshotUC, container.RiskListVersionsUC, container.RiskReviewQueueUC, container.RiskCompareCyclesUC, container.RiskCompareCycleDetailsUC, container.RiskReviewSummaryUC,
+		container.RiskDashboardSummaryUC, container.RiskActionPressureUC, container.RiskExecutiveAlertsUC, container.RiskHeatmapDataUC, container.RiskHeatmapMultiUC, container.RiskTopRisksUC, container.RiskDashboardCategoriesUC, container.RiskListApprovedUC,
+		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskKRIBreachUC, container.RiskUnitResponseUC, container.MMRepository,
 	)
 	cleanIncidentHandler := httpHandler.NewIncidentHandler(
-		incidentCreateUC, incidentCreateBatchUC, incidentGetUC, incidentUpdateUC, incidentDeleteUC, incidentListUC, incidentSummaryUC,
+		container.IncidentCreateUC, container.IncidentCreateBatchUC, container.IncidentGetUC, container.IncidentUpdateUC, container.IncidentDeleteUC, container.IncidentListUC, container.IncidentSummaryUC,
 	)
 	cleanUserHandler := httpHandler.NewUserHandler(
-		userCreateUC, userGetUC, userUpdateUC, userDeleteUC, userListUC, userListFilterUC,
+		container.UserCreateUC, container.UserGetUC, container.UserUpdateUC, container.UserDeleteUC, container.UserListUC, container.UserListFilterUC,
 	)
 	cleanControlHandler := httpHandler.NewControlHandler(
-		controlCreateUC, controlGetUC, controlUpdateUC, controlDeleteUC, controlListUC, controlDashboardUC,
+		container.ControlCreateUC, container.ControlGetUC, container.ControlUpdateUC, container.ControlDeleteUC, container.ControlListUC, container.ControlDashboardUC,
 	)
 	cleanKRIHandler := httpHandler.NewKRIHandler(
-		kriCreateUC, kriGetUC, kriUpdateUC, kriArchiveUC, kriListUC, kriDashboardUC,
+		container.KRICreateUC, container.KRIGetUC, container.KRIUpdateUC, container.KRIArchiveUC, container.KRIListUC, container.KRIDashboardUC,
 	)
 	approvalHandler := httpHandler.NewApprovalHandler(
-		approvalListUC, approvalSubmitUC, approvalActionUC, approvalGetDetailUC, approvalGetPendingCountUC, approvalGetByEntityUC,
+		container.ApprovalListUC, container.ApprovalSubmitUC, container.ApprovalActionUC, container.ApprovalGetDetailUC, container.ApprovalGetPendingCountUC, container.ApprovalGetByEntityUC,
 	)
 
 	// Auth handlers (Clean Architecture)
-	cleanAuthHandler := httpHandler.NewAuthHandler(authLoginUC, authMeUC, authUpdateProfileUC, authChangePasswordUC)
+	cleanAuthHandler := httpHandler.NewAuthHandler(container.AuthLoginUC, container.AuthMeUC, container.AuthUpdateProfileUC, container.AuthChangePasswordUC)
 
 	// AI handlers (Clean Architecture)
 	cleanAIHandler := httpHandler.NewAIHandler(
-		aiFishboneUC,
-		aiImpactUC,
-		aiMitigationUC,
-		aiMinutesUC,
-		aiTranscriptUC,
-		aiApplyTranscriptRiskChangeUC,
-		aiPredictiveUC,
-		aiRiskSuggestionUC,
-		aiKRIUC,
-		aiIncidentBatchUC,
-		aiIncidentRiskUC,
+		container.AIFishboneUC,
+		container.AIImpactUC,
+		container.AIMitigationUC,
+		container.AIMinutesUC,
+		container.AITranscriptUC,
+		container.AIApplyTranscriptRiskChangeUC,
+		container.AIPredictiveUC,
+		container.AIRiskSuggestionUC,
+		container.AIKIUUC,
+		container.AIIncidentBatchUC,
+		container.AIIncidentRiskUC,
 	)
 
 	// CBA handler (Clean Architecture)
-	cleanCBAHandler := httpHandler.NewCBAHandler(cbaRecommendUC, cbaCalculateUC)
+	cleanCBAHandler := httpHandler.NewCBAHandler(container.CBARecommendUC, container.CBACalculateUC)
 
 	// Organization handlers (Clean Architecture)
-	cleanOrgHandler := httpHandler.NewOrganizationHandler(orgCreateUC, orgGetUC, orgUpdateUC, orgDeleteUC, orgListUC, orgListFilterUC)
+	cleanOrgHandler := httpHandler.NewOrganizationHandler(container.OrgCreateUC, container.OrgGetUC, container.OrgUpdateUC, container.OrgDeleteUC, container.OrgListUC, container.OrgListFilterUC)
 
 	// System handlers (Clean Architecture)
-	cleanSystemHandler := httpHandler.NewSystemHandler(systemSlowQueriesUC)
+	cleanSystemHandler := httpHandler.NewSystemHandler(container.SystemSlowQueriesUC)
 
 	// System Setting handlers
 	cleanSystemSettingHandler := httpHandler.NewSystemSettingHandler(
-		systemSettingGetUC, systemSettingUpsertUC, systemSettingDeleteUC,
+		container.SystemSettingGetUC, container.SystemSettingUpsertUC, container.SystemSettingDeleteUC,
 	)
 
 	// Mitigation Task handler
 	cleanMitigationTaskHandler := httpHandler.NewMitigationTaskHandler(
-		mtListUC, mtSubmitUC, mtGenerateUC, mtOverdueUC,
+		container.MTListUC, container.MTSubmitUC, container.MTGenerateUC, container.MTOverdueUC,
 	)
 
 	// KRI Report handler
 	cleanKRIReportHandler := httpHandler.NewKRIReportHandler(
-		kriReportListUC, kriReportSubmitUC, kriReportAcceptUC, kriReportRevisionUC, kriReportSkipUC, kriReportGenerateUC, kriReportOverdueUC,
+		container.KRIReportListUC, container.KRIReportSubmitUC, container.KRIReportAcceptUC, container.KRIReportRevisionUC, container.KRIReportSkipUC, container.KRIReportGenerateUC, container.KRIReportOverdueUC,
 	)
 
 	// Communication Log handler
 	cleanCommLogHandler := httpHandler.NewCommunicationLogHandler(
-		commLogCreateUC, commLogListUC, commLogDeleteUC,
+		container.CommLogCreateUC, container.CommLogListUC, container.CommLogDeleteUC,
 	)
 
 	// Meeting Minute handler
 	cleanMMHandler := httpHandler.NewMeetingMinuteHandler(
-		mmCreateUC, mmGetUC, mmListUC, mmDeleteUC, mmLinkUC,
+		container.MMCreateUC, container.MMGetUC, container.MMListUC, container.MMDeleteUC, container.MMLinkUseCase,
 	)
 
 	// Report handler
-	cleanReportHandler := httpHandler.NewReportHandler(generateReportUC, pdfReportRenderer)
+	cleanReportHandler := httpHandler.NewReportHandler(container.GenerateReportUC, container.PDFReportRenderer)
 
 	cleanFormHandler := httpHandler.NewFormHandler(
-		formCreateUC, formGetUC, formListUC, formUpdateUC, formDeleteUC,
-		formPublishUC, formCloseUC, formSubmitUC, formListResponsesUC, formAnalyticsUC,
+		container.FormCreateUC, container.FormGetUC, container.FormListUC, container.FormUpdateUC, container.FormDeleteUC,
+		container.FormPublishUC, container.FormCloseUC, container.FormSubmitUC, container.FormListResponsesUC, container.FormAnalyticsUC,
 	)
 
 	// External PIC handler
 	cleanExternalPICHandler := httpHandler.NewExternalPICHandler(
-		externalextPICGetOrCreateUC, externalextPICListUC, externalextPICDeleteUC,
+		container.ExternalPICGetOrCreateUC, container.ExternalPICListUC, container.ExternalPICDeleteUC,
 	)
 
-	wpHandler := httpHandler.NewWorkingPaperHandler(wpUseCase, domainWPRepo)
+	wpHandler := httpHandler.NewWorkingPaperHandler(container.WPUseCase, container.WPRepository)
 
 	// Fiber app
 	app := fiber.New(fiber.Config{
@@ -383,7 +164,7 @@ func main() {
 	authProtected.Put("/me", middleware.RequireFullSession(), cleanAuthHandler.UpdateProfile)
 	authProtected.Post("/change-password", cleanAuthHandler.ChangePassword)
 
-	protected := api.Group("", middleware.AuthRequired(cfg.JWTSecret), middleware.RequireFullSession(), middleware.ResolveOrgScope(orgHierarchySvc))
+	protected := api.Group("", middleware.AuthRequired(cfg.JWTSecret), middleware.RequireFullSession(), middleware.ResolveOrgScope(container.OrgHierarchySvc))
 
 	// Postgres Pro diagnostics endpoint (Clean Architecture)
 	protected.Get("/system/slow-queries", cleanSystemHandler.GetSlowQueries)
