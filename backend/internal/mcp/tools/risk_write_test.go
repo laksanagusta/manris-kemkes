@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -11,46 +12,25 @@ import (
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
 
-type mockRiskCreateUC struct {
-	risk *entity.Risk
-	err  error
-}
-
-func (m *mockRiskCreateUC) Execute(ctx context.Context, input riskuc.CreateRiskInput) (*entity.Risk, error) {
-	return m.risk, m.err
-}
-
-type mockRiskUpdateUC struct {
-	risk *entity.Risk
-	err  error
-}
-
-func (m *mockRiskUpdateUC) Execute(ctx context.Context, input riskuc.UpdateRiskInput) (*entity.Risk, error) {
-	return m.risk, m.err
-}
-
-type mockApprovalSubmitUC struct {
-	output *approvaluc.SubmitApprovalOutput
-	err    error
-}
-
-func (m *mockApprovalSubmitUC) Execute(ctx context.Context, input approvaluc.SubmitApprovalInput) (*approvaluc.SubmitApprovalOutput, error) {
-	return m.output, m.err
-}
-
 func TestHandleCreateAndApproveRisk_Success(t *testing.T) {
 	riskID := uuid.New()
 	orgID := uuid.New()
 	userID := uuid.New()
 
-	createdRisk := &entity.Risk{
+	createOutput := &riskuc.CreateRiskOutput{
+		ID:   riskID,
+		Code: "R001",
+	}
+
+	refetchedRisk := &entity.Risk{
 		ID:             riskID,
 		Title:          "New Risk",
 		OrganizationID: &orgID,
 		Status:         "approved",
 	}
 
-	mockCreateUC := &mockRiskCreateUC{risk: createdRisk}
+	mockCreateUC := &mockRiskCreateUC{output: createOutput}
+	mockGetUC := &mockRiskGetUC{risk: refetchedRisk}
 	approvalOutput := &approvaluc.SubmitApprovalOutput{
 		ApprovalID: uuid.New().String(),
 		Status:     "approved",
@@ -78,7 +58,7 @@ func TestHandleCreateAndApproveRisk_Success(t *testing.T) {
 		"submissionType":  "approval",
 	}
 
-	output, err := HandleCreateAndApproveRisk(context.Background(), mockCreateUC, mockApprovalUC, sess, args)
+	output, err := HandleCreateAndApproveRisk(context.Background(), mockCreateUC, mockApprovalUC, mockGetUC, sess, args)
 	if err != nil {
 		t.Fatalf("HandleCreateAndApproveRisk failed: %v", err)
 	}
@@ -87,20 +67,21 @@ func TestHandleCreateAndApproveRisk_Success(t *testing.T) {
 		t.Fatalf("Output is nil")
 	}
 
-	if output["id"] != riskID.String() {
-		t.Errorf("id mismatch")
-	}
-
-	if output["status"] != "approved" {
-		t.Errorf("expected status 'approved', got %v", output["status"])
+	if risk, ok := output["risk"].(map[string]interface{}); ok {
+		if risk["id"] != riskID.String() {
+			t.Errorf("risk id mismatch")
+		}
+	} else {
+		t.Errorf("risk not in output")
 	}
 }
 
 func TestHandleCreateAndApproveRisk_NoSession(t *testing.T) {
 	mockCreateUC := &mockRiskCreateUC{}
 	mockApprovalUC := &mockApprovalSubmitUC{}
+	mockGetUC := &mockRiskGetUC{}
 
-	output, err := HandleCreateAndApproveRisk(context.Background(), mockCreateUC, mockApprovalUC, nil, map[string]any{})
+	output, err := HandleCreateAndApproveRisk(context.Background(), mockCreateUC, mockApprovalUC, mockGetUC, nil, map[string]any{})
 	if err != ErrNotAuthenticated {
 		t.Errorf("expected ErrNotAuthenticated, got %v", err)
 	}
@@ -114,14 +95,20 @@ func TestHandleUpdateRiskDraft_Success(t *testing.T) {
 	orgID := uuid.New()
 	userID := uuid.New()
 
-	updatedRisk := &entity.Risk{
+	draftRisk := &entity.Risk{
 		ID:             riskID,
-		Title:          "Updated Risk",
+		Title:          "Draft Risk",
 		OrganizationID: &orgID,
-		Status:         "draft",
+		Status:         entity.RiskStatusDraft,
 	}
 
-	mockUpdateUC := &mockRiskUpdateUC{risk: updatedRisk}
+	updateOutput := &riskuc.UpdateRiskOutput{
+		ID:   riskID,
+		Code: "R001",
+	}
+
+	mockGetUC := &mockRiskGetUC{risk: draftRisk}
+	mockUpdateUC := &mockRiskUpdateUC{output: updateOutput}
 
 	sess := &session.Session{
 		UserID:           userID,
@@ -135,7 +122,7 @@ func TestHandleUpdateRiskDraft_Success(t *testing.T) {
 		"description": "Updated description",
 	}
 
-	output, err := HandleUpdateRiskDraft(context.Background(), mockUpdateUC, sess, args)
+	output, err := HandleUpdateRiskDraft(context.Background(), mockUpdateUC, mockGetUC, sess, args)
 	if err != nil {
 		t.Fatalf("HandleUpdateRiskDraft failed: %v", err)
 	}
@@ -147,20 +134,87 @@ func TestHandleUpdateRiskDraft_Success(t *testing.T) {
 	if output["id"] != riskID.String() {
 		t.Errorf("id mismatch")
 	}
-
-	if output["title"] != "Updated Risk" {
-		t.Errorf("title mismatch")
-	}
 }
 
 func TestHandleUpdateRiskDraft_NoSession(t *testing.T) {
 	mockUpdateUC := &mockRiskUpdateUC{}
+	mockGetUC := &mockRiskGetUC{}
 
-	output, err := HandleUpdateRiskDraft(context.Background(), mockUpdateUC, nil, map[string]any{})
+	output, err := HandleUpdateRiskDraft(context.Background(), mockUpdateUC, mockGetUC, nil, map[string]any{})
 	if err != ErrNotAuthenticated {
 		t.Errorf("expected ErrNotAuthenticated, got %v", err)
 	}
 	if output != nil {
 		t.Errorf("expected nil output on auth error")
+	}
+}
+
+func TestHandleUpdateRiskDraft_NotDraftStatus(t *testing.T) {
+	riskID := uuid.New()
+	orgID := uuid.New()
+	userID := uuid.New()
+
+	approvedRisk := &entity.Risk{
+		ID:             riskID,
+		Title:          "Approved Risk",
+		OrganizationID: &orgID,
+		Status:         entity.RiskStatusApproved,
+	}
+
+	mockGetUC := &mockRiskGetUC{risk: approvedRisk}
+	mockUpdateUC := &mockRiskUpdateUC{}
+
+	sess := &session.Session{
+		UserID:           userID,
+		Username:         "testuser",
+		AccessibleOrgIDs: []uuid.UUID{orgID},
+	}
+
+	args := map[string]any{
+		"id":    riskID.String(),
+		"title": "Updated",
+	}
+
+	output, err := HandleUpdateRiskDraft(context.Background(), mockUpdateUC, mockGetUC, sess, args)
+	if err != ErrRiskNotDraft {
+		t.Errorf("expected ErrRiskNotDraft, got %v", err)
+	}
+	if output != nil {
+		t.Errorf("expected nil output when risk not in draft")
+	}
+}
+
+func TestHandleCreateAndApproveRisk_CreateUseCaseError(t *testing.T) {
+	orgID := uuid.New()
+	userID := uuid.New()
+
+	wantErr := errors.New("db unavailable")
+	mockCreateUC := &mockRiskCreateUC{err: wantErr}
+	mockApprovalUC := &mockApprovalSubmitUC{}
+	mockGetUC := &mockRiskGetUC{}
+
+	sess := &session.Session{
+		UserID:           userID,
+		Username:         "testuser",
+		Name:             "Test User",
+		Role:             "unit",
+		AccessibleOrgIDs: []uuid.UUID{orgID},
+	}
+
+	args := map[string]any{
+		"title":          "New Risk",
+		"category":       "Category 1",
+		"organizationId": orgID.String(),
+		"probability":    3,
+		"impact":         4,
+		"weight":         12.0,
+	}
+
+	output, err := HandleCreateAndApproveRisk(context.Background(), mockCreateUC, mockApprovalUC, mockGetUC, sess, args)
+	if !errors.Is(err, wantErr) {
+		t.Errorf("expected create UC error, got %v", err)
+	}
+	if output != nil {
+		t.Errorf("expected nil output on create error")
 	}
 }

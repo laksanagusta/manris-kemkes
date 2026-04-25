@@ -11,19 +11,15 @@ import (
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
 
-// RiskReassessmentUseCaseI defines the interface for creating a reassessment
 type RiskReassessmentUseCaseI interface {
 	Execute(ctx context.Context, input riskuc.CreateRiskReassessmentInput) (*riskuc.CreateRiskReassessmentOutput, error)
 }
 
-// HandleMonitorAndApproveRisk creates a risk reassessment and submits it for approval
-// When RISK_APPROVAL_WORKFLOW_ENABLED=false, auto-approval happens within SubmitApprovalUC
 func HandleMonitorAndApproveRisk(ctx context.Context, reassessmentUC RiskReassessmentUseCaseI, approvalUC ApprovalSubmitUseCaseI, sess *session.Session, args map[string]any) (map[string]interface{}, error) {
 	if sess == nil {
 		return nil, ErrNotAuthenticated
 	}
 
-	// Step 1: Parse risk ID and cycle
 	riskIDStr, ok := args["riskId"].(string)
 	if !ok || riskIDStr == "" {
 		return nil, fmt.Errorf("missing required field: riskId")
@@ -38,7 +34,6 @@ func HandleMonitorAndApproveRisk(ctx context.Context, reassessmentUC RiskReasses
 		return nil, fmt.Errorf("missing required field: assessmentCycle")
 	}
 
-	// Step 2: Create reassessment draft
 	reassessmentInput := riskuc.CreateRiskReassessmentInput{
 		RiskID:    riskID,
 		Cycle:     cycle,
@@ -51,7 +46,6 @@ func HandleMonitorAndApproveRisk(ctx context.Context, reassessmentUC RiskReasses
 		return nil, err
 	}
 
-	// Step 3: Submit for approval (auto-approve if RISK_APPROVAL_WORKFLOW_ENABLED=false)
 	approverIDs := make([]string, 0)
 	if approversArg, ok := args["riskApproverIds"].([]interface{}); ok {
 		for _, approverID := range approversArg {
@@ -86,7 +80,6 @@ func HandleMonitorAndApproveRisk(ctx context.Context, reassessmentUC RiskReasses
 		return nil, err
 	}
 
-	// Return the final state
 	return map[string]interface{}{
 		"id":      reassessmentOutput.ID.String(),
 		"status":  approvalOutput.Status,
@@ -95,24 +88,24 @@ func HandleMonitorAndApproveRisk(ctx context.Context, reassessmentUC RiskReasses
 	}, nil
 }
 
-// HandleUpdateMonitoringDraft updates a risk reassessment draft
 func HandleUpdateMonitoringDraft(ctx context.Context, updateUC RiskUpdateUseCaseI, sess *session.Session, args map[string]any) (map[string]interface{}, error) {
 	if sess == nil {
 		return nil, ErrNotAuthenticated
 	}
 
-	// Convert args to usecase input with org-scope validation
 	updateInput, err := mapping.ToUpdateRiskInput(args, sess)
 	if err != nil {
 		return nil, fmt.Errorf("invalid update input: %w", err)
 	}
 
-	// Call the usecase
-	risk, err := updateUC.Execute(ctx, updateInput)
+	output, err := updateUC.Execute(ctx, updateInput, sess.AccessibleOrgIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert risk to output map
-	return riskToMap(risk), nil
+	return map[string]interface{}{
+		"id":      output.ID.String(),
+		"code":    output.Code,
+		"message": output.Message,
+	}, nil
 }

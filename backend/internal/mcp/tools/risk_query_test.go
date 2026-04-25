@@ -7,26 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/mcp/session"
-	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
-
-type mockRiskGetUC struct {
-	risk *entity.Risk
-	err  error
-}
-
-func (m *mockRiskGetUC) Execute(ctx context.Context, id string, user *entity.UserPublic) (*entity.Risk, error) {
-	return m.risk, m.err
-}
-
-type mockRiskListUC struct {
-	risks []*entity.Risk
-	err   error
-}
-
-func (m *mockRiskListUC) Execute(ctx context.Context, input riskuc.ListRisksInput) ([]*entity.Risk, error) {
-	return m.risks, m.err
-}
 
 func TestHandleGetRisk_Success(t *testing.T) {
 	riskID := uuid.New()

@@ -3,7 +3,9 @@ package tools
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/mcp/mapping"
 	"github.com/manris/backend/internal/mcp/session"
@@ -16,7 +18,7 @@ var (
 
 // RiskGetUseCaseI defines the interface for getting a single risk
 type RiskGetUseCaseI interface {
-	Execute(ctx context.Context, id string, user *entity.UserPublic) (*entity.Risk, error)
+	Execute(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Risk, error)
 }
 
 // RiskListUseCaseI defines the interface for listing risks
@@ -25,18 +27,18 @@ type RiskListUseCaseI interface {
 }
 
 // HandleGetRisk retrieves a single risk by ID with session authentication
-func HandleGetRisk(ctx context.Context, uc RiskGetUseCaseI, sess *session.Session, id string) (map[string]interface{}, error) {
+func HandleGetRisk(ctx context.Context, uc RiskGetUseCaseI, sess *session.Session, idStr string) (map[string]interface{}, error) {
 	if sess == nil {
 		return nil, ErrNotAuthenticated
 	}
 
-	// Call the usecase with the session user data
-	risk, err := uc.Execute(ctx, id, &entity.UserPublic{
-		ID:               sess.UserID,
-		Name:             sess.Name,
-		Username:         sess.Username,
-		AccessibleOrgIDs: sess.AccessibleOrgIDs,
-	})
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid risk ID: %w", err)
+	}
+
+	// Call the usecase with parsed UUID and org IDs from session
+	risk, err := uc.Execute(ctx, id, sess.AccessibleOrgIDs)
 	if err != nil {
 		return nil, err
 	}

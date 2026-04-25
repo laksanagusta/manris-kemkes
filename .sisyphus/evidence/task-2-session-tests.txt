@@ -1,0 +1,14 @@
+=== RUN   TestSessionManager_Empty
+--- PASS: TestSessionManager_Empty (0.00s)
+=== RUN   TestSessionManager_Set_Get
+--- PASS: TestSessionManager_Set_Get (0.00s)
+=== RUN   TestSessionManager_Expired
+--- PASS: TestSessionManager_Expired (0.00s)
+=== RUN   TestSessionManager_Clear
+--- PASS: TestSessionManager_Clear (0.00s)
+=== RUN   TestSessionManager_SetNil
+--- PASS: TestSessionManager_SetNil (0.00s)
+=== RUN   TestSessionManager_ExpiryEdgeCase
+--- PASS: TestSessionManager_ExpiryEdgeCase (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/mcp/session	(cached)

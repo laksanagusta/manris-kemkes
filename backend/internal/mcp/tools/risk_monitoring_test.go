@@ -5,29 +5,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/mcp/session"
 	approvaluc "github.com/manris/backend/internal/usecase/approval"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
-
-type mockRiskReassessmentUC struct {
-	output *riskuc.CreateRiskReassessmentOutput
-	err    error
-}
-
-func (m *mockRiskReassessmentUC) Execute(ctx context.Context, input riskuc.CreateRiskReassessmentInput) (*riskuc.CreateRiskReassessmentOutput, error) {
-	return m.output, m.err
-}
-
-type mockRiskReassessmentGetUC struct {
-	risk *entity.Risk
-	err  error
-}
-
-func (m *mockRiskReassessmentGetUC) Execute(ctx context.Context, id string, user *entity.UserPublic) (*entity.Risk, error) {
-	return m.risk, m.err
-}
 
 func TestHandleMonitorAndApproveRisk_Success(t *testing.T) {
 	riskID := uuid.New()
@@ -98,17 +79,12 @@ func TestHandleUpdateMonitoringDraft_Success(t *testing.T) {
 	orgID := uuid.New()
 	userID := uuid.New()
 
-	updatedRisk := &entity.Risk{
-		ID:              riskID,
-		Title:           "Monitored Risk",
-		OrganizationID:  &orgID,
-		Status:          "assessment_draft",
-		ReviewSummary:   "Annual review completed",
-		NextReviewDate:  nil,
-		AssessmentCycle: "2026-H1",
+	updateOutput := &riskuc.UpdateRiskOutput{
+		ID:   riskID,
+		Code: "R001",
 	}
 
-	mockUpdateUC := &mockRiskUpdateUC{risk: updatedRisk}
+	mockUpdateUC := &mockRiskUpdateUC{output: updateOutput}
 
 	sess := &session.Session{
 		UserID:           userID,
@@ -135,8 +111,8 @@ func TestHandleUpdateMonitoringDraft_Success(t *testing.T) {
 		t.Errorf("id mismatch")
 	}
 
-	if output["status"] != "assessment_draft" {
-		t.Errorf("expected status 'assessment_draft', got %v", output["status"])
+	if output["code"] != "R001" {
+		t.Errorf("expected code 'R001', got %v", output["code"])
 	}
 }
 

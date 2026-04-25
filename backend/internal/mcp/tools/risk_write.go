@@ -2,8 +2,9 @@ package tools
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/mcp/mapping"
 	"github.com/manris/backend/internal/mcp/session"
@@ -11,100 +12,135 @@ import (
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
 
-// RiskCreateUseCaseI defines the interface for creating a risk
+// ErrRiskNotDraft is returned when an update is attempted on a non-draft risk.
+var ErrRiskNotDraft = errors.New("can only update risks in draft status")
+
+// RiskCreateUseCaseI defines the interface for creating a risk.
 type RiskCreateUseCaseI interface {
-	Execute(ctx context.Context, input riskuc.CreateRiskInput) (*entity.Risk, error)
+	Execute(ctx context.Context, input riskuc.CreateRiskInput) (*riskuc.CreateRiskOutput, error)
 }
 
-// RiskUpdateUseCaseI defines the interface for updating a risk
+// RiskUpdateUseCaseI defines the interface for updating a risk.
 type RiskUpdateUseCaseI interface {
-	Execute(ctx context.Context, input riskuc.UpdateRiskInput) (*entity.Risk, error)
+	Execute(ctx context.Context, input riskuc.UpdateRiskInput, orgIDs []uuid.UUID) (*riskuc.UpdateRiskOutput, error)
 }
 
-// ApprovalSubmitUseCaseI defines the interface for submitting approval
+// ApprovalSubmitUseCaseI defines the interface for submitting an approval.
 type ApprovalSubmitUseCaseI interface {
 	Execute(ctx context.Context, input approvaluc.SubmitApprovalInput) (*approvaluc.SubmitApprovalOutput, error)
 }
 
-// HandleCreateAndApproveRisk creates a risk and submits it for approval in a single tool call
-// When RISK_APPROVAL_WORKFLOW_ENABLED=false, auto-approval happens within SubmitApprovalUC
-func HandleCreateAndApproveRisk(ctx context.Context, createUC RiskCreateUseCaseI, approvalUC ApprovalSubmitUseCaseI, sess *session.Session, args map[string]any) (map[string]interface{}, error) {
+// HandleCreateAndApproveRisk creates a risk and immediately submits it for approval.
+// When the risk approval workflow flag is disabled inside SubmitApprovalUseCase, the
+// usecase auto-approves the risk via its flag=false branch (returning ApprovalID="").
+// This handler does NOT call any ApprovalActionUseCase; only SubmitApproval is invoked.
+func HandleCreateAndApproveRisk(
+	ctx context.Context,
+	createUC RiskCreateUseCaseI,
+	submitUC ApprovalSubmitUseCaseI,
+	getUC RiskGetUseCaseI,
+	sess *session.Session,
+	args map[string]any,
+) (map[string]interface{}, error) {
 	if sess == nil {
 		return nil, ErrNotAuthenticated
 	}
 
-	// Step 1: Create the risk
 	createInput, err := mapping.ToCreateRiskInput(args, sess)
-	if err != nil {
-		return nil, fmt.Errorf("invalid create input: %w", err)
-	}
-
-	risk, err := createUC.Execute(ctx, createInput)
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 2: Submit for approval (auto-approve if RISK_APPROVAL_WORKFLOW_ENABLED=false)
-	approverIDs := make([]string, 0)
-	if approversArg, ok := args["riskApproverIds"].([]interface{}); ok {
-		for _, approverID := range approversArg {
-			if approverIDStr, ok := approverID.(string); ok {
-				approverIDs = append(approverIDs, approverIDStr)
-			}
-		}
+	createOutput, err := createUC.Execute(ctx, createInput)
+	if err != nil {
+		return nil, err
 	}
 
-	submissionType := "approval"
-	if st, ok := args["submissionType"].(string); ok {
-		submissionType = st
-	}
+	approverIDs := parseApproverIDs(args)
 
-	approvalInput := approvaluc.SubmitApprovalInput{
+	submitInput := approvaluc.SubmitApprovalInput{
 		RequestType:    "risk",
-		EntityID:       risk.ID.String(),
+		EntityID:       createOutput.ID.String(),
 		RequestedBy:    sess.UserID.String(),
 		ActorName:      sess.Name,
 		Role:           sess.Role,
 		ApproverIDs:    approverIDs,
-		SubmissionType: submissionType,
+		SubmissionType: "approval",
 		OrgIDs:         sess.AccessibleOrgIDs,
 	}
-
 	if notes, ok := args["notes"].(string); ok {
-		approvalInput.Notes = notes
+		submitInput.Notes = notes
 	}
 
-	approvalOutput, err := approvalUC.Execute(ctx, approvalInput)
+	submitOutput, err := submitUC.Execute(ctx, submitInput)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return the final risk state (with Status updated to approved if workflow was disabled)
+	refetched, err := getUC.Execute(ctx, createOutput.ID, sess.AccessibleOrgIDs)
+	if err != nil {
+		return nil, err
+	}
+
 	return map[string]interface{}{
-		"id":      risk.ID.String(),
-		"status":  approvalOutput.Status,
-		"message": approvalOutput.Message,
+		"risk":             riskToMap(refetched),
+		"workflow_skipped": submitOutput.ApprovalID == "",
+		"final_status":     refetched.Status,
 	}, nil
 }
 
-// HandleUpdateRiskDraft updates a risk in draft status
-func HandleUpdateRiskDraft(ctx context.Context, updateUC RiskUpdateUseCaseI, sess *session.Session, args map[string]any) (map[string]interface{}, error) {
+// HandleUpdateRiskDraft updates a risk while keeping it in draft status.
+// It re-fetches the current risk to enforce that only draft risks may be modified
+// from this MCP tool, regardless of the input status supplied by the caller.
+func HandleUpdateRiskDraft(
+	ctx context.Context,
+	updateUC RiskUpdateUseCaseI,
+	getUC RiskGetUseCaseI,
+	sess *session.Session,
+	args map[string]any,
+) (map[string]interface{}, error) {
 	if sess == nil {
 		return nil, ErrNotAuthenticated
 	}
 
-	// Convert args to usecase input with org-scope validation
-	updateInput, err := mapping.ToUpdateRiskInput(args, sess)
-	if err != nil {
-		return nil, fmt.Errorf("invalid update input: %w", err)
-	}
-
-	// Call the usecase
-	risk, err := updateUC.Execute(ctx, updateInput)
+	input, err := mapping.ToUpdateRiskInput(args, sess)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert risk to output map
-	return riskToMap(risk), nil
+	current, err := getUC.Execute(ctx, input.ID, sess.AccessibleOrgIDs)
+	if err != nil {
+		return nil, err
+	}
+	if current.Status != entity.RiskStatusDraft {
+		return nil, ErrRiskNotDraft
+	}
+
+	// Force draft status preservation; ignore any client-supplied transition.
+	input.Status = entity.RiskStatusDraft
+
+	if _, err := updateUC.Execute(ctx, input, sess.AccessibleOrgIDs); err != nil {
+		return nil, err
+	}
+
+	updated, err := getUC.Execute(ctx, input.ID, sess.AccessibleOrgIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return riskToMap(updated), nil
+}
+
+func parseApproverIDs(args map[string]any) []string {
+	raw, ok := args["riskApproverIds"].([]interface{})
+	if !ok {
+		return nil
+	}
+	ids := make([]string, 0, len(raw))
+	for _, v := range raw {
+		if s, ok := v.(string); ok && s != "" {
+			ids = append(ids, s)
+		}
+	}
+	return ids
 }
