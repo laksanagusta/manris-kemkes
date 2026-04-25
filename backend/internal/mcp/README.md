@@ -291,15 +291,15 @@ RISK_APPROVAL_WORKFLOW_ENABLED=true
 ```bash
 cd backend
 
-make build-mcp
+make mcp-build
 ```
 
-Output: `./server-mcp` binary
+Output: `./bin/mcp` binary
 
 ### Running the MCP Server (Standalone)
 
 ```bash
-./server-mcp
+./bin/mcp
 ```
 
 The server will start reading JSON-RPC requests from stdin.
@@ -316,7 +316,7 @@ In your project, create or update `.agents/mcp/manris.json`:
 {
   "name": "manris-mcp",
   "description": "Manris v2 Risk Management MCP Server",
-  "command": "/path/to/backend/server-mcp",
+  "command": "/path/to/backend/bin/mcp",
   "args": [],
   "env": {
     "DATABASE_URL": "postgres://...",
@@ -327,7 +327,7 @@ In your project, create or update `.agents/mcp/manris.json`:
 ```
 
 OpenCode will:
-1. Spawn `server-mcp` as a child process
+1. Spawn `bin/mcp` as a child process
 2. Send JSON-RPC requests over stdin
 3. Receive responses from stdout
 4. Session is per-agent-instance (isolated)
@@ -340,7 +340,7 @@ Claude Code projects use `claude_resources.json` or project context:
 {
   "mcp_servers": {
     "manris": {
-      "command": "/path/to/backend/server-mcp",
+      "command": "/path/to/backend/bin/mcp",
       "env": {
         "DATABASE_URL": "...",
         "JWT_SECRET": "..."
@@ -417,18 +417,18 @@ Common errors:
 
 ```bash
 cd backend
-make build-mcp
-./server-mcp  # starts stdio server
+make mcp-build
+./bin/mcp  # starts stdio server
 ```
 
 ### Production Build
 
 ```bash
 cd backend
-make build-mcp-prod  # compiles with optimizations
+make mcp-build-prod  # compiles with optimizations
 ```
 
-Output: `./server-mcp`
+Output: `./bin/mcp`
 
 ### Docker
 
@@ -436,12 +436,12 @@ Output: `./server-mcp`
 FROM golang:1.25.0-alpine as builder
 WORKDIR /app
 COPY . .
-RUN go build -o server-mcp ./cmd/mcp
+RUN go build -o bin/mcp ./cmd/mcp
 
 FROM alpine:latest
 RUN apk add --no-cache ca-certificates
-COPY --from=builder /app/server-mcp /server-mcp
-ENTRYPOINT ["/server-mcp"]
+COPY --from=builder /app/bin/mcp /bin/mcp
+ENTRYPOINT ["/bin/mcp"]
 ```
 
 ```bash
