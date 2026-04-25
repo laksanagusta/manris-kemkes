@@ -199,7 +199,7 @@ Max Concurrent: 4 (Wave 2)
 > Implementation + Test = ONE Task. Never separate.
 > Every task has: Recommended Agent Profile + Parallelization + QA Scenarios.
 
-- [ ] 1. **Add mcp-go dependency + extract DI to `internal/bootstrap`**
+- [x] 1. **Add mcp-go dependency + extract DI to `internal/bootstrap`**
 
   **What to do**:
   - Add dependency: `cd backend && go get github.com/mark3labs/mcp-go@v0.49.0` (run `go mod tidy`)
@@ -276,7 +276,7 @@ Max Concurrent: 4 (Wave 2)
   - Files: `backend/internal/bootstrap/bootstrap.go`, `backend/cmd/server/main.go`, `backend/go.mod`, `backend/go.sum`
   - Pre-commit: `go build ./... && go vet ./... && go test ./internal/...`
 
-- [ ] 2. **Session manager package (TDD)**
+- [x] 2. **Session manager package (TDD)**
 
   **What to do**:
   - Create `backend/internal/mcp/session/session.go` with:
@@ -341,7 +341,7 @@ Max Concurrent: 4 (Wave 2)
   - Files: `backend/internal/mcp/session/session.go`, `backend/internal/mcp/session/session_test.go`
   - Pre-commit: `go test ./internal/mcp/session/`
 
-- [ ] 3. **Mapping helpers (args ↔ usecase Inputs) TDD**
+- [x] 3. **Mapping helpers (args ↔ usecase Inputs) TDD**
 
   **What to do**:
   - Create `backend/internal/mcp/mapping/risk.go` with pure functions:
@@ -402,7 +402,7 @@ Max Concurrent: 4 (Wave 2)
   - Files: `backend/internal/mcp/mapping/risk.go`, `backend/internal/mcp/mapping/risk_test.go`
   - Pre-commit: `go test ./internal/mcp/mapping/`
 
-- [ ] 4. **Auth tool: `login`**
+- [x] 4. **Auth tool: `login`**
 
   **What to do**:
   - Create `backend/internal/mcp/tools/auth.go` exposing `RegisterAuthTools(srv *server.MCPServer, deps Deps)`.
@@ -469,7 +469,7 @@ Max Concurrent: 4 (Wave 2)
   - Files: `backend/internal/mcp/tools/auth.go`
   - Pre-commit: `go build ./... && go vet ./...`
 
-- [ ] 5. **Query tools: `get_risk` + `list_risks`**
+- [x] 5. **Query tools: `get_risk` + `list_risks`**
 
   **What to do**:
   - Create `backend/internal/mcp/tools/risk_query.go` exposing `RegisterRiskQueryTools(srv, deps)`.
@@ -532,7 +532,7 @@ Max Concurrent: 4 (Wave 2)
   - Files: `backend/internal/mcp/tools/risk_query.go`
   - Pre-commit: `go build ./... && go vet ./...`
 
-- [ ] 6. **Risk write tools: `create_and_approve_risk` + `update_risk_draft`**
+- [x] 6. **Risk write tools: `create_and_approve_risk` + `update_risk_draft`**
 
   **What to do**:
   - Create `backend/internal/mcp/tools/risk_write.go`.
@@ -604,7 +604,7 @@ Max Concurrent: 4 (Wave 2)
   - Files: `backend/internal/mcp/tools/risk_write.go`
   - Pre-commit: `go build ./... && go vet ./...`
 
-- [ ] 7. **Monitoring tools: `monitor_and_approve_risk` + `update_monitoring_draft`**
+- [x] 7. **Monitoring tools: `monitor_and_approve_risk` + `update_monitoring_draft`**
 
   **What to do**:
   - Create `backend/internal/mcp/tools/monitoring.go`.
@@ -670,7 +670,7 @@ Max Concurrent: 4 (Wave 2)
   - Files: `backend/internal/mcp/tools/monitoring.go`
   - Pre-commit: `go build ./... && go vet ./...`
 
-- [ ] 8. **MCP server binary: `cmd/mcp/main.go` + tool registration**
+- [x] 8. **MCP server binary: `cmd/mcp/main.go` + tool registration**
 
   **What to do**:
   - Create `backend/cmd/mcp/main.go`:
@@ -742,7 +742,7 @@ Max Concurrent: 4 (Wave 2)
   - Files: `backend/cmd/mcp/main.go`
   - Pre-commit: `go build ./...`
 
-- [ ] 9. **Makefile target + README + client config snippets**
+- [x] 9. **Makefile target + README + client config snippets**
 
   **What to do**:
   - Edit `backend/Makefile`: add `mcp-build` (`go build -o bin/mcp ./cmd/mcp`) and `mcp-run` (`./bin/mcp`) targets. Add `mcp-test` target running `go test -tags=integration ./cmd/mcp/...`.
@@ -811,7 +811,7 @@ Max Concurrent: 4 (Wave 2)
   - Files: `backend/Makefile`, `backend/internal/mcp/README.md`
   - Pre-commit: `make mcp-build`
 
-- [ ] 10. **Integration test harness (JSON-RPC over stdio, build tag `integration`)**
+- [x] 10. **Integration test harness (JSON-RPC over stdio, build tag `integration`)**
 
   **What to do**:
   - Create `backend/cmd/mcp/integration_test.go` with `//go:build integration`.
@@ -885,19 +885,19 @@ Max Concurrent: 4 (Wave 2)
 
 > 4 review agents run in PARALLEL. ALL must APPROVE. Present consolidated results to user and get explicit "okay" before completing.
 
-- [ ] F1. **Plan Compliance Audit** — `oracle`
+- [x] F1. **Plan Compliance Audit** — `oracle`
   Read this plan end-to-end. For each "Must Have": verify implementation exists (read file, run binary, assert behavior). For each "Must NOT Have": grep codebase for forbidden patterns (calls to `ApprovalActionUseCase` from MCP layer, multi-session map, JWT in tool output, modifications to existing usecase files outside bootstrap.go) — reject with file:line if found. Check evidence files exist in `.sisyphus/evidence/`.
   Output: `Must Have [N/N] | Must NOT Have [N/N] | Tasks [N/N] | VERDICT: APPROVE/REJECT`
 
-- [ ] F2. **Code Quality Review** — `unspecified-high`
+- [x] F2. **Code Quality Review** — `unspecified-high`
   Run `go build ./...`, `go vet ./...`, `go test ./...`, `go test -tags=integration ./cmd/mcp/...`. Review all new files for: empty error returns, `interface{}` abuse, leftover `fmt.Println`, commented-out code, AI slop (over-abstraction, generic names like `data/result/item/temp`, redundant comments), tool description bloat (>200 chars).
   Output: `Build [PASS/FAIL] | Vet [PASS/FAIL] | Tests [N pass/N fail] | Files [N clean/N issues] | VERDICT`
 
-- [ ] F3. **Real Manual QA** — `unspecified-high`
+- [x] F3. **Real Manual QA** — `unspecified-high`
   Set `RISK_APPROVAL_WORKFLOW_ENABLED=false`, build binary, execute EVERY QA scenario from EVERY task via JSON-RPC over stdin. Verify DB state via psql. Test sequence: login → list_risks → create_and_approve_risk (assert status=approved) → get_risk → update_risk_draft (on a draft) → monitor_and_approve_risk → update_monitoring_draft. Save raw JSON-RPC traces to `.sisyphus/evidence/final-qa/`.
   Output: `Scenarios [N/N pass] | Integration [N/N] | Negative [N tested] | VERDICT`
 
-- [ ] F4. **Scope Fidelity Check** — `deep`
+- [x] F4. **Scope Fidelity Check** — `deep`
   For each task: read "What to do", read actual diff (`git log/diff`). Verify 1:1 — everything in spec was built (no missing), nothing beyond spec (no creep). Special check: bootstrap refactor commit MUST be mechanical only (no new interfaces/abstractions). Verify no usecase code was modified outside DI wiring. Detect cross-task contamination.
   Output: `Tasks [N/N compliant] | Bootstrap [MECHANICAL/IMPURE] | Contamination [CLEAN/N issues] | VERDICT`
 

@@ -39,3 +39,17 @@ make mcp-build && ls -la bin/mcp
 make mcp-test
 git diff --stat HEAD -- backend/internal/usecase/ backend/internal/handler/ backend/internal/repository/ backend/internal/domain/ frontend/ .sisyphus/plans/mcp-server.md  # MUST be empty
 ```
+
+## Post-completion polish: Env file auto-discovery for MCP binary
+
+**Pattern:** When a binary may be spawned from arbitrary working directories (e.g., by LLM clients like opencode/Claude Code), implement a fallback chain for loading `.env`:
+1. Check `MANRIS_ENV_FILE` env var (explicit override)
+2. Try `.env` in cwd (supports local overrides)
+3. Try `.env` in binary's directory (for self-contained deployments)
+4. Try `.env` in parent of binary's directory (our use case: binary at `backend/bin/mcp`, config at `backend/.env`)
+
+**Implementation:** Extract into a helper function `loadEnvFile()` that returns the resolved absolute path and logs each attempt. Call before `config.Load()`. Missing `.env` is not fatal — env vars may come from parent process or explicit `env` block in client config.
+
+**Verification:** Test from `/tmp` to confirm binary finds config relative to its own location, not cwd. Eliminates need for users to duplicate env vars in MCP client configs like opencode.json.
+
+**User feedback addressed:** "kenapa aku harus memasukkan env ke configurasi di LLMnya ya?" → With this fix, MCP config becomes just `{"command": "/path/to/bin/mcp"}` without needing to duplicate DATABASE_URL, JWT_SECRET, OPENAI_API_KEY, etc.
