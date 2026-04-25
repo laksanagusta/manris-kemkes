@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -46,6 +47,10 @@ type MCPServerHarness struct {
 func NewMCPServerHarness(ctx context.Context, binaryPath string) (*MCPServerHarness, error) {
 	cmd := exec.CommandContext(ctx, binaryPath)
 
+	if absPath, err := filepath.Abs(binaryPath); err == nil {
+		cmd.Dir = filepath.Dir(filepath.Dir(absPath))
+	}
+
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create stdin pipe: %w", err)
@@ -72,7 +77,63 @@ func NewMCPServerHarness(ctx context.Context, binaryPath string) (*MCPServerHarn
 
 	go harness.readResponses()
 
+	// MCP initialize handshake: blocks until the binary's bootstrap
+	// (DB connect + usecase wiring) completes, preventing tool-call races.
+	if err := harness.initialize(ctx); err != nil {
+		_ = harness.Close()
+		return nil, fmt.Errorf("mcp initialize handshake failed: %w", err)
+	}
+
 	return harness, nil
+}
+
+// initialize performs the MCP `initialize` JSON-RPC handshake.
+func (h *MCPServerHarness) initialize(ctx context.Context) error {
+	h.mu.Lock()
+	id := h.nextID
+	h.nextID++
+	h.mu.Unlock()
+
+	req := JSONRPCRequest{
+		JSONRPC: "2.0",
+		ID:      id,
+		Method:  "initialize",
+		Params: map[string]interface{}{
+			"protocolVersion": "2024-11-05",
+			"capabilities":    map[string]interface{}{},
+			"clientInfo": map[string]interface{}{
+				"name":    "manris-e2e-harness",
+				"version": "1.0.0",
+			},
+		},
+	}
+
+	data, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("marshal initialize: %w", err)
+	}
+
+	if _, err := io.WriteString(h.stdin, string(data)+"\n"); err != nil {
+		return fmt.Errorf("write initialize: %w", err)
+	}
+
+	timeout := time.After(10 * time.Second)
+	for {
+		select {
+		case resp := <-h.respCh:
+			if resp.ID == id {
+				if resp.Error != nil {
+					return fmt.Errorf("initialize error: %s", resp.Error.Message)
+				}
+				return nil
+			}
+			continue
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-timeout:
+			return fmt.Errorf("initialize timeout")
+		}
+	}
 }
 
 func (h *MCPServerHarness) readResponses() {
