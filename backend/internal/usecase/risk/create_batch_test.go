@@ -139,7 +139,7 @@ var _ repo.OrganizationRepository = (*fakeBatchOrgRepo)(nil)
 func TestCreateRiskBatchUseCase_Execute_PartialSuccess(t *testing.T) {
 	riskRepo := &fakeBatchRiskRepo{}
 	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
-	batchUC := NewCreateRiskBatchUseCase(createUC)
+	batchUC := NewCreateRiskBatchUseCase(createUC, &fakeBatchUserRepo{})
 	createdBy := uuid.New()
 
 	result, err := batchUC.Execute(context.Background(), CreateRiskBatchInput{
@@ -195,10 +195,10 @@ func TestCreateRiskBatchUseCase_Execute_PartialSuccess(t *testing.T) {
 	}
 }
 
-func TestCreateRiskBatchUseCase_Execute_RequiresMitigationOwner(t *testing.T) {
+func TestCreateRiskBatchUseCase_Execute_DefaultsMitigationOwnerToSubmitter(t *testing.T) {
 	riskRepo := &fakeBatchRiskRepo{}
 	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
-	batchUC := NewCreateRiskBatchUseCase(createUC)
+	batchUC := NewCreateRiskBatchUseCase(createUC, &fakeBatchUserRepo{})
 	createdBy := uuid.New()
 
 	result, err := batchUC.Execute(context.Background(), CreateRiskBatchInput{
@@ -227,18 +227,21 @@ func TestCreateRiskBatchUseCase_Execute_RequiresMitigationOwner(t *testing.T) {
 	if len(result.Items) != 1 {
 		t.Fatalf("expected 1 item, got %d", len(result.Items))
 	}
-	if result.Items[0].Status != "failed" {
-		t.Fatalf("expected item failed, got %s", result.Items[0].Status)
+	if result.Items[0].Status != "created" {
+		t.Fatalf("expected item created, got %s: %s", result.Items[0].Status, result.Items[0].Error)
 	}
-	if len(riskRepo.created) != 0 {
-		t.Fatalf("expected no created risks, got %d", len(riskRepo.created))
+	if len(riskRepo.created) != 1 {
+		t.Fatalf("expected 1 created risk, got %d", len(riskRepo.created))
+	}
+	if riskRepo.created[0].Mitigations[0].Owner != "Tester" {
+		t.Fatalf("expected mitigation owner 'Tester', got %q", riskRepo.created[0].Mitigations[0].Owner)
 	}
 }
 
 func TestCreateRiskBatchUseCase_ExecutePersistsCategory(t *testing.T) {
 	riskRepo := &fakeBatchRiskRepo{}
 	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
-	batchUC := NewCreateRiskBatchUseCase(createUC)
+	batchUC := NewCreateRiskBatchUseCase(createUC, &fakeBatchUserRepo{})
 	createdBy := uuid.New()
 
 	result, err := batchUC.Execute(context.Background(), CreateRiskBatchInput{
@@ -277,7 +280,7 @@ func TestCreateRiskBatchUseCase_ExecutePersistsCategory(t *testing.T) {
 func TestCreateRiskBatchUseCase_ExecuteTrimsCategory(t *testing.T) {
 	riskRepo := &fakeBatchRiskRepo{}
 	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
-	batchUC := NewCreateRiskBatchUseCase(createUC)
+	batchUC := NewCreateRiskBatchUseCase(createUC, &fakeBatchUserRepo{})
 	createdBy := uuid.New()
 
 	result, err := batchUC.Execute(context.Background(), CreateRiskBatchInput{

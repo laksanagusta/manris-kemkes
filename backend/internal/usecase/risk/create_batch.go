@@ -7,14 +7,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	apperrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/domain/repository"
 )
 
 type CreateRiskBatchUseCase struct {
 	createUC *CreateRiskUseCase
+	userRepo repository.UserRepository
 }
 
-func NewCreateRiskBatchUseCase(createUC *CreateRiskUseCase) *CreateRiskBatchUseCase {
-	return &CreateRiskBatchUseCase{createUC: createUC}
+func NewCreateRiskBatchUseCase(createUC *CreateRiskUseCase, userRepo repository.UserRepository) *CreateRiskBatchUseCase {
+	return &CreateRiskBatchUseCase{createUC: createUC, userRepo: userRepo}
 }
 
 type CreateRiskBatchItemInput struct {
@@ -64,12 +66,29 @@ type CreateRiskBatchOutput struct {
 func (uc *CreateRiskBatchUseCase) Execute(ctx context.Context, input CreateRiskBatchInput) (*CreateRiskBatchOutput, error) {
 	output := &CreateRiskBatchOutput{Items: make([]CreateRiskBatchItemOutput, 0, len(input.Items))}
 
+	// Resolve submitter name for defaulting mitigation Owner
+	var submitterName string
+	if input.CreatedBy != nil {
+		if user, err := uc.userRepo.GetByID(ctx, *input.CreatedBy); err == nil {
+			submitterName = user.Name
+		}
+	}
+
 	for _, item := range input.Items {
 		itemToCreate := item
 		if itemToCreate.OrganizationID == nil && input.OrganizationID != nil {
 			itemToCreate.OrganizationID = input.OrganizationID
 		}
 		normalized := normalizeBatchItem(itemToCreate)
+
+		// Default empty mitigation Owner to submitter name
+		if submitterName != "" {
+			for i := range normalized.Mitigations {
+				if normalized.Mitigations[i].Owner == "" {
+					normalized.Mitigations[i].Owner = submitterName
+				}
+			}
+		}
 		if err := validateBatchItem(normalized); err != nil {
 			output.Items = append(output.Items, CreateRiskBatchItemOutput{
 				ClientKey: item.ClientKey,

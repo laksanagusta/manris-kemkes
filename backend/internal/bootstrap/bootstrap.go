@@ -296,7 +296,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.RiskCreateUC = riskuc.NewCreateRiskUseCase(c.RiskRepository, c.UserRepository, c.OrgRepository)
-	c.RiskCreateBatchUC = riskuc.NewCreateRiskBatchUseCase(c.RiskCreateUC)
+	c.RiskCreateBatchUC = riskuc.NewCreateRiskBatchUseCase(c.RiskCreateUC, c.UserRepository)
 	c.RiskSpreadsheetUC = riskuc.NewBulkRiskSpreadsheetUseCase(c.OrgRepository, c.UserRepository)
 	c.RiskGetUC = riskuc.NewGetRiskUseCase(c.RiskRepository)
 	c.RiskReassessUC = riskuc.NewCreateRiskReassessmentUseCase(c.RiskRepository)
