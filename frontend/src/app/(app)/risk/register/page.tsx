@@ -555,17 +555,17 @@ export default function RiskRegisterPage() {
     {
       label: "Sedang",
       value: riskLevelCounts.sedang ?? 0,
-      tone: "border-risk-medium/20 bg-risk-medium/10 text-risk-medium",
+      tone: "border-border/60 bg-background/60 text-foreground",
     },
     {
       label: "Rendah",
       value: riskLevelCounts.rendah ?? 0,
-      tone: "border-risk-low/20 bg-risk-low/10 text-risk-low",
+      tone: "border-border/60 bg-background/60 text-foreground",
     },
     {
       label: "Sangat Rendah",
       value: riskLevelCounts.sangat_rendah ?? 0,
-      tone: "border-green-200 bg-green-50 text-green-700",
+      tone: "border-border/60 bg-background/60 text-foreground",
     },
   ];
 
@@ -878,7 +878,7 @@ export default function RiskRegisterPage() {
               </CardTitle>
               <p className="text-xs text-muted-foreground">
                 Pantau risiko aktif, status penilaian terbaru, dan tindak lanjut
-                reassessment pada satu tabel kerja.
+                pemantauan pada satu tabel kerja.
               </p>
             </CardHeader>
             <Table>

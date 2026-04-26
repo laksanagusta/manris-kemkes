@@ -139,10 +139,23 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 		        COALESCE(r.draft_approval_line, '[]'::jsonb),
 		        r.created_at, r.updated_at,
 		        COALESCE(o.name, '') as org_name,
-		        COALESCE(u.name, '') as created_by_name
+		        COALESCE(u.name, '') as created_by_name,
+		        draft.id as draft_id,
+		        draft.status as draft_status,
+		        CASE WHEN draft.id IS NOT NULL THEN true ELSE false END as has_ongoing
 		 FROM risks r
 		 LEFT JOIN organizations o ON r.organization_id = o.id
 		 LEFT JOIN users u ON r.created_by = u.id
+		 LEFT JOIN LATERAL (
+		 	SELECT d.id, d.status
+		 	FROM risks d
+		 	WHERE d.code = r.code
+		 	  AND d.status IN ('assessment_draft', 'assessment_in_review')
+		 	  AND d.created_at > r.created_at
+		 	  AND d.archived_at IS NULL
+		 	ORDER BY d.created_at DESC
+		 	LIMIT 1
+		 ) draft ON true
 		 WHERE r.id = $1`
 	args := []interface{}{id}
 	if len(orgIDs) > 0 {
@@ -160,6 +173,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 		&draftApprovalLineRaw,
 		&risk.CreatedAt, &risk.UpdatedAt,
 		&risk.OrgName, &risk.CreatedByName,
+		&risk.DraftID, &risk.DraftStatus, &risk.HasOngoing,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("find risk by id: %w", err)

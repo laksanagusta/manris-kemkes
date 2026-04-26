@@ -194,7 +194,6 @@ func RegisterRiskMonitoringTools(s *server.MCPServer, c *bootstrap.Container, mg
 			Properties: map[string]interface{}{
 				"riskId":          map[string]interface{}{"type": "string"},
 				"assessmentCycle": map[string]interface{}{"type": "string"},
-				"riskApproverIds": map[string]interface{}{"type": "array"},
 				"submissionType":  map[string]interface{}{"type": "string"},
 			},
 			Required: []string{"riskId", "assessmentCycle"},

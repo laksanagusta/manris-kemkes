@@ -51,14 +51,14 @@ func HandleMonitorRisk(ctx context.Context, reassessmentUC RiskReassessmentUseCa
 		return nil, err
 	}
 
-	approverIDs := make([]string, 0)
-	if approversArg, ok := args["riskApproverIds"].([]interface{}); ok {
-		for _, approverID := range approversArg {
-			if approverIDStr, ok := approverID.(string); ok {
-				approverIDs = append(approverIDs, approverIDStr)
-			}
-		}
-	}
+	// approverIDs := make([]string, 0)
+	// if approversArg, ok := args["riskApproverIds"].([]interface{}); ok {
+	// 	for _, approverID := range approversArg {
+	// 		if approverIDStr, ok := approverID.(string); ok {
+	// 			approverIDs = append(approverIDs, approverIDStr)
+	// 		}
+	// 	}
+	// }
 
 	// submissionType := "approval"
 	// if st, ok := args["submissionType"].(string); ok {
@@ -110,6 +110,8 @@ func HandleUpdateMonitoringDraft(ctx context.Context, updateUC RiskUpdateUseCase
 	if current.Status != entity.RiskStatusDraft {
 		return nil, ErrMonitoringNotDraft
 	}
+
+	mergeRiskUpdateInputWithCurrent(&updateInput, args, current)
 
 	output, err := updateUC.Execute(ctx, updateInput, sess.AccessibleOrgIDs)
 	if err != nil {

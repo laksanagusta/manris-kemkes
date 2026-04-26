@@ -143,7 +143,10 @@ import {
   getRiskVersionDetailHref,
   type RiskRegisterHistoryItem,
 } from "@/lib/risk-history";
-import { AiSuggestionModal, type SuggestionItem } from "@/components/shared/ai-suggestion-modal";
+import {
+  AiSuggestionModal,
+  type SuggestionItem,
+} from "@/components/shared/ai-suggestion-modal";
 
 const RiskLogTimeline = dynamic(
   () =>
@@ -366,7 +369,9 @@ const formSchema = z.object({
 
   riskPriority: z.number().min(0).default(0),
   riskAppetite: z.enum(["dalam_batas", "di_atas_batas"]).default("dalam_batas"),
-  treatmentOption: z.enum(["menghindari", "berbagi", "mitigasi", "menerima"]).optional(),
+  treatmentOption: z
+    .enum(["menghindari", "berbagi", "mitigasi", "menerima"])
+    .optional(),
 
   mitigations: z
     .array(
@@ -608,10 +613,12 @@ export default function RiskInputPage() {
   const nextReviewDate = watch("nextReviewDate") ?? "";
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
-    selectedApprovalLine.length > 0 && approvalLine.every((member) => member.id);
-  const submitActionLabel = riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-    ? "Finalisasi risiko"
-    : "Ajukan review";
+    selectedApprovalLine.length > 0 &&
+    approvalLine.every((member) => member.id);
+  const submitActionLabel =
+    riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+      ? "Finalisasi risiko"
+      : "Ajukan review";
 
   const handleReviewerSelect = useCallback((option: UserPickerOption) => {
     setReviewerId(option.id);
@@ -648,7 +655,9 @@ export default function RiskInputPage() {
   );
 
   const moveApprover = useCallback((fromIndex: number, toIndex: number) => {
-    setApprovalLine((current) => moveApprovalLineRows(current, fromIndex, toIndex));
+    setApprovalLine((current) =>
+      moveApprovalLineRows(current, fromIndex, toIndex),
+    );
   }, []);
 
   const removeApprover = useCallback((rowId: string) => {
@@ -657,7 +666,9 @@ export default function RiskInputPage() {
     );
   }, []);
 
-  const orgFilter = user?.isGlobal ? undefined : user?.organizationId ?? undefined;
+  const orgFilter = user?.isGlobal
+    ? undefined
+    : (user?.organizationId ?? undefined);
 
   const loadReviewerOptions = useCallback(
     async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
@@ -700,16 +711,13 @@ export default function RiskInputPage() {
       });
 
       return {
-        options: filterApproverOptions(
-          result.data.map(toUserPickerOption),
-          {
-            reviewerId,
-            selectedApproverIds: approvalLine
-              .filter((member) => member.rowId !== row.rowId)
-              .map((member) => member.id)
-              .filter(Boolean),
-          },
-        ),
+        options: filterApproverOptions(result.data.map(toUserPickerOption), {
+          reviewerId,
+          selectedApproverIds: approvalLine
+            .filter((member) => member.rowId !== row.rowId)
+            .map((member) => member.id)
+            .filter(Boolean),
+        }),
         total: result.total,
         page: result.page,
         limit: result.limit,
@@ -799,7 +807,12 @@ export default function RiskInputPage() {
           riskAppetite: (risk.riskAppetite === "di_atas_batas"
             ? "di_atas_batas"
             : "dalam_batas") as "dalam_batas" | "di_atas_batas",
-          treatmentOption: risk.treatmentOption as "menghindari" | "berbagi" | "mitigasi" | "menerima" | undefined,
+          treatmentOption: risk.treatmentOption as
+            | "menghindari"
+            | "berbagi"
+            | "mitigasi"
+            | "menerima"
+            | undefined,
           mitigations: Array.isArray(risk.mitigations)
             ? risk.mitigations.map((mitigation) => ({
                 ...mitigation,
@@ -959,7 +972,9 @@ export default function RiskInputPage() {
           const filtered = user?.isGlobal
             ? res
             : filterToAccessibleOrgs(res, user?.accessibleOrgIds || []);
-          setOrganizations(filtered.map((org) => ({ id: org.id, name: org.name })));
+          setOrganizations(
+            filtered.map((org) => ({ id: org.id, name: org.name })),
+          );
         } catch (err) {
           console.error(err);
         }
@@ -1029,7 +1044,13 @@ export default function RiskInputPage() {
           weight: 1.0,
           riskPriority: 0,
           riskAppetite: "dalam_batas",
-          treatmentOption: (meetingPrefill.treatmentOption as "menghindari" | "berbagi" | "mitigasi" | "menerima" | undefined) || undefined,
+          treatmentOption:
+            (meetingPrefill.treatmentOption as
+              | "menghindari"
+              | "berbagi"
+              | "mitigasi"
+              | "menerima"
+              | undefined) || undefined,
           mitigations: meetingPrefill.mitigation
             ? [
                 {
@@ -1066,10 +1087,14 @@ export default function RiskInputPage() {
   // UI state
   const [generatingCause, setGeneratingCause] = useState(false);
   const [causeModalOpen, setCauseModalOpen] = useState(false);
-  const [causeSuggestions, setCauseSuggestions] = useState<SuggestionItem[]>([]);
+  const [causeSuggestions, setCauseSuggestions] = useState<SuggestionItem[]>(
+    [],
+  );
   const [generatingImpact, setGeneratingImpact] = useState(false);
   const [impactModalOpen, setImpactModalOpen] = useState(false);
-  const [impactSuggestions, setImpactSuggestions] = useState<SuggestionItem[]>([]);
+  const [impactSuggestions, setImpactSuggestions] = useState<SuggestionItem[]>(
+    [],
+  );
   const [generatingRisk, setGeneratingRisk] = useState(false);
   const [riskSuggestions, setRiskSuggestions] = useState<RiskSuggestion[]>([]);
   const [showRiskSuggestions, setShowRiskSuggestions] = useState(false);
@@ -1113,13 +1138,7 @@ export default function RiskInputPage() {
         nilai,
         inherentScore: Math.round(nilai),
       }),
-    [
-      impact,
-      nilai,
-      probability,
-      riskStatus,
-      weight,
-    ],
+    [impact, nilai, probability, riskStatus, weight],
   );
   const currentPrimarySnapshot = currentScoreSemantics.effective;
   const currentScoreLabel = "Skor Risiko";
@@ -1202,8 +1221,7 @@ export default function RiskInputPage() {
   const missingSections = sectionStatuses.filter((section) => !section.done);
   const isFinalizeReady = missingSections.length === 0;
   const isRiskLocked =
-    riskStatus === "assessment_in_review" ||
-    riskStatus === "approved";
+    riskStatus === "assessment_in_review" || riskStatus === "approved";
 
   const scrollToSection = (sectionId: SectionId) => {
     if (typeof document === "undefined") return;
@@ -1556,7 +1574,9 @@ export default function RiskInputPage() {
       riskApprovalCapabilityBehavior.requiresApprovalLineSelection &&
       !isApprovalLineReady
     ) {
-      toast.error("Lengkapi setiap baris approver atau hapus baris yang masih kosong.");
+      toast.error(
+        "Lengkapi setiap baris approver atau hapus baris yang masih kosong.",
+      );
       return;
     }
 
@@ -1703,7 +1723,7 @@ export default function RiskInputPage() {
         setImpactSuggestions(
           items.length > 0
             ? items
-            : [{ id: "impact-suggestion-1", text: res.impactDescription }]
+            : [{ id: "impact-suggestion-1", text: res.impactDescription }],
         );
       } else {
         setImpactSuggestions([]);
@@ -1755,21 +1775,21 @@ export default function RiskInputPage() {
           onBack={() => router.push("/risk/register")}
           actions={
             <div className="flex items-center gap-2 sm:gap-3">
-               {ongoingAssessmentId && riskStatus === "approved" && (
-                 <Button
-                   variant="outline"
-                   className="gap-2 border-primary/20 text-primary hover:bg-primary/5 hover:text-primary"
-                   onClick={() =>
-                     router.push(`/risk/assessment/${ongoingAssessmentId}`)
-                   }
-                 >
-                   <Activity className="size-4" />
-                   Detail pemantauan
-                 </Button>
-               )}
+              {ongoingAssessmentId && (
+                <Button
+                  variant="outline"
+                  className="gap-2 border-primary/20 text-primary hover:bg-primary/5 hover:text-primary"
+                  onClick={() =>
+                    router.push(`/risk/assessment/${ongoingAssessmentId}`)
+                  }
+                >
+                  <Activity className="size-4" />
+                  Lihat pemantauan
+                </Button>
+              )}
 
-               {riskId && (
-                 <Sheet
+              {riskId && (
+                <Sheet
                   open={historyOpen}
                   onOpenChange={(open) => {
                     setHistoryOpen(open);
@@ -1823,72 +1843,72 @@ export default function RiskInputPage() {
                           </p>
                         </div>
                       ) : (
-                          <div className="relative pt-2">
-                           <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border/50" />
-                           <div className="flex flex-col gap-4">
-                             {versionHistory.map((item, index) => (
-                               <div
-                                 key={item.id}
-                                 className="flex gap-3 relative"
-                               >
-                                 <div className="shrink-0 size-6 rounded-full bg-background border border-border/50 flex items-center justify-center z-10">
-                                   {item.trend === "up" ? (
-                                     <TrendingUp className="size-3.5 text-risk-extreme" />
-                                   ) : item.trend === "down" ? (
-                                     <TrendingDown className="size-3.5 text-success" />
-                                   ) : (
-                                     <Minus className="size-3.5 text-muted-foreground" />
-                                   )}
-                                 </div>
-                                 <div className="flex-1 min-w-0 pb-2">
-                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                      <Link
-                                        href={getRiskVersionDetailHref(item)}
-                                        className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:no-underline"
-                                      >
-                                        v{versionHistory.length - index}
-                                      </Link>
-                                     <span className="text-sm font-semibold text-muted-foreground">
-                                       {item.cycle}
-                                     </span>
-                                     {item.isCurrent && (
-                                       <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
-                                         Current
-                                       </Badge>
-                                     )}
-                                   </div>
-                                   <div className="flex items-center gap-1.5 mb-1.5">
-                                     <Badge
-                                       variant="outline"
-                                       className={cn(
-                                         "text-[10px] font-semibold border h-5 px-1.5",
-                                         VERSION_LEVEL_BADGE[
-                                           item.previousLevel
-                                         ] || "",
-                                       )}
-                                     >
-                                       {item.previousLevel}
-                                     </Badge>
-                                     <span className="text-muted-foreground text-xs">
-                                       →
-                                     </span>
-                                     <Badge
-                                       variant="outline"
-                                       className={cn(
-                                         "text-[10px] font-semibold border h-5 px-1.5",
-                                         VERSION_LEVEL_BADGE[
-                                           item.currentLevel
-                                         ] || "",
-                                       )}
-                                     >
-                                       {item.currentLevel}
-                                     </Badge>
-                                   </div>
-                                 </div>
-                               </div>
-                             ))}
-                           </div>
-                         </div>
+                        <div className="relative pt-2">
+                          <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border/50" />
+                          <div className="flex flex-col gap-4">
+                            {versionHistory.map((item, index) => (
+                              <div
+                                key={item.id}
+                                className="flex gap-3 relative"
+                              >
+                                <div className="shrink-0 size-6 rounded-full bg-background border border-border/50 flex items-center justify-center z-10">
+                                  {item.trend === "up" ? (
+                                    <TrendingUp className="size-3.5 text-risk-extreme" />
+                                  ) : item.trend === "down" ? (
+                                    <TrendingDown className="size-3.5 text-success" />
+                                  ) : (
+                                    <Minus className="size-3.5 text-muted-foreground" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0 pb-2">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <Link
+                                      href={getRiskVersionDetailHref(item)}
+                                      className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:no-underline"
+                                    >
+                                      v{versionHistory.length - index}
+                                    </Link>
+                                    <span className="text-sm font-semibold text-muted-foreground">
+                                      {item.cycle}
+                                    </span>
+                                    {item.isCurrent && (
+                                      <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
+                                        Current
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mb-1.5">
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-[10px] font-semibold border h-5 px-1.5",
+                                        VERSION_LEVEL_BADGE[
+                                          item.previousLevel
+                                        ] || "",
+                                      )}
+                                    >
+                                      {item.previousLevel}
+                                    </Badge>
+                                    <span className="text-muted-foreground text-xs">
+                                      →
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-[10px] font-semibold border h-5 px-1.5",
+                                        VERSION_LEVEL_BADGE[
+                                          item.currentLevel
+                                        ] || "",
+                                      )}
+                                    >
+                                      {item.currentLevel}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </SheetContent>
@@ -1930,14 +1950,14 @@ export default function RiskInputPage() {
                     className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={openSubmitReviewConfirm}
                     disabled={isSubmitting}
-                   >
-                     {isSubmitting && submitTarget.current === "review" ? (
-                       <Loader2 className="size-4 animate-spin" />
-                     ) : (
-                       <Send className="size-4" />
-                     )}{" "}
-                     {submitActionLabel}
-                   </Button>
+                  >
+                    {isSubmitting && submitTarget.current === "review" ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Send className="size-4" />
+                    )}{" "}
+                    {submitActionLabel}
+                  </Button>
                 </div>
               )}
             </div>
@@ -2413,7 +2433,8 @@ export default function RiskInputPage() {
                   </AccordionTrigger>
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
                     <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md border border-border/50">
-                      Nilai probabilitas dan dampak sudah mempertimbangkan kontrol yang ada (residual risk).
+                      Nilai probabilitas dan dampak sudah mempertimbangkan
+                      kontrol yang ada (residual risk).
                     </p>
                     <div className="space-y-1.5">
                       <Label className="text-sm font-medium">
@@ -2503,7 +2524,9 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">Dampak (Residual)</Label>
+                        <Label className="text-sm font-medium">
+                          Dampak (Residual)
+                        </Label>
                         <div className="grid grid-cols-5 gap-1.5">
                           {[1, 2, 3, 4, 5].map((val) => (
                             <Tooltip key={val}>
@@ -2666,10 +2689,21 @@ export default function RiskInputPage() {
                               <SelectValue placeholder="Pilih penanganan" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="menghindari" className="text-sm">Menghindari Risiko</SelectItem>
-                              <SelectItem value="berbagi" className="text-sm">Berbagi Risiko</SelectItem>
-                              <SelectItem value="mitigasi" className="text-sm">Mitigasi</SelectItem>
-                              <SelectItem value="menerima" className="text-sm">Menerima Risiko</SelectItem>
+                              <SelectItem
+                                value="menghindari"
+                                className="text-sm"
+                              >
+                                Menghindari Risiko
+                              </SelectItem>
+                              <SelectItem value="berbagi" className="text-sm">
+                                Berbagi Risiko
+                              </SelectItem>
+                              <SelectItem value="mitigasi" className="text-sm">
+                                Mitigasi
+                              </SelectItem>
+                              <SelectItem value="menerima" className="text-sm">
+                                Menerima Risiko
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         )}
@@ -2760,15 +2794,19 @@ export default function RiskInputPage() {
                         .join("\n")}
                       onSelect={(action) => {
                         const current = form.getValues("mitigations") || [];
-                        setValue("mitigations", [
-                          ...current,
-                          {
-                            action,
-                            owner: "",
-                            dueDate: "",
-                            frequency: "insidental",
-                          },
-                        ], { shouldValidate: true });
+                        setValue(
+                          "mitigations",
+                          [
+                            ...current,
+                            {
+                              action,
+                              owner: "",
+                              dueDate: "",
+                              frequency: "insidental",
+                            },
+                          ],
+                          { shouldValidate: true },
+                        );
                       }}
                       existingActions={(mitigations || []).map(
                         (mitigation) => mitigation.action,
@@ -2973,8 +3011,8 @@ export default function RiskInputPage() {
                             <span className="text-destructive ml-0.5">*</span>
                           </Label>
                           <p className="text-xs text-muted-foreground">
-                            Pilih reviewer yang akan memeriksa dan memberikan skor
-                            penilaian resmi sebelum risiko ini diajukan ke
+                            Pilih reviewer yang akan memeriksa dan memberikan
+                            skor penilaian resmi sebelum risiko ini diajukan ke
                             pimpinan.
                           </p>
                         </div>
@@ -3150,7 +3188,9 @@ export default function RiskInputPage() {
               {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
                 <>
                   <div>
-                    <span className="font-medium text-foreground">Reviewer: </span>
+                    <span className="font-medium text-foreground">
+                      Reviewer:{" "}
+                    </span>
                     <span className="text-muted-foreground">
                       {reviewerOption?.name || "-"}
                     </span>
@@ -3202,7 +3242,9 @@ export default function RiskInputPage() {
               text: item.text,
             }));
             const currentCauses = form.getValues("causes") || [];
-            setValue("causes", [...currentCauses, ...newItems], { shouldValidate: true });
+            setValue("causes", [...currentCauses, ...newItems], {
+              shouldValidate: true,
+            });
           }}
         />
 
@@ -3219,10 +3261,11 @@ export default function RiskInputPage() {
               text: item.text,
             }));
             const currentImpacts = form.getValues("impacts") || [];
-            setValue("impacts", [...currentImpacts, ...newItems], { shouldValidate: true });
+            setValue("impacts", [...currentImpacts, ...newItems], {
+              shouldValidate: true,
+            });
           }}
         />
-
       </div>
     </TooltipProvider>
   );

@@ -143,3 +143,60 @@ func TestHandleUpdateMonitoringDraft_NoSession(t *testing.T) {
 		t.Errorf("expected nil output on auth error")
 	}
 }
+
+func TestHandleUpdateMonitoringDraft_MergesCurrentFieldsForPartialUpdate(t *testing.T) {
+	riskID := uuid.New()
+	orgID := uuid.New()
+	userID := uuid.New()
+
+	currentRisk := &entity.Risk{
+		ID:                 riskID,
+		Code:               "R001",
+		Title:              "Monitoring draft",
+		Category:           entity.RiskCategoryOperasional,
+		Status:             entity.RiskStatusDraft,
+		OrganizationID:     &orgID,
+		Probability:        2,
+		Impact:             4,
+		AssessmentCycle:    "2026-H1",
+		ReviewSummary:      "Current summary",
+		ReviewScheduleText: "Semester review",
+	}
+
+	mockUpdateUC := &mockRiskUpdateUC{output: &riskuc.UpdateRiskOutput{ID: riskID, Code: "R001"}}
+	mockGetUC := &mockRiskGetUC{risk: currentRisk}
+
+	sess := &session.Session{
+		UserID:           userID,
+		Username:         "testuser",
+		AccessibleOrgIDs: []uuid.UUID{orgID},
+	}
+
+	args := map[string]any{
+		"id":            riskID.String(),
+		"reviewSummary": "Updated summary",
+	}
+
+	if _, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, mockGetUC, sess, args); err != nil {
+		t.Fatalf("HandleUpdateMonitoringDraft failed: %v", err)
+	}
+
+	if mockUpdateUC.input.Category != currentRisk.Category {
+		t.Fatalf("expected category %q, got %q", currentRisk.Category, mockUpdateUC.input.Category)
+	}
+	if mockUpdateUC.input.Status != currentRisk.Status {
+		t.Fatalf("expected status %q, got %q", currentRisk.Status, mockUpdateUC.input.Status)
+	}
+	if mockUpdateUC.input.Probability != currentRisk.Probability {
+		t.Fatalf("expected probability %d, got %d", currentRisk.Probability, mockUpdateUC.input.Probability)
+	}
+	if mockUpdateUC.input.Impact != currentRisk.Impact {
+		t.Fatalf("expected impact %d, got %d", currentRisk.Impact, mockUpdateUC.input.Impact)
+	}
+	if mockUpdateUC.input.ReviewSummary != "Updated summary" {
+		t.Fatalf("expected updated review summary, got %q", mockUpdateUC.input.ReviewSummary)
+	}
+	if mockUpdateUC.input.AssessmentCycle != currentRisk.AssessmentCycle {
+		t.Fatalf("expected assessment cycle %q, got %q", currentRisk.AssessmentCycle, mockUpdateUC.input.AssessmentCycle)
+	}
+}

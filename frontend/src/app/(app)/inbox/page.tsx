@@ -549,12 +549,12 @@ export default function InboxPage() {
 
   const summaryCards = [
     {
-      label: "Total Permintaan",
+      label: "Total",
       value: counts.all,
       tone: "border-border/60 bg-background/60 text-foreground",
     },
     {
-      label: "Persetujuan Saya",
+      label: "Perlu Persetujuan",
       value: counts.myApprovals,
       tone: "border-primary/20 bg-primary/10 text-primary",
     },

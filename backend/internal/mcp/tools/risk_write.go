@@ -87,9 +87,6 @@ func HandleCreateRisk(
 	}, nil
 }
 
-// HandleUpdateRiskDraft updates a risk while keeping it in draft status.
-// It re-fetches the current risk to enforce that only draft risks may be modified
-// from this MCP tool, regardless of the input status supplied by the caller.
 func HandleUpdateRiskDraft(
 	ctx context.Context,
 	updateUC RiskUpdateUseCaseI,
@@ -114,8 +111,7 @@ func HandleUpdateRiskDraft(
 		return nil, ErrRiskNotDraft
 	}
 
-	// Force draft status preservation; ignore any client-supplied transition.
-	input.Status = entity.RiskStatusDraft
+	mergeRiskUpdateInputWithCurrent(&input, args, current)
 
 	if _, err := updateUC.Execute(ctx, input, sess.AccessibleOrgIDs); err != nil {
 		return nil, err

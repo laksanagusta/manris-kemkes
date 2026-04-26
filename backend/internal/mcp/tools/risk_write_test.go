@@ -176,6 +176,67 @@ func TestHandleUpdateRiskDraft_NotDraftStatus(t *testing.T) {
 	}
 }
 
+func TestHandleUpdateRiskDraft_MergesCurrentFieldsForStatusOnlyUpdate(t *testing.T) {
+	riskID := uuid.New()
+	orgID := uuid.New()
+	userID := uuid.New()
+
+	currentRisk := &entity.Risk{
+		ID:             riskID,
+		Code:           "R001",
+		Title:          "Existing Risk",
+		Description:    "Existing description",
+		Category:       entity.RiskCategoryKebijakan,
+		Status:         entity.RiskStatusDraft,
+		OrganizationID: &orgID,
+		Probability:    4,
+		Impact:         3,
+	}
+
+	mockGetUC := &mockRiskGetUC{risk: currentRisk}
+	mockUpdateUC := &mockRiskUpdateUC{output: &riskuc.UpdateRiskOutput{ID: riskID, Code: "R001"}}
+
+	sess := &session.Session{
+		UserID:           userID,
+		Username:         "testuser",
+		AccessibleOrgIDs: []uuid.UUID{orgID},
+	}
+
+	args := map[string]any{
+		"id":     riskID.String(),
+		"status": entity.RiskStatusApproved,
+	}
+
+	if _, err := HandleUpdateRiskDraft(context.Background(), mockUpdateUC, mockGetUC, sess, args); err != nil {
+		t.Fatalf("HandleUpdateRiskDraft failed: %v", err)
+	}
+
+	if mockUpdateUC.input.Title != currentRisk.Title {
+		t.Fatalf("expected title %q, got %q", currentRisk.Title, mockUpdateUC.input.Title)
+	}
+	if mockUpdateUC.input.Description != currentRisk.Description {
+		t.Fatalf("expected description %q, got %q", currentRisk.Description, mockUpdateUC.input.Description)
+	}
+	if mockUpdateUC.input.Category != currentRisk.Category {
+		t.Fatalf("expected category %q, got %q", currentRisk.Category, mockUpdateUC.input.Category)
+	}
+	if mockUpdateUC.input.Status != entity.RiskStatusApproved {
+		t.Fatalf("expected status %q, got %q", entity.RiskStatusApproved, mockUpdateUC.input.Status)
+	}
+	if mockUpdateUC.input.OrganizationID == nil || *mockUpdateUC.input.OrganizationID != orgID {
+		t.Fatalf("expected organization id %s, got %v", orgID, mockUpdateUC.input.OrganizationID)
+	}
+	if mockUpdateUC.input.Probability != currentRisk.Probability {
+		t.Fatalf("expected probability %d, got %d", currentRisk.Probability, mockUpdateUC.input.Probability)
+	}
+	if mockUpdateUC.input.Impact != currentRisk.Impact {
+		t.Fatalf("expected impact %d, got %d", currentRisk.Impact, mockUpdateUC.input.Impact)
+	}
+	if len(mockUpdateUC.orgIDs) != 1 || mockUpdateUC.orgIDs[0] != orgID {
+		t.Fatalf("expected org scope [%s], got %v", orgID, mockUpdateUC.orgIDs)
+	}
+}
+
 func TestHandleCreateAndApproveRisk_CreateUseCaseError(t *testing.T) {
 	orgID := uuid.New()
 	userID := uuid.New()

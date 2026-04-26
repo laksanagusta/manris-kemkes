@@ -21,9 +21,13 @@ func (m *mockRiskCreateUC) Execute(ctx context.Context, input riskuc.CreateRiskI
 type mockRiskUpdateUC struct {
 	output *riskuc.UpdateRiskOutput
 	err    error
+	input  riskuc.UpdateRiskInput
+	orgIDs []uuid.UUID
 }
 
 func (m *mockRiskUpdateUC) Execute(ctx context.Context, input riskuc.UpdateRiskInput, orgIDs []uuid.UUID) (*riskuc.UpdateRiskOutput, error) {
+	m.input = input
+	m.orgIDs = append([]uuid.UUID(nil), orgIDs...)
 	return m.output, m.err
 }
 
