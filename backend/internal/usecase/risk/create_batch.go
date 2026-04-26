@@ -43,8 +43,9 @@ type CreateRiskBatchItemInput struct {
 }
 
 type CreateRiskBatchInput struct {
-	Items     []CreateRiskBatchItemInput `json:"items"`
-	CreatedBy *uuid.UUID                 `json:"createdBy,omitempty"`
+	Items          []CreateRiskBatchItemInput `json:"items"`
+	CreatedBy      *uuid.UUID                 `json:"createdBy,omitempty"`
+	OrganizationID *uuid.UUID                 `json:"organizationId,omitempty"`
 }
 
 type CreateRiskBatchItemOutput struct {
@@ -64,7 +65,11 @@ func (uc *CreateRiskBatchUseCase) Execute(ctx context.Context, input CreateRiskB
 	output := &CreateRiskBatchOutput{Items: make([]CreateRiskBatchItemOutput, 0, len(input.Items))}
 
 	for _, item := range input.Items {
-		normalized := normalizeBatchItem(item)
+		itemToCreate := item
+		if itemToCreate.OrganizationID == nil && input.OrganizationID != nil {
+			itemToCreate.OrganizationID = input.OrganizationID
+		}
+		normalized := normalizeBatchItem(itemToCreate)
 		if err := validateBatchItem(normalized); err != nil {
 			output.Items = append(output.Items, CreateRiskBatchItemOutput{
 				ClientKey: item.ClientKey,
@@ -124,6 +129,9 @@ func normalizeBatchItem(item CreateRiskBatchItemInput) CreateRiskBatchItemInput 
 	item.Title = strings.TrimSpace(item.Title)
 	item.Description = strings.TrimSpace(item.Description)
 	item.Category = strings.TrimSpace(item.Category)
+	if item.Category == "" {
+		item.Category = "operasional"
+	}
 	item.RiskSource = strings.TrimSpace(item.RiskSource)
 	item.ExistingControl = strings.TrimSpace(item.ExistingControl)
 	item.RiskAppetite = strings.TrimSpace(item.RiskAppetite)
@@ -134,6 +142,12 @@ func normalizeBatchItem(item CreateRiskBatchItemInput) CreateRiskBatchItemInput 
 		item.Mitigations[i].Action = strings.TrimSpace(item.Mitigations[i].Action)
 		item.Mitigations[i].Owner = strings.TrimSpace(item.Mitigations[i].Owner)
 	}
+	if item.Weight == 0 && item.Probability > 0 && item.Impact > 0 {
+		item.Weight = entity.GetBobot(item.Probability, item.Impact)
+	}
+	if item.TargetWeight == 0 && item.TargetProbability > 0 && item.TargetImpact > 0 {
+		item.TargetWeight = entity.GetBobot(item.TargetProbability, item.TargetImpact)
+	}
 	return item
 }
 
@@ -141,8 +155,13 @@ func validateBatchItem(item CreateRiskBatchItemInput) error {
 	if item.Title == "" {
 		return apperrors.Wrap(apperrors.ErrInvalidTitle, "title is required")
 	}
-	if item.Description == "" {
-		return apperrors.Wrap(apperrors.ErrInvalidDescription, "description is required")
+	if item.Category != "" {
+		if !entity.IsValidRiskCategory(item.Category) {
+			return apperrors.Wrap(apperrors.ErrInvalidRiskCategory, "invalid risk category")
+		}
+	}
+	if item.Controllability != "" && item.Controllability != "C" && item.Controllability != "UC" {
+		return apperrors.Wrap(apperrors.ErrInvalidInput, "controllability must be C or UC")
 	}
 	if item.Probability < 1 || item.Probability > 5 {
 		return apperrors.ErrInvalidProbability
@@ -159,9 +178,6 @@ func validateBatchItem(item CreateRiskBatchItemInput) error {
 	for _, mitigation := range item.Mitigations {
 		if mitigation.Action == "" {
 			return apperrors.Wrap(apperrors.ErrInvalidAction, "mitigation action is required")
-		}
-		if mitigation.Owner == "" {
-			return apperrors.Wrap(apperrors.ErrInvalidOwner, "mitigation owner is required")
 		}
 	}
 	return nil

@@ -12,6 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -87,12 +94,16 @@ function statusBadgeClass(preview: BulkRiskPreview) {
 
 export default function BulkRiskRegisterPage() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [sourceName, setSourceName] = useState("");
   const [previews, setPreviews] = useState<BulkRiskPreview[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resultItems, setResultItems] = useState<RiskBatchResultItem[]>([]);
+  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
+
+  const isUnitRole = user?.role === "unit";
+  const effectiveOrgId = isUnitRole ? (user?.organizationId ?? "") : selectedOrgId;
 
   const validRows = useMemo(
     () => previews.filter((preview) => preview.payload && preview.errors.length === 0),
@@ -109,12 +120,22 @@ export default function BulkRiskRegisterPage() {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
+    if (!isUnitRole && !selectedOrgId) {
+      toast.error("Pilih unit kerja terlebih dahulu.");
+      return;
+    }
 
     setIsParsing(true);
     try {
       const form = new FormData();
       form.append("file", file);
-      const response = await api.postForm<PreviewResponse>("/risks/batch/preview", form, token);
+      const queryParams = new URLSearchParams();
+      if (!isUnitRole && selectedOrgId) {
+        queryParams.append("organization_id", selectedOrgId);
+      }
+      const query = queryParams.toString();
+      const path = `/risks/batch/preview${query ? `?${query}` : ""}`;
+      const response = await api.postForm<PreviewResponse>(path, form, token);
       setPreviews(response.items);
       setResultItems([]);
       setSourceName(file.name);
@@ -169,12 +190,20 @@ export default function BulkRiskRegisterPage() {
       toast.error("Belum ada baris valid untuk disubmit.");
       return;
     }
+    if (!isUnitRole && !selectedOrgId) {
+      toast.error("Pilih unit kerja terlebih dahulu.");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
+      const items = validRows.flatMap((row) => row.payload ? [{
+        ...row.payload,
+        organizationId: effectiveOrgId || row.payload.organizationId,
+      }] : []);
       const response = await api.post<BatchResponse>(
         "/risks/batch",
-        { items: validRows.flatMap((row) => (row.payload ? [row.payload] : [])) },
+        { items },
         token,
       );
       setResultItems(response.items);
@@ -253,6 +282,24 @@ export default function BulkRiskRegisterPage() {
           <CardTitle className="text-base font-semibold text-foreground">Preview Validasi</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 px-6 py-6">
+          {!isUnitRole && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Unit Kerja</label>
+              <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                <SelectTrigger className="w-full md:w-64">
+                  <SelectValue placeholder="Pilih unit kerja" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(user?.accessibleOrgIds ?? []).map((orgId) => (
+                    <SelectItem key={orgId} value={orgId}>
+                      {orgId}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {previews.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/60 bg-background px-5 py-10 text-center text-sm text-muted-foreground">
               Belum ada data. Upload template untuk mulai review.
@@ -272,8 +319,10 @@ export default function BulkRiskRegisterPage() {
                   <TableRow key={preview.clientKey}>
                     <TableCell>{preview.rowNumber}</TableCell>
                     <TableCell className="max-w-[320px] whitespace-normal">
-                      <p className="font-medium text-foreground">{preview.raw["Risiko"] || "-"}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{preview.raw["Unit Kerja"] || "Mengikuti unit user login"}</p>
+                      <p className="font-medium text-foreground">{preview.raw["RISIKO"] || preview.raw["Risiko"] || "-"}</p>
+                      {effectiveOrgId && (
+                        <p className="mt-1 text-xs text-muted-foreground">{effectiveOrgId}</p>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn("font-normal", statusBadgeClass(preview))}>

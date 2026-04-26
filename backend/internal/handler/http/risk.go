@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -412,6 +413,17 @@ func (h *RiskHandler) PreviewRiskBatchUpload(c *fiber.Ctx) error {
 	if err != nil {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "file is required")
 	}
+	// Max 5MB file size
+	const maxUploadSize = 5 << 20 // 5MB
+	if fileHeader.Size > maxUploadSize {
+		return sendProblemDetails(c, 413, "Payload Too Large", "https://api.manris.com/errors/payload-too-large", "file size exceeds 5MB limit")
+	}
+	// Server-side file extension validation
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	allowedExts := map[string]bool{".xlsx": true, ".xls": true, ".csv": true}
+	if !allowedExts[ext] {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "file must be .xlsx, .xls, or .csv")
+	}
 	file, err := fileHeader.Open()
 	if err != nil {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "failed to open uploaded file")
@@ -425,10 +437,21 @@ func (h *RiskHandler) PreviewRiskBatchUpload(c *fiber.Ctx) error {
 	if !ok {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
 	}
+
+	var orgID *uuid.UUID
+	if orgIDStr := c.Query("organization_id"); orgIDStr != "" {
+		parsed, err := uuid.Parse(orgIDStr)
+		if err != nil {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
+		}
+		orgID = &parsed
+	}
+
 	result, err := h.spreadsheetUC.Preview(c.Context(), riskuc.BulkRiskSpreadsheetInput{
-		Filename:   fileHeader.Filename,
-		Content:    content,
-		UploaderID: userID,
+		Filename:       fileHeader.Filename,
+		Content:        content,
+		UploaderID:     userID,
+		OrganizationID: orgID,
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -479,24 +502,28 @@ func (h *RiskHandler) CreateRiskBatch(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", fmt.Sprintf("invalid request body: %v", err))
 	}
-
+	const maxBatchSize = 100
+	if len(req.Items) > maxBatchSize {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", fmt.Sprintf("batch size exceeds %d items limit", maxBatchSize))
+	}
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
 	}
 
-	// Scope enforcement — validate each item's org
-	scope := middleware.GetAccessScope(c)
-	for _, item := range req.Items {
-		if item.OrganizationID != nil && scope != nil && !scope.CanWrite(*item.OrganizationID) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden",
-				fmt.Sprintf("cannot create risk in organization %s", item.OrganizationID.String()))
+	var orgID *uuid.UUID
+	if orgIDStr := c.Query("organization_id"); orgIDStr != "" {
+		parsed, err := uuid.Parse(orgIDStr)
+		if err != nil {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
 		}
+		orgID = &parsed
 	}
 
 	result, err := h.createBatchUC.Execute(c.Context(), riskuc.CreateRiskBatchInput{
-		Items:     req.Items,
-		CreatedBy: &userID,
+		Items:          req.Items,
+		CreatedBy:      &userID,
+		OrganizationID: orgID,
 	})
 	if err != nil {
 		return handleError(c, err)
