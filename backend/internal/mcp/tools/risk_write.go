@@ -34,10 +34,9 @@ type ApprovalSubmitUseCaseI interface {
 // When the risk approval workflow flag is disabled inside SubmitApprovalUseCase, the
 // usecase auto-approves the risk via its flag=false branch (returning ApprovalID="").
 // This handler does NOT call any ApprovalActionUseCase; only SubmitApproval is invoked.
-func HandleCreateAndApproveRisk(
+func HandleCreateRisk(
 	ctx context.Context,
 	createUC RiskCreateUseCaseI,
-	submitUC ApprovalSubmitUseCaseI,
 	getUC RiskGetUseCaseI,
 	sess *session.Session,
 	args map[string]any,
@@ -56,26 +55,26 @@ func HandleCreateAndApproveRisk(
 		return nil, err
 	}
 
-	approverIDs := parseApproverIDs(args)
+	// approverIDs := parseApproverIDs(args)
 
-	submitInput := approvaluc.SubmitApprovalInput{
-		RequestType:    "risk",
-		EntityID:       createOutput.ID.String(),
-		RequestedBy:    sess.UserID.String(),
-		ActorName:      sess.Name,
-		Role:           sess.Role,
-		ApproverIDs:    approverIDs,
-		SubmissionType: "approval",
-		OrgIDs:         sess.AccessibleOrgIDs,
-	}
-	if notes, ok := args["notes"].(string); ok {
-		submitInput.Notes = notes
-	}
+	// submitInput := approvaluc.SubmitApprovalInput{
+	// 	RequestType:    "risk",
+	// 	EntityID:       createOutput.ID.String(),
+	// 	RequestedBy:    sess.UserID.String(),
+	// 	ActorName:      sess.Name,
+	// 	Role:           sess.Role,
+	// 	ApproverIDs:    approverIDs,
+	// 	SubmissionType: "approval",
+	// 	OrgIDs:         sess.AccessibleOrgIDs,
+	// }
+	// if notes, ok := args["notes"].(string); ok {
+	// 	submitInput.Notes = notes
+	// }
 
-	submitOutput, err := submitUC.Execute(ctx, submitInput)
-	if err != nil {
-		return nil, err
-	}
+	// submitOutput, err := submitUC.Execute(ctx, submitInput)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	refetched, err := getUC.Execute(ctx, createOutput.ID, sess.AccessibleOrgIDs)
 	if err != nil {
@@ -83,9 +82,8 @@ func HandleCreateAndApproveRisk(
 	}
 
 	return map[string]interface{}{
-		"risk":             riskToMap(refetched),
-		"workflow_skipped": submitOutput.ApprovalID == "",
-		"final_status":     refetched.Status,
+		"risk":         riskToMap(refetched),
+		"final_status": refetched.Status,
 	}, nil
 }
 

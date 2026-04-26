@@ -116,27 +116,34 @@ func RegisterRiskQueryTools(s *server.MCPServer, c *bootstrap.Container, mgr *se
 func RegisterRiskWriteTools(s *server.MCPServer, c *bootstrap.Container, mgr *session.Manager) {
 	createTool := mcp.Tool{
 		Name:        "create_and_approve_risk",
-		Description: "Create a new risk and submit for approval",
+		Description: "Create a new risk",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
-				"title":           map[string]interface{}{"type": "string"},
-				"category":        map[string]interface{}{"type": "string"},
-				"organizationId":  map[string]interface{}{"type": "string"},
-				"description":     map[string]interface{}{"type": "string"},
-				"probability":     map[string]interface{}{"type": "number"},
-				"impact":          map[string]interface{}{"type": "number"},
-				"weight":          map[string]interface{}{"type": "number"},
-				"riskApproverIds": map[string]interface{}{"type": "array"},
-				"submissionType":  map[string]interface{}{"type": "string"},
+				"title": map[string]interface{}{"type": "string"},
+				"category": map[string]interface{}{
+					"type": "string",
+					"defs": "category of the risk",
+				},
+				"organizationId": map[string]interface{}{"type": "string"},
+				"description":    map[string]interface{}{"type": "string"},
+				"probability":    map[string]interface{}{"type": "number"},
+				"impact":         map[string]interface{}{"type": "number"},
+				"submissionType": map[string]interface{}{"type": "string"},
+				"controllability": map[string]interface{}{
+					"type": "string",
+					"enum": []string{"C", "UC"},
+					"defs": "C for Controllable, UC for Uncontrollable",
+				},
+				"controlEffectiveness": map[string]interface{}{"type": "string"},
 			},
-			Required: []string{"title", "category", "organizationId", "probability", "impact"},
+			Required: []string{"title", "category", "organizationId", "probability", "impact", "controllability"},
 		},
 	}
 	s.AddTool(createTool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := argsMap(req)
 		sess, _ := mgr.Get()
-		result, err := HandleCreateAndApproveRisk(ctx, c.RiskCreateUC, c.ApprovalSubmitUC, c.RiskGetUC, sess, args)
+		result, err := HandleCreateRisk(ctx, c.RiskCreateUC, c.RiskGetUC, sess, args)
 		if err != nil {
 			return errorResult(err.Error()), nil
 		}
@@ -145,16 +152,24 @@ func RegisterRiskWriteTools(s *server.MCPServer, c *bootstrap.Container, mgr *se
 
 	updateTool := mcp.Tool{
 		Name:        "update_risk_draft",
-		Description: "Update a draft risk",
+		Description: "Update a draft risk this is a put request so need to merge with existing data first",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
-				"id":          map[string]interface{}{"type": "string"},
-				"title":       map[string]interface{}{"type": "string"},
-				"category":    map[string]interface{}{"type": "string"},
-				"description": map[string]interface{}{"type": "string"},
-				"probability": map[string]interface{}{"type": "number"},
-				"impact":      map[string]interface{}{"type": "number"},
+				"id":    map[string]interface{}{"type": "string"},
+				"title": map[string]interface{}{"type": "string"},
+				"category": map[string]interface{}{
+					"type": "string",
+					"defs": "category of the risk",
+				},
+				"organizationId": map[string]interface{}{"type": "string"},
+				"description":    map[string]interface{}{"type": "string"},
+				"probability":    map[string]interface{}{"type": "number"},
+				"impact":         map[string]interface{}{"type": "number"},
+				"status": map[string]interface{}{
+					"type": "string",
+					"defs": "status of the risk (assessment_draft, assessment_in_review, approved)",
+				},
 			},
 			Required: []string{"id"},
 		},
@@ -173,7 +188,7 @@ func RegisterRiskWriteTools(s *server.MCPServer, c *bootstrap.Container, mgr *se
 func RegisterRiskMonitoringTools(s *server.MCPServer, c *bootstrap.Container, mgr *session.Manager) {
 	monitorTool := mcp.Tool{
 		Name:        "monitor_and_approve_risk",
-		Description: "Create a risk reassessment and submit for approval",
+		Description: "Create a risk reassessment",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -188,7 +203,7 @@ func RegisterRiskMonitoringTools(s *server.MCPServer, c *bootstrap.Container, mg
 	s.AddTool(monitorTool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := argsMap(req)
 		sess, _ := mgr.Get()
-		result, err := HandleMonitorAndApproveRisk(ctx, c.RiskReassessUC, c.ApprovalSubmitUC, sess, args)
+		result, err := HandleMonitorRisk(ctx, c.RiskReassessUC, sess, args)
 		if err != nil {
 			return errorResult(err.Error()), nil
 		}

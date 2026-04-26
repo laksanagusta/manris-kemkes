@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/mcp/session"
-	approvaluc "github.com/manris/backend/internal/usecase/approval"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
 
@@ -26,12 +25,6 @@ func TestHandleMonitorAndApproveRisk_Success(t *testing.T) {
 	}
 
 	mockReassessmentUC := &mockRiskReassessmentUC{output: reassessmentOutput}
-	approvalOutput := &approvaluc.SubmitApprovalOutput{
-		ApprovalID: uuid.New().String(),
-		Status:     "approved",
-		Message:    "successfully approved",
-	}
-	mockApprovalUC := &mockApprovalSubmitUC{output: approvalOutput}
 
 	sess := &session.Session{
 		UserID:           userID,
@@ -48,9 +41,9 @@ func TestHandleMonitorAndApproveRisk_Success(t *testing.T) {
 		"submissionType":  "approval",
 	}
 
-	output, err := HandleMonitorAndApproveRisk(context.Background(), mockReassessmentUC, mockApprovalUC, sess, args)
+	output, err := HandleMonitorRisk(context.Background(), mockReassessmentUC, sess, args)
 	if err != nil {
-		t.Fatalf("HandleMonitorAndApproveRisk failed: %v", err)
+		t.Fatalf("HandleMonitorRisk failed: %v", err)
 	}
 
 	if output == nil {
@@ -64,9 +57,8 @@ func TestHandleMonitorAndApproveRisk_Success(t *testing.T) {
 
 func TestHandleMonitorAndApproveRisk_NoSession(t *testing.T) {
 	mockReassessmentUC := &mockRiskReassessmentUC{}
-	mockApprovalUC := &mockApprovalSubmitUC{}
 
-	output, err := HandleMonitorAndApproveRisk(context.Background(), mockReassessmentUC, mockApprovalUC, nil, map[string]any{})
+	output, err := HandleMonitorRisk(context.Background(), mockReassessmentUC, nil, map[string]any{})
 	if err != ErrNotAuthenticated {
 		t.Errorf("expected ErrNotAuthenticated, got %v", err)
 	}

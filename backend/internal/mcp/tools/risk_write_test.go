@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/mcp/session"
-	approvaluc "github.com/manris/backend/internal/usecase/approval"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
 
@@ -31,12 +30,6 @@ func TestHandleCreateAndApproveRisk_Success(t *testing.T) {
 
 	mockCreateUC := &mockRiskCreateUC{output: createOutput}
 	mockGetUC := &mockRiskGetUC{risk: refetchedRisk}
-	approvalOutput := &approvaluc.SubmitApprovalOutput{
-		ApprovalID: uuid.New().String(),
-		Status:     "approved",
-		Message:    "successfully approved",
-	}
-	mockApprovalUC := &mockApprovalSubmitUC{output: approvalOutput}
 
 	sess := &session.Session{
 		UserID:           userID,
@@ -58,7 +51,7 @@ func TestHandleCreateAndApproveRisk_Success(t *testing.T) {
 		"submissionType":  "approval",
 	}
 
-	output, err := HandleCreateAndApproveRisk(context.Background(), mockCreateUC, mockApprovalUC, mockGetUC, sess, args)
+	output, err := HandleCreateRisk(context.Background(), mockCreateUC, mockGetUC, sess, args)
 	if err != nil {
 		t.Fatalf("HandleCreateAndApproveRisk failed: %v", err)
 	}
@@ -78,10 +71,9 @@ func TestHandleCreateAndApproveRisk_Success(t *testing.T) {
 
 func TestHandleCreateAndApproveRisk_NoSession(t *testing.T) {
 	mockCreateUC := &mockRiskCreateUC{}
-	mockApprovalUC := &mockApprovalSubmitUC{}
 	mockGetUC := &mockRiskGetUC{}
 
-	output, err := HandleCreateAndApproveRisk(context.Background(), mockCreateUC, mockApprovalUC, mockGetUC, nil, map[string]any{})
+	output, err := HandleCreateRisk(context.Background(), mockCreateUC, mockGetUC, nil, map[string]any{})
 	if err != ErrNotAuthenticated {
 		t.Errorf("expected ErrNotAuthenticated, got %v", err)
 	}
@@ -190,7 +182,6 @@ func TestHandleCreateAndApproveRisk_CreateUseCaseError(t *testing.T) {
 
 	wantErr := errors.New("db unavailable")
 	mockCreateUC := &mockRiskCreateUC{err: wantErr}
-	mockApprovalUC := &mockApprovalSubmitUC{}
 	mockGetUC := &mockRiskGetUC{}
 
 	sess := &session.Session{
@@ -210,7 +201,7 @@ func TestHandleCreateAndApproveRisk_CreateUseCaseError(t *testing.T) {
 		"weight":         12.0,
 	}
 
-	output, err := HandleCreateAndApproveRisk(context.Background(), mockCreateUC, mockApprovalUC, mockGetUC, sess, args)
+	output, err := HandleCreateRisk(context.Background(), mockCreateUC, mockGetUC, sess, args)
 	if !errors.Is(err, wantErr) {
 		t.Errorf("expected create UC error, got %v", err)
 	}
