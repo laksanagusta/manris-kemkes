@@ -9,6 +9,7 @@ import type { MeetingMinuteWithRisks } from "@/types/meeting-minute";
 import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, CalendarDays, Users, CheckCircle2, Link2, AlertCircle, Clock, User, Trash2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Loader2, CalendarDays, Users, CheckCircle2, Link2, AlertCircle, Clock, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -230,44 +239,82 @@ export default function MeetingMinuteDetailPage() {
 
           {minutes.actionItems.length > 0 && (
             <FormSection title="Tindak Lanjut">
-              <div className="grid gap-4">
-                {minutes.actionItems.map((action, idx) => (
-                  <div key={idx} className="flex flex-col gap-4 rounded-xl border border-border/40 bg-card p-4 shadow-sm transition-all hover:shadow-md">
-                    <div className="flex items-start justify-between gap-4">
-                      <p className="text-sm font-semibold leading-snug text-foreground">{action.task}</p>
-                      <Badge
-                        variant={priorityConfig[action.priority].variant}
-                        className="shrink-0 px-2.5 py-0.5 text-[10px] uppercase tracking-wider font-semibold"
-                      >
-                        {priorityConfig[action.priority].label}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-lg bg-muted/30 p-3 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <User className="size-3.5 text-muted-foreground" />
-                        <span className="font-medium text-foreground">{action.pic}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="size-3.5 text-muted-foreground" />
-                        <span className="font-medium text-foreground">{new Date(action.deadline).toLocaleDateString("id-ID")}</span>
-                      </div>
-                      {action.status && (
-                        <div className="ml-auto">
-                          <Badge
-                            variant={statusConfig[action.status].variant}
-                            className={cn("px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider", statusConfig[action.status].className)}
-                          >
-                            {statusConfig[action.status].label}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-                    {action.notes && (
-                      <p className="text-sm leading-relaxed text-muted-foreground italic pl-3 border-l-2 border-border/60">{action.notes}</p>
-                    )}
+              <Card className="overflow-hidden border-border/50 bg-card/80 py-0 backdrop-blur-sm">
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border/50 hover:bg-transparent">
+                          <TableHead className="min-w-[260px] text-xs">Tindak Lanjut</TableHead>
+                          <TableHead className="min-w-[140px] text-xs">PIC</TableHead>
+                          <TableHead className="min-w-[120px] text-xs">Deadline</TableHead>
+                          <TableHead className="w-[110px] text-xs">Prioritas</TableHead>
+                          <TableHead className="w-[120px] text-xs">Status</TableHead>
+                          <TableHead className="min-w-[220px] text-xs">Catatan</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {minutes.actionItems.map((action, idx) => (
+                          <TableRow key={`${action.task}-${idx}`} className="border-border/40 hover:bg-muted/30">
+                            <TableCell className="align-top">
+                              <div className="max-w-[320px]">
+                                <p className="truncate text-sm font-semibold leading-snug text-foreground" title={action.task}>
+                                  {action.task}
+                                </p>
+                                {action.ownerUnit ? (
+                                  <p className="mt-1 truncate text-xs text-muted-foreground" title={action.ownerUnit}>
+                                    {action.ownerUnit}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </TableCell>
+                            <TableCell className="max-w-[180px] align-top text-sm text-foreground">
+                              <span className="block truncate" title={action.pic}>
+                                {action.pic}
+                              </span>
+                            </TableCell>
+                            <TableCell className="align-top text-sm text-foreground whitespace-nowrap">
+                              {new Date(action.deadline).toLocaleDateString("id-ID")}
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <Badge
+                                variant={priorityConfig[action.priority].variant}
+                                className="px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+                              >
+                                {priorityConfig[action.priority].label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="align-top">
+                              {action.status ? (
+                                <Badge
+                                  variant={statusConfig[action.status].variant}
+                                  className={cn(
+                                    "px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                    statusConfig[action.status].className,
+                                  )}
+                                >
+                                  {statusConfig[action.status].label}
+                                </Badge>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">&mdash;</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-[260px] align-top text-sm text-muted-foreground">
+                              {action.notes ? (
+                                <span className="block truncate" title={action.notes}>
+                                  {action.notes}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">&mdash;</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
-                ))}
-              </div>
+                </CardContent>
+              </Card>
             </FormSection>
           )}
 
