@@ -26,17 +26,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import type { MonitoringPreviewItem, MonitoringBatchResultItem } from "@/types/risk-monitoring";
-import { previewMonitoringUpload, submitMonitoringBatch } from "@/lib/api/risk-monitoring";
+import type {
+  MonitoringPreviewItem,
+  MonitoringBatchResultItem,
+} from "@/types/risk-monitoring";
+import {
+  previewMonitoringUpload,
+  submitMonitoringBatch,
+} from "@/lib/api/risk-monitoring";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
 type RiskBatchPayload = {
   clientKey: string;
@@ -95,8 +97,10 @@ type BatchResponse = {
 };
 
 function statusBadgeClass(preview: BulkRiskPreview) {
-  if (preview.errors.length > 0) return "border-destructive/30 bg-destructive/10 text-destructive";
-  if (preview.warnings.length > 0) return "border-risk-high/30 bg-risk-high/10 text-risk-high";
+  if (preview.errors.length > 0)
+    return "border-destructive/30 bg-destructive/10 text-destructive";
+  if (preview.warnings.length > 0)
+    return "border-risk-high/30 bg-risk-high/10 text-risk-high";
   return "border-success/30 bg-success/10 text-success";
 }
 
@@ -121,14 +125,23 @@ export default function BulkRiskRegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resultItems, setResultItems] = useState<RiskBatchResultItem[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
-  const [monitoringPreviews, setMonitoringPreviews] = useState<MonitoringPreviewItem[]>([]);
-  const [monitoringResults, setMonitoringResults] = useState<MonitoringBatchResultItem[]>([]);
+  const [monitoringPreviews, setMonitoringPreviews] = useState<
+    MonitoringPreviewItem[]
+  >([]);
+  const [monitoringResults, setMonitoringResults] = useState<
+    MonitoringBatchResultItem[]
+  >([]);
 
   const isUnitRole = user?.role === "unit";
-  const effectiveOrgId = isUnitRole ? (user?.organizationId ?? "") : selectedOrgId;
+  const effectiveOrgId = isUnitRole
+    ? (user?.organizationId ?? "")
+    : selectedOrgId;
 
   const validRows = useMemo(
-    () => previews.filter((preview) => preview.payload && preview.errors.length === 0),
+    () =>
+      previews.filter(
+        (preview) => preview.payload && preview.errors.length === 0,
+      ),
     [previews],
   );
 
@@ -137,11 +150,19 @@ export default function BulkRiskRegisterPage() {
     [monitoringPreviews],
   );
 
-  const createdCount = resultItems.filter((item) => item.status === "created").length;
-  const failedCount = resultItems.filter((item) => item.status === "failed").length;
+  const createdCount = resultItems.filter(
+    (item) => item.status === "created",
+  ).length;
+  const failedCount = resultItems.filter(
+    (item) => item.status === "failed",
+  ).length;
 
-  const monitoringCreatedCount = monitoringResults.filter((item) => item.status === "created").length;
-  const monitoringFailedCount = monitoringResults.filter((item) => item.status === "failed").length;
+  const monitoringCreatedCount = monitoringResults.filter(
+    (item) => item.status === "created",
+  ).length;
+  const monitoringFailedCount = monitoringResults.filter(
+    (item) => item.status === "failed",
+  ).length;
 
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -162,15 +183,24 @@ export default function BulkRiskRegisterPage() {
     setIsParsing(true);
     try {
       if (bulkMode === "pemantauan") {
-        const response = await previewMonitoringUpload(file, token, effectiveOrgId, selectedCycle);
+        const response = await previewMonitoringUpload(
+          file,
+          token,
+          effectiveOrgId,
+          selectedCycle,
+        );
         setMonitoringPreviews(response.items);
         setMonitoringResults([]);
         setSourceName(file.name);
 
         if (response.items.length === 0) {
-          toast.error("Template berhasil dibaca, tetapi belum ada baris data untuk diimport.");
+          toast.error(
+            "Template berhasil dibaca, tetapi belum ada baris data untuk diimport.",
+          );
         } else {
-          toast.success(`${response.items.length} baris berhasil diparse untuk direview.`);
+          toast.success(
+            `${response.items.length} baris berhasil diparse untuk direview.`,
+          );
         }
       } else {
         const form = new FormData();
@@ -187,14 +217,20 @@ export default function BulkRiskRegisterPage() {
         setSourceName(file.name);
 
         if (response.items.length === 0) {
-          toast.error("Template berhasil dibaca, tetapi belum ada baris data untuk diimport.");
+          toast.error(
+            "Template berhasil dibaca, tetapi belum ada baris data untuk diimport.",
+          );
         } else {
-          toast.success(`${response.items.length} baris berhasil diparse untuk direview.`);
+          toast.success(
+            `${response.items.length} baris berhasil diparse untuk direview.`,
+          );
         }
       }
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "File tidak bisa dibaca.");
+      toast.error(
+        error instanceof Error ? error.message : "File tidak bisa dibaca.",
+      );
     } finally {
       setIsParsing(false);
       event.target.value = "";
@@ -247,7 +283,9 @@ export default function BulkRiskRegisterPage() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "Gagal mengunduh template.");
+      toast.error(
+        error instanceof Error ? error.message : "Gagal mengunduh template.",
+      );
     }
   };
 
@@ -256,7 +294,8 @@ export default function BulkRiskRegisterPage() {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
-    const currentValidRows = bulkMode === "baru" ? validRows : monitoringValidRows;
+    const currentValidRows =
+      bulkMode === "baru" ? validRows : monitoringValidRows;
     if (currentValidRows.length === 0) {
       toast.error("Belum ada baris valid untuk disubmit.");
       return;
@@ -276,25 +315,42 @@ export default function BulkRiskRegisterPage() {
         const validItems = monitoringPreviews
           .filter((p) => p.payload && p.errors.length === 0)
           .map((p) => p.payload!);
-        const response = await submitMonitoringBatch(validItems, token, effectiveOrgId, selectedCycle);
+        const response = await submitMonitoringBatch(
+          validItems,
+          token,
+          effectiveOrgId,
+          selectedCycle,
+        );
         setMonitoringResults(response.items);
-        toast.success(`${response.items.filter((item) => item.status === "created").length} risiko pemantauan berhasil disimpan.`);
+        toast.success(
+          `${response.items.filter((item) => item.status === "created").length} risiko pemantauan berhasil disimpan.`,
+        );
       } else {
-        const items = validRows.flatMap((row) => row.payload ? [{
-          ...row.payload,
-          organizationId: effectiveOrgId || row.payload.organizationId,
-        }] : []);
+        const items = validRows.flatMap((row) =>
+          row.payload
+            ? [
+                {
+                  ...row.payload,
+                  organizationId: effectiveOrgId || row.payload.organizationId,
+                },
+              ]
+            : [],
+        );
         const response = await api.post<BatchResponse>(
           "/risks/batch",
           { items },
           token,
         );
         setResultItems(response.items);
-        toast.success(`${response.items.filter((item) => item.status === "created").length} risiko berhasil dibuat.`);
+        toast.success(
+          `${response.items.filter((item) => item.status === "created").length} risiko berhasil dibuat.`,
+        );
       }
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "Gagal menyimpan bulk risk.");
+      toast.error(
+        error instanceof Error ? error.message : "Gagal menyimpan bulk risk.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -307,7 +363,10 @@ export default function BulkRiskRegisterPage() {
         description="Upload template XLSX. Parsing, validasi, dan lookup unit kerja dijalankan di backend agar konsisten dengan master data server."
         badges={
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="border-primary/20 bg-primary/[0.04] text-primary">
+            <Badge
+              variant="outline"
+              className="border-primary/20 bg-primary/[0.04] text-primary"
+            >
               Backend parsed
             </Badge>
             <Badge variant="outline">
@@ -321,37 +380,73 @@ export default function BulkRiskRegisterPage() {
         backLabel="Kembali ke register risiko"
         actions={
           <>
-            <Button variant="outline" className="gap-2 text-xs" onClick={handleDownloadTemplate}>
+            <Button
+              variant="outline"
+              className="gap-2 text-xs"
+              onClick={handleDownloadTemplate}
+            >
               <Download className="size-3.5" />
               Download template
             </Button>
-            <Button className="gap-2 text-xs" onClick={handleSubmit} disabled={isSubmitting || (bulkMode === "baru" ? validRows.length === 0 : monitoringValidRows.length === 0)}>
-              {isSubmitting ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+            <Button
+              className="gap-2 text-xs"
+              onClick={handleSubmit}
+              disabled={
+                isSubmitting ||
+                (bulkMode === "baru"
+                  ? validRows.length === 0
+                  : monitoringValidRows.length === 0)
+              }
+            >
+              {isSubmitting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Upload className="size-3.5" />
+              )}
               {isSubmitting ? "Menyimpan..." : "Submit bulk create"}
             </Button>
           </>
         }
       />
 
-      <Tabs value={bulkMode} onValueChange={(v) => setBulkMode(v as "baru" | "pemantauan")} data-testid="bulk-mode-tabs">
+      <Tabs
+        value={bulkMode}
+        onValueChange={(v) => setBulkMode(v as "baru" | "pemantauan")}
+        data-testid="bulk-mode-tabs"
+      >
         <TabsList className="mb-4">
-          <TabsTrigger value="baru" data-testid="tab-risiko-baru">Risiko Baru</TabsTrigger>
-          <TabsTrigger value="pemantauan" data-testid="tab-pemantauan">Pemantauan</TabsTrigger>
+          <TabsTrigger value="baru" data-testid="tab-risiko-baru">
+            Risiko Baru
+          </TabsTrigger>
+          <TabsTrigger value="pemantauan" data-testid="tab-pemantauan">
+            Pemantauan
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="baru">
-          <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
+          <Card className="rounded-[12px] border border-border/60 bg-card">
             <CardHeader className="border-b border-border/50">
-              <CardTitle className="text-base font-semibold text-foreground">Sumber Data</CardTitle>
+              <CardTitle className="text-base font-semibold text-foreground">
+                Sumber Data
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5 px-6 py-6">
               <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10 text-center transition-colors hover:border-primary/40 hover:bg-muted/[0.28]">
                 <div className="flex size-12 items-center justify-center rounded-2xl bg-background text-primary">
-                  {isParsing ? <Loader2 className="size-5 animate-spin" /> : <FileSpreadsheet className="size-5" />}
+                  {isParsing ? (
+                    <Loader2 className="size-5 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="size-5" />
+                  )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">Upload file Excel template</p>
-                  <p className="text-xs text-muted-foreground">Frontend hanya mengirim file. Semua parsing dan validasi dilakukan di backend.</p>
+                  <p className="text-sm font-medium text-foreground">
+                    Upload file Excel template
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Frontend hanya mengirim file. Semua parsing dan validasi
+                    dilakukan di backend.
+                  </p>
                 </div>
                 <input
                   type="file"
@@ -364,21 +459,31 @@ export default function BulkRiskRegisterPage() {
 
               {sourceName ? (
                 <div className="rounded-2xl border border-border/60 bg-background px-4 py-3 text-sm text-muted-foreground">
-                  Sumber aktif: <span className="font-medium text-foreground">{sourceName}</span>
+                  Sumber aktif:{" "}
+                  <span className="font-medium text-foreground">
+                    {sourceName}
+                  </span>
                 </div>
               ) : null}
             </CardContent>
           </Card>
 
-          <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
+          <Card className="rounded-[12px] border border-border/50 bg-card mt-10">
             <CardHeader className="border-b border-border/50">
-              <CardTitle className="text-base font-semibold text-foreground">Preview Validasi</CardTitle>
+              <CardTitle className="text-base font-semibold text-foreground">
+                Preview Validasi
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 px-6 py-6">
               {!isUnitRole && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Unit Kerja</label>
-                  <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                  <label className="text-sm font-medium text-foreground">
+                    Unit Kerja
+                  </label>
+                  <Select
+                    value={selectedOrgId}
+                    onValueChange={setSelectedOrgId}
+                  >
                     <SelectTrigger className="w-full md:w-64">
                       <SelectValue placeholder="Pilih unit kerja" />
                     </SelectTrigger>
@@ -398,28 +503,50 @@ export default function BulkRiskRegisterPage() {
                   Belum ada data. Upload template untuk mulai review.
                 </div>
               ) : (
-                 <Table>
-                   <TableHeader>
-                     <TableRow>
-                       <TableHead className="whitespace-nowrap">Baris</TableHead>
-                       <TableHead className="whitespace-nowrap">Risiko</TableHead>
-                       <TableHead className="whitespace-nowrap">Status</TableHead>
-                       <TableHead className="whitespace-nowrap">Catatan</TableHead>
-                     </TableRow>
-                   </TableHeader>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap">Baris</TableHead>
+                      <TableHead className="whitespace-nowrap">
+                        Risiko
+                      </TableHead>
+                      <TableHead className="whitespace-nowrap">
+                        Status
+                      </TableHead>
+                      <TableHead className="whitespace-nowrap">
+                        Catatan
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
                     {previews.map((preview) => (
                       <TableRow key={preview.clientKey}>
                         <TableCell>{preview.rowNumber}</TableCell>
                         <TableCell className="max-w-[320px] whitespace-normal">
-                          <p className="font-medium text-foreground">{preview.raw["RISIKO"] || preview.raw["Risiko"] || "-"}</p>
+                          <p className="font-medium text-foreground">
+                            {preview.raw["RISIKO"] ||
+                              preview.raw["Risiko"] ||
+                              "-"}
+                          </p>
                           {effectiveOrgId && (
-                            <p className="mt-1 text-xs text-muted-foreground">{effectiveOrgId}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {effectiveOrgId}
+                            </p>
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={cn("font-normal", statusBadgeClass(preview))}>
-                            {preview.errors.length > 0 ? "Invalid" : preview.warnings.length > 0 ? "Warning" : "Valid"}
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "font-normal",
+                              statusBadgeClass(preview),
+                            )}
+                          >
+                            {preview.errors.length > 0
+                              ? "Invalid"
+                              : preview.warnings.length > 0
+                                ? "Warning"
+                                : "Valid"}
                           </Badge>
                         </TableCell>
                         <TableCell className="max-w-[520px] whitespace-normal text-xs text-muted-foreground">
@@ -439,20 +566,30 @@ export default function BulkRiskRegisterPage() {
         </TabsContent>
 
         <TabsContent value="pemantauan">
-          <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
+          <Card className="rounded-[12px] border border-border/50 bg-card">
             <CardHeader className="border-b border-border/50">
-              <CardTitle className="text-base font-semibold text-foreground">Sumber Data</CardTitle>
+              <CardTitle className="text-base font-semibold text-foreground">
+                Sumber Data
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-5 px-6 py-6">
+            <CardContent className="space-y-5 px-6 py-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Siklus Pemantauan</label>
-                <Select value={selectedCycle} onValueChange={setSelectedCycle} data-testid="cycle-selector">
+                <label className="text-sm font-medium text-foreground">
+                  Siklus Pemantauan
+                </label>
+                <Select
+                  value={selectedCycle}
+                  onValueChange={setSelectedCycle}
+                  data-testid="cycle-selector"
+                >
                   <SelectTrigger className="w-full md:w-64">
                     <SelectValue placeholder="Pilih siklus pemantauan" />
                   </SelectTrigger>
                   <SelectContent>
                     {getCycleOptions().map((cycle) => (
-                      <SelectItem key={cycle} value={cycle}>{cycle}</SelectItem>
+                      <SelectItem key={cycle} value={cycle}>
+                        {cycle}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -460,11 +597,20 @@ export default function BulkRiskRegisterPage() {
 
               <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10 text-center transition-colors hover:border-primary/40 hover:bg-muted/[0.28]">
                 <div className="flex size-12 items-center justify-center rounded-2xl bg-background text-primary">
-                  {isParsing ? <Loader2 className="size-5 animate-spin" /> : <FileSpreadsheet className="size-5" />}
+                  {isParsing ? (
+                    <Loader2 className="size-5 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="size-5" />
+                  )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">Upload file Excel template</p>
-                  <p className="text-xs text-muted-foreground">Frontend hanya mengirim file. Semua parsing dan validasi dilakukan di backend.</p>
+                  <p className="text-sm font-medium text-foreground">
+                    Upload file Excel template
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Frontend hanya mengirim file. Semua parsing dan validasi
+                    dilakukan di backend.
+                  </p>
                 </div>
                 <input
                   type="file"
@@ -477,21 +623,31 @@ export default function BulkRiskRegisterPage() {
 
               {sourceName ? (
                 <div className="rounded-2xl border border-border/60 bg-background px-4 py-3 text-sm text-muted-foreground">
-                  Sumber aktif: <span className="font-medium text-foreground">{sourceName}</span>
+                  Sumber aktif:{" "}
+                  <span className="font-medium text-foreground">
+                    {sourceName}
+                  </span>
                 </div>
               ) : null}
             </CardContent>
           </Card>
 
-          <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
+          <Card className="rounded-[12px] border border-border/60 bg-card mt-10">
             <CardHeader className="border-b border-border/50">
-              <CardTitle className="text-base font-semibold text-foreground">Preview Validasi</CardTitle>
+              <CardTitle className="text-base font-semibold text-foreground">
+                Preview Validasi
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 px-6 py-6">
               {!isUnitRole && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Unit Kerja</label>
-                  <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                  <label className="text-sm font-medium text-foreground">
+                    Unit Kerja
+                  </label>
+                  <Select
+                    value={selectedOrgId}
+                    onValueChange={setSelectedOrgId}
+                  >
                     <SelectTrigger className="w-full md:w-64">
                       <SelectValue placeholder="Pilih unit kerja" />
                     </SelectTrigger>
@@ -537,7 +693,9 @@ export default function BulkRiskRegisterPage() {
                       <TableRow key={preview.clientKey}>
                         <TableCell>{preview.rowNumber}</TableCell>
                         <TableCell>{preview.code}</TableCell>
-                        <TableCell className="max-w-[200px] whitespace-normal">{preview.title}</TableCell>
+                        <TableCell className="max-w-[200px] whitespace-normal">
+                          {preview.title}
+                        </TableCell>
                         <TableCell>{preview.targetP}</TableCell>
                         <TableCell>{preview.targetD}</TableCell>
                         <TableCell>{preview.targetNilai}</TableCell>
@@ -551,15 +709,24 @@ export default function BulkRiskRegisterPage() {
                         <TableCell>{preview.efektivitas ?? "-"}</TableCell>
                         <TableCell>
                           {preview.errors.length > 0 ? (
-                            <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive">
+                            <Badge
+                              variant="outline"
+                              className="border-destructive/30 bg-destructive/10 text-destructive"
+                            >
                               Invalid
                             </Badge>
                           ) : preview.warnings.length > 0 ? (
-                            <Badge variant="outline" className="border-risk-high/30 bg-risk-high/10 text-risk-high">
+                            <Badge
+                              variant="outline"
+                              className="border-risk-high/30 bg-risk-high/10 text-risk-high"
+                            >
                               Warning
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="border-success/30 bg-success/10 text-success">
+                            <Badge
+                              variant="outline"
+                              className="border-success/30 bg-success/10 text-success"
+                            >
                               Valid
                             </Badge>
                           )}
@@ -568,8 +735,8 @@ export default function BulkRiskRegisterPage() {
                           {preview.errors.length > 0
                             ? preview.errors.join(" ")
                             : preview.warnings.length > 0
-                            ? preview.warnings.join(" ")
-                            : "Siap dikirim."}
+                              ? preview.warnings.join(" ")
+                              : "Siap dikirim."}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -584,29 +751,45 @@ export default function BulkRiskRegisterPage() {
       {bulkMode === "baru" && resultItems.length > 0 ? (
         <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
           <CardHeader className="border-b border-border/50">
-            <CardTitle className="text-base font-semibold text-foreground">Hasil Submit</CardTitle>
+            <CardTitle className="text-base font-semibold text-foreground">
+              Hasil Submit
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 px-6 py-6">
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="border-success/30 bg-success/10 text-success">{createdCount} created</Badge>
-              <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive">{failedCount} failed</Badge>
+              <Badge
+                variant="outline"
+                className="border-success/30 bg-success/10 text-success"
+              >
+                {createdCount} created
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-destructive/30 bg-destructive/10 text-destructive"
+              >
+                {failedCount} failed
+              </Badge>
             </div>
-             <Table>
-               <TableHeader>
-                 <TableRow>
-                   <TableHead className="whitespace-nowrap">Client Key</TableHead>
-                   <TableHead className="whitespace-nowrap">Status</TableHead>
-                   <TableHead className="whitespace-nowrap">Code</TableHead>
-                   <TableHead className="whitespace-nowrap">Pesan</TableHead>
-                 </TableRow>
-               </TableHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">
+                    Client Key
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Code</TableHead>
+                  <TableHead className="whitespace-nowrap">Pesan</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
                 {resultItems.map((item) => (
                   <TableRow key={item.clientKey}>
                     <TableCell>{item.clientKey}</TableCell>
                     <TableCell>{item.status}</TableCell>
                     <TableCell>{item.code || "-"}</TableCell>
-                    <TableCell className="max-w-[480px] whitespace-normal text-xs text-muted-foreground">{item.error || item.message}</TableCell>
+                    <TableCell className="max-w-[480px] whitespace-normal text-xs text-muted-foreground">
+                      {item.error || item.message}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -618,21 +801,31 @@ export default function BulkRiskRegisterPage() {
       {bulkMode === "pemantauan" && monitoringResults.length > 0 && (
         <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
           <CardHeader className="border-b border-border/50">
-            <CardTitle className="text-base font-semibold text-foreground">Hasil Submit Pemantauan</CardTitle>
+            <CardTitle className="text-base font-semibold text-foreground">
+              Hasil Submit Pemantauan
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 px-6 py-6">
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="border-success/30 bg-success/10 text-success">
+              <Badge
+                variant="outline"
+                className="border-success/30 bg-success/10 text-success"
+              >
                 {monitoringCreatedCount} dibuat
               </Badge>
-              <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive">
+              <Badge
+                variant="outline"
+                className="border-destructive/30 bg-destructive/10 text-destructive"
+              >
                 {monitoringFailedCount} gagal
               </Badge>
             </div>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">Client Key</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Client Key
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Status</TableHead>
                   <TableHead className="whitespace-nowrap">Code</TableHead>
                   <TableHead className="whitespace-nowrap">Pesan</TableHead>

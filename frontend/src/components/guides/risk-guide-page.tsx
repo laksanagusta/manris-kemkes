@@ -11,7 +11,13 @@ import {
   type RiskGuideContent,
 } from "@/lib/risk-guide-content";
 import { cn } from "@/lib/utils";
-import { ArrowRight, CheckCircle2, Circle, CircleDot, RotateCcw } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Circle,
+  CircleDot,
+  RotateCcw,
+} from "lucide-react";
 
 type RiskGuidePageProps = {
   content?: RiskGuideContent;
@@ -36,11 +42,20 @@ const STATUS_CONFIG = {
 };
 
 function StatusPill({ status }: { status: string }) {
-  const config = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.assessment_draft;
+  const config =
+    STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ||
+    STATUS_CONFIG.assessment_draft;
   const Icon = config.icon;
 
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider", config.bg, config.border, config.text)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider",
+        config.bg,
+        config.border,
+        config.text,
+      )}
+    >
       <Icon className="size-2.5" />
       {config.label}
     </span>
@@ -58,7 +73,9 @@ function FlowNode({
   isFirst: boolean;
   isLast: boolean;
 }) {
-  const config = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.assessment_draft;
+  const config =
+    STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ||
+    STATUS_CONFIG.assessment_draft;
   const Icon = config.icon;
 
   return (
@@ -67,7 +84,13 @@ function FlowNode({
         <div className="w-8 border-t border-dashed border-muted-foreground/20" />
       )}
       <div className="flex flex-col items-center gap-1">
-        <div className={cn("flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-xs", config.bg, config.border)}>
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-xs",
+            config.bg,
+            config.border,
+          )}
+        >
           <Icon className={cn("size-3.5", config.text)} />
           <span className="text-foreground/80">{label}</span>
         </div>
@@ -96,7 +119,9 @@ function PhaseBlock({
   };
 
   return (
-    <div className={cn("rounded-xl border p-4 space-y-3", variantStyles[variant])}>
+    <div
+      className={cn("rounded-xl border p-4 space-y-3", variantStyles[variant])}
+    >
       <div className="flex items-center gap-2">
         <span className="text-[10px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
           {phase}
@@ -126,7 +151,9 @@ function StepCard({
   index: number;
 }) {
   const stepNum = String(index + 1).padStart(2, "0");
-  const config = STATUS_CONFIG[step.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.assessment_draft;
+  const config =
+    STATUS_CONFIG[step.status as keyof typeof STATUS_CONFIG] ||
+    STATUS_CONFIG.assessment_draft;
   const Icon = config.icon;
 
   return (
@@ -157,7 +184,9 @@ function StepCard({
         <div className="space-y-1.5 border-t border-border/30 pt-3">
           {step.actions.map((action, i) => (
             <div key={i} className="flex items-start gap-2 text-xs">
-              <span className="font-mono text-muted-foreground/40 mt-0.5">→</span>
+              <span className="font-mono text-muted-foreground/40 mt-0.5">
+                →
+              </span>
               <span className="text-foreground/70 font-mono">{action}</span>
             </div>
           ))}
@@ -183,9 +212,11 @@ export function RiskGuidePage({
           <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted-foreground">
             <span>manris</span>
             <span className="text-border">/</span>
-            <span>docs</span>
+            <span>guide</span>
             <span className="text-border">/</span>
-            <span className="text-foreground">risk-workflow</span>
+            <span className="text-foreground">
+              Alur kerja pemantauan risiko
+            </span>
           </div>
 
           <h1
