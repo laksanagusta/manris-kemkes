@@ -77,33 +77,35 @@ type Container struct {
 	CBARepository domainrepo.CBARepository
 
 	// Risk UseCases
-	RiskCreateUC              *riskuc.CreateRiskUseCase
-	RiskCreateBatchUC         *riskuc.CreateRiskBatchUseCase
-	RiskSpreadsheetUC         *riskuc.BulkRiskSpreadsheetUseCase
-	RiskGetUC                 *riskuc.GetRiskUseCase
-	RiskReassessUC            *riskuc.CreateRiskReassessmentUseCase
-	RiskUpdateUC              *riskuc.UpdateRiskUseCase
-	RiskDeleteUC              *riskuc.DeleteRiskUseCase
-	RiskListUC                *riskuc.ListRisksUseCase
-	RiskListRegisterUC        *riskuc.ListRiskRegisterUseCase
-	RiskListVersionsUC        *riskuc.ListRiskVersionsUseCase
-	RiskReviewQueueUC         *riskuc.ListRiskReviewQueueUseCase
-	RiskCompareCyclesUC       *riskuc.CompareRiskCyclesUseCase
-	RiskCompareCycleDetailsUC *riskuc.CompareRiskCycleDetailsUseCase
-	RiskReviewSummaryUC       *riskuc.RiskReviewSummaryUseCase
-	RiskDashboardSummaryUC    *riskuc.DashboardSummaryUseCase
-	RiskActionPressureUC      *riskuc.DashboardActionPressureUseCase
-	RiskExecutiveAlertsUC     *riskuc.ExecutiveAlertsUseCase
-	RiskHeatmapDataUC         *riskuc.HeatmapDataUseCase
-	RiskHeatmapMultiUC        *riskuc.HeatmapMultiUseCase
-	RiskTopRisksUC            *riskuc.TopRisksUseCase
-	RiskDashboardCategoriesUC *riskuc.DashboardRiskCategoriesUseCase
-	RiskListApprovedUC        *riskuc.ListApprovedRisksUseCase
-	RiskHeatmapVelocityUC     *riskuc.HeatmapVelocityUseCase
-	RiskOverdueTimelineUC     *riskuc.OverdueMitigationTimelineUseCase
-	RiskKRIBreachUC           *riskuc.KRIBreachSummaryUseCase
-	RiskUnitResponseUC        *riskuc.UnitResponseTimeUseCase
-	RiskListCycleSnapshotUC   *riskuc.ListRiskCycleSnapshotUseCase
+	RiskCreateUC                *riskuc.CreateRiskUseCase
+	RiskCreateBatchUC           *riskuc.CreateRiskBatchUseCase
+	RiskSpreadsheetUC           *riskuc.BulkRiskSpreadsheetUseCase
+	RiskGetUC                   *riskuc.GetRiskUseCase
+	RiskReassessUC              *riskuc.CreateRiskReassessmentUseCase
+	RiskUpdateUC                *riskuc.UpdateRiskUseCase
+	RiskDeleteUC                *riskuc.DeleteRiskUseCase
+	RiskListUC                  *riskuc.ListRisksUseCase
+	RiskListRegisterUC          *riskuc.ListRiskRegisterUseCase
+	RiskListVersionsUC          *riskuc.ListRiskVersionsUseCase
+	RiskReviewQueueUC           *riskuc.ListRiskReviewQueueUseCase
+	RiskCompareCyclesUC         *riskuc.CompareRiskCyclesUseCase
+	RiskCompareCycleDetailsUC   *riskuc.CompareRiskCycleDetailsUseCase
+	RiskReviewSummaryUC         *riskuc.RiskReviewSummaryUseCase
+	RiskDashboardSummaryUC      *riskuc.DashboardSummaryUseCase
+	RiskActionPressureUC        *riskuc.DashboardActionPressureUseCase
+	RiskExecutiveAlertsUC       *riskuc.ExecutiveAlertsUseCase
+	RiskHeatmapDataUC           *riskuc.HeatmapDataUseCase
+	RiskHeatmapMultiUC          *riskuc.HeatmapMultiUseCase
+	RiskTopRisksUC              *riskuc.TopRisksUseCase
+	RiskDashboardCategoriesUC   *riskuc.DashboardRiskCategoriesUseCase
+	RiskListApprovedUC          *riskuc.ListApprovedRisksUseCase
+	RiskHeatmapVelocityUC       *riskuc.HeatmapVelocityUseCase
+	RiskOverdueTimelineUC       *riskuc.OverdueMitigationTimelineUseCase
+	RiskKRIBreachUC             *riskuc.KRIBreachSummaryUseCase
+	RiskUnitResponseUC          *riskuc.UnitResponseTimeUseCase
+	RiskListCycleSnapshotUC     *riskuc.ListRiskCycleSnapshotUseCase
+	RiskMonitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase
+	RiskCreateMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase
 
 	// Incident UseCases
 	IncidentCreateUC      *incidentuc.CreateIncidentUseCase
@@ -322,6 +324,8 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskKRIBreachUC = riskuc.NewKRIBreachSummaryUseCase(c.RiskRepository)
 	c.RiskUnitResponseUC = riskuc.NewUnitResponseTimeUseCase(c.RiskRepository)
 	c.RiskListCycleSnapshotUC = riskuc.NewListRiskCycleSnapshotUseCase(c.RiskRepository, c.OrgHierarchySvc)
+	c.RiskMonitoringSpreadsheetUC = riskuc.NewBulkMonitoringSpreadsheetUseCase(c.OrgRepository, c.UserRepository, c.RiskRepository)
+	c.RiskCreateMonitoringBatchUC = riskuc.NewCreateMonitoringBatchUseCase(c.RiskRepository, c.UserRepository)
 
 	// ============================================================================
 	// Incident UseCases

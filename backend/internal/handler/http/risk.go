@@ -18,34 +18,36 @@ import (
 
 // RiskHandler handles HTTP requests for Risk operations using clean architecture
 type RiskHandler struct {
-	createUC              *riskuc.CreateRiskUseCase
-	createBatchUC         *riskuc.CreateRiskBatchUseCase
-	spreadsheetUC         *riskuc.BulkRiskSpreadsheetUseCase
-	getUC                 *riskuc.GetRiskUseCase
-	reassessUC            *riskuc.CreateRiskReassessmentUseCase
-	updateUC              *riskuc.UpdateRiskUseCase
-	deleteUC              *riskuc.DeleteRiskUseCase
-	listUC                *riskuc.ListRisksUseCase
-	listRegisterUC        *riskuc.ListRiskRegisterUseCase
-	listCycleSnapshotUC   *riskuc.ListRiskCycleSnapshotUseCase
-	listVersionsUC        *riskuc.ListRiskVersionsUseCase
-	reviewQueueUC         *riskuc.ListRiskReviewQueueUseCase
-	compareCyclesUC       *riskuc.CompareRiskCyclesUseCase
-	compareDetailUC       *riskuc.CompareRiskCycleDetailsUseCase
-	reviewSummaryUC       *riskuc.RiskReviewSummaryUseCase
-	dashboardSummaryUC    *riskuc.DashboardSummaryUseCase
-	actionPressureUC      *riskuc.DashboardActionPressureUseCase
-	executiveAlertsUC     *riskuc.ExecutiveAlertsUseCase
-	heatmapDataUC         *riskuc.HeatmapDataUseCase
-	heatmapMultiUC        *riskuc.HeatmapMultiUseCase
-	dashboardCategoriesUC *riskuc.DashboardRiskCategoriesUseCase
-	topRisksUC            *riskuc.TopRisksUseCase
-	listApprovedUC        *riskuc.ListApprovedRisksUseCase
-	heatmapVelocityUC     *riskuc.HeatmapVelocityUseCase
-	overdueTimelineUC     *riskuc.OverdueMitigationTimelineUseCase
-	kriBreachSummaryUC    *riskuc.KRIBreachSummaryUseCase
-	unitResponseTimeUC    *riskuc.UnitResponseTimeUseCase
-	mmRepo                repository.MeetingMinuteRepository
+	createUC                *riskuc.CreateRiskUseCase
+	createBatchUC           *riskuc.CreateRiskBatchUseCase
+	spreadsheetUC           *riskuc.BulkRiskSpreadsheetUseCase
+	getUC                   *riskuc.GetRiskUseCase
+	reassessUC              *riskuc.CreateRiskReassessmentUseCase
+	updateUC                *riskuc.UpdateRiskUseCase
+	deleteUC                *riskuc.DeleteRiskUseCase
+	listUC                  *riskuc.ListRisksUseCase
+	listRegisterUC          *riskuc.ListRiskRegisterUseCase
+	listCycleSnapshotUC     *riskuc.ListRiskCycleSnapshotUseCase
+	listVersionsUC          *riskuc.ListRiskVersionsUseCase
+	reviewQueueUC           *riskuc.ListRiskReviewQueueUseCase
+	compareCyclesUC         *riskuc.CompareRiskCyclesUseCase
+	compareDetailUC         *riskuc.CompareRiskCycleDetailsUseCase
+	reviewSummaryUC         *riskuc.RiskReviewSummaryUseCase
+	dashboardSummaryUC      *riskuc.DashboardSummaryUseCase
+	actionPressureUC        *riskuc.DashboardActionPressureUseCase
+	executiveAlertsUC       *riskuc.ExecutiveAlertsUseCase
+	heatmapDataUC           *riskuc.HeatmapDataUseCase
+	heatmapMultiUC          *riskuc.HeatmapMultiUseCase
+	dashboardCategoriesUC   *riskuc.DashboardRiskCategoriesUseCase
+	topRisksUC              *riskuc.TopRisksUseCase
+	listApprovedUC          *riskuc.ListApprovedRisksUseCase
+	heatmapVelocityUC       *riskuc.HeatmapVelocityUseCase
+	overdueTimelineUC       *riskuc.OverdueMitigationTimelineUseCase
+	kriBreachSummaryUC      *riskuc.KRIBreachSummaryUseCase
+	unitResponseTimeUC      *riskuc.UnitResponseTimeUseCase
+	monitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase
+	createMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase
+	mmRepo                  repository.MeetingMinuteRepository
 }
 
 func NewRiskHandler(
@@ -76,37 +78,41 @@ func NewRiskHandler(
 	overdueTimelineUC *riskuc.OverdueMitigationTimelineUseCase,
 	kriBreachSummaryUC *riskuc.KRIBreachSummaryUseCase,
 	unitResponseTimeUC *riskuc.UnitResponseTimeUseCase,
+	monitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase,
+	createMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase,
 	mmRepo repository.MeetingMinuteRepository,
 ) *RiskHandler {
 	return &RiskHandler{
-		createUC:              createUC,
-		createBatchUC:         createBatchUC,
-		spreadsheetUC:         spreadsheetUC,
-		getUC:                 getUC,
-		reassessUC:            reassessUC,
-		updateUC:              updateUC,
-		deleteUC:              deleteUC,
-		listUC:                listUC,
-		listRegisterUC:        listRegisterUC,
-		listCycleSnapshotUC:   listCycleSnapshotUC,
-		listVersionsUC:        listVersionsUC,
-		reviewQueueUC:         reviewQueueUC,
-		compareCyclesUC:       compareCyclesUC,
-		compareDetailUC:       compareDetailUC,
-		reviewSummaryUC:       reviewSummaryUC,
-		dashboardSummaryUC:    dashboardSummaryUC,
-		actionPressureUC:      actionPressureUC,
-		executiveAlertsUC:     executiveAlertsUC,
-		heatmapDataUC:         heatmapDataUC,
-		heatmapMultiUC:        heatmapMultiUC,
-		topRisksUC:            topRisksUC,
-		dashboardCategoriesUC: dashboardCategoriesUC,
-		listApprovedUC:        listApprovedUC,
-		heatmapVelocityUC:     heatmapVelocityUC,
-		overdueTimelineUC:     overdueTimelineUC,
-		kriBreachSummaryUC:    kriBreachSummaryUC,
-		unitResponseTimeUC:    unitResponseTimeUC,
-		mmRepo:                mmRepo,
+		createUC:                createUC,
+		createBatchUC:           createBatchUC,
+		spreadsheetUC:           spreadsheetUC,
+		getUC:                   getUC,
+		reassessUC:              reassessUC,
+		updateUC:                updateUC,
+		deleteUC:                deleteUC,
+		listUC:                  listUC,
+		listRegisterUC:          listRegisterUC,
+		listCycleSnapshotUC:     listCycleSnapshotUC,
+		listVersionsUC:          listVersionsUC,
+		reviewQueueUC:           reviewQueueUC,
+		compareCyclesUC:         compareCyclesUC,
+		compareDetailUC:         compareDetailUC,
+		reviewSummaryUC:         reviewSummaryUC,
+		dashboardSummaryUC:      dashboardSummaryUC,
+		actionPressureUC:        actionPressureUC,
+		executiveAlertsUC:       executiveAlertsUC,
+		heatmapDataUC:           heatmapDataUC,
+		heatmapMultiUC:          heatmapMultiUC,
+		topRisksUC:              topRisksUC,
+		dashboardCategoriesUC:   dashboardCategoriesUC,
+		listApprovedUC:          listApprovedUC,
+		heatmapVelocityUC:       heatmapVelocityUC,
+		overdueTimelineUC:       overdueTimelineUC,
+		kriBreachSummaryUC:      kriBreachSummaryUC,
+		unitResponseTimeUC:      unitResponseTimeUC,
+		monitoringSpreadsheetUC: monitoringSpreadsheetUC,
+		createMonitoringBatchUC: createMonitoringBatchUC,
+		mmRepo:                  mmRepo,
 	}
 }
 
@@ -463,6 +469,11 @@ type createRiskBatchRequest struct {
 	Items []riskuc.CreateRiskBatchItemInput `json:"items"`
 }
 
+type createMonitoringBatchRequest struct {
+	Items []riskuc.BulkMonitoringBatchItemInput `json:"items"`
+	Cycle string                                `json:"cycle"`
+}
+
 type createRiskReassessmentRequest struct {
 	Cycle string `json:"cycle"`
 }
@@ -524,6 +535,140 @@ func (h *RiskHandler) CreateRiskBatch(c *fiber.Ctx) error {
 		Items:          req.Items,
 		CreatedBy:      &userID,
 		OrganizationID: orgID,
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.Status(201).JSON(fiber.Map{"data": result})
+}
+
+// DownloadMonitoringTemplate handles GET /api/risks/batch/monitoring/template
+func (h *RiskHandler) DownloadMonitoringTemplate(c *fiber.Ctx) error {
+	orgIDStr := c.Query("organization_id")
+	if orgIDStr == "" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id is required")
+	}
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
+	}
+
+	cycle := c.Query("cycle")
+	if cycle == "" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
+	}
+	if !riskuc.IsValidCycleFormat(cycle) {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-HN format (e.g. 2026-H1)")
+	}
+
+	content, filename, err := h.monitoringSpreadsheetUC.Template(c.Context(), orgID, cycle)
+	if err != nil {
+		return handleError(c, err)
+	}
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+	return c.Send(content)
+}
+
+// PreviewMonitoringBatchUpload handles POST /api/risks/batch/monitoring/preview
+func (h *RiskHandler) PreviewMonitoringBatchUpload(c *fiber.Ctx) error {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "file is required")
+	}
+	// Max 5MB file size
+	const maxUploadSize = 5 << 20 // 5MB
+	if fileHeader.Size > maxUploadSize {
+		return sendProblemDetails(c, 413, "Payload Too Large", "https://api.manris.com/errors/payload-too-large", "file size exceeds 5MB limit")
+	}
+	// Server-side file extension validation
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	allowedExts := map[string]bool{".xlsx": true, ".xls": true, ".csv": true}
+	if !allowedExts[ext] {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "file must be .xlsx, .xls, or .csv")
+	}
+	file, err := fileHeader.Open()
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "failed to open uploaded file")
+	}
+	defer file.Close()
+	content, err := io.ReadAll(file)
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "failed to read uploaded file")
+	}
+
+	orgIDStr := c.Query("organization_id")
+	if orgIDStr == "" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id is required")
+	}
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
+	}
+
+	cycle := c.Query("cycle")
+	if cycle == "" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
+	}
+	if !riskuc.IsValidCycleFormat(cycle) {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-HN format (e.g. 2026-H1)")
+	}
+
+	userID, ok := c.Locals("userId").(uuid.UUID)
+	if !ok {
+		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+	}
+
+	result, err := h.monitoringSpreadsheetUC.Preview(c.Context(), riskuc.BulkMonitoringSpreadsheetInput{
+		Filename:       fileHeader.Filename,
+		Content:        content,
+		UploaderID:     userID,
+		OrganizationID: orgID,
+		Cycle:          cycle,
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+	return c.JSON(fiber.Map{"data": result})
+}
+
+// CreateMonitoringBatch handles POST /api/risks/batch/monitoring
+func (h *RiskHandler) CreateMonitoringBatch(c *fiber.Ctx) error {
+	var req createMonitoringBatchRequest
+	if err := c.BodyParser(&req); err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", fmt.Sprintf("invalid request body: %v", err))
+	}
+	const maxBatchSize = 100
+	if len(req.Items) > maxBatchSize {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", fmt.Sprintf("batch size exceeds %d items limit", maxBatchSize))
+	}
+	if req.Cycle == "" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
+	}
+	if !riskuc.IsValidCycleFormat(req.Cycle) {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-HN format (e.g. 2026-H1)")
+	}
+
+	userID, ok := c.Locals("userId").(uuid.UUID)
+	if !ok {
+		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+	}
+
+	orgIDStr := c.Query("organization_id")
+	if orgIDStr == "" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id is required")
+	}
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
+	}
+
+	result, err := h.createMonitoringBatchUC.Execute(c.Context(), riskuc.CreateMonitoringBatchInput{
+		Items:          req.Items,
+		Cycle:          req.Cycle,
+		OrganizationID: orgID,
+		CreatedBy:      &userID,
 	})
 	if err != nil {
 		return handleError(c, err)

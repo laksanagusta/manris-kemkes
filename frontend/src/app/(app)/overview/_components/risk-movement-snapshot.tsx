@@ -57,10 +57,16 @@ const movementConfig: Record<
   },
 };
 
-export function RiskMovementSnapshot({ data, loading }: RiskMovementSnapshotProps) {
+export function RiskMovementSnapshot({
+  data,
+  loading,
+}: RiskMovementSnapshotProps) {
   if (loading) {
     return (
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="movement-snapshot">
+      <Card
+        className="border-border/50 bg-card/80 backdrop-blur-sm"
+        data-testid="movement-snapshot"
+      >
         <CardHeader className="pb-4">
           <div className="h-5 w-36 animate-pulse rounded-md bg-muted/60" />
           <div className="mt-2 h-3 w-52 animate-pulse rounded bg-muted/40" />
@@ -86,11 +92,16 @@ export function RiskMovementSnapshot({ data, loading }: RiskMovementSnapshotProp
   }
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="movement-snapshot">
+    <Card
+      className="border-border/50 bg-card/80 backdrop-blur-sm"
+      data-testid="movement-snapshot"
+    >
       <CardHeader className="pb-4">
-        <CardTitle className="text-base font-semibold">Gerakan Risiko</CardTitle>
+        <CardTitle className="text-base font-semibold">
+          Perubahan Risiko
+        </CardTitle>
         <p className="mt-1 text-xs text-muted-foreground">
-          Perubahan portofolio risiko vs cycle sebelumnya.
+          Perubahan portofolio risiko vs semester sebelumnya.
         </p>
       </CardHeader>
       <CardContent>

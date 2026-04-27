@@ -1,0 +1,80 @@
+=== RUN   TestNormalizeTreatmentOption/menerima_risiko
+=== RUN   TestNormalizeTreatmentOption/avoid_unchanged
+--- PASS: TestNormalizeTreatmentOption (0.00s)
+    --- PASS: TestNormalizeTreatmentOption/menghindari (0.00s)
+    --- PASS: TestNormalizeTreatmentOption/menghindari_risiko (0.00s)
+    --- PASS: TestNormalizeTreatmentOption/berbagi (0.00s)
+    --- PASS: TestNormalizeTreatmentOption/berbagi_risiko (0.00s)
+    --- PASS: TestNormalizeTreatmentOption/mitigasi_risiko (0.00s)
+    --- PASS: TestNormalizeTreatmentOption/menerima_risiko (0.00s)
+    --- PASS: TestNormalizeTreatmentOption/avoid_unchanged (0.00s)
+=== RUN   TestCreateMonitoringBatchUseCase_ExecuteCreatesDrafts
+--- PASS: TestCreateMonitoringBatchUseCase_ExecuteCreatesDrafts (0.00s)
+=== RUN   TestCreateMonitoringBatchUseCase_RejectsInvalidCycle
+--- PASS: TestCreateMonitoringBatchUseCase_RejectsInvalidCycle (0.00s)
+=== RUN   TestCreateMonitoringBatchUseCase_RejectsNilCreatedBy
+--- PASS: TestCreateMonitoringBatchUseCase_RejectsNilCreatedBy (0.00s)
+=== RUN   TestCreateMonitoringBatchUseCase_FailsForUnknownCode
+--- PASS: TestCreateMonitoringBatchUseCase_FailsForUnknownCode (0.00s)
+=== RUN   TestCreateMonitoringBatchUseCase_FailsForNonApprovedRisk
+--- PASS: TestCreateMonitoringBatchUseCase_FailsForNonApprovedRisk (0.00s)
+=== RUN   TestCreateMonitoringBatchUseCase_FailsForExistingDraft
+--- PASS: TestCreateMonitoringBatchUseCase_FailsForExistingDraft (0.00s)
+=== RUN   TestCreateMonitoringBatchUseCase_PartialSuccess
+--- PASS: TestCreateMonitoringBatchUseCase_PartialSuccess (0.00s)
+=== RUN   TestCreateMonitoringBatchUseCase_ComputesWeightAndNilai
+--- PASS: TestCreateMonitoringBatchUseCase_ComputesWeightAndNilai (0.00s)
+=== RUN   TestCreateMonitoringBatchUseCase_PreservesSourceRiskFields
+--- PASS: TestCreateMonitoringBatchUseCase_PreservesSourceRiskFields (0.00s)
+=== RUN   TestCreateMonitoringBatchUseCase_RepoCreateFailure
+--- PASS: TestCreateMonitoringBatchUseCase_RepoCreateFailure (0.00s)
+=== RUN   TestIntegration_TemplatePreviewBatchCreate
+--- PASS: TestIntegration_TemplatePreviewBatchCreate (0.00s)
+=== RUN   TestIntegration_MonitoringPreviewThenBatchWithInvalidCode
+--- PASS: TestIntegration_MonitoringPreviewThenBatchWithInvalidCode (0.00s)
+=== RUN   TestIntegration_MonitoringPreviewThenBatchWithExistingDraft
+--- PASS: TestIntegration_MonitoringPreviewThenBatchWithExistingDraft (0.00s)
+=== RUN   TestIntegration_MonitoringInvalidCycleRejectedByBothPaths
+--- PASS: TestIntegration_MonitoringInvalidCycleRejectedByBothPaths (0.00s)
+=== RUN   TestGetDashboardRiskCategoriesUseCase_ExecuteReturnsSortedCounts
+--- PASS: TestGetDashboardRiskCategoriesUseCase_ExecuteReturnsSortedCounts (0.00s)
+=== RUN   TestGetDashboardRiskCategoriesUseCase_ExecuteMapsLegacyBlankToUncategorized
+--- PASS: TestGetDashboardRiskCategoriesUseCase_ExecuteMapsLegacyBlankToUncategorized (0.00s)
+=== RUN   TestDashboardActionPressureUseCase_ExecuteBuildsMonthlySeries
+--- PASS: TestDashboardActionPressureUseCase_ExecuteBuildsMonthlySeries (0.00s)
+=== RUN   TestExecutiveAlertsUseCase_ExecuteBuildsRankedAlerts
+--- PASS: TestExecutiveAlertsUseCase_ExecuteBuildsRankedAlerts (0.00s)
+=== RUN   TestListCycleSnapshotUseCase_RejectsEmptyCycle
+--- PASS: TestListCycleSnapshotUseCase_RejectsEmptyCycle (0.00s)
+=== RUN   TestListCycleSnapshotUseCase_ReturnsSnapshotForCycle
+--- PASS: TestListCycleSnapshotUseCase_ReturnsSnapshotForCycle (0.00s)
+=== RUN   TestListRiskReviewQueueUseCase_ExecuteReturnsReviewItems
+--- PASS: TestListRiskReviewQueueUseCase_ExecuteReturnsReviewItems (0.00s)
+=== RUN   TestCompareRiskCyclesUseCase_ExecuteReturnsMovement
+--- PASS: TestCompareRiskCyclesUseCase_ExecuteReturnsMovement (0.00s)
+=== RUN   TestRiskReviewSummaryUseCase_ExecuteReturnsHeatmapAndCompletion
+--- PASS: TestRiskReviewSummaryUseCase_ExecuteReturnsHeatmapAndCompletion (0.00s)
+=== RUN   TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk
+--- PASS: TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk (0.00s)
+=== RUN   TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle
+--- PASS: TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle (0.00s)
+=== RUN   TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved
+--- PASS: TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved (0.00s)
+=== RUN   TestCreateRiskReassessmentUseCase_ExecuteKeepsDraftOnPreliminarySemanticsEvenWithReviewedSnapshot
+--- PASS: TestCreateRiskReassessmentUseCase_ExecuteKeepsDraftOnPreliminarySemanticsEvenWithReviewedSnapshot (0.00s)
+=== RUN   TestCreateRiskReassessmentUseCase_ExecuteUsesRepositoryManagedReservation
+--- PASS: TestCreateRiskReassessmentUseCase_ExecuteUsesRepositoryManagedReservation (0.00s)
+=== RUN   TestListRiskVersionsUseCase_ExecuteReturnsCategory
+--- PASS: TestListRiskVersionsUseCase_ExecuteReturnsCategory (0.00s)
+=== RUN   TestFindInProgressReassessmentForCycleReturnsReusableDraft
+--- PASS: TestFindInProgressReassessmentForCycleReturnsReusableDraft (0.00s)
+=== RUN   TestBuildPeriodicReassessmentDraftClonesForTargetCycle
+--- PASS: TestBuildPeriodicReassessmentDraftClonesForTargetCycle (0.00s)
+=== RUN   TestCreateRiskUseCase_ExecutePersistsReviewScheduleText
+--- PASS: TestCreateRiskUseCase_ExecutePersistsReviewScheduleText (0.00s)
+=== RUN   TestUpdateRiskUseCase_ExecutePersistsReviewScheduleText
+--- PASS: TestUpdateRiskUseCase_ExecutePersistsReviewScheduleText (0.00s)
+=== RUN   TestUpdateRiskUseCase_ExecuteActivatesApprovedReassessmentVersion
+--- PASS: TestUpdateRiskUseCase_ExecuteActivatesApprovedReassessmentVersion (0.00s)
+PASS
+ok  	github.com/manris/backend/internal/usecase/risk	(cached)

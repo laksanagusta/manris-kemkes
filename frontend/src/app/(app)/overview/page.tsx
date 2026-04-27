@@ -195,7 +195,9 @@ export default function DashboardPage() {
           setAllRisksForExposure(risks);
           setTrendData(buildExecutiveTrendData(risks));
           const score = risks.reduce((sum, r) => {
-            const lvl = levelFromScore(resolveRiskScoreSemantics(r).effective.score);
+            const lvl = levelFromScore(
+              resolveRiskScoreSemantics(r).effective.score,
+            );
             return sum + weightFor(lvl);
           }, 0);
           setExposureScore(score);
@@ -258,15 +260,19 @@ export default function DashboardPage() {
     );
   }, [token, currentCycle, previousCycle]);
 
-  const calculateTrend = (current: number, prev: number | undefined): Pick<KpiCard, "trend" | "change"> => {
-    if (prev === undefined || prev === 0) return { trend: "stable", change: "--" };
+  const calculateTrend = (
+    current: number,
+    prev: number | undefined,
+  ): Pick<KpiCard, "trend" | "change"> => {
+    if (prev === undefined || prev === 0)
+      return { trend: "stable", change: "--" };
     const percent = Math.round(((current - prev) / prev) * 100);
     const sign = percent > 0 ? "+" : percent < 0 ? "-" : "";
     const absPercent = Math.abs(percent);
     let trend: "up" | "down" | "stable" = "stable";
     if (percent > 0) trend = "up";
     else if (percent < 0) trend = "down";
-    
+
     return { trend, change: percent === 0 ? "0%" : `${sign}${absPercent}%` };
   };
 
@@ -282,7 +288,7 @@ export default function DashboardPage() {
           description: "risiko terdaftar",
         },
         {
-          title: "Risiko Tinggi & Ekstrem",
+          title: "Risiko Tinggi & Sangat Tinggi",
           value: summary.highExtreme,
           ...calculateTrend(summary.highExtreme, prevSummary?.highExtreme),
           icon: Flame,
@@ -293,7 +299,10 @@ export default function DashboardPage() {
         {
           title: "Penanganan Overdue",
           value: summary.overdueMitigations,
-          ...calculateTrend(summary.overdueMitigations, prevSummary?.overdueMitigations),
+          ...calculateTrend(
+            summary.overdueMitigations,
+            prevSummary?.overdueMitigations,
+          ),
           icon: Clock,
           color: "text-warning",
           bgColor: "bg-warning/10",
@@ -302,7 +311,10 @@ export default function DashboardPage() {
         {
           title: "Insiden Bulan Ini",
           value: summary.incidentsThisMonth,
-          ...calculateTrend(summary.incidentsThisMonth, prevSummary?.incidentsThisMonth),
+          ...calculateTrend(
+            summary.incidentsThisMonth,
+            prevSummary?.incidentsThisMonth,
+          ),
           icon: AlertTriangle,
           color: "text-risk-high",
           bgColor: "bg-risk-high/10",
@@ -469,10 +481,7 @@ export default function DashboardPage() {
                       tickLine={false}
                     />
                     <RechartsTooltip
-                      formatter={(value, name) => [
-                        `${value} risiko`,
-                        name,
-                      ]}
+                      formatter={(value, name) => [`${value} risiko`, name]}
                       contentStyle={{
                         background: "var(--popover)",
                         border: "1px solid var(--border)",
@@ -532,7 +541,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base font-semibold">
-                  Risk Trend
+                  Tren Risiko
                 </CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Eksposur sedang/tinggi/sangat tinggi per semester
@@ -768,9 +777,23 @@ export default function DashboardPage() {
                     margin={{ top: 4, right: 12, left: -12, bottom: 0 }}
                   >
                     <defs>
-                      <linearGradient id="colorExposure" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="oklch(0.55 0.05 260)" stopOpacity={0.25}/>
-                        <stop offset="95%" stopColor="oklch(0.55 0.05 260)" stopOpacity={0}/>
+                      <linearGradient
+                        id="colorExposure"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="oklch(0.55 0.05 260)"
+                          stopOpacity={0.25}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="oklch(0.55 0.05 260)"
+                          stopOpacity={0}
+                        />
                       </linearGradient>
                     </defs>
                     <CartesianGrid

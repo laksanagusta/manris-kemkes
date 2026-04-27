@@ -1,0 +1,187 @@
+=============================================================================
+FINAL F1 COMPLIANCE AUDIT — Bulk Monitoring Plan
+=============================================================================
+
+AUDIT DATE: 2026-04-27
+PLAN: .sisyphus/plans/bulk-monitoring.md
+
+=============================================================================
+MUST HAVE VERIFICATION
+=============================================================================
+
+1. Mode selector (Risiko Baru / Pemantauan) — VERIFIED ✓
+   - File: frontend/src/app/(app)/risk/register/bulk/page.tsx
+   - Evidence: `bulkMode` state found (12 occurrences)
+   - Line 116: `const [bulkMode, setBulkMode] = useState<"baru" | "pemantauan">("baru")`
+   - Line 336: `<Tabs value={bulkMode} onValueChange={...} data-testid="bulk-mode-tabs">`
+   - Mode switching works with "baru" (Risiko Baru) and "pemantauan" (Pemantauan)
+
+2. Cycle selector dropdown — VERIFIED ✓
+   - File: frontend/src/app/(app)/risk/register/bulk/page.tsx
+   - Evidence: `selectedCycle` state found (9 occurrences)
+   - Line 117: `const [selectedCycle, setSelectedCycle] = useState<string>("")`
+   - Line 449: `<Select value={selectedCycle} onValueChange={setSelectedCycle} data-testid="cycle-selector">`
+   - Cycle required before upload in Pemantauan mode (line 157)
+
+3. Template download with pre-filled target columns — VERIFIED ✓
+   - File: backend/internal/usecase/risk/bulk_monitoring.go
+   - Method: `Template(ctx, orgID, cycle)` at line 171
+   - Fetches approved current risks (lines 181-192)
+   - Calls `writeMonitoringHeaders()` and `writeMonitoringDataRows()` with pre-filled target values
+   - Filename format: `bulk-monitoring-template-{orgName}-{cycle}.xlsx` (line 217)
+
+4. Server-side parsing — VERIFIED ✓
+   - File: backend/internal/usecase/risk/bulk_monitoring.go
+   - Method: `Preview(ctx, input)` at line 488
+   - Parses XLSX/CSV server-side using excelize
+   - Finds header row, matches Kode Risiko to approved risks
+
+5. Server-side computation (Bobot, Nilai, Tingkat, Simpulan, Efektivitas) — VERIFIED ✓
+   - File: backend/internal/usecase/risk/bulk_monitoring.go
+   - Function: `mapBulkMonitoringRecord()` at line 688
+   - Line 769: `bobot := entity.GetBobot(realisasiP, realisasiD)`
+   - Line 770: `nilai := entity.CalculateNilai(realisasiP, realisasiD, bobot)`
+   - Line 771: `tingkat := entity.GetRiskLevelFromNilai(nilai)`
+   - Lines 779-791: Simpulan logic (Menurun/Tetap/Meningkat) and Efektivitas (Efektif/Tidak Efektif)
+
+6. Skip rows with warnings/errors — VERIFIED ✓
+   - File: backend/internal/usecase/risk/bulk_monitoring.go
+   - Line 724-725: "Risiko dengan kode '%s' tidak ditemukan" (not found)
+   - Line 727-729: "sudah memiliki draf pemantauan untuk siklus" (existing draft warning)
+   - Lines 753-763: Invalid P/D validation errors
+   - Line 795-803: Payload set to nil when errors exist
+
+7. Create reassessment drafts via BuildPeriodicReassessmentDraft — VERIFIED ✓
+   - File: backend/internal/usecase/risk/create_monitoring_batch.go
+   - Line 137: `draft := BuildPeriodicReassessmentDraft(sourceRisk, cycle, now, *createdBy)`
+   - Lines 139-143: Updates draft with realisasi P/D, recomputes Weight and Nilai
+   - Line 145: Persists via `riskRepo.Create(ctx, draft)`
+   - Tests: 10 tests PASS (TestCreateMonitoringBatchUseCase_*)
+
+8. Frontend preview table with monitoring columns — VERIFIED ✓
+   - File: frontend/src/app/(app)/risk/register/bulk/page.tsx
+   - Lines 516-533: Table headers include Baris, Kode Risiko, Uraian Risiko,
+     Target P, Target D, Target Nilai, Target Tingkat, Realisasi P, Realisasi D,
+     Bobot, Nilai, Tingkat, Simpulan, Efektivitas, Status, Catatan
+   - Lines 536-575: Table rows render monitoring preview data with error/warning badges
+
+MUST HAVE: 8/8 verified ✓
+
+=============================================================================
+MUST NOT HAVE VERIFICATION
+=============================================================================
+
+1. reviewed_* fields — VERIFIED ABSENT ✓
+   - Searched: backend/internal/domain/entity/risk.go for "reviewed_"
+   - Result: No matches found
+
+2. Modification of BulkRiskSpreadsheetUseCase — VERIFIED UNCHANGED ✓
+   - File: backend/internal/usecase/risk/bulk_preview.go
+   - Only contains original functions: NewBulkRiskSpreadsheetUseCase, Preview, Template,
+     writeSheet2StyleHeaders, parseBulkRiskRecords, etc.
+   - No monitoring-related modifications detected
+
+3. Approval workflow in bulk — VERIFIED ABSENT ✓
+   - Searched: backend/internal/usecase/risk/create_monitoring_batch.go for "approval"
+   - Result: No matches found
+   - Drafts are created with assessment_draft status only
+
+4. Review Summary column — VERIFIED ABSENT ✓
+   - Searched: backend/internal/usecase/risk/bulk_monitoring.go for "review_summary"
+   - Result: No matches found
+   - Template columns (lines 20-37) do not include Review Summary
+
+5. Frontend Excel parsing — VERIFIED ABSENT ✓
+   - Searched: frontend/ for "excelize"
+   - Result: No matches found
+   - All parsing is server-side
+
+6. New route/page — VERIFIED ABSENT ✓
+   - No new route created; monitoring is a mode switch in existing /risk/register/bulk page
+   - Routes registered are sub-paths of existing batch routes:
+     - GET /risks/batch/monitoring/template
+     - POST /risks/batch/monitoring/preview
+     - POST /risks/batch/monitoring
+   - These are under the existing protected route group, not a new page
+
+MUST NOT HAVE: 6/6 verified ✓
+
+=============================================================================
+TASK COMPLETION VERIFICATION
+=============================================================================
+
+Task 1: Backend monitoring spreadsheet columns & types — VERIFIED ✓
+  - File: backend/internal/usecase/risk/bulk_monitoring.go (lines 20-50)
+  - bulkMonitoringTemplateColumns, skipMonitoringCols defined
+  - Types: BulkMonitoringPreviewItem, BulkMonitoringBatchItemInput, etc.
+
+Task 2: Backend monitoring template generation — VERIFIED ✓
+  - Method: Template() at line 171
+  - writeMonitoringHeaders() at line 222
+  - writeMonitoringDataRows() present
+  - Tests: TestPreview_TemplateRoundTrip PASS
+
+Task 3: Backend monitoring preview (parse + validate + compute) — VERIFIED ✓
+  - Method: Preview() at line 488
+  - mapBulkMonitoringRecord() at line 688
+  - Tests: 13+ tests PASS (TestPreview_*, TestIsMonitoringColumnNumbersRow, TestParseMonitoringInt)
+
+Task 4: Frontend types & API client functions — VERIFIED ✓
+  - File: frontend/src/types/risk-monitoring.ts (imported in page.tsx line 36)
+  - File: frontend/src/lib/api/risk-monitoring.ts (imported in page.tsx line 37)
+
+Task 5: Backend monitoring batch creation use case — VERIFIED ✓
+  - File: backend/internal/usecase/risk/create_monitoring_batch.go
+  - Uses BuildPeriodicReassessmentDraft (line 137)
+  - Tests: 10 tests PASS (TestCreateMonitoringBatchUseCase_*)
+
+Task 6: Backend HTTP handlers & route registration — VERIFIED ✓
+  - File: backend/internal/handler/http/risk.go
+  - 3 handlers: DownloadMonitoringTemplate, PreviewMonitoringBatchUpload, CreateMonitoringBatch
+  - Routes registered in cmd/server/main.go (lines 207-209)
+
+Task 7: Frontend mode switcher & cycle selector — VERIFIED ✓
+  - File: frontend/src/app/(app)/risk/register/bulk/page.tsx
+  - Tabs component with data-testid="bulk-mode-tabs"
+  - Cycle selector with data-testid="cycle-selector"
+  - Conditional API calls based on bulkMode
+
+Task 8: Frontend monitoring preview table & batch submit — VERIFIED ✓
+  - File: frontend/src/app/(app)/risk/register/bulk/page.tsx
+  - Monitoring preview table (lines 509-578)
+  - Batch submit handler (lines 276-283)
+  - Results display (lines 618-660)
+
+Task 9: Integration testing & edge cases — VERIFIED ✓
+  - Backend tests: All PASS (0.449s)
+  - Frontend build: PASS (successful)
+  - Backend build: PASS (successful)
+
+TASKS: 9/9 completed ✓
+
+=============================================================================
+BUILD & TEST VERIFICATION
+=============================================================================
+
+Backend build: PASS ✓
+  - go build ./cmd/server/ — no errors
+
+Frontend build: PASS ✓
+  - npm run build — successful, /risk/register/bulk route present
+
+Backend tests: PASS ✓
+  - go test ./internal/usecase/risk/ — all tests pass
+  - TestCreateMonitoringBatchUseCase_*: 10/10 PASS
+  - TestPreview_*: 13/13 PASS
+  - TestIsMonitoringColumnNumbersRow: PASS
+  - TestParseMonitoringInt: PASS
+
+=============================================================================
+VERDICT
+=============================================================================
+
+Must Have:  8/8 verified ✓
+Must NOT Have: 6/6 verified ✓
+Tasks:      9/9 completed ✓
+
+VERDICT: APPROVE

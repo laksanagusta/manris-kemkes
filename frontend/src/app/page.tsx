@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -159,6 +160,14 @@ export default function LoginPage() {
               <p className="text-center text-xs text-muted-foreground">
                 Jika ini login pertama Anda, sistem akan meminta penggantian password sementara.
               </p>
+              <div className="flex justify-center">
+                <Link
+                  href="/panduan-risiko"
+                  className="text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                >
+                  Panduan Risiko
+                </Link>
+              </div>
             </form>
           </CardContent>
         </Card>
