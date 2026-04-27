@@ -1,0 +1,30 @@
+├ ○ /incidents
+├ ƒ /incidents/[id]
+├ ○ /incidents/new
+├ ○ /intelligence/cba
+├ ○ /intelligence/minutes
+├ ○ /intelligence/minutes/new
+├ ○ /intelligence/predictive
+├ ○ /intelligence/transcript
+├ ○ /login
+├ ○ /minutes
+├ ƒ /minutes/[id]
+├ ○ /minutes/new
+├ ○ /overview
+├ ○ /panduan-risiko
+├ ○ /panduan/risiko
+├ ○ /reports
+├ ƒ /risk/assessment/[id]
+├ ○ /risk/history
+├ ○ /risk/register
+├ ƒ /risk/register/[id]
+├ ○ /risk/register/bulk
+├ ○ /risk/register/new
+├ ○ /risk/working-papers
+├ ƒ /risk/working-papers/[id]
+└ ○ /risk/working-papers/new
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

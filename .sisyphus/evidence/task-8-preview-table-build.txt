@@ -1,0 +1,72 @@
+
+> frontend@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 5.0s
+  Running TypeScript ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/41) ...
+  Generating static pages using 9 workers (10/41) 
+  Generating static pages using 9 workers (20/41) 
+  Generating static pages using 9 workers (30/41) 
+✓ Generating static pages using 9 workers (41/41) in 324.0ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /account
+├ ○ /admin/forms
+├ ƒ /admin/forms/[id]/analytics
+├ ƒ /admin/forms/[id]/edit
+├ ƒ /admin/forms/[id]/responses
+├ ○ /admin/forms/new
+├ ○ /admin/organizations
+├ ○ /admin/settings
+├ ○ /admin/settings/organization-context
+├ ○ /admin/users
+├ ○ /admin/users/new
+├ ○ /change-password
+├ ○ /compliance/controls
+├ ○ /compliance/controls/new
+├ ○ /compliance/kri
+├ ƒ /compliance/kri/[id]
+├ ○ /compliance/kri/new
+├ ○ /compliance/monitoring
+├ ○ /compliance/penanganan
+├ ○ /forms
+├ ƒ /forms/[id]/fill
+├ ○ /inbox
+├ ○ /incidents
+├ ƒ /incidents/[id]
+├ ○ /incidents/new
+├ ○ /intelligence/cba
+├ ○ /intelligence/minutes
+├ ○ /intelligence/minutes/new
+├ ○ /intelligence/predictive
+├ ○ /intelligence/transcript
+├ ○ /login
+├ ○ /minutes
+├ ƒ /minutes/[id]
+├ ○ /minutes/new
+├ ○ /overview
+├ ○ /panduan-risiko
+├ ○ /panduan/risiko
+├ ○ /reports
+├ ƒ /risk/assessment/[id]
+├ ○ /risk/history
+├ ○ /risk/register
+├ ƒ /risk/register/[id]
+├ ○ /risk/register/bulk
+├ ○ /risk/register/new
+├ ○ /risk/working-papers
+├ ƒ /risk/working-papers/[id]
+└ ○ /risk/working-papers/new
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

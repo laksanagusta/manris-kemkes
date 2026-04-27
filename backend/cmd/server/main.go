@@ -42,7 +42,7 @@ func main() {
 	cleanRiskHandler := httpHandler.NewRiskHandler(
 		container.RiskCreateUC, container.RiskCreateBatchUC, container.RiskSpreadsheetUC, container.RiskGetUC, container.RiskReassessUC, container.RiskUpdateUC, container.RiskDeleteUC, container.RiskListUC, container.RiskListRegisterUC, container.RiskListCycleSnapshotUC, container.RiskListVersionsUC, container.RiskReviewQueueUC, container.RiskCompareCyclesUC, container.RiskCompareCycleDetailsUC, container.RiskReviewSummaryUC,
 		container.RiskDashboardSummaryUC, container.RiskActionPressureUC, container.RiskExecutiveAlertsUC, container.RiskHeatmapDataUC, container.RiskHeatmapMultiUC, container.RiskTopRisksUC, container.RiskDashboardCategoriesUC, container.RiskListApprovedUC,
-		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskKRIBreachUC, container.RiskUnitResponseUC, container.MMRepository,
+		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskKRIBreachUC, container.RiskUnitResponseUC, container.RiskMonitoringSpreadsheetUC, container.RiskCreateMonitoringBatchUC, container.MMRepository,
 	)
 	cleanIncidentHandler := httpHandler.NewIncidentHandler(
 		container.IncidentCreateUC, container.IncidentCreateBatchUC, container.IncidentGetUC, container.IncidentUpdateUC, container.IncidentDeleteUC, container.IncidentListUC, container.IncidentSummaryUC,
@@ -204,6 +204,9 @@ func main() {
 	protected.Get("/risks/batch/template", cleanRiskHandler.DownloadBulkRiskTemplate)
 	protected.Post("/risks/batch/preview", cleanRiskHandler.PreviewRiskBatchUpload)
 	protected.Post("/risks/batch", cleanRiskHandler.CreateRiskBatch)
+	protected.Get("/risks/batch/monitoring/template", cleanRiskHandler.DownloadMonitoringTemplate)
+	protected.Post("/risks/batch/monitoring/preview", cleanRiskHandler.PreviewMonitoringBatchUpload)
+	protected.Post("/risks/batch/monitoring", cleanRiskHandler.CreateMonitoringBatch)
 	protected.Get("/risks/trend", cleanRiskHandler.ListApprovedRisks)
 	protected.Get("/risks/:id", cleanRiskHandler.GetRisk)
 	protected.Get("/risks/:id/versions", cleanRiskHandler.ListVersions)

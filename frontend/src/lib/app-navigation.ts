@@ -16,6 +16,7 @@ export const mainMenuItems: MainMenuGroup[] = [
     items: [
       { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
       { label: "Risiko", href: "/risk/register", icon: "ShieldAlert" },
+      { label: "Panduan Risiko", href: "/panduan/risiko", icon: "BookOpen" },
       {
         label: "Penanganan",
         href: "/compliance/penanganan",
@@ -60,6 +61,8 @@ export const adminMenuGroup: MainMenuGroup = {
 export const breadcrumbMap: Record<string, string> = {
   "/overview": "Dashboard",
   "/inbox": "Persetujuan",
+  "/panduan": "Panduan",
+  "/panduan/risiko": "Panduan Risiko",
   "/compliance": "Compliance",
   "/compliance/monitoring": "Monitoring",
   "/compliance/penanganan": "Penanganan",
