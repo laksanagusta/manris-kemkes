@@ -155,14 +155,15 @@ export default function LoginScreen() {
                 )}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                Jika ini login pertama Anda, sistem akan meminta penggantian password sementara.
+                Jika ini login pertama Anda, sistem akan meminta penggantian
+                password sementara.
               </p>
               <div className="flex justify-center">
                 <Link
                   href="/panduan-risiko"
                   className="text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
                 >
-                  Panduan Risiko
+                  Panduan
                 </Link>
               </div>
             </form>

@@ -55,7 +55,7 @@ export type RiskGuideContent = {
 
 export const riskGuideContent: RiskGuideContent = {
   hero: {
-    eyebrow: "Panduan Risiko",
+    eyebrow: "Panduan",
     title: "Panduan penggunaan aplikasi",
     description:
       "Pahami alur pemantauan risiko di aplikasi - dari pendaftaran, persetujuan, hingga pemantauan berkala.",

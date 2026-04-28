@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Panduan Risiko | MANRIS",
+  title: "Panduan | MANRIS",
   description:
     "Pelajari proses risiko di MANRIS dari registrasi, penilaian, penanganan, hingga pemantauan melalui panduan langkah demi langkah.",
 };
@@ -30,14 +30,14 @@ export default function PublicRiskGuidePage() {
               Siap melanjutkan ke pencatatan risiko?
             </CardTitle>
             <CardDescription className="max-w-2xl text-sm leading-6 sm:text-base">
-              Jika Anda sudah memahami alurnya, masuk ke MANRIS untuk mulai mencatat,
-              menilai, dan memantau risiko bersama tim.
+              Jika Anda sudah memahami alurnya, masuk ke MANRIS untuk mulai
+              mencatat, menilai, dan memantau risiko bersama tim.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-5">
             <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-              Anda dapat kembali ke halaman masuk kapan saja. Panduan ini tetap dapat dibaca
-              terlebih dahulu tanpa login.
+              Anda dapat kembali ke halaman masuk kapan saja. Panduan ini tetap
+              dapat dibaca terlebih dahulu tanpa login.
             </p>
           </CardContent>
           <CardFooter className="justify-start border-t-0 bg-transparent px-4 pb-5 pt-0">

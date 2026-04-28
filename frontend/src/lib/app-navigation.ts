@@ -61,7 +61,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/overview": "Dashboard",
   "/inbox": "Persetujuan",
   "/panduan": "Panduan",
-  "/panduan/risiko": "Panduan Risiko",
+  "/panduan/risiko": "Panduan",
   "/compliance": "Compliance",
   "/compliance/monitoring": "Monitoring",
   "/compliance/penanganan": "Penanganan",

@@ -106,7 +106,7 @@ const allNavHrefs = navigation.flatMap((group) =>
 
 const utilityLinks: NavItem[] = [
   {
-    label: "Panduan Risiko",
+    label: "Panduan",
     href: "/panduan/risiko",
     icon: BookOpen,
   },
