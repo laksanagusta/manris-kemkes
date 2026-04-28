@@ -1,7 +1,9 @@
 package risk
 
 import (
+	"bytes"
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/google/uuid"
@@ -774,6 +776,31 @@ func TestPreview_TemplateRoundTrip(t *testing.T) {
 		t.Fatalf("template err: %v", err)
 	}
 
+	templateRows, err := excelize.OpenReader(bytes.NewReader(content))
+	if err != nil {
+		t.Fatalf("open template workbook: %v", err)
+	}
+	defer templateRows.Close()
+	rows, err := templateRows.GetRows("Template Upload")
+	if err != nil {
+		t.Fatalf("read template rows: %v", err)
+	}
+	if len(rows) < 3 {
+		t.Fatalf("expected at least 3 header rows, got %d", len(rows))
+	}
+	if !slices.Contains(rows[0], "HASIL PEMANTAUAN") {
+		t.Fatalf("expected row 1 to contain HASIL PEMANTAUAN, got %v", rows[0])
+	}
+	if !slices.Contains(rows[0], "SIMPULAN") {
+		t.Fatalf("expected row 1 to contain SIMPULAN, got %v", rows[0])
+	}
+	if !slices.Contains(rows[1], "EFEKTIFITAS") {
+		t.Fatalf("expected row 2 to contain EFEKTIFITAS, got %v", rows[1])
+	}
+	if len(rows[2]) < 18 || rows[2][17] != "18" {
+		t.Fatalf("expected row 3 to end at column 18, got %v", rows[2])
+	}
+
 	result, err := uc.Preview(context.Background(), BulkMonitoringSpreadsheetInput{
 		Filename:       "template.xlsx",
 		Content:        content,
@@ -809,7 +836,8 @@ func TestIsMonitoringColumnNumbersRow(t *testing.T) {
 		row      []string
 		expected bool
 	}{
-		{name: "valid_column_numbers", row: []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"}, expected: true},
+		{name: "valid_column_numbers_new_layout", row: []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18"}, expected: true},
+		{name: "valid_column_numbers_legacy_layout", row: []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"}, expected: true},
 		{name: "partial_column_numbers", row: []string{"1", "2", "3", "4", "5"}, expected: false},
 		{name: "text_row", row: []string{"RISIKO", "KODE", "SEBAB"}, expected: false},
 		{name: "empty_row", row: []string{}, expected: false},

@@ -196,7 +196,7 @@ func (uc *BulkRiskSpreadsheetUseCase) Template() ([]byte, string, error) {
 func writeSheet2StyleHeaders(f *excelize.File, sheet string) error {
 	headerStyle, err := f.NewStyle(&excelize.Style{
 		Font:      &excelize.Font{Family: "Bookman Old Style", Bold: true, Size: 11},
-		Fill:      excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"FFD9D9D9"}},
+		Fill:      excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"E3E3E3"}},
 		Alignment: &excelize.Alignment{Vertical: "center", Horizontal: "center", WrapText: true},
 		Border: []excelize.Border{
 			{Type: "left", Color: "000000", Style: 1},
@@ -216,8 +216,8 @@ func writeSheet2StyleHeaders(f *excelize.File, sheet string) error {
 	}{
 		{"IDENTIFIKASI RISIKO", 1, 6},
 		{"ANALISIS RISIKO", 7, 14},
-		{"EVALUASI RISIKO", 15, 16},
-		{"RENCANA PENANGANAN RISIKO (RPR)", 17, 19},
+		{"EVALUASI RISIKO", 15, 17},
+		{"RENCANA PENANGANAN RISIKO (RPR)", 18, 19},
 		{"TARGET PENURUNAN TINGKAT RISIKO", 20, 24},
 	}
 	for _, gh := range groupHeaders {

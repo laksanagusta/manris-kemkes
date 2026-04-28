@@ -16,8 +16,30 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// bulkMonitoringTemplateColumns defines column order for "KK Pemantauan Reviu" sheet (16 columns, 0-indexed)
+// bulkMonitoringTemplateColumns defines the current 18-column monitoring layout (0-indexed).
 var bulkMonitoringTemplateColumns = []string{
+	"NO",                       // 0
+	"RISIKO",                   // 1
+	"KODE RISIKO",              // 2
+	"TARGET P",                 // 3
+	"TARGET D",                 // 4
+	"TARGET BOBOT",             // 5
+	"TARGET NILAI",             // 6
+	"TARGET TINGKAT RISIKO",    // 7
+	"PRIORITAS RISIKO",         // 8
+	"URAIAN PENGENDALIAN",      // 9
+	"JADWAL PELAKSANAAN",       // 10
+	"REALISASI P",              // 11 (user-editable)
+	"REALISASI D",              // 12 (user-editable)
+	"REALISASI BOBOT",          // 13 (computed by server)
+	"REALISASI NILAI",          // 14 (computed by server)
+	"REALISASI TINGKAT RISIKO", // 15 (computed by server)
+	"SIMPULAN",                 // 16 (computed by server)
+	"EFEKTIVITAS",              // 17 (computed by server)
+}
+
+// bulkMonitoringLegacyTemplateColumns preserves the old 16-column upload layout.
+var bulkMonitoringLegacyTemplateColumns = []string{
 	"NO",                       // 0
 	"KODE RISIKO",              // 1
 	"URAIAN RISIKO",            // 2
@@ -26,18 +48,31 @@ var bulkMonitoringTemplateColumns = []string{
 	"TARGET BOBOT",             // 5
 	"TARGET NILAI",             // 6
 	"TARGET TINGKAT RISIKO",    // 7
-	"REALISASI P",              // 8 (user-editable)
-	"REALISASI D",              // 9 (user-editable)
-	"REALISASI BOBOT",          // 10 (computed by server)
-	"REALISASI NILAI",          // 11 (computed by server)
-	"REALISASI TINGKAT RISIKO", // 12 (computed by server)
-	"SIMPULAN",                 // 13 (computed by server)
-	"EFEKTIVITAS",              // 14 (computed by server)
+	"REALISASI P",              // 8
+	"REALISASI D",              // 9
+	"REALISASI BOBOT",          // 10
+	"REALISASI NILAI",          // 11
+	"REALISASI TINGKAT RISIKO", // 12
+	"SIMPULAN",                 // 13
+	"EFEKTIVITAS",              // 14
 	"JADWAL PELAKSANAAN",       // 15
 }
 
-// skipMonitoringCols are computed/auto-generated columns that should NOT be parsed as input
+// skipMonitoringCols are computed/auto-generated columns that should NOT be parsed as input.
 var skipMonitoringCols = map[int]bool{
+	0:  true, // NO
+	5:  true, // TARGET BOBOT (computed)
+	6:  true, // TARGET NILAI (computed)
+	7:  true, // TARGET TINGKAT RISIKO (computed)
+	13: true, // REALISASI BOBOT (computed)
+	14: true, // REALISASI NILAI (computed)
+	15: true, // REALISASI TINGKAT RISIKO (computed)
+	16: true, // SIMPULAN (computed)
+	17: true, // EFEKTIVITAS (computed)
+}
+
+// skipMonitoringLegacyCols preserves the old computed columns for compatibility with older uploads/tests.
+var skipMonitoringLegacyCols = map[int]bool{
 	0:  true, // NO
 	5:  true, // TARGET BOBOT (computed)
 	6:  true, // TARGET NILAI (computed)
@@ -55,8 +90,11 @@ var bulkMonitoringColumnAliases = map[string]string{
 	"no":                       "NO",
 	"koderisiko":               "KODE RISIKO",
 	"kode risiko":              "KODE RISIKO",
+	"risiko":                   "RISIKO",
 	"uraian risiko":            "URAIAN RISIKO",
 	"uraianrisiko":             "URAIAN RISIKO",
+	"uraian pengendalian":      "URAIAN PENGENDALIAN",
+	"uraianpengendalian":       "URAIAN PENGENDALIAN",
 	"target p":                 "TARGET P",
 	"targetp":                  "TARGET P",
 	"target d":                 "TARGET D",
@@ -67,6 +105,8 @@ var bulkMonitoringColumnAliases = map[string]string{
 	"targetnilai":              "TARGET NILAI",
 	"target tingkat risiko":    "TARGET TINGKAT RISIKO",
 	"targettingkatriko":        "TARGET TINGKAT RISIKO",
+	"prioritas risiko":         "PRIORITAS RISIKO",
+	"prioritasrisiko":          "PRIORITAS RISIKO",
 	"realisasi p":              "REALISASI P",
 	"realisasip":               "REALISASI P",
 	"realisasi d":              "REALISASI D",
@@ -80,6 +120,7 @@ var bulkMonitoringColumnAliases = map[string]string{
 	"simpulan":                 "SIMPULAN",
 	"simpulan tingkat risiko":  "SIMPULAN",
 	"efektivitas":              "EFEKTIVITAS",
+	"efektifitas":              "EFEKTIVITAS",
 	"jadwal pelaksanaan":       "JADWAL PELAKSANAAN",
 	"jadwalpelaksanaan":        "JADWAL PELAKSANAAN",
 }
@@ -222,7 +263,7 @@ func (uc *BulkMonitoringSpreadsheetUseCase) Template(ctx context.Context, orgID 
 func writeMonitoringHeaders(f *excelize.File, sheet string) error {
 	headerStyle, err := f.NewStyle(&excelize.Style{
 		Font:      &excelize.Font{Family: "Bookman Old Style", Bold: true, Size: 11},
-		Fill:      excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"FFD9D9D9"}},
+		Fill:      excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"E3E3E3"}},
 		Alignment: &excelize.Alignment{Vertical: "center", Horizontal: "center", WrapText: true},
 		Border: []excelize.Border{
 			{Type: "left", Color: "000000", Style: 1},
@@ -235,48 +276,53 @@ func writeMonitoringHeaders(f *excelize.File, sheet string) error {
 		return err
 	}
 
-	// Row 1: Group headers
+	// Row 1: top headers and grouped sections.
 	groupHeaders := []struct {
 		value    string
 		startCol int
 		endCol   int
 	}{
 		{"NO", 1, 1},
-		{"IDENTIFIKASI RISIKO", 2, 3},
-		{"TARGET PENURUNAN RISIKO", 4, 8},
-		{"REALISASI", 9, 13},
-		{"SIMPULAN", 14, 14},
-		{"EFEKTIVITAS", 15, 15},
-		{"JADWAL PELAKSANAAN", 16, 16},
+		{"RISIKO", 2, 2},
+		{"KODE RISIKO", 3, 3},
+		{"P", 4, 4},
+		{"D", 5, 5},
+		{"BOBOT", 6, 6},
+		{"NILAI", 7, 7},
+		{"TINGKAT RISIKO", 8, 8},
+		{"PRIORITAS RISIKO", 9, 9},
+		{"URAIAN PENGENDALIAN", 10, 10},
+		{"JADWAL PELAKSANAAN", 11, 11},
 	}
 	for _, gh := range groupHeaders {
 		startCell, _ := excelize.CoordinatesToCellName(gh.startCol, 1)
-		endCell, _ := excelize.CoordinatesToCellName(gh.endCol, 1)
-		if err := f.MergeCell(sheet, startCell, endCell); err != nil {
-			return err
-		}
 		if err := f.SetCellValue(sheet, startCell, gh.value); err != nil {
 			return err
 		}
 	}
 
-	// Row 2: Sub-headers
+	if err := f.MergeCell(sheet, "L1", "P1"); err != nil {
+		return err
+	}
+	if err := f.SetCellValue(sheet, "L1", "HASIL PEMANTAUAN"); err != nil {
+		return err
+	}
+	if err := f.MergeCell(sheet, "Q1", "R1"); err != nil {
+		return err
+	}
+	if err := f.SetCellValue(sheet, "Q1", "SIMPULAN"); err != nil {
+		return err
+	}
+
+	// Row 2: sub-headers for grouped columns.
 	subHeaders := map[int]string{
-		2:  "Kode Risiko",
-		3:  "Uraian Risiko",
-		4:  "P",
-		5:  "D",
-		6:  "Bobot",
-		7:  "Nilai",
-		8:  "Tingkat Risiko",
-		9:  "P",
-		10: "D",
-		11: "Bobot",
-		12: "Nilai",
-		13: "Tingkat Risiko",
-		14: "Simpulan Tingkat Risiko",
-		15: "Efektivitas",
-		16: "Jadwal Pelaksanaan",
+		12: "P",
+		13: "D",
+		14: "BOBOT",
+		15: "NILAI",
+		16: "TINGKAT RISIKO",
+		17: "TINGKAT RISIKO",
+		18: "EFEKTIFITAS",
 	}
 	for col, val := range subHeaders {
 		cell, _ := excelize.CoordinatesToCellName(col, 2)
@@ -285,29 +331,18 @@ func writeMonitoringHeaders(f *excelize.File, sheet string) error {
 		}
 	}
 
-	// Merge NO (col 1) across rows 1-2
-	if err := f.MergeCell(sheet, "A1", "A2"); err != nil {
-		return err
-	}
-	// Merge IDENTIFIKASI RISIKO (cols 2-3) across rows 1-2
-	if err := f.MergeCell(sheet, "B1", "C2"); err != nil {
-		return err
-	}
-	// Merge SIMPULAN (col 14) across rows 1-2
-	if err := f.MergeCell(sheet, "N1", "N2"); err != nil {
-		return err
-	}
-	// Merge EFEKTIVITAS (col 15) across rows 1-2
-	if err := f.MergeCell(sheet, "O1", "O2"); err != nil {
-		return err
-	}
-	// Merge JADWAL PELAKSANAAN (col 16) across rows 1-2
-	if err := f.MergeCell(sheet, "P1", "P2"); err != nil {
-		return err
+	// Merge all single-column headers vertically across rows 1-2.
+	verticalMergeCols := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}
+	for _, col := range verticalMergeCols {
+		startCell, _ := excelize.CoordinatesToCellName(col, 1)
+		endCell, _ := excelize.CoordinatesToCellName(col, 2)
+		if err := f.MergeCell(sheet, startCell, endCell); err != nil {
+			return err
+		}
 	}
 
-	// Row 3: Column numbers (1-16)
-	for col := 1; col <= 16; col++ {
+	// Row 3: Column numbers (1-18)
+	for col := 1; col <= 18; col++ {
 		cell, _ := excelize.CoordinatesToCellName(col, 3)
 		if err := f.SetCellValue(sheet, cell, col); err != nil {
 			return err
@@ -317,16 +352,17 @@ func writeMonitoringHeaders(f *excelize.File, sheet string) error {
 	// Apply header style to all header rows (rows 1-3)
 	for row := 1; row <= 3; row++ {
 		startCell, _ := excelize.CoordinatesToCellName(1, row)
-		endCell, _ := excelize.CoordinatesToCellName(16, row)
+		endCell, _ := excelize.CoordinatesToCellName(18, row)
 		if err := f.SetCellStyle(sheet, startCell, endCell, headerStyle); err != nil {
 			return err
 		}
 	}
 
-	// Column widths (matching working-paper-export.ts buildPemantauanReviuSheet)
+	// Column widths for the new monitoring layout.
 	colWidths := map[string]float64{
-		"A": 5, "B": 14, "C": 40, "D": 8, "E": 8, "F": 13, "G": 13, "H": 20,
-		"I": 10, "J": 10, "K": 13, "L": 13, "M": 20, "N": 22, "O": 16, "P": 20,
+		"A": 5, "B": 26, "C": 14, "D": 8, "E": 8, "F": 13, "G": 13, "H": 20,
+		"I": 14, "J": 32, "K": 18, "L": 8, "M": 8, "N": 13, "O": 13, "P": 20,
+		"Q": 22, "R": 16,
 	}
 	for col, width := range colWidths {
 		if err := f.SetColWidth(sheet, col, col, width); err != nil {
@@ -341,7 +377,6 @@ func writeMonitoringHeaders(f *excelize.File, sheet string) error {
 func writeMonitoringDataRows(f *excelize.File, sheet string, risks []*entity.Risk) error {
 	// Computed column style: gray fill to indicate auto-calculated
 	computedStyle, err := f.NewStyle(&excelize.Style{
-		Fill:      excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"FFF2F2F2"}},
 		Alignment: &excelize.Alignment{Vertical: "center", Horizontal: "center"},
 		Border: []excelize.Border{
 			{Type: "left", Color: "000000", Style: 1},
@@ -349,6 +384,23 @@ func writeMonitoringDataRows(f *excelize.File, sheet string, risks []*entity.Ris
 			{Type: "bottom", Color: "000000", Style: 1},
 			{Type: "right", Color: "000000", Style: 1},
 		},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"F2F2F2"}},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Read-only cells coming from the approved risk record.
+	prefilledStyle, err := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Family: "Bookman Old Style", Size: 11},
+		Alignment: &excelize.Alignment{Vertical: "center", Horizontal: "center"},
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "bottom", Color: "000000", Style: 1},
+			{Type: "right", Color: "000000", Style: 1},
+		},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"F2F2F2"}},
 	})
 	if err != nil {
 		return err
@@ -369,22 +421,6 @@ func writeMonitoringDataRows(f *excelize.File, sheet string, risks []*entity.Ris
 		return err
 	}
 
-	// Target data style (pre-filled, gray background to indicate read-only)
-	targetStyle, err := f.NewStyle(&excelize.Style{
-		Font:      &excelize.Font{Family: "Bookman Old Style", Size: 11},
-		Fill:      excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"FFF2F2F2"}},
-		Alignment: &excelize.Alignment{Vertical: "center", Horizontal: "center"},
-		Border: []excelize.Border{
-			{Type: "left", Color: "000000", Style: 1},
-			{Type: "top", Color: "000000", Style: 1},
-			{Type: "bottom", Color: "000000", Style: 1},
-			{Type: "right", Color: "000000", Style: 1},
-		},
-	})
-	if err != nil {
-		return err
-	}
-
 	for i, risk := range risks {
 		row := i + 4 // Data starts at row 4
 
@@ -392,13 +428,13 @@ func writeMonitoringDataRows(f *excelize.File, sheet string, risks []*entity.Ris
 		cell, _ := excelize.CoordinatesToCellName(1, row)
 		f.SetCellValue(sheet, cell, i+1)
 
-		// Col B (2): Kode Risiko
+		// Col B (2): Risiko
 		cell, _ = excelize.CoordinatesToCellName(2, row)
-		f.SetCellValue(sheet, cell, risk.Code)
-
-		// Col C (3): Uraian Risiko
-		cell, _ = excelize.CoordinatesToCellName(3, row)
 		f.SetCellValue(sheet, cell, risk.Title)
+
+		// Col C (3): Kode Risiko
+		cell, _ = excelize.CoordinatesToCellName(3, row)
+		f.SetCellValue(sheet, cell, risk.Code)
 
 		// Col D (4): Target P (pre-filled)
 		cell, _ = excelize.CoordinatesToCellName(4, row)
@@ -447,35 +483,50 @@ func writeMonitoringDataRows(f *excelize.File, sheet string, risks []*entity.Ris
 			f.SetCellValue(sheet, cell, entity.GetRiskLevelDisplay(targetTingkat))
 		}
 
-		// Col I (9): Realisasi P — EMPTY (user fills)
-		// Col J (10): Realisasi D — EMPTY (user fills)
+		// Col I (9): Prioritas Risiko (pre-filled)
+		cell, _ = excelize.CoordinatesToCellName(9, row)
+		if risk.RiskPriority > 0 {
+			f.SetCellValue(sheet, cell, risk.RiskPriority)
+		}
 
-		// Col K (11): Realisasi Bobot (computed by server, empty in template)
-		// Col L (12): Realisasi Nilai (computed by server, empty in template)
-		// Col M (13): Realisasi Tingkat Risiko (computed by server, empty in template)
-		// Col N (14): Simpulan (computed by server, empty in template)
-		// Col O (15): Efektivitas (computed by server, empty in template)
+		// Col J (10): Uraian Pengendalian (pre-filled if available)
+		cell, _ = excelize.CoordinatesToCellName(10, row)
+		if strings.TrimSpace(risk.ExistingControl) != "" {
+			f.SetCellValue(sheet, cell, risk.ExistingControl)
+		}
 
-		// Col P (16): Jadwal Pelaksanaan (empty in template, user can fill)
-		// Left empty for user input
+		// Col K (11): Jadwal Pelaksanaan (pre-filled if available)
+		cell, _ = excelize.CoordinatesToCellName(11, row)
+		if strings.TrimSpace(risk.ReviewScheduleText) != "" {
+			f.SetCellValue(sheet, cell, risk.ReviewScheduleText)
+		}
+
+		// Col L (12): Realisasi P — EMPTY (user fills)
+		// Col M (13): Realisasi D — EMPTY (user fills)
+
+		// Col N (14): Realisasi Bobot (computed by server, empty in template)
+		// Col O (15): Realisasi Nilai (computed by server, empty in template)
+		// Col P (16): Realisasi Tingkat Risiko (computed by server, empty in template)
+		// Col Q (17): Simpulan (computed by server, empty in template)
+		// Col R (18): Efektivitas (computed by server, empty in template)
 
 		// Apply styles to data row
 		startCell, _ := excelize.CoordinatesToCellName(1, row)
-		endCell, _ := excelize.CoordinatesToCellName(16, row)
+		endCell, _ := excelize.CoordinatesToCellName(18, row)
 		if err := f.SetCellStyle(sheet, startCell, endCell, dataStyle); err != nil {
 			return err
 		}
 
-		// Apply gray fill to target columns (D-H) — pre-filled, read-only
-		targetStartCell, _ := excelize.CoordinatesToCellName(4, row)
-		targetEndCell, _ := excelize.CoordinatesToCellName(8, row)
-		if err := f.SetCellStyle(sheet, targetStartCell, targetEndCell, targetStyle); err != nil {
+		// Apply gray fill to prefilled target/control columns (B-K) — read-only.
+		targetStartCell, _ := excelize.CoordinatesToCellName(2, row)
+		targetEndCell, _ := excelize.CoordinatesToCellName(11, row)
+		if err := f.SetCellStyle(sheet, targetStartCell, targetEndCell, prefilledStyle); err != nil {
 			return err
 		}
 
-		// Apply gray fill to computed columns (K-O) — server-computed
-		computedStartCell, _ := excelize.CoordinatesToCellName(11, row)
-		computedEndCell, _ := excelize.CoordinatesToCellName(15, row)
+		// Apply gray fill to computed columns (N-R) — server-computed.
+		computedStartCell, _ := excelize.CoordinatesToCellName(14, row)
+		computedEndCell, _ := excelize.CoordinatesToCellName(18, row)
 		if err := f.SetCellStyle(sheet, computedStartCell, computedEndCell, computedStyle); err != nil {
 			return err
 		}
@@ -635,20 +686,34 @@ func rowsToBulkMonitoringRecords(rows [][]string) []map[string]string {
 }
 
 func rowsToBulkMonitoringRecordsPositionBased(rows [][]string, headerIndex int) []map[string]string {
+	useNewLayout := len(rows[headerIndex]) >= 18
 	var records []map[string]string
 	for _, row := range rows[headerIndex+1:] {
 		if isMonitoringEmptyRow(row) {
 			continue
 		}
 		record := map[string]string{}
-		for colIdx, colName := range bulkMonitoringTemplateColumns {
-			if skipMonitoringCols[colIdx] {
-				continue
+		if useNewLayout {
+			for colIdx, colName := range bulkMonitoringTemplateColumns {
+				if skipMonitoringCols[colIdx] {
+					continue
+				}
+				if colIdx < len(row) {
+					record[colName] = strings.TrimSpace(row[colIdx])
+				} else {
+					record[colName] = ""
+				}
 			}
-			if colIdx < len(row) {
-				record[colName] = strings.TrimSpace(row[colIdx])
-			} else {
-				record[colName] = ""
+		} else {
+			for colIdx, colName := range bulkMonitoringLegacyTemplateColumns {
+				if skipMonitoringLegacyCols[colIdx] {
+					continue
+				}
+				if colIdx < len(row) {
+					record[colName] = strings.TrimSpace(row[colIdx])
+				} else {
+					record[colName] = ""
+				}
 			}
 		}
 		records = append(records, record)
@@ -705,7 +770,7 @@ func mapBulkMonitoringRecord(
 	warnings := []string{}
 
 	code := getVal("KODE RISIKO")
-	title := getVal("URAIAN RISIKO")
+	title := getVal("URAIAN RISIKO", "RISIKO")
 	realisasiPStr := getVal("REALISASI P")
 	realisasiDStr := getVal("REALISASI D")
 
