@@ -5,9 +5,11 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { archiveRisk, restoreRisk } from "@/lib/api/risk-register";
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { useAuth } from "@/contexts/auth-context";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -213,6 +215,8 @@ type RiskApiMitigation = MitigationItem & {
 type RiskApiResponse = {
   id: string;
   status?: string;
+  archivedAt?: string | null;
+  archivedReason?: string;
   draftId?: string | null;
   hasOngoing?: boolean;
   title?: string;
@@ -530,6 +534,8 @@ export default function RiskInputPage() {
 
   const [riskId, setRiskId] = useState<string | null>(null);
   const [riskStatus, setRiskStatus] = useState<string>("assessment_draft");
+  const [riskArchivedAt, setRiskArchivedAt] = useState<string | null>(null);
+  const [riskArchivedReason, setRiskArchivedReason] = useState("");
   const [ongoingAssessmentId, setOngoingAssessmentId] = useState<string | null>(
     null,
   );
@@ -550,6 +556,10 @@ export default function RiskInputPage() {
     currentAssessmentCycle(),
   );
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [archiveReasonInput, setArchiveReasonInput] = useState("");
+  const [archiveNoteInput, setArchiveNoteInput] = useState("");
   const [showSubmitReviewConfirm, setShowSubmitReviewConfirm] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [versionHistory, setVersionHistory] = useState<
@@ -761,6 +771,8 @@ export default function RiskInputPage() {
 
         setRiskId(risk.id);
         setRiskStatus(risk.status || "assessment_draft");
+        setRiskArchivedAt(risk.archivedAt || null);
+        setRiskArchivedReason(risk.archivedReason || "");
         setOngoingAssessmentId(
           risk.hasOngoing && risk.draftId ? risk.draftId : null,
         );
@@ -1222,7 +1234,15 @@ export default function RiskInputPage() {
   const missingSections = sectionStatuses.filter((section) => !section.done);
   const isFinalizeReady = missingSections.length === 0;
   const isRiskLocked =
-    riskStatus === "assessment_in_review" || riskStatus === "approved";
+    riskStatus === "assessment_in_review" ||
+    riskStatus === "approved" ||
+    !!riskArchivedAt;
+  const canManageArchive =
+    !!riskId &&
+    !isReadOnlyForOrg(user, currentOrganizationId || orgFilter || "") &&
+    (user?.role === "unit" ||
+      user?.role === "superadmin" ||
+      user?.role === "super_admin");
 
   const scrollToSection = (sectionId: SectionId) => {
     if (typeof document === "undefined") return;
@@ -1737,6 +1757,57 @@ export default function RiskInputPage() {
     }
   }
 
+  const handleArchiveCurrentRisk = async () => {
+    if (!token || !riskId) {
+      toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+    if (!archiveReasonInput.trim()) {
+      toast.error("Alasan arsip wajib diisi.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await archiveRisk(token, riskId, {
+        reason: archiveReasonInput.trim(),
+        note: archiveNoteInput.trim() || undefined,
+      });
+      await loadRiskData(riskId);
+      setShowArchiveDialog(false);
+      setArchiveReasonInput("");
+      setArchiveNoteInput("");
+      toast.success("Risiko berhasil diarsipkan.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Risiko belum berhasil diarsipkan.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRestoreCurrentRisk = async () => {
+    if (!token || !riskId) {
+      toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await restoreRisk(token, riskId);
+      await loadRiskData(riskId);
+      setShowRestoreDialog(false);
+      toast.success("Risiko berhasil dipulihkan.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Risiko belum berhasil dipulihkan.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <TooltipProvider>
       <div className="animate-fade-in pb-20">
@@ -1776,6 +1847,28 @@ export default function RiskInputPage() {
           onBack={() => router.push("/risk/register")}
           actions={
             <div className="flex items-center gap-2 sm:gap-3">
+              {canManageArchive &&
+                !riskArchivedAt &&
+                riskStatus === "approved" && (
+                  <Button
+                    variant="outline"
+                    className="gap-2 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                    onClick={() => setShowArchiveDialog(true)}
+                  >
+                    <Trash2 className="size-4" />
+                    Arsipkan
+                  </Button>
+                )}
+              {canManageArchive && !!riskArchivedAt && (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setShowRestoreDialog(true)}
+                >
+                  <GitBranch className="size-4" />
+                  Pulihkan
+                </Button>
+              )}
               {ongoingAssessmentId && (
                 <Button
                   variant="outline"
@@ -1964,6 +2057,20 @@ export default function RiskInputPage() {
             </div>
           }
         />
+
+        {riskArchivedAt && (
+          <Card className="mb-4 border-amber-200 bg-amber-50/80">
+            <CardContent className="space-y-1 p-4 text-sm text-amber-900">
+              <p className="font-semibold">
+                Risiko ini diarsipkan pada{" "}
+                {new Date(riskArchivedAt).toLocaleDateString("id-ID")}.
+              </p>
+              <p>
+                Alasan: {riskArchivedReason || "Tidak ada alasan tercatat."}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="mb-6 max-w-4xl space-y-3">
           <div className="flex items-center justify-between gap-3">
@@ -3163,6 +3270,68 @@ export default function RiskInputPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Arsipkan Risiko?</DialogTitle>
+              <DialogDescription>
+                Risiko akan disembunyikan dari daftar aktif tetapi tetap tersimpan untuk audit trail.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Input
+                value={archiveReasonInput}
+                onChange={(event) => setArchiveReasonInput(event.target.value)}
+                placeholder="Alasan utama arsip"
+              />
+              <Textarea
+                value={archiveNoteInput}
+                onChange={(event) => setArchiveNoteInput(event.target.value)}
+                placeholder="Catatan tambahan (opsional)"
+                rows={4}
+              />
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowArchiveDialog(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleArchiveCurrentRisk}
+                disabled={isSubmitting}
+              >
+                Arsipkan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Pulihkan Risiko?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Risiko akan kembali tampil di daftar aktif dengan status terakhirnya.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isSubmitting}>
+                Batal
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleRestoreCurrentRisk}
+                disabled={isSubmitting}
+              >
+                Pulihkan
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <AlertDialog
           open={showSubmitReviewConfirm}

@@ -12,8 +12,11 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import {
+  archiveRisk,
   listRiskRegister,
+  restoreRisk,
   type RiskRegisterCategoryFilter,
+  type RiskRegisterLifecycleFilter,
   type RiskRegisterListItem,
   type RiskRegisterStatusFilter,
 } from "@/lib/api/risk-register";
@@ -94,6 +97,8 @@ import {
   AlertCircle,
   Upload,
   RefreshCcw,
+  Archive,
+  RotateCcw,
 } from "lucide-react";
 
 const levelBadgeVariant: Record<string, string> = {
@@ -216,6 +221,12 @@ export default function RiskRegisterPage() {
       parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
         .statusFilter,
   );
+  const [lifecycleFilter, setLifecycleFilter] =
+    useState<RiskRegisterLifecycleFilter>(
+      () =>
+        parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
+          .lifecycleFilter,
+    );
   const [categoryFilter, setCategoryFilter] =
     useState<RiskRegisterCategoryFilter>(
       () =>
@@ -254,6 +265,10 @@ export default function RiskRegisterPage() {
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
     useState<RiskListItem | null>(null);
   const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
+  const [riskToArchive, setRiskToArchive] = useState<RiskListItem | null>(null);
+  const [archiveReason, setArchiveReason] = useState("");
+  const [archiveNote, setArchiveNote] = useState("");
+  const [riskToRestore, setRiskToRestore] = useState<RiskListItem | null>(null);
   const [sortBy, setSortBy] = useState<string>(
     () =>
       parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
@@ -287,6 +302,7 @@ export default function RiskRegisterPage() {
     const [allRisksResponse, draftRisks, approvedRisks] = await Promise.all([
       listRiskRegister(activeToken, {
         q: normalizedSearch || undefined,
+        lifecycle: lifecycleFilter,
         status: statusFilter === "all" ? undefined : statusFilter,
         category: categoryFilter === "all" ? undefined : categoryFilter,
         assessment_cycle: normalizedAssessmentCycle || undefined,
@@ -342,6 +358,9 @@ export default function RiskRegisterPage() {
     setStatusFilter((current) =>
       current === nextState.statusFilter ? current : nextState.statusFilter,
     );
+    setLifecycleFilter((current) =>
+      current === nextState.lifecycleFilter ? current : nextState.lifecycleFilter,
+    );
     setCategoryFilter((current) =>
       current === nextState.categoryFilter ? current : nextState.categoryFilter,
     );
@@ -376,6 +395,7 @@ export default function RiskRegisterPage() {
     const nextState = {
       activeTab,
       search,
+      lifecycleFilter,
       statusFilter,
       categoryFilter,
       assessmentCycleFilter,
@@ -413,6 +433,7 @@ export default function RiskRegisterPage() {
     categoryFilter,
     createdAtFilter,
     limit,
+    lifecycleFilter,
     page,
     pathname,
     router,
@@ -455,6 +476,7 @@ export default function RiskRegisterPage() {
     void fetchData();
   }, [
     token,
+    lifecycleFilter,
     statusFilter,
     categoryFilter,
     createdAtFilter,
@@ -605,6 +627,58 @@ export default function RiskRegisterPage() {
         success: "Draft berhasil diajukan menjadi ditinjau.",
         error: (err) =>
           err instanceof Error ? err.message : "Draft belum berhasil diajukan.",
+      },
+    );
+  };
+
+  const handleArchiveRisk = async () => {
+    if (!token || !riskToArchive) {
+      toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+    if (!archiveReason.trim()) {
+      toast.error("Alasan arsip wajib diisi.");
+      return;
+    }
+
+    const current = riskToArchive;
+    setRiskToArchive(null);
+    setArchiveReason("");
+    setArchiveNote("");
+
+    toast.promise(
+      (async () => {
+        await archiveRisk(token, current.id, {
+          reason: archiveReason.trim(),
+          note: archiveNote.trim() || undefined,
+        });
+        await refreshRegisterData(token);
+      })(),
+      {
+        loading: "Mengarsipkan risiko...",
+        success: "Risiko berhasil diarsipkan.",
+        error: (err) =>
+          err instanceof Error ? err.message : "Risiko belum berhasil diarsipkan.",
+      },
+    );
+  };
+
+  const handleRestoreRisk = async (risk: RiskListItem) => {
+    if (!token) {
+      toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+
+    toast.promise(
+      (async () => {
+        await restoreRisk(token, risk.id);
+        await refreshRegisterData(token);
+      })(),
+      {
+        loading: "Memulihkan risiko...",
+        success: "Risiko berhasil dipulihkan.",
+        error: (err) =>
+          err instanceof Error ? err.message : "Risiko belum berhasil dipulihkan.",
       },
     );
   };
@@ -817,6 +891,22 @@ export default function RiskRegisterPage() {
                   />
                 </div>
                 <Select
+                  value={lifecycleFilter}
+                  onValueChange={(value) => {
+                    setLifecycleFilter(value as RiskRegisterLifecycleFilter);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-32 text-xs bg-background/80 border border-border/50">
+                    <SelectValue placeholder="Lifecycle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Aktif</SelectItem>
+                    <SelectItem value="archived">Arsip</SelectItem>
+                    <SelectItem value="all">Semua</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
                   value={statusFilter}
                   onValueChange={(value) => {
                     setStatusFilter(value as RiskRegisterStatusFilter);
@@ -877,8 +967,9 @@ export default function RiskRegisterPage() {
                 Daftar Risiko
               </CardTitle>
               <p className="text-xs text-muted-foreground">
-                Pantau risiko aktif, status penilaian terbaru, dan tindak lanjut
-                pemantauan pada satu tabel kerja.
+                {lifecycleFilter === "archived"
+                  ? "Lihat risiko yang sudah diarsipkan dan pulihkan bila perlu."
+                  : "Pantau risiko aktif, status penilaian terbaru, dan tindak lanjut pemantauan pada satu tabel kerja."}
               </p>
             </CardHeader>
             <Table>
@@ -957,7 +1048,15 @@ export default function RiskRegisterPage() {
                     const canReassess =
                       risk.status === "approved" &&
                       risk.isCurrent &&
+                      !risk.archivedAt &&
                       !isReadOnly;
+                    const canArchive =
+                      lifecycleFilter !== "archived" &&
+                      risk.status === "approved" &&
+                      risk.isCurrent &&
+                      !risk.archivedAt &&
+                      !isReadOnly;
+                    const canRestore = !!risk.archivedAt && !isReadOnly;
                     return (
                       <TableRow
                         key={risk.id}
@@ -1030,6 +1129,11 @@ export default function RiskRegisterPage() {
                                   risk.draftStatus}
                               </Badge>
                             )}
+                            {risk.archivedAt && (
+                              <Badge className="text-[10px] font-medium border h-5 px-1.5 bg-amber-500/15 text-amber-700 border-amber-500/20">
+                                Diarsipkan
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground capitalize">
@@ -1073,6 +1177,28 @@ export default function RiskRegisterPage() {
                               >
                                 <RefreshCcw className="size-3" />
                                 Mulai Pemantauan
+                              </Button>
+                            )}
+                            {canArchive && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1.5 px-2 text-xs text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                                onClick={() => setRiskToArchive(risk)}
+                              >
+                                <Archive className="size-3" />
+                                Arsipkan
+                              </Button>
+                            )}
+                            {canRestore && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1.5 px-2 text-xs"
+                                onClick={() => setRiskToRestore(risk)}
+                              >
+                                <RotateCcw className="size-3" />
+                                Pulihkan
                               </Button>
                             )}
                           </div>
@@ -1528,6 +1654,56 @@ export default function RiskRegisterPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={!!riskToArchive}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRiskToArchive(null);
+            setArchiveReason("");
+            setArchiveNote("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Arsipkan Risiko?</DialogTitle>
+            <DialogDescription>
+              Risiko akan hilang dari daftar aktif, tetapi tetap tersimpan untuk audit trail.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+              <p className="font-medium">{riskToArchive?.title || "Tanpa judul"}</p>
+              <p className="text-xs text-muted-foreground">
+                {riskToArchive?.code || riskToArchive?.id}
+              </p>
+            </div>
+            <Input
+              value={archiveReason}
+              onChange={(event) => setArchiveReason(event.target.value)}
+              placeholder="Alasan utama arsip"
+            />
+            <textarea
+              value={archiveNote}
+              onChange={(event) => setArchiveNote(event.target.value)}
+              placeholder="Catatan tambahan (opsional)"
+              className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRiskToArchive(null)}>
+              Batal
+            </Button>
+            <Button
+              className="bg-amber-600 text-white hover:bg-amber-700"
+              onClick={handleArchiveRisk}
+            >
+              Arsipkan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1571,6 +1747,39 @@ export default function RiskRegisterPage() {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={handleCreateReassessment}>
               Lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!riskToRestore}
+        onOpenChange={(open) => !open && setRiskToRestore(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Pulihkan Risiko?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Risiko akan kembali muncul di daftar aktif dengan status terakhirnya.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+            <p className="font-medium">{riskToRestore?.title || "Tanpa judul"}</p>
+            <p className="text-xs text-muted-foreground">
+              {riskToRestore?.code || riskToRestore?.id}
+            </p>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!riskToRestore) return;
+                const current = riskToRestore;
+                setRiskToRestore(null);
+                void handleRestoreRisk(current);
+              }}
+            >
+              Pulihkan
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -98,7 +98,7 @@ func TestRiskRegisterListSupportsFiltersScopeAndPaginationEnvelope(t *testing.T)
 
 	req := httptest.NewRequest(
 		fiber.MethodGet,
-		"/risks/register?status=approved&category=kepatuhan&org_id="+orgTwo.String()+"&assessment_cycle=2026-H1&q=server&page=0&limit=101",
+		"/risks/register?status=approved&category=kepatuhan&lifecycle=archived&org_id="+orgTwo.String()+"&assessment_cycle=2026-H1&q=server&page=0&limit=101",
 		nil,
 	)
 	resp, err := app.Test(req)
@@ -120,6 +120,9 @@ func TestRiskRegisterListSupportsFiltersScopeAndPaginationEnvelope(t *testing.T)
 	}
 	if repo.registerFilter.Category != entity.RiskCategoryKepatuhan {
 		t.Fatalf("expected category kepatuhan, got %q", repo.registerFilter.Category)
+	}
+	if repo.registerFilter.Lifecycle != "archived" {
+		t.Fatalf("expected lifecycle archived, got %q", repo.registerFilter.Lifecycle)
 	}
 	if repo.registerFilter.AssessmentCycle != "2026-H1" {
 		t.Fatalf("expected assessment cycle 2026-H1, got %q", repo.registerFilter.AssessmentCycle)
@@ -157,6 +160,24 @@ func TestRiskRegisterListSupportsFiltersScopeAndPaginationEnvelope(t *testing.T)
 	}
 	if payload.Limit != 100 {
 		t.Fatalf("expected limit 100, got %d", payload.Limit)
+	}
+}
+
+func TestRiskRegisterListRejectsInvalidLifecycle(t *testing.T) {
+	handler := &RiskHandler{}
+	app := fiber.New()
+	app.Get("/risks/register", handler.ListRiskRegister)
+
+	req := httptest.NewRequest(fiber.MethodGet, "/risks/register?lifecycle=disabled", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusBadRequest {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected status 400, got %d: %s", resp.StatusCode, body)
 	}
 }
 

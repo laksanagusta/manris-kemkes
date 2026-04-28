@@ -2,6 +2,7 @@ import { api } from "@/lib/api";
 import type { RiskCategory, RiskStatus } from "@/types/risk";
 
 export type RiskRegisterStatusFilter = "all" | Exclude<RiskStatus, "assessment_draft">;
+export type RiskRegisterLifecycleFilter = "active" | "archived" | "all";
 export type RiskRegisterCategoryFilter = "all" | Exclude<RiskCategory, "">;
 
 export interface RiskRegisterListItem {
@@ -41,6 +42,8 @@ export interface RiskRegisterListItem {
   draftId?: string | null;
   draftStatus?: RiskStatus | null;
   hasOngoing?: boolean;
+  archivedAt?: string | null;
+  archivedReason?: string;
 }
 
 export interface PaginatedRiskRegisterResponse {
@@ -52,6 +55,7 @@ export interface PaginatedRiskRegisterResponse {
 
 interface ListRiskRegisterParams {
    q?: string;
+   lifecycle?: RiskRegisterLifecycleFilter;
    status?: Exclude<RiskStatus, "assessment_draft">;
    category?: Exclude<RiskCategory, "">;
    assessment_cycle?: string;
@@ -69,6 +73,9 @@ export async function listRiskRegister(
   const searchParams = new URLSearchParams();
 
   if (params?.q) searchParams.set("q", params.q);
+  if (params?.lifecycle && params.lifecycle !== "active") {
+    searchParams.set("lifecycle", params.lifecycle);
+  }
   if (params?.status) searchParams.set("status", params.status);
   if (params?.category) searchParams.set("category", params.category);
   if (params?.assessment_cycle) {
@@ -86,4 +93,20 @@ export async function listRiskRegister(
     `/risks/register${qs ? `?${qs}` : ""}`,
     token,
   );
+}
+
+export async function archiveRisk(
+  token: string,
+  riskId: string,
+  payload: { reason: string; note?: string },
+) {
+  return api.post<{
+    message: string;
+    archivedAt?: string | null;
+    archivedReason?: string;
+  }>(`/risks/${riskId}/archive`, payload, token);
+}
+
+export async function restoreRisk(token: string, riskId: string) {
+  return api.post<{ message: string }>(`/risks/${riskId}/restore`, {}, token);
 }

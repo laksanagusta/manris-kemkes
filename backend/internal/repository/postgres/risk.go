@@ -360,9 +360,9 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	argIdx := 1
 
 	if status == entity.RiskStatusDraft {
-		query += " WHERE r.status = 'assessment_draft' AND r.version_number = 1"
+		query += " WHERE r.status = 'assessment_draft' AND r.version_number = 1 AND r.archived_at IS NULL"
 	} else {
-		query += " WHERE r.is_current = TRUE"
+		query += " WHERE r.is_current = TRUE AND r.archived_at IS NULL"
 	}
 
 	if len(orgIDs) > 0 {
@@ -445,6 +445,16 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	} else {
 		countQuery += " AND r.is_current = TRUE"
 		dataQuery += " AND r.is_current = TRUE"
+	}
+
+	switch filter.Lifecycle {
+	case "", "active":
+		countQuery += " AND r.archived_at IS NULL"
+		dataQuery += " AND r.archived_at IS NULL"
+	case "archived":
+		countQuery += " AND r.archived_at IS NOT NULL"
+		dataQuery += " AND r.archived_at IS NOT NULL"
+	case "all":
 	}
 
 	if len(filter.OrgIDs) > 0 {
@@ -545,7 +555,8 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 	           FROM risks r
 	           LEFT JOIN organizations o ON r.organization_id = o.id
 	           LEFT JOIN users u ON r.created_by = u.id
-	           WHERE r.is_cycle_current = TRUE`
+	           WHERE r.is_cycle_current = TRUE
+	             AND r.archived_at IS NULL`
 	var args []interface{}
 	argIdx := 1
 
@@ -600,7 +611,7 @@ func (r *riskRepository) ListMitigations(ctx context.Context, orgIDs []uuid.UUID
 	                 r.code as risk_code, r.title as risk_title, r.organization_id as risk_org_id, r.probability, r.impact
 	          FROM mitigations m
 	          JOIN risks r ON m.risk_id = r.id
-	          WHERE r.status != 'assessment_draft' AND r.is_current = TRUE AND r.is_cycle_current = TRUE`
+	          WHERE r.status != 'assessment_draft' AND r.is_current = TRUE AND r.is_cycle_current = TRUE AND r.archived_at IS NULL`
 	var args []interface{}
 
 	if len(orgIDs) > 0 {
@@ -662,7 +673,7 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 	if cycle != "" {
 		args := []interface{}{cycle}
 		argIdx := 2
-		q := "SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1"
+		q := "SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1 AND r.archived_at IS NULL"
 		if len(orgIDs) > 0 {
 			q += fmt.Sprintf(orgFilter, argIdx)
 			args = append(args, orgArgs...)
@@ -671,7 +682,7 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 			return nil, fmt.Errorf("count risks: %w", err)
 		}
 		args2 := []interface{}{cycle}
-		q2 := fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1 AND (%s) >= 15", scoreExpr)
+		q2 := fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1 AND r.archived_at IS NULL AND (%s) >= 15", scoreExpr)
 		if len(orgIDs) > 0 {
 			q2 += fmt.Sprintf(orgFilter, argIdx)
 			args2 = append(args2, orgArgs...)
@@ -682,7 +693,7 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 	} else {
 		var args []interface{}
 		argIdx := 1
-		q := "SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_current = TRUE"
+		q := "SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_current = TRUE AND r.archived_at IS NULL"
 		if len(orgIDs) > 0 {
 			q += fmt.Sprintf(orgFilter, argIdx)
 			args = append(args, orgArgs...)
@@ -691,7 +702,7 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 			return nil, fmt.Errorf("count risks: %w", err)
 		}
 		var args2 []interface{}
-		q2 := fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_current = TRUE AND (%s) >= 15", scoreExpr)
+		q2 := fmt.Sprintf("SELECT COUNT(*) FROM risks r WHERE r.status != 'assessment_draft' AND r.is_current = TRUE AND r.archived_at IS NULL AND (%s) >= 15", scoreExpr)
 		if len(orgIDs) > 0 {
 			q2 += fmt.Sprintf(orgFilter, argIdx)
 			args2 = append(args2, orgArgs...)
@@ -743,7 +754,7 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle stri
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 15 AND (%[1]s) < 20) as tinggi,
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 20) as ekstrem
 		 FROM risks r
-		 WHERE r.is_cycle_current = TRUE AND r.status = 'approved' AND r.assessment_cycle = $1`, scoreExpr)
+		 WHERE r.is_cycle_current = TRUE AND r.status = 'approved' AND r.assessment_cycle = $1 AND r.archived_at IS NULL`, scoreExpr)
 		args = []interface{}{cycle}
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($2)"
@@ -761,7 +772,7 @@ func (r *riskRepository) DashboardCategoryCounts(ctx context.Context, cycle stri
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 15 AND (%[1]s) < 20) as tinggi,
 		        COUNT(*) FILTER (WHERE (%[1]s) >= 20) as ekstrem
 		 FROM risks r
-		 WHERE r.is_current = TRUE AND r.status = 'approved'`, scoreExpr)
+		 WHERE r.is_current = TRUE AND r.status = 'approved' AND r.archived_at IS NULL`, scoreExpr)
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($1)"
 			args = append(args, uuidArrayToStrings(orgIDs))
@@ -793,7 +804,7 @@ func (r *riskRepository) HeatmapData(ctx context.Context, cycle string, orgIDs [
 	var args []interface{}
 	if cycle != "" {
 		query = `SELECT r.probability AS probability, r.impact AS impact, COUNT(*) as cnt
-		 FROM risks r WHERE r.status IN ('assessment_in_review','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1`
+		 FROM risks r WHERE r.status IN ('assessment_in_review','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1 AND r.archived_at IS NULL`
 		args = []interface{}{cycle}
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($2)"
@@ -802,7 +813,7 @@ func (r *riskRepository) HeatmapData(ctx context.Context, cycle string, orgIDs [
 		query += " GROUP BY 1, 2"
 	} else {
 		query = `SELECT r.probability AS probability, r.impact AS impact, COUNT(*) as cnt
-		 FROM risks r WHERE r.status IN ('assessment_in_review','approved') AND r.is_current = TRUE`
+		 FROM risks r WHERE r.status IN ('assessment_in_review','approved') AND r.is_current = TRUE AND r.archived_at IS NULL`
 		if len(orgIDs) > 0 {
 			query += " AND r.organization_id = ANY($1)"
 			args = append(args, uuidArrayToStrings(orgIDs))
@@ -868,7 +879,8 @@ func (r *riskRepository) HeatmapMultiPhase(ctx context.Context, year int, orgIDs
 	eg.Go(func() error {
 		scope := `SELECT DISTINCT version_group_id FROM risks
 			WHERE assessment_cycle LIKE $1
-			  AND status IN ('assessment_in_review','approved')`
+			  AND status IN ('assessment_in_review','approved')
+			  AND archived_at IS NULL`
 		args := []interface{}{yearLike}
 		if clause, extra := orgFilter("organization_id", 2); clause != "" {
 			scope += clause
@@ -892,6 +904,7 @@ func (r *riskRepository) HeatmapMultiPhase(ctx context.Context, year int, orgIDs
 			WHERE status IN ('assessment_in_review','approved')
 			  AND is_cycle_current = TRUE
 			  AND assessment_cycle = $1
+			  AND archived_at IS NULL
 			  AND probability IS NOT NULL AND impact IS NOT NULL`
 		args := []interface{}{cycle}
 		if clause, extra := orgFilter("organization_id", 2); clause != "" {
@@ -927,6 +940,7 @@ func (r *riskRepository) HeatmapMultiPhase(ctx context.Context, year int, orgIDs
 			WHERE status IN ('assessment_in_review','approved')
 			  AND is_cycle_current = TRUE
 			  AND assessment_cycle LIKE $1
+			  AND archived_at IS NULL
 			  AND target_probability IS NOT NULL AND target_impact IS NOT NULL`
 		args := []interface{}{yearLike}
 		if clause, extra := orgFilter("organization_id", 2); clause != "" {
@@ -954,7 +968,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
-		 WHERE r.status IN ('assessment_in_review','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1`
+		 WHERE r.status IN ('assessment_in_review','approved') AND r.is_cycle_current = TRUE AND r.assessment_cycle = $1 AND r.archived_at IS NULL`
 		args = []interface{}{cycle}
 		argIdx := 2
 		if len(orgIDs) > 0 {
@@ -970,7 +984,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
-		 WHERE r.status IN ('assessment_in_review','approved') AND r.is_current = TRUE`
+		 WHERE r.status IN ('assessment_in_review','approved') AND r.is_current = TRUE AND r.archived_at IS NULL`
 		argIdx := 1
 		if len(orgIDs) > 0 {
 			query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", argIdx)
@@ -1049,7 +1063,7 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
 	// Debug: check what cycles exist in DB
 	var dbCycles []string
-	cycleRows, err := r.pool.Query(ctx, "SELECT DISTINCT assessment_cycle FROM risks WHERE assessment_cycle IS NOT NULL ORDER BY assessment_cycle DESC LIMIT 10")
+	cycleRows, err := r.pool.Query(ctx, "SELECT DISTINCT assessment_cycle FROM risks WHERE assessment_cycle IS NOT NULL AND archived_at IS NULL ORDER BY assessment_cycle DESC LIMIT 10")
 	if err == nil {
 		defer cycleRows.Close()
 		for cycleRows.Next() {
@@ -1076,7 +1090,8 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 	 LEFT JOIN users u ON r.created_by = u.id
 	 WHERE r.assessment_cycle = $1
 	   AND r.status = 'approved'
-	   AND r.is_cycle_current = TRUE`
+	   AND r.is_cycle_current = TRUE
+	   AND r.archived_at IS NULL`
 	args := []interface{}{cycle}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(args)+1)
@@ -1225,10 +1240,11 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 		WHERE c.version_group_id = base.version_group_id
 		  AND c.assessment_cycle = $1
 		  AND c.id != base.id
+		  AND c.archived_at IS NULL
 		ORDER BY c.created_at DESC
 		LIMIT 1
 	) candidate ON TRUE
-	WHERE (
+	WHERE base.archived_at IS NULL AND (
 		(base.is_current = TRUE AND base.status = 'approved')
 		OR (base.assessment_cycle = $1 AND base.status IN ('assessment_draft', 'assessment_in_review') AND base.is_cycle_current = TRUE)
 	)`
@@ -1382,9 +1398,11 @@ func (r *riskRepository) CompareCycles(ctx context.Context, fromCycle string, to
 		WHERE curr.assessment_cycle = $2
 		  AND curr.status = 'approved'
 		  AND curr.is_cycle_current = TRUE
+		  AND curr.archived_at IS NULL
 		  AND prev.assessment_cycle = $1
 		  AND prev.status = 'approved'
-		  AND prev.is_cycle_current = TRUE`, prevScore, currScore)
+		  AND prev.is_cycle_current = TRUE
+		  AND prev.archived_at IS NULL`, prevScore, currScore)
 
 	args := []interface{}{fromCycle, toCycle}
 	if len(orgIDs) > 0 {

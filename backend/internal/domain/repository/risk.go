@@ -10,6 +10,7 @@ import (
 type RiskRegisterFilter struct {
 	OrgIDs          []uuid.UUID
 	Status          string
+	Lifecycle       string
 	Category        string
 	AssessmentCycle string
 	CreatedAt       string

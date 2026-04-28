@@ -40,7 +40,7 @@ func main() {
 
 	// Clean architecture handlers
 	cleanRiskHandler := httpHandler.NewRiskHandler(
-		container.RiskCreateUC, container.RiskCreateBatchUC, container.RiskSpreadsheetUC, container.RiskGetUC, container.RiskReassessUC, container.RiskUpdateUC, container.RiskDeleteUC, container.RiskListUC, container.RiskListRegisterUC, container.RiskListCycleSnapshotUC, container.RiskListVersionsUC, container.RiskReviewQueueUC, container.RiskCompareCyclesUC, container.RiskCompareCycleDetailsUC, container.RiskReviewSummaryUC,
+		container.RiskCreateUC, container.RiskCreateBatchUC, container.RiskSpreadsheetUC, container.RiskGetUC, container.RiskReassessUC, container.RiskArchiveUC, container.RiskRestoreUC, container.RiskUpdateUC, container.RiskDeleteUC, container.RiskListUC, container.RiskListRegisterUC, container.RiskListCycleSnapshotUC, container.RiskListVersionsUC, container.RiskReviewQueueUC, container.RiskCompareCyclesUC, container.RiskCompareCycleDetailsUC, container.RiskReviewSummaryUC,
 		container.RiskDashboardSummaryUC, container.RiskActionPressureUC, container.RiskExecutiveAlertsUC, container.RiskHeatmapDataUC, container.RiskHeatmapMultiUC, container.RiskTopRisksUC, container.RiskDashboardCategoriesUC, container.RiskListApprovedUC,
 		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskKRIBreachUC, container.RiskUnitResponseUC, container.RiskMonitoringSpreadsheetUC, container.RiskCreateMonitoringBatchUC, container.MMRepository,
 	)
@@ -211,6 +211,8 @@ func main() {
 	protected.Get("/risks/:id", cleanRiskHandler.GetRisk)
 	protected.Get("/risks/:id/versions", cleanRiskHandler.ListVersions)
 	protected.Post("/risks/:id/reassess", cleanRiskHandler.CreateReassessment)
+	protected.Post("/risks/:id/archive", cleanRiskHandler.ArchiveRisk)
+	protected.Post("/risks/:id/restore", cleanRiskHandler.RestoreRisk)
 	protected.Put("/risks/:id", cleanRiskHandler.UpdateRisk)
 	protected.Delete("/risks/:id", cleanRiskHandler.DeleteRisk)
 

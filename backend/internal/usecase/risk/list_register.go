@@ -20,6 +20,7 @@ func NewListRiskRegisterUseCase(riskRepo repository.RiskRepository) *ListRiskReg
 type ListRiskRegisterInput struct {
 	OrgIDs          []uuid.UUID
 	Status          string
+	Lifecycle       string
 	Category        string
 	AssessmentCycle string
 	CreatedAt       string
@@ -52,6 +53,7 @@ func (uc *ListRiskRegisterUseCase) Execute(ctx context.Context, input ListRiskRe
 	risks, total, err := uc.riskRepo.ListRegister(ctx, repository.RiskRegisterFilter{
 		OrgIDs:          input.OrgIDs,
 		Status:          input.Status,
+		Lifecycle:       input.Lifecycle,
 		Category:        input.Category,
 		AssessmentCycle: input.AssessmentCycle,
 		CreatedAt:       input.CreatedAt,

@@ -3,6 +3,7 @@ export type RiskRegisterStatusFilter =
   | "all"
   | "assessment_in_review"
   | "approved";
+export type RiskRegisterLifecycleFilter = "active" | "archived" | "all";
 export type RiskRegisterCategoryFilter =
   | "all"
   | "kebijakan"
@@ -16,6 +17,7 @@ export type RiskRegisterSortOrder = "asc" | "desc";
 export type RiskRegisterQueryState = {
   activeTab: RiskRegisterTab;
   search: string;
+  lifecycleFilter: RiskRegisterLifecycleFilter;
   statusFilter: RiskRegisterStatusFilter;
   categoryFilter: RiskRegisterCategoryFilter;
   assessmentCycleFilter: string;
@@ -32,6 +34,16 @@ function getRiskRegisterTab(value: string | null): RiskRegisterTab {
   }
 
   return "all-risks";
+}
+
+function getRiskRegisterLifecycleFilter(
+  value: string | null,
+): RiskRegisterLifecycleFilter {
+  if (value === "archived" || value === "all") {
+    return value;
+  }
+
+  return "active";
 }
 
 function getRiskRegisterStatusFilter(
@@ -77,6 +89,9 @@ export function parseRiskRegisterQueryState(
   return {
     activeTab: getRiskRegisterTab(searchParams.get("tab")),
     search: searchParams.get("q") ?? "",
+    lifecycleFilter: getRiskRegisterLifecycleFilter(
+      searchParams.get("lifecycle"),
+    ),
     statusFilter: getRiskRegisterStatusFilter(searchParams.get("status")),
     categoryFilter: getRiskRegisterCategoryFilter(searchParams.get("category")),
     assessmentCycleFilter: searchParams.get("assessment_cycle") ?? "",
@@ -104,6 +119,10 @@ export function buildRiskRegisterQueryString(
 
   if (normalizedSearch) {
     nextParams.set("q", normalizedSearch);
+  }
+
+  if (state.lifecycleFilter !== "active") {
+    nextParams.set("lifecycle", state.lifecycleFilter);
   }
 
   if (state.statusFilter !== "all") {

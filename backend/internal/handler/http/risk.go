@@ -23,6 +23,8 @@ type RiskHandler struct {
 	spreadsheetUC           *riskuc.BulkRiskSpreadsheetUseCase
 	getUC                   *riskuc.GetRiskUseCase
 	reassessUC              *riskuc.CreateRiskReassessmentUseCase
+	archiveUC               *riskuc.ArchiveRiskUseCase
+	restoreUC               *riskuc.RestoreRiskUseCase
 	updateUC                *riskuc.UpdateRiskUseCase
 	deleteUC                *riskuc.DeleteRiskUseCase
 	listUC                  *riskuc.ListRisksUseCase
@@ -56,6 +58,8 @@ func NewRiskHandler(
 	spreadsheetUC *riskuc.BulkRiskSpreadsheetUseCase,
 	getUC *riskuc.GetRiskUseCase,
 	reassessUC *riskuc.CreateRiskReassessmentUseCase,
+	archiveUC *riskuc.ArchiveRiskUseCase,
+	restoreUC *riskuc.RestoreRiskUseCase,
 	updateUC *riskuc.UpdateRiskUseCase,
 	deleteUC *riskuc.DeleteRiskUseCase,
 	listUC *riskuc.ListRisksUseCase,
@@ -88,6 +92,8 @@ func NewRiskHandler(
 		spreadsheetUC:           spreadsheetUC,
 		getUC:                   getUC,
 		reassessUC:              reassessUC,
+		archiveUC:               archiveUC,
+		restoreUC:               restoreUC,
 		updateUC:                updateUC,
 		deleteUC:                deleteUC,
 		listUC:                  listUC,
@@ -154,11 +160,15 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 	input := riskuc.ListRiskRegisterInput{
 		OrgIDs:          orgIDs,
 		Status:          strings.TrimSpace(c.Query("status", "all")),
+		Lifecycle:       strings.TrimSpace(c.Query("lifecycle", "active")),
 		AssessmentCycle: strings.TrimSpace(c.Query("assessment_cycle", "")),
 		CreatedAt:       strings.TrimSpace(c.Query("created_at", "")),
 		Query:           strings.TrimSpace(c.Query("q", "")),
 		Page:            page,
 		Limit:           limit,
+	}
+	if input.Lifecycle != "active" && input.Lifecycle != "archived" && input.Lifecycle != "all" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid lifecycle")
 	}
 	if category := strings.TrimSpace(c.Query("category")); category != "" {
 		if !entity.IsValidRiskCategory(category) {
@@ -189,6 +199,52 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 		"page":  result.Page,
 		"limit": result.Limit,
 	})
+}
+
+func (h *RiskHandler) ArchiveRisk(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+	}
+
+	var input riskuc.ArchiveRiskInput
+	if err := c.BodyParser(&input); err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+	input.ID = id
+
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.archiveUC.Execute(c.Context(), input, orgIDs, scope)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
+}
+
+func (h *RiskHandler) RestoreRisk(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	var orgIDs []uuid.UUID
+	if scope != nil && !scope.IsGlobal {
+		orgIDs = scope.AccessibleOrgIDs
+	}
+
+	result, err := h.restoreUC.Execute(c.Context(), riskuc.RestoreRiskInput{ID: id}, orgIDs, scope)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
 }
 
 // ListCycleSnapshot handles GET /api/risks/cycle-snapshot?cycle=YYYY-H1

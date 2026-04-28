@@ -17,6 +17,7 @@ test("parseRiskRegisterQueryState falls back to register defaults", () => {
   assert.deepEqual(result, {
     activeTab: "all-risks",
     search: "",
+    lifecycleFilter: "active",
     statusFilter: "all",
     categoryFilter: "all",
     assessmentCycleFilter: "",
@@ -32,6 +33,7 @@ test("buildRiskRegisterQueryString keeps deep-linkable non-default filters only"
   const result = buildRiskRegisterQueryString({
     activeTab: "my-drafts",
     search: "  risiko strategis  ",
+    lifecycleFilter: "archived",
     statusFilter: "approved",
     categoryFilter: "operasional",
     assessmentCycleFilter: "2026-H1",
@@ -44,8 +46,16 @@ test("buildRiskRegisterQueryString keeps deep-linkable non-default filters only"
 
   assert.equal(
     result,
-    "tab=my-drafts&q=risiko+strategis&status=approved&category=operasional&assessment_cycle=2026-H1&created_at=2026-02-01&sort_by=title&sort_order=asc&page=2&limit=25",
+    "tab=my-drafts&q=risiko+strategis&lifecycle=archived&status=approved&category=operasional&assessment_cycle=2026-H1&created_at=2026-02-01&sort_by=title&sort_order=asc&page=2&limit=25",
   );
+});
+
+test("parseRiskRegisterQueryState normalizes archived lifecycle filter", () => {
+  const result = parseRiskRegisterQueryState(
+    new URLSearchParams("lifecycle=archived"),
+  );
+
+  assert.equal(result.lifecycleFilter, "archived");
 });
 
 test("shouldReplaceRiskRegisterUrl skips writes while state is catching up to external navigation", () => {
@@ -55,6 +65,7 @@ test("shouldReplaceRiskRegisterUrl skips writes while state is catching up to ex
     nextState: {
       activeTab: "all-risks",
       search: "",
+      lifecycleFilter: "active",
       statusFilter: "all",
       categoryFilter: "all",
       assessmentCycleFilter: "",
