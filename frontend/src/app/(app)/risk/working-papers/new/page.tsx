@@ -164,7 +164,10 @@ export default function CreateWorkingPaperPage() {
       try {
         setLoadingRisks(true);
 
-        const risksRes = await api.get<RiskOption[]>("/risks?status=approved", token);
+        const risksRes = await api.get<RiskOption[]>(
+          "/risks?status=approved",
+          token,
+        );
 
         const validRisks = (risksRes || []).filter(
           (r) => r.status === "approved" && r.isCurrent,
@@ -235,14 +238,14 @@ export default function CreateWorkingPaperPage() {
   };
 
   const loadSignatoryOptions = useCallback(
-    async (
-      { q, page, limit }: { q: string; page: number; limit: number },
-    ) => {
+    async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
       if (!token) {
         return { options: [], total: 0, page, limit };
       }
 
-      const orgFilter = user?.isGlobal ? undefined : user?.organizationId ?? undefined;
+      const orgFilter = user?.isGlobal
+        ? undefined
+        : (user?.organizationId ?? undefined);
       const result = await listUsers(token, {
         q: q || undefined,
         page,
@@ -447,8 +450,8 @@ export default function CreateWorkingPaperPage() {
             <CardContent className="p-0">
               {loadingRisks ? (
                 <div className="flex items-center justify-center p-8 text-muted-foreground">
-                  <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Memuat daftar
-                  risiko...
+                  <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Memuat
+                  daftar risiko...
                 </div>
               ) : risks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
@@ -487,18 +490,24 @@ export default function CreateWorkingPaperPage() {
                             aria-label="Pilih semua risiko"
                           />
                         </TableHead>
-                        <TableHead className="w-[100px] whitespace-nowrap">Kode</TableHead>
+                        <TableHead className="w-[100px] whitespace-nowrap">
+                          Kode
+                        </TableHead>
                         <TableHead className="max-w-[280px] whitespace-nowrap">
                           Judul Risiko
                         </TableHead>
-                        <TableHead className="w-[140px] whitespace-nowrap">Kategori</TableHead>
+                        <TableHead className="w-[140px] whitespace-nowrap">
+                          Kategori
+                        </TableHead>
                         <TableHead className="w-[120px] text-center whitespace-nowrap">
                           Nilai
                         </TableHead>
                         <TableHead className="w-[140px] text-center whitespace-nowrap">
                           Tingkat
                         </TableHead>
-                        <TableHead className="w-[180px] whitespace-nowrap">Sumber Data</TableHead>
+                        <TableHead className="w-[180px] whitespace-nowrap">
+                          Sumber Data
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -530,7 +539,10 @@ export default function CreateWorkingPaperPage() {
                                 {risk.code}
                               </TableCell>
                               <TableCell className="max-w-[280px] font-medium">
-                                <span className="block truncate" title={risk.title}>
+                                <span
+                                  className="block truncate"
+                                  title={risk.title}
+                                >
                                   {risk.title}
                                 </span>
                               </TableCell>
@@ -556,7 +568,10 @@ export default function CreateWorkingPaperPage() {
                               <TableCell>
                                 {isChecked ? (
                                   <Select
-                                    value={riskEntry?.source_mode || "latest_approved"}
+                                    value={
+                                      riskEntry?.source_mode ||
+                                      "latest_approved"
+                                    }
                                     onValueChange={(val) =>
                                       handleSourceModeChange(
                                         risk.id,
@@ -595,7 +610,8 @@ export default function CreateWorkingPaperPage() {
                                 Pencarian tidak menemukan risiko
                               </p>
                               <p className="text-xs text-muted-foreground/70">
-                                Pastikan unit dan jenis risiko yang dicari sudah benar
+                                Pastikan unit dan jenis risiko yang dicari sudah
+                                benar
                               </p>
                             </div>
                           </TableCell>
@@ -620,9 +636,12 @@ export default function CreateWorkingPaperPage() {
           }
         >
           <div className="space-y-3">
-            {errors.signatories && typeof errors.signatories.message === "string" && (
-              <p className="text-xs text-destructive">{errors.signatories.message}</p>
-            )}
+            {errors.signatories &&
+              typeof errors.signatories.message === "string" && (
+                <p className="text-xs text-destructive">
+                  {errors.signatories.message}
+                </p>
+              )}
 
             <OrderedUserSelectionTable
               rows={signatoryRows}
@@ -640,7 +659,9 @@ export default function CreateWorkingPaperPage() {
               addRowLabel="Tambah Penandatangan"
               footerNote="Urutan baris menentukan sequence penandatangan pada payload dokumen."
               canRemoveRow={() => signatoryFields.length > 1}
-              getRowError={(_, index) => errors.signatories?.[index]?.user_id?.message}
+              getRowError={(_, index) =>
+                errors.signatories?.[index]?.user_id?.message
+              }
               dndGroup="working-paper-signatories"
             />
           </div>

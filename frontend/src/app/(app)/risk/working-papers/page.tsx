@@ -55,12 +55,7 @@ import {
   AlertCircle,
   ArrowUpRight,
   Calendar,
-  FileText,
-  FileEdit,
-  PenTool,
-  CheckCircle,
   Search,
-  XCircle,
 } from "lucide-react";
 
 type WorkingPaperStatusFilter = "all" | WorkingPaperStatus;
@@ -102,6 +97,12 @@ const statusLabels: Record<WorkingPaperStatus, string> = {
   signing: "Proses TTE",
   completed: "Selesai",
   cancelled: "Dibatalkan",
+};
+
+type WorkingPaperSummaryCard = {
+  label: string;
+  value: number;
+  tone: string;
 };
 
 export default function WorkingPapersPage() {
@@ -369,6 +370,34 @@ export default function WorkingPapersPage() {
   const completedCount = papers.filter((p) => p.status === "completed").length;
   const cancelledCount = papers.filter((p) => p.status === "cancelled").length;
 
+  const summaryCards: WorkingPaperSummaryCard[] = [
+    {
+      label: "Total",
+      value: total,
+      tone: "border-border/60 bg-background/60 text-foreground",
+    },
+    {
+      label: "Draft",
+      value: draftCount,
+      tone: "border-primary/20 text-primary",
+    },
+    {
+      label: "Proses TTE",
+      value: signingCount,
+      tone: "border-amber-500/20 text-amber-600",
+    },
+    {
+      label: "Selesai",
+      value: completedCount,
+      tone: "border-success/20 text-success",
+    },
+    {
+      label: "Dibatalkan",
+      value: cancelledCount,
+      tone: "border-destructive/20 text-destructive",
+    },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -388,52 +417,21 @@ export default function WorkingPapersPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-5">
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Total</p>
-              <FileText className="size-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold mt-2">{total}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Draft</p>
-              <FileEdit className="size-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold mt-2">{draftCount}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Proses TTE</p>
-              <PenTool className="size-4 text-amber-600" />
-            </div>
-            <p className="text-2xl font-bold mt-2">{signingCount}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Selesai</p>
-              <CheckCircle className="size-4 text-success" />
-            </div>
-            <p className="text-2xl font-bold mt-2">{completedCount}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Dibatalkan</p>
-              <XCircle className="size-4 text-destructive" />
-            </div>
-            <p className="text-2xl font-bold mt-2">{cancelledCount}</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {summaryCards.map((card) => (
+          <Card key={card.label} className={cn(card.tone)}>
+            <CardContent className="flex items-end justify-between gap-3 p-4">
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
+                  {card.label}
+                </p>
+                <p className="text-2xl font-semibold text-foreground">
+                  {card.value}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="space-y-3">
@@ -465,7 +463,7 @@ export default function WorkingPapersPage() {
                   setPage(1);
                 }}
                 placeholder="Cari judul kertas kerja..."
-                className="h-8 border-none bg-muted/30 pl-8 text-xs"
+                className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
               />
             </div>
             <div className="relative min-w-[200px] md:w-52">
@@ -477,7 +475,7 @@ export default function WorkingPapersPage() {
                   setPage(1);
                 }}
                 placeholder="Filter siklus asesmen"
-                className="h-8 border-none bg-muted/30 pl-8 text-xs"
+                className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
               />
             </div>
             <div className="relative min-w-[160px] md:w-44">
@@ -489,7 +487,7 @@ export default function WorkingPapersPage() {
                   setCreatedAtFilter(event.target.value);
                   setPage(1);
                 }}
-                className="h-8 border-none bg-muted/30 pl-8 text-xs"
+                className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
               />
             </div>
           </div>
@@ -518,18 +516,15 @@ export default function WorkingPapersPage() {
           <TableBody>
             {papers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12">
-                  <div className="flex flex-col items-center justify-center gap-3 text-center">
-                    <div className="inline-flex size-12 items-center justify-center rounded-full bg-muted">
-                      <FileText className="size-6 text-muted-foreground" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-foreground">Belum ada kertas kerja</p>
-                      <p className="text-sm text-muted-foreground">Buat kertas kerja baru untuk memulai proses pengesahan profil risiko.</p>
-                    </div>
-                    <Button asChild variant="outline" size="sm">
-                      <Link href="/risk/working-papers/new">Buat Kertas Kerja</Link>
-                    </Button>
+                <TableCell colSpan={6} className="h-24">
+                  <div className="flex flex-col gap-1 text-left">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Belum ada kertas kerja yang sesuai filter
+                    </p>
+                    <p className="text-xs text-muted-foreground/70">
+                      Ubah filter pencarian atau tab status untuk melihat data
+                      lain
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>

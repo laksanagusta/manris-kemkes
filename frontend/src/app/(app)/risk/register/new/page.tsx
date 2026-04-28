@@ -3136,9 +3136,7 @@ export default function RiskInputPage() {
             <DialogHeader>
               <DialogTitle>Hapus Draft Risiko?</DialogTitle>
               <DialogDescription>
-                Draft yang dihapus tidak bisa dikembalikan. Risiko berstatus
-                ditinjau harus dikembalikan ke draft terlebih dahulu sebelum
-                dapat dihapus.
+                Draft yang dihapus tidak bisa dikembalikan.
               </DialogDescription>
             </DialogHeader>
             <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">

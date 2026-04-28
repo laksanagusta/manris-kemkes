@@ -554,19 +554,19 @@ export default function InboxPage() {
       tone: "border-border/60 bg-background/60 text-foreground",
     },
     {
-      label: "Perlu Persetujuan",
+      label: "Perlu Tindakan",
       value: counts.myApprovals,
-      tone: "border-primary/20 bg-primary/10 text-primary",
+      tone: "border-primary/20 text-primary",
     },
     {
       label: "Disetujui",
       value: counts.approved,
-      tone: "border-success/20 bg-success/10 text-success",
+      tone: "border-success/20 text-success",
     },
     {
       label: "Ditolak",
       value: counts.rejected,
-      tone: "border-destructive/20 bg-destructive/10 text-destructive",
+      tone: "border-destructive/20 text-destructive",
     },
   ];
 
@@ -749,10 +749,9 @@ export default function InboxPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Persetujuan</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Persetujuan & TTE</h1>
         <p className="text-sm text-muted-foreground">
-          Tinjau permintaan persetujuan dengan pola kerja yang sama seperti risk
-          register.
+          Tinjau permintaan persetujuan & tanda tangan.
         </p>
       </div>
 
@@ -780,10 +779,7 @@ export default function InboxPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (
-          <Card
-            key={card.label}
-            className={cn("border shadow-none", card.tone)}
-          >
+          <Card key={card.label} className={cn(card.tone)}>
             <CardContent className="flex items-end justify-between gap-3 p-4">
               <div className="space-y-1">
                 <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
@@ -808,7 +804,7 @@ export default function InboxPage() {
                 placeholder="Cari kode, judul, unit, atau pemohon..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                className="h-8 pl-8 text-xs bg-muted/30 border-none"
+                className="h-8 pl-8 text-xs bg-background/80 border border-border/50"
               />
             </div>
 
@@ -819,7 +815,7 @@ export default function InboxPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 w-40 text-xs bg-muted/30 border-none">
+              <SelectTrigger className="h-8 w-40 text-xs bg-background/80 border border-border/50">
                 <SelectValue placeholder="Jenis Permintaan" />
               </SelectTrigger>
               <SelectContent>

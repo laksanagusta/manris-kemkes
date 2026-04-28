@@ -789,7 +789,7 @@ export default function RiskRegisterPage() {
                       setSearch(event.target.value);
                       setPage(1);
                     }}
-                    className="h-8 pl-8 text-xs bg-muted/30 border-none"
+                    className="h-8 pl-8 text-xs bg-background/80 border border-border/50"
                   />
                 </div>
                 <div className="relative min-w-[180px] md:w-40">
@@ -801,7 +801,7 @@ export default function RiskRegisterPage() {
                       setAssessmentCycleFilter(event.target.value);
                       setPage(1);
                     }}
-                    className="h-8 border-none bg-muted/30 pl-8 text-xs"
+                    className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
                   />
                 </div>
                 <div className="relative min-w-[160px] md:w-44">
@@ -813,7 +813,7 @@ export default function RiskRegisterPage() {
                       setCreatedAtFilter(event.target.value);
                       setPage(1);
                     }}
-                    className="h-8 border-none bg-muted/30 pl-8 text-xs"
+                    className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
                   />
                 </div>
                 <Select
@@ -823,7 +823,7 @@ export default function RiskRegisterPage() {
                     setPage(1);
                   }}
                 >
-                  <SelectTrigger className="h-8 w-32 text-xs bg-muted/30 border-none">
+                  <SelectTrigger className="h-8 w-32 text-xs bg-background/80 border border-border/50">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -841,7 +841,7 @@ export default function RiskRegisterPage() {
                     setPage(1);
                   }}
                 >
-                  <SelectTrigger className="h-8 w-44 text-xs bg-muted/30 border-none">
+                  <SelectTrigger className="h-8 w-44 text-xs bg-background/80 border border-border/50">
                     <SelectValue placeholder="Kategori" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1498,9 +1498,7 @@ export default function RiskRegisterPage() {
           <DialogHeader>
             <DialogTitle>Hapus Draft Risiko?</DialogTitle>
             <DialogDescription>
-              Draft yang dihapus tidak bisa dikembalikan. Risiko yang sudah
-              ditinjau harus dikembalikan ke draft terlebih dahulu sebelum dapat
-              dihapus.
+              Draft yang dihapus tidak bisa dikembalikan.
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
@@ -1537,7 +1535,7 @@ export default function RiskRegisterPage() {
             <AlertDialogDescription>
               Anda akan memulai pemantauan untuk risiko berikut. Tindakan ini
               akan membuat draft reassessment baru yang dapat Anda edit sebelum
-              diajukan untuk persetujuan.
+              finalisasi.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">

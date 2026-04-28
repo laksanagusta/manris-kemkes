@@ -582,6 +582,110 @@ func TestCreateMonitoringBatchUseCase_PreservesSourceRiskFields(t *testing.T) {
 	}
 }
 
+func TestCreateMonitoringBatchUseCase_UsesFullRiskDetailsForMitigations(t *testing.T) {
+	orgID := uuid.New()
+	createdBy := uuid.New()
+	risk1ID := uuid.New()
+	vg1ID := uuid.New()
+
+	risk1 := &entity.Risk{
+		ID:             risk1ID,
+		Code:           "R-101",
+		Title:          "Risk with hidden mitigations",
+		Status:         entity.RiskStatusApproved,
+		VersionGroupID: vg1ID,
+		IsCurrent:      true,
+		IsCycleCurrent: true,
+		OrganizationID: &orgID,
+		Probability:    4,
+		Impact:         4,
+		Weight:         1.0,
+		Mitigations: []entity.Mitigation{
+			{
+				ID:                    uuid.New(),
+				RiskID:                risk1ID,
+				Action:                "Follow up vendor",
+				Owner:                 "PIC Logistik",
+				DueDate:               stringPtr("2026-05-31"),
+				Frequency:             "mingguan",
+				ExecutionScheduleText: "Setiap Senin",
+			},
+		},
+	}
+
+	riskRepo := &fakeMonitoringRiskRepo{
+		risks: map[uuid.UUID]*entity.Risk{
+			risk1ID: risk1,
+		},
+		versions: []*entity.Risk{
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+		},
+	}
+
+	uc := NewCreateMonitoringBatchUseCase(&monitoringBatchListStrippingRepo{fakeMonitoringRiskRepo: riskRepo}, &fakeMonitoringUserRepo{})
+
+	result, err := uc.Execute(context.Background(), CreateMonitoringBatchInput{
+		Items: []BulkMonitoringBatchItemInput{
+			{ClientKey: "row-1", Code: "R-101", RealisasiP: 3, RealisasiD: 3},
+		},
+		Cycle:          "2026-H1",
+		OrganizationID: orgID,
+		CreatedBy:      &createdBy,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result.Items[0].Status != "created" {
+		t.Fatalf("expected created, got %q: %s", result.Items[0].Status, result.Items[0].Error)
+	}
+	if len(riskRepo.created) != 1 {
+		t.Fatalf("expected 1 created draft, got %d", len(riskRepo.created))
+	}
+
+	draft := riskRepo.created[0]
+	if len(draft.Mitigations) != 1 {
+		t.Fatalf("expected 1 mitigation cloned, got %d", len(draft.Mitigations))
+	}
+	if draft.Mitigations[0].Owner != "PIC Logistik" {
+		t.Fatalf("expected mitigation owner preserved, got %q", draft.Mitigations[0].Owner)
+	}
+	if draft.Mitigations[0].ExecutionScheduleText != "Setiap Senin" {
+		t.Fatalf("expected execution schedule preserved, got %q", draft.Mitigations[0].ExecutionScheduleText)
+	}
+}
+
+type monitoringBatchListStrippingRepo struct {
+	*fakeMonitoringRiskRepo
+}
+
+func (r *monitoringBatchListStrippingRepo) List(_ context.Context, orgIDs []uuid.UUID, status string, _ string) ([]*entity.Risk, error) {
+	var result []*entity.Risk
+	for _, risk := range r.risks {
+		if risk.Status != status {
+			continue
+		}
+		if len(orgIDs) > 0 {
+			matchesOrg := false
+			for _, orgID := range orgIDs {
+				if risk.OrganizationID != nil && *risk.OrganizationID == orgID {
+					matchesOrg = true
+					break
+				}
+			}
+			if !matchesOrg {
+				continue
+			}
+		}
+
+		clone := *risk
+		clone.Mitigations = nil
+		result = append(result, &clone)
+	}
+	return result, nil
+}
+
+var _ repo.RiskRepository = (*monitoringBatchListStrippingRepo)(nil)
+
 func TestCreateMonitoringBatchUseCase_RepoCreateFailure(t *testing.T) {
 	orgID := uuid.New()
 	createdBy := uuid.New()

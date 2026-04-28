@@ -73,7 +73,7 @@ func (uc *CreateMonitoringBatchUseCase) Execute(ctx context.Context, input Creat
 	output := &BulkMonitoringBatchOutput{Items: make([]BulkMonitoringBatchItemOutput, 0, len(input.Items))}
 
 	for _, item := range input.Items {
-		result := uc.processItem(ctx, item, input.Cycle, input.CreatedBy, codeMap, now)
+		result := uc.processItem(ctx, item, input.Cycle, input.OrganizationID, input.CreatedBy, codeMap, now)
 		output.Items = append(output.Items, result)
 	}
 
@@ -85,6 +85,7 @@ func (uc *CreateMonitoringBatchUseCase) processItem(
 	ctx context.Context,
 	item BulkMonitoringBatchItemInput,
 	cycle string,
+	orgID uuid.UUID,
 	createdBy *uuid.UUID,
 	codeMap map[string]*entity.Risk,
 	now time.Time,
@@ -101,6 +102,19 @@ func (uc *CreateMonitoringBatchUseCase) processItem(
 			Error:     fmt.Sprintf("no approved current risk found with code %q", code),
 		}
 	}
+
+	fullRisk, err := uc.riskRepo.GetByID(ctx, sourceRisk.ID, []uuid.UUID{orgID})
+	if err != nil {
+		return BulkMonitoringBatchItemOutput{
+			ClientKey: item.ClientKey,
+			Code:      &sourceRisk.Code,
+			Status:    "failed",
+			Message:   "failed to load full risk details",
+			Error:     err.Error(),
+		}
+	}
+
+	sourceRisk = fullRisk
 
 	if !sourceRisk.CanBeReassessed() {
 		return BulkMonitoringBatchItemOutput{

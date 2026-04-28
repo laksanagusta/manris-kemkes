@@ -1020,7 +1020,7 @@ export function RiskReviewPanel() {
             <AlertDialogDescription>
               Anda akan memulai pemantauan untuk risiko berikut. Tindakan ini
               akan membuat draft pemantauan baru yang dapat Anda edit sebelum
-              diajukan untuk persetujuan.
+              finalisasi.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
