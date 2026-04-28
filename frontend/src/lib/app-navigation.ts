@@ -16,18 +16,17 @@ export const mainMenuItems: MainMenuGroup[] = [
     items: [
       { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
       { label: "Risiko", href: "/risk/register", icon: "ShieldAlert" },
-      { label: "Panduan Risiko", href: "/panduan/risiko", icon: "BookOpen" },
-      {
-        label: "Penanganan",
-        href: "/compliance/penanganan",
-        icon: "ClipboardCheck",
-      },
       {
         label: "Kertas Kerja",
         href: "/risk/working-papers",
         icon: "FileSignature",
       },
       { label: "Persetujuan", href: "/inbox", icon: "Inbox" },
+      {
+        label: "Penanganan",
+        href: "/compliance/penanganan",
+        icon: "ClipboardCheck",
+      },
       {
         label: "Monitoring",
         href: "/compliance/monitoring",

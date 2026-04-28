@@ -113,6 +113,7 @@ import {
   type MitigationItem,
 } from "@/components/shared/mitigation-table";
 import { MitigationPicker } from "@/components/shared/mitigation-picker";
+import { ProbabilityCriteriaTooltip } from "@/components/shared/probability-criteria-tooltip";
 import { MitigationProgressTab } from "@/components/shared/mitigation-progress-tab";
 import type {
   MitigationFrequency,
@@ -2489,9 +2490,7 @@ export default function RiskInputPage() {
 
                     <div className="grid gap-5 md:grid-cols-2">
                       <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
-                          Probabilitas
-                        </Label>
+                        <ProbabilityCriteriaTooltip className="text-sm font-medium" />
                         <div className="grid grid-cols-5 gap-1.5">
                           {[1, 2, 3, 4, 5].map((val) => (
                             <Tooltip key={val}>
@@ -2524,7 +2523,7 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
+                        <Label className="flex h-6 items-center text-sm font-medium">
                           Dampak (Residual)
                         </Label>
                         <div className="grid grid-cols-5 gap-1.5">
@@ -2856,9 +2855,7 @@ export default function RiskInputPage() {
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
                     <div className="grid gap-5 md:grid-cols-2">
                       <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
-                          Probabilitas
-                        </Label>
+                        <ProbabilityCriteriaTooltip className="text-sm font-medium" />
                         <div className="grid grid-cols-5 gap-1.5">
                           {[1, 2, 3, 4, 5].map((val) => (
                             <Tooltip key={val}>
@@ -2889,7 +2886,9 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">Dampak</Label>
+                        <Label className="flex h-6 items-center text-sm font-medium">
+                          Dampak
+                        </Label>
                         <div className="grid grid-cols-5 gap-1.5">
                           {[1, 2, 3, 4, 5].map((val) => (
                             <Tooltip key={val}>

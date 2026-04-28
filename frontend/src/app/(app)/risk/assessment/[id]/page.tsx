@@ -22,6 +22,7 @@ import {
   MitigationTable,
   type MitigationItem,
 } from "@/components/shared/mitigation-table";
+import { ProbabilityCriteriaTooltip } from "@/components/shared/probability-criteria-tooltip";
 
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
@@ -984,7 +985,7 @@ export default function AssessmentFormPage() {
                   <TooltipProvider>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-2">
-                        <Label>Probabilitas</Label>
+                        <ProbabilityCriteriaTooltip className="text-sm font-medium" />
                         <Controller
                           control={form.control}
                           name="probability"
@@ -1027,7 +1028,9 @@ export default function AssessmentFormPage() {
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <Label>Dampak (Residual)</Label>
+                        <Label className="flex h-6 items-center text-sm font-medium">
+                          Dampak (Residual)
+                        </Label>
                         <Controller
                           control={form.control}
                           name="impact"

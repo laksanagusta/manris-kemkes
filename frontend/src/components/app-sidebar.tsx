@@ -104,6 +104,14 @@ const allNavHrefs = navigation.flatMap((group) =>
   group.items.flatMap((item) => item.matchHrefs ?? [item.href]),
 );
 
+const utilityLinks: NavItem[] = [
+  {
+    label: "Panduan Risiko",
+    href: "/panduan/risiko",
+    icon: BookOpen,
+  },
+];
+
 function matchesPath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -284,6 +292,18 @@ export function AppSidebar({
 
       {/* Footer */}
       <div className="border-t border-sidebar-border p-3">
+        <div className="mb-3">
+          {!collapsed && (
+            <p className="mb-2 px-3 text-[10px] font-semibold tracking-widest text-sidebar-foreground/40 uppercase">
+              Bantuan
+            </p>
+          )}
+          <div className="space-y-0.5">
+            {utilityLinks.map((item) => (
+              <NavLink key={item.href} item={item} collapsed={collapsed} />
+            ))}
+          </div>
+        </div>
         {!collapsed ? (
           <div className="flex items-center gap-3 rounded-lg px-3 py-2">
             <div className="flex size-8 items-center justify-center rounded-full bg-sidebar-primary/20 text-xs font-bold text-sidebar-primary">
