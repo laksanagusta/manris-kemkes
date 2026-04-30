@@ -4,15 +4,7 @@ import { useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
-import type { MitigationFrequency, RecurringInterval } from "@/types/risk";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import type { UserPickerOption } from "@/lib/risk-register-user-picker";
 
@@ -23,11 +15,6 @@ export interface MitigationItem {
   treatmentOwnerId?: string;
   externalPicId?: string;
   dueDate: string;
-  frequency: MitigationFrequency;
-  recurringInterval?: RecurringInterval;
-  reportDay?: number;
-  reportDate?: number;
-  executionScheduleText?: string;
 }
 
 type RemoteUserPickerResult = {
@@ -55,7 +42,7 @@ export function MitigationTable({
   loadPicOptions,
 }: MitigationTableProps) {
   const addItem = () => {
-    onChange([...items, { action: "", owner: "", dueDate: "", frequency: "insidental" }]);
+    onChange([...items, { action: "", owner: "", dueDate: "" }]);
   };
 
   const updateItem = (index: number, field: keyof MitigationItem, value: string | number | undefined) => {
@@ -119,7 +106,7 @@ export function MitigationTable({
               <Trash2 className="size-4" />
             </Button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pl-7">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-7">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">PIC</Label>
               {loadPicOptions ? (
@@ -149,86 +136,15 @@ export function MitigationTable({
               )}
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Frekuensi</Label>
-              <Select value={item.frequency} onValueChange={(v) => updateItem(index, "frequency", v)} disabled={disabled}>
-                <SelectTrigger className="w-full text-sm bg-background"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="insidental" className="text-sm">Insidental</SelectItem>
-                  <SelectItem value="rutin" className="text-sm">Rutin</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label className="text-xs text-muted-foreground">Due Date Laporan</Label>
+              <Input
+                type="date"
+                value={item.dueDate || ""}
+                onChange={(e) => updateItem(index, "dueDate", e.target.value)}
+                className="h-8 text-sm bg-background border-border/50"
+                disabled={disabled}
+              />
             </div>
-            {item.frequency !== "rutin" ? (
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Target Waktu</Label>
-                <Input
-                  type="date"
-                  value={item.dueDate || ""}
-                  onChange={(e) => updateItem(index, "dueDate", e.target.value)}
-                  className="h-8 text-sm bg-background border-border/50"
-                  disabled={disabled}
-                />
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Interval</Label>
-                <Select value={item.recurringInterval || "mingguan"} onValueChange={(v) => updateItem(index, "recurringInterval", v)} disabled={disabled}>
-                  <SelectTrigger className="w-full text-sm bg-background"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="harian" className="text-sm">Harian</SelectItem>
-                    <SelectItem value="mingguan" className="text-sm">Mingguan</SelectItem>
-                    <SelectItem value="bulanan" className="text-sm">Bulanan</SelectItem>
-                    <SelectItem value="triwulan" className="text-sm">Triwulan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {item.frequency === "rutin" && (item.recurringInterval === "mingguan" || (!item.recurringInterval)) && (
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Tenggat Hari</Label>
-                <Select 
-                  value={String(item.reportDay ?? 5)} 
-                  onValueChange={(v) => {
-                    const updated = [...items];
-                    updated[index] = { ...updated[index], reportDay: Number(v) };
-                    onChange(updated);
-                  }}
-                  disabled={disabled}
-                >
-                  <SelectTrigger className="w-full text-sm bg-background"><SelectValue placeholder="Pilih Hari" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1" className="text-sm">Senin</SelectItem>
-                    <SelectItem value="2" className="text-sm">Selasa</SelectItem>
-                    <SelectItem value="3" className="text-sm">Rabu</SelectItem>
-                    <SelectItem value="4" className="text-sm">Kamis</SelectItem>
-                    <SelectItem value="5" className="text-sm">Jumat</SelectItem>
-                    <SelectItem value="6" className="text-sm">Sabtu</SelectItem>
-                    <SelectItem value="0" className="text-sm">Minggu</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {item.frequency === "rutin" && (item.recurringInterval === "bulanan" || item.recurringInterval === "triwulan") && (
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Tenggat Tanggal</Label>
-                <Select 
-                  value={String(item.reportDate ?? 5)} 
-                  onValueChange={(v) => {
-                    const updated = [...items];
-                    updated[index] = { ...updated[index], reportDate: Number(v) };
-                    onChange(updated);
-                  }}
-                  disabled={disabled}
-                >
-                  <SelectTrigger className="w-full text-sm bg-background"><SelectValue placeholder="Tanggal" /></SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 28 }, (_, i) => (
-                      <SelectItem key={i + 1} value={String(i + 1)} className="text-sm">Tgl {i + 1}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
         </div>
       ))}

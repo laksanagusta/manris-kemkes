@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
@@ -69,6 +70,46 @@ func (r *fakeApprovalRepo) RejectCurrentStep(context.Context, uuid.UUID, uuid.UU
 
 var _ repo.ApprovalRepository = (*fakeApprovalRepo)(nil)
 
+type fakeApprovalMitigationTaskRepo struct {
+	created []*entity.MitigationTask
+}
+
+func (r *fakeApprovalMitigationTaskRepo) Create(_ context.Context, task *entity.MitigationTask) error {
+	clone := *task
+	r.created = append(r.created, &clone)
+	return nil
+}
+func (r *fakeApprovalMitigationTaskRepo) GetByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalMitigationTaskRepo) Update(context.Context, *entity.MitigationTask) error {
+	return errors.New("not implemented")
+}
+func (r *fakeApprovalMitigationTaskRepo) ListByRisk(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalMitigationTaskRepo) ListByMitigation(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalMitigationTaskRepo) ListByUser(context.Context, uuid.UUID, string, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalMitigationTaskRepo) ListPendingOverdue(context.Context, time.Time) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalMitigationTaskRepo) GetRecurringMitigations(context.Context) ([]*entity.Mitigation, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalMitigationTaskRepo) ListAll(context.Context, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeApprovalMitigationTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, int, int) ([]*entity.MitigationTask, int, error) {
+	return nil, 0, errors.New("not implemented")
+}
+func (r *fakeApprovalMitigationTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID, string, string) (bool, error) {
+	return false, nil
+}
+
 type fakeApprovalRiskRepo struct {
 	risk              *entity.Risk
 	activatedRiskID   uuid.UUID
@@ -91,6 +132,10 @@ func (r *fakeApprovalRiskRepo) Update(_ context.Context, risk *entity.Risk) erro
 		return r.updateErr
 	}
 	r.updatedRiskStatus = risk.Status
+	if r.risk != nil {
+		r.risk.Status = risk.Status
+		r.risk.Mitigations = append([]entity.Mitigation(nil), risk.Mitigations...)
+	}
 	return nil
 }
 func (r *fakeApprovalRiskRepo) Delete(context.Context, uuid.UUID) error {
@@ -202,7 +247,7 @@ func TestApprovalActionUseCase_ApproveReassessmentActivatesNewCurrentVersion(t *
 		PreviousRiskID: &previousRiskID,
 	}}
 
-	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{}, &fakeApprovalMitigationTaskRepo{})
 	_, err := uc.Execute(context.Background(), ApprovalActionInput{
 		ApprovalID: approvalID.String(),
 		Action:     "approve",
@@ -238,7 +283,7 @@ func TestApprovalActionUseCase_ReturnsErrorWhenRiskStatusUpdateFails(t *testing.
 		Status: entity.RiskStatusInReview,
 	}, updateErr: errors.New("db write failed")}
 
-	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{}, &fakeApprovalMitigationTaskRepo{})
 	_, err := uc.Execute(context.Background(), ApprovalActionInput{
 		ApprovalID: approvalID.String(),
 		Action:     "approve",
@@ -284,7 +329,7 @@ func TestApprovalActionUseCase_ReviewerApproves_NoLastStep_StatusUnchanged(t *te
 		Status: entity.RiskStatusInReview,
 	}}
 
-	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{}, &fakeApprovalMitigationTaskRepo{})
 	_, err := uc.Execute(context.Background(), ApprovalActionInput{
 		ApprovalID: approvalID.String(),
 		Action:     "approve",
@@ -333,7 +378,7 @@ func TestApprovalActionUseCase_ReviewerApproves_WithNextApprovalStep_StatusUncha
 		Status: entity.RiskStatusInReview,
 	}}
 
-	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{}, &fakeApprovalMitigationTaskRepo{})
 	_, err := uc.Execute(context.Background(), ApprovalActionInput{
 		ApprovalID: approvalID.String(),
 		Action:     "approve",
@@ -377,7 +422,7 @@ func TestApprovalActionUseCase_PimpinanApproves_SetsStatusToApproved(t *testing.
 		Status: entity.RiskStatusInReview,
 	}}
 
-	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{}, &fakeApprovalMitigationTaskRepo{})
 	_, err := uc.Execute(context.Background(), ApprovalActionInput{
 		ApprovalID: approvalID.String(),
 		Action:     "approve",
@@ -411,7 +456,7 @@ func TestApprovalActionUseCase_RejectFromInReview_SetsStatusToDraft(t *testing.T
 		Status: entity.RiskStatusInReview,
 	}}
 
-	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{}, &fakeApprovalMitigationTaskRepo{})
 	_, err := uc.Execute(context.Background(), ApprovalActionInput{
 		ApprovalID: approvalID.String(),
 		Action:     "reject",
@@ -446,7 +491,7 @@ func TestApprovalActionUseCase_RejectFromInReview_ByPimpinan_SetsStatusToDraft(t
 		Status: entity.RiskStatusInReview,
 	}}
 
-	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{}, &fakeApprovalMitigationTaskRepo{})
 	_, err := uc.Execute(context.Background(), ApprovalActionInput{
 		ApprovalID: approvalID.String(),
 		Action:     "reject",
@@ -489,7 +534,7 @@ func TestApprovalActionUseCase_RejectsActorOutsideCurrentPendingStep(t *testing.
 		Status: entity.RiskStatusInReview,
 	}}
 
-	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{}, &fakeApprovalMitigationTaskRepo{})
 	_, err := uc.Execute(context.Background(), ApprovalActionInput{
 		ApprovalID: approvalID.String(),
 		Action:     "approve",
@@ -536,7 +581,7 @@ func TestApprovalActionUseCase_AllowsCurrentPendingStepDespiteRoleMismatch(t *te
 		Status: entity.RiskStatusInReview,
 	}}
 
-	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{})
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{}, &fakeApprovalMitigationTaskRepo{})
 	_, err := uc.Execute(context.Background(), ApprovalActionInput{
 		ApprovalID: approvalID.String(),
 		Action:     "approve",
@@ -558,5 +603,51 @@ func TestApprovalActionUseCase_AllowsCurrentPendingStepDespiteRoleMismatch(t *te
 	}
 	if approvalRepo.histories[0].ActorRole != "reviewer" {
 		t.Fatalf("expected actor role to be recorded as reviewer, got %q", approvalRepo.histories[0].ActorRole)
+	}
+}
+
+func TestApprovalActionUseCase_FinalApprovalCreatesMitigationTasks(t *testing.T) {
+	approvalID := uuid.New()
+	riskID := uuid.New()
+	pimpinanID := uuid.MustParse("10000000-0000-0000-0000-000000000006")
+	dueDate := "2026-06-10"
+
+	approvalRepo := &fakeApprovalRepo{
+		request: &entity.ApprovalRequest{
+			ID:                    approvalID,
+			RequestType:           "risk",
+			EntityID:              riskID,
+			CurrentStatus:         "pending",
+			CurrentApproverRole:   "pimpinan",
+			CurrentApproverUserID: &pimpinanID,
+		},
+		currentStep: &entity.ApprovalStep{
+			ID:             uuid.New(),
+			StepType:       "approval",
+			ApproverUserID: pimpinanID,
+		},
+	}
+	riskRepo := &fakeApprovalRiskRepo{risk: &entity.Risk{
+		ID:     riskID,
+		Status: entity.RiskStatusInReview,
+		Mitigations: []entity.Mitigation{
+			{ID: uuid.New(), RiskID: riskID, Action: "Mitigasi A", Owner: "PIC A", DueDate: &dueDate},
+		},
+	}}
+	taskRepo := &fakeApprovalMitigationTaskRepo{}
+
+	uc := NewApprovalActionUseCase(approvalRepo, riskRepo, &fakeApprovalIncidentRepo{}, taskRepo)
+	_, err := uc.Execute(context.Background(), ApprovalActionInput{
+		ApprovalID: approvalID.String(),
+		Action:     "approve",
+		ActorID:    pimpinanID.String(),
+		ActorName:  "Pimpinan User",
+		ActorRole:  "pimpinan",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(taskRepo.created) != 1 {
+		t.Fatalf("expected 1 mitigation task, got %d", len(taskRepo.created))
 	}
 }

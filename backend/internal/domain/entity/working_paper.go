@@ -78,6 +78,59 @@ type WorkingPaperRiskData struct {
 	TargetNilai          float64   `json:"target_nilai,omitempty"`
 	TargetTingkatRisiko  string    `json:"target_tingkat_risiko,omitempty"`
 	AssessmentCycle      string    `json:"assessment_cycle,omitempty"`
+	VersionNumber        int       `json:"versionNumber,omitempty"`
+
+	// Human-readable display labels
+	TingkatRisikoDisplay       string `json:"tingkat_risiko_display,omitempty"`
+	TargetTingkatRisikoDisplay string `json:"target_tingkat_risiko_display,omitempty"`
+	RiskAppetiteDisplay        string `json:"risk_appetite_display,omitempty"`
+	TreatmentOptionDisplay     string `json:"treatment_option_display,omitempty"`
+	ControlEffectivenessDisplay string `json:"control_effectiveness_display,omitempty"`
+
+	// Previous semester risk profile (for sheets 1 & 2)
+	Previous *WorkingPaperRiskSnapshot `json:"previous,omitempty"`
+
+	// Monitoring/realization data (for sheet 3)
+	MonitoringP              int     `json:"monitoring_p,omitempty"`
+	MonitoringD              int     `json:"monitoring_d,omitempty"`
+	MonitoringBobot           float64 `json:"monitoring_bobot,omitempty"`
+	MonitoringNilai           float64 `json:"monitoring_nilai,omitempty"`
+	MonitoringTingkatRisiko   string  `json:"monitoring_tingkat_risiko,omitempty"`
+	MonitoringTingkatRisikoDisplay string `json:"monitoring_tingkat_risiko_display,omitempty"`
+	MonitoringSimpulan        string  `json:"monitoring_simpulan,omitempty"`
+	MonitoringEfektivitas     string  `json:"monitoring_efektivitas,omitempty"`
+	JadwalPelaksanaan        string  `json:"jadwal_pelaksanaan,omitempty"`
+	PenanggungJawab          string  `json:"penanggung_jawab,omitempty"`
+}
+
+// WorkingPaperRiskSnapshot captures a previous-semester risk snapshot for export.
+type WorkingPaperRiskSnapshot struct {
+	Probability         int       `json:"probability,omitempty"`
+	Impact              int       `json:"impact,omitempty"`
+	Bobot               float64   `json:"bobot,omitempty"`
+	Nilai               float64   `json:"nilai,omitempty"`
+	TingkatRisiko       string    `json:"tingkat_risiko,omitempty"`
+	TingkatRisikoDisplay string    `json:"tingkat_risiko_display,omitempty"`
+	PrioritasRisiko     int       `json:"prioritas_risiko,omitempty"`
+	Cause               []string  `json:"cause,omitempty"`
+	RiskSource          string    `json:"risk_source,omitempty"`
+	Controllability    string    `json:"controllability,omitempty"`
+	ImpactDesc          []string  `json:"impact_desc,omitempty"`
+	RiskAppetite        string    `json:"risk_appetite,omitempty"`
+	RiskAppetiteDisplay string    `json:"risk_appetite_display,omitempty"`
+	TreatmentOption         string `json:"treatment_option,omitempty"`
+	TreatmentOptionDisplay  string `json:"treatment_option_display,omitempty"`
+	ExistingControl         string `json:"existing_control,omitempty"`
+	ControlEffectiveness         string `json:"control_effectiveness,omitempty"`
+	ControlEffectivenessDisplay  string `json:"control_effectiveness_display,omitempty"`
+	TargetProbability    int       `json:"target_probability,omitempty"`
+	TargetImpact        int       `json:"target_impact,omitempty"`
+	TargetBobot         float64   `json:"target_bobot,omitempty"`
+	TargetNilai         float64   `json:"target_nilai,omitempty"`
+	TargetTingkatRisiko string    `json:"target_tingkat_risiko,omitempty"`
+	TargetTingkatRisikoDisplay string `json:"target_tingkat_risiko_display,omitempty"`
+	Mitigations         []string  `json:"mitigations,omitempty"`
+	MitigationDueDates  []string  `json:"mitigation_due_dates,omitempty"`
 }
 
 func (r *WorkingPaperRiskData) NormalizeDerivedScores() {
@@ -99,6 +152,52 @@ func (r *WorkingPaperRiskData) NormalizeDerivedScores() {
 	if r.TargetNilai > 0 {
 		r.TargetTingkatRisiko = GetRiskLevelFromNilai(r.TargetNilai)
 	}
+
+	// Set display labels
+	r.TingkatRisikoDisplay = GetRiskLevelDisplay(r.TingkatRisiko)
+	r.TargetTingkatRisikoDisplay = GetRiskLevelDisplay(r.TargetTingkatRisiko)
+	r.RiskAppetiteDisplay = GetRiskAppetiteDisplay(r.RiskAppetite)
+	r.TreatmentOptionDisplay = GetTreatmentOptionDisplay(r.TreatmentOption)
+	r.ControlEffectivenessDisplay = GetControlEffectivenessDisplay(r.ControlEffectiveness)
+
+	if r.MonitoringNilai > 0 {
+		r.MonitoringTingkatRisiko = GetRiskLevelFromNilai(r.MonitoringNilai)
+		r.MonitoringTingkatRisikoDisplay = GetRiskLevelDisplay(r.MonitoringTingkatRisiko)
+	}
+
+	if r.Previous != nil {
+		r.Previous.Normalize()
+	}
+}
+
+// Normalize computes derived scores and display labels for a snapshot.
+func (s *WorkingPaperRiskSnapshot) Normalize() {
+	if s.Bobot == 0 && s.Probability > 0 && s.Impact > 0 {
+		s.Bobot = GetBobot(s.Probability, s.Impact)
+	}
+	if s.Nilai == 0 && s.Bobot > 0 && s.Probability > 0 && s.Impact > 0 {
+		s.Nilai = CalculateNilai(s.Probability, s.Impact, s.Bobot)
+	}
+	if s.Nilai > 0 {
+		s.TingkatRisiko = GetRiskLevelFromNilai(s.Nilai)
+		s.TingkatRisikoDisplay = GetRiskLevelDisplay(s.TingkatRisiko)
+	}
+	s.PrioritasRisiko = GetRiskPriorityFromLevel(s.TingkatRisiko)
+
+	if s.TargetBobot == 0 && s.TargetProbability > 0 && s.TargetImpact > 0 {
+		s.TargetBobot = GetBobot(s.TargetProbability, s.TargetImpact)
+	}
+	if s.TargetNilai == 0 && s.TargetBobot > 0 && s.TargetProbability > 0 && s.TargetImpact > 0 {
+		s.TargetNilai = CalculateNilai(s.TargetProbability, s.TargetImpact, s.TargetBobot)
+	}
+	if s.TargetNilai > 0 {
+		s.TargetTingkatRisiko = GetRiskLevelFromNilai(s.TargetNilai)
+		s.TargetTingkatRisikoDisplay = GetRiskLevelDisplay(s.TargetTingkatRisiko)
+	}
+
+	s.RiskAppetiteDisplay = GetRiskAppetiteDisplay(s.RiskAppetite)
+	s.TreatmentOptionDisplay = GetTreatmentOptionDisplay(s.TreatmentOption)
+	s.ControlEffectivenessDisplay = GetControlEffectivenessDisplay(s.ControlEffectiveness)
 }
 
 // WorkingPaperSignatory represents a signer in the workflow

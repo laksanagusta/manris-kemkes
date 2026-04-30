@@ -45,8 +45,10 @@ import {
   AlertTriangle,
   Bell,
   ShieldAlert,
+  CheckCircle2,
   Loader2,
   Send,
+  ExternalLink,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -89,6 +91,8 @@ export function MitigationMonitoringPanel() {
   const [mitigations, setMitigations] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [detailTask, setDetailTask] = useState<MitigationTask | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MitigationTask | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -155,9 +159,35 @@ export function MitigationMonitoringPanel() {
         };
       });
 
-      const pendingOrOverdue = processed.filter((m) => m.status !== "done" && m.status !== "skipped");
+      const statusRank = (status: string) => {
+        switch (status) {
+          case "overdue":
+            return 0;
+          case "pending":
+            return 1;
+          case "done":
+            return 2;
+          case "skipped":
+            return 3;
+          default:
+            return 4;
+        }
+      };
 
-      setMitigations(pendingOrOverdue.sort((a: any, b: any) => b.daysOverdue - a.daysOverdue));
+      setMitigations(
+        processed.sort((a: any, b: any) => {
+          const statusDelta = statusRank(a.status) - statusRank(b.status);
+          if (statusDelta !== 0) return statusDelta;
+
+          if (a.status === "done" && b.status === "done") {
+            const aReported = a.reportedAt ? new Date(a.reportedAt).getTime() : 0;
+            const bReported = b.reportedAt ? new Date(b.reportedAt).getTime() : 0;
+            return bReported - aReported;
+          }
+
+          return b.daysOverdue - a.daysOverdue;
+        }),
+      );
     } catch (error) {
       console.error(error);
     } finally {
@@ -177,6 +207,11 @@ export function MitigationMonitoringPanel() {
     setNotes(task.notes || "");
     setShowValidationErrors(false);
     setShowDialog(true);
+  };
+
+  const handleOpenDetail = (task: MitigationTask) => {
+    setDetailTask(task);
+    setShowDetailDialog(true);
   };
 
   const handleSubmitProgress = async () => {
@@ -210,12 +245,44 @@ export function MitigationMonitoringPanel() {
     }
   };
 
-  const heavyCount = mitigations.filter((m) => m.tier === "heavy").length;
-  const lightCount = mitigations.filter((m) => m.tier === "light").length;
-  const reminderCount = mitigations.filter((m) => m.tier === "reminder").length;
-  const upcomingCount = mitigations.filter((m) => m.tier === "upcoming").length;
+  const activeMitigations = mitigations.filter(
+    (m) => m.status !== "done" && m.status !== "skipped",
+  );
+  const completedCount = mitigations.filter((m) => m.status === "done").length;
+  const heavyCount = activeMitigations.filter((m) => m.tier === "heavy").length;
+  const lightCount = activeMitigations.filter((m) => m.tier === "light").length;
+  const reminderCount = activeMitigations.filter(
+    (m) => m.tier === "reminder",
+  ).length;
+  const upcomingCount = activeMitigations.filter(
+    (m) => m.tier === "upcoming",
+  ).length;
 
   const totalPages = Math.ceil(total / limit) || 1;
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return "-";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "-";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -238,7 +305,7 @@ export function MitigationMonitoringPanel() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-6">
         <Card className="border-border/50 bg-card/80">
           <CardContent className="flex items-center justify-between p-4">
             <div>
@@ -288,6 +355,16 @@ export function MitigationMonitoringPanel() {
             <Clock className="size-5 text-muted-foreground" />
           </CardContent>
         </Card>
+        <Card className="border-border/50 border-emerald-500/20 bg-card/80">
+          <CardContent className="flex items-center justify-between p-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Selesai</p>
+              <p className="mt-1 text-2xl font-bold text-emerald-600">{completedCount}</p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">Laporan masuk</p>
+            </div>
+            <CheckCircle2 className="size-5 text-emerald-600" />
+          </CardContent>
+        </Card>
       </div>
 
       <Card className="overflow-hidden border-border/50 bg-card/80">
@@ -333,9 +410,10 @@ export function MitigationMonitoringPanel() {
                   <TableRow
                     key={item.id}
                     className={cn(
-                      "border-border/30 transition-colors hover:bg-muted/20",
+                      "cursor-pointer border-border/30 transition-colors hover:bg-muted/20",
                       item.tier === "heavy" && "bg-risk-extreme/[0.02]"
                     )}
+                    onClick={() => handleOpenDetail(item)}
                   >
                     <TableCell className="text-sm font-mono text-muted-foreground">
                       {item.riskCode}
@@ -399,6 +477,7 @@ export function MitigationMonitoringPanel() {
                                    variant={item.status === "overdue" ? "destructive" : "default"}
                                    disabled
                                    className="opacity-50 pointer-events-none text-sm"
+                                   onClick={(event) => event.stopPropagation()}
                                  >
                                   <Send className="size-3 mr-1" /> Lapor
                                 </Button>
@@ -413,7 +492,10 @@ export function MitigationMonitoringPanel() {
                          <Button
                            size="sm"
                            variant={item.status === "overdue" ? "destructive" : "default"}
-                           onClick={() => handleOpenSubmit(item)}
+                           onClick={(event) => {
+                             event.stopPropagation();
+                             handleOpenSubmit(item);
+                           }}
                            className="text-sm"
                          >
                           <Send className="size-3 mr-1" /> Lapor
@@ -489,6 +571,161 @@ export function MitigationMonitoringPanel() {
           </div>
         </div>
       </Card>
+
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">
+              Detail Laporan Penanganan
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {detailTask?.mitigationAction || "-"} - {detailTask?.periodLabel || "-"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {detailTask && (
+            <div className="space-y-4 py-2">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Status
+                  </p>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "mt-2 text-[10px] gap-1",
+                      levelBadgeVariant[
+                        detailTask.status === "done"
+                          ? "Selesai"
+                          : detailTask.status === "overdue"
+                            ? "Overdue"
+                            : "Pending"
+                      ],
+                    )}
+                  >
+                    {detailTask.status === "done" ? (
+                      <CheckCircle2 className="size-3" />
+                    ) : detailTask.status === "overdue" ? (
+                      <AlertTriangle className="size-3" />
+                    ) : (
+                      <Clock className="size-3" />
+                    )}
+                    {detailTask.status === "done"
+                      ? "Selesai"
+                      : detailTask.status === "overdue"
+                        ? "Overdue"
+                        : "Pending"}
+                  </Badge>
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Periode
+                  </p>
+                  <p className="mt-2 text-sm font-medium">{detailTask.periodLabel || "-"}</p>
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Tenggat
+                  </p>
+                  <p className="mt-2 text-sm font-medium">{formatDate(detailTask.dueDate)}</p>
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Laporan Oleh
+                  </p>
+                  <p className="mt-2 text-sm font-medium">
+                    {detailTask.reportedByName || "Belum ada laporan"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDateTime(detailTask.reportedAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Progress
+                    </p>
+                    <p className="text-lg font-bold">
+                      {detailTask.status === "done"
+                        ? `${detailTask.progressPct}%`
+                        : "Belum dilaporkan"}
+                    </p>
+                  </div>
+                  <Progress
+                    value={detailTask.status === "done" ? detailTask.progressPct : 0}
+                    className="h-2 flex-1 max-w-xs"
+                  />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-lg bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      Biaya Aktual
+                    </p>
+                    <p className="mt-1 text-sm font-medium">
+                      {detailTask.actualCost
+                        ? `Rp ${detailTask.actualCost.toLocaleString("id-ID")}`
+                        : "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      Evidence
+                    </p>
+                    {detailTask.evidenceUrl ? (
+                      <a
+                        href={detailTask.evidenceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        Buka bukti <ExternalLink className="size-3.5" />
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-sm font-medium">-</p>
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Catatan
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+                    {detailTask.notes || "Belum ada catatan pelaksanaan."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            {detailTask &&
+              (detailTask.status === "pending" || detailTask.status === "overdue") && (
+                <Button
+                  size="sm"
+                  variant={detailTask.status === "overdue" ? "destructive" : "default"}
+                  onClick={() => {
+                    setShowDetailDialog(false);
+                    handleOpenSubmit(detailTask);
+                  }}
+                >
+                  <Send className="size-3" />
+                  Lapor Progress
+                </Button>
+              )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDetailDialog(false)}
+            >
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-md">

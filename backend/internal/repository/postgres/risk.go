@@ -75,10 +75,11 @@ func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 	}
 
 	for i, m := range risk.Mitigations {
+		frequency := normalizeMitigationFrequency(m.Frequency)
 		_, err := q.Exec(ctx,
 			`INSERT INTO mitigations (risk_id, action, owner, owner_user_id, due_date, frequency, recurring_interval, report_day, report_date, execution_schedule_text, target_cost, sort_order)
 			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-			risk.ID, m.Action, m.Owner, m.OwnerUserID, m.DueDate, m.Frequency, m.RecurringInterval, m.ReportDay, m.ReportDate, m.ExecutionScheduleText, m.TargetCost, i+1)
+			risk.ID, m.Action, m.Owner, m.OwnerUserID, m.DueDate, frequency, m.RecurringInterval, m.ReportDay, m.ReportDate, m.ExecutionScheduleText, m.TargetCost, i+1)
 		if err != nil {
 			return fmt.Errorf("create mitigation: %w", err)
 		}
@@ -235,15 +236,23 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 	// Replace mitigations
 	_, _ = r.pool.Exec(ctx, "DELETE FROM mitigations WHERE risk_id = $1", risk.ID)
 	for i, m := range risk.Mitigations {
+		frequency := normalizeMitigationFrequency(m.Frequency)
 		_, err := r.pool.Exec(ctx,
 			`INSERT INTO mitigations (risk_id, action, owner, owner_user_id, due_date, frequency, recurring_interval, report_day, report_date, execution_schedule_text, target_cost, sort_order)
 			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-			risk.ID, m.Action, m.Owner, m.OwnerUserID, m.DueDate, m.Frequency, m.RecurringInterval, m.ReportDay, m.ReportDate, m.ExecutionScheduleText, m.TargetCost, i+1)
+			risk.ID, m.Action, m.Owner, m.OwnerUserID, m.DueDate, frequency, m.RecurringInterval, m.ReportDay, m.ReportDate, m.ExecutionScheduleText, m.TargetCost, i+1)
 		if err != nil {
 			return fmt.Errorf("upsert mitigation: %w", err)
 		}
 	}
 	return nil
+}
+
+func normalizeMitigationFrequency(value string) string {
+	if value == "rutin" {
+		return value
+	}
+	return "insidental"
 }
 
 func mustJSON(value any) []byte {

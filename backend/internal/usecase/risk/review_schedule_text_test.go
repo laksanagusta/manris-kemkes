@@ -3,6 +3,7 @@ package risk
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
@@ -17,6 +18,44 @@ type reviewScheduleRiskRepo struct {
 	activateCount   int
 }
 
+type reviewScheduleTaskRepo struct {
+	created []*entity.MitigationTask
+}
+
+func (r *reviewScheduleTaskRepo) Create(_ context.Context, task *entity.MitigationTask) error {
+	copyTask := *task
+	r.created = append(r.created, &copyTask)
+	return nil
+}
+func (r *reviewScheduleTaskRepo) GetByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.MitigationTask, error) {
+	return nil, nil
+}
+func (r *reviewScheduleTaskRepo) Update(context.Context, *entity.MitigationTask) error { return nil }
+func (r *reviewScheduleTaskRepo) ListByRisk(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, nil
+}
+func (r *reviewScheduleTaskRepo) ListByMitigation(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, nil
+}
+func (r *reviewScheduleTaskRepo) ListByUser(context.Context, uuid.UUID, string, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, nil
+}
+func (r *reviewScheduleTaskRepo) ListPendingOverdue(context.Context, time.Time) ([]*entity.MitigationTask, error) {
+	return nil, nil
+}
+func (r *reviewScheduleTaskRepo) GetRecurringMitigations(context.Context) ([]*entity.Mitigation, error) {
+	return nil, nil
+}
+func (r *reviewScheduleTaskRepo) ListAll(context.Context, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, nil
+}
+func (r *reviewScheduleTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, int, int) ([]*entity.MitigationTask, int, error) {
+	return nil, 0, nil
+}
+func (r *reviewScheduleTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID, string, string) (bool, error) {
+	return false, nil
+}
+
 func (r *reviewScheduleRiskRepo) Create(_ context.Context, risk *entity.Risk) error {
 	r.created = cloneReviewScheduleRisk(risk)
 	return nil
@@ -27,7 +66,16 @@ func (r *reviewScheduleRiskRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uui
 }
 
 func (r *reviewScheduleRiskRepo) Update(_ context.Context, risk *entity.Risk) error {
+	for i := range risk.Mitigations {
+		if risk.Mitigations[i].ID == uuid.Nil {
+			risk.Mitigations[i].ID = uuid.New()
+		}
+		if risk.Mitigations[i].RiskID == uuid.Nil {
+			risk.Mitigations[i].RiskID = risk.ID
+		}
+	}
 	r.updated = cloneReviewScheduleRisk(risk)
+	r.byID = cloneReviewScheduleRisk(risk)
 	return nil
 }
 
@@ -203,7 +251,7 @@ func TestUpdateRiskUseCase_ExecutePersistsReviewScheduleText(t *testing.T) {
 			ReviewScheduleText: "Review bulanan",
 		},
 	}
-	uc := NewUpdateRiskUseCase(repo, &reviewScheduleUserRepo{}, &reviewScheduleOrgRepo{}, nil)
+	uc := NewUpdateRiskUseCase(repo, &reviewScheduleUserRepo{}, &reviewScheduleOrgRepo{}, nil, &reviewScheduleTaskRepo{})
 
 	_, err := uc.Execute(context.Background(), UpdateRiskInput{
 		ID:                 riskID,
@@ -249,7 +297,7 @@ func TestUpdateRiskUseCase_ExecuteActivatesApprovedReassessmentVersion(t *testin
 			Impact:         3,
 		},
 	}
-	uc := NewUpdateRiskUseCase(repo, &reviewScheduleUserRepo{}, &reviewScheduleOrgRepo{}, nil)
+	uc := NewUpdateRiskUseCase(repo, &reviewScheduleUserRepo{}, &reviewScheduleOrgRepo{}, nil, &reviewScheduleTaskRepo{})
 
 	_, err := uc.Execute(context.Background(), UpdateRiskInput{
 		ID:             riskID,
@@ -272,6 +320,50 @@ func TestUpdateRiskUseCase_ExecuteActivatesApprovedReassessmentVersion(t *testin
 	}
 	if repo.activatedRiskID != riskID {
 		t.Fatalf("expected ActivateApprovedVersion risk %s, got %s", riskID, repo.activatedRiskID)
+	}
+}
+
+func TestUpdateRiskUseCase_ExecuteApprovedRiskCreatesMitigationTask(t *testing.T) {
+	riskID := uuid.New()
+	organizationID := uuid.New()
+	dueDate := "2026-06-10"
+	repo := &reviewScheduleRiskRepo{
+		byID: &entity.Risk{
+			ID:             riskID,
+			Code:           "R-001",
+			Title:          "Existing risk",
+			Category:       entity.RiskCategoryKebijakan,
+			Status:         entity.RiskStatusDraft,
+			VersionGroupID: uuid.New(),
+			OrganizationID: &organizationID,
+			Probability:    3,
+			Impact:         3,
+			Mitigations: []entity.Mitigation{
+				{ID: uuid.New(), RiskID: riskID, Action: "Mitigasi A", Owner: "PIC A", DueDate: &dueDate},
+			},
+		},
+	}
+	taskRepo := &reviewScheduleTaskRepo{}
+	uc := NewUpdateRiskUseCase(repo, &reviewScheduleUserRepo{}, &reviewScheduleOrgRepo{}, nil, taskRepo)
+
+	_, err := uc.Execute(context.Background(), UpdateRiskInput{
+		ID:             riskID,
+		Title:          "Finalized risk",
+		Description:    "Updated desc",
+		Category:       entity.RiskCategoryOperasional,
+		Status:         entity.RiskStatusApproved,
+		OrganizationID: &organizationID,
+		Probability:    4,
+		Impact:         3,
+		Mitigations: []entity.Mitigation{
+			{Action: "Mitigasi A", Owner: "PIC A", DueDate: &dueDate},
+		},
+	}, nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(taskRepo.created) != 1 {
+		t.Fatalf("expected 1 mitigation task, got %d", len(taskRepo.created))
 	}
 }
 

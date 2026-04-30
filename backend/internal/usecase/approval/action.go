@@ -7,6 +7,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
 // ApprovalActionUseCase handles approve/reject actions
@@ -14,6 +15,7 @@ type ApprovalActionUseCase struct {
 	approvalRepo repository.ApprovalRepository
 	riskRepo     repository.RiskRepository
 	incidentRepo repository.IncidentRepository
+	taskRepo     repository.MitigationTaskRepository
 }
 
 // NewApprovalActionUseCase creates a new approval action usecase
@@ -21,11 +23,13 @@ func NewApprovalActionUseCase(
 	approvalRepo repository.ApprovalRepository,
 	riskRepo repository.RiskRepository,
 	incidentRepo repository.IncidentRepository,
+	taskRepo repository.MitigationTaskRepository,
 ) *ApprovalActionUseCase {
 	return &ApprovalActionUseCase{
 		approvalRepo: approvalRepo,
 		riskRepo:     riskRepo,
 		incidentRepo: incidentRepo,
+		taskRepo:     taskRepo,
 	}
 }
 
@@ -110,6 +114,11 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 			}
 			if err := uc.updateEntityStatus(ctx, approvalReq, newEntityStatus, input); err != nil {
 				return nil, domainerrors.Wrap(err, "failed to update entity status")
+			}
+			if approvalReq.RequestType == "risk" && newEntityStatus == entity.RiskStatusApproved && uc.taskRepo != nil {
+				if _, err := mtuc.NewEnsureTasksForApprovedRiskUseCase(uc.taskRepo, uc.riskRepo).Execute(ctx, approvalReq.EntityID, input.OrgIDs); err != nil {
+					return nil, domainerrors.Wrap(err, "failed to create mitigation tasks")
+				}
 			}
 			if err := uc.approvalRepo.UpdateStatus(ctx, approvalID, newStatus); err != nil {
 				return nil, domainerrors.Wrap(err, "failed to update approval status")

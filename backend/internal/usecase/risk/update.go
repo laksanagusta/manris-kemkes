@@ -9,6 +9,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
 type WorkingPaperLockChecker interface {
@@ -20,6 +21,7 @@ type UpdateRiskUseCase struct {
 	userRepo repository.UserRepository
 	orgRepo  repository.OrganizationRepository
 	wpRepo   WorkingPaperLockChecker
+	taskRepo repository.MitigationTaskRepository
 }
 
 func NewUpdateRiskUseCase(
@@ -27,12 +29,14 @@ func NewUpdateRiskUseCase(
 	userRepo repository.UserRepository,
 	orgRepo repository.OrganizationRepository,
 	wpRepo WorkingPaperLockChecker,
+	taskRepo repository.MitigationTaskRepository,
 ) *UpdateRiskUseCase {
 	return &UpdateRiskUseCase{
 		riskRepo: riskRepo,
 		userRepo: userRepo,
 		orgRepo:  orgRepo,
 		wpRepo:   wpRepo,
+		taskRepo: taskRepo,
 	}
 }
 
@@ -203,6 +207,11 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	if input.Status == entity.RiskStatusApproved && existingRisk.PreviousRiskID != nil && !wasApproved {
 		if err := uc.riskRepo.ActivateApprovedVersion(ctx, existingRisk.ID); err != nil {
 			return nil, errors.Wrap(err, "failed to activate approved risk version")
+		}
+	}
+	if input.Status == entity.RiskStatusApproved && !wasApproved && uc.taskRepo != nil {
+		if _, err := mtuc.NewEnsureTasksForApprovedRiskUseCase(uc.taskRepo, uc.riskRepo).Execute(ctx, existingRisk.ID, orgIDs); err != nil {
+			return nil, errors.Wrap(err, "failed to create mitigation tasks")
 		}
 	}
 

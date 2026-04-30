@@ -49,6 +49,26 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 	weightExpr := finalizedWorkingPaperRiskExpr("risk", "weight")
 	nilaiExpr := finalizedWorkingPaperRiskExpr("risk", "nilai")
 
+	// Previous version (version_number - 1) for sheets 1 & 2
+	prevRiskExpr := `(
+		SELECT prev.id FROM risks prev
+		WHERE prev.version_group_id = risk.version_group_id
+		  AND prev.version_number = risk.version_number - 1
+		  AND prev.status = 'approved'
+		  AND prev.archived_at IS NULL
+		ORDER BY prev.version_number DESC LIMIT 1
+	)`
+
+	// Subquery: latest monitoring version (periodic review with highest version number)
+	monitoringRiskExpr := `(
+		SELECT mon.id FROM risks mon
+		WHERE mon.version_group_id = risk.version_group_id
+		  AND mon.review_type = 'periodic'
+		  AND mon.status = 'approved'
+		  AND mon.archived_at IS NULL
+		ORDER BY mon.version_number DESC LIMIT 1
+	)`
+
 	query := fmt.Sprintf(`SELECT wpr.id, wpr.working_paper_id, wpr.risk_id, wpr.sort_order, wpr.source_mode, wpr.created_at,
 		       risk.id, risk.code, risk.title, risk.description, risk.category, risk.status,
 		       COALESCE(org.name, ''),
@@ -70,12 +90,43 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       risk.target_impact,
 		       risk.target_weight,
 		       risk.target_nilai,
-		       COALESCE(risk.assessment_cycle, '')
+		       COALESCE(risk.assessment_cycle, ''),
+		       risk.version_number,
+		       COALESCE(risk.review_schedule_text, ''),
+		       COALESCE((SELECT string_agg(CONCAT(u.name, ' (', u.role, ')'), ', ' ORDER BY m.sort_order) FROM mitigations m JOIN users u ON u.id = m.owner_user_id WHERE m.risk_id = risk.id AND m.owner_user_id IS NOT NULL), ''),
+		       -- Previous semester snapshot
+		       %s AS prev_id,
+		       COALESCE(prev_risk.probability, 0),
+		       COALESCE(prev_risk.impact, 0),
+		       COALESCE(prev_risk.weight, 0),
+		       COALESCE(prev_risk.nilai, 0),
+		       COALESCE(prev_risk.risk_appetite, ''),
+		       COALESCE(prev_risk.treatment_option, ''),
+		       COALESCE(prev_risk.existing_control, ''),
+		       COALESCE(prev_risk.control_effectiveness, ''),
+		       COALESCE(prev_risk.target_probability, 0),
+		       COALESCE(prev_risk.target_impact, 0),
+		       COALESCE(prev_risk.target_weight, 0),
+		       COALESCE(prev_risk.target_nilai, 0),
+		       COALESCE(prev_risk.cause, ARRAY[]::text[]),
+		       COALESCE(prev_risk.risk_source, ''),
+		       COALESCE(prev_risk.controllability, ''),
+		       COALESCE(prev_risk.impact_description, ARRAY[]::text[]),
+		       COALESCE((SELECT array_agg(pm.action ORDER BY pm.sort_order) FROM mitigations pm WHERE pm.risk_id = prev_risk.id), ARRAY[]::text[]),
+		       COALESCE((SELECT array_agg(pm.due_date::text ORDER BY pm.sort_order) FROM mitigations pm WHERE pm.risk_id = prev_risk.id AND pm.due_date IS NOT NULL), ARRAY[]::text[]),
+		       -- Monitoring data
+		       %s AS mon_id,
+		       COALESCE(mon_risk.probability, 0),
+		       COALESCE(mon_risk.impact, 0),
+		       COALESCE(mon_risk.weight, 0),
+		       COALESCE(mon_risk.nilai, 0)
 		FROM working_paper_risks wpr
 		INNER JOIN risks risk ON risk.id = wpr.risk_id
 		LEFT JOIN organizations org ON org.id = risk.organization_id
+		LEFT JOIN risks prev_risk ON prev_risk.id = (%s)
+		LEFT JOIN risks mon_risk ON mon_risk.id = (%s)
 		WHERE wpr.working_paper_id = $1
-		ORDER BY wpr.sort_order, wpr.created_at, wpr.id`, probabilityExpr, impactExpr, weightExpr, nilaiExpr)
+		ORDER BY wpr.sort_order, wpr.created_at, wpr.id`, probabilityExpr, impactExpr, weightExpr, nilaiExpr, prevRiskExpr, monitoringRiskExpr, prevRiskExpr, monitoringRiskExpr)
 
 	rows, err := q.Query(ctx, query, wpID)
 	if err != nil {
@@ -86,6 +137,24 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 	links := make([]entity.WorkingPaperRiskLink, 0)
 	for rows.Next() {
 		var link entity.WorkingPaperRiskLink
+		var versionNumber int
+		var jadwalPelaksanaan, penanggungJawab string
+		var prevID *uuid.UUID
+		var prevProbability, prevImpact int
+		var prevWeight, prevNilai float64
+		var prevRiskAppetite, prevTreatmentOption, prevExistingControl, prevControlEffectiveness string
+		var prevTargetProbability, prevTargetImpact int
+		var prevTargetWeight, prevTargetNilai float64
+		var prevCause, prevImpactDesc []string
+		var prevRiskSource, prevControllability string
+		var monID *uuid.UUID
+		var monProbability, monImpact int
+		var monWeight, monNilai float64
+
+		// Nullable fields that may be empty arrays from COALESCE
+		var nullableCause, nullableImpactDesc, nullableMitigations, nullableMitigationDueDates []string
+		var nullablePrevMitigations, nullablePrevMitigationDueDates []string
+
 		if err := rows.Scan(
 			&link.ID,
 			&link.WorkingPaperID,
@@ -104,23 +173,115 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&link.Risk.Impact,
 			&link.Risk.Bobot,
 			&link.Risk.Nilai,
-			&link.Risk.Cause,
+			&nullableCause,
 			&link.Risk.RiskSource,
 			&link.Risk.Controllability,
-			&link.Risk.ImpactDesc,
+			&nullableImpactDesc,
 			&link.Risk.ExistingControl,
 			&link.Risk.ControlEffectiveness,
 			&link.Risk.RiskAppetite,
 			&link.Risk.TreatmentOption,
-			&link.Risk.Mitigations,
-			&link.Risk.MitigationDueDates,
+			&nullableMitigations,
+			&nullableMitigationDueDates,
 			&link.Risk.TargetProbability,
 			&link.Risk.TargetImpact,
 			&link.Risk.TargetBobot,
 			&link.Risk.TargetNilai,
 			&link.Risk.AssessmentCycle,
+			&versionNumber,
+			&jadwalPelaksanaan,
+			&penanggungJawab,
+			// Previous semester
+			&prevID,
+			&prevProbability,
+			&prevImpact,
+			&prevWeight,
+			&prevNilai,
+			&prevRiskAppetite,
+			&prevTreatmentOption,
+			&prevExistingControl,
+			&prevControlEffectiveness,
+			&prevTargetProbability,
+			&prevTargetImpact,
+			&prevTargetWeight,
+			&prevTargetNilai,
+			&prevCause,
+			&prevRiskSource,
+			&prevControllability,
+			&prevImpactDesc,
+			&nullablePrevMitigations,
+			&nullablePrevMitigationDueDates,
+			// Monitoring
+			&monID,
+			&monProbability,
+			&monImpact,
+			&monWeight,
+			&monNilai,
 		); err != nil {
 			return nil, fmt.Errorf("scan working paper risk: %w", err)
+		}
+
+		// Assign nullable arrays
+		link.Risk.Cause = nullableCause
+		link.Risk.ImpactDesc = nullableImpactDesc
+		link.Risk.Mitigations = nullableMitigations
+		link.Risk.MitigationDueDates = nullableMitigationDueDates
+		link.Risk.VersionNumber = versionNumber
+		link.Risk.JadwalPelaksanaan = jadwalPelaksanaan
+		link.Risk.PenanggungJawab = penanggungJawab
+
+		// Previous semester snapshot
+		if prevID != nil {
+			prev := &entity.WorkingPaperRiskSnapshot{
+				Probability:         prevProbability,
+				Impact:              prevImpact,
+				Bobot:               prevWeight,
+				Nilai:               prevNilai,
+				Cause:               prevCause,
+				RiskSource:          prevRiskSource,
+				Controllability:    prevControllability,
+				ImpactDesc:          prevImpactDesc,
+				RiskAppetite:        prevRiskAppetite,
+				TreatmentOption:     prevTreatmentOption,
+				ExistingControl:     prevExistingControl,
+				ControlEffectiveness: prevControlEffectiveness,
+				TargetProbability:   prevTargetProbability,
+				TargetImpact:       prevTargetImpact,
+				TargetBobot:        prevTargetWeight,
+				TargetNilai:        prevTargetNilai,
+				Mitigations:        nullablePrevMitigations,
+				MitigationDueDates: nullablePrevMitigationDueDates,
+			}
+			prev.Normalize()
+			link.Risk.Previous = prev
+		}
+
+		// Monitoring realization data
+		if monID != nil && monProbability > 0 && monImpact > 0 {
+			link.Risk.MonitoringP = monProbability
+			link.Risk.MonitoringD = monImpact
+			link.Risk.MonitoringBobot = monWeight
+			link.Risk.MonitoringNilai = monNilai
+			if monNilai > 0 {
+				tingkat := entity.GetRiskLevelFromNilai(monNilai)
+				link.Risk.MonitoringTingkatRisiko = tingkat
+				link.Risk.MonitoringTingkatRisikoDisplay = entity.GetRiskLevelDisplay(tingkat)
+
+				// Calculate simpulan and efektivitas
+				targetNilai := link.Risk.TargetNilai
+				if targetNilai > 0 {
+					if monNilai > targetNilai {
+						link.Risk.MonitoringSimpulan = "Meningkat"
+						link.Risk.MonitoringEfektivitas = "Tidak Efektif"
+					} else if monNilai == targetNilai {
+						link.Risk.MonitoringSimpulan = "Tetap"
+						link.Risk.MonitoringEfektivitas = "Efektif"
+					} else {
+						link.Risk.MonitoringSimpulan = "Menurun"
+						link.Risk.MonitoringEfektivitas = "Efektif"
+					}
+				}
+			}
 		}
 
 		link.Risk.NormalizeDerivedScores()

@@ -15,6 +15,7 @@ export interface WorkingPaperRiskData {
   bobot: number;
   nilai: number;
   tingkat_risiko: string;
+  tingkat_risiko_display?: string;
   prioritas_risiko: number;
   cause?: string[];
   risk_source?: string;
@@ -22,8 +23,11 @@ export interface WorkingPaperRiskData {
   impact_desc?: string[];
   existing_control?: string;
   control_effectiveness?: string;
+  control_effectiveness_display?: string;
   risk_appetite?: string;
+  risk_appetite_display?: string;
   treatment_option?: string;
+  treatment_option_display?: string;
   mitigations?: string[];
   mitigation_due_dates?: string[];
   target_probability?: number;
@@ -31,8 +35,53 @@ export interface WorkingPaperRiskData {
   target_bobot?: number;
   target_nilai?: number;
   target_tingkat_risiko?: string;
+  target_tingkat_risiko_display?: string;
   assessment_cycle?: string;
   versionNumber?: number;
+
+  // Previous semester risk profile (for sheets 1 & 2)
+  previous?: WorkingPaperRiskSnapshot;
+
+  // Monitoring/realization data (for sheet 3)
+  monitoring_p?: number;
+  monitoring_d?: number;
+  monitoring_bobot?: number;
+  monitoring_nilai?: number;
+  monitoring_tingkat_risiko?: string;
+  monitoring_tingkat_risiko_display?: string;
+  monitoring_simpulan?: string;
+  monitoring_efektivitas?: string;
+  jadwal_pelaksanaan?: string;
+  penanggung_jawab?: string;
+}
+
+export interface WorkingPaperRiskSnapshot {
+  probability?: number;
+  impact?: number;
+  bobot?: number;
+  nilai?: number;
+  tingkat_risiko?: string;
+  tingkat_risiko_display?: string;
+  prioritas_risiko?: number;
+  cause?: string[];
+  risk_source?: string;
+  controllability?: string;
+  impact_desc?: string[];
+  risk_appetite?: string;
+  risk_appetite_display?: string;
+  treatment_option?: string;
+  treatment_option_display?: string;
+  existing_control?: string;
+  control_effectiveness?: string;
+  control_effectiveness_display?: string;
+  target_probability?: number;
+  target_impact?: number;
+  target_bobot?: number;
+  target_nilai?: number;
+  target_tingkat_risiko?: string;
+  target_tingkat_risiko_display?: string;
+  mitigations?: string[];
+  mitigation_due_dates?: string[];
 }
 
 export interface WorkingPaperRiskLink {

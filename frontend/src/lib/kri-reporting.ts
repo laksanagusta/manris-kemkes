@@ -240,6 +240,16 @@ export function isWithinMitigationSubmissionWindow(
     year: "numeric",
   });
 
+  if (periodEndMs === dueDateMs) {
+    if (currentMs > dueDateEndMs) {
+      return {
+        allowed: false,
+        message: `Batas pengiriman laporan telah berakhir pada ${dueDateStr}`,
+      };
+    }
+    return { allowed: true };
+  }
+
   if (currentMs < hPlus1Ms) {
     return {
       allowed: false,

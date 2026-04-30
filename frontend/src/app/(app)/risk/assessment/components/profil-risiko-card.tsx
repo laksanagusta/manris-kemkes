@@ -20,7 +20,7 @@ interface ProfilRisikoCardProps {
 export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
   const code = risk.riskCode || risk.code || "-";
   const inherentScore = risk.inherentScore ?? risk.nilai;
-  const targetNilai = risk.targetNilai ?? risk.targetScore;
+  const targetScore = risk.targetScore ?? 0;
   const level = inherentScore !== undefined && inherentScore !== null ? getRiskLevelFromNilai(inherentScore) : undefined;
   
   return (
@@ -65,7 +65,7 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
             <p className="text-sm font-mono">{risk.weight || "-"}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Inherent Score</p>
+            <p className="text-sm font-medium text-muted-foreground">Skor</p>
             <p className="text-sm font-mono">{inherentScore}</p>
           </div>
 
@@ -138,7 +138,7 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
             </div>
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Target Score</p>
-              <p className="text-sm font-mono">{targetNilai ?? "-"}</p>
+              <p className="text-sm font-mono">{targetScore}</p>
             </div>
           </div>
         </div>

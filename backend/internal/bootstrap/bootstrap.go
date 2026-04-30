@@ -306,7 +306,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskReassessUC = riskuc.NewCreateRiskReassessmentUseCase(c.RiskRepository)
 	c.RiskArchiveUC = riskuc.NewArchiveRiskUseCase(c.RiskRepository, c.WPRepository)
 	c.RiskRestoreUC = riskuc.NewRestoreRiskUseCase(c.RiskRepository)
-	c.RiskUpdateUC = riskuc.NewUpdateRiskUseCase(c.RiskRepository, c.UserRepository, c.OrgRepository, c.WPRepository)
+	c.RiskUpdateUC = riskuc.NewUpdateRiskUseCase(c.RiskRepository, c.UserRepository, c.OrgRepository, c.WPRepository, c.MitigationTaskRepository)
 	c.RiskDeleteUC = riskuc.NewDeleteRiskUseCase(c.RiskRepository)
 	c.RiskListUC = riskuc.NewListRisksUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskListRegisterUC = riskuc.NewListRiskRegisterUseCase(c.RiskRepository)
@@ -381,8 +381,8 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.ApprovalListUC = approvaluc.NewListApprovalUseCase(c.ApprovalRepository)
-	c.ApprovalSubmitUC = approvaluc.NewSubmitApprovalUseCase(c.ApprovalRepository, c.RiskRepository, c.IncidentRepository, c.UserRepository, cfg.RiskApprovalWorkflowEnabled)
-	c.ApprovalActionUC = approvaluc.NewApprovalActionUseCase(c.ApprovalRepository, c.RiskRepository, c.IncidentRepository)
+	c.ApprovalSubmitUC = approvaluc.NewSubmitApprovalUseCase(c.ApprovalRepository, c.RiskRepository, c.IncidentRepository, c.UserRepository, c.MitigationTaskRepository, cfg.RiskApprovalWorkflowEnabled)
+	c.ApprovalActionUC = approvaluc.NewApprovalActionUseCase(c.ApprovalRepository, c.RiskRepository, c.IncidentRepository, c.MitigationTaskRepository)
 	c.ApprovalGetDetailUC = approvaluc.NewGetApprovalDetailUseCase(c.ApprovalRepository)
 	c.ApprovalGetPendingCountUC = approvaluc.NewGetPendingCountUseCase(c.ApprovalRepository)
 	c.ApprovalGetByEntityUC = approvaluc.NewGetApprovalByEntityUseCase(c.ApprovalRepository)

@@ -13,6 +13,16 @@ import (
 	"github.com/manris/backend/internal/domain/repository"
 )
 
+const singleMitigationTaskPeriodLabel = "Laporan tunggal"
+
+func mitigationTaskPeriodLabel(assessmentCycle string) string {
+	label := strings.TrimSpace(assessmentCycle)
+	if label != "" {
+		return label
+	}
+	return singleMitigationTaskPeriodLabel
+}
+
 // ListTasksUseCase lists mitigation tasks for a risk
 type ListTasksUseCase struct {
 	taskRepo repository.MitigationTaskRepository
@@ -150,7 +160,11 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 	hPlus1Start := time.Date(periodEnd.Year(), periodEnd.Month(), periodEnd.Day()+1, 0, 0, 0, 0, loc)
 	dueDateEnd := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 23, 59, 59, 0, loc)
 
-	if now.Before(hPlus1Start) || now.After(dueDateEnd) {
+	if task.PeriodEnd == task.DueDate {
+		if now.After(dueDateEnd) {
+			return nil, domainerrors.ErrSubmissionWindowClosed
+		}
+	} else if now.Before(hPlus1Start) || now.After(dueDateEnd) {
 		return nil, domainerrors.ErrSubmissionWindowClosed
 	}
 
@@ -194,14 +208,12 @@ func (uc *GenerateTasksUseCase) Execute(ctx context.Context, now time.Time) (int
 		}
 
 		var periodStart, periodEnd, dueDate time.Time
-		var periodLabel string
 
 		switch *m.RecurringInterval {
 		case "harian":
 			periodStart = now.Truncate(24 * time.Hour)
 			periodEnd = periodStart
 			dueDate = periodStart.Add(23*time.Hour + 59*time.Minute)
-			periodLabel = now.Format("2 Jan 2006")
 
 		case "mingguan":
 			// Find the start of the current week (Monday)
@@ -224,9 +236,6 @@ func (uc *GenerateTasksUseCase) Execute(ctx context.Context, now time.Time) (int
 			}
 			dueDate = periodStart.AddDate(0, 0, daysUntilReport+7) // Add 7 days to push it to next week
 
-			_, weekNum := now.ISOWeek()
-			periodLabel = fmt.Sprintf("Minggu %d, %s", weekNum, now.Format("Jan 2006"))
-
 		case "bulanan":
 			periodStart = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 			periodEnd = periodStart.AddDate(0, 1, -1)
@@ -242,8 +251,6 @@ func (uc *GenerateTasksUseCase) Execute(ctx context.Context, now time.Time) (int
 				reportDate = maxDay
 			}
 			dueDate = time.Date(dueDateMonth.Year(), dueDateMonth.Month(), reportDate, 0, 0, 0, 0, now.Location())
-			periodLabel = now.Format("Januari 2006")
-			periodLabel = fmt.Sprintf("%s %d", now.Month().String(), now.Year())
 
 		case "triwulan":
 			quarter := (int(now.Month()) - 1) / 3
@@ -256,7 +263,6 @@ func (uc *GenerateTasksUseCase) Execute(ctx context.Context, now time.Time) (int
 			}
 			dueMonth := periodStart.AddDate(0, 3, 0)
 			dueDate = time.Date(dueMonth.Year(), dueMonth.Month(), reportDate, 0, 0, 0, 0, now.Location())
-			periodLabel = fmt.Sprintf("Q%d %d", quarter+1, now.Year())
 
 		default:
 			continue
@@ -277,7 +283,7 @@ func (uc *GenerateTasksUseCase) Execute(ctx context.Context, now time.Time) (int
 		task := &entity.MitigationTask{
 			MitigationID: m.ID,
 			RiskID:       m.RiskID,
-			PeriodLabel:  periodLabel,
+			PeriodLabel:  mitigationTaskPeriodLabel(m.AssessmentCycle),
 			PeriodStart:  pStart,
 			PeriodEnd:    pEnd,
 			DueDate:      dueDate.Format("2006-01-02"),

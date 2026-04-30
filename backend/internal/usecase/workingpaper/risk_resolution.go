@@ -150,14 +150,25 @@ func buildWorkingPaperRiskData(risk *entity.Risk) entity.WorkingPaperRiskData {
 		ControlEffectiveness: risk.ControlEffectiveness,
 		RiskAppetite:         risk.RiskAppetite,
 		TreatmentOption:      risk.TreatmentOption,
-		TargetProbability:    risk.TargetProbability,
+		Mitigations:         buildWorkingPaperMitigations(risk),
+		TargetProbability:   risk.TargetProbability,
 		TargetImpact:         risk.TargetImpact,
 		TargetBobot:          risk.TargetWeight,
 		TargetNilai:          risk.TargetNilai,
 		AssessmentCycle:      risk.AssessmentCycle,
+		VersionNumber:        risk.VersionNumber,
+		JadwalPelaksanaan:   risk.ReviewScheduleText,
 	}
 	data.NormalizeDerivedScores()
 	return data
+}
+
+func buildWorkingPaperMitigations(risk *entity.Risk) []string {
+	result := make([]string, 0, len(risk.Mitigations))
+	for _, m := range risk.Mitigations {
+		result = append(result, m.Action)
+	}
+	return result
 }
 
 func effectiveWorkingPaperWeight(risk *entity.Risk) float64 {

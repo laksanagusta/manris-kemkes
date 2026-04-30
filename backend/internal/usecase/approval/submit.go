@@ -7,6 +7,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
 // SubmitApprovalUseCase handles submitting entities for approval
@@ -15,6 +16,7 @@ type SubmitApprovalUseCase struct {
 	riskRepo                    repository.RiskRepository
 	incidentRepo                repository.IncidentRepository
 	userRepo                    repository.UserRepository
+	mitigationTaskRepo          repository.MitigationTaskRepository
 	riskApprovalWorkflowEnabled bool
 }
 
@@ -24,6 +26,7 @@ func NewSubmitApprovalUseCase(
 	riskRepo repository.RiskRepository,
 	incidentRepo repository.IncidentRepository,
 	userRepo repository.UserRepository,
+	mitigationTaskRepo repository.MitigationTaskRepository,
 	riskApprovalWorkflowEnabled bool,
 ) *SubmitApprovalUseCase {
 	return &SubmitApprovalUseCase{
@@ -31,6 +34,7 @@ func NewSubmitApprovalUseCase(
 		riskRepo:                    riskRepo,
 		incidentRepo:                incidentRepo,
 		userRepo:                    userRepo,
+		mitigationTaskRepo:          mitigationTaskRepo,
 		riskApprovalWorkflowEnabled: riskApprovalWorkflowEnabled,
 	}
 }
@@ -113,6 +117,11 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 		risk.Status = entity.RiskStatusApproved
 		if err := uc.riskRepo.Update(ctx, risk); err != nil {
 			return nil, domainerrors.Wrap(err, "failed to update risk status")
+		}
+		if uc.mitigationTaskRepo != nil {
+			if _, err := mtuc.NewEnsureTasksForApprovedRiskUseCase(uc.mitigationTaskRepo, uc.riskRepo).Execute(ctx, entityID, input.OrgIDs); err != nil {
+				return nil, domainerrors.Wrap(err, "failed to create mitigation tasks")
+			}
 		}
 
 		return &SubmitApprovalOutput{
