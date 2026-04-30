@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 import type { HeatmapVelocityCell } from "@/types/risk";
 import { getBobot, calculateNilai, getRiskLevelFromNilai, levelToColor, getRiskLevelLabel } from "@/lib/risk";
 
-const impactLabels = ["Tdk Signifikan", "Kecil", "Sedang", "Besar", "Katastropik"];
-const likelihoodLabels = ["Jarang", "Kemungkinan Kecil", "Kemungkinan Sedang", "Kemungkinan Besar", "Hampir Pasti"];
+const impactLabels = ["Tidak Signifikan", "Kecil", "Sedang", "Besar", "Katastropik"];
+const likelihoodLabels = ["Jarang", "Kemungkinan Kecil", "Kemungkinan Sedang", "Kemungkinan Besar", "Hampir Pasti Terjadi"];
 
 const heatmapLevelColors: Record<string, string> = {
   sangat_rendah: "heatmap-sangat-rendah",
