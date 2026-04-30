@@ -1235,9 +1235,6 @@ export default function RiskRegisterPage() {
                             <RiskRowActions
                               risk={risk}
                               isReadOnly={isReadOnly}
-                              onOpenDetail={(riskId) =>
-                                router.push(`/risk/register/${riskId}`)
-                              }
                               onContinueMonitoring={
                                 canReassess && risk.hasOngoing && risk.draftId
                                   ? () =>

@@ -47,19 +47,19 @@ type RiskScoreSemanticFields = Pick<
 >;
 
 export const PROBABILITY_LABELS: Record<number, string> = {
-  1: "Sangat Jarang",
-  2: "Jarang",
-  3: "Kadang-kadang",
-  4: "Sering",
-  5: "Hampir Pasti",
+  1: "Jarang",
+  2: "Kemungkinan Kecil",
+  3: "Kemungkinan Sedang",
+  4: "Kemungkinan Besar",
+  5: "Hampir Pasti Terjadi",
 };
 
 export const IMPACT_LABELS: Record<number, string> = {
-  1: "Sangat Ringan",
-  2: "Ringan",
+  1: "Tidak Signifikan",
+  2: "Kecil",
   3: "Sedang",
-  4: "Berat",
-  5: "Sangat Berat",
+  4: "Besar",
+  5: "Katastropik",
 };
 
 export const riskCategoryLabels: Record<RiskCategory, string> = {
@@ -164,7 +164,7 @@ export function levelToColor(level: RiskLevel): string {
 
 export function getRiskLevelDisplayLabel(level: RiskLevel): string {
   const labels: Record<RiskLevel, string> = {
-    sangat_tinggi: "Ekstrem",
+    sangat_tinggi: "Sangat Tinggi",
     tinggi: "Tinggi",
     sedang: "Sedang",
     rendah: "Rendah",
@@ -176,6 +176,7 @@ export function getRiskLevelDisplayLabel(level: RiskLevel): string {
 export function getLevelBadgeClasses(level: string): string {
   switch (level) {
     case "Ekstrem":
+    case "Sangat Tinggi":
     case "sangat_tinggi":
       return "bg-red-500/15 text-red-700 border-red-500/30";
     case "Tinggi":

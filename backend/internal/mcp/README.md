@@ -206,6 +206,8 @@ Update a draft risk.
 ---
 
 ### 6. `monitor_and_approve_risk`
+
+> Legacy tool name. Current behavior only creates reassessment draft and returns draft status/message. It does not submit approval.
 Create a risk reassessment and submit for approval.
 
 **Input**:
@@ -499,7 +501,7 @@ Session expires after `JWT_EXPIRY_HOURS`. The LLM must call `login` again to ref
 
 ### No Call to ApprovalActionUseCase
 
-Per spec, `create_and_approve_risk` and `monitor_and_approve_risk` do NOT call `ApprovalActionUseCase` (approve/reject action). They only call `SubmitApprovalUseCase` to enqueue for approval. Auto-approval (if `RISK_APPROVAL_WORKFLOW_ENABLED=false`) happens inside the submission usecase.
+Current implementation: `create_and_approve_risk` and `monitor_and_approve_risk` do NOT call `ApprovalActionUseCase` (approve/reject action). `monitor_and_approve_risk` currently stops after creating reassessment draft and returns draft metadata. It does not submit approval.
 
 ---
 

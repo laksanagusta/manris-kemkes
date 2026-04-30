@@ -135,7 +135,7 @@ export function RiskCategoryDistributionCard({
                   dataKey="ekstrem"
                   stackId="a"
                   fill="oklch(0.62 0.22 27)"
-                  name="Ekstrem"
+                  name="Sangat Tinggi"
                   radius={[0, 4, 4, 0]}
                 />
               </BarChart>

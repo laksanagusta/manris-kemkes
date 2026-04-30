@@ -83,6 +83,19 @@ func main() {
 
 	// Organization handlers (Clean Architecture)
 	cleanOrgHandler := httpHandler.NewOrganizationHandler(container.OrgCreateUC, container.OrgGetUC, container.OrgUpdateUC, container.OrgDeleteUC, container.OrgListUC, container.OrgListFilterUC)
+	cleanRiskCharterHandler := httpHandler.NewRiskCharterHandler(
+		container.RiskCharterCreateUC,
+		container.RiskCharterGetUC,
+		container.RiskCharterUpdateUC,
+		container.RiskCharterListUC,
+	)
+	cleanRiskObjectiveHandler := httpHandler.NewRiskObjectiveHandler(
+		container.RiskObjectiveCreateUC,
+		container.RiskObjectiveGetUC,
+		container.RiskObjectiveUpdateUC,
+		container.RiskObjectiveDeleteUC,
+		container.RiskObjectiveListUC,
+	)
 
 	// System handlers (Clean Architecture)
 	cleanSystemHandler := httpHandler.NewSystemHandler(container.SystemSlowQueriesUC)
@@ -183,6 +196,17 @@ func main() {
 	protected.Get("/organizations/:id", cleanOrgHandler.Get)
 	protected.Put("/organizations/:id", cleanOrgHandler.Update)
 	protected.Delete("/organizations/:id", cleanOrgHandler.Delete)
+
+	// KMK Foundation Modules
+	protected.Get("/risk-charters", cleanRiskCharterHandler.List)
+	protected.Post("/risk-charters", cleanRiskCharterHandler.Create)
+	protected.Get("/risk-charters/:id", cleanRiskCharterHandler.Get)
+	protected.Put("/risk-charters/:id", cleanRiskCharterHandler.Update)
+	protected.Get("/risk-objectives", cleanRiskObjectiveHandler.List)
+	protected.Post("/risk-objectives", cleanRiskObjectiveHandler.Create)
+	protected.Get("/risk-objectives/:id", cleanRiskObjectiveHandler.Get)
+	protected.Put("/risk-objectives/:id", cleanRiskObjectiveHandler.Update)
+	protected.Delete("/risk-objectives/:id", cleanRiskObjectiveHandler.Delete)
 
 	// Users — read endpoints open to all authenticated users
 	protected.Get("/users", cleanUserHandler.ListUsers)

@@ -29,6 +29,8 @@ import (
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
 	reportuc "github.com/manris/backend/internal/usecase/report"
+	riskcharteruc "github.com/manris/backend/internal/usecase/riskcharter"
+	riskobjectiveuc "github.com/manris/backend/internal/usecase/riskobjective"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 	systemuc "github.com/manris/backend/internal/usecase/system"
 	systemsettinguc "github.com/manris/backend/internal/usecase/system_setting"
@@ -56,6 +58,8 @@ type Container struct {
 	KRIReportRepository      domainrepo.KRIReportRepository
 	CommLogRepository        domainrepo.CommunicationLogRepository
 	MMRepository             domainrepo.MeetingMinuteRepository
+	RiskCharterRepository    domainrepo.RiskCharterRepository
+	RiskObjectiveRepository  domainrepo.RiskObjectiveRepository
 	FormRepository           domainrepo.FormRepository
 	FormAssignmentRepository domainrepo.FormAssignmentRepository
 	FormResponseRepository   domainrepo.FormResponseRepository
@@ -181,6 +185,19 @@ type Container struct {
 	OrgListUC       *organizationuc.ListOrganizationsUseCase
 	OrgListFilterUC *organizationuc.ListOrganizationsWithFilterUseCase
 
+	// Risk Charter UseCases
+	RiskCharterCreateUC *riskcharteruc.CreateRiskCharterUseCase
+	RiskCharterGetUC    *riskcharteruc.GetRiskCharterUseCase
+	RiskCharterUpdateUC *riskcharteruc.UpdateRiskCharterUseCase
+	RiskCharterListUC   *riskcharteruc.ListRiskChartersUseCase
+
+	// Risk Objective UseCases
+	RiskObjectiveCreateUC *riskobjectiveuc.CreateRiskObjectiveUseCase
+	RiskObjectiveGetUC    *riskobjectiveuc.GetRiskObjectiveUseCase
+	RiskObjectiveUpdateUC *riskobjectiveuc.UpdateRiskObjectiveUseCase
+	RiskObjectiveDeleteUC *riskobjectiveuc.DeleteRiskObjectiveUseCase
+	RiskObjectiveListUC   *riskobjectiveuc.ListRiskObjectivesUseCase
+
 	// External PIC UseCases
 	ExternalPICGetOrCreateUC *externalextPICuc.GetOrCreateByNameUseCase
 	ExternalPICListUC        *externalextPICuc.ListExternalPICsUseCase
@@ -266,6 +283,8 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.KRIReportRepository = postgresrepo.NewKRIReportRepository(pool)
 	c.CommLogRepository = postgresrepo.NewCommunicationLogRepository(pool)
 	c.MMRepository = postgresrepo.NewMeetingMinuteRepository(pool)
+	c.RiskCharterRepository = postgresrepo.NewRiskCharterRepository(pool)
+	c.RiskObjectiveRepository = postgresrepo.NewRiskObjectiveRepository(pool)
 	c.FormRepository = postgresrepo.NewFormRepository(pool)
 	c.FormAssignmentRepository = postgresrepo.NewFormAssignmentRepository(pool)
 	c.FormResponseRepository = postgresrepo.NewFormResponseRepository(pool)
@@ -299,14 +318,26 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// Risk UseCases
 	// ============================================================================
 
-	c.RiskCreateUC = riskuc.NewCreateRiskUseCase(c.RiskRepository, c.UserRepository, c.OrgRepository)
+	c.RiskCreateUC = riskuc.NewCreateRiskUseCase(
+		c.RiskRepository,
+		c.UserRepository,
+		c.OrgRepository,
+		riskuc.WithRiskObjectiveValidation(c.RiskObjectiveRepository, cfg.KMKObjectiveRequired),
+	)
 	c.RiskCreateBatchUC = riskuc.NewCreateRiskBatchUseCase(c.RiskCreateUC, c.UserRepository)
 	c.RiskSpreadsheetUC = riskuc.NewBulkRiskSpreadsheetUseCase(c.OrgRepository, c.UserRepository)
 	c.RiskGetUC = riskuc.NewGetRiskUseCase(c.RiskRepository)
 	c.RiskReassessUC = riskuc.NewCreateRiskReassessmentUseCase(c.RiskRepository)
 	c.RiskArchiveUC = riskuc.NewArchiveRiskUseCase(c.RiskRepository, c.WPRepository)
 	c.RiskRestoreUC = riskuc.NewRestoreRiskUseCase(c.RiskRepository)
-	c.RiskUpdateUC = riskuc.NewUpdateRiskUseCase(c.RiskRepository, c.UserRepository, c.OrgRepository, c.WPRepository, c.MitigationTaskRepository)
+	c.RiskUpdateUC = riskuc.NewUpdateRiskUseCase(
+		c.RiskRepository,
+		c.UserRepository,
+		c.OrgRepository,
+		c.WPRepository,
+		c.MitigationTaskRepository,
+		riskuc.WithUpdateRiskObjectiveValidation(c.RiskObjectiveRepository, cfg.KMKObjectiveRequired),
+	)
 	c.RiskDeleteUC = riskuc.NewDeleteRiskUseCase(c.RiskRepository)
 	c.RiskListUC = riskuc.NewListRisksUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskListRegisterUC = riskuc.NewListRiskRegisterUseCase(c.RiskRepository)
@@ -429,6 +460,25 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.OrgDeleteUC = organizationuc.NewDeleteOrganizationUseCase(c.OrgRepository)
 	c.OrgListUC = organizationuc.NewListOrganizationsUseCase(c.OrgRepository)
 	c.OrgListFilterUC = organizationuc.NewListOrganizationsWithFilterUseCase(c.OrgRepository)
+
+	// ============================================================================
+	// Risk Charter UseCases
+	// ============================================================================
+
+	c.RiskCharterCreateUC = riskcharteruc.NewCreateRiskCharterUseCase(c.RiskCharterRepository, c.OrgRepository)
+	c.RiskCharterGetUC = riskcharteruc.NewGetRiskCharterUseCase(c.RiskCharterRepository)
+	c.RiskCharterUpdateUC = riskcharteruc.NewUpdateRiskCharterUseCase(c.RiskCharterRepository, c.OrgRepository)
+	c.RiskCharterListUC = riskcharteruc.NewListRiskChartersUseCase(c.RiskCharterRepository)
+
+	// ============================================================================
+	// Risk Objective UseCases
+	// ============================================================================
+
+	c.RiskObjectiveCreateUC = riskobjectiveuc.NewCreateRiskObjectiveUseCase(c.RiskObjectiveRepository, c.OrgRepository)
+	c.RiskObjectiveGetUC = riskobjectiveuc.NewGetRiskObjectiveUseCase(c.RiskObjectiveRepository)
+	c.RiskObjectiveUpdateUC = riskobjectiveuc.NewUpdateRiskObjectiveUseCase(c.RiskObjectiveRepository, c.OrgRepository)
+	c.RiskObjectiveDeleteUC = riskobjectiveuc.NewDeleteRiskObjectiveUseCase(c.RiskObjectiveRepository)
+	c.RiskObjectiveListUC = riskobjectiveuc.NewListRiskObjectivesUseCase(c.RiskObjectiveRepository)
 
 	// ============================================================================
 	// External PIC UseCases

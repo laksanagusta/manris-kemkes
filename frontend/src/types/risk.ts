@@ -250,6 +250,15 @@ export interface ExecutiveAlert {
   riskCode?: string;
 }
 
+export interface RiskObjectiveSummary {
+  tujuan?: string;
+  sasaran?: string;
+  indikatorKinerjaUtama?: string;
+  target?: string;
+  program?: string;
+  kegiatan?: string;
+}
+
 export interface Risk {
   id: string;
   riskCode: string;
@@ -258,6 +267,8 @@ export interface Risk {
   description: string;
   category: RiskCategory;
   unitId: string;
+  objectiveId?: string;
+  objectiveSummary?: RiskObjectiveSummary;
   cause: string[];
   riskSource: RiskSource;
   riskOwnerId: string;

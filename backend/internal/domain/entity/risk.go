@@ -52,6 +52,7 @@ type Risk struct {
 	ArchivedAt     *time.Time `json:"archivedAt,omitempty"`
 	ArchivedReason string     `json:"archivedReason,omitempty"`
 	OrganizationID *uuid.UUID `json:"organizationId,omitempty"`
+	ObjectiveID    *uuid.UUID `json:"objectiveId,omitempty"`
 	OrgName        string     `json:"orgName"`
 	CreatedBy      *uuid.UUID `json:"createdBy,omitempty"`
 	CreatedByName  string     `json:"createdByName"`
