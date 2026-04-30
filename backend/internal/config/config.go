@@ -17,7 +17,6 @@ type Config struct {
 	CORSOrigins                 string
 	OpenAIKey                   string
 	RiskApprovalWorkflowEnabled bool
-	KMKObjectiveRequired        bool
 }
 
 // DefaultAIModels returns fallback AI model configuration when database is unavailable
@@ -58,7 +57,6 @@ func Load() *Config {
 		CORSOrigins:                 getEnv("CORS_ORIGINS", "http://localhost:3000"),
 		OpenAIKey:                   getEnv("OPENAI_API_KEY", ""),
 		RiskApprovalWorkflowEnabled: getEnvBool("RISK_APPROVAL_WORKFLOW_ENABLED", true),
-		KMKObjectiveRequired:        getEnvBool("KMK_OBJECTIVE_REQUIRED", false),
 	}
 }
 

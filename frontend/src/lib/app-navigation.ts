@@ -34,13 +34,7 @@ export const mainMenuItems: MainMenuGroup[] = [
         matchHrefs: ["/compliance/monitoring", "/compliance/kri"],
       },
       { label: "Reports", href: "/reports", icon: "FileBarChart" },
-    ],
-  },
-  {
-    title: "RISK GOVERNANCE",
-    items: [
-      { label: "Piagam MR", href: "/management/charters", icon: "FileText" },
-      { label: "Sasaran & IKU", href: "/management/objectives", icon: "ClipboardCheck" },
+      // { label: "My Forms", href: "/forms", icon: "ClipboardList" },
     ],
   },
 ];
@@ -101,8 +95,6 @@ export const breadcrumbMap: Record<string, string> = {
   "/admin/settings": "Pengaturan",
   "/admin/settings/organization-context": "Konteks Organisasi",
   "/management/criteria": "Scope & Criteria",
-  "/management/charters": "Piagam MR",
-  "/management/objectives": "Sasaran & IKU",
   "/admin/forms": "Form Builder",
   "/admin/forms/new": "New Form",
   "/forms": "My Forms",

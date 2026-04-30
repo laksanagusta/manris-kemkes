@@ -79,12 +79,6 @@ type WorkingPaperRiskData struct {
 	TargetTingkatRisiko  string    `json:"target_tingkat_risiko,omitempty"`
 	AssessmentCycle      string    `json:"assessment_cycle,omitempty"`
 	VersionNumber        int       `json:"versionNumber,omitempty"`
-	ObjectiveTujuan      string    `json:"objective_tujuan,omitempty"`
-	ObjectiveSasaran     string    `json:"objective_sasaran,omitempty"`
-	ObjectiveIKU         string    `json:"objective_iku,omitempty"`
-	ObjectiveTarget      string    `json:"objective_target,omitempty"`
-	ObjectiveProgram     string    `json:"objective_program,omitempty"`
-	ObjectiveKegiatan    string    `json:"objective_kegiatan,omitempty"`
 
 	// Human-readable display labels
 	TingkatRisikoDisplay       string `json:"tingkat_risiko_display,omitempty"`

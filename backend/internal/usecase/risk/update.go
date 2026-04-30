@@ -17,22 +17,11 @@ type WorkingPaperLockChecker interface {
 }
 
 type UpdateRiskUseCase struct {
-	riskRepo          repository.RiskRepository
-	userRepo          repository.UserRepository
-	orgRepo           repository.OrganizationRepository
-	objectiveRepo     repository.RiskObjectiveRepository
-	objectiveRequired bool
-	wpRepo            WorkingPaperLockChecker
-	taskRepo          repository.MitigationTaskRepository
-}
-
-type UpdateRiskUseCaseOption func(*UpdateRiskUseCase)
-
-func WithUpdateRiskObjectiveValidation(repo repository.RiskObjectiveRepository, required bool) UpdateRiskUseCaseOption {
-	return func(uc *UpdateRiskUseCase) {
-		uc.objectiveRepo = repo
-		uc.objectiveRequired = required
-	}
+	riskRepo repository.RiskRepository
+	userRepo repository.UserRepository
+	orgRepo  repository.OrganizationRepository
+	wpRepo   WorkingPaperLockChecker
+	taskRepo repository.MitigationTaskRepository
 }
 
 func NewUpdateRiskUseCase(
@@ -41,19 +30,14 @@ func NewUpdateRiskUseCase(
 	orgRepo repository.OrganizationRepository,
 	wpRepo WorkingPaperLockChecker,
 	taskRepo repository.MitigationTaskRepository,
-	options ...UpdateRiskUseCaseOption,
 ) *UpdateRiskUseCase {
-	uc := &UpdateRiskUseCase{
+	return &UpdateRiskUseCase{
 		riskRepo: riskRepo,
 		userRepo: userRepo,
 		orgRepo:  orgRepo,
 		wpRepo:   wpRepo,
 		taskRepo: taskRepo,
 	}
-	for _, option := range options {
-		option(uc)
-	}
-	return uc
 }
 
 type UpdateRiskInput struct {
@@ -63,7 +47,6 @@ type UpdateRiskInput struct {
 	Category       string     `json:"category"`
 	Status         string     `json:"status"`
 	OrganizationID *uuid.UUID `json:"organizationId"`
-	ObjectiveID    *uuid.UUID `json:"objectiveId"`
 
 	Cause           []string `json:"cause"`
 	RiskSource      string   `json:"riskSource"`
@@ -100,7 +83,6 @@ type UpdateRiskInput struct {
 	ChangeReason       string                      `json:"changeReason"`
 	ReviewSummary      string                      `json:"reviewSummary"`
 	DraftApprovalLine  []entity.ApprovalLineMember `json:"draftApprovalLine"`
-	RequireObjective  bool                         `json:"-"`
 }
 
 type UpdateRiskOutput struct {
@@ -134,31 +116,10 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "cannot change status from approved except to draft")
 	}
 	// 4. Validate organization if changed
-	if input.OrganizationID != nil && existingRisk.OrganizationID != nil && *input.OrganizationID != *existingRisk.OrganizationID {
+	if input.OrganizationID != nil && *input.OrganizationID != *existingRisk.OrganizationID {
 		_, err := uc.orgRepo.GetByID(ctx, *input.OrganizationID)
 		if err != nil {
 			return nil, errors.Wrap(err, "organization not found")
-		}
-	}
-
-	requireObjective := input.RequireObjective || uc.objectiveRequired
-	if requireObjective && input.ObjectiveID == nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "objectiveId is required")
-	}
-	if input.ObjectiveID != nil {
-		if uc.objectiveRepo == nil {
-			return nil, errors.Wrap(errors.ErrInvalidInput, "objective validation is not configured")
-		}
-		objective, err := uc.objectiveRepo.GetByID(ctx, *input.ObjectiveID)
-		if err != nil {
-			return nil, errors.Wrap(err, "objective not found")
-		}
-		targetOrgID := objective.OrganizationID
-		if input.OrganizationID != nil && objective.OrganizationID != *input.OrganizationID {
-			return nil, errors.Wrap(errors.ErrInvalidInput, "objective does not belong to selected organization")
-		}
-		if input.OrganizationID == nil && existingRisk.OrganizationID != nil && targetOrgID != *existingRisk.OrganizationID {
-			return nil, errors.Wrap(errors.ErrInvalidInput, "objective does not belong to selected organization")
 		}
 	}
 
@@ -181,7 +142,6 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	existingRisk.Category = input.Category
 	existingRisk.Status = input.Status
 	existingRisk.OrganizationID = input.OrganizationID
-	existingRisk.ObjectiveID = input.ObjectiveID
 	if input.AssessmentCycle == "" {
 		input.AssessmentCycle = existingRisk.AssessmentCycle
 		if input.AssessmentCycle == "" {

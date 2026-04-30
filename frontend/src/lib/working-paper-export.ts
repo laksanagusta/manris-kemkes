@@ -201,42 +201,6 @@ function applyDataBorders(
 // All 3 data sheets start data at column B (col 2). Column A is an empty margin.
 const DATA_START_COL = 2;
 
-function appendObjectiveContextBlock(
-  ws: ExcelJS.Worksheet,
-  risks: Array<Record<string, any>>,
-  startCol: number,
-  endCol: number,
-): void {
-  const source = risks.find(
-    (risk) =>
-      risk.objective_sasaran ||
-      risk.objective_tujuan ||
-      risk.objective_iku ||
-      risk.objective_program ||
-      risk.objective_kegiatan,
-  );
-
-  if (!source) return;
-
-  const rows = [
-    ["Tujuan", safeStr(source.objective_tujuan)] as [string, string],
-    ["Sasaran", safeStr(source.objective_sasaran)] as [string, string],
-    ["Indikator Kinerja Utama", safeStr(source.objective_iku)] as [string, string],
-    ["Target", safeStr(source.objective_target)] as [string, string],
-    ["Program", safeStr(source.objective_program)] as [string, string],
-    ["Kegiatan", safeStr(source.objective_kegiatan)] as [string, string],
-  ].filter(([, value]) => value);
-
-  rows.forEach(([label, value], index) => {
-    const rowNum = 2 + index;
-    ws.mergeCells(rowNum, startCol, rowNum, endCol);
-    const cell = ws.getRow(rowNum).getCell(startCol);
-    cell.value = `${label}: ${value}`;
-    cell.font = { name: BASE_FONT_NAME, size: 11 };
-    cell.alignment = { vertical: "middle", wrapText: true };
-  });
-}
-
 function buildProfilRisikoSheet(
   workbook: ExcelJS.Workbook,
   risks: ExportableRiskRow[],
@@ -291,8 +255,6 @@ function buildProfilRisikoSheet(
     cell.alignment = H_ALIGN;
     cell.border = THIN_BORDER;
   }
-
-  appendObjectiveContextBlock(ws, risks, FIRST_COL, LAST_COL);
 
   // Rows 1-12 reserved. Headers start at row 13.
   const HEADER_ROW_1 = 13;
@@ -394,8 +356,6 @@ function buildPenilaianRisikoSheet(
   const COL_COUNT = 25;
   const FIRST_COL = DATA_START_COL; // col 2 (B)
   const LAST_COL = FIRST_COL + COL_COUNT - 1; // col 26 (Z)
-
-  appendObjectiveContextBlock(ws, risks, FIRST_COL, LAST_COL);
 
   ws.getColumn(1).width = 3;
 
@@ -570,8 +530,6 @@ function buildPemantauanReviuSheet(
   const FIRST_COL = DATA_START_COL; // col 2 (B)
   const LAST_COL = FIRST_COL + COL_COUNT - 1; // col 17
   const C = FIRST_COL;
-
-  appendObjectiveContextBlock(ws, risks as Array<Record<string, any>>, FIRST_COL, LAST_COL);
 
   ws.getColumn(1).width = 3;
 

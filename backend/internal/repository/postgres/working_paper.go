@@ -72,12 +72,6 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 	query := fmt.Sprintf(`SELECT wpr.id, wpr.working_paper_id, wpr.risk_id, wpr.sort_order, wpr.source_mode, wpr.created_at,
 		       risk.id, risk.code, risk.title, risk.description, risk.category, risk.status,
 		       COALESCE(org.name, ''),
-		       COALESCE(obj.tujuan, ''),
-		       COALESCE(obj.sasaran, ''),
-		       COALESCE(obj.indikator_kinerja_utama, ''),
-		       COALESCE(obj.target, ''),
-		       COALESCE(obj.program, ''),
-		       COALESCE(obj.kegiatan, ''),
 		       %s AS probability,
 		       %s AS impact,
 		       %s AS bobot,
@@ -129,7 +123,6 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		FROM working_paper_risks wpr
 		INNER JOIN risks risk ON risk.id = wpr.risk_id
 		LEFT JOIN organizations org ON org.id = risk.organization_id
-		LEFT JOIN risk_objectives obj ON obj.id = risk.objective_id
 		LEFT JOIN risks prev_risk ON prev_risk.id = (%s)
 		LEFT JOIN risks mon_risk ON mon_risk.id = (%s)
 		WHERE wpr.working_paper_id = $1
@@ -176,12 +169,6 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&link.Risk.Category,
 			&link.Risk.Status,
 			&link.Risk.OrgName,
-			&link.Risk.ObjectiveTujuan,
-			&link.Risk.ObjectiveSasaran,
-			&link.Risk.ObjectiveIKU,
-			&link.Risk.ObjectiveTarget,
-			&link.Risk.ObjectiveProgram,
-			&link.Risk.ObjectiveKegiatan,
 			&link.Risk.Probability,
 			&link.Risk.Impact,
 			&link.Risk.Bobot,

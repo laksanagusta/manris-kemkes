@@ -38,12 +38,6 @@ export interface WorkingPaperRiskData {
   target_tingkat_risiko_display?: string;
   assessment_cycle?: string;
   versionNumber?: number;
-  objective_tujuan?: string;
-  objective_sasaran?: string;
-  objective_iku?: string;
-  objective_target?: string;
-  objective_program?: string;
-  objective_kegiatan?: string;
 
   // Previous semester risk profile (for sheets 1 & 2)
   previous?: WorkingPaperRiskSnapshot;
