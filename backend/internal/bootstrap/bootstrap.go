@@ -30,6 +30,7 @@ import (
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
 	reportuc "github.com/manris/backend/internal/usecase/report"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
+	riskcharteruc "github.com/manris/backend/internal/usecase/riskcharter"
 	systemuc "github.com/manris/backend/internal/usecase/system"
 	systemsettinguc "github.com/manris/backend/internal/usecase/system_setting"
 	useruc "github.com/manris/backend/internal/usecase/user"
@@ -61,6 +62,7 @@ type Container struct {
 	FormResponseRepository   domainrepo.FormResponseRepository
 	ExternalPICRepository    domainrepo.ExternalPICRepository
 	WPRepository             domainrepo.WorkingPaperRepository
+	RiskCharterRepository    domainrepo.RiskCharterRepository
 
 	// Domain Services
 	OrgHierarchySvc *domainsvc.OrganizationHierarchy
@@ -181,6 +183,12 @@ type Container struct {
 	OrgListUC       *organizationuc.ListOrganizationsUseCase
 	OrgListFilterUC *organizationuc.ListOrganizationsWithFilterUseCase
 
+	// Risk Charter UseCases
+	RiskCharterCreateUC *riskcharteruc.CreateRiskCharterUseCase
+	RiskCharterGetUC    *riskcharteruc.GetRiskCharterUseCase
+	RiskCharterUpdateUC *riskcharteruc.UpdateRiskCharterUseCase
+	RiskCharterListUC   *riskcharteruc.ListRiskChartersUseCase
+
 	// External PIC UseCases
 	ExternalPICGetOrCreateUC *externalextPICuc.GetOrCreateByNameUseCase
 	ExternalPICListUC        *externalextPICuc.ListExternalPICsUseCase
@@ -271,6 +279,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.FormResponseRepository = postgresrepo.NewFormResponseRepository(pool)
 	c.ExternalPICRepository = postgresrepo.NewExternalPICRepository(pool)
 	c.WPRepository = postgresrepo.NewWorkingPaperRepository(pool)
+	c.RiskCharterRepository = postgresrepo.NewRiskCharterRepository(pool)
 
 	// ============================================================================
 	// Domain Services
@@ -429,6 +438,15 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.OrgDeleteUC = organizationuc.NewDeleteOrganizationUseCase(c.OrgRepository)
 	c.OrgListUC = organizationuc.NewListOrganizationsUseCase(c.OrgRepository)
 	c.OrgListFilterUC = organizationuc.NewListOrganizationsWithFilterUseCase(c.OrgRepository)
+
+	// ============================================================================
+	// Risk Charter UseCases
+	// ============================================================================
+
+	c.RiskCharterCreateUC = riskcharteruc.NewCreateRiskCharterUseCase(c.RiskCharterRepository)
+	c.RiskCharterGetUC = riskcharteruc.NewGetRiskCharterUseCase(c.RiskCharterRepository)
+	c.RiskCharterUpdateUC = riskcharteruc.NewUpdateRiskCharterUseCase(c.RiskCharterRepository)
+	c.RiskCharterListUC = riskcharteruc.NewListRiskChartersUseCase(c.RiskCharterRepository)
 
 	// ============================================================================
 	// External PIC UseCases
