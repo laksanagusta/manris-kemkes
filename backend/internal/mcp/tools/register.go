@@ -188,7 +188,7 @@ func RegisterRiskWriteTools(s *server.MCPServer, c *bootstrap.Container, mgr *se
 func RegisterRiskMonitoringTools(s *server.MCPServer, c *bootstrap.Container, mgr *session.Manager) {
 	monitorTool := mcp.Tool{
 		Name:        "monitor_and_approve_risk",
-		Description: "Create a risk reassessment",
+		Description: "Legacy tool name. Current behavior creates a risk reassessment draft only",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
 			Properties: map[string]interface{}{

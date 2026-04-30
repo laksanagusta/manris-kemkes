@@ -13,21 +13,37 @@ import (
 
 // CreateRiskUseCase handles risk creation business logic
 type CreateRiskUseCase struct {
-	riskRepo repository.RiskRepository
-	userRepo repository.UserRepository
-	orgRepo  repository.OrganizationRepository
+	riskRepo          repository.RiskRepository
+	userRepo          repository.UserRepository
+	orgRepo           repository.OrganizationRepository
+	objectiveRepo     repository.RiskObjectiveRepository
+	objectiveRequired bool
+}
+
+type CreateRiskUseCaseOption func(*CreateRiskUseCase)
+
+func WithRiskObjectiveValidation(repo repository.RiskObjectiveRepository, required bool) CreateRiskUseCaseOption {
+	return func(uc *CreateRiskUseCase) {
+		uc.objectiveRepo = repo
+		uc.objectiveRequired = required
+	}
 }
 
 func NewCreateRiskUseCase(
 	riskRepo repository.RiskRepository,
 	userRepo repository.UserRepository,
 	orgRepo repository.OrganizationRepository,
+	options ...CreateRiskUseCaseOption,
 ) *CreateRiskUseCase {
-	return &CreateRiskUseCase{
+	uc := &CreateRiskUseCase{
 		riskRepo: riskRepo,
 		userRepo: userRepo,
 		orgRepo:  orgRepo,
 	}
+	for _, option := range options {
+		option(uc)
+	}
+	return uc
 }
 
 type CreateRiskInput struct {
@@ -36,6 +52,9 @@ type CreateRiskInput struct {
 	Category       string     `json:"category"`
 	OrganizationID *uuid.UUID `json:"organizationId"`
 	CreatedBy      *uuid.UUID `json:"-"`
+	ObjectiveID    *uuid.UUID `json:"objectiveId"`
+
+	RequireObjective bool `json:"-"`
 
 	Cause           []string `json:"cause"`
 	RiskSource      string   `json:"riskSource"`
@@ -104,6 +123,23 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		}
 	}
 
+	requireObjective := input.RequireObjective || uc.objectiveRequired
+	if requireObjective && input.ObjectiveID == nil {
+		return nil, errors.Wrap(errors.ErrInvalidInput, "objectiveId is required")
+	}
+	if input.ObjectiveID != nil {
+		if uc.objectiveRepo == nil {
+			return nil, errors.Wrap(errors.ErrInvalidInput, "objective validation is not configured")
+		}
+		objective, err := uc.objectiveRepo.GetByID(ctx, *input.ObjectiveID)
+		if err != nil {
+			return nil, errors.Wrap(err, "objective not found")
+		}
+		if input.OrganizationID != nil && objective.OrganizationID != *input.OrganizationID {
+			return nil, errors.Wrap(errors.ErrInvalidInput, "objective does not belong to selected organization")
+		}
+	}
+
 	// 4. Generate risk code
 	nextCode, err := uc.riskRepo.NextRiskCode(ctx)
 	if err != nil {
@@ -134,6 +170,7 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		IsCycleCurrent: true,
 		VersionNumber:  1,
 		OrganizationID: input.OrganizationID,
+		ObjectiveID:    input.ObjectiveID,
 		CreatedBy:      input.CreatedBy,
 
 		// Section 1

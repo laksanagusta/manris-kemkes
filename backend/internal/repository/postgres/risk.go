@@ -56,14 +56,14 @@ func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 	risk.CalculateTargetScore()
 
 	err := q.QueryRow(ctx,
-		`INSERT INTO risks (code, title, description, category, status, version_group_id, previous_risk_id, is_current, is_cycle_current, version_number, archived_at, archived_reason, organization_id, created_by,
+		`INSERT INTO risks (code, title, description, category, status, version_group_id, previous_risk_id, is_current, is_cycle_current, version_number, archived_at, archived_reason, organization_id, objective_id, created_by,
 		  cause, risk_source, controllability, impact_description,
 		  existing_control, control_effectiveness, probability, impact, weight, nilai, inherent_score,
 		  risk_priority, risk_appetite, treatment_option,
 		  target_probability, target_impact, target_weight, target_nilai, target_score, next_review_date, review_schedule_text, assessment_cycle, review_type, change_reason, review_summary, review_started_at, review_submitted_at, review_approved_at, draft_approval_line)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44)
 		 RETURNING id, created_at, updated_at`,
-		risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.VersionNumber, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID, risk.CreatedBy,
+		risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.VersionNumber, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID, risk.ObjectiveID, risk.CreatedBy,
 		risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
 		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight, risk.Nilai, risk.InherentScore,
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
@@ -130,7 +130,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 	risk := &entity.Risk{}
 	var draftApprovalLineRaw []byte
 
-	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by,
+	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.objective_id, r.created_by,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -165,7 +165,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 	}
 
 	err := r.pool.QueryRow(ctx, query, args...).Scan(
-		&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy,
+		&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.ObjectiveID, &risk.CreatedBy,
 		&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 		&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 		&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -213,16 +213,16 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 	risk.CalculateTargetScore()
 
 	_, err := r.pool.Exec(ctx,
-		`UPDATE risks SET code=$2, title=$3, description=$4, category=$5, status=$6, version_group_id=$7, previous_risk_id=$8, is_current=$9, is_cycle_current=$10, version_number=$11, archived_at=$12, archived_reason=$13, organization_id=$14,
-		  cause=$15, risk_source=$16, controllability=$17, impact_description=$18,
-		  existing_control=$19, control_effectiveness=$20, probability=$21, impact=$22, weight=$23, nilai=$24, inherent_score=$25,
-		  risk_priority=$26, risk_appetite=$27, treatment_option=$28,
-		  target_probability=$29, target_impact=$30, target_weight=$31, target_nilai=$32, target_score=$33, next_review_date=$34, review_schedule_text=$35,
-		  assessment_cycle=$36, review_type=$37, change_reason=$38, review_summary=$39, review_started_at=$40, review_submitted_at=$41, review_approved_at=$42,
-		  draft_approval_line=$43,
+		`UPDATE risks SET code=$2, title=$3, description=$4, category=$5, status=$6, version_group_id=$7, previous_risk_id=$8, is_current=$9, is_cycle_current=$10, version_number=$11, archived_at=$12, archived_reason=$13, organization_id=$14, objective_id=$15,
+		  cause=$16, risk_source=$17, controllability=$18, impact_description=$19,
+		  existing_control=$20, control_effectiveness=$21, probability=$22, impact=$23, weight=$24, nilai=$25, inherent_score=$26,
+		  risk_priority=$27, risk_appetite=$28, treatment_option=$29,
+		  target_probability=$30, target_impact=$31, target_weight=$32, target_nilai=$33, target_score=$34, next_review_date=$35, review_schedule_text=$36,
+		  assessment_cycle=$37, review_type=$38, change_reason=$39, review_summary=$40, review_started_at=$41, review_submitted_at=$42, review_approved_at=$43,
+		  draft_approval_line=$44,
 		  updated_at=now()
 		 WHERE id=$1`,
-		risk.ID, risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.VersionNumber, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID,
+		risk.ID, risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.VersionNumber, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID, risk.ObjectiveID,
 		risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
 		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight, risk.Nilai, risk.InherentScore,
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,

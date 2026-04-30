@@ -86,10 +86,10 @@ func HandleMonitorRisk(ctx context.Context, reassessmentUC RiskReassessmentUseCa
 	// }
 
 	return map[string]interface{}{
-		"id": reassessmentOutput.ID.String(),
-		// "status":  approvalOutput.Status,
-		// "message": approvalOutput.Message,
-		"cycle": cycle,
+		"id":      reassessmentOutput.ID.String(),
+		"status":  reassessmentOutput.Status,
+		"message": reassessmentOutput.Message,
+		"cycle":   cycle,
 	}, nil
 }
 

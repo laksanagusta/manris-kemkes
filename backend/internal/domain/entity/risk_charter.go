@@ -1,0 +1,58 @@
+package entity
+
+import (
+	"encoding/json"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/errors"
+)
+
+type RiskCharter struct {
+	ID                 uuid.UUID       `json:"id"`
+	OrganizationID     uuid.UUID       `json:"organizationId"`
+	UPRLevel           string          `json:"uprLevel"`
+	Period             string          `json:"period"`
+	RiskOwnerName      string          `json:"riskOwnerName"`
+	RiskOwnerUserID    *uuid.UUID      `json:"riskOwnerUserId,omitempty"`
+	RiskTeamName       string          `json:"riskTeamName"`
+	Scope              string          `json:"scope"`
+	LegalBasis         string          `json:"legalBasis"`
+	InternalContext    string          `json:"internalContext"`
+	ExternalContext    string          `json:"externalContext"`
+	StakeholderSummary string          `json:"stakeholderSummary"`
+	UPRStructure       json.RawMessage `json:"uprStructure"`
+	Status             string          `json:"status"`
+	CreatedBy          *uuid.UUID      `json:"createdBy,omitempty"`
+	ApprovedBy         *uuid.UUID      `json:"approvedBy,omitempty"`
+	ApprovedAt         *time.Time      `json:"approvedAt,omitempty"`
+	CreatedAt          time.Time       `json:"createdAt"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+}
+
+func (r RiskCharter) Validate() error {
+	if r.OrganizationID == uuid.Nil {
+		return errors.Wrap(errors.ErrInvalidInput, "organization id is required")
+	}
+	if strings.TrimSpace(r.Period) == "" {
+		return errors.Wrap(errors.ErrInvalidInput, "period is required")
+	}
+	if strings.TrimSpace(r.RiskOwnerName) == "" {
+		return errors.Wrap(errors.ErrInvalidInput, "risk owner name is required")
+	}
+	switch r.UPRLevel {
+	case "eksekutif", "upr_t1", "upr_t2":
+	default:
+		return errors.Wrap(errors.ErrInvalidInput, "invalid upr level")
+	}
+	switch r.Status {
+	case "draft", "in_review", "approved", "archived":
+	default:
+		return errors.Wrap(errors.ErrInvalidStatus, "invalid risk charter status")
+	}
+	if len(r.UPRStructure) == 0 {
+		r.UPRStructure = json.RawMessage("[]")
+	}
+	return nil
+}
