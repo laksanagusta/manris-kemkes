@@ -13,7 +13,6 @@ export interface RiskRegisterListItem {
   category?: RiskCategory | "";
   status?: RiskStatus;
   organizationId?: string;
-  objectiveId?: string;
   orgName?: string;
   createdByName?: string;
   createdAt?: string;

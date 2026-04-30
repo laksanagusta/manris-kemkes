@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
-import { getRiskObjective } from "@/lib/api/risk-objectives";
 import { archiveRisk, restoreRisk } from "@/lib/api/risk-register";
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import { listAllOrganizations } from "@/lib/api/organizations";
@@ -147,8 +146,6 @@ import {
   AiSuggestionModal,
   type SuggestionItem,
 } from "@/components/shared/ai-suggestion-modal";
-import { ObjectivePicker } from "@/components/risk/objective-picker";
-import type { RiskObjectiveSummary } from "@/types/risk";
 
 const RiskLogTimeline = dynamic(
   () =>
@@ -225,8 +222,6 @@ type RiskApiResponse = {
   description?: string;
   category?: RiskCategory | "" | null;
   organizationId?: string;
-  objectiveId?: string;
-  objectiveSummary?: RiskObjectiveSummary | null;
   code?: string;
   assessmentCycle?: string;
   draftApprovalLine?: DraftApprovalLineMember[];
@@ -386,7 +381,6 @@ const formSchema = z.object({
     error: "Kategori risiko wajib dipilih",
   }),
   organizationId: z.string().optional(),
-  objectiveId: z.string().optional(),
   riskCode: z.string().optional(),
 
   causes: z
@@ -449,7 +443,6 @@ const draftSchema = z
       error: "Kategori risiko wajib dipilih",
     }),
     organizationId: z.string().optional(),
-    objectiveId: z.string().optional(),
   })
   .passthrough();
 
@@ -472,7 +465,6 @@ function normalizeFormValues(values: FormInput): FormValues {
       ? values.category
       : riskCategoryValues[0],
     organizationId: values.organizationId ?? "",
-    objectiveId: values.objectiveId ?? "",
     riskCode: values.riskCode ?? "",
     causes: values.causes ?? [],
     riskSource: values.riskSource ?? "internal",
@@ -581,7 +573,6 @@ export default function RiskInputPage() {
   const [organizations, setOrganizations] = useState<
     { id: string; name: string }[]
   >([]);
-  const [objectiveSummary, setObjectiveSummary] = useState<RiskObjectiveSummary | null>(null);
   const [reviewerId, setReviewerId] = useState<string>("");
   const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(
     null,
@@ -614,7 +605,6 @@ export default function RiskInputPage() {
       description: "",
       category: undefined,
       organizationId: "",
-      objectiveId: "",
       riskCode: "",
       causes: [],
       impacts: [],
@@ -843,7 +833,6 @@ export default function RiskInputPage() {
           description: risk.description || "",
           category: isRiskCategory(risk.category) ? risk.category : undefined,
           organizationId: risk.organizationId || "",
-          objectiveId: risk.objectiveId || "",
           riskCode: risk.code || "",
           causes: loadedCauses,
           impacts: loadedImpacts,
@@ -877,25 +866,6 @@ export default function RiskInputPage() {
         setAssessmentCycleDisplay(
           risk.assessmentCycle || currentAssessmentCycle(),
         );
-        if (risk.objectiveSummary) {
-          setObjectiveSummary(risk.objectiveSummary);
-        } else if (risk.objectiveId && token) {
-          try {
-            const objective = await getRiskObjective(token, risk.objectiveId);
-            setObjectiveSummary({
-              tujuan: objective.tujuan,
-              sasaran: objective.sasaran,
-              indikatorKinerjaUtama: objective.indikatorKinerjaUtama,
-              target: objective.target,
-              program: objective.program,
-              kegiatan: objective.kegiatan,
-            });
-          } catch {
-            setObjectiveSummary(null);
-          }
-        } else {
-          setObjectiveSummary(null);
-        }
 
         if (
           Array.isArray(risk.draftApprovalLine) &&
@@ -1090,7 +1060,6 @@ export default function RiskInputPage() {
           description: meetingPrefill.description || "",
           category: undefined,
           organizationId: user?.organizationId || "",
-          objectiveId: "",
           riskCode: meetingPrefill.riskCode || "",
           causes: meetingPrefill.quote
             ? [
@@ -1383,10 +1352,6 @@ export default function RiskInputPage() {
       category: data.category,
       status,
       organizationId: orgId,
-      objectiveId:
-        data.objectiveId && data.objectiveId.trim() !== ""
-          ? data.objectiveId
-          : null,
       draftApprovalLine: [
         ...(reviewerId
           ? [
@@ -2461,14 +2426,7 @@ export default function RiskInputPage() {
                           render={({ field }) => (
                             <Select
                               value={field.value}
-                              onValueChange={(nextValue) => {
-                                field.onChange(nextValue);
-                                setValue("objectiveId", "", {
-                                  shouldDirty: true,
-                                  shouldTouch: true,
-                                });
-                                setObjectiveSummary(null);
-                              }}
+                              onValueChange={field.onChange}
                               disabled={true}
                             >
                               <SelectTrigger className="h-9 text-sm">
@@ -2488,39 +2446,6 @@ export default function RiskInputPage() {
                             </Select>
                           )}
                         />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-5 md:grid-cols-2">
-                      <Controller
-                        name="objectiveId"
-                        control={control}
-                        render={({ field }) => (
-                          <ObjectivePicker
-                            token={token || ""}
-                            organizationId={currentOrganizationId}
-                            period={assessmentCycleDisplay}
-                            value={field.value}
-                            disabled={isRiskLocked || !token}
-                            onChange={(objectiveId, summary) => {
-                              field.onChange(objectiveId);
-                              setObjectiveSummary(summary || null);
-                            }}
-                          />
-                        )}
-                      />
-                      <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-4 text-sm">
-                        <p className="font-medium text-foreground">Ringkasan sasaran</p>
-                        {objectiveSummary ? (
-                          <div className="mt-3 space-y-2 text-muted-foreground">
-                            <p><span className="font-medium text-foreground">Sasaran:</span> {objectiveSummary.sasaran || "-"}</p>
-                            <p><span className="font-medium text-foreground">IKU:</span> {objectiveSummary.indikatorKinerjaUtama || "-"}</p>
-                            <p><span className="font-medium text-foreground">Program:</span> {objectiveSummary.program || "-"}</p>
-                            <p><span className="font-medium text-foreground">Kegiatan:</span> {objectiveSummary.kegiatan || "-"}</p>
-                          </div>
-                        ) : (
-                          <p className="mt-3 text-muted-foreground">Belum ada sasaran yang dipilih.</p>
-                        )}
                       </div>
                     </div>
 

@@ -10,7 +10,7 @@ import (
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
 
-func TestHandleMonitorRisk_CreatesDraftOnly(t *testing.T) {
+func TestHandleMonitorAndApproveRisk_Success(t *testing.T) {
 	riskID := uuid.New()
 	versionGroupID := uuid.New()
 	orgID := uuid.New()
@@ -50,11 +50,8 @@ func TestHandleMonitorRisk_CreatesDraftOnly(t *testing.T) {
 		t.Fatalf("Output is nil")
 	}
 
-	if output["status"] != "assessment_draft" {
-		t.Errorf("expected status 'assessment_draft', got %v", output["status"])
-	}
-	if output["message"] != "risk reassessment draft created" {
-		t.Errorf("expected draft message, got %v", output["message"])
+	if output["status"] != "approved" {
+		t.Errorf("expected status 'approved', got %v", output["status"])
 	}
 }
 

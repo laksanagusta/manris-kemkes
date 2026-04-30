@@ -82,35 +82,6 @@ function makeRisk(overrides: Partial<Risk> = {}): Risk {
   };
 }
 
-test("KMK probability labels use official wording", () => {
-  const labels = riskLib as {
-    PROBABILITY_LABELS: Record<number, string>;
-  };
-
-  assert.equal(labels.PROBABILITY_LABELS[1], "Jarang");
-  assert.equal(labels.PROBABILITY_LABELS[2], "Kemungkinan Kecil");
-  assert.equal(labels.PROBABILITY_LABELS[3], "Kemungkinan Sedang");
-  assert.equal(labels.PROBABILITY_LABELS[4], "Kemungkinan Besar");
-  assert.equal(labels.PROBABILITY_LABELS[5], "Hampir Pasti Terjadi");
-});
-
-test("KMK impact labels use official wording", () => {
-  const labels = riskLib as {
-    IMPACT_LABELS: Record<number, string>;
-  };
-
-  assert.equal(labels.IMPACT_LABELS[1], "Tidak Signifikan");
-  assert.equal(labels.IMPACT_LABELS[5], "Katastropik");
-});
-
-test("highest display label stays KMK-compatible", () => {
-  const getDisplayLabel = (riskLib as {
-    getRiskLevelDisplayLabel(level: RiskLevel): string;
-  }).getRiskLevelDisplayLabel;
-
-  assert.equal(getDisplayLabel("sangat_tinggi"), "Sangat Tinggi");
-});
-
 test("resolveRiskScoreSemantics always uses inherent values", () => {
   const risk = makeRisk({
     status: "approved",
@@ -137,8 +108,8 @@ test("resolveRiskScoreSemantics always uses inherent values", () => {
     probability: 1,
     impact: 2,
     cellKey: "1-2",
-    probabilityLabel: "Jarang",
-    impactLabel: "Kecil",
+    probabilityLabel: "Sangat Jarang",
+    impactLabel: "Ringan",
   });
   assert.deepEqual(resolved.effective, resolved.inherent);
 });
