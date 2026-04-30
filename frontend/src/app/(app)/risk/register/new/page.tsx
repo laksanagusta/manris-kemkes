@@ -117,8 +117,6 @@ import { ProbabilityCriteriaTooltip } from "@/components/shared/probability-crit
 import { MitigationProgressTab } from "@/components/shared/mitigation-progress-tab";
 import { RiskAnalysisTab } from "@/components/risk/risk-analysis-tab";
 import type {
-  MitigationFrequency,
-  RecurringInterval,
   RiskCategory,
   RiskStatus,
   RiskVersionTimelineItem,
@@ -427,10 +425,6 @@ const formSchema = z.object({
         treatmentOwnerId: z.string().optional(),
         externalPicId: z.string().optional(),
         dueDate: z.string().optional(),
-        frequency: z.string().default("insidental"),
-        recurringInterval: z.string().optional(),
-        reportDay: z.number().optional(),
-        reportDate: z.number().optional(),
       }),
     )
     .default([]),
@@ -489,7 +483,6 @@ function normalizeFormValues(values: FormInput): FormValues {
     mitigations: (values.mitigations ?? []).map((mitigation) => ({
       ...mitigation,
       owner: mitigation.owner ?? "",
-      frequency: mitigation.frequency ?? "insidental",
     })),
     targetProbability: values.targetProbability ?? 1,
     targetImpact: values.targetImpact ?? 1,
@@ -1097,7 +1090,6 @@ export default function RiskInputPage() {
                   action: meetingPrefill.mitigation,
                   owner: "",
                   dueDate: "",
-                  frequency: "insidental",
                 },
               ]
             : [],
@@ -1411,26 +1403,6 @@ export default function RiskInputPage() {
         dueDate:
           mitigation.dueDate && mitigation.dueDate.trim() !== ""
             ? mitigation.dueDate
-            : null,
-        frequency: mitigation.frequency,
-        recurringInterval:
-          mitigation.frequency === "rutin"
-            ? mitigation.recurringInterval &&
-              mitigation.recurringInterval.trim() !== ""
-              ? mitigation.recurringInterval
-              : "mingguan"
-            : null,
-        reportDay:
-          mitigation.frequency === "rutin" &&
-          (mitigation.recurringInterval === "mingguan" ||
-            !mitigation.recurringInterval)
-            ? (mitigation.reportDay ?? 5)
-            : null,
-        reportDate:
-          mitigation.frequency === "rutin" &&
-          (mitigation.recurringInterval === "bulanan" ||
-            mitigation.recurringInterval === "triwulan")
-            ? (mitigation.reportDate ?? 5)
             : null,
         targetCost: 0,
       })),
@@ -2968,16 +2940,6 @@ export default function RiskInputPage() {
                               treatmentOwnerId: mitigation.treatmentOwnerId,
                               externalPicId: mitigation.externalPicId,
                               dueDate: mitigation.dueDate ?? "",
-                              frequency:
-                                (mitigation.frequency as
-                                  | MitigationFrequency
-                                  | undefined) ?? "insidental",
-                              recurringInterval:
-                                mitigation.recurringInterval as
-                                  | RecurringInterval
-                                  | undefined,
-                              reportDay: mitigation.reportDay,
-                              reportDate: mitigation.reportDate,
                             }),
                           )}
                           onChange={field.onChange}
@@ -3007,7 +2969,6 @@ export default function RiskInputPage() {
                               action,
                               owner: "",
                               dueDate: "",
-                              frequency: "insidental",
                             },
                           ],
                           { shouldValidate: true },

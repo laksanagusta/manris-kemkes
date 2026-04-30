@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
@@ -66,6 +67,46 @@ func (r *fakeSubmitApprovalRepo) RejectCurrentStep(context.Context, uuid.UUID, u
 }
 
 var _ repo.ApprovalRepository = (*fakeSubmitApprovalRepo)(nil)
+
+type fakeSubmitMitigationTaskRepo struct {
+	created []*entity.MitigationTask
+}
+
+func (r *fakeSubmitMitigationTaskRepo) Create(_ context.Context, task *entity.MitigationTask) error {
+	copyTask := *task
+	r.created = append(r.created, &copyTask)
+	return nil
+}
+func (r *fakeSubmitMitigationTaskRepo) GetByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitMitigationTaskRepo) Update(context.Context, *entity.MitigationTask) error {
+	return errors.New("not implemented")
+}
+func (r *fakeSubmitMitigationTaskRepo) ListByRisk(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitMitigationTaskRepo) ListByMitigation(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitMitigationTaskRepo) ListByUser(context.Context, uuid.UUID, string, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitMitigationTaskRepo) ListPendingOverdue(context.Context, time.Time) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitMitigationTaskRepo) GetRecurringMitigations(context.Context) ([]*entity.Mitigation, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitMitigationTaskRepo) ListAll(context.Context, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fakeSubmitMitigationTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, int, int) ([]*entity.MitigationTask, int, error) {
+	return nil, 0, errors.New("not implemented")
+}
+func (r *fakeSubmitMitigationTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID, string, string) (bool, error) {
+	return false, nil
+}
 
 type fakeSubmitRiskRepo struct {
 	risk              *entity.Risk
@@ -227,7 +268,7 @@ func TestSubmitApprovalUseCase_UnitSubmissionTargetsReviewer(t *testing.T) {
 	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, true)
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, &fakeSubmitMitigationTaskRepo{}, true)
 	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType: "risk",
 		EntityID:    riskID.String(),
@@ -260,7 +301,7 @@ func TestSubmitApprovalUseCase_SubmitDraftRisk_UpdatesStatusToInReview(t *testin
 	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, true)
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, &fakeSubmitMitigationTaskRepo{}, true)
 	output, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType: "risk",
 		EntityID:    riskID.String(),
@@ -299,7 +340,7 @@ func TestSubmitApprovalUseCase_DisabledRiskSubmission_AutoApprovesWithoutApprova
 	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, false)
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, &fakeSubmitMitigationTaskRepo{}, false)
 	output, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType: "risk",
 		EntityID:    riskID.String(),
@@ -339,7 +380,7 @@ func TestSubmitApprovalUseCase_DisabledAssessmentSubmission_AutoApprovesWithoutA
 	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID, PreviousRiskID: &previousRiskID, CreatedBy: &requestedBy, Status: entity.RiskStatusDraft}}
 	userRepo := &fakeSubmitUserRepo{users: map[uuid.UUID]*entity.User{approverID: {ID: approverID, Name: "Farah", Role: "reviewer"}}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, false)
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, &fakeSubmitMitigationTaskRepo{}, false)
 	output, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType: "assessment",
 		EntityID:    riskID.String(),
@@ -388,7 +429,7 @@ func TestSubmitApprovalUseCase_ReviewSubmission_CreatesReviewStepType(t *testing
 		pimpinanID: {ID: pimpinanID, Name: "Hendra", Role: "pimpinan"},
 	}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, true)
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, &fakeSubmitMitigationTaskRepo{}, true)
 	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType:    "risk",
 		EntityID:       riskID.String(),
@@ -421,7 +462,7 @@ func TestSubmitApprovalUseCase_ApprovalOnlySubmission_CreatesApprovalStepTypes(t
 		pimpinanID: {ID: pimpinanID, Name: "Hendra", Role: "pimpinan"},
 	}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, true)
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, &fakeSubmitMitigationTaskRepo{}, true)
 	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType:    "risk",
 		EntityID:       riskID.String(),
@@ -451,7 +492,7 @@ func TestSubmitApprovalUseCase_EmptySubmissionType_DefaultsToApproval(t *testing
 		reviewerID: {ID: reviewerID, Name: "Farah", Role: "reviewer"},
 	}}
 
-	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, true)
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, userRepo, &fakeSubmitMitigationTaskRepo{}, true)
 	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
 		RequestType:    "risk",
 		EntityID:       riskID.String(),
@@ -468,5 +509,35 @@ func TestSubmitApprovalUseCase_EmptySubmissionType_DefaultsToApproval(t *testing
 	}
 	if approvalRepo.steps[0].StepType != "approval" {
 		t.Fatalf("expected step type 'approval' for backward compatibility, got %q", approvalRepo.steps[0].StepType)
+	}
+}
+
+func TestSubmitApprovalUseCase_DisabledRiskSubmission_AutoCreatesMitigationTasks(t *testing.T) {
+	approvalRepo := &fakeSubmitApprovalRepo{}
+	riskID := uuid.New()
+	requestedBy := uuid.New()
+	dueDate := "2026-06-10"
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{
+		ID:        riskID,
+		CreatedBy: &requestedBy,
+		Status:    entity.RiskStatusDraft,
+		Mitigations: []entity.Mitigation{
+			{ID: uuid.New(), RiskID: riskID, Action: "Mitigasi A", Owner: "PIC A", DueDate: &dueDate},
+		},
+	}}
+	taskRepo := &fakeSubmitMitigationTaskRepo{}
+
+	uc := NewSubmitApprovalUseCase(approvalRepo, riskRepo, &fakeSubmitIncidentRepo{}, &fakeSubmitUserRepo{}, taskRepo, false)
+	_, err := uc.Execute(context.Background(), SubmitApprovalInput{
+		RequestType: "risk",
+		EntityID:    riskID.String(),
+		RequestedBy: requestedBy.String(),
+		Role:        "unit",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(taskRepo.created) != 1 {
+		t.Fatalf("expected 1 mitigation task, got %d", len(taskRepo.created))
 	}
 }

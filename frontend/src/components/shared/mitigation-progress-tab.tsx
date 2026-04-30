@@ -32,7 +32,7 @@ import {
   AlertTriangle,
   Loader2,
   Send,
-  RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 
 import type { MitigationTask } from "@/types/risk";
@@ -80,6 +80,8 @@ export function MitigationProgressTab({
   const [tasks, setTasks] = useState<MitigationTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [detailTask, setDetailTask] = useState<MitigationTask | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MitigationTask | null>(null);
   const [showDialog, setShowDialog] = useState(false);
 
@@ -134,6 +136,11 @@ export function MitigationProgressTab({
     setShowDialog(true);
   };
 
+  const handleOpenDetail = (task: MitigationTask) => {
+    setDetailTask(task);
+    setShowDetailDialog(true);
+  };
+
   const handleSubmitProgress = async () => {
     if (!selectedTask) return;
     if (hasFormErrors) {
@@ -163,37 +170,58 @@ export function MitigationProgressTab({
     }
   };
 
-  const handleGenerateTasks = async () => {
-    try {
-      const result = await api.post<{
-        tasksGenerated: number;
-        tasksOverdue: number;
-      }>("/mitigation-tasks/generate", {}, token);
-      toast.success(
-        `${result.tasksGenerated} task baru dibuat, ${result.tasksOverdue} ditandai overdue`,
-      );
-      fetchTasks();
-    } catch {
-      toast.error("Gagal generate task");
-    }
-  };
+  const tableTasks = useMemo(() => {
+    const statusOrder: Record<string, number> = {
+      overdue: 0,
+      pending: 1,
+      done: 2,
+      skipped: 3,
+    };
 
-  // Group tasks by mitigation action
-  const groupedTasks = tasks.reduce<Record<string, MitigationTask[]>>(
-    (acc, task) => {
-      const key = task.mitigationAction || "Lainnya";
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(task);
-      return acc;
-    },
-    {},
-  );
+    return [...tasks].sort((a, b) => {
+      const statusDelta =
+        (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+      if (statusDelta !== 0) return statusDelta;
+
+      if (a.status === "done" && b.status === "done") {
+        const aReported = a.reportedAt ? new Date(a.reportedAt).getTime() : 0;
+        const bReported = b.reportedAt ? new Date(b.reportedAt).getTime() : 0;
+        return bReported - aReported;
+      }
+
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
+  }, [tasks]);
 
   const stats = {
     total: tasks.length,
     done: tasks.filter((t) => t.status === "done").length,
     pending: tasks.filter((t) => t.status === "pending").length,
     overdue: tasks.filter((t) => t.status === "overdue").length,
+  };
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return "-";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "-";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   if (loading) {
@@ -247,16 +275,6 @@ export function MitigationProgressTab({
           <CardTitle className="text-base font-bold flex items-center gap-2">
             <Activity className="size-4" /> Progress Aktual Penanganan
           </CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-xs h-8"
-              onClick={handleGenerateTasks}
-            >
-              <RefreshCw className="size-3.5" /> Generate Task
-            </Button>
-          </div>
         </CardHeader>
         <CardContent className="pt-4 overflow-hidden">
           {tasks.length === 0 ? (
@@ -264,143 +282,291 @@ export function MitigationProgressTab({
               <Activity className="size-8 text-muted-foreground/50 mb-3" />
               <p className="text-sm font-medium">Belum Ada Task Penanganan</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                Klik &quot;Generate Task&quot; untuk membuat task berdasarkan
-                jadwal mitigasi rutin, atau task akan dibuat otomatis oleh
-                sistem setiap jam.
+                Task akan muncul otomatis saat risiko difinalisasi dan setiap
+                mitigasi hanya memiliki satu laporan.
               </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4 gap-2 text-xs"
-                onClick={handleGenerateTasks}
-              >
-                <RefreshCw className="size-3.5" /> Generate Task Sekarang
-              </Button>
             </div>
           ) : (
-            <div className="space-y-5">
-              {Object.entries(groupedTasks).map(([action, actionTasks]) => (
-                <div key={action} className="min-w-0">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2 max-w-full">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                    <span className="truncate max-w-[1200px]">{action}</span>
-                  </h4>
-                  <div className="space-y-2">
-                    {actionTasks.map((task) => {
-                      const statusCfg =
-                        STATUS_CONFIG[task.status] || STATUS_CONFIG.pending;
-                      return (
-                        <div
-                          key={task.id}
-                          className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/20 transition-colors"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-semibold">
-                                {task.periodLabel}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className={`text-[10px] gap-1 ${statusCfg.color}`}
-                              >
-                                {statusCfg.icon} {statusCfg.label}
-                              </Badge>
+            <div className="overflow-x-auto rounded-lg border border-border/50">
+              <table className="min-w-[980px] w-full">
+                <thead className="bg-muted/40">
+                  <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <th className="px-4 py-3 font-semibold">Kode</th>
+                    <th className="px-4 py-3 font-semibold">Rencana</th>
+                    <th className="px-4 py-3 font-semibold">Periode</th>
+                    <th className="px-4 py-3 font-semibold">Tenggat</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Progress</th>
+                    <th className="px-4 py-3 font-semibold text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableTasks.map((task) => {
+                    const statusCfg =
+                      STATUS_CONFIG[task.status] || STATUS_CONFIG.pending;
+                    const submissionCheck =
+                      task.status === "pending" || task.status === "overdue"
+                        ? isWithinMitigationSubmissionWindow(
+                            task.periodEnd,
+                            task.dueDate,
+                          )
+                        : null;
+
+                    return (
+                      <tr
+                        key={task.id}
+                        className="cursor-pointer border-t border-border/50 transition-colors hover:bg-muted/30"
+                        onClick={() => handleOpenDetail(task)}
+                      >
+                        <td className="px-4 py-3 align-top">
+                          <div className="text-xs font-semibold text-foreground">
+                            {task.riskCode || "—"}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {task.riskTitle || "—"}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <div className="max-w-[360px] text-sm font-medium text-foreground line-clamp-2">
+                            {task.mitigationAction || "—"}
+                          </div>
+                          {task.mitigationOwner && (
+                            <div className="mt-1 text-[11px] text-muted-foreground">
+                              PIC: {task.mitigationOwner}
                             </div>
-                            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                          )}
+                        </td>
+                        <td className="px-4 py-3 align-top text-sm text-foreground">
+                          {task.periodLabel || "—"}
+                        </td>
+                        <td className="px-4 py-3 align-top text-sm text-foreground">
+                          {formatDate(task.dueDate)}
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] gap-1 ${statusCfg.color}`}
+                          >
+                            {statusCfg.icon} {statusCfg.label}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <div className="space-y-1">
+                            <Progress
+                              value={task.status === "done" ? task.progressPct : 0}
+                              className="h-1.5"
+                            />
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                               <span>
-                                Tenggat:{" "}
-                                {new Date(task.dueDate).toLocaleDateString(
-                                  "id-ID",
-                                  {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  },
-                                )}
+                                {task.status === "done"
+                                  ? `${task.progressPct}%`
+                                  : "Belum dilaporkan"}
                               </span>
-                              {task.reportedByName && (
-                                <span>Oleh: {task.reportedByName}</span>
+                              {task.reportedByName && task.status === "done" && (
+                                <span className="truncate max-w-[150px]">
+                                  {task.reportedByName}
+                                </span>
                               )}
                             </div>
-                            {task.status === "done" && (
-                              <div className="mt-2">
-                                <Progress
-                                  value={task.progressPct}
-                                  className="h-1.5"
-                                />
-                                <div className="flex justify-between mt-1">
-                                  <span className="text-[10px] text-muted-foreground">
-                                    {task.progressPct}%
-                                  </span>
-                                  {task.notes && (
-                                    <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">
-                                      {task.notes}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
                           </div>
-{(task.status === "pending" ||
+                        </td>
+                        <td className="px-4 py-3 align-top text-right">
+                          {(task.status === "pending" ||
                             task.status === "overdue") && (
-                              (() => {
-                                const submissionCheck = isWithinMitigationSubmissionWindow(
-                                  task.periodEnd,
-                                  task.dueDate,
-                                );
-                                if (!submissionCheck.allowed) {
-                                  return (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span className="inline-block cursor-not-allowed">
-                                            <Button
-                                              size="sm"
-                                              variant={
-                                                task.status === "overdue"
-                                                  ? "destructive"
-                                                  : "default"
-                                              }
-                                              disabled
-                                              className="opacity-50 pointer-events-none"
-                                            >
-                                              <Send className="size-3" /> Lapor
-                                            </Button>
-                                          </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="left" className="max-w-[220px] text-xs">
-                                          {submissionCheck.message}
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  );
-                                }
-                                return (
-                                  <Button
-                                    size="sm"
-                                    variant={
-                                      task.status === "overdue"
-                                        ? "destructive"
-                                        : "default"
-                                    }
-                                    className="gap-1.5 text-xs h-8 shrink-0"
-                                    onClick={() => handleOpenSubmit(task)}
-                                  >
-                                    <Send className="size-3" /> Lapor
-                                  </Button>
-                                );
-                              })()
-                            )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                            <>
+                              {submissionCheck && !submissionCheck.allowed ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-block cursor-not-allowed">
+                                        <Button
+                                          size="sm"
+                                          variant={
+                                            task.status === "overdue"
+                                              ? "destructive"
+                                              : "default"
+                                          }
+                                          disabled
+                                          className="opacity-50 pointer-events-none"
+                                          onClick={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                        >
+                                          <Send className="size-3" /> Lapor
+                                        </Button>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="left" className="max-w-[220px] text-xs">
+                                      {submissionCheck.message}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant={
+                                    task.status === "overdue"
+                                      ? "destructive"
+                                      : "default"
+                                  }
+                                  className="gap-1.5 text-xs h-8 shrink-0"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleOpenSubmit(task);
+                                  }}
+                                >
+                                  <Send className="size-3" /> Lapor
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Detail Dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">
+              Detail Laporan Penanganan
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {detailTask?.mitigationAction || "-"} - {detailTask?.periodLabel || "-"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {detailTask && (
+            <div className="space-y-4 py-2">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Status
+                  </p>
+                  <Badge
+                    variant="outline"
+                    className={`mt-2 text-[10px] gap-1 ${(STATUS_CONFIG[detailTask.status] || STATUS_CONFIG.pending).color}`}
+                  >
+                    {(STATUS_CONFIG[detailTask.status] || STATUS_CONFIG.pending).icon}
+                    {(STATUS_CONFIG[detailTask.status] || STATUS_CONFIG.pending).label}
+                  </Badge>
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Tenggat
+                  </p>
+                  <p className="mt-2 text-sm font-medium">{formatDate(detailTask.dueDate)}</p>
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Periode
+                  </p>
+                  <p className="mt-2 text-sm font-medium">{detailTask.periodLabel || "-"}</p>
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Laporan Oleh
+                  </p>
+                  <p className="mt-2 text-sm font-medium">
+                    {detailTask.reportedByName || "Belum ada laporan"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDateTime(detailTask.reportedAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Progress
+                    </p>
+                    <p className="text-lg font-bold">
+                      {detailTask.status === "done"
+                        ? `${detailTask.progressPct}%`
+                        : "Belum dilaporkan"}
+                    </p>
+                  </div>
+                  <Progress
+                    value={detailTask.status === "done" ? detailTask.progressPct : 0}
+                    className="h-2 flex-1 max-w-xs"
+                  />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-lg bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      Biaya Aktual
+                    </p>
+                    <p className="mt-1 text-sm font-medium">
+                      {detailTask.actualCost
+                        ? `Rp ${detailTask.actualCost.toLocaleString("id-ID")}`
+                        : "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      Evidence
+                    </p>
+                    {detailTask.evidenceUrl ? (
+                      <a
+                        href={detailTask.evidenceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        Buka bukti <ExternalLink className="size-3.5" />
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-sm font-medium">-</p>
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Catatan
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+                    {detailTask.notes || "Belum ada catatan pelaksanaan."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            {detailTask &&
+              (detailTask.status === "pending" || detailTask.status === "overdue") && (
+                <Button
+                  size="sm"
+                  variant={detailTask.status === "overdue" ? "destructive" : "default"}
+                  onClick={() => {
+                    setShowDetailDialog(false);
+                    handleOpenSubmit(detailTask);
+                  }}
+                >
+                  <Send className="size-3" />
+                  Lapor Progress
+                </Button>
+              )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDetailDialog(false)}
+            >
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Submit Progress Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

@@ -11,6 +11,7 @@ import (
 type Mitigation struct {
 	ID                    uuid.UUID  `json:"id"`
 	RiskID                uuid.UUID  `json:"riskId"`
+	AssessmentCycle       string     `json:"assessmentCycle,omitempty"`
 	Action                string     `json:"action"`
 	Owner                 string     `json:"owner"`
 	OwnerUserID           *uuid.UUID `json:"ownerUserId,omitempty"`

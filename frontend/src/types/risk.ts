@@ -26,7 +26,7 @@ export interface RiskMitigation {
   treatmentOwnerId?: string;
   externalPicId?: string;
   dueDate: string;
-  frequency: MitigationFrequency;
+  frequency?: MitigationFrequency;
   recurringInterval?: RecurringInterval;
   reportDay?: number;   // 0=Sun..6=Sat (for mingguan)
   reportDate?: number;  // 1-31 (for bulanan/triwulan)

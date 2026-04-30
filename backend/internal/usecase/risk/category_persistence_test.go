@@ -197,7 +197,7 @@ func TestUpdateRiskUseCase_ExecutePersistsCategory(t *testing.T) {
 		Impact:         3,
 	}}
 
-	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{}, nil)
+	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{}, nil, nil)
 	_, err := uc.Execute(context.Background(), UpdateRiskInput{
 		ID:             riskID,
 		Title:          "Updated title",
@@ -233,7 +233,7 @@ func TestUpdateRiskUseCase_ExecuteRejectsInvalidCategory(t *testing.T) {
 		Impact:         3,
 	}}
 
-	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{}, nil)
+	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{}, nil, nil)
 	_, err := uc.Execute(context.Background(), UpdateRiskInput{
 		ID:             riskID,
 		Title:          "Updated title",
@@ -295,7 +295,7 @@ func TestUpdateRiskUseCase_ExecuteRejectsRiskLinkedToSigningWorkingPaper(t *test
 	}}
 
 	wpRepo := &lockAwareWorkingPaperRepo{blocked: true}
-	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{}, wpRepo)
+	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{}, wpRepo, nil)
 
 	_, err := uc.Execute(context.Background(), UpdateRiskInput{
 		ID:             riskID,

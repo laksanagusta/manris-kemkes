@@ -949,13 +949,6 @@ export default function AssessmentFormPage() {
                         treatmentOwnerId: m.treatmentOwnerId,
                         externalPicId: m.externalPicId,
                         dueDate: m.dueDate ?? "",
-                        frequency:
-                          (m.frequency as MitigationItem["frequency"]) ??
-                          "insidental",
-                        recurringInterval:
-                          m.recurringInterval as MitigationItem["recurringInterval"],
-                        reportDay: m.reportDay,
-                        reportDate: m.reportDate,
                       }),
                     );
                     return mitigationItems.length > 0 ? (
@@ -1235,9 +1228,7 @@ export default function AssessmentFormPage() {
                 nilaiBaru={computedNilai}
                 probability={probability}
                 impact={impact}
-                targetScore={
-                  sourceRisk.targetNilai ?? sourceRisk.targetScore ?? 0
-                }
+                targetScore={sourceRisk.targetScore ?? 0}
               />
             </div>
           </div>
