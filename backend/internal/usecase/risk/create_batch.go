@@ -81,14 +81,24 @@ func (uc *CreateRiskBatchUseCase) Execute(ctx context.Context, input CreateRiskB
 		}
 		normalized := normalizeBatchItem(itemToCreate)
 
-		// Default empty mitigation Owner to submitter name
-		if submitterName != "" {
-			for i := range normalized.Mitigations {
-				if normalized.Mitigations[i].Owner == "" {
-					normalized.Mitigations[i].Owner = submitterName
+		for i := range normalized.Mitigations {
+			if normalized.Mitigations[i].Owner != "" {
+				continue
+			}
+
+			if normalized.Mitigations[i].OwnerUserID != nil {
+				if user, err := uc.userRepo.GetByID(ctx, *normalized.Mitigations[i].OwnerUserID); err == nil {
+					normalized.Mitigations[i].Owner = strings.TrimSpace(user.Name)
 				}
 			}
+			if normalized.Mitigations[i].Owner == "" {
+				normalized.Mitigations[i].Owner = submitterName
+			}
+			if normalized.Mitigations[i].Owner == "" && normalized.Mitigations[i].OwnerUserID != nil {
+				normalized.Mitigations[i].Owner = normalized.Mitigations[i].OwnerUserID.String()
+			}
 		}
+
 		if err := validateBatchItem(normalized); err != nil {
 			output.Items = append(output.Items, CreateRiskBatchItemOutput{
 				ClientKey: item.ClientKey,
@@ -151,7 +161,7 @@ func normalizeBatchItem(item CreateRiskBatchItemInput) CreateRiskBatchItemInput 
 	if item.Category == "" {
 		item.Category = "operasional"
 	}
-	item.RiskSource = strings.TrimSpace(item.RiskSource)
+	item.RiskSource = normalizeRiskSource(item.RiskSource)
 	item.ExistingControl = strings.TrimSpace(item.ExistingControl)
 	item.RiskAppetite = strings.TrimSpace(item.RiskAppetite)
 	item.Controllability = normalizeControllability(item.Controllability)
@@ -179,8 +189,21 @@ func validateBatchItem(item CreateRiskBatchItemInput) error {
 			return apperrors.Wrap(apperrors.ErrInvalidRiskCategory, "invalid risk category")
 		}
 	}
+	if item.RiskSource != "" && item.RiskSource != "internal" && item.RiskSource != "eksternal" {
+		return apperrors.Wrap(apperrors.ErrInvalidInput, "risk source must be Internal or external")
+	}
 	if item.Controllability != "" && item.Controllability != "C" && item.Controllability != "UC" {
 		return apperrors.Wrap(apperrors.ErrInvalidInput, "controllability must be C or UC")
+	}
+	if item.ControlEffectiveness != "" && item.ControlEffectiveness != "efektif" && item.ControlEffectiveness != "tidak_efektif" {
+		return apperrors.Wrap(apperrors.ErrInvalidInput, "control effectiveness must be Efektif or Tidak Efektif")
+	}
+	if item.TreatmentOption != "" &&
+		item.TreatmentOption != "avoid" &&
+		item.TreatmentOption != "transfer" &&
+		item.TreatmentOption != "mitigate" &&
+		item.TreatmentOption != "accept" {
+		return apperrors.Wrap(apperrors.ErrInvalidInput, "treatment option must be Menghindari Risiko, Berbagi Risiko, Mitigasi, or Menerima Risiko")
 	}
 	if item.Probability < 1 || item.Probability > 5 {
 		return apperrors.ErrInvalidProbability

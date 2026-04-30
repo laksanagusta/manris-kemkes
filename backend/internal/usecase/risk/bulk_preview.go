@@ -67,7 +67,7 @@ var bulkRiskColumnAliases = map[string]string{
 	"cuc":                     "C/UC",
 	"dampak":                  "DAMPAK",
 	"pengendalianuraian":      "URAIAN",
-	"efektivitaspengendalian": "EFECTIVITAS PENGENDALIAN",
+	"efektivitaspengendalian": "Efektivitas Pengendalian",
 	"efektif":                 "EFEKTIF",
 	"tidakefektif":            "TIDAK EFEKTIF",
 	"p":                       "P",
@@ -509,7 +509,9 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 	} else if tidakEfektif != "" {
 		controlEff = "tidak_efektif"
 	} else {
-		controlEff = normalizeControlEffectiveness(getVal("Efektivitas Pengendalian"))
+		controlEff = normalizeControlEffectiveness(
+			getVal("Efektivitas Pengendalian", "EFEKTIVITAS PENGENDALIAN"),
+		)
 	}
 
 	title := getVal("RISIKO")
@@ -526,7 +528,7 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 		Description:          description,
 		Category:             category,
 		Cause:                splitBulkRiskMultiValue(getVal("SEBAB")),
-		RiskSource:           getVal("SUMBER RISIKO"),
+		RiskSource:           normalizeRiskSource(getVal("SUMBER RISIKO")),
 		Controllability:      normalizeControllability(getVal("C/UC")),
 		ImpactDesc:           splitBulkRiskMultiValue(getVal("DAMPAK")),
 		ExistingControl:      getVal("URAIAN"),
@@ -543,9 +545,19 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 	}
 	schedule := parseBulkRiskSchedule(getVal("JADWAL PELAKSANAAN"))
 	if action := getVal("URAIAN (RPR)"); action != "" {
+		owner := getVal("PIC RPR")
+		var ownerUserID *uuid.UUID
+		if owner == "" && uploader != nil {
+			owner = strings.TrimSpace(uploader.Name)
+			if owner == "" {
+				owner = uploader.ID.String()
+			}
+			ownerUserID = &uploader.ID
+		}
 		item.Mitigations = []entity.Mitigation{{
 			Action:                action,
-			Owner:                 getVal("PIC RPR"),
+			Owner:                 owner,
+			OwnerUserID:           ownerUserID,
 			Frequency:             schedule.Frequency,
 			RecurringInterval:     schedule.RecurringInterval,
 			DueDate:               schedule.DueDate,
@@ -584,7 +596,12 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 	} else if !entity.IsValidRiskCategory(item.Category) {
 		errors = append(errors, "Kategori Risiko tidak valid. Gunakan: strategis, operasional, kepatuhan, finansial, reputasi, teknologi_informasi.")
 	}
+	if rawRiskSource := getVal("SUMBER RISIKO"); rawRiskSource != "" && item.RiskSource != "internal" && item.RiskSource != "eksternal" {
+		errors = append(errors, "Kolom Sumber Risiko harus berisi Internal atau external.")
+	}
 	if item.Controllability == "" {
+		errors = append(errors, "Kolom C/UC harus berisi C atau UC.")
+	} else if item.Controllability != "C" && item.Controllability != "UC" {
 		errors = append(errors, "Kolom C/UC harus berisi C atau UC.")
 	}
 	if item.Probability < 1 || item.Probability > 5 {
@@ -599,18 +616,21 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 	if item.TargetImpact != 0 && (item.TargetImpact < 1 || item.TargetImpact > 5) {
 		errors = append(errors, "Kolom Target D harus angka 1-5.")
 	}
-	if action := getVal("URAIAN (RPR)"); action != "" {
-		if picRPR, hasPICRPR := record["PIC RPR"]; hasPICRPR && picRPR == "" {
-			errors = append(errors, "Kolom PIC RPR wajib diisi jika RPR Uraian diisi.")
-		}
-	}
 	if getVal("PILIHAN PENANGANAN") != "" && item.TreatmentOption == "" {
 		errors = append(errors, "Pilihan Penanganan Risiko tidak dikenali.")
+	} else if rawTreatmentOption := getVal("PILIHAN PENANGANAN"); rawTreatmentOption != "" &&
+		item.TreatmentOption != "avoid" &&
+		item.TreatmentOption != "transfer" &&
+		item.TreatmentOption != "mitigate" &&
+		item.TreatmentOption != "accept" {
+		errors = append(errors, "Kolom Pilihan Penanganan harus berisi Menghindari Risiko, Berbagi Risiko, Mitigasi, atau Menerima Risiko.")
 	}
 	if controlEff == "__both_efektif_tidak_efektif__" {
 		errors = append(errors, "Kolom EFEKTIF dan TIDAK EFEKTIF tidak boleh keduanya diisi.")
-	} else if getVal("Efektivitas Pengendalian") != "" && item.ControlEffectiveness == "" {
+	} else if getVal("Efektivitas Pengendalian", "EFEKTIVITAS PENGENDALIAN") != "" && item.ControlEffectiveness == "" {
 		errors = append(errors, "Efektivitas Pengendalian harus Efektif atau Tidak Efektif.")
+	} else if controlEff != "" && controlEff != "efektif" && controlEff != "tidak_efektif" {
+		errors = append(errors, "Kolom Efektivitas Pengendalian harus berisi Efektif atau Tidak Efektif.")
 	}
 	if len(item.Cause) == 0 {
 		warnings = append(warnings, "Sebab kosong; risiko tetap bisa dibuat tetapi analisis menjadi minim.")

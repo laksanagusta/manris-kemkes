@@ -13,6 +13,7 @@ const {
   buildMovementChartData,
   buildMovementSnapshotData,
   buildTopRiskBadgeMap,
+  buildUnitTotalRiskScoreData,
   buildUnitExposureData,
 } = dashboardInsightsLib as typeof import("./dashboard-insights");
 
@@ -294,6 +295,96 @@ test("buildUnitExposureData and buildMovementChartData return empty-friendly arr
     { label: "Turun", value: 0, fill: "oklch(0.72 0.17 155)" },
     { label: "Stabil", value: 0, fill: "oklch(0.60 0.02 265 / 55%)" },
   ]);
+});
+
+test("buildUnitTotalRiskScoreData sums effective scores per unit", () => {
+  const result = buildUnitTotalRiskScoreData([
+    makeDashboardRisk({
+      orgName: "Direktorat A",
+      probability: 5,
+      impact: 4,
+      inherentScore: 20,
+      status: "assessment_in_review",
+    }),
+    makeDashboardRisk({
+      orgName: "Direktorat A",
+      probability: 4,
+      impact: 3,
+      inherentScore: 12,
+      status: "assessment_in_review",
+    }),
+    makeDashboardRisk({
+      orgName: "Direktorat B",
+      probability: 2,
+      impact: 3,
+      inherentScore: 6,
+      status: "assessment_in_review",
+    }),
+  ]);
+
+  assert.deepEqual(result, [
+    { orgName: "Direktorat A", totalScore: 32, riskCount: 2 },
+    { orgName: "Direktorat B", totalScore: 6, riskCount: 1 },
+  ]);
+});
+
+test("buildUnitTotalRiskScoreData uses effective approved score semantics", () => {
+  const result = buildUnitTotalRiskScoreData([
+    makeDashboardRisk({
+      orgName: "Direktorat A",
+      status: "approved",
+      probability: 2,
+      impact: 3,
+      weight: 1,
+      nilai: 6,
+      inherentScore: 6,
+    }),
+  ]);
+
+  assert.deepEqual(result, [
+    { orgName: "Direktorat A", totalScore: 6, riskCount: 1 },
+  ]);
+});
+
+test("buildUnitTotalRiskScoreData falls back blank org names and sorts ties by unit name", () => {
+  const result = buildUnitTotalRiskScoreData([
+    makeDashboardRisk({
+      orgName: "  ",
+      probability: 2,
+      impact: 2,
+      inherentScore: 4,
+    }),
+    makeDashboardRisk({
+      orgName: "Zulu",
+      probability: 3,
+      impact: 3,
+      inherentScore: 9,
+    }),
+    makeDashboardRisk({
+      orgName: "Alpha",
+      probability: 3,
+      impact: 3,
+      inherentScore: 9,
+    }),
+  ]);
+
+  assert.deepEqual(result, [
+    { orgName: "Alpha", totalScore: 9, riskCount: 1 },
+    { orgName: "Zulu", totalScore: 9, riskCount: 1 },
+    { orgName: "Tanpa Unit", totalScore: 4, riskCount: 1 },
+  ]);
+});
+
+test("buildUnitTotalRiskScoreData applies limit and returns empty-friendly array", () => {
+  const limited = buildUnitTotalRiskScoreData([
+    makeDashboardRisk({ orgName: "Direktorat A", inherentScore: 20 }),
+    makeDashboardRisk({ orgName: "Direktorat B", inherentScore: 12 }),
+  ], 1);
+
+  assert.deepEqual(limited, [
+    { orgName: "Direktorat A", totalScore: 20, riskCount: 1 },
+  ]);
+  assert.deepEqual(buildUnitTotalRiskScoreData([]), []);
 });
 
 test("buildExecutiveTrendData sorts semester output chronologically for overview charts", () => {

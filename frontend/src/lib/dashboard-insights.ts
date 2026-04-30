@@ -51,6 +51,12 @@ export type UnitExposureDatum = {
   extreme: number;
 };
 
+export type UnitTotalRiskScoreDatum = {
+  orgName: string;
+  totalScore: number;
+  riskCount: number;
+};
+
 export type MovementChartDatum = {
   label: "Naik" | "Turun" | "Stabil";
   value: number;
@@ -150,6 +156,44 @@ export function buildUnitExposureData(risks: RiskLike[], limit = 5): UnitExposur
   return [...grouped.values()]
     .sort((left, right) => right.exposureScore - left.exposureScore || left.orgName.localeCompare(right.orgName))
     .slice(0, limit);
+}
+
+export function buildUnitTotalRiskScoreData(
+  risks: RiskLike[],
+  limit?: number,
+): UnitTotalRiskScoreDatum[] {
+  const grouped = new Map<string, UnitTotalRiskScoreDatum>();
+
+  for (const risk of risks) {
+    const orgName = risk.orgName?.trim() || "Tanpa Unit";
+    const effectiveScore = resolveRiskScoreSemantics({
+      status: risk.status ?? "assessment_draft",
+      probability: risk.probability ?? 1,
+      impact: risk.impact ?? 1,
+      weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
+      nilai: risk.nilai ?? undefined,
+      inherentScore: risk.inherentScore ?? 0,
+    }).effective.score;
+
+    const row = grouped.get(orgName) ?? {
+      orgName,
+      totalScore: 0,
+      riskCount: 0,
+    };
+
+    row.totalScore += effectiveScore;
+    row.riskCount += 1;
+    grouped.set(orgName, row);
+  }
+
+  const result = [...grouped.values()].sort(
+    (left, right) =>
+      right.totalScore - left.totalScore ||
+      right.riskCount - left.riskCount ||
+      left.orgName.localeCompare(right.orgName),
+  );
+
+  return typeof limit === "number" ? result.slice(0, limit) : result;
 }
 
 export function buildMovementChartData(comparisons: ComparisonLike[]): MovementChartDatum[] {
@@ -418,6 +462,7 @@ export type InherentResidualDatum = {
 };
 
 export function buildInherentResidualTrendData(_risks: RiskLike[]): InherentResidualDatum[] {
+  void _risks;
   // TODO: GAP-4 follow-up — chart needs redesign for single-score model
   return [];
 }

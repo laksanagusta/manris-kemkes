@@ -359,7 +359,7 @@ export default function BulkRiskRegisterPage() {
   return (
     <div className="space-y-6 pb-10">
       <FormHeader
-        title="Bulk Create Risk"
+        title="Import Risiko"
         description="Upload template XLSX. Parsing, validasi, dan lookup unit kerja dijalankan di backend agar konsisten dengan master data server."
         badges={
           <div className="flex flex-wrap gap-2">
@@ -403,7 +403,7 @@ export default function BulkRiskRegisterPage() {
               ) : (
                 <Upload className="size-3.5" />
               )}
-              {isSubmitting ? "Menyimpan..." : "Submit bulk create"}
+              {isSubmitting ? "Menyimpan..." : "Submit Risiko"}
             </Button>
           </>
         }

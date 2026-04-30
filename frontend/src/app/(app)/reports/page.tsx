@@ -42,6 +42,7 @@ import { InherentResidualTrend } from "./_components/inherent-residual-trend";
 import { CriticalRiskRateTrend } from "./_components/critical-risk-rate-trend";
 import { RiskMovementByOrg } from "./_components/risk-movement-by-org";
 import { OrganizationLatestProgressChart } from "./_components/organization-latest-progress-chart";
+import { RiskCategoryDistributionCard } from "./_components/risk-category-distribution-card";
 import { cn } from "@/lib/utils";
 import {
   exportRiskBulkCSV,
@@ -54,6 +55,7 @@ import {
   buildMovementChartData,
   buildMovementSnapshotData,
   buildUnitExposureData,
+  buildDashboardRiskCategoryData,
   buildInherentResidualTrendData,
   buildCriticalRiskRateTrendData,
   buildMovementByOrgData,
@@ -69,6 +71,7 @@ import {
 import type {
   KRIBreachItem,
   OverdueMitigationTimelineItem,
+  DashboardRiskCategoryItem,
   Risk,
   RiskCycleComparisonItem,
   UnitResponseTime,
@@ -214,6 +217,11 @@ export default function ReportsPage() {
   const [responseTimeData, setResponseTimeData] = useState<UnitResponseTime[]>(
     [],
   );
+  const [riskCategoryData, setRiskCategoryData] = useState<
+    ReturnType<typeof buildDashboardRiskCategoryData>
+  >([]);
+  const [riskCategoryLoading, setRiskCategoryLoading] = useState(true);
+  const [riskCategoryError, setRiskCategoryError] = useState(false);
   const [movementByOrgSort, setMovementByOrgSort] =
     useState<MovementByOrgSortKey>("total");
   const [workingPapers, setWorkingPapers] = useState<WorkingPaper[]>([]);
@@ -282,6 +290,10 @@ export default function ReportsPage() {
 
     Promise.allSettled([
       api.get<RiskTrendSourceItem[]>("/risks/trend", token),
+      api.get<DashboardRiskCategoryItem[]>(
+        `/dashboard/risk-categories?cycle=${exportCycle}`,
+        token,
+      ),
       api.get<Risk[]>(
         `/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}`,
         token,
@@ -304,6 +316,7 @@ export default function ReportsPage() {
     ]).then(
       ([
         riskResult,
+        riskCategoryResult,
         cycleRiskResult,
         previousCycleRiskResult,
         comparisonResult,
@@ -318,6 +331,18 @@ export default function ReportsPage() {
           console.error(riskResult.reason);
           setTrendRisks([]);
         }
+
+        if (riskCategoryResult.status === "fulfilled") {
+          setRiskCategoryData(
+            buildDashboardRiskCategoryData(riskCategoryResult.value),
+          );
+          setRiskCategoryError(false);
+        } else {
+          console.error(riskCategoryResult.reason);
+          setRiskCategoryData([]);
+          setRiskCategoryError(true);
+        }
+        setRiskCategoryLoading(false);
 
         if (cycleRiskResult.status === "fulfilled") {
           setCycleRisks(cycleRiskResult.value);
@@ -601,6 +626,13 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
 
+      <RiskCategoryDistributionCard
+        data={riskCategoryData}
+        loading={riskCategoryLoading}
+        error={riskCategoryError}
+        cycle={exportCycle}
+      />
+
       <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
         <div>
           <p className="text-sm font-semibold text-foreground">
@@ -727,7 +759,7 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-sm font-semibold">
-                  Top Unit Exposure
+                  Risk Exposure
                 </CardTitle>
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   Ranking unit berdasarkan weighted exposure score untuk cycle{" "}
@@ -830,7 +862,7 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <TrendingUp className="size-4" />
-                Risk Trend Report
+                Tren Risiko
               </CardTitle>
               <Select
                 value={trendWindow}

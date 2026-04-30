@@ -93,7 +93,7 @@ func TestBulkRiskSpreadsheetUseCase_Preview_ResolvesOrganizationByUploaderForNon
 	orgID := uuid.New()
 	uc := NewBulkRiskSpreadsheetUseCase(
 		&fakePreviewOrgRepo{orgs: []*entity.Organization{{ID: orgID, Name: "Inspektorat Utama"}}},
-		&fakePreviewUserRepo{user: &entity.User{ID: uploaderID, Role: "superadmin"}},
+		&fakePreviewUserRepo{user: &entity.User{ID: uploaderID, Name: "Tester", Role: "superadmin"}},
 	)
 
 	// New format: 4-row header + column numbers row + data row
@@ -114,19 +114,22 @@ func TestBulkRiskSpreadsheetUseCase_Preview_ResolvesOrganizationByUploaderForNon
 		t.Fatalf("expected 1 item, got %d", len(result.Items))
 	}
 	if len(result.Items[0].Errors) != 0 {
-		hasNonPICError := false
-		for _, e := range result.Items[0].Errors {
-			if !strings.Contains(e, "PIC RPR") {
-				hasNonPICError = true
-				break
-			}
-		}
-		if hasNonPICError {
-			t.Fatalf("expected no non-PIC RPR errors, got %v", result.Items[0].Errors)
-		}
+		t.Fatalf("expected no errors, got %v", result.Items[0].Errors)
 	}
 	if result.Items[0].Payload == nil || result.Items[0].Payload.OrganizationID == nil || *result.Items[0].Payload.OrganizationID != orgID {
 		t.Fatalf("expected organization from query param, got %+v", result.Items[0].Payload)
+	}
+	if len(result.Items[0].Payload.Mitigations) != 1 {
+		t.Fatalf("expected 1 mitigation, got %+v", result.Items[0].Payload.Mitigations)
+	}
+	if result.Items[0].Payload.Mitigations[0].Owner != "Tester" {
+		t.Fatalf("expected mitigation owner to default to uploader name, got %q", result.Items[0].Payload.Mitigations[0].Owner)
+	}
+	if result.Items[0].Payload.Mitigations[0].OwnerUserID == nil || *result.Items[0].Payload.Mitigations[0].OwnerUserID != uploaderID {
+		t.Fatalf("expected mitigation owner user id to default to uploader id, got %+v", result.Items[0].Payload.Mitigations[0].OwnerUserID)
+	}
+	if result.Items[0].Payload.Mitigations[0].ExecutionScheduleText != "Feb 2026" {
+		t.Fatalf("expected mitigation schedule preserved, got %q", result.Items[0].Payload.Mitigations[0].ExecutionScheduleText)
 	}
 	if result.Items[0].Payload.TreatmentOption != "mitigate" {
 		t.Fatalf("expected normalized treatment option, got %s", result.Items[0].Payload.TreatmentOption)
@@ -439,6 +442,74 @@ func TestBulkRiskSpreadsheetUseCase_Preview_BothEfektifAndTidakEfektifCausesErro
 	}
 	if len(result.Items[0].Errors) != 1 || result.Items[0].Errors[0] != "Kolom EFEKTIF dan TIDAK EFEKTIF tidak boleh keduanya diisi." {
 		t.Fatalf("expected both-filled error, got %v", result.Items[0].Errors)
+	}
+}
+
+func TestBulkRiskSpreadsheetUseCase_Preview_InvalidControlledFieldsCauseErrors(t *testing.T) {
+	uploaderID := uuid.New()
+	orgID := uuid.New()
+	uc := NewBulkRiskSpreadsheetUseCase(
+		&fakePreviewOrgRepo{orgs: []*entity.Organization{{ID: orgID, Name: "Inspektorat Utama"}}},
+		&fakePreviewUserRepo{user: &entity.User{ID: uploaderID, Role: "superadmin"}},
+	)
+
+	headers := []string{
+		"RISIKO",
+		"DESKRIPSI",
+		"KATEGORI RISIKO",
+		"SEBAB",
+		"SUMBER RISIKO",
+		"C/UC",
+		"DAMPAK",
+		"URAIAN",
+		"Efektivitas Pengendalian",
+		"P",
+		"D",
+		"PRIORITAS RISIKO",
+		"SELERA RISIKO",
+		"PILIHAN PENANGANAN",
+		"P (target)",
+		"D (target)",
+	}
+	row := []string{
+		"Risiko A",
+		"Deskripsi A",
+		"operasional",
+		"Sebab A",
+		"vendor",
+		"X",
+		"Dampak A",
+		"Control",
+		"Sebagian",
+		"2",
+		"2",
+		"1",
+		"Dalam batas",
+		"Kurangi",
+		"1",
+		"1",
+	}
+
+	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, [][]string{headers, row}), UploaderID: uploaderID, OrganizationID: &orgID})
+	if err != nil {
+		t.Fatalf("preview err: %v", err)
+	}
+	if len(result.Items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(result.Items))
+	}
+	if result.Items[0].Payload != nil {
+		t.Fatal("expected payload to be nil for invalid controlled fields")
+	}
+	errors := strings.Join(result.Items[0].Errors, " | ")
+	for _, expected := range []string{
+		"Kolom Sumber Risiko harus berisi Internal atau external.",
+		"Kolom C/UC harus berisi C atau UC.",
+		"Kolom Pilihan Penanganan harus berisi Menghindari Risiko, Berbagi Risiko, Mitigasi, atau Menerima Risiko.",
+		"Kolom Efektivitas Pengendalian harus berisi Efektif atau Tidak Efektif.",
+	} {
+		if !strings.Contains(errors, expected) {
+			t.Fatalf("expected error %q, got %s", expected, errors)
+		}
 	}
 }
 

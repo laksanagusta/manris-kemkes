@@ -2,6 +2,17 @@ package risk
 
 import "strings"
 
+func normalizeRiskSource(value string) string {
+	switch strings.TrimSpace(strings.ToLower(value)) {
+	case "internal":
+		return "internal"
+	case "external", "eksternal":
+		return "eksternal"
+	default:
+		return strings.TrimSpace(strings.ToLower(value))
+	}
+}
+
 func normalizeTreatmentOption(value string) string {
 	switch strings.TrimSpace(strings.ToLower(value)) {
 	case "avoid", "hindari", "menghindari", "menghindari risiko":

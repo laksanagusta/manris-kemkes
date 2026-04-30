@@ -163,6 +163,7 @@ type PredictiveRisk struct {
 type RiskSuggestion struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	Category    string `json:"category"`
 }
 
 // RiskSuggestions represents multiple risk suggestions

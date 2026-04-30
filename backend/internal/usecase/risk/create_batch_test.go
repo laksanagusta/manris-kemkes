@@ -238,6 +238,50 @@ func TestCreateRiskBatchUseCase_Execute_DefaultsMitigationOwnerToSubmitter(t *te
 	}
 }
 
+func TestCreateRiskBatchUseCase_Execute_DefaultsMitigationOwnerFromOwnerUserID(t *testing.T) {
+	riskRepo := &fakeBatchRiskRepo{}
+	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
+	batchUC := NewCreateRiskBatchUseCase(createUC, &fakeBatchUserRepo{})
+	ownerUserID := uuid.New()
+
+	result, err := batchUC.Execute(context.Background(), CreateRiskBatchInput{
+		CreatedBy: &ownerUserID,
+		Items: []CreateRiskBatchItemInput{{
+			ClientKey:       "row-1",
+			Title:           "Mark-up estimasi",
+			Description:     "Harga tidak wajar",
+			Category:        entity.RiskCategoryOperasional,
+			Cause:           []string{"Verifikasi lemah"},
+			Controllability: "C",
+			ImpactDesc:      []string{"Kerugian perusahaan"},
+			Probability:     3,
+			Impact:          4,
+			Weight:          1.4,
+			Mitigations: []entity.Mitigation{{
+				Action:      "Cek silang vendor",
+				OwnerUserID: &ownerUserID,
+				Frequency:   "insidental",
+			}},
+			TargetProbability: 2,
+			TargetImpact:      2,
+			TargetWeight:      1,
+		}},
+	})
+
+	if err != nil {
+		t.Fatalf("expected no batch error, got %v", err)
+	}
+	if len(result.Items) != 1 || result.Items[0].Status != "created" {
+		t.Fatalf("expected one created item, got %+v", result.Items)
+	}
+	if len(riskRepo.created) != 1 {
+		t.Fatalf("expected 1 created risk, got %d", len(riskRepo.created))
+	}
+	if riskRepo.created[0].Mitigations[0].Owner != "Tester" {
+		t.Fatalf("expected mitigation owner resolved from owner user id, got %q", riskRepo.created[0].Mitigations[0].Owner)
+	}
+}
+
 func TestCreateRiskBatchUseCase_ExecutePersistsCategory(t *testing.T) {
 	riskRepo := &fakeBatchRiskRepo{}
 	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
@@ -338,5 +382,39 @@ func TestNormalizeTreatmentOption(t *testing.T) {
 				t.Fatalf("expected %s, got %s", tt.want, got)
 			}
 		})
+	}
+}
+
+func TestValidateBatchItem_RejectsInvalidControlledFields(t *testing.T) {
+	item := CreateRiskBatchItemInput{
+		Title:                "Risiko A",
+		Category:             entity.RiskCategoryOperasional,
+		RiskSource:           "vendor",
+		Controllability:      "X",
+		ControlEffectiveness: "sebagian",
+		TreatmentOption:      "kurangi",
+		Probability:          2,
+		Impact:               2,
+		TargetProbability:    1,
+		TargetImpact:         1,
+	}
+
+	if err := validateBatchItem(item); err == nil {
+		t.Fatal("expected validation error for invalid risk source")
+	}
+
+	item.RiskSource = "internal"
+	if err := validateBatchItem(item); err == nil {
+		t.Fatal("expected validation error for invalid controllability")
+	}
+
+	item.Controllability = "C"
+	if err := validateBatchItem(item); err == nil {
+		t.Fatal("expected validation error for invalid control effectiveness")
+	}
+
+	item.ControlEffectiveness = "efektif"
+	if err := validateBatchItem(item); err == nil {
+		t.Fatal("expected validation error for invalid treatment option")
 	}
 }

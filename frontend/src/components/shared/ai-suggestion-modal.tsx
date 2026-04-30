@@ -85,7 +85,7 @@ export function AiSuggestionModal({
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col max-h-[60vh] min-h-[300px] bg-background">
+        <div className="flex min-h-0 flex-col max-h-[60vh] min-h-[300px] bg-background">
           {isLoading ? (
             <div className="flex flex-1 flex-col items-center justify-center py-12 px-4 text-center">
               <div className="flex size-12 items-center justify-center rounded-full bg-primary/5 text-primary mb-4">
@@ -107,8 +107,8 @@ export function AiSuggestionModal({
               </p>
             </div>
           ) : (
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-2.5 pb-6">
+            <ScrollArea className="min-h-0 flex-1 p-4">
+              <div className="space-y-2.5 pb-8">
                 {suggestions.map((suggestion) => {
                   const isSelected = selectedIds.has(suggestion.id);
                   return (
@@ -147,7 +147,7 @@ export function AiSuggestionModal({
           )}
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t border-border/40 bg-muted/10 sm:justify-between items-center m-0">
+        <DialogFooter className="shrink-0 items-center border-t border-border/40 bg-muted/10 px-6 py-4 m-0 sm:justify-between">
           <div className="text-xs text-muted-foreground font-medium hidden sm:block">
             {selectedIds.size} item terpilih
           </div>

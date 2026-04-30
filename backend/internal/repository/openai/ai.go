@@ -578,14 +578,16 @@ Tugas:
 3. Setiap risiko harus spesifik, realistis, dan relevan dengan konteks organisasi kesehatan/pemerintahan
 4. Berikan judul risiko yang jelas dan deskripsi kronologi kejadian yang detail
 5. Pastikan judul risiko unik dan tidak mirip dengan yang sudah ada
-6. Variasi topik: SDM, infrastruktur, proses bisnis, keuangan, teknologi informasi, kepatuhan, dll.
+	6. Variasi topik: SDM, infrastruktur, proses bisnis, keuangan, teknologi informasi, kepatuhan, dll.
+7. Untuk setiap risiko, tentukan "category" yang paling tepat. Gunakan salah satu nilai ini: "kebijakan", "reputasi", "fraud_korupsi", "legal", "kepatuhan", "operasional".
 
 Format respons JSON (hanya JSON, tanpa markdown):
 {
   "suggestions": [
     {
       "title": "Judul Risiko Spesifik",
-      "description": "Deskripsi kronologi kejadian risiko yang detail..."
+      "description": "Deskripsi kronologi kejadian risiko yang detail...",
+      "category": "operasional"
     },
     ...
   ]

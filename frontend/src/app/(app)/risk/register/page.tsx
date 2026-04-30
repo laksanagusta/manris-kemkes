@@ -45,6 +45,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -86,6 +92,7 @@ import {
   ChevronDown,
   Edit3,
   Trash2,
+  MoreHorizontal,
   Clock,
   Send,
   History,
@@ -196,6 +203,71 @@ function formatCycleLabel(cycle?: string, createdAt?: string) {
   return `Baseline ${new Date(createdAt).toLocaleDateString("id-ID", { year: "numeric", month: "short" })}`;
 }
 
+function RiskRowActions({
+  risk,
+  isReadOnly,
+  onContinueMonitoring,
+  onStartMonitoring,
+  onArchive,
+  onRestore,
+  onDeleteDraft,
+}: {
+  risk: RiskListItem;
+  isReadOnly: boolean;
+  onContinueMonitoring?: () => void;
+  onStartMonitoring?: () => void;
+  onArchive?: () => void;
+  onRestore?: () => void;
+  onDeleteDraft?: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="text-muted-foreground"
+          aria-label={`Aksi risiko ${risk.code || risk.title || risk.id}`}
+        >
+          <MoreHorizontal className="size-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        {onContinueMonitoring && (
+          <DropdownMenuItem onClick={onContinueMonitoring}>
+            <RefreshCcw className="size-3.5" />
+            Lanjutkan Pemantauan
+          </DropdownMenuItem>
+        )}
+        {onStartMonitoring && (
+          <DropdownMenuItem onClick={onStartMonitoring}>
+            <RefreshCcw className="size-3.5" />
+            Mulai Pemantauan
+          </DropdownMenuItem>
+        )}
+        {onArchive && (
+          <DropdownMenuItem onClick={onArchive}>
+            <Archive className="size-3.5" />
+            Arsipkan
+          </DropdownMenuItem>
+        )}
+        {onRestore && (
+          <DropdownMenuItem onClick={onRestore}>
+            <RotateCcw className="size-3.5" />
+            Pulihkan
+          </DropdownMenuItem>
+        )}
+        {onDeleteDraft && !isReadOnly && (
+          <DropdownMenuItem variant="destructive" onClick={onDeleteDraft}>
+            <Trash2 className="size-3.5" />
+            Hapus Draft
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export default function RiskRegisterPage() {
   const pathname = usePathname();
   const router = useRouter();
@@ -224,8 +296,9 @@ export default function RiskRegisterPage() {
   const [lifecycleFilter, setLifecycleFilter] =
     useState<RiskRegisterLifecycleFilter>(
       () =>
-        parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
-          .lifecycleFilter,
+        parseRiskRegisterQueryState(
+          new URLSearchParams(searchParams.toString()),
+        ).lifecycleFilter,
     );
   const [categoryFilter, setCategoryFilter] =
     useState<RiskRegisterCategoryFilter>(
@@ -359,7 +432,9 @@ export default function RiskRegisterPage() {
       current === nextState.statusFilter ? current : nextState.statusFilter,
     );
     setLifecycleFilter((current) =>
-      current === nextState.lifecycleFilter ? current : nextState.lifecycleFilter,
+      current === nextState.lifecycleFilter
+        ? current
+        : nextState.lifecycleFilter,
     );
     setCategoryFilter((current) =>
       current === nextState.categoryFilter ? current : nextState.categoryFilter,
@@ -658,7 +733,9 @@ export default function RiskRegisterPage() {
         loading: "Mengarsipkan risiko...",
         success: "Risiko berhasil diarsipkan.",
         error: (err) =>
-          err instanceof Error ? err.message : "Risiko belum berhasil diarsipkan.",
+          err instanceof Error
+            ? err.message
+            : "Risiko belum berhasil diarsipkan.",
       },
     );
   };
@@ -678,7 +755,9 @@ export default function RiskRegisterPage() {
         loading: "Memulihkan risiko...",
         success: "Risiko berhasil dipulihkan.",
         error: (err) =>
-          err instanceof Error ? err.message : "Risiko belum berhasil dipulihkan.",
+          err instanceof Error
+            ? err.message
+            : "Risiko belum berhasil dipulihkan.",
       },
     );
   };
@@ -788,7 +867,7 @@ export default function RiskRegisterPage() {
             <Link href="/risk/register/bulk">
               <Button variant="outline" className="gap-2">
                 <Upload className="size-4" />
-                Bulk Create
+                Import Risiko
               </Button>
             </Link>
             <Link href="/risk/register/new">
@@ -869,7 +948,7 @@ export default function RiskRegisterPage() {
                 <div className="relative min-w-[180px] md:w-40">
                   <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Siklus asesmen"
+                    placeholder="Semester"
                     value={assessmentCycleFilter}
                     onChange={(event) => {
                       setAssessmentCycleFilter(event.target.value);
@@ -1152,55 +1231,38 @@ export default function RiskRegisterPage() {
                             : "-"}
                         </TableCell>
                         <TableCell>
-                          <div className="flex justify-end gap-1">
-                            {canReassess && risk.hasOngoing && risk.draftId && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 gap-1.5 px-2 text-xs"
-                                onClick={() =>
-                                  router.push(
-                                    `/risk/assessment/${risk.draftId}`,
-                                  )
-                                }
-                              >
-                                <RefreshCcw className="size-3" />
-                                Lanjutkan Pemantauan
-                              </Button>
-                            )}
-                            {canReassess && !risk.hasOngoing && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 gap-1.5 px-2 text-xs"
-                                onClick={() => handleOpenConfirmDialog(risk)}
-                              >
-                                <RefreshCcw className="size-3" />
-                                Mulai Pemantauan
-                              </Button>
-                            )}
-                            {canArchive && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 gap-1.5 px-2 text-xs text-amber-700 hover:bg-amber-50 hover:text-amber-800"
-                                onClick={() => setRiskToArchive(risk)}
-                              >
-                                <Archive className="size-3" />
-                                Arsipkan
-                              </Button>
-                            )}
-                            {canRestore && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 gap-1.5 px-2 text-xs"
-                                onClick={() => setRiskToRestore(risk)}
-                              >
-                                <RotateCcw className="size-3" />
-                                Pulihkan
-                              </Button>
-                            )}
+                          <div className="flex justify-end">
+                            <RiskRowActions
+                              risk={risk}
+                              isReadOnly={isReadOnly}
+                              onOpenDetail={(riskId) =>
+                                router.push(`/risk/register/${riskId}`)
+                              }
+                              onContinueMonitoring={
+                                canReassess && risk.hasOngoing && risk.draftId
+                                  ? () =>
+                                      router.push(
+                                        `/risk/assessment/${risk.draftId}`,
+                                      )
+                                  : undefined
+                              }
+                              onStartMonitoring={
+                                canReassess && !risk.hasOngoing
+                                  ? () => handleOpenConfirmDialog(risk)
+                                  : undefined
+                              }
+                              onArchive={
+                                canArchive ? () => setRiskToArchive(risk) : undefined
+                              }
+                              onRestore={
+                                canRestore ? () => setRiskToRestore(risk) : undefined
+                              }
+                              onDeleteDraft={
+                                risk.status === "assessment_draft" && !isReadOnly
+                                  ? () => setDraftToDelete(risk)
+                                  : undefined
+                              }
+                            />
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1405,19 +1467,17 @@ export default function RiskRegisterPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex justify-end gap-1">
-                            {draft.status === "assessment_draft" &&
-                              !isReadOnly && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                  onClick={() => setDraftToDelete(draft)}
-                                >
-                                  <Trash2 className="size-3" />
-                                  Hapus
-                                </Button>
-                              )}
+                          <div className="flex justify-end">
+                            <RiskRowActions
+                              risk={draft}
+                              isReadOnly={isReadOnly}
+                              onDeleteDraft={
+                                draft.status === "assessment_draft" &&
+                                !isReadOnly
+                                  ? () => setDraftToDelete(draft)
+                                  : undefined
+                              }
+                            />
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1668,12 +1728,15 @@ export default function RiskRegisterPage() {
           <DialogHeader>
             <DialogTitle>Arsipkan Risiko?</DialogTitle>
             <DialogDescription>
-              Risiko akan hilang dari daftar aktif, tetapi tetap tersimpan untuk audit trail.
+              Risiko akan hilang dari daftar aktif, tetapi tetap tersimpan untuk
+              audit trail.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
-              <p className="font-medium">{riskToArchive?.title || "Tanpa judul"}</p>
+              <p className="font-medium">
+                {riskToArchive?.title || "Tanpa judul"}
+              </p>
               <p className="text-xs text-muted-foreground">
                 {riskToArchive?.code || riskToArchive?.id}
               </p>
@@ -1760,11 +1823,14 @@ export default function RiskRegisterPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Pulihkan Risiko?</AlertDialogTitle>
             <AlertDialogDescription>
-              Risiko akan kembali muncul di daftar aktif dengan status terakhirnya.
+              Risiko akan kembali muncul di daftar aktif dengan status
+              terakhirnya.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
-            <p className="font-medium">{riskToRestore?.title || "Tanpa judul"}</p>
+            <p className="font-medium">
+              {riskToRestore?.title || "Tanpa judul"}
+            </p>
             <p className="text-xs text-muted-foreground">
               {riskToRestore?.code || riskToRestore?.id}
             </p>

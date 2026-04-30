@@ -14,52 +14,23 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  Line,
-  LineChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
-import { RiskHeatmap } from "./_components/risk-heatmap";
-import { TopRisksPanel } from "./_components/top-risks-panel";
-import { RiskMovementSnapshot } from "./_components/risk-movement-snapshot";
+import { MultiPhaseHeatmapCompareCard } from "../compliance/_components/multi-phase-heatmap-compare";
+import { UnitTotalRiskScoreChart } from "./_components/unit-total-risk-score-chart";
 import type {
-  DashboardActionPressurePoint,
-  DashboardRiskCategoryItem,
-  HeatmapVelocityCell,
   Risk,
-  RiskCycleComparisonItem,
-  TopRiskItem,
 } from "@/types/risk";
 import { api } from "@/lib/api";
 import {
-  buildDashboardRiskCategoryData,
-  buildExecutiveTrendData,
-  buildMovementSnapshotData,
+  buildUnitTotalRiskScoreData,
   levelFromScore,
   weightFor,
 } from "@/lib/dashboard-insights";
 import { resolveRiskScoreSemantics } from "@/lib/risk";
 import { cn } from "@/lib/utils";
-
-const executiveTrendLegend = [
-  { key: "medium", color: "oklch(0.75 0.15 75)", label: "Sedang" },
-  { key: "high", color: "oklch(0.70 0.18 40)", label: "Tinggi" },
-  { key: "extreme", color: "oklch(0.62 0.22 27)", label: "Sangat Tinggi" },
-];
 
 type DashboardSummary = {
   totalRisks: number;
@@ -86,43 +57,18 @@ function currentGlobalCycle() {
   return `${year}-${half}`;
 }
 
-function formatMonthPeriod(period: string) {
-  const [year, month] = period.split("-");
-  const date = new Date(Number(year), Number(month) - 1, 1);
-  if (Number.isNaN(date.getTime())) return period;
-  return new Intl.DateTimeFormat("id-ID", { month: "short" }).format(date);
+function resolveRiskCycleKey(risk: Pick<Risk, "assessmentCycle">) {
+  if (risk.assessmentCycle?.trim()) return risk.assessmentCycle.trim();
+  return null;
 }
 
 export default function DashboardPage() {
   const { token } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [prevSummary, setPrevSummary] = useState<DashboardSummary | null>(null);
-  const [heatmapData, setHeatmapData] = useState<number[][]>([]);
-  const [trendData, setTrendData] = useState<
-    Array<{
-      period: string;
-      medium: number;
-      high: number;
-      extreme: number;
-      exposureScore: number;
-    }>
-  >([]);
-  const [actionPressureData, setActionPressureData] = useState<
-    DashboardActionPressurePoint[]
-  >([]);
-  const [riskCategoryData, setRiskCategoryData] = useState<
-    ReturnType<typeof buildDashboardRiskCategoryData>
-  >([]);
-  const [isRiskCategoryLoading, setIsRiskCategoryLoading] = useState(true);
-  const [riskCategoryError, setRiskCategoryError] = useState(false);
+  const [trendRisks, setTrendRisks] = useState<Risk[]>([]);
   const [loading, setLoading] = useState(true);
-  const [topRisks, setTopRisks] = useState<TopRiskItem[]>([]);
-  const [movementSnapshot, setMovementSnapshot] = useState<
-    ReturnType<typeof buildMovementSnapshotData>
-  >([]);
-  const [allRisksForExposure, setAllRisksForExposure] = useState<Risk[]>([]);
   const [exposureScore, setExposureScore] = useState(0);
-  const [velocityData, setVelocityData] = useState<HeatmapVelocityCell[]>([]);
 
   const currentCycle = useMemo(() => currentGlobalCycle(), []);
   const previousCycle = useMemo(() => {
@@ -131,6 +77,12 @@ export default function DashboardPage() {
     if (half === "H1") return `${year - 1}-H2`;
     return `${year}-H1`;
   }, [currentCycle]);
+  const unitTotalRiskScoreData = useMemo(() => {
+    const currentCycleRisks = trendRisks.filter(
+      (risk) => resolveRiskCycleKey(risk) === currentCycle,
+    );
+    return buildUnitTotalRiskScoreData(currentCycleRisks);
+  }, [trendRisks, currentCycle]);
 
   useEffect(() => {
     if (!token) return;
@@ -144,39 +96,12 @@ export default function DashboardPage() {
         `/dashboard/summary?cycle=${previousCycle}`,
         token,
       ),
-      api.get<number[][]>(`/dashboard/heatmap?cycle=${currentCycle}`, token),
       api.get<Risk[]>("/risks/trend", token),
-      api.get<DashboardActionPressurePoint[]>(
-        "/dashboard/action-pressure?interval=month&window=6",
-        token,
-      ),
-      api.get<DashboardRiskCategoryItem[]>(
-        `/dashboard/risk-categories?cycle=${currentCycle}`,
-        token,
-      ),
-      api.get<TopRiskItem[]>(
-        `/dashboard/top-risks?cycle=${currentCycle}`,
-        token,
-      ),
-      api.get<RiskCycleComparisonItem[]>(
-        `/risks/compare?from=${previousCycle}&to=${currentCycle}`,
-        token,
-      ),
-      api.get<HeatmapVelocityCell[]>(
-        `/dashboard/heatmap-velocity?from=${previousCycle}&to=${currentCycle}`,
-        token,
-      ),
     ]).then(
       ([
         summaryResult,
         prevSummaryResult,
-        heatmapResult,
         risksResult,
-        actionPressureResult,
-        riskCategoryResult,
-        topRisksResult,
-        compareResult,
-        velocityResult,
       ]) => {
         if (summaryResult.status === "fulfilled")
           setSummary(summaryResult.value);
@@ -186,14 +111,9 @@ export default function DashboardPage() {
           setPrevSummary(prevSummaryResult.value);
         else console.error(prevSummaryResult.reason);
 
-        if (heatmapResult.status === "fulfilled")
-          setHeatmapData(heatmapResult.value);
-        else console.error(heatmapResult.reason);
-
         if (risksResult.status === "fulfilled") {
           const risks = risksResult.value;
-          setAllRisksForExposure(risks);
-          setTrendData(buildExecutiveTrendData(risks));
+          setTrendRisks(risks);
           const score = risks.reduce((sum, r) => {
             const lvl = levelFromScore(
               resolveRiskScoreSemantics(r).effective.score,
@@ -203,56 +123,7 @@ export default function DashboardPage() {
           setExposureScore(score);
         } else {
           console.error(risksResult.reason);
-          setTrendData([]);
-        }
-
-        if (actionPressureResult.status === "fulfilled")
-          setActionPressureData(actionPressureResult.value);
-        else {
-          console.error(actionPressureResult.reason);
-          setActionPressureData([]);
-        }
-
-        if (riskCategoryResult.status === "fulfilled") {
-          setRiskCategoryData(
-            buildDashboardRiskCategoryData(riskCategoryResult.value),
-          );
-          setRiskCategoryError(false);
-        } else {
-          console.error(riskCategoryResult.reason);
-          setRiskCategoryData([]);
-          setRiskCategoryError(true);
-        }
-        setIsRiskCategoryLoading(false);
-
-        if (topRisksResult.status === "fulfilled")
-          setTopRisks(topRisksResult.value);
-        else {
-          console.error(topRisksResult.reason);
-          setTopRisks([]);
-        }
-
-        if (compareResult.status === "fulfilled") {
-          const comparisons = compareResult.value;
-          const risks =
-            risksResult.status === "fulfilled" ? risksResult.value : [];
-          setMovementSnapshot(
-            buildMovementSnapshotData({
-              currentRisks: risks,
-              previousRisks: [],
-              comparisons,
-            }),
-          );
-        } else {
-          console.error(compareResult.reason);
-          setMovementSnapshot([]);
-        }
-
-        if (velocityResult.status === "fulfilled")
-          setVelocityData(velocityResult.value);
-        else {
-          console.error(velocityResult.reason);
-          setVelocityData([]);
+          setTrendRisks([]);
         }
 
         setLoading(false);
@@ -416,432 +287,16 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="mt-5 grid gap-6 lg:grid-cols-5">
-        <RiskHeatmap
-          data={heatmapData}
+      <div className="mt-5">
+        <MultiPhaseHeatmapCompareCard />
+      </div>
+
+      <div className="mt-5">
+        <UnitTotalRiskScoreChart
+          data={unitTotalRiskScoreData}
+          cycle={currentCycle}
           loading={loading}
-          velocityData={velocityData}
         />
-        <TopRisksPanel risks={topRisks} loading={loading} />
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <RiskMovementSnapshot data={movementSnapshot} loading={loading} />
-
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardHeader>
-            <div>
-              <CardTitle className="text-base font-semibold">
-                Distribusi Kategori Risiko
-              </CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Jumlah risiko per kategori dalam portofolio saat ini.
-              </p>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isRiskCategoryLoading ? (
-              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-                Memuat data kategori...
-              </div>
-            ) : riskCategoryError ? (
-              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Data kategori risiko tidak tersedia saat ini.
-              </div>
-            ) : riskCategoryData.length === 0 ? (
-              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Belum ada data kategori risiko.
-              </div>
-            ) : (
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={riskCategoryData}
-                    layout="vertical"
-                    margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="oklch(0.5 0 0 / 8%)"
-                      horizontal={false}
-                    />
-                    <XAxis
-                      type="number"
-                      allowDecimals={false}
-                      tick={{ fill: "oklch(0.6 0 0)", fontSize: 11 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="label"
-                      width={110}
-                      tick={{ fill: "oklch(0.6 0 0)", fontSize: 11 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <RechartsTooltip
-                      formatter={(value, name) => [`${value} risiko`, name]}
-                      contentStyle={{
-                        background: "var(--popover)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        color: "var(--popover-foreground)",
-                        backdropFilter: "blur(8px)",
-                      }}
-                    />
-                    <Legend
-                      iconType="square"
-                      iconSize={10}
-                      wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
-                    />
-                    <Bar
-                      dataKey="sangatRendah"
-                      stackId="a"
-                      fill="oklch(0.72 0.17 155)"
-                      name="Sangat Rendah"
-                    />
-                    <Bar
-                      dataKey="rendah"
-                      stackId="a"
-                      fill="oklch(0.72 0.14 210)"
-                      name="Rendah"
-                    />
-                    <Bar
-                      dataKey="sedang"
-                      stackId="a"
-                      fill="oklch(0.75 0.15 75)"
-                      name="Sedang"
-                    />
-                    <Bar
-                      dataKey="tinggi"
-                      stackId="a"
-                      fill="oklch(0.70 0.18 40)"
-                      name="Tinggi"
-                    />
-                    <Bar
-                      dataKey="ekstrem"
-                      stackId="a"
-                      fill="oklch(0.62 0.22 27)"
-                      name="Ekstrem"
-                      radius={[0, 4, 4, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-10 grid gap-6 lg:grid-cols-5">
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-3">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-semibold">
-                  Tren Risiko
-                </CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Eksposur sedang/tinggi/sangat tinggi per semester
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                {executiveTrendLegend.map((item) => (
-                  <div key={item.key} className="flex items-center gap-1.5">
-                    <div
-                      className="size-2.5 rounded-full"
-                      style={{ background: item.color }}
-                    />
-                    <span className="text-[11px] text-muted-foreground">
-                      {item.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {trendData.length > 0 ? (
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={trendData}
-                    margin={{ top: 4, right: 12, left: -12, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="oklch(0.5 0 0 / 8%)"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="period"
-                      tick={{ fontSize: 11, fill: "oklch(0.6 0.02 265)" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: "oklch(0.6 0.02 265)" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <RechartsTooltip
-                      contentStyle={{
-                        background: "var(--popover)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        color: "var(--popover-foreground)",
-                        backdropFilter: "blur(8px)",
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="medium"
-                      stroke="oklch(0.75 0.15 75)"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="high"
-                      stroke="oklch(0.70 0.18 40)"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="extreme"
-                      stroke="oklch(0.62 0.22 27)"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="flex h-80 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Belum ada data semester untuk menghitung eksposur risiko.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2">
-          <CardHeader>
-            <div>
-              <CardTitle className="text-base font-semibold">
-                Progress Penanganan
-              </CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Distribusi mitigasi selesai dan overdue per bulan.
-              </p>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {actionPressureData.length > 0 ? (
-              <>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={actionPressureData}
-                      margin={{ top: 4, right: 8, left: -16, bottom: 0 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="oklch(0.5 0 0 / 8%)"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="period"
-                        tickFormatter={formatMonthPeriod}
-                        tick={{ fontSize: 10 }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        allowDecimals={false}
-                        tick={{ fontSize: 10 }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <RechartsTooltip
-                        labelFormatter={(value) =>
-                          formatMonthPeriod(String(value))
-                        }
-                        contentStyle={{
-                          background: "var(--popover)",
-                          border: "1px solid var(--border)",
-                          borderRadius: "8px",
-                          fontSize: "11px",
-                          color: "var(--popover-foreground)",
-                        }}
-                      />
-                      <Legend
-                        iconType="square"
-                        iconSize={10}
-                        wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
-                      />
-                      <Bar
-                        dataKey="mitigationsCompleted"
-                        name="Penanganan Selesai"
-                        fill="oklch(0.72 0.17 155)"
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Bar
-                        dataKey="overdueMitigations"
-                        name="Overdue"
-                        fill="oklch(0.62 0.22 27)"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                  <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-                    <p className="text-[10px] text-muted-foreground">
-                      Total Penanganan
-                    </p>
-                    <p className="mt-1 font-semibold text-foreground">
-                      {actionPressureData.reduce(
-                        (sum, item) =>
-                          sum +
-                          item.mitigationsCompleted +
-                          item.overdueMitigations,
-                        0,
-                      )}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-                    <p className="text-[10px] text-muted-foreground">Selesai</p>
-                    <p className="mt-1 font-semibold text-foreground">
-                      {actionPressureData.reduce(
-                        (sum, item) => sum + item.mitigationsCompleted,
-                        0,
-                      )}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-                    <p className="text-[10px] text-muted-foreground">Overdue</p>
-                    <p className="mt-1 font-semibold text-foreground">
-                      {actionPressureData.reduce(
-                        (sum, item) => sum + item.overdueMitigations,
-                        0,
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Data progress mitigasi belum tersedia untuk periode ini.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-6">
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-semibold">
-                  Risk Exposure
-                </CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Skor eksposur tertimbang per semester
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div
-                  className="size-2.5 rounded-full"
-                  style={{ background: "oklch(0.55 0.05 260)" }}
-                />
-                <span className="text-[11px] text-muted-foreground">
-                  Exposure Score
-                </span>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {trendData.length > 0 ? (
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={trendData}
-                    margin={{ top: 4, right: 12, left: -12, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient
-                        id="colorExposure"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="oklch(0.55 0.05 260)"
-                          stopOpacity={0.25}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="oklch(0.55 0.05 260)"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="oklch(0.5 0 0 / 8%)"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="period"
-                      tick={{ fontSize: 11, fill: "oklch(0.6 0.02 265)" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: "oklch(0.6 0.02 265)" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <RechartsTooltip
-                      contentStyle={{
-                        background: "var(--popover)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        color: "var(--popover-foreground)",
-                        backdropFilter: "blur(8px)",
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="exposureScore"
-                      stroke="oklch(0.55 0.05 260)"
-                      fillOpacity={1}
-                      fill="url(#colorExposure)"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Belum ada data semester untuk menghitung eksposur risiko.
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       <Card className="mt-12 border-border/50 bg-card/80 backdrop-blur-sm">
