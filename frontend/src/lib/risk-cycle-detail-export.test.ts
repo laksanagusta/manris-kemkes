@@ -46,7 +46,7 @@ const sampleReport: RiskCycleDetailedComparisonReport = {
       } as any,
       toSnapshot: {
         description: "Versi revisi",
-        category: "strategis",
+        category: "reputasi",
         cause: ["Vendor tunggal", "Cuaca buruk"],
         existingControl: "Kontrol revisi",
         probability: 3,
@@ -112,7 +112,7 @@ test("createRiskCycleDetailWorkbookBuffer persists top-bottom comparison trend, 
     headerIndex.set(String(cell.value), colNumber);
   });
 
-  assert.equal(comparisonSheet.getRow(2).getCell("A").value, "worsened");
+  assert.equal(comparisonSheet.getRow(2).getCell("A").value, "improved");
   assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("version") || 0).value, "Before");
   assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("description") || 0).value, "Versi awal");
   assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("category") || 0).value, "Operasional");
@@ -120,7 +120,7 @@ test("createRiskCycleDetailWorkbookBuffer persists top-bottom comparison trend, 
   assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("inherentScore") || 0).value, "16");
   assert.equal(comparisonSheet.getRow(2).getCell(headerIndex.get("targetScore") || 0).value, "12");
   assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("version") || 0).value, "After");
-  assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("category") || 0).value, "Strategis");
+  assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("category") || 0).value, "Reputasi");
   assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("probability") || 0).value, "3");
   assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("inherentScore") || 0).value, "12");
   assert.equal(comparisonSheet.getRow(3).getCell(headerIndex.get("targetScore") || 0).value, "6");
@@ -132,7 +132,7 @@ test("createRiskCycleDetailWorkbookBuffer persists top-bottom comparison trend, 
   assert.equal(comparisonSheet.getCell(2, legendColumn).value, "improved");
 
   const trendFill = comparisonSheet.getCell("A2").fill;
-  assert.equal(trendFill && "fgColor" in trendFill ? trendFill.fgColor?.argb : undefined, "FFFDECEC");
+  assert.equal(trendFill && "fgColor" in trendFill ? trendFill.fgColor?.argb : undefined, "FFE8F5E9");
 
   const summarySheet = workbook.getWorksheet("Summary");
   assert.ok(summarySheet?.autoFilter);

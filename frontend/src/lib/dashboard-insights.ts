@@ -461,10 +461,47 @@ export type InherentResidualDatum = {
   riskCount: number;
 };
 
-export function buildInherentResidualTrendData(_risks: RiskLike[]): InherentResidualDatum[] {
-  void _risks;
-  // TODO: GAP-4 follow-up — chart needs redesign for single-score model
-  return [];
+export function buildInherentResidualTrendData(risks: RiskLike[]): InherentResidualDatum[] {
+  const grouped = new Map<string, { totalInherent: number; totalResidual: number; riskCount: number }>();
+
+  for (const risk of risks) {
+    const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+    if (!period) continue;
+
+    const probability = risk.probability ?? 1;
+    const impact = risk.impact ?? 1;
+    const weight = risk.weight ?? getBobot(probability, impact);
+    const residualNilai = typeof risk.nilai === "number"
+      ? risk.nilai
+      : probability * impact * weight;
+    const inherentScore = risk.inherentScore ?? Math.round(residualNilai);
+    const residualScore = Math.round(residualNilai);
+
+    const bucket = grouped.get(period) ?? {
+      totalInherent: 0,
+      totalResidual: 0,
+      riskCount: 0,
+    };
+
+    bucket.totalInherent += inherentScore;
+    bucket.totalResidual += residualScore;
+    bucket.riskCount += 1;
+    grouped.set(period, bucket);
+  }
+
+  return [...grouped.entries()]
+    .sort(([left], [right]) => semesterSortValue(left) - semesterSortValue(right))
+    .map(([period, bucket]) => {
+      const avgInherent = Math.round((bucket.totalInherent / bucket.riskCount) * 10) / 10;
+      const avgResidual = Math.round((bucket.totalResidual / bucket.riskCount) * 10) / 10;
+      return {
+        period,
+        avgInherent,
+        avgResidual,
+        gap: Math.round((avgInherent - avgResidual) * 10) / 10,
+        riskCount: bucket.riskCount,
+      };
+    });
 }
 
 /* ───────────────────── Critical Risk Rate Trend ───────────────────── */
