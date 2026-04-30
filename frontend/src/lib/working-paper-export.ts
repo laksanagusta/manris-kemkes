@@ -2,14 +2,52 @@ import ExcelJS from "exceljs";
 
 import type {
   WorkingPaper,
+  WorkingPaperRiskData,
   WorkingPaperSignatory,
 } from "@/types/working-paper";
 import { getWorkingPaperRiskRows } from "./working-paper-linked-risks";
 
-// Sheet builders accept any-shaped risk rows so legacy columns render as empty
-// when the backend no longer provides snapshot-level detail.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExportableRiskRow = Record<string, any>;
+
+/**
+ * For sheets 1 & 2, use previous semester data if available.
+ * Falls back to current risk data otherwise.
+ * Also remaps display labels for human-readable values.
+ */
+function getProfileRow(risk: WorkingPaperRiskData): ExportableRiskRow {
+  const prev = risk.previous;
+  const src = prev ?? risk;
+  return {
+    ...risk,
+    // Inherent scores — prefer previous snapshot
+    probability: src.probability ?? risk.probability,
+    impact: src.impact ?? risk.impact,
+    bobot: src.bobot ?? risk.bobot,
+    nilai: src.nilai ?? risk.nilai,
+    tingkat_risiko: src === prev ? (prev.tingkat_risiko_display ?? prev.tingkat_risiko) : (risk.tingkat_risiko_display ?? risk.tingkat_risiko),
+    prioritas_risiko: src.prioritas_risiko ?? risk.prioritas_risiko,
+    cause: src.cause ?? risk.cause,
+    risk_source: src.risk_source ?? risk.risk_source,
+    controllability: src.controllability ?? risk.controllability,
+    impact_desc: src.impact_desc ?? risk.impact_desc,
+    existing_control: src.existing_control ?? risk.existing_control,
+    control_effectiveness: src.control_effectiveness ?? risk.control_effectiveness,
+    control_effectiveness_display: src === prev ? (prev.control_effectiveness_display ?? prev.control_effectiveness) : (risk.control_effectiveness_display ?? risk.control_effectiveness),
+    risk_appetite: src.risk_appetite ?? risk.risk_appetite,
+    risk_appetite_display: src === prev ? (prev.risk_appetite_display ?? prev.risk_appetite) : (risk.risk_appetite_display ?? risk.risk_appetite),
+    treatment_option: src.treatment_option ?? risk.treatment_option,
+    treatment_option_display: src === prev ? (prev.treatment_option_display ?? prev.treatment_option) : (risk.treatment_option_display ?? risk.treatment_option),
+    mitigations: src.mitigations ?? risk.mitigations,
+    mitigation_due_dates: src.mitigation_due_dates ?? risk.mitigation_due_dates,
+    // Target scores — prefer previous snapshot
+    target_probability: src.target_probability ?? risk.target_probability,
+    target_impact: src.target_impact ?? risk.target_impact,
+    target_bobot: src.target_bobot ?? risk.target_bobot,
+    target_nilai: src.target_nilai ?? risk.target_nilai,
+    target_tingkat_risiko: src === prev ? (prev.target_tingkat_risiko_display ?? prev.target_tingkat_risiko) : (risk.target_tingkat_risiko_display ?? risk.target_tingkat_risiko),
+  };
+}
 
 const HEADER_FILL: ExcelJS.FillPattern = {
   type: "pattern",
@@ -274,6 +312,8 @@ function buildProfilRisikoSheet(
   risks.forEach((risk, index) => {
     const dataRow = ws.getRow(DATA_START_ROW + index);
     const c = FIRST_COL;
+    const tingkatRisiko = risk.tingkat_risiko_display ?? risk.tingkat_risiko;
+    const targetTR = risk.target_tingkat_risiko_display ?? risk.target_tingkat_risiko;
     dataRow.getCell(c).value = index + 1;
     dataRow.getCell(c + 1).value = safeStr(risk.org_name);
     dataRow.getCell(c + 2).value = safeStr(risk.title);
@@ -282,7 +322,7 @@ function buildProfilRisikoSheet(
     dataRow.getCell(c + 5).value = safeNum(risk.impact);
     dataRow.getCell(c + 6).value = safeNum(risk.bobot);
     dataRow.getCell(c + 7).value = safeNum(risk.nilai);
-    dataRow.getCell(c + 8).value = safeStr(risk.tingkat_risiko);
+    dataRow.getCell(c + 8).value = safeStr(tingkatRisiko);
     dataRow.getCell(c + 9).value = safeNum(risk.prioritas_risiko);
     dataRow.getCell(c + 10).value = safeStr(risk.existing_control);
     dataRow.getCell(c + 11).value = safeStr(risk.jadwal_pelaksanaan);
@@ -291,7 +331,7 @@ function buildProfilRisikoSheet(
     dataRow.getCell(c + 14).value = safeNum(risk.target_impact);
     dataRow.getCell(c + 15).value = safeNum(risk.target_bobot);
     dataRow.getCell(c + 16).value = safeNum(risk.target_nilai);
-    dataRow.getCell(c + 17).value = safeStr(risk.target_tingkat_risiko);
+    dataRow.getCell(c + 17).value = safeStr(targetTR);
 
     applyNilaiStyle(dataRow.getCell(c + 7), risk.nilai);
     applyRiskLevelStyle(dataRow.getCell(c + 8), risk.tingkat_risiko);
@@ -434,7 +474,11 @@ function buildPenilaianRisikoSheet(
   // ── Data rows ──
   risks.forEach((risk, index) => {
     const dataRow = ws.getRow(DATA_START_ROW + index);
-    const eff = safeStr(risk.control_effectiveness).toLowerCase();
+    const eff = safeStr(risk.control_effectiveness_display ?? risk.control_effectiveness).toLowerCase();
+    const tingkatRisiko = risk.tingkat_risiko_display ?? risk.tingkat_risiko;
+    const targetTR = risk.target_tingkat_risiko_display ?? risk.target_tingkat_risiko;
+    const riskAppetite = risk.risk_appetite_display ?? risk.risk_appetite;
+    const treatmentOption = risk.treatment_option_display ?? risk.treatment_option;
 
     dataRow.getCell(C).value = index + 1;
     dataRow.getCell(C + 1).value = safeStr(risk.title);
@@ -450,17 +494,17 @@ function buildPenilaianRisikoSheet(
     dataRow.getCell(C + 11).value = safeNum(risk.impact);
     dataRow.getCell(C + 12).value = safeNum(risk.bobot);
     dataRow.getCell(C + 13).value = safeNum(risk.nilai);
-    dataRow.getCell(C + 14).value = safeStr(risk.tingkat_risiko);
+    dataRow.getCell(C + 14).value = safeStr(tingkatRisiko);
     dataRow.getCell(C + 15).value = safeNum(risk.prioritas_risiko);
-    dataRow.getCell(C + 16).value = safeStr(risk.risk_appetite);
-    dataRow.getCell(C + 17).value = safeStr(risk.treatment_option);
+    dataRow.getCell(C + 16).value = safeStr(riskAppetite);
+    dataRow.getCell(C + 17).value = safeStr(treatmentOption);
     dataRow.getCell(C + 18).value = (risk.mitigations ?? []).filter(Boolean).join(", ");
     dataRow.getCell(C + 19).value = (risk.mitigation_due_dates ?? []).filter(Boolean).map((d: string) => formatDate(d)).join(", ");
     dataRow.getCell(C + 20).value = safeNum(risk.target_probability);
     dataRow.getCell(C + 21).value = safeNum(risk.target_impact);
     dataRow.getCell(C + 22).value = safeNum(risk.target_bobot);
     dataRow.getCell(C + 23).value = safeNum(risk.target_nilai);
-    dataRow.getCell(C + 24).value = safeStr(risk.target_tingkat_risiko);
+    dataRow.getCell(C + 24).value = safeStr(targetTR);
 
     applyNilaiStyle(dataRow.getCell(C + 13), risk.nilai);
     applyRiskLevelStyle(dataRow.getCell(C + 14), risk.tingkat_risiko);
@@ -477,7 +521,7 @@ function buildPenilaianRisikoSheet(
 
 function buildPemantauanReviuSheet(
   workbook: ExcelJS.Workbook,
-  risks: ExportableRiskRow[],
+  risks: WorkingPaperRiskData[],
   signatories: WorkingPaperSignatory[],
 ): void {
   const ws = workbook.addWorksheet("KK Pemantauan Reviu");
@@ -581,20 +625,24 @@ function buildPemantauanReviuSheet(
   // ── Data rows ──
   risks.forEach((risk, index) => {
     const dataRow = ws.getRow(DATA_START_ROW + index);
+    const targetTR = risk.target_tingkat_risiko_display ?? risk.target_tingkat_risiko ?? risk.target_tingkat_risiko;
+    const monTR = risk.monitoring_tingkat_risiko_display ?? risk.monitoring_tingkat_risiko;
+    const monSimpulan = risk.monitoring_simpulan;
+
     dataRow.getCell(C).value = index + 1;
     dataRow.getCell(C + 1).value = safeStr(risk.code);
     dataRow.getCell(C + 2).value = safeStr(risk.title);
-    dataRow.getCell(C + 3).value = safeNum(risk.target_p);
-    dataRow.getCell(C + 4).value = safeNum(risk.target_d);
+    dataRow.getCell(C + 3).value = safeNum(risk.target_probability);
+    dataRow.getCell(C + 4).value = safeNum(risk.target_impact);
     dataRow.getCell(C + 5).value = safeNum(risk.target_bobot);
     dataRow.getCell(C + 6).value = safeNum(risk.target_nilai);
-    dataRow.getCell(C + 7).value = safeStr(risk.target_tingkat_risiko);
+    dataRow.getCell(C + 7).value = safeStr(targetTR);
     dataRow.getCell(C + 8).value = safeNum(risk.monitoring_p);
     dataRow.getCell(C + 9).value = safeNum(risk.monitoring_d);
     dataRow.getCell(C + 10).value = safeNum(risk.monitoring_bobot);
     dataRow.getCell(C + 11).value = safeNum(risk.monitoring_nilai);
-    dataRow.getCell(C + 12).value = safeStr(risk.monitoring_tingkat_risiko);
-    dataRow.getCell(C + 13).value = safeStr(risk.monitoring_simpulan_tingkat_risiko);
+    dataRow.getCell(C + 12).value = safeStr(monTR);
+    dataRow.getCell(C + 13).value = safeStr(monSimpulan);
     dataRow.getCell(C + 14).value = safeStr(risk.monitoring_efektivitas);
     dataRow.getCell(C + 15).value = safeStr(risk.jadwal_pelaksanaan);
 
@@ -602,7 +650,7 @@ function buildPemantauanReviuSheet(
     applyRiskLevelStyle(dataRow.getCell(C + 7), risk.target_tingkat_risiko);
     applyNilaiStyle(dataRow.getCell(C + 11), risk.monitoring_nilai);
     applyRiskLevelStyle(dataRow.getCell(C + 12), risk.monitoring_tingkat_risiko);
-    applyRiskLevelStyle(dataRow.getCell(C + 13), risk.monitoring_simpulan_tingkat_risiko);
+    applyRiskLevelStyle(dataRow.getCell(C + 13), risk.monitoring_tingkat_risiko);
   });
 
   const lastDataRow = DATA_START_ROW + risks.length - 1;
@@ -886,10 +934,11 @@ function downloadBlob(blob: Blob, filename: string): void {
 export async function exportWorkingPaper(workingPaper: WorkingPaper): Promise<void> {
   const workbook = new ExcelJS.Workbook();
   const risks = getWorkingPaperRiskRows(workingPaper);
+  const profileRows = risks.map(r => getProfileRow(r));
   const signatories = workingPaper.signatories;
 
-  buildProfilRisikoSheet(workbook, risks, signatories);
-  buildPenilaianRisikoSheet(workbook, risks, signatories);
+  buildProfilRisikoSheet(workbook, profileRows, signatories);
+  buildPenilaianRisikoSheet(workbook, profileRows, signatories);
   buildPemantauanReviuSheet(workbook, risks, signatories);
   buildTandaTanganSheet(workbook, workingPaper);
 

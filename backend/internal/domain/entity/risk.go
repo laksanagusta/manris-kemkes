@@ -279,6 +279,70 @@ func GetRiskLevelDisplay(level string) string {
 	}
 }
 
+// GetRiskAppetiteDisplay returns the Indonesian display name for risk appetite
+func GetRiskAppetiteDisplay(appetite string) string {
+	switch appetite {
+	case "dalam_batas":
+		return "Dalam batas selera risiko"
+	case "di_atas_batas":
+		return "Di atas batas selera risiko"
+	default:
+		return appetite
+	}
+}
+
+// GetTreatmentOptionDisplay returns the Indonesian display name for treatment option
+func GetTreatmentOptionDisplay(option string) string {
+	switch option {
+	case "avoid", "menghindari":
+		return "Menghindari Risiko"
+	case "transfer", "berbagi":
+		return "Berbagi Risiko"
+	case "mitigate", "mitigasi":
+		return "Mitigasi"
+	case "accept", "menerima":
+		return "Menerima Risiko"
+	default:
+		return option
+	}
+}
+
+// GetControlEffectivenessDisplay returns the Indonesian display name for control effectiveness
+func GetControlEffectivenessDisplay(eff string) string {
+	switch eff {
+	case "efektif":
+		return "Efektif"
+	case "tidak_efektif":
+		return "Tidak Efektif"
+	default:
+		return eff
+	}
+}
+
+// GetControllabilityDisplay returns the Indonesian display name for controllability
+func GetControllabilityDisplay(c string) string {
+	switch c {
+	case "C":
+		return "Controllable"
+	case "UC":
+		return "Uncontrollable"
+	default:
+		return c
+	}
+}
+
+// GetRiskSourceDisplay returns the Indonesian display name for risk source
+func GetRiskSourceDisplay(s string) string {
+	switch s {
+	case "internal":
+		return "Internal"
+	case "eksternal":
+		return "Eksternal"
+	default:
+		return s
+	}
+}
+
 // CalculateAll computes bobot, nilai, inherent score, and updates risk priority
 func (r *Risk) CalculateAll() {
 	r.CalculateBobot()
