@@ -34,32 +34,30 @@ export function ImpactCriteriaTooltip({
 }: ImpactCriteriaTooltipProps) {
   const [criteria, setCriteria] = useState<ImpactCriteria[]>([]);
   const [loading, setLoading] = useState(false);
-  const [fetched, setFetched] = useState(false);
 
   useEffect(() => {
-    if (!category || !uprLevel || fetched) return;
+    if (!category || !uprLevel) return;
     let cancelled = false;
+    setCriteria([]); // reset when category/upr changes
     setLoading(true);
 
     listImpactCriteria(token, { category, uprLevel })
       .then((data) => {
         if (!cancelled) {
           setCriteria(data);
-          setFetched(true);
           setLoading(false);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setLoading(false);
-          setFetched(true);
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [token, category, uprLevel, fetched]);
+  }, [token, category, uprLevel]);
 
   return (
     <div className={cn("flex h-6 items-center gap-2", className)}>
