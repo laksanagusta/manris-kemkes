@@ -114,6 +114,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/management/charters": "Piagam MR",
   "/management/charters/new": "Buat Piagam MR",
   "/management/objectives": "Sasaran & IKU",
+  "/management/objectives/new": "Buat Sasaran",
   "/management/criteria": "Scope & Criteria",
   "/admin/forms": "Form Builder",
   "/admin/forms/new": "New Form",
