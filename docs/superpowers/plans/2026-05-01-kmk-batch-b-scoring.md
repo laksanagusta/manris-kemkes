@@ -103,7 +103,7 @@
 - Modify: `frontend/src/app/(app)/risk/register/new/page.tsx` — insert wizard
 - Modify: `frontend/src/app/(app)/risk/assessment/[id]/page.tsx` — insert wizard
 
-- [ ] **Step 1: Write failing entity tests**
+- [x] **Step 1: Write failing entity tests**
 
 Create `backend/internal/domain/entity/likelihood_assessment_test.go`:
 
@@ -234,7 +234,7 @@ func TestResolveLikelihoodLevel(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -245,7 +245,7 @@ go test ./internal/domain/entity -run TestLikelihoodAssessmentValidate -v
 
 Expected: FAIL because `LikelihoodAssessment` type does not exist yet.
 
-- [ ] **Step 3: Create migration**
+- [x] **Step 3: Create migration**
 
 Create `backend/db/migrations/000047_likelihood_assessments.up.sql`:
 
@@ -275,7 +275,7 @@ Create `backend/db/migrations/000047_likelihood_assessments.down.sql`:
 DROP TABLE IF EXISTS likelihood_assessments;
 ```
 
-- [ ] **Step 4: Create entity and validation**
+- [x] **Step 4: Create entity and validation**
 
 Create `backend/internal/domain/entity/likelihood_assessment.go`:
 
@@ -424,7 +424,7 @@ func ResolveLikelihoodLevel(method string, frequencyType string, eventCount int,
 }
 ```
 
-- [ ] **Step 5: Run entity tests**
+- [x] **Step 5: Run entity tests**
 
 Run:
 
@@ -457,7 +457,7 @@ type LikelihoodAssessmentRepository interface {
 }
 ```
 
-- [ ] **Step 7: Implement Postgres repository**
+- [x] **Step 7: Implement Postgres repository**
 
 Create `backend/internal/repository/postgres/likelihood_assessment.go` using pattern from `risk_charter.go`:
 
@@ -498,7 +498,7 @@ Add unique constraint to migration:
 ALTER TABLE likelihood_assessments ADD CONSTRAINT uq_likelihood_assessments_risk UNIQUE (risk_id);
 ```
 
-- [ ] **Step 8: Implement usecases**
+- [x] **Step 8: Implement usecases**
 
 Create `backend/internal/usecase/likelihoodassessment/upsert.go`:
 
@@ -589,7 +589,7 @@ func (uc *UpsertLikelihoodAssessmentUseCase) Execute(ctx context.Context, input 
 
 Create `get.go` and `create.go` wrappers as needed. Note: `Upsert` is primary pattern since one risk has at most one likelihood assessment.
 
-- [ ] **Step 9: Implement HTTP handler + routes**
+- [x] **Step 9: Implement HTTP handler + routes**
 
 Create `backend/internal/handler/http/likelihood_assessment.go` with:
 - `POST /likelihood-assessments` — upsert (create or update)
@@ -607,11 +607,11 @@ protected.Post("/likelihood-assessments", likelihoodHandler.Upsert)
 protected.Get("/likelihood-assessments/:riskId", likelihoodHandler.GetByRiskID)
 ```
 
-- [ ] **Step 10: Wire bootstrap**
+- [x] **Step 10: Wire bootstrap**
 
 Add repository/usecase/handler construction in `backend/internal/bootstrap/bootstrap.go`.
 
-- [ ] **Step 11: Update risk entity**
+- [x] **Step 11: Update risk entity**
 
 Add to `backend/internal/domain/entity/risk.go`:
 
@@ -619,13 +619,13 @@ Add to `backend/internal/domain/entity/risk.go`:
 LikelihoodAssessmentID *uuid.UUID `json:"likelihoodAssessmentId,omitempty"`
 ```
 
-- [ ] **Step 12: Update risk repository persistence**
+- [x] **Step 12: Update risk repository persistence**
 
 In `backend/internal/repository/postgres/risk.go`:
 - Add `likelihood_assessment_id` to INSERT and SELECT columns
 - Include in UPDATE SQL if needed
 
-- [ ] **Step 13: Update risk create/update usecases to accept likelihood payload**
+- [x] **Step 13: Update risk create/update usecases to accept likelihood payload**
 
 In `backend/internal/usecase/risk/create.go`:
 - Add `LikelihoodAssessment *likelihoodassessment.UpsertLikelihoodAssessmentInput` to `CreateRiskInput`
@@ -634,7 +634,7 @@ In `backend/internal/usecase/risk/create.go`:
 
 Same pattern for `update.go`.
 
-- [ ] **Step 14: Run migration + backend tests**
+- [x] **Step 14: Run migration + backend tests**
 
 Run:
 
@@ -646,7 +646,7 @@ go test ./...
 
 Expected: migration succeeds, tests pass.
 
-- [ ] **Step 15: Create frontend types**
+- [x] **Step 15: Create frontend types**
 
 Create `frontend/src/types/likelihood-assessment.ts`:
 
@@ -682,7 +682,7 @@ export interface LikelihoodAssessmentInput {
 }
 ```
 
-- [ ] **Step 16: Create API client**
+- [x] **Step 16: Create API client**
 
 Create `frontend/src/lib/api/likelihood-assessments.ts`:
 
@@ -699,7 +699,7 @@ export async function getLikelihoodAssessmentByRiskId(token: string, riskId: str
 }
 ```
 
-- [ ] **Step 17: Create likelihood assessment wizard component**
+- [x] **Step 17: Create likelihood assessment wizard component**
 
 Create `frontend/src/components/risk/likelihood-assessment-wizard.tsx`:
 
@@ -712,7 +712,7 @@ Requirements:
 - If calculated ≠ selected, require justification override
 - On confirm, emit `{ method, frequencyType, observationPeriodMonths, eventCount, populationCount, selectedProbabilityLevel, justification, dataSource }`
 
-- [ ] **Step 18: Insert wizard into risk registration form**
+- [x] **Step 18: Insert wizard into risk registration form**
 
 In `frontend/src/app/(app)/risk/register/new/page.tsx`:
 - Replace simple probability slider with wizard
@@ -721,7 +721,7 @@ In `frontend/src/app/(app)/risk/register/new/page.tsx`:
 
 Same for assessment form `frontend/src/app/(app)/risk/assessment/[id]/page.tsx`.
 
-- [ ] **Step 19: Update risk types and API payloads**
+- [x] **Step 19: Update risk types and API payloads**
 
 In `frontend/src/types/risk.ts`, add to create/update request types:
 
@@ -731,7 +731,7 @@ likelihoodAssessment?: LikelihoodAssessmentInput;
 
 In `frontend/src/lib/api/risk-register.ts`, include in create/update payload.
 
-- [ ] **Step 20: Run frontend build**
+- [x] **Step 20: Run frontend build**
 
 ```bash
 cd frontend
@@ -740,7 +740,7 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 21: Commit**
+- [x] **Step 21: Commit**
 
 ```bash
 git add backend frontend
@@ -837,7 +837,7 @@ func TestImpactCriteriaValidate(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -1222,7 +1222,7 @@ git commit -m "feat: add KMK impact criteria matrix"
 - Modify: `frontend/src/app/(app)/risk/register/new/page.tsx` — appetite display + mitigation validation
 - Modify: `frontend/src/app/(app)/risk/assessment/[id]/page.tsx` — appetite display + mitigation validation
 
-- [ ] **Step 1: Write failing entity tests**
+- [x] **Step 1: Write failing entity tests**
 
 Add to `backend/internal/domain/entity/risk_test.go`:
 
@@ -1251,7 +1251,7 @@ func TestResolveRiskAppetite(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -1262,7 +1262,7 @@ go test ./internal/domain/entity -run TestResolveRiskAppetite -v
 
 Expected: FAIL because `ResolveRiskAppetite` does not exist yet.
 
-- [ ] **Step 3: Create migration**
+- [x] **Step 3: Create migration**
 
 Create `backend/db/migrations/000049_risk_appetite_fields.up.sql`:
 
@@ -1302,7 +1302,7 @@ func (r Risk) IsRiskUtama() bool {
 }
 ```
 
-- [ ] **Step 5: Run entity tests**
+- [x] **Step 5: Run entity tests**
 
 Run:
 
@@ -1485,7 +1485,7 @@ func TestPriorityComparator(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -1496,7 +1496,7 @@ go test ./internal/domain/service -run TestCalculatePrioritySortValue -v
 
 Expected: FAIL because `CalculatePrioritySortValue` does not exist yet.
 
-- [ ] **Step 3: Create migration**
+- [x] **Step 3: Create migration**
 
 Create `backend/db/migrations/000049_risk_priority_engine.up.sql`:
 
