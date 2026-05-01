@@ -97,6 +97,8 @@ import {
   calculateNilai,
   getRiskPriority,
   resolveRiskScoreSemantics,
+  resolveRiskAppetite,
+  isRiskUtama,
   PROBABILITY_LABELS,
   IMPACT_LABELS,
 } from "@/lib/risk";
@@ -665,6 +667,11 @@ export default function RiskInputPage() {
     riskApprovalCapabilityBehavior.usesDirectApprovalCopy
       ? "Finalisasi risiko"
       : "Ajukan review";
+
+  // KMK Risk Appetite Advisory
+  const advisoryInherentScore = probability * impact;
+  const advisoryAppetite = resolveRiskAppetite(advisoryInherentScore);
+  const advisoryIsRiskUtama = isRiskUtama(advisoryInherentScore);;
 
   const handleReviewerSelect = useCallback((option: UserPickerOption) => {
     setReviewerId(option.id);
@@ -2819,6 +2826,11 @@ export default function RiskInputPage() {
                           Bobot: {currentPrimarySnapshot.weight.toFixed(2)} |
                           Prioritas: {currentPrimarySnapshot.priority}
                         </p>
+                        {advisoryIsRiskUtama && (
+                          <p className="mt-1.5 text-xs font-medium text-orange-600 dark:text-orange-400">
+                            ⚠️ Risk Utama — perlu mitigasi atau treatment valid
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-bold">
@@ -2827,6 +2839,19 @@ export default function RiskInputPage() {
                         <p className="text-xs font-mono">
                           {currentScoreLabel}: {currentPrimarySnapshot.score}
                         </p>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "mt-1.5 text-xs font-medium",
+                            advisoryAppetite === "di_atas_batas"
+                              ? "border-orange-400 bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-700"
+                              : "border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-700",
+                          )}
+                        >
+                          {advisoryAppetite === "di_atas_batas"
+                            ? "⚠️ Di Atas Batas"
+                            : "✓ Dalam Batas"}
+                        </Badge>
                       </div>
                     </div>
                   </AccordionContent>
