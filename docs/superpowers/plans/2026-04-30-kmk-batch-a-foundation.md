@@ -1194,7 +1194,7 @@ git commit -m "feat: add backend risk objective linkage"
 - Modify: `frontend/src/app/(app)/risk/register/new/page.tsx`
 - Modify: `frontend/src/lib/working-paper-export.ts`
 
-- [ ] **Step 1: Extend risk types**
+- [x] **Step 1: Extend risk types**
 
 Add to `frontend/src/types/risk.ts`:
 
@@ -1213,7 +1213,7 @@ export interface Risk {
 }
 ```
 
-- [ ] **Step 2: Extend risk register API payloads**
+- [x] **Step 2: Extend risk register API payloads**
 
 Add to create/update request type in `frontend/src/lib/api/risk-register.ts`:
 
@@ -1221,7 +1221,7 @@ Add to create/update request type in `frontend/src/lib/api/risk-register.ts`:
 objectiveId?: string;
 ```
 
-- [ ] **Step 3: Create objective picker component**
+- [x] **Step 3: Create objective picker component**
 
 Create `frontend/src/components/risk/objective-picker.tsx` with props:
 
@@ -1237,7 +1237,7 @@ type ObjectivePickerProps = {
 
 Render searchable select backed by `listRiskObjectives()`.
 
-- [ ] **Step 4: Insert picker into risk form**
+- [x] **Step 4: Insert picker into risk form**
 
 Place under Identifikasi section in `frontend/src/app/(app)/risk/register/new/page.tsx`.
 
@@ -1255,7 +1255,7 @@ Render helper text:
 </p>
 ```
 
-- [ ] **Step 5: Show selected objective summary**
+- [x] **Step 5: Show selected objective summary**
 
 After selection, show read-only summary card with:
 - Sasaran
@@ -1263,7 +1263,7 @@ After selection, show read-only summary card with:
 - Program
 - Kegiatan
 
-- [ ] **Step 6: Update working paper export metadata**
+- [x] **Step 6: Update working paper export metadata**
 
 In `frontend/src/lib/working-paper-export.ts`, include objective fields in header/meta area if present:
 - `Tujuan`
@@ -1273,7 +1273,7 @@ In `frontend/src/lib/working-paper-export.ts`, include objective fields in heade
 - `Program`
 - `Kegiatan`
 
-- [ ] **Step 7: Run frontend verification**
+- [x] **Step 7: Run frontend verification**
 
 Run:
 
@@ -1284,7 +1284,7 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add frontend
