@@ -12,7 +12,7 @@ import { filterToAccessibleOrgs } from "@/lib/organization";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { useAuth } from "@/contexts/auth-context";
 import { ObjectivePicker, type ObjectiveSummary } from "@/components/risk/objective-picker";
-import { ImpactCriteriaSelector } from "@/components/risk/impact-criteria-selector";
+import { ImpactCriteriaTooltip } from "@/components/shared/impact-criteria-tooltip";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -2761,9 +2761,18 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="flex h-6 items-center text-sm font-medium">
-                          Dampak (Residual)
-                        </Label>
+                        {category && selectedOrganizationUPRLevel ? (
+                          <ImpactCriteriaTooltip
+                            label="Dampak (Residual)"
+                            category={category as import("@/types/impact-criteria").ImpactCriteriaCategory}
+                            uprLevel={selectedOrganizationUPRLevel as import("@/types/impact-criteria").ImpactCriteriaUPRLevel}
+                            className="text-sm font-medium"
+                          />
+                        ) : (
+                          <Label className="flex h-6 items-center text-sm font-medium">
+                            Dampak (Residual)
+                          </Label>
+                        )}
                         <div className="grid grid-cols-5 gap-1.5">
                           {[1, 2, 3, 4, 5].map((val) => (
                             <Tooltip key={val}>
@@ -2796,18 +2805,6 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                     </div>
-
-                    {/* KMK Impact Criteria Selector */}
-                    {category && selectedOrganizationUPRLevel && token && (
-                      <ImpactCriteriaSelector
-                        token={token}
-                        category={category as import("@/types/impact-criteria").ImpactCriteriaCategory}
-                        uprLevel={selectedOrganizationUPRLevel as import("@/types/impact-criteria").ImpactCriteriaUPRLevel}
-                        value={impact}
-                        onChange={(level) => setValue("impact", level, { shouldValidate: true })}
-                        disabled={isRiskLocked}
-                      />
-                    )}
 
                     <div
                       className={cn(

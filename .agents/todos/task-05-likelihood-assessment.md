@@ -1,27 +1,35 @@
 # Task 5 — KMK Batch B: Likelihood Assessment Wizard
 
-## Status: EXECUTING
+## Status: ✅ COMPLETE
 
-## Steps
+## Summary
 
-- [ ] Step 1: Write failing entity test
-- [ ] Step 2: Run test → FAIL
-- [ ] Step 3: Create migration 000047
-- [ ] Step 4: Create entity + ResolveLikelihoodLevel
-- [ ] Step 5: Run entity test → PASS
-- [ ] Step 6: Repository interface
-- [ ] Step 7: Postgres repository
-- [ ] Step 8: Usecases
-- [ ] Step 9: HTTP handler + routes
-- [ ] Step 10: Wire bootstrap
-- [ ] Step 11: Update risk entity
-- [ ] Step 12: Update risk repository
-- [ ] Step 13: Update risk create/update usecases
-- [ ] Step 14: Run migration + backend tests
-- [ ] Step 15: Frontend types
-- [ ] Step 16: API client
-- [ ] Step 17: Wizard component
-- [ ] Step 18: Insert into risk form
-- [ ] Step 19: Update types + API payloads
-- [ ] Step 20: Frontend build
-- [ ] Step 21: Commit
+Backend:
+- `000047_likelihood_assessments` migration (table + column in risks)
+- `LikelihoodAssessment` entity with `Validate()` and `ResolveLikelihoodLevel()`
+- 24 unit test cases (all passing) — covers all KMK thresholds
+- Postgres repository with UpsertByRiskID
+- UpsertUseCase + GetByRiskIDUseCase
+- HTTP handler: POST /likelihood-assessments, GET /likelihood-assessments/:riskId
+- `LikelihoodAssessmentID` added to Risk entity + all SELECT queries
+- Bootstrap wired, routes registered
+
+Frontend:
+- Types: `LikelihoodAssessment`, `LikelihoodAssessmentInput`, `UpsertLikelihoodAssessmentResponse`
+- API client: `upsertLikelihoodAssessment`, `getLikelihoodAssessmentByRiskId`
+- `LikelihoodAssessmentWizard` component — 5 method tabs with KMK thresholds
+- Frontend build: ✅ PASS
+
+## Verification
+
+```bash
+cd backend && go test ./...          # ✅ PASS
+cd ../frontend && npm run build    # ✅ PASS
+```
+
+## Commit
+
+```
+feat(backend+frontend): add KMK likelihood assessment wizard (Task 5)
+17 files changed, 1592 insertions(+), 13 deletions(-)
+```
