@@ -944,7 +944,7 @@ git commit -m "feat: add frontend KMK objective pages"
 - Modify: `backend/internal/bootstrap/bootstrap.go` if config injection needed
 - Test: `backend/internal/usecase/risk/create_test.go`
 
-- [ ] **Step 1: Write failing usecase test**
+- [x] **Step 1: Write failing usecase test**
 
 Add test case to `backend/internal/usecase/risk/create_test.go`:
 
@@ -1075,7 +1075,7 @@ func (s *stubOrganizationRepo) GetDescendants(ctx context.Context, orgID uuid.UU
 ```
 
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -1086,7 +1086,7 @@ go test ./internal/usecase/risk -run TestCreateRisk_RequiresObjectiveWhenKMKFlag
 
 Expected: FAIL because `RequireObjective` and objective validation do not exist.
 
-- [ ] **Step 3: Add migration**
+- [x] **Step 3: Add migration**
 
 Create `backend/db/migrations/000046_risks_add_objective_id.up.sql`:
 
@@ -1102,7 +1102,7 @@ DROP INDEX IF EXISTS idx_risks_objective_id;
 ALTER TABLE risks DROP COLUMN IF EXISTS objective_id;
 ```
 
-- [ ] **Step 4: Update backend risk entity**
+- [x] **Step 4: Update backend risk entity**
 
 Add to `backend/internal/domain/entity/risk.go`:
 
@@ -1110,7 +1110,7 @@ Add to `backend/internal/domain/entity/risk.go`:
 ObjectiveID *uuid.UUID `json:"objectiveId,omitempty"`
 ```
 
-- [ ] **Step 5: Update create/update inputs**
+- [x] **Step 5: Update create/update inputs**
 
 Extend `CreateRiskInput` and update input struct with:
 
@@ -1129,7 +1129,7 @@ if input.RequireObjective && input.ObjectiveID == nil {
 
 Also validate objective belongs to same organization when provided.
 
-- [ ] **Step 6: Add config flag**
+- [x] **Step 6: Add config flag**
 
 In `backend/internal/config/config.go` add:
 
@@ -1149,7 +1149,7 @@ Update `.env.example` manually during implementation to include:
 KMK_OBJECTIVE_REQUIRED=false
 ```
 
-- [ ] **Step 7: Update risk repository persistence**
+- [x] **Step 7: Update risk repository persistence**
 
 In `backend/internal/repository/postgres/risk.go` add `objective_id` to insert, select, and update SQL.
 
@@ -1164,7 +1164,7 @@ INSERT INTO risks (
 )
 ```
 
-- [ ] **Step 8: Run backend verification**
+- [x] **Step 8: Run backend verification**
 
 Run:
 
@@ -1176,7 +1176,7 @@ go test ./...
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add backend .env.example
