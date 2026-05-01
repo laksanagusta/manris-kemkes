@@ -190,20 +190,47 @@ func TestLikelihoodAssessmentValidate(t *testing.T) {
 
 func TestResolveLikelihoodLevel(t *testing.T) {
 	tests := []struct {
-		name              string
-		method            string
-		eventCount        int
-		populationCount   int
-		observationMonths int
-		wantLevel         int
+		name            string
+		method          string
+		frequencyType   string
+		eventCount     int
+		populationCount int
+		observationMo  int
+		wantLevel       int
 	}{
-		{
-			name: "low frequency with 0 events → level 1",
-			// Implementation-specific threshold
-		},
+		// Non-low frequency thresholds per KMK table (12 bulan)
+		{"non-low: 0 events → level 1", "frequency", "non_low_frequency", 0, 0, 12, 1},
+		{"non-low: 1 event → level 1", "frequency", "non_low_frequency", 1, 0, 12, 1},
+		{"non-low: 2-5 events → level 2", "frequency", "non_low_frequency", 5, 0, 12, 2},
+		{"non-low: 6-9 events → level 3", "frequency", "non_low_frequency", 9, 0, 12, 3},
+		{"non-low: 10-12 events → level 4", "frequency", "non_low_frequency", 12, 0, 12, 4},
+		{"non-low: >12 events → level 5", "frequency", "non_low_frequency", 15, 0, 12, 5},
+		// Low frequency thresholds per KMK table (60 bulan)
+		{"low: 0 events → level 1", "frequency", "low_frequency", 0, 0, 60, 1},
+		{"low: 1 event in 60mo → level 2", "frequency", "low_frequency", 1, 0, 60, 2},
+		{"low: annualRate ≥ 0.33 → level 3", "frequency", "low_frequency", 2, 0, 60, 3},
+		{"low: annualRate ≥ 0.5 → level 4", "frequency", "low_frequency", 3, 0, 60, 4},
+		{"low: annualRate ≥ 1 → level 5", "frequency", "low_frequency", 5, 0, 60, 5},
+		// Probability method: P = eventCount/populationCount × 100, scaled by observation period
+		{"prob: P ≤ 1% → level 1", "probability", "non_low_frequency", 1, 100, 12, 1},
+		{"prob: 1% < P ≤ 10% → level 2", "probability", "non_low_frequency", 5, 100, 12, 2},
+		{"prob: 10% < P ≤ 20% → level 3", "probability", "non_low_frequency", 15, 100, 12, 3},
+		{"prob: 20% < P ≤ 50% → level 4", "probability", "non_low_frequency", 35, 100, 12, 4},
+		{"prob: P > 50% → level 5", "probability", "non_low_frequency", 60, 100, 12, 5},
+		// Non-data methods default to 3
+		{"expert_judgement → 3", "expert_judgement", "", 0, 0, 0, 3},
+		{"benchmarking → 3", "benchmarking", "", 0, 0, 0, 3},
+		{"consensus → 3", "consensus", "", 0, 0, 0, 3},
 	}
-	// Tests for threshold mapping will be added after implementation
-	t.Skip("threshold mapping tests pending implementation")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ResolveLikelihoodLevel(tt.method, tt.frequencyType, tt.eventCount, tt.populationCount, tt.observationMo)
+			if got != tt.wantLevel {
+				t.Errorf("ResolveLikelihoodLevel() = %v, want %v", got, tt.wantLevel)
+			}
+		})
+	}
 }
 ```
 
@@ -262,20 +289,25 @@ import (
 	"github.com/google/uuid"
 )
 
+- Note: `expertSource` field (Item 5 from discussion) — **skipped for now**, can be added later if KMK audit requires it.
+- LikelihoodAssessment struct:
+
+```go
 type LikelihoodAssessment struct {
-	ID                      uuid.UUID `json:"id"`
-	RiskID                  uuid.UUID `json:"riskId"`
-	Method                  string    `json:"method"`
-	FrequencyType           string    `json:"frequencyType"`
-	ObservationPeriodMonths int       `json:"observationPeriodMonths"`
-	EventCount              *int      `json:"eventCount,omitempty"`
-	PopulationCount         *int      `json:"populationCount,omitempty"`
-	CalculatedProbability   *float64  `json:"calculatedProbability,omitempty"`
-	SelectedProbabilityLevel int      `json:"selectedProbabilityLevel"`
-	Justification           string    `json:"justification"`
-	DataSource              string    `json:"dataSource"`
-	CreatedAt               time.Time `json:"createdAt"`
-	UpdatedAt               time.Time `json:"updatedAt"`
+	ID                       uuid.UUID  `json:"id"`
+	RiskID                   uuid.UUID  `json:"riskId"`
+	Method                   string     `json:"method"`
+	FrequencyType            string     `json:"frequencyType"`
+	ObservationPeriodMonths  int        `json:"observationPeriodMonths"`
+	EventCount               *int       `json:"eventCount,omitempty"`
+	PopulationCount          *int       `json:"populationCount,omitempty"`
+	CalculatedProbability    *float64   `json:"calculatedProbability,omitempty"`
+	SelectedProbabilityLevel int        `json:"selectedProbabilityLevel"`
+	Justification            string     `json:"justification"`
+	DataSource               string     `json:"dataSource"`
+	// NOTE: expertSource skipped (Item 5) — add later if audit requires
+	CreatedAt                time.Time  `json:"createdAt"`
+	UpdatedAt                time.Time  `json:"updatedAt"`
 }
 
 func (l LikelihoodAssessment) Validate() error {
@@ -305,45 +337,89 @@ func (l LikelihoodAssessment) Validate() error {
 }
 
 // ResolveLikelihoodLevel returns the recommended probability level based on
-// KMK threshold tables. This is a domain function independent of storage.
-func ResolveLikelihoodLevel(method string, eventCount int, populationCount int, observationMonths int) int {
-	if method == "frequency" || method == "probability" {
+// KMK threshold tables (kmk.md Tabel 1: Kriteria Level Kemungkinan).
+// This is a domain function independent of storage.
+func ResolveLikelihoodLevel(method string, frequencyType string, eventCount int, populationCount int, observationMonths int) int {
+	switch method {
+	case "frequency", "probability":
 		if observationMonths <= 0 {
-			return 3
+			return 3 // default to middle if no data
 		}
-		// Calculate annualized rate
+
+		// Annualize event count to get events per year
 		annualRate := float64(eventCount) * 12.0 / float64(observationMonths)
-		if populationCount > 0 {
-			// Probability method: events per population per year
-			rate := annualRate / float64(populationCount)
+
+		if method == "probability" && populationCount > 0 {
+			// Probability: P = events per population per year × 100
+			// Using eventCount/populationCount as proxy for event proportion
+			P := float64(eventCount) * 100.0 / float64(populationCount)
+			if populationCount > 0 {
+				// Scale by observation period
+				P = P * 12.0 / float64(observationMonths)
+			}
 			switch {
-			case rate == 0:
-				return 1
-			case rate < 0.001:
-				return 2
-			case rate < 0.01:
-				return 3
-			case rate < 0.1:
-				return 4
+			case P <= 1:
+				return 1 // Jarang: P ≤ 1%
+			case P <= 10:
+				return 2 // Kemungkinan Kecil: 1% < P ≤ 10%
+			case P <= 20:
+				return 3 // Kemungkinan Sedang: 10% < P ≤ 20%
+			case P <= 50:
+				return 4 // Kemungkinan Besar: 20% < P ≤ 50%
 			default:
-				return 5
+				return 5 // Hampir Pasti Terjadi: P > 50%
 			}
 		}
-		// Frequency method: annual event count
+
+		// Frequency: count events per year
+		if frequencyType == "low_frequency" {
+			// Low frequency: period is 60 months, threshold based on absolute count
+			// per KMK table:
+			// Level 1: ≤ 1 kejadian dalam 60 bulan
+			// Level 2: ≥ 1 dalam 60 bulan
+			// Level 3: ≥ 1 dalam 36 bulan
+			// Level 4: ≥ 1 dalam 24 bulan
+			// Level 5: ≥ 1 dalam 12 bulan
+			// Map to annualRate threshold:
+			// ≥1 in 12mo → annualRate >= 1
+			// ≥1 in 24mo → annualRate >= 0.5
+			// ≥1 in 36mo → annualRate >= 0.33
+			// ≥1 in 60mo → annualRate >= 0.2
+			switch {
+			case eventCount == 0:
+				return 1 // ≤ 1 dalam 60 bulan
+			case annualRate >= 1.0:
+				return 5 // Hampir Pasti Terjadi
+			case annualRate >= 0.5:
+				return 4 // Kemungkinan Besar
+			case annualRate >= 0.33:
+				return 3 // Kemungkinan Sedang
+			default:
+				return 2 // Kemungkinan Kecil
+			}
+		}
+
+		// Non-low frequency: per KMK table, count events in 12 months
+		// Level 1: < 2 dalam 12 bulan
+		// Level 2: 2-5 dalam 12 bulan
+		// Level 3: 6-9 dalam 12 bulan
+		// Level 4: 10-12 dalam 12 bulan
+		// Level 5: > 12 dalam 12 bulan
 		switch {
-		case annualRate == 0:
-			return 1
-		case annualRate < 1:
-			return 2
-		case annualRate < 3:
-			return 3
-		case annualRate < 10:
-			return 4
+		case eventCount < 2:
+			return 1 // Jarang
+		case eventCount <= 5:
+			return 2 // Kemungkinan Kecil
+		case eventCount <= 9:
+			return 3 // Kemungkinan Sedang
+		case eventCount <= 12:
+			return 4 // Kemungkinan Besar
 		default:
-			return 5
+			return 5 // Hampir Pasti Terjadi
 		}
 	}
-	// For non-data methods, default to middle (requires UPR judgement)
+	// For non-data methods (expert_judgement, benchmarking, consensus),
+	// return 3 as default — UPR judgment required
 	return 3
 }
 ```
@@ -477,7 +553,7 @@ func (uc *UpsertLikelihoodAssessmentUseCase) Execute(ctx context.Context, input 
 		if input.PopulationCount != nil {
 			population = *input.PopulationCount
 		}
-		calcLevel = entity.ResolveLikelihoodLevel(input.Method, eventCount, population, input.ObservationPeriodMonths)
+		calcLevel = entity.ResolveLikelihoodLevel(input.Method, input.FrequencyType, eventCount, population, input.ObservationPeriodMonths)
 		cp := float64(calcLevel)
 		calculated = &cp
 	}
@@ -790,26 +866,111 @@ CREATE TABLE IF NOT EXISTS impact_criteria (
 
 CREATE INDEX IF NOT EXISTS idx_impact_criteria_category_level ON impact_criteria(category, upr_level);
 
--- Seed minimum KMK impact criteria
+-- Seed complete KMK impact criteria matrix (90 rows: 6 categories × 3 UPR levels × 5 impact levels)
+-- Descriptions sourced from kmk.md Tabel 2: Kriteria Level Dampak
+
+-- KEBIJAKAN
 INSERT INTO impact_criteria (category, upr_level, impact_level, impact_label, description) VALUES
--- Kebijakan / Kementerian
-('kebijakan', 'kementerian', 1, 'Tidak Signifikan', 'Tidak berdampak pada pencapaian sasaran strategis'),
-('kebijakan', 'kementerian', 2, 'Kecil', 'Dampak minor pada 1-2 sasaran, dapat ditangani rutin'),
-('kebijakan', 'kementerian', 3, 'Sedang', 'Dampak pada beberapa sasaran, memerlukan perhatian khusus'),
-('kebijakan', 'kementerian', 4, 'Besar', 'Dampak signifikan pada sasaran utama, mengganggu kinerja'),
-('kebijakan', 'kementerian', 5, 'Katastropik', 'Gagal pencapaian sasaran strategis, implikasi nasional'),
--- Operasional / UPR T1
-('operasional', 'upr_t1', 1, 'Tidak Signifikan', 'Gangguan operasional < 1 hari, tidak mempengaruhi layanan'),
-('operasional', 'upr_t1', 2, 'Kecil', 'Gangguan 1-3 hari, layanan tetap berjalan dengan penurunan'),
-('operasional', 'upr_t1', 3, 'Sedang', 'Gangguan 3-7 hari, layanan terhambat sebagian'),
-('operasional', 'upr_t1', 4, 'Besar', 'Gangguan > 7 hari, layanan utama terganggu'),
-('operasional', 'upr_t1', 5, 'Katastropik', 'Gangguan > 14 hari, layanan esensial lumpuh'),
--- Kepatuhan / UPR T2
-('kepatuhan', 'upr_t2', 1, 'Tidak Signifikan', 'Ketidakpatuhan prosedural tanpa sanksi'),
-('kepatuhan', 'upr_t2', 2, 'Kecil', 'Ketidakpatuhan dengan peringatan tertulis'),
-('kepatuhan', 'upr_t2', 3, 'Sedang', 'Ketidakpatuhan dengan sanksi administratif'),
-('kepatuhan', 'upr_t2', 4, 'Besar', 'Ketidakpatuhan dengan sanksi pidana ringan/denda'),
-('kepatuhan', 'upr_t2', 5, 'Katastropik', 'Ketidakpatuhan dengan sanksi pidana berat, reputasi nasional')
+('kebijakan', 'kementerian', 1, 'Tidak Signifikan', 'Tidak berdampak pada pencapaian tujuan/sasaran/indikator kinerja secara umum; hanya berdampak pada satu pihak'),
+('kebijakan', 'kementerian', 2, 'Kecil', 'Mengganggu pencapaian tujuan/sasaran/indikator kinerja meskipun tidak signifikan; berdampak pada 2 pihak'),
+('kebijakan', 'kementerian', 3, 'Sedang', 'Mengganggu pencapaian tujuan/sasaran/indikator kinerja secara signifikan; berdampak pada 3 pihak'),
+('kebijakan', 'kementerian', 4, 'Besar', 'Sebagian kecil tujuan/sasaran/indikator kinerja gagal dilaksanakan; berdampak pada 4 pihak'),
+('kebijakan', 'kementerian', 5, 'Katastropik', 'Sebagian besar tujuan/sasaran/indikator kinerja gagal dilaksanakan; berdampak pada lebih dari 4 pihak'),
+('kebijakan', 'upr_t1', 1, 'Tidak Signifikan', 'Tidak berdampak pada pencapaian tujuan/sasaran/indikator kinerja secara umum; hanya berdampak pada satu pihak'),
+('kebijakan', 'upr_t1', 2, 'Kecil', 'Mengganggu pencapaian tujuan/sasaran/indikator kinerja meskipun tidak signifikan; berdampak pada 2 pihak'),
+('kebijakan', 'upr_t1', 3, 'Sedang', 'Mengganggu pencapaian tujuan/sasaran/indikator kinerja secara signifikan; berdampak pada 3 pihak'),
+('kebijakan', 'upr_t1', 4, 'Besar', 'Sebagian kecil tujuan/sasaran/indikator kinerja gagal dilaksanakan; berdampak pada 4 pihak'),
+('kebijakan', 'upr_t1', 5, 'Katastropik', 'Sebagian besar tujuan/sasaran/indikator kinerja gagal dilaksanakan; berdampak pada lebih dari 4 pihak'),
+('kebijakan', 'upr_t2', 1, 'Tidak Signifikan', 'Tidak berdampak pada pencapaian tujuan/sasaran/indikator kinerja secara umum'),
+('kebijakan', 'upr_t2', 2, 'Kecil', 'Mengganggu pencapaian tujuan/sasaran/indikator kinerja meskipun tidak signifikan'),
+('kebijakan', 'upr_t2', 3, 'Sedang', 'Mengganggu pencapaian tujuan/sasaran/indikator kinerja secara signifikan'),
+('kebijakan', 'upr_t2', 4, 'Besar', 'Sebagian kecil tujuan/sasaran/indikator kinerja gagal dilaksanakan'),
+('kebijakan', 'upr_t2', 5, 'Katastropik', 'Sebagian besar tujuan/sasaran/indikator kinerja gagal dilaksanakan'),
+
+-- REPUTASI
+('reputasi', 'kementerian', 1, 'Tidak Signifikan', 'Keluhan ≤ 20; investor/pemberi hibah ≥ 5; kepuasan = Sangat Baik'),
+('reputasi', 'kementerian', 2, 'Kecil', 'Keluhan 21-30; investor/pemberi hibah ≥ 4; kepuasan = Baik'),
+('reputasi', 'kementerian', 3, 'Sedang', 'Pemberitaan negatif masif di medsos; media massa lokal; investor ≤ 3; kepuasan = Kurang Baik'),
+('reputasi', 'kementerian', 4, 'Besar', 'Pemberitaan negatif masif di medsos; media massa nasional; investor ≤ 2; kepuasan = Tidak Baik'),
+('reputasi', 'kementerian', 5, 'Katastropik', 'Investor/pemberi hibah = 0; pemberitaan media massa internasional'),
+('reputasi', 'upr_t1', 1, 'Tidak Signifikan', 'Keluhan ≤ 20; investor/pemberi hibah ≥ 5; kepuasan = Sangat Baik'),
+('reputasi', 'upr_t1', 2, 'Kecil', 'Keluhan 21-30; investor/pemberi hibah ≤ 4; kepuasan = Baik'),
+('reputasi', 'upr_t1', 3, 'Sedang', 'Pemberitaan negatif masif di medsos; media massa lokal; investor ≤ 3'),
+('reputasi', 'upr_t1', 4, 'Besar', 'Pemberitaan negatif masif di medsos; media massa nasional; investor ≤ 2'),
+('reputasi', 'upr_t1', 5, 'Katastropik', 'Investor/pemberi hibah = 0; pemberitaan media massa internasional'),
+('reputasi', 'upr_t2', 1, 'Tidak Signifikan', 'Keluhan ≤ 20; investor/pemberi hibah ≥ 5; kepuasan = Sangat Baik'),
+('reputasi', 'upr_t2', 2, 'Kecil', 'Keluhan 21-30; investor/pemberi hibah ≤ 4; kepuasan = Baik'),
+('reputasi', 'upr_t2', 3, 'Sedang', 'Pemberitaan negatif masif di medsos; media massa lokal'),
+('reputasi', 'upr_t2', 4, 'Besar', 'Pemberitaan negatif masif di medsos; media massa nasional'),
+('reputasi', 'upr_t2', 5, 'Katastropik', 'Investor/pemberi hibah = 0; pemberitaan media massa internasional'),
+
+-- FRAUD/KORUPSI
+('fraud_korupsi', 'kementerian', 1, 'Tidak Signifikan', 'Kerugian Keuangan > Rp10 Juta - 20 Juta'),
+('fraud_korupsi', 'kementerian', 2, 'Kecil', 'Kerugian Keuangan > 20 Juta - 100 Juta'),
+('fraud_korupsi', 'kementerian', 3, 'Sedang', 'Kerugian Keuangan > 100 Juta - 1 Milyar'),
+('fraud_korupsi', 'kementerian', 4, 'Besar', 'Kerugian Keuangan > 1 Milyar - 100 Milyar'),
+('fraud_korupsi', 'kementerian', 5, 'Katastropik', 'Kerugian Keuangan > 100 Milyar'),
+('fraud_korupsi', 'upr_t1', 1, 'Tidak Signifikan', 'Kerugian Keuangan > 5 Juta - 10 Juta'),
+('fraud_korupsi', 'upr_t1', 2, 'Kecil', 'Kerugian Keuangan > Rp10 Juta - 20 Juta'),
+('fraud_korupsi', 'upr_t1', 3, 'Sedang', 'Kerugian Keuangan > 20 Juta - 100 Juta'),
+('fraud_korupsi', 'upr_t1', 4, 'Besar', 'Kerugian Keuangan > 100 Juta - 150 Juta'),
+('fraud_korupsi', 'upr_t1', 5, 'Katastropik', 'Kerugian Keuangan > 150 Juta'),
+('fraud_korupsi', 'upr_t2', 1, 'Tidak Signifikan', 'Kerugian Keuangan ≤ 1 - <5 Juta'),
+('fraud_korupsi', 'upr_t2', 2, 'Kecil', 'Kerugian Keuangan > 5 Juta - 10 Juta'),
+('fraud_korupsi', 'upr_t2', 3, 'Sedang', 'Kerugian Keuangan > 10 Juta - 20 Juta'),
+('fraud_korupsi', 'upr_t2', 4, 'Besar', 'Kerugian Keuangan > 20 Juta - 100 Juta'),
+('fraud_korupsi', 'upr_t2', 5, 'Katastropik', 'Kerugian Keuangan > 100 Juta'),
+
+-- LEGAL
+('legal', 'kementerian', 1, 'Tidak Signifikan', 'Perdata ≤ 100 juta; administratif: tergugat di bawah eselon II'),
+('legal', 'kementerian', 2, 'Kecil', 'Perdata > 100 juta - 1 Milyar; administratif: tergugat eselon II'),
+('legal', 'kementerian', 3, 'Sedang', 'Pidana ≤ 1 tahun; eselon II; Perdata > 1 Milyar - 10 Milyar'),
+('legal', 'kementerian', 4, 'Besar', 'Pidana > 1-5 tahun; Eselon I; Perdata > 10 Milyar - 100 Milyar'),
+('legal', 'kementerian', 5, 'Katastropik', 'Pidana > 5 tahun/Menteri; Perdata > 100 Miliar; Tergugat Menteri'),
+('legal', 'upr_t1', 1, 'Tidak Signifikan', 'Perdata < 50 juta'),
+('legal', 'upr_t1', 2, 'Kecil', 'Perdata 50-100 juta'),
+('legal', 'upr_t1', 3, 'Sedang', 'Perdata > 100 juta - 1 Milyar; Pidana ≤ 1 tahun; eselon II'),
+('legal', 'upr_t1', 4, 'Besar', 'Pidana > 1 tahun; Eselon I; Perdata > 1 Milyar - 10 Milyar'),
+('legal', 'upr_t1', 5, 'Katastropik', 'Pidana > 5 tahun; Perdata > 10 Milyar - 100 Milyar; Tergugat Menteri'),
+('legal', 'upr_t2', 1, 'Tidak Signifikan', 'Perdata ≤ 25 juta'),
+('legal', 'upr_t2', 2, 'Kecil', 'Perdata > 25 juta - 50 juta'),
+('legal', 'upr_t2', 3, 'Sedang', 'Perdata 50-100 juta; Pidana ≤ 1 tahun; di bawah eselon II'),
+('legal', 'upr_t2', 4, 'Besar', 'Perdata > 100 juta - 1 Milyar; Pidana > 1 tahun; Eselon II'),
+('legal', 'upr_t2', 5, 'Katastropik', 'Perdata > 1 Milyar'),
+
+-- KEPATUHAN
+('kepatuhan', 'kementerian', 1, 'Tidak Signifikan', 'Tidak berdampak pada pencapaian tujuan/sasaran secara umum; dapat ditangani rutin'),
+('kepatuhan', 'kementerian', 2, 'Kecil', 'Mengganggu pencapaian tujuan/sasaran meskipun tidak signifikan; mengancam efisiensi beberapa aspek'),
+('kepatuhan', 'kementerian', 3, 'Sedang', 'Mengganggu pencapaian tujuan/sasaran secara signifikan; mengganggu pelayanan secara signifikan'),
+('kepatuhan', 'kementerian', 4, 'Besar', 'Sebagian kecil tujuan/sasaran gagal dilaksanakan; mengancam fungsi program'),
+('kepatuhan', 'kementerian', 5, 'Katastropik', 'Sebagian besar tujuan/sasaran gagal dilaksanakan; mengancam tujuan strategis'),
+('kepatuhan', 'upr_t1', 1, 'Tidak Signifikan', 'Tidak berdampak pada pencapaian tujuan program secara umum; dapat ditangani rutin'),
+('kepatuhan', 'upr_t1', 2, 'Kecil', 'Mengganggu pencapaian tujuan program meskipun tidak signifikan'),
+('kepatuhan', 'upr_t1', 3, 'Sedang', 'Mengganggu pencapaian tujuan program secara signifikan; mengganggu pelayanan'),
+('kepatuhan', 'upr_t1', 4, 'Besar', 'Sebagian tujuan program gagal dilaksanakan; mengancam fungsi program'),
+('kepatuhan', 'upr_t1', 5, 'Katastropik', 'Sebagian besar tujuan program gagal dilaksanakan; mengancam Program'),
+('kepatuhan', 'upr_t2', 1, 'Tidak Signifikan', 'Tidak berdampak pada pencapaian tujuan kegiatan secara umum; dapat ditangani rutin'),
+('kepatuhan', 'upr_t2', 2, 'Kecil', 'Mengganggu pencapaian tujuan kegiatan meskipun tidak signifikan'),
+('kepatuhan', 'upr_t2', 3, 'Sedang', 'Mengganggu pencapaian tujuan kegiatan secara signifikan; mengganggu pelayanan'),
+('kepatuhan', 'upr_t2', 4, 'Besar', 'Sebagian tujuan kegiatan gagal dilaksanakan; mengancam fungsi kegiatan'),
+('kepatuhan', 'upr_t2', 5, 'Katastropik', 'Sebagian besar tujuan kegiatan gagal dilaksanakan; mengancam Pelaksanaan'),
+
+-- OPERASIONAL
+('operasional', 'kementerian', 1, 'Tidak Signifikan', 'Terganggungnya pelayanan kurang dari satu hari kerja'),
+('operasional', 'kementerian', 2, 'Kecil', 'Terganggunya pelayanan lebih dari 1 hari kerja hingga 2 hari kerja'),
+('operasional', 'kementerian', 3, 'Sedang', 'Terganggunya pelayanan lebih dari 2 hari kerja hingga 3 hari kerja'),
+('operasional', 'kementerian', 4, 'Besar', 'Terganggunya pelayanan lebih dari 3 hari kerja hingga 5 hari kerja'),
+('operasional', 'kementerian', 5, 'Katastropik', 'Terganggunya pelayanan lebih dari 5 hari kerja'),
+('operasional', 'upr_t1', 1, 'Tidak Signifikan', 'Terganggungnya pelayanan kurang dari satu hari kerja'),
+('operasional', 'upr_t1', 2, 'Kecil', 'Terganggunya pelayanan lebih dari 1 hari kerja hingga 2 hari kerja'),
+('operasional', 'upr_t1', 3, 'Sedang', 'Terganggunya pelayanan lebih dari 2 hari kerja hingga 3 hari kerja'),
+('operasional', 'upr_t1', 4, 'Besar', 'Terganggunya pelayanan lebih dari 3 hari kerja hingga 5 hari kerja'),
+('operasional', 'upr_t1', 5, 'Katastropik', 'Terganggunya pelayanan lebih dari 5 hari kerja'),
+('operasional', 'upr_t2', 1, 'Tidak Signifikan', 'Terganggungnya pelayanan kurang dari satu hari kerja'),
+('operasional', 'upr_t2', 2, 'Kecil', 'Terganggunya pelayanan lebih dari 1 hari kerja hingga 2 hari kerja'),
+('operasional', 'upr_t2', 3, 'Sedang', 'Terganggunya pelayanan lebih dari 2 hari kerja hingga 3 hari kerja'),
+('operasional', 'upr_t2', 4, 'Besar', 'Terganggunya pelayanan lebih dari 3 hari kerja hingga 5 hari kerja'),
+('operasional', 'upr_t2', 5, 'Katastropik', 'Terganggunya pelayanan lebih dari 5 hari kerja')
 ON CONFLICT (category, upr_level, impact_level, description) DO NOTHING;
 ```
 
@@ -1124,8 +1285,8 @@ Add to `backend/internal/domain/entity/risk.go`:
 ```go
 ResidualAcceptanceReason string `json:"residualAcceptanceReason,omitempty"`
 
-// ResolveRiskAppetite returns appetite based on nilai threshold per KMK.
-// nilai < 10 → dalam_batas, nilai >= 10 → di_atas_batas.
+// RiskAppetite advisory: nilai < 10 → dalam_batas, nilai >= 10 → di_atas_batas (per KMK appetite matrix).
+// This is advisory only — auto-set as default, user can override in form.
 func ResolveRiskAppetite(nilai float64) string {
 	if nilai < 10 {
 		return "dalam_batas"
@@ -1133,9 +1294,11 @@ func ResolveRiskAppetite(nilai float64) string {
 	return "di_atas_batas"
 }
 
-// IsRiskUtama returns true if current risk level is Sedang/Tinggi/Sangat Tinggi.
+// IsRiskUtama returns true if risk level is Sedang/Tinggi/Sangat Tinggi.
+// Per KMK: risiko utama = level Sedang ke atas. Threshold inherentScore >= 10
+// corresponds to KMK risk appetite boundary (nilai >= 10 = "di_atas_batas" = area di luar penerimaan).
 func (r Risk) IsRiskUtama() bool {
-	return r.InherentScore >= 12 // threshold for "sedang" and above
+	return r.InherentScore >= 10
 }
 ```
 
@@ -1154,9 +1317,10 @@ Expected: PASS.
 
 In `backend/internal/usecase/risk/create.go`:
 
-After calculating `nilai` and `inherentScore`, auto-set:
+After calculating `nilai` and `inherentScore`, auto-set advisory appetite:
 
 ```go
+// Hybrid (Item 3): auto-calculate but user can override — advisory only
 risk.RiskAppetite = entity.ResolveRiskAppetite(risk.Nilai)
 ```
 
@@ -1194,7 +1358,7 @@ export function resolveRiskAppetite(nilai: number): "dalam_batas" | "di_atas_bat
 }
 
 export function isRiskUtama(inherentScore: number): boolean {
-  return inherentScore >= 12;
+  return inherentScore >= 10; // nilai >= 10 → level Sedang ke atas per KMK matrix
 }
 ```
 
@@ -1203,9 +1367,10 @@ export function isRiskUtama(inherentScore: number): boolean {
 In `frontend/src/app/(app)/risk/register/new/page.tsx`:
 
 - Add `residualAcceptanceReason` field to form schema (conditional)
-- Display auto-calculated appetite badge after probability/impact selected
-- Show warning when `isRiskUtama` and no mitigations added
-- Block submit with validation error for missing mitigation on risk utama
+- Display auto-calculated appetite as **advisory badge** after probability/impact selected
+- Allow user to **override** appetite value (not read-only) — override stored as-is
+- Show warning when `isRiskUtama` and no mitigations added (non-blocking advisory)
+- Block submit with validation error for **missing mitigation on risk utama** (hard validation)
 - Show `residualAcceptanceReason` textarea only when `targetNilai >= 10`
 
 Same for assessment form.
@@ -1397,23 +1562,21 @@ func CategoryPriorityOrder(category string) int {
 	return 99
 }
 
-// CalculatePrioritySortValue computes a deterministic sort value for KMK priority.
-// Tie-breaker order: nilai → impact level → category order → leader judgement rank.
+// Tie-breaker order per KMK Evaluasi Risiko:
+// 1. Higher nilai (besaran risiko) first.
+// 2. Higher impact level (area dampak) second — impact level itself, NOT bobot.
+// 3. Lower category priority order third (kebijakan=1 highest → operasional=6 lowest).
+// 4. Lower leader judgement rank fourth.
+// Formula: value = nilai×10000 + (6-impact)×1000 + (100-categoryOrder) + leaderRank
 func CalculatePrioritySortValue(nilai float64, impactLevel int, categoryOrder int, leaderJudgementRank *int) float64 {
-	// Base: nilai scaled to avoid overlap (max nilai ~ 100)
+	// Tie-breaker: nilai×10000 + (6-impact)×1000 + (100-categoryOrder) + leaderRank
+	// Impact flipped: 5→1000, 1→500. Category flipped: 1→99, 6→94.
 	value := nilai * 10000
-
-	// Secondary: impact level (5 = highest, add 500 to ensure it matters)
-	value += float64(impactLevel) * 100
-
-	// Tertiary: lower category order = higher priority (invert)
-	value += float64(10-categoryOrder) * 10
-
-	// Quaternary: lower leader judgement rank = higher priority
+	value += float64(6-impactLevel) * 1000
+	value += float64(100 - categoryOrder)
 	if leaderJudgementRank != nil {
-		value += float64(10-*leaderJudgementRank)
+		value += float64(10 - *leaderJudgementRank)
 	}
-
 	return math.Round(value*100) / 100
 }
 
