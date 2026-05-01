@@ -31,6 +31,7 @@ import (
 	reportuc "github.com/manris/backend/internal/usecase/report"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 	riskcharteruc "github.com/manris/backend/internal/usecase/riskcharter"
+	riskobjectiveuc "github.com/manris/backend/internal/usecase/riskobjective"
 	systemuc "github.com/manris/backend/internal/usecase/system"
 	systemsettinguc "github.com/manris/backend/internal/usecase/system_setting"
 	useruc "github.com/manris/backend/internal/usecase/user"
@@ -63,6 +64,7 @@ type Container struct {
 	ExternalPICRepository    domainrepo.ExternalPICRepository
 	WPRepository             domainrepo.WorkingPaperRepository
 	RiskCharterRepository    domainrepo.RiskCharterRepository
+	RiskObjectiveRepository   domainrepo.RiskObjectiveRepository
 
 	// Domain Services
 	OrgHierarchySvc *domainsvc.OrganizationHierarchy
@@ -189,6 +191,13 @@ type Container struct {
 	RiskCharterUpdateUC *riskcharteruc.UpdateRiskCharterUseCase
 	RiskCharterListUC   *riskcharteruc.ListRiskChartersUseCase
 
+	// Risk Objective UseCases
+	RiskObjectiveCreateUC *riskobjectiveuc.CreateRiskObjectiveUseCase
+	RiskObjectiveGetUC    *riskobjectiveuc.GetRiskObjectiveUseCase
+	RiskObjectiveUpdateUC *riskobjectiveuc.UpdateRiskObjectiveUseCase
+	RiskObjectiveDeleteUC *riskobjectiveuc.DeleteRiskObjectiveUseCase
+	RiskObjectiveListUC   *riskobjectiveuc.ListRiskObjectivesUseCase
+
 	// External PIC UseCases
 	ExternalPICGetOrCreateUC *externalextPICuc.GetOrCreateByNameUseCase
 	ExternalPICListUC        *externalextPICuc.ListExternalPICsUseCase
@@ -280,6 +289,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.ExternalPICRepository = postgresrepo.NewExternalPICRepository(pool)
 	c.WPRepository = postgresrepo.NewWorkingPaperRepository(pool)
 	c.RiskCharterRepository = postgresrepo.NewRiskCharterRepository(pool)
+	c.RiskObjectiveRepository = postgresrepo.NewRiskObjectiveRepository(pool)
 
 	// ============================================================================
 	// Domain Services
@@ -447,6 +457,13 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskCharterGetUC = riskcharteruc.NewGetRiskCharterUseCase(c.RiskCharterRepository)
 	c.RiskCharterUpdateUC = riskcharteruc.NewUpdateRiskCharterUseCase(c.RiskCharterRepository)
 	c.RiskCharterListUC = riskcharteruc.NewListRiskChartersUseCase(c.RiskCharterRepository)
+
+	// Risk Objective UseCases
+	c.RiskObjectiveCreateUC = riskobjectiveuc.NewCreateRiskObjectiveUseCase(c.RiskObjectiveRepository)
+	c.RiskObjectiveGetUC = riskobjectiveuc.NewGetRiskObjectiveUseCase(c.RiskObjectiveRepository)
+	c.RiskObjectiveUpdateUC = riskobjectiveuc.NewUpdateRiskObjectiveUseCase(c.RiskObjectiveRepository)
+	c.RiskObjectiveDeleteUC = riskobjectiveuc.NewDeleteRiskObjectiveUseCase(c.RiskObjectiveRepository)
+	c.RiskObjectiveListUC = riskobjectiveuc.NewListRiskObjectivesUseCase(c.RiskObjectiveRepository)
 
 	// ============================================================================
 	// External PIC UseCases
