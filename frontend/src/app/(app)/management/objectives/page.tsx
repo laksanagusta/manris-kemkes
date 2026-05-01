@@ -253,21 +253,15 @@ export default function RiskObjectivesPage() {
         </Button>
       </div>
 
-      <Card className="border-border/40 shadow-sm">
-        <CardHeader className="gap-3 pb-4 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-1.5">
-            <CardTitle className="text-base">Daftar Sasaran</CardTitle>
-            <CardDescription>
-              Tinjau sasaran berdasarkan periode, organisasi, dan status, lalu
-              buka detail untuk memperbarui isi dan target.
-            </CardDescription>
-          </div>
-          <Badge
-            variant="outline"
-            className="w-fit px-2.5 py-1 text-xs font-medium text-muted-foreground"
-          >
-            {filteredItems.length} sasaran tampil
-          </Badge>
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+        <CardHeader className="border-b border-border/40 pb-4">
+          <CardTitle className="text-[15px] font-semibold">
+            Daftar Sasaran
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Tinjau sasaran berdasarkan periode, organisasi, dan status, lalu
+            buka detail untuk memperbarui isi dan target.
+          </p>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
