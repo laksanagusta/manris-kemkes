@@ -19,6 +19,8 @@ import {
   Calculator,
   Building2,
   FileSignature,
+  ClipboardPenLine,
+  Goal,
 } from "lucide-react";
 import { adminMenuGroup, mainMenuItems } from "@/lib/app-navigation";
 import {
@@ -55,6 +57,8 @@ const iconMap: Record<string, React.ElementType> = {
   FileBarChart,
   AlertTriangle,
   FileSignature,
+  ClipboardPenLine,
+  Goal,
   Users,
   Building2,
   Settings2,

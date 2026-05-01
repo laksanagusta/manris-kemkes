@@ -21,7 +21,7 @@ type FormHeaderProps = {
   description?: ReactNode;
   badges?: ReactNode;
   actions?: ReactNode;
-  onBack: () => void;
+  onBack?: () => void;
   backLabel?: string;
 };
 
@@ -36,7 +36,12 @@ type FormSectionProps = {
 
 export function FormPage({ children, className }: FormPageProps) {
   return (
-    <div className={cn("mx-auto w-full animate-fade-in space-y-8 pb-20", className)}>
+    <div
+      className={cn(
+        "mx-auto w-full animate-fade-in space-y-8 pb-20",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -54,28 +59,36 @@ export function FormHeader({
     <div className="pt-3 pb-6">
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            aria-label={backLabel}
-            className="h-auto rounded-full border border-border/70 bg-background px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-sm transition-all hover:border-primary/25 hover:bg-primary/[0.05] hover:text-foreground"
-            onClick={onBack}
-          >
-            <span className="flex size-6 items-center justify-center rounded-full border border-current/15 bg-muted/[0.55] text-current transition-transform duration-200 group-hover/button:-translate-x-0.5">
-              <ArrowLeft className="size-3.5" />
-            </span>
-            <span className="truncate">{backLabel}</span>
-          </Button>
+          {onBack ? (
+            <Button
+              type="button"
+              variant="ghost"
+              aria-label={backLabel}
+              className="h-auto rounded-full border border-border/70 bg-background px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-sm transition-all hover:border-primary/25 hover:bg-primary/[0.05] hover:text-foreground"
+              onClick={onBack}
+            >
+              <span className="flex size-6 items-center justify-center rounded-full border border-current/15 bg-muted/[0.55] text-current transition-transform duration-200 group-hover/button:-translate-x-0.5">
+                <ArrowLeft className="size-3.5" />
+              </span>
+              <span className="truncate">{backLabel}</span>
+            </Button>
+          ) : null}
           <div className="h-px flex-1 bg-gradient-to-r from-border/80 via-border/35 to-transparent" />
         </div>
 
         <div className="grid gap-x-6 gap-y-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
           <div className="min-w-0">
             <div className="min-w-0 space-y-2">
-              {badges ? <div className="flex flex-wrap items-center gap-2">{badges}</div> : null}
+              {badges ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {badges}
+                </div>
+              ) : null}
 
               <div className="space-y-1.5">
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                  {title}
+                </h1>
                 {description ? (
                   <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
                     {description}
@@ -114,7 +127,9 @@ export function FormSection({
       <CardHeader>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
+            <CardTitle className="text-base font-semibold text-foreground">
+              {title}
+            </CardTitle>
             {description ? (
               <CardDescription className="max-w-2xl text-sm leading-6">
                 {description}
@@ -124,7 +139,9 @@ export function FormSection({
           {action ? <div className="shrink-0">{action}</div> : null}
         </div>
       </CardHeader>
-      <CardContent className={cn("space-y-6", contentClassName)}>{children}</CardContent>
+      <CardContent className={cn("space-y-6", contentClassName)}>
+        {children}
+      </CardContent>
     </Card>
   );
 }

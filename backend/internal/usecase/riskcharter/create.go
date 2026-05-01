@@ -2,7 +2,6 @@ package riskcharter
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/google/uuid"
@@ -20,20 +19,19 @@ func NewCreateRiskCharterUseCase(repo repository.RiskCharterRepository) *CreateR
 }
 
 type CreateRiskCharterInput struct {
-	OrganizationID     uuid.UUID       `json:"organizationId"`
-	UPRLevel           string          `json:"uprLevel"`
-	Period             string          `json:"period"`
-	RiskOwnerName      string          `json:"riskOwnerName"`
-	RiskOwnerUserID    *uuid.UUID      `json:"riskOwnerUserId"`
-	RiskTeamName       string          `json:"riskTeamName"`
-	Scope              string          `json:"scope"`
-	LegalBasis         string          `json:"legalBasis"`
-	InternalContext    string          `json:"internalContext"`
-	ExternalContext    string          `json:"externalContext"`
-	StakeholderSummary string          `json:"stakeholderSummary"`
-	UPRStructure       json.RawMessage `json:"uprStructure"`
-	Status             string          `json:"status"`
-	CreatedBy          *uuid.UUID      `json:"-"`
+	OrganizationID     uuid.UUID  `json:"organizationId"`
+	UPRLevel           string     `json:"uprLevel"`
+	Period             string     `json:"period"`
+	RiskOwnerName      string     `json:"riskOwnerName"`
+	RiskOwnerUserID    *uuid.UUID `json:"riskOwnerUserId"`
+	RiskTeamName       string     `json:"riskTeamName"`
+	Scope              string     `json:"scope"`
+	LegalBasis         string     `json:"legalBasis"`
+	InternalContext    string     `json:"internalContext"`
+	ExternalContext    string     `json:"externalContext"`
+	StakeholderSummary string     `json:"stakeholderSummary"`
+	Status             string     `json:"status"`
+	CreatedBy          *uuid.UUID `json:"-"`
 }
 
 func (uc *CreateRiskCharterUseCase) Execute(ctx context.Context, input CreateRiskCharterInput) (*entity.RiskCharter, error) {
@@ -49,12 +47,8 @@ func (uc *CreateRiskCharterUseCase) Execute(ctx context.Context, input CreateRis
 		InternalContext:    strings.TrimSpace(input.InternalContext),
 		ExternalContext:    strings.TrimSpace(input.ExternalContext),
 		StakeholderSummary: strings.TrimSpace(input.StakeholderSummary),
-		UPRStructure:       input.UPRStructure,
 		Status:             strings.TrimSpace(input.Status),
-		CreatedBy:          input.CreatedBy,
-	}
-	if len(charter.UPRStructure) == 0 {
-		charter.UPRStructure = json.RawMessage("[]")
+		CreatedBy:           input.CreatedBy,
 	}
 	if charter.Status == "" {
 		charter.Status = "draft"

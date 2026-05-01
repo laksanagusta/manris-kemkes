@@ -2,7 +2,6 @@ package riskcharter
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/google/uuid"
@@ -20,20 +19,19 @@ func NewUpdateRiskCharterUseCase(repo repository.RiskCharterRepository) *UpdateR
 }
 
 type UpdateRiskCharterInput struct {
-	ID                 uuid.UUID       `json:"-"`
-	OrganizationID     uuid.UUID       `json:"organizationId"`
-	UPRLevel           string          `json:"uprLevel"`
-	Period             string          `json:"period"`
-	RiskOwnerName      string          `json:"riskOwnerName"`
-	RiskOwnerUserID    *uuid.UUID      `json:"riskOwnerUserId"`
-	RiskTeamName       string          `json:"riskTeamName"`
-	Scope              string          `json:"scope"`
-	LegalBasis         string          `json:"legalBasis"`
-	InternalContext    string          `json:"internalContext"`
-	ExternalContext    string          `json:"externalContext"`
-	StakeholderSummary string          `json:"stakeholderSummary"`
-	UPRStructure       json.RawMessage `json:"uprStructure"`
-	Status             string          `json:"status"`
+	ID                 uuid.UUID  `json:"-"`
+	OrganizationID     uuid.UUID  `json:"organizationId"`
+	UPRLevel           string     `json:"uprLevel"`
+	Period             string     `json:"period"`
+	RiskOwnerName      string     `json:"riskOwnerName"`
+	RiskOwnerUserID    *uuid.UUID `json:"riskOwnerUserId"`
+	RiskTeamName       string     `json:"riskTeamName"`
+	Scope              string     `json:"scope"`
+	LegalBasis         string     `json:"legalBasis"`
+	InternalContext    string     `json:"internalContext"`
+	ExternalContext    string     `json:"externalContext"`
+	StakeholderSummary string     `json:"stakeholderSummary"`
+	Status             string     `json:"status"`
 }
 
 func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRiskCharterInput) (*entity.RiskCharter, error) {
@@ -54,11 +52,7 @@ func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRis
 	updated.InternalContext = strings.TrimSpace(input.InternalContext)
 	updated.ExternalContext = strings.TrimSpace(input.ExternalContext)
 	updated.StakeholderSummary = strings.TrimSpace(input.StakeholderSummary)
-	updated.UPRStructure = input.UPRStructure
 	updated.Status = strings.TrimSpace(input.Status)
-	if len(updated.UPRStructure) == 0 {
-		updated.UPRStructure = json.RawMessage("[]")
-	}
 	if updated.Status == "" {
 		updated.Status = existing.Status
 	}
@@ -79,8 +73,7 @@ func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRis
 			existing.LegalBasis == updated.LegalBasis &&
 			existing.InternalContext == updated.InternalContext &&
 			existing.ExternalContext == updated.ExternalContext &&
-			existing.StakeholderSummary == updated.StakeholderSummary &&
-			string(existing.UPRStructure) == string(updated.UPRStructure)
+			existing.StakeholderSummary == updated.StakeholderSummary
 		if !allowedArchiveOnly {
 			return nil, errors.Wrap(errors.ErrInvalidInput, "approved charter can only be archived")
 		}

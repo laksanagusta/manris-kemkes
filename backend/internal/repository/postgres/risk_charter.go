@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -21,17 +20,13 @@ func NewRiskCharterRepository(pool *pgxpool.Pool) repository.RiskCharterReposito
 }
 
 func (r *riskCharterRepository) Create(ctx context.Context, charter *entity.RiskCharter) error {
-	if len(charter.UPRStructure) == 0 {
-		charter.UPRStructure = json.RawMessage("[]")
-	}
-
 	query := `
 		INSERT INTO risk_charters (
 			organization_id, upr_level, period, risk_owner_name, risk_owner_user_id,
 			risk_team_name, scope, legal_basis, internal_context, external_context,
-			stakeholder_summary, upr_structure, status, created_by, approved_by, approved_at
+			stakeholder_summary, status, created_by, approved_by, approved_at
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
 		)
 		RETURNING id, created_at, updated_at
 	`
@@ -48,7 +43,6 @@ func (r *riskCharterRepository) Create(ctx context.Context, charter *entity.Risk
 		charter.InternalContext,
 		charter.ExternalContext,
 		charter.StakeholderSummary,
-		[]byte(charter.UPRStructure),
 		charter.Status,
 		charter.CreatedBy,
 		charter.ApprovedBy,
@@ -64,14 +58,13 @@ func (r *riskCharterRepository) GetByID(ctx context.Context, id uuid.UUID) (*ent
 	query := `
 		SELECT id, organization_id, upr_level, period, risk_owner_name, risk_owner_user_id,
 			risk_team_name, scope, legal_basis, internal_context, external_context,
-			stakeholder_summary, upr_structure, status, created_by, approved_by,
+			stakeholder_summary, status, created_by, approved_by,
 			approved_at, created_at, updated_at
 		FROM risk_charters
 		WHERE id = $1
 	`
 
 	charter := &entity.RiskCharter{}
-	var structure []byte
 	if err := r.pool.QueryRow(ctx, query, id).Scan(
 		&charter.ID,
 		&charter.OrganizationID,
@@ -85,7 +78,6 @@ func (r *riskCharterRepository) GetByID(ctx context.Context, id uuid.UUID) (*ent
 		&charter.InternalContext,
 		&charter.ExternalContext,
 		&charter.StakeholderSummary,
-		&structure,
 		&charter.Status,
 		&charter.CreatedBy,
 		&charter.ApprovedBy,
@@ -96,18 +88,10 @@ func (r *riskCharterRepository) GetByID(ctx context.Context, id uuid.UUID) (*ent
 		return nil, fmt.Errorf("get risk charter by id: %w", err)
 	}
 
-	charter.UPRStructure = json.RawMessage(structure)
-	if len(charter.UPRStructure) == 0 {
-		charter.UPRStructure = json.RawMessage("[]")
-	}
 	return charter, nil
 }
 
 func (r *riskCharterRepository) Update(ctx context.Context, charter *entity.RiskCharter) error {
-	if len(charter.UPRStructure) == 0 {
-		charter.UPRStructure = json.RawMessage("[]")
-	}
-
 	query := `
 		UPDATE risk_charters
 		SET organization_id = $2,
@@ -121,10 +105,9 @@ func (r *riskCharterRepository) Update(ctx context.Context, charter *entity.Risk
 			internal_context = $10,
 			external_context = $11,
 			stakeholder_summary = $12,
-			upr_structure = $13,
-			status = $14,
-			approved_by = $15,
-			approved_at = $16,
+			status = $13,
+			approved_by = $14,
+			approved_at = $15,
 			updated_at = now()
 		WHERE id = $1
 		RETURNING updated_at
@@ -143,7 +126,6 @@ func (r *riskCharterRepository) Update(ctx context.Context, charter *entity.Risk
 		charter.InternalContext,
 		charter.ExternalContext,
 		charter.StakeholderSummary,
-		[]byte(charter.UPRStructure),
 		charter.Status,
 		charter.ApprovedBy,
 		charter.ApprovedAt,
@@ -159,7 +141,7 @@ func (r *riskCharterRepository) List(ctx context.Context, filter repository.Risk
 	dataQuery := `
 		SELECT id, organization_id, upr_level, period, risk_owner_name, risk_owner_user_id,
 			risk_team_name, scope, legal_basis, internal_context, external_context,
-			stakeholder_summary, upr_structure, status, created_by, approved_by,
+			stakeholder_summary, status, created_by, approved_by,
 			approved_at, created_at, updated_at
 		FROM risk_charters
 		WHERE 1=1
@@ -219,7 +201,6 @@ func (r *riskCharterRepository) List(ctx context.Context, filter repository.Risk
 	items := make([]*entity.RiskCharter, 0)
 	for rows.Next() {
 		charter := &entity.RiskCharter{}
-		var structure []byte
 		if err := rows.Scan(
 			&charter.ID,
 			&charter.OrganizationID,
@@ -233,7 +214,6 @@ func (r *riskCharterRepository) List(ctx context.Context, filter repository.Risk
 			&charter.InternalContext,
 			&charter.ExternalContext,
 			&charter.StakeholderSummary,
-			&structure,
 			&charter.Status,
 			&charter.CreatedBy,
 			&charter.ApprovedBy,
@@ -242,10 +222,6 @@ func (r *riskCharterRepository) List(ctx context.Context, filter repository.Risk
 			&charter.UpdatedAt,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan risk charter: %w", err)
-		}
-		charter.UPRStructure = json.RawMessage(structure)
-		if len(charter.UPRStructure) == 0 {
-			charter.UPRStructure = json.RawMessage("[]")
 		}
 		items = append(items, charter)
 	}

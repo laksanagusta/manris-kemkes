@@ -637,7 +637,6 @@ export default function RiskRegisterPage() {
     {
       label: "Total Risiko",
       value: total,
-      tone: "border-border/60 bg-background/60 text-foreground",
     },
     {
       label: "Sangat Tinggi",
@@ -657,12 +656,10 @@ export default function RiskRegisterPage() {
     {
       label: "Rendah",
       value: riskLevelCounts.rendah ?? 0,
-      tone: "border-border/60 bg-background/60 text-foreground",
     },
     {
       label: "Sangat Rendah",
       value: riskLevelCounts.sangat_rendah ?? 0,
-      tone: "border-border/60 bg-background/60 text-foreground",
     },
   ];
 
@@ -910,10 +907,7 @@ export default function RiskRegisterPage() {
         <TabsContent value="all-risks" className="space-y-6 mt-6">
           <div className="grid gap-3 grid-cols-6">
             {riskSummaryCards.map((card) => (
-              <Card
-                key={card.label}
-                className={cn("border shadow-none", card.tone)}
-              >
+              <Card key={card.label} className={cn("", card.tone)}>
                 <CardContent className="flex items-end justify-between gap-3 p-3">
                   <div className="space-y-1">
                     <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
@@ -1249,13 +1243,18 @@ export default function RiskRegisterPage() {
                                   : undefined
                               }
                               onArchive={
-                                canArchive ? () => setRiskToArchive(risk) : undefined
+                                canArchive
+                                  ? () => setRiskToArchive(risk)
+                                  : undefined
                               }
                               onRestore={
-                                canRestore ? () => setRiskToRestore(risk) : undefined
+                                canRestore
+                                  ? () => setRiskToRestore(risk)
+                                  : undefined
                               }
                               onDeleteDraft={
-                                risk.status === "assessment_draft" && !isReadOnly
+                                risk.status === "assessment_draft" &&
+                                !isReadOnly
                                   ? () => setDraftToDelete(risk)
                                   : undefined
                               }

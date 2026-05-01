@@ -1,7 +1,6 @@
 package entity
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -10,25 +9,24 @@ import (
 )
 
 type RiskCharter struct {
-	ID                 uuid.UUID       `json:"id"`
-	OrganizationID     uuid.UUID       `json:"organizationId"`
-	UPRLevel           string          `json:"uprLevel"`
-	Period             string          `json:"period"`
-	RiskOwnerName      string          `json:"riskOwnerName"`
-	RiskOwnerUserID    *uuid.UUID      `json:"riskOwnerUserId,omitempty"`
-	RiskTeamName       string          `json:"riskTeamName"`
-	Scope              string          `json:"scope"`
-	LegalBasis         string          `json:"legalBasis"`
-	InternalContext    string          `json:"internalContext"`
-	ExternalContext    string          `json:"externalContext"`
-	StakeholderSummary string          `json:"stakeholderSummary"`
-	UPRStructure       json.RawMessage `json:"uprStructure"`
-	Status             string          `json:"status"`
-	CreatedBy          *uuid.UUID      `json:"createdBy,omitempty"`
-	ApprovedBy         *uuid.UUID      `json:"approvedBy,omitempty"`
-	ApprovedAt         *time.Time      `json:"approvedAt,omitempty"`
-	CreatedAt          time.Time       `json:"createdAt"`
-	UpdatedAt          time.Time       `json:"updatedAt"`
+	ID                 uuid.UUID  `json:"id"`
+	OrganizationID     uuid.UUID  `json:"organizationId"`
+	UPRLevel           string     `json:"uprLevel"`
+	Period             string     `json:"period"`
+	RiskOwnerName      string     `json:"riskOwnerName"`
+	RiskOwnerUserID    *uuid.UUID `json:"riskOwnerUserId,omitempty"`
+	RiskTeamName       string     `json:"riskTeamName"`
+	Scope              string     `json:"scope"`
+	LegalBasis         string     `json:"legalBasis"`
+	InternalContext    string     `json:"internalContext"`
+	ExternalContext    string     `json:"externalContext"`
+	StakeholderSummary string     `json:"stakeholderSummary"`
+	Status             string     `json:"status"`
+	CreatedBy          *uuid.UUID `json:"createdBy,omitempty"`
+	ApprovedBy         *uuid.UUID `json:"approvedBy,omitempty"`
+	ApprovedAt         *time.Time `json:"approvedAt,omitempty"`
+	CreatedAt          time.Time  `json:"createdAt"`
+	UpdatedAt          time.Time  `json:"updatedAt"`
 }
 
 func (r RiskCharter) Validate() error {
