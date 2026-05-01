@@ -271,6 +271,7 @@ func getInProgressReassessmentForCycle(ctx context.Context, q riskQueryer, versi
 	err := q.QueryRow(ctx,
 		`SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id,
 		        r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id,
+		        r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai,
 		        r.inherent_score, r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -290,6 +291,7 @@ func getInProgressReassessmentForCycle(ctx context.Context, q riskQueryer, versi
 	).Scan(
 		&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID,
 		&risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID,
+		&risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 		&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 		&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai,
 		&risk.InherentScore, &risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -347,7 +349,7 @@ func (r *riskRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 // List retrieves risks with optional filters
 func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status string, category string) ([]*entity.Risk, error) {
-	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id,
+	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
 	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 	                  r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -426,7 +428,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	countQuery := `SELECT COUNT(*)
 		FROM risks r
 		WHERE 1=1`
-	dataQuery := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id,
+	dataQuery := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
 	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 	                  r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -554,7 +556,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 
 // ListApprovedRisks returns approved risks for trend analysis (one version per cycle per risk)
 func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID, query string) ([]*entity.Risk, error) {
-	queryStr := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id,
+	queryStr := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
 	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 	                  r.risk_priority, r.risk_appetite, r.treatment_option,
