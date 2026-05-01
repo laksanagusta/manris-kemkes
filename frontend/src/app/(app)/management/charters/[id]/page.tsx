@@ -268,18 +268,13 @@ export default function RiskCharterDetailPage() {
             {sections.map((section, index) => (
               <section key={section.id} id={section.id} className="scroll-mt-24">
                 {index > 0 && <Separator className="bg-border/50" />}
-                <div className={cn("flex items-center gap-3", index === 0 ? "px-6 pt-6 pb-4" : "px-6 pt-5 pb-4")}>
-                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                    {index + 1}
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <h3 className="text-sm font-semibold text-foreground md:text-base">{section.title}</h3>
-                    {section.required ? (
-                      <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-primary/80">Wajib</span>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground">opsional</span>
-                    )}
-                  </div>
+                <div className={cn("flex items-center gap-2", index === 0 ? "px-6 pt-6 pb-4" : "px-6 pt-5 pb-4")}>
+                  <h3 className="text-sm font-semibold text-foreground md:text-base">{section.title}</h3>
+                  {section.required ? (
+                    <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-primary/80">Wajib</span>
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground">opsional</span>
+                  )}
                   <div
                     className={cn(
                       "ml-auto flex size-6 shrink-0 items-center justify-center rounded-full",
