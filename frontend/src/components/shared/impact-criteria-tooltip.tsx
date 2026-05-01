@@ -18,6 +18,7 @@ import {
 import { listImpactCriteria } from "@/lib/api/impact-criteria";
 
 interface ImpactCriteriaTooltipProps {
+  token: string;
   label?: string;
   category: ImpactCriteriaCategory;
   uprLevel: ImpactCriteriaUPRLevel;
@@ -25,6 +26,7 @@ interface ImpactCriteriaTooltipProps {
 }
 
 export function ImpactCriteriaTooltip({
+  token,
   label = "Dampak",
   category,
   uprLevel,
@@ -39,7 +41,7 @@ export function ImpactCriteriaTooltip({
     let cancelled = false;
     setLoading(true);
 
-    listImpactCriteria("", { category, uprLevel })
+    listImpactCriteria(token, { category, uprLevel })
       .then((data) => {
         if (!cancelled) {
           setCriteria(data);
@@ -57,7 +59,7 @@ export function ImpactCriteriaTooltip({
     return () => {
       cancelled = true;
     };
-  }, [category, uprLevel, fetched]);
+  }, [token, category, uprLevel, fetched]);
 
   return (
     <div className={cn("flex h-6 items-center gap-2", className)}>

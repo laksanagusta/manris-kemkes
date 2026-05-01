@@ -2763,6 +2763,7 @@ export default function RiskInputPage() {
                       <div className="space-y-1.5">
                         {category && selectedOrganizationUPRLevel ? (
                           <ImpactCriteriaTooltip
+                            token={token || ""}
                             label="Dampak (Residual)"
                             category={category as import("@/types/impact-criteria").ImpactCriteriaCategory}
                             uprLevel={selectedOrganizationUPRLevel as import("@/types/impact-criteria").ImpactCriteriaUPRLevel}
