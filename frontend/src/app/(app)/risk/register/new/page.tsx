@@ -2828,7 +2828,7 @@ export default function RiskInputPage() {
                         </p>
                         {advisoryIsRiskUtama && (
                           <p className="mt-1.5 text-xs font-medium text-orange-600 dark:text-orange-400">
-                            ⚠️ Risk Utama — perlu mitigasi atau treatment valid
+                            ⚠️ Risk Utama (Score ≥ 10) — pertimbangkan mitigasi
                           </p>
                         )}
                       </div>
