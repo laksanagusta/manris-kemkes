@@ -92,7 +92,7 @@
 - Modify: `frontend/src/lib/risk.test.ts`
 - Search/modify: `frontend/src/**/*.{ts,tsx}` for display strings `Ekstrem`, `Sangat Jarang`, `Kadang-kadang`, `Sering`, `Sangat Berat`
 
-- [ ] **Step 1: Write failing test for KMK labels**
+- [x] **Step 1: Write failing test for KMK labels**
 
 ```ts
 import { strict as assert } from "node:assert";
@@ -121,7 +121,7 @@ test("highest display label stays KMK-compatible", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -132,7 +132,7 @@ npm test -- risk.test.ts
 
 Expected: FAIL because current labels still use non-KMK wording.
 
-- [ ] **Step 3: Update risk label constants**
+- [x] **Step 3: Update risk label constants**
 
 Update `frontend/src/lib/risk.ts`:
 
@@ -165,7 +165,7 @@ export function getRiskLevelDisplayLabel(level: RiskLevel): string {
 }
 ```
 
-- [ ] **Step 4: Replace legacy visible labels in UI**
+- [x] **Step 4: Replace legacy visible labels in UI**
 
 Search and replace examples:
 
@@ -181,7 +181,7 @@ Replace with:
 - `Sering` → `Kemungkinan Besar`
 - `Sangat Berat` → `Katastropik`
 
-- [ ] **Step 5: Run verification**
+- [x] **Step 5: Run verification**
 
 Run:
 
@@ -193,7 +193,7 @@ npm run build
 
 Expected: PASS, then successful build.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/lib/risk.ts frontend/src/lib/risk.test.ts frontend/src
@@ -220,7 +220,7 @@ git commit -m "fix: align risk terminology with KMK"
 - Test: `backend/internal/domain/entity/risk_charter_test.go`
 - Test: `backend/internal/handler/http/risk_charter_test.go`
 
-- [ ] **Step 1: Write failing entity tests**
+- [x] **Step 1: Write failing entity tests**
 
 Create `backend/internal/domain/entity/risk_charter_test.go`:
 
@@ -286,7 +286,7 @@ func TestRiskCharterValidate(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -297,7 +297,7 @@ go test ./internal/domain/entity -run TestRiskCharterValidate -v
 
 Expected: FAIL because `RiskCharter` type does not exist yet.
 
-- [ ] **Step 3: Create migration**
+- [x] **Step 3: Create migration**
 
 Create `backend/db/migrations/000044_risk_charters.up.sql`:
 
@@ -335,7 +335,7 @@ Create `backend/db/migrations/000044_risk_charters.down.sql`:
 DROP TABLE IF EXISTS risk_charters;
 ```
 
-- [ ] **Step 4: Create entity and validation**
+- [x] **Step 4: Create entity and validation**
 
 Create `backend/internal/domain/entity/risk_charter.go`:
 
@@ -397,7 +397,7 @@ func (r RiskCharter) Validate() error {
 }
 ```
 
-- [ ] **Step 5: Run entity tests**
+- [x] **Step 5: Run entity tests**
 
 Run:
 
@@ -408,7 +408,7 @@ go test ./internal/domain/entity -run TestRiskCharterValidate -v
 
 Expected: PASS.
 
-- [ ] **Step 6: Create repository interface**
+- [x] **Step 6: Create repository interface**
 
 Create `backend/internal/domain/repository/risk_charter.go`:
 
@@ -439,7 +439,7 @@ type RiskCharterRepository interface {
 }
 ```
 
-- [ ] **Step 7: Implement Postgres repository**
+- [x] **Step 7: Implement Postgres repository**
 
 Use organization repository style. Include `Create`, `GetByID`, `Update`, `List`, and uniqueness check.
 
@@ -456,7 +456,7 @@ INSERT INTO risk_charters (
 RETURNING id, created_at, updated_at
 ```
 
-- [ ] **Step 8: Implement usecases**
+- [x] **Step 8: Implement usecases**
 
 Create separate usecases matching existing pattern. Validation rules:
 - create/update must call `Validate()`.
@@ -483,7 +483,7 @@ type CreateRiskCharterInput struct {
 }
 ```
 
-- [ ] **Step 9: Implement HTTP handler + routes**
+- [x] **Step 9: Implement HTTP handler + routes**
 
 Create `backend/internal/handler/http/risk_charter.go` with methods `List`, `Create`, `Get`, `Update`.
 
@@ -503,11 +503,11 @@ protected.Get("/risk-charters/:id", cleanRiskCharterHandler.Get)
 protected.Put("/risk-charters/:id", cleanRiskCharterHandler.Update)
 ```
 
-- [ ] **Step 10: Wire bootstrap**
+- [x] **Step 10: Wire bootstrap**
 
 Add repository/usecase/handler construction in `backend/internal/bootstrap/bootstrap.go` and include fields in container as needed.
 
-- [ ] **Step 11: Run migration + backend tests**
+- [x] **Step 11: Run migration + backend tests**
 
 Run:
 
@@ -519,7 +519,7 @@ go test ./...
 
 Expected: migration succeeds, tests pass.
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add backend
@@ -537,7 +537,7 @@ git commit -m "feat: add backend KMK risk charter module"
 - Create: `frontend/src/app/(app)/management/charters/[id]/page.tsx`
 - Modify: `frontend/src/lib/app-navigation.ts`
 
-- [ ] **Step 1: Define frontend types**
+- [x] **Step 1: Define frontend types**
 
 Create `frontend/src/types/risk-charter.ts`:
 
@@ -565,7 +565,7 @@ export interface RiskCharter {
 }
 ```
 
-- [ ] **Step 2: Add API client**
+- [x] **Step 2: Add API client**
 
 Create `frontend/src/lib/api/risk-charters.ts` using same style as organization API:
 
@@ -590,7 +590,7 @@ export async function listRiskCharters(token: string, params?: Record<string, st
 }
 ```
 
-- [ ] **Step 3: Create list page**
+- [x] **Step 3: Create list page**
 
 Page requirements:
 - filters: period, status
@@ -599,7 +599,7 @@ Page requirements:
 
 Use existing card/table visual style from admin and working paper pages.
 
-- [ ] **Step 4: Create detail/edit page**
+- [x] **Step 4: Create detail/edit page**
 
 Use `FormPage`, `FormHeader`, `FormSection`. Sections:
 - Identitas piagam
@@ -610,7 +610,7 @@ Use `FormPage`, `FormHeader`, `FormSection`. Sections:
 - Ringkasan stakeholder
 - Struktur UPR
 
-- [ ] **Step 5: Add navigation + breadcrumb**
+- [x] **Step 5: Add navigation + breadcrumb**
 
 Update `frontend/src/lib/app-navigation.ts`:
 
@@ -626,7 +626,7 @@ Update `frontend/src/lib/app-navigation.ts`:
 
 Also add breadcrumb labels.
 
-- [ ] **Step 6: Run frontend verification**
+- [x] **Step 6: Run frontend verification**
 
 Run:
 
@@ -637,7 +637,7 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend
@@ -664,7 +664,7 @@ git commit -m "feat: add frontend KMK risk charter pages"
 - Modify: `backend/cmd/server/main.go`
 - Test: `backend/internal/domain/entity/risk_objective_test.go`
 
-- [ ] **Step 1: Write failing entity test**
+- [x] **Step 1: Write failing entity test**
 
 Create `backend/internal/domain/entity/risk_objective_test.go`:
 
@@ -691,7 +691,7 @@ func TestRiskObjectiveValidate(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -702,7 +702,7 @@ go test ./internal/domain/entity -run TestRiskObjectiveValidate -v
 
 Expected: FAIL because `RiskObjective` does not exist.
 
-- [ ] **Step 3: Create migration**
+- [x] **Step 3: Create migration**
 
 Create `backend/db/migrations/000045_risk_objectives.up.sql`:
 
@@ -734,7 +734,7 @@ Create down migration:
 DROP TABLE IF EXISTS risk_objectives;
 ```
 
-- [ ] **Step 4: Create entity**
+- [x] **Step 4: Create entity**
 
 Create `backend/internal/domain/entity/risk_objective.go`:
 
@@ -786,7 +786,7 @@ func (o RiskObjective) Validate() error {
 }
 ```
 
-- [ ] **Step 5: Implement repository + usecases + handler**
+- [x] **Step 5: Implement repository + usecases + handler**
 
 Mirror organization CRUD pattern. Include paginated list with filters:
 - `organization_id`
@@ -811,7 +811,7 @@ protected.Put("/risk-objectives/:id", cleanRiskObjectiveHandler.Update)
 protected.Delete("/risk-objectives/:id", cleanRiskObjectiveHandler.Delete)
 ```
 
-- [ ] **Step 6: Run backend verification**
+- [x] **Step 6: Run backend verification**
 
 Run:
 
@@ -823,7 +823,7 @@ go test ./...
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend
@@ -841,7 +841,7 @@ git commit -m "feat: add backend KMK risk objective module"
 - Create: `frontend/src/app/(app)/management/objectives/new/page.tsx`
 - Create: `frontend/src/app/(app)/management/objectives/[id]/page.tsx`
 
-- [ ] **Step 1: Create type definitions**
+- [x] **Step 1: Create type definitions**
 
 Create `frontend/src/types/risk-objective.ts`:
 
@@ -863,7 +863,7 @@ export interface RiskObjective {
 }
 ```
 
-- [ ] **Step 2: Create API client**
+- [x] **Step 2: Create API client**
 
 Create `frontend/src/lib/api/risk-objectives.ts`:
 
@@ -888,7 +888,7 @@ export async function listRiskObjectives(token: string, params?: Record<string, 
 }
 ```
 
-- [ ] **Step 3: Create objectives list page**
+- [x] **Step 3: Create objectives list page**
 
 UI requirements:
 - searchable table
@@ -896,7 +896,7 @@ UI requirements:
 - columns: sasaran, IKU, target, program, kegiatan
 - CTA button `Tambah Sasaran`
 
-- [ ] **Step 4: Create new/edit page**
+- [x] **Step 4: Create new/edit page**
 
 Form fields:
 - period
@@ -910,7 +910,7 @@ Form fields:
 
 Validation: tujuan/sasaran/IKU required.
 
-- [ ] **Step 5: Run frontend verification**
+- [x] **Step 5: Run frontend verification**
 
 Run:
 
@@ -921,7 +921,7 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend

@@ -73,28 +73,28 @@
 
 **Steps:**
 
-- [ ] Update probability labels in `frontend/src/lib/risk.ts`:
+- [x] Update probability labels in `frontend/src/lib/risk.ts`:
   - `1: "Jarang"`
   - `2: "Kemungkinan Kecil"`
   - `3: "Kemungkinan Sedang"`
   - `4: "Kemungkinan Besar"`
   - `5: "Hampir Pasti Terjadi"`
 
-- [ ] Update impact labels in `frontend/src/lib/risk.ts`:
+- [x] Update impact labels in `frontend/src/lib/risk.ts`:
   - `1: "Tidak Signifikan"`
   - `2: "Kecil"`
   - `3: "Sedang"`
   - `4: "Besar"`
   - `5: "Katastropik"`
 
-- [ ] Replace display label `Ekstrem` with `Sangat Tinggi` unless a chart explicitly needs legacy label compatibility.
+- [x] Replace display label `Ekstrem` with `Sangat Tinggi` unless a chart explicitly needs legacy label compatibility.
 
-- [ ] Add/adjust frontend unit tests:
+- [x] Add/adjust frontend unit tests:
   - Verify probability label `5` is `Hampir Pasti Terjadi`.
   - Verify impact label `5` is `Katastropik`.
   - Verify `getRiskLevelDisplayLabel("sangat_tinggi")` returns `Sangat Tinggi`.
 
-- [ ] Run:
+- [x] Run:
 
 ```bash
 cd frontend
@@ -102,7 +102,7 @@ npm test -- risk.test.ts
 npm run build
 ```
 
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add frontend/src/lib/risk.ts frontend/src/lib/risk.test.ts frontend/src
@@ -165,14 +165,14 @@ CREATE TABLE risk_charters (
 
 **Steps:**
 
-- [ ] Write backend entity tests for valid/invalid `upr_level`, required `period`, and status transitions.
-- [ ] Create migrations and run `make migrate-up` locally.
-- [ ] Implement repository CRUD with org-scope filtering.
-- [ ] Implement usecases with validation:
+- [x] Write backend entity tests for valid/invalid `upr_level`, required `period`, and status transitions.
+- [x] Create migrations and run `make migrate-up` locally.
+- [x] Implement repository CRUD with org-scope filtering.
+- [x] Implement usecases with validation:
   - Only users with write access can create/update.
   - Approved charter is read-only except archive.
   - One charter per organization + period + UPR level.
-- [ ] Add HTTP routes:
+- [x] Add HTTP routes:
 
 ```go
 protected.Get("/risk-charters", riskCharterHandler.List)
@@ -182,8 +182,8 @@ protected.Put("/risk-charters/:id", riskCharterHandler.Update)
 protected.Post("/risk-charters/:id/submit", riskCharterHandler.Submit)
 ```
 
-- [ ] Build frontend list page with filters: period, organization, UPR level, status.
-- [ ] Build frontend detail/edit form with sections:
+- [x] Build frontend list page with filters: period, organization, UPR level, status.
+- [x] Build frontend detail/edit form with sections:
   - Identitas piagam
   - Ruang lingkup
   - Dasar hukum
@@ -191,15 +191,15 @@ protected.Post("/risk-charters/:id/submit", riskCharterHandler.Submit)
   - Konteks eksternal
   - Pemangku kepentingan
   - Struktur UPR
-- [ ] Add navigation under new group `Manajemen Risiko`.
-- [ ] Run:
+- [x] Add navigation under new group `Risk Governance`.
+- [x] Run:
 
 ```bash
 cd backend && go test ./...
 cd ../frontend && npm run build
 ```
 
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add backend frontend
@@ -254,9 +254,9 @@ CREATE INDEX idx_risk_objectives_charter ON risk_objectives(charter_id);
 
 **Steps:**
 
-- [ ] Test validation: `tujuan`, `sasaran`, and `indikator_kinerja_utama` are required.
-- [ ] Implement CRUD backend.
-- [ ] Add endpoint routes:
+- [x] Test validation: `tujuan`, `sasaran`, and `indikator_kinerja_utama` are required.
+- [x] Implement CRUD backend.
+- [x] Add endpoint routes:
 
 ```go
 protected.Get("/risk-objectives", objectiveHandler.List)
@@ -266,11 +266,11 @@ protected.Put("/risk-objectives/:id", objectiveHandler.Update)
 protected.Delete("/risk-objectives/:id", objectiveHandler.Delete)
 ```
 
-- [ ] Build frontend objective table with filters by period/org.
-- [ ] Build objective form.
-- [ ] Add objective picker API that supports search by sasaran/IKU/program.
-- [ ] Run backend and frontend verification.
-- [ ] Commit:
+- [x] Build frontend objective table with filters by period/org.
+- [x] Build objective form.
+- [x] Add objective picker API that supports search by sasaran/IKU/program.
+- [x] Run backend and frontend verification.
+- [x] Commit:
 
 ```bash
 git add backend frontend
