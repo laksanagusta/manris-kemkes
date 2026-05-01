@@ -218,6 +218,22 @@ export function calculateRiskMetrics(probability: number, impact: number) {
   };
 }
 
+/**
+ * Resolve risk appetite status based on inherentScore.
+ * Per KMK: inherentScore < 10 → "dalam_batas", >= 10 → "di_atas_batas"
+ */
+export function resolveRiskAppetite(inherentScore: number): "dalam_batas" | "di_atas_batas" {
+	return inherentScore < 10 ? "dalam_batas" : "di_atas_batas";
+}
+
+/**
+ * Returns true if risk is "risk utama" (Sedang or higher).
+ * Per KMK: inherentScore >= 10 corresponds to Sedang/Tinggi/SangatTingkat.
+ */
+export function isRiskUtama(inherentScore: number): boolean {
+	return inherentScore >= 10;
+}
+
 function isExplicitNumber(value: number | null | undefined): value is number {
   return value !== null && value !== undefined;
 }
