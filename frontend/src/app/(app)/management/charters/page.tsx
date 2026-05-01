@@ -383,49 +383,10 @@ export default function RiskChartersPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : items.length === 0 && !hasActiveFilters ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-16 text-center">
-                      <div className="mx-auto max-w-sm space-y-4">
-                        <div className="mx-auto flex size-12 items-center justify-center rounded-2xl border border-border/60 bg-muted/30">
-                          <ClipboardPenLine className="size-5 text-muted-foreground" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="text-sm font-medium text-foreground">
-                            Belum ada piagam MR
-                          </p>
-                          <p className="text-xs leading-5 text-muted-foreground">
-                            Piagam menetapkan konteks, ruang lingkup, dan
-                            struktur UPR sebagai rujukan resmi unit kerja. Buat
-                            piagam pertama untuk memulai.
-                          </p>
-                        </div>
-                        <Button asChild size="sm" className="gap-2">
-                          <Link href="/management/charters/new">
-                            <Plus className="size-4" />
-                            Buat Piagam MR
-                          </Link>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
                 ) : filteredItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center">
-                      <div className="mx-auto max-w-xs space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Tidak ada piagam yang cocok dengan filter.
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={resetFilters}
-                          className="gap-2 text-muted-foreground"
-                        >
-                          <RotateCcw className="size-3.5" />
-                          Reset filter
-                        </Button>
-                      </div>
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      Tidak ada piagam MR yang ditemukan
                     </TableCell>
                   </TableRow>
                 ) : (
