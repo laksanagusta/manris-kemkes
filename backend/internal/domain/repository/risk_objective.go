@@ -10,7 +10,6 @@ import (
 type RiskObjectiveListFilter struct {
 	OrganizationID *uuid.UUID
 	Period         string
-	Status         string
 	Q              string
 	Page           int
 	Limit          int

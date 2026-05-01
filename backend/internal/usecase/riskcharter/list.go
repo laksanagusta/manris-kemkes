@@ -20,7 +20,6 @@ func NewListRiskChartersUseCase(repo repository.RiskCharterRepository) *ListRisk
 type ListRiskChartersInput struct {
 	OrganizationID *uuid.UUID
 	Period         string
-	Status         string
 	Page           int
 	Limit          int
 }
@@ -43,7 +42,6 @@ func (uc *ListRiskChartersUseCase) Execute(ctx context.Context, input ListRiskCh
 	items, total, err := uc.repo.List(ctx, repository.RiskCharterListFilter{
 		OrganizationID: input.OrganizationID,
 		Period:         strings.TrimSpace(input.Period),
-		Status:         strings.TrimSpace(input.Status),
 		Page:           input.Page,
 		Limit:          input.Limit,
 	})

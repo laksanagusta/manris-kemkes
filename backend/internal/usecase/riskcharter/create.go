@@ -30,7 +30,6 @@ type CreateRiskCharterInput struct {
 	InternalContext    string     `json:"internalContext"`
 	ExternalContext    string     `json:"externalContext"`
 	StakeholderSummary string     `json:"stakeholderSummary"`
-	Status             string     `json:"status"`
 	CreatedBy          *uuid.UUID `json:"-"`
 }
 
@@ -47,11 +46,7 @@ func (uc *CreateRiskCharterUseCase) Execute(ctx context.Context, input CreateRis
 		InternalContext:    strings.TrimSpace(input.InternalContext),
 		ExternalContext:    strings.TrimSpace(input.ExternalContext),
 		StakeholderSummary: strings.TrimSpace(input.StakeholderSummary),
-		Status:             strings.TrimSpace(input.Status),
-		CreatedBy:           input.CreatedBy,
-	}
-	if charter.Status == "" {
-		charter.Status = "draft"
+		CreatedBy:          input.CreatedBy,
 	}
 
 	if err := charter.Validate(); err != nil {

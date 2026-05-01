@@ -31,7 +31,6 @@ type UpdateRiskCharterInput struct {
 	InternalContext    string     `json:"internalContext"`
 	ExternalContext    string     `json:"externalContext"`
 	StakeholderSummary string     `json:"stakeholderSummary"`
-	Status             string     `json:"status"`
 }
 
 func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRiskCharterInput) (*entity.RiskCharter, error) {
@@ -52,31 +51,9 @@ func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRis
 	updated.InternalContext = strings.TrimSpace(input.InternalContext)
 	updated.ExternalContext = strings.TrimSpace(input.ExternalContext)
 	updated.StakeholderSummary = strings.TrimSpace(input.StakeholderSummary)
-	updated.Status = strings.TrimSpace(input.Status)
-	if updated.Status == "" {
-		updated.Status = existing.Status
-	}
 
 	if err := updated.Validate(); err != nil {
 		return nil, errors.Wrap(errors.ErrInvalidInput, err.Error())
-	}
-
-	if existing.Status == "approved" {
-		allowedArchiveOnly := updated.Status == "archived" &&
-			existing.OrganizationID == updated.OrganizationID &&
-			existing.UPRLevel == updated.UPRLevel &&
-			existing.Period == updated.Period &&
-			existing.RiskOwnerName == updated.RiskOwnerName &&
-			uuidsEqual(existing.RiskOwnerUserID, updated.RiskOwnerUserID) &&
-			existing.RiskTeamName == updated.RiskTeamName &&
-			existing.Scope == updated.Scope &&
-			existing.LegalBasis == updated.LegalBasis &&
-			existing.InternalContext == updated.InternalContext &&
-			existing.ExternalContext == updated.ExternalContext &&
-			existing.StakeholderSummary == updated.StakeholderSummary
-		if !allowedArchiveOnly {
-			return nil, errors.Wrap(errors.ErrInvalidInput, "approved charter can only be archived")
-		}
 	}
 
 	exists, err := uc.repo.ExistsByOrgPeriodLevel(ctx, updated.OrganizationID, updated.Period, updated.UPRLevel, &updated.ID)
@@ -92,14 +69,4 @@ func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRis
 	}
 
 	return &updated, nil
-}
-
-func uuidsEqual(left, right *uuid.UUID) bool {
-	if left == nil && right == nil {
-		return true
-	}
-	if left == nil || right == nil {
-		return false
-	}
-	return *left == *right
 }

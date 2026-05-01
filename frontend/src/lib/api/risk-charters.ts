@@ -1,9 +1,5 @@
 import { api } from "@/lib/api";
-import type {
-  RiskCharter,
-  RiskCharterStatus,
-  RiskCharterUPRLevel,
-} from "@/types/risk-charter";
+import type { RiskCharter, RiskCharterUPRLevel } from "@/types/risk-charter";
 import { buildRiskCharterListQuery } from "./risk-charter-query";
 
 export interface PaginatedRiskCharterResponse {
@@ -16,7 +12,6 @@ export interface PaginatedRiskCharterResponse {
 export type ListRiskChartersParams = {
   organization_id?: string;
   period?: string;
-  status?: RiskCharterStatus | "";
   q?: string;
   page?: number;
   limit?: number;
@@ -34,7 +29,6 @@ export type UpsertRiskCharterRequest = {
   internalContext: string;
   externalContext: string;
   stakeholderSummary: string;
-  status: RiskCharterStatus;
 };
 
 export async function listRiskCharters(

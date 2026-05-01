@@ -19,7 +19,6 @@ func NewListRiskObjectivesUseCase(repo repository.RiskObjectiveRepository) *List
 type ListRiskObjectivesInput struct {
 	OrganizationID *uuid.UUID
 	Period         string
-	Status         string
 	Q              string
 	Page           int
 	Limit          int
@@ -36,7 +35,6 @@ func (uc *ListRiskObjectivesUseCase) Execute(ctx context.Context, input ListRisk
 	items, total, err := uc.repo.List(ctx, repository.RiskObjectiveListFilter{
 		OrganizationID: input.OrganizationID,
 		Period:         input.Period,
-		Status:         input.Status,
 		Q:              input.Q,
 		Page:           input.Page,
 		Limit:          input.Limit,

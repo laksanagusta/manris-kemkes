@@ -24,9 +24,9 @@ func (r *riskObjectiveRepository) Create(ctx context.Context, objective *entity.
 		INSERT INTO risk_objectives (
 			organization_id, charter_id, period, tujuan, sasaran,
 			indikator_kinerja_utama, target, program, kegiatan, process_business,
-			status, created_by, approved_by, approved_at
+			created_by, approved_by, approved_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 		)
 		RETURNING id, created_at, updated_at
 	`
@@ -42,7 +42,6 @@ func (r *riskObjectiveRepository) Create(ctx context.Context, objective *entity.
 		objective.Program,
 		objective.Kegiatan,
 		objective.ProcessBusiness,
-		objective.Status,
 		objective.CreatedBy,
 		objective.ApprovedBy,
 		objective.ApprovedAt,
@@ -57,7 +56,7 @@ func (r *riskObjectiveRepository) GetByID(ctx context.Context, id uuid.UUID) (*e
 	query := `
 		SELECT id, organization_id, charter_id, period, tujuan, sasaran,
 			indikator_kinerja_utama, target, program, kegiatan, process_business,
-			status, created_by, approved_by, approved_at, created_at, updated_at
+			created_by, approved_by, approved_at, created_at, updated_at
 		FROM risk_objectives
 		WHERE id = $1
 	`
@@ -75,7 +74,6 @@ func (r *riskObjectiveRepository) GetByID(ctx context.Context, id uuid.UUID) (*e
 		&objective.Program,
 		&objective.Kegiatan,
 		&objective.ProcessBusiness,
-		&objective.Status,
 		&objective.CreatedBy,
 		&objective.ApprovedBy,
 		&objective.ApprovedAt,
@@ -101,9 +99,8 @@ func (r *riskObjectiveRepository) Update(ctx context.Context, objective *entity.
 			program = $9,
 			kegiatan = $10,
 			process_business = $11,
-			status = $12,
-			approved_by = $13,
-			approved_at = $14,
+			approved_by = $12,
+			approved_at = $13,
 			updated_at = now()
 		WHERE id = $1
 		RETURNING updated_at
@@ -121,7 +118,6 @@ func (r *riskObjectiveRepository) Update(ctx context.Context, objective *entity.
 		objective.Program,
 		objective.Kegiatan,
 		objective.ProcessBusiness,
-		objective.Status,
 		objective.ApprovedBy,
 		objective.ApprovedAt,
 	).Scan(&objective.UpdatedAt); err != nil {
@@ -150,7 +146,7 @@ func (r *riskObjectiveRepository) List(ctx context.Context, filter repository.Ri
 	dataQuery := `
 		SELECT id, organization_id, charter_id, period, tujuan, sasaran,
 			indikator_kinerja_utama, target, program, kegiatan, process_business,
-			status, created_by, approved_by, approved_at, created_at, updated_at
+			created_by, approved_by, approved_at, created_at, updated_at
 		FROM risk_objectives
 		WHERE 1=1
 	`
@@ -172,13 +168,6 @@ func (r *riskObjectiveRepository) List(ctx context.Context, filter repository.Ri
 		countQuery += clause
 		dataQuery += clause
 		args = append(args, strings.TrimSpace(filter.Period))
-		argPos++
-	}
-	if strings.TrimSpace(filter.Status) != "" {
-		clause := fmt.Sprintf(" AND status = $%d", argPos)
-		countQuery += clause
-		dataQuery += clause
-		args = append(args, strings.TrimSpace(filter.Status))
 		argPos++
 	}
 	if strings.TrimSpace(filter.Q) != "" {
@@ -229,7 +218,6 @@ func (r *riskObjectiveRepository) List(ctx context.Context, filter repository.Ri
 			&objective.Program,
 			&objective.Kegiatan,
 			&objective.ProcessBusiness,
-			&objective.Status,
 			&objective.CreatedBy,
 			&objective.ApprovedBy,
 			&objective.ApprovedAt,

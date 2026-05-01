@@ -22,7 +22,6 @@ func TestRiskObjectiveValidate(t *testing.T) {
 				Tujuan:                "Penguatan tata kelola",
 				Sasaran:               "Peningkatan kepatuhan",
 				IndikatorKinerjaUtama: "Persentase kepatuhan 95%",
-				Status:                RiskObjectiveStatusDraft,
 			},
 			wantErr: false,
 		},

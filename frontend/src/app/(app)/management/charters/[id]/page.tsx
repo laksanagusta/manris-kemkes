@@ -24,7 +24,7 @@ import {
 } from "@/lib/api/risk-charters";
 import type { OrganizationListItem } from "@/lib/api/organizations";
 import type { UserListItem } from "@/lib/api/users";
-import type { RiskCharter, RiskCharterStatus, RiskCharterUPRLevel } from "@/types/risk-charter";
+import type { RiskCharter, RiskCharterUPRLevel } from "@/types/risk-charter";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,20 +41,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-
-const statusLabel: Record<RiskCharterStatus, string> = {
-  draft: "Draft",
-  in_review: "Dalam Review",
-  approved: "Disetujui",
-  archived: "Diarsipkan",
-};
-
-const statusVariant: Record<RiskCharterStatus, string> = {
-  draft: "bg-muted text-muted-foreground border-border",
-  in_review: "bg-blue-500/15 text-blue-600 border-blue-500/20",
-  approved: "bg-success/15 text-success border-success/20",
-  archived: "bg-amber-500/15 text-amber-700 border-amber-500/20",
-};
 
 const uprLevelLabel: Record<RiskCharterUPRLevel, string> = {
   eksekutif: "Eksekutif",
@@ -74,7 +60,6 @@ const formSchema = z.object({
   internalContext: z.string().default(""),
   externalContext: z.string().default(""),
   stakeholderSummary: z.string().default(""),
-  status: z.enum(["draft", "in_review", "approved", "archived"]),
 });
 
 type FormValues = z.output<typeof formSchema>;
@@ -100,7 +85,6 @@ function normalizeFormValues(charter?: RiskCharter | null): FormValues {
     internalContext: charter?.internalContext ?? "",
     externalContext: charter?.externalContext ?? "",
     stakeholderSummary: charter?.stakeholderSummary ?? "",
-    status: charter?.status ?? "draft",
   };
 }
 
@@ -247,11 +231,6 @@ export default function RiskCharterDetailPage() {
               <ClipboardPenLine className="size-3.5" />
               Risk Governance
             </Badge>
-            {!isCreateMode && charter ? (
-              <Badge className={cn("border", statusVariant[charter.status])}>
-                {statusLabel[charter.status]}
-              </Badge>
-            ) : null}
           </>
         }
         actions={
