@@ -395,7 +395,7 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 		args = append(args, category)
 		argIdx++
 	}
-	query += " ORDER BY r.created_at DESC"
+	query += " ORDER BY (r.nilai * 10000 + r.impact * 100) DESC, r.created_at DESC"
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -521,7 +521,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	}
 
 	offset := (filter.Page - 1) * filter.Limit
-	dataQuery += fmt.Sprintf(" ORDER BY r.created_at DESC, r.id DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+	dataQuery += fmt.Sprintf(" ORDER BY (r.nilai * 10000 + r.impact * 100) DESC, r.created_at DESC, r.id DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, filter.Limit, offset)
 
 	rows, err := r.pool.Query(ctx, dataQuery, args...)
@@ -992,7 +992,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 			argIdx++
 		}
 		query += fmt.Sprintf(`
-		 ORDER BY r.inherent_score DESC, r.created_at DESC
+		 ORDER BY (r.nilai * 10000 + r.impact * 100) DESC, r.created_at DESC
 		 LIMIT $%d`, argIdx)
 		args = append(args, limit)
 	} else {
@@ -1007,7 +1007,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 			argIdx++
 		}
 		query += fmt.Sprintf(`
-		 ORDER BY r.inherent_score DESC, r.created_at DESC
+		 ORDER BY (r.nilai * 10000 + r.impact * 100) DESC, r.created_at DESC
 		 LIMIT $%d`, argIdx)
 		args = append(args, limit)
 	}
