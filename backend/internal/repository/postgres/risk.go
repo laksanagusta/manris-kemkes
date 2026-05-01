@@ -354,7 +354,7 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
 	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 	                  r.risk_priority, r.risk_appetite, r.treatment_option,
-	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
+	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
 	                  r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
 	                  r.created_at, r.updated_at,
@@ -395,7 +395,7 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 		args = append(args, category)
 		argIdx++
 	}
-	query += " ORDER BY r.created_at DESC"
+	query += " ORDER BY (r.nilai * 10000 + r.impact * 100) DESC, r.created_at DESC"
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -411,7 +411,7 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
-			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
+			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore, &risk.ResidualAcceptanceReason,
 			&risk.NextReviewDate, &risk.ReviewScheduleText, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary,
 			&risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
@@ -433,7 +433,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
 	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 	                  r.risk_priority, r.risk_appetite, r.treatment_option,
-	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
+	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
 	                  r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
 	                  r.created_at, r.updated_at,
@@ -521,7 +521,17 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	}
 
 	offset := (filter.Page - 1) * filter.Limit
-	dataQuery += fmt.Sprintf(" ORDER BY r.created_at DESC, r.id DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+	// Sort by priority (nilai * 10000 + impact * 100) by default, or by created_at if specified
+	if filter.SortBy == "created_at" {
+		orderDir := "DESC"
+		if filter.SortOrder == "asc" {
+			orderDir = "ASC"
+		}
+		dataQuery += fmt.Sprintf(" ORDER BY r.created_at %s, r.id DESC LIMIT $%d OFFSET $%d", orderDir, argIdx, argIdx+1)
+	} else {
+		// Default: sort by priority score descending
+		dataQuery += fmt.Sprintf(" ORDER BY (r.nilai * 10000 + r.impact * 100) DESC, r.created_at DESC, r.id DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+	}
 	args = append(args, filter.Limit, offset)
 
 	rows, err := r.pool.Query(ctx, dataQuery, args...)
@@ -538,7 +548,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
-			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
+			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore, &risk.ResidualAcceptanceReason,
 			&risk.NextReviewDate, &risk.ReviewScheduleText, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
@@ -561,7 +571,7 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
 	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 	                  r.risk_priority, r.risk_appetite, r.treatment_option,
-	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score,
+	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
 	                  r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
 	                  r.created_at, r.updated_at,
@@ -608,7 +618,7 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
-			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
+			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore, &risk.ResidualAcceptanceReason,
 			&risk.NextReviewDate, &risk.ReviewScheduleText, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
@@ -992,7 +1002,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 			argIdx++
 		}
 		query += fmt.Sprintf(`
-		 ORDER BY r.inherent_score DESC, r.created_at DESC
+		 ORDER BY (r.nilai * 10000 + r.impact * 100) DESC, r.created_at DESC
 		 LIMIT $%d`, argIdx)
 		args = append(args, limit)
 	} else {
@@ -1007,7 +1017,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 			argIdx++
 		}
 		query += fmt.Sprintf(`
-		 ORDER BY r.inherent_score DESC, r.created_at DESC
+		 ORDER BY (r.nilai * 10000 + r.impact * 100) DESC, r.created_at DESC
 		 LIMIT $%d`, argIdx)
 		args = append(args, limit)
 	}
@@ -1062,7 +1072,7 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
-			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
+			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore, &risk.ResidualAcceptanceReason,
 			&risk.NextReviewDate, &risk.ReviewScheduleText, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
@@ -1130,7 +1140,7 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
-			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore,
+			&risk.TargetProbability, &risk.TargetImpact, &risk.TargetWeight, &risk.TargetNilai, &risk.TargetScore, &risk.ResidualAcceptanceReason,
 			&risk.NextReviewDate, &risk.ReviewScheduleText, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,

@@ -166,6 +166,16 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 		Query:           strings.TrimSpace(c.Query("q", "")),
 		Page:            page,
 		Limit:           limit,
+		SortBy:          strings.TrimSpace(c.Query("sort_by", "")),
+		SortOrder:       strings.TrimSpace(c.Query("sort_order", "")),
+	}
+	// Validate sort_by — only "created_at" or "nilai" (priority) allowed
+	if input.SortBy != "" && input.SortBy != "created_at" && input.SortBy != "nilai" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid sort_by")
+	}
+	// Validate sort_order
+	if input.SortOrder != "" && input.SortOrder != "asc" && input.SortOrder != "desc" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid sort_order")
 	}
 	if input.Lifecycle != "active" && input.Lifecycle != "archived" && input.Lifecycle != "all" {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid lifecycle")

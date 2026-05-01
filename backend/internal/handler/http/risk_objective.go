@@ -48,7 +48,6 @@ func (h *RiskObjectiveHandler) List(c *fiber.Ctx) error {
 	result, err := h.listUC.Execute(c.Context(), riskobjectiveuc.ListRiskObjectivesInput{
 		OrganizationID: organizationID,
 		Period:         c.Query("period"),
-		Status:         c.Query("status"),
 		Q:              c.Query("q"),
 		Page:           page,
 		Limit:          limit,

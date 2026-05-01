@@ -30,7 +30,7 @@ import {
 } from "@/lib/api/risk-objectives";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import type { OrganizationListItem } from "@/lib/api/organizations";
-import type { RiskObjective, RiskObjectiveStatus } from "@/types/risk-objective";
+import type { RiskObjective } from "@/types/risk-objective";
 import {
   Card,
   CardContent,
@@ -65,20 +65,6 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-const statusLabel: Record<RiskObjectiveStatus, string> = {
-  draft: "Draft",
-  in_review: "Dalam Review",
-  approved: "Disetujui",
-  archived: "Diarsipkan",
-};
-
-const statusVariant: Record<RiskObjectiveStatus, string> = {
-  draft: "bg-muted text-muted-foreground border-border",
-  in_review: "bg-blue-500/15 text-blue-600 border-blue-500/20",
-  approved: "bg-success/15 text-success border-success/20",
-  archived: "bg-amber-500/15 text-amber-700 border-amber-500/20",
-};
-
 export default function RiskObjectivesPage() {
   const router = useRouter();
   const { token } = useAuth();
@@ -91,19 +77,16 @@ export default function RiskObjectivesPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [periodFilter, setPeriodFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<RiskObjectiveStatus | "all">(
-    "all",
-  );
+  const [statusFilter] = useState<string | "all">("all");
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
   const hasActiveFilters =
-    search !== "" || periodFilter !== "all" || statusFilter !== "all";
+    search !== "" || periodFilter !== "all";
 
   const resetFilters = useCallback(() => {
     setSearch("");
     setPeriodFilter("all");
-    setStatusFilter("all");
     setPage(1);
   }, []);
 
@@ -122,7 +105,6 @@ export default function RiskObjectivesPage() {
         const [objectives, orgs] = await Promise.all([
           listRiskObjectives(activeToken, {
             period: periodFilter === "all" ? undefined : periodFilter,
-            status: statusFilter === "all" ? "" : statusFilter,
           }),
           listAllOrganizations(activeToken),
         ]);
@@ -162,7 +144,6 @@ export default function RiskObjectivesPage() {
           program: objective.program,
           kegiatan: objective.kegiatan,
           processBusiness: objective.processBusiness,
-          status: "archived",
         });
         toast.success("Sasaran berhasil diarsipkan.");
         loadData(false);
@@ -204,9 +185,6 @@ export default function RiskObjectivesPage() {
   const summary = useMemo(
     () => ({
       total: filteredItems.length,
-      draft: filteredItems.filter((item) => item.status === "draft").length,
-      approved: filteredItems.filter((item) => item.status === "approved")
-        .length,
     }),
     [filteredItems],
   );
@@ -219,7 +197,7 @@ export default function RiskObjectivesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, periodFilter, statusFilter]);
+  }, [search, periodFilter]);
 
   const availablePeriods = useMemo(
     () =>
@@ -253,21 +231,15 @@ export default function RiskObjectivesPage() {
         </Button>
       </div>
 
-      <Card className="border-border/40 shadow-sm">
-        <CardHeader className="gap-3 pb-4 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-1.5">
-            <CardTitle className="text-base">Daftar Sasaran</CardTitle>
-            <CardDescription>
-              Tinjau sasaran berdasarkan periode, organisasi, dan status, lalu
-              buka detail untuk memperbarui isi dan target.
-            </CardDescription>
-          </div>
-          <Badge
-            variant="outline"
-            className="w-fit px-2.5 py-1 text-xs font-medium text-muted-foreground"
-          >
-            {filteredItems.length} sasaran tampil
-          </Badge>
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+        <CardHeader className="border-b border-border/40 pb-4">
+          <CardTitle className="text-[15px] font-semibold">
+            Daftar Sasaran
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Tinjau sasaran berdasarkan periode, organisasi, dan status, lalu
+            buka detail untuk memperbarui isi dan target.
+          </p>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
@@ -301,28 +273,6 @@ export default function RiskObjectivesPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={statusFilter}
-                onValueChange={(value) =>
-                  setStatusFilter(value as RiskObjectiveStatus | "all")
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Semua status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua status</SelectItem>
-                  {Object.entries(statusLabel).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           {hasActiveFilters && (
@@ -347,7 +297,6 @@ export default function RiskObjectivesPage() {
                   <TableHead>Periode</TableHead>
                   <TableHead>Sasaran</TableHead>
                   <TableHead>IKU</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Diperbarui</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -399,13 +348,6 @@ export default function RiskObjectivesPage() {
                       <TableCell className="max-w-[180px] truncate">
                         {item.indikatorKinerjaUtama}
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={cn("border", statusVariant[item.status])}
-                        >
-                          {statusLabel[item.status]}
-                        </Badge>
-                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(item.updatedAt).toLocaleDateString("id-ID", {
                           year: "numeric",
@@ -430,7 +372,7 @@ export default function RiskObjectivesPage() {
                             <DropdownMenuItem
                               variant="destructive"
                               onClick={() => handleArchive(item.id)}
-                              disabled={item.status === "archived"}
+                              disabled={false}
                             >
                               <Trash2 className="size-3.5" />
                               Hapus

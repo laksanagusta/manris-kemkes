@@ -1,8 +1,5 @@
 import { api } from "@/lib/api";
-import type {
-  RiskObjective,
-  RiskObjectiveStatus,
-} from "@/types/risk-objective";
+import type { RiskObjective } from "@/types/risk-objective";
 import { buildRiskObjectiveListQuery } from "./risk-objective-query";
 
 export interface PaginatedRiskObjectiveResponse {
@@ -15,7 +12,6 @@ export interface PaginatedRiskObjectiveResponse {
 export type ListRiskObjectivesParams = {
   organization_id?: string;
   period?: string;
-  status?: RiskObjectiveStatus | "";
   q?: string;
   page?: number;
   limit?: number;
@@ -32,7 +28,6 @@ export type UpsertRiskObjectiveRequest = {
   program: string;
   kegiatan: string;
   processBusiness: string;
-  status: RiskObjectiveStatus;
 };
 
 export async function listRiskObjectives(

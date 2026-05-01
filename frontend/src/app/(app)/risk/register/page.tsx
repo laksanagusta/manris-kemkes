@@ -1058,8 +1058,27 @@ export default function RiskRegisterPage() {
                   <TableHead className="w-28 whitespace-nowrap">
                     Kategori
                   </TableHead>
-                  <TableHead className="text-center w-16 whitespace-nowrap">
-                    Nilai
+                  <TableHead className="text-center w-16 whitespace-nowrap cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortBy === "nilai") {
+                        setSortOrder((prev) =>
+                          prev === "asc" ? "desc" : "asc",
+                        );
+                      } else {
+                        setSortBy("nilai");
+                        setSortOrder("desc");
+                      }
+                    }}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Nilai
+                      {sortBy === "nilai" &&
+                        (sortOrder === "desc" ? (
+                          <ChevronDown className="size-3" />
+                        ) : (
+                          <ChevronUp className="size-3" />
+                        ))}
+                    </div>
                   </TableHead>
                   <TableHead className="w-24 whitespace-nowrap">
                     Tingkat Risiko

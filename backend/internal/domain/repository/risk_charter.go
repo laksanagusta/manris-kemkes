@@ -10,7 +10,6 @@ import (
 type RiskCharterListFilter struct {
 	OrganizationID *uuid.UUID
 	Period         string
-	Status         string
 	Page           int
 	Limit          int
 }

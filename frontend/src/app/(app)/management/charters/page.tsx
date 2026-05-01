@@ -28,7 +28,7 @@ import { listRiskCharters } from "@/lib/api/risk-charters";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { updateRiskCharter } from "@/lib/api/risk-charters";
 import type { OrganizationListItem } from "@/lib/api/organizations";
-import type { RiskCharter, RiskCharterStatus } from "@/types/risk-charter";
+import type { RiskCharter } from "@/types/risk-charter";
 import {
   Card,
   CardContent,
@@ -63,20 +63,6 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-const statusLabel: Record<RiskCharterStatus, string> = {
-  draft: "Draft",
-  in_review: "Dalam Review",
-  approved: "Disetujui",
-  archived: "Diarsipkan",
-};
-
-const statusVariant: Record<RiskCharterStatus, string> = {
-  draft: "bg-muted text-muted-foreground border-border",
-  in_review: "bg-blue-500/15 text-blue-600 border-blue-500/20",
-  approved: "bg-success/15 text-success border-success/20",
-  archived: "bg-amber-500/15 text-amber-700 border-amber-500/20",
-};
-
 const uprLevelLabel: Record<string, string> = {
   eksekutif: "Eksekutif",
   upr_t1: "UPR T1",
@@ -95,19 +81,17 @@ export default function RiskChartersPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [periodFilter, setPeriodFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<RiskCharterStatus | "all">(
-    "all",
-  );
+  const [statusFilter] = useState<string | "all">("all");
+  // statusFilter kept for compatibility but status is no longer used
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
   const hasActiveFilters =
-    search !== "" || periodFilter !== "all" || statusFilter !== "all";
+    search !== "" || periodFilter !== "all";
 
   const resetFilters = useCallback(() => {
     setSearch("");
     setPeriodFilter("all");
-    setStatusFilter("all");
     setPage(1);
   }, []);
 
@@ -126,7 +110,6 @@ export default function RiskChartersPage() {
         const [charters, orgs] = await Promise.all([
           listRiskCharters(activeToken, {
             period: periodFilter === "all" ? undefined : periodFilter,
-            status: statusFilter === "all" ? "" : statusFilter,
           }),
           listAllOrganizations(activeToken),
         ]);
@@ -142,7 +125,7 @@ export default function RiskChartersPage() {
         setLoading(false);
       }
     },
-    [token, periodFilter, statusFilter],
+    [token, periodFilter],
   );
 
   useEffect(() => {
@@ -167,7 +150,6 @@ export default function RiskChartersPage() {
           internalContext: charter.internalContext,
           externalContext: charter.externalContext,
           stakeholderSummary: charter.stakeholderSummary,
-          status: "archived",
         });
         toast.success("Piagam berhasil diarsipkan.");
         loadData(false);
@@ -209,9 +191,6 @@ export default function RiskChartersPage() {
   const summary = useMemo(
     () => ({
       total: filteredItems.length,
-      draft: filteredItems.filter((item) => item.status === "draft").length,
-      approved: filteredItems.filter((item) => item.status === "approved")
-        .length,
     }),
     [filteredItems],
   );
@@ -224,7 +203,7 @@ export default function RiskChartersPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, periodFilter, statusFilter]);
+  }, [search, periodFilter]);
 
   const availablePeriods = useMemo(
     () =>
@@ -256,22 +235,16 @@ export default function RiskChartersPage() {
         </Button>
       </div>
 
-      <Card className="border-border/40 shadow-sm">
-        <CardHeader className="gap-3 pb-4 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-1.5">
-            <CardTitle className="text-base">Daftar Piagam</CardTitle>
-            <CardDescription>
-              Tinjau piagam berdasarkan periode, owner, dan status, lalu buka
-              detail untuk memperbarui isi charter dengan struktur yang
-              konsisten.
-            </CardDescription>
-          </div>
-          <Badge
-            variant="outline"
-            className="w-fit px-2.5 py-1 text-xs font-medium text-muted-foreground"
-          >
-            {filteredItems.length} piagam tampil
-          </Badge>
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+        <CardHeader className="border-b border-border/40 pb-4">
+          <CardTitle className="text-[15px] font-semibold">
+            Daftar Piagam
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Tinjau piagam berdasarkan periode, owner, dan status, lalu buka
+            detail untuk memperbarui isi charter dengan struktur yang
+            konsisten.
+          </p>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
@@ -300,28 +273,6 @@ export default function RiskChartersPage() {
                   {availablePeriods.map((period) => (
                     <SelectItem key={period} value={period}>
                       {period}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={statusFilter}
-                onValueChange={(value) =>
-                  setStatusFilter(value as RiskCharterStatus | "all")
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Semua status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua status</SelectItem>
-                  {Object.entries(statusLabel).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -403,13 +354,6 @@ export default function RiskChartersPage() {
                       <TableCell className="max-w-[160px] truncate">
                         {item.riskOwnerName}
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={cn("border", statusVariant[item.status])}
-                        >
-                          {statusLabel[item.status]}
-                        </Badge>
-                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(item.updatedAt).toLocaleDateString("id-ID", {
                           year: "numeric",
@@ -434,7 +378,7 @@ export default function RiskChartersPage() {
                             <DropdownMenuItem
                               variant="destructive"
                               onClick={() => handleArchive(item.id)}
-                              disabled={item.status === "archived"}
+                              disabled={false}
                             >
                               <Trash2 className="size-3.5" />
                               Hapus

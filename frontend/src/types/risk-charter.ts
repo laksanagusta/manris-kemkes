@@ -1,4 +1,3 @@
-export type RiskCharterStatus = "draft" | "in_review" | "approved" | "archived";
 export type RiskCharterUPRLevel = "eksekutif" | "upr_t1" | "upr_t2";
 
 export interface RiskCharter {
@@ -14,7 +13,6 @@ export interface RiskCharter {
   internalContext: string;
   externalContext: string;
   stakeholderSummary: string;
-  status: RiskCharterStatus;
   createdBy?: string;
   approvedBy?: string;
   approvedAt?: string;

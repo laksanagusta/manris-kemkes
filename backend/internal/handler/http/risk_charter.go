@@ -45,7 +45,6 @@ func (h *RiskCharterHandler) List(c *fiber.Ctx) error {
 	result, err := h.listUC.Execute(c.Context(), riskcharteruc.ListRiskChartersInput{
 		OrganizationID: organizationID,
 		Period:         c.Query("period"),
-		Status:         c.Query("status"),
 		Page:           page,
 		Limit:          limit,
 	})

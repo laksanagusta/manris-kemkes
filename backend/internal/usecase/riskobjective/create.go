@@ -19,18 +19,17 @@ func NewCreateRiskObjectiveUseCase(repo repository.RiskObjectiveRepository) *Cre
 }
 
 type CreateRiskObjectiveInput struct {
-	OrganizationID        uuid.UUID                  `json:"organizationId"`
-	CharterID            *uuid.UUID                 `json:"charterId"`
-	Period                string                     `json:"period"`
-	Tujuan                string                     `json:"tujuan"`
-	Sasaran               string                     `json:"sasaran"`
-	IndikatorKinerjaUtama string                     `json:"indikatorKinerjaUtama"`
-	Target                string                     `json:"target"`
-	Program               string                     `json:"program"`
-	Kegiatan              string                     `json:"kegiatan"`
-	ProcessBusiness       string                     `json:"processBusiness"`
-	Status                entity.RiskObjectiveStatus `json:"status"`
-	CreatedBy             *uuid.UUID                 `json:"-"`
+	OrganizationID        uuid.UUID  `json:"organizationId"`
+	CharterID            *uuid.UUID `json:"charterId"`
+	Period               string     `json:"period"`
+	Tujuan               string     `json:"tujuan"`
+	Sasaran              string     `json:"sasaran"`
+	IndikatorKinerjaUtama string    `json:"indikatorKinerjaUtama"`
+	Target               string     `json:"target"`
+	Program              string     `json:"program"`
+	Kegiatan             string     `json:"kegiatan"`
+	ProcessBusiness      string     `json:"processBusiness"`
+	CreatedBy            *uuid.UUID `json:"-"`
 }
 
 func (uc *CreateRiskObjectiveUseCase) Execute(ctx context.Context, input CreateRiskObjectiveInput) (*entity.RiskObjective, error) {
@@ -44,12 +43,8 @@ func (uc *CreateRiskObjectiveUseCase) Execute(ctx context.Context, input CreateR
 		Target:                strings.TrimSpace(input.Target),
 		Program:               strings.TrimSpace(input.Program),
 		Kegiatan:              strings.TrimSpace(input.Kegiatan),
-		ProcessBusiness:       strings.TrimSpace(input.ProcessBusiness),
-		Status:                entity.RiskObjectiveStatus(strings.TrimSpace(string(input.Status))),
+		ProcessBusiness:      strings.TrimSpace(input.ProcessBusiness),
 		CreatedBy:             input.CreatedBy,
-	}
-	if objective.Status == "" {
-		objective.Status = entity.RiskObjectiveStatusDraft
 	}
 
 	if err := objective.Validate(); err != nil {

@@ -21,7 +21,6 @@ type RiskCharter struct {
 	InternalContext    string     `json:"internalContext"`
 	ExternalContext    string     `json:"externalContext"`
 	StakeholderSummary string     `json:"stakeholderSummary"`
-	Status             string     `json:"status"`
 	CreatedBy          *uuid.UUID `json:"createdBy,omitempty"`
 	ApprovedBy         *uuid.UUID `json:"approvedBy,omitempty"`
 	ApprovedAt         *time.Time `json:"approvedAt,omitempty"`
@@ -44,12 +43,6 @@ func (r RiskCharter) Validate() error {
 	case "eksekutif", "upr_t1", "upr_t2":
 	default:
 		return fmt.Errorf("invalid upr level")
-	}
-
-	switch r.Status {
-	case "draft", "in_review", "approved", "archived":
-	default:
-		return fmt.Errorf("invalid status")
 	}
 
 	return nil

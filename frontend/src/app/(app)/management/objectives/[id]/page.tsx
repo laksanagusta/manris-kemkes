@@ -22,7 +22,7 @@ import {
   updateRiskObjective,
 } from "@/lib/api/risk-objectives";
 import type { OrganizationListItem } from "@/lib/api/organizations";
-import type { RiskObjective, RiskObjectiveStatus } from "@/types/risk-objective";
+import type { RiskObjective } from "@/types/risk-objective";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,20 +39,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-
-const statusLabel: Record<RiskObjectiveStatus, string> = {
-  draft: "Draft",
-  in_review: "Dalam Review",
-  approved: "Disetujui",
-  archived: "Diarsipkan",
-};
-
-const statusVariant: Record<RiskObjectiveStatus, string> = {
-  draft: "bg-muted text-muted-foreground border-border",
-  in_review: "bg-blue-500/15 text-blue-600 border-blue-500/20",
-  approved: "bg-success/15 text-success border-success/20",
-  archived: "bg-amber-500/15 text-amber-700 border-amber-500/20",
-};
 
 const formSchema = z.object({
   organizationId: z.string().min(1, "Organisasi wajib dipilih"),
@@ -188,7 +174,6 @@ export default function RiskObjectiveDetailPage() {
       setSaving(true);
       const payload = {
         ...values,
-        status: "draft" as RiskObjectiveStatus,
       };
 
       const response = isCreateMode
@@ -235,11 +220,6 @@ export default function RiskObjectiveDetailPage() {
               <Goal className="size-3.5" />
               Risk Governance
             </Badge>
-            {!isCreateMode && objective ? (
-              <Badge className={cn("border", statusVariant[objective.status])}>
-                {statusLabel[objective.status]}
-              </Badge>
-            ) : null}
           </>
         }
         actions={
