@@ -35,6 +35,7 @@ func TestRiskGetByIDIncludesOngoingReassessmentFields(t *testing.T) {
 		RiskAppetite:       "dalam_batas",
 		TreatmentOption:    "mitigasi",
 		ReviewScheduleText: "Semester review",
+		ResidualAcceptanceReason: "",
 	}
 
 	if err := repo.Create(ctx, source); err != nil {

@@ -89,10 +89,11 @@ type Risk struct {
 	TargetProbability  int                  `json:"targetProbability,omitempty"`
 	TargetImpact       int                  `json:"targetImpact,omitempty"`
 	TargetWeight       float64              `json:"targetWeight,omitempty"`
-	TargetNilai        float64              `json:"targetNilai,omitempty"`
-	TargetScore        int                  `json:"targetScore,omitempty"`
-	NextReviewDate     *string              `json:"nextReviewDate,omitempty"`
-	ReviewScheduleText string               `json:"reviewScheduleText,omitempty"`
+	TargetNilai                float64   `json:"targetNilai,omitempty"`
+	TargetScore                int       `json:"targetScore,omitempty"`
+	ResidualAcceptanceReason   string    `json:"residualAcceptanceReason,omitempty"`
+	NextReviewDate             *string   `json:"nextReviewDate,omitempty"`
+	ReviewScheduleText         string    `json:"reviewScheduleText,omitempty"`
 	AssessmentCycle    string               `json:"assessmentCycle,omitempty"`
 	ReviewType         string               `json:"reviewType,omitempty"`
 	ChangeReason       string               `json:"changeReason,omitempty"`
@@ -281,6 +282,21 @@ func GetRiskLevelDisplay(level string) string {
 	default:
 		return level
 	}
+}
+
+// ResolveRiskAppetite returns advisory appetite status based on inherentScore.
+// Per KMK risk appetite matrix: inherentScore < 10 → dalam_batas, >= 10 → di_atas_batas.
+func ResolveRiskAppetite(inherentScore int) string {
+	if inherentScore < 10 {
+		return "dalam_batas"
+	}
+	return "di_atas_batas"
+}
+
+// IsRiskUtama returns true if risk level is Sedang or higher.
+// Per KMK: inherentScore >= 10 corresponds to Sedang/Tinggi/SangatTinggi level.
+func (r Risk) IsRiskUtama() bool {
+	return r.InherentScore >= 10
 }
 
 // GetRiskAppetiteDisplay returns the Indonesian display name for risk appetite
