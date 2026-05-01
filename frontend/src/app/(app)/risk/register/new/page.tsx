@@ -1239,14 +1239,8 @@ export default function RiskInputPage() {
       step: "4",
       title: "Rencana Penanganan",
       description:
-        treatmentOption === "mitigate"
-          ? "Tentukan aksi mitigasi yang nyata, siapa PIC-nya, dan kapan eksekusinya."
-          : "Rencana penanganan hanya wajib diisi jika strategi penanganan adalah mitigasi.",
-      done: treatmentOption !== "mitigate" || mitigations.length > 0,
-      hint:
-        treatmentOption === "mitigate"
-          ? "Tambahkan minimal satu rencana penanganan."
-          : "Tidak wajib untuk strategi selain mitigasi.",
+        "Tentukan aksi mitigasi yang nyata, siapa PIC-nya, dan kapan eksekusinya. Opsional — tidak wajib diisi.",
+      done: true, // Always optional — no enforcement based on treatment option
     },
     {
       id: "target",
