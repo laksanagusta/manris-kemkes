@@ -98,6 +98,12 @@ func main() {
 		container.RiskObjectiveListUC,
 	)
 
+	// Likelihood Assessment handler (Clean Architecture)
+	cleanLikelihoodAssessmentHandler := httpHandler.NewLikelihoodAssessmentHandler(
+		container.LikelihoodAssessmentUpsertUC,
+		container.LikelihoodAssessmentGetUC,
+	)
+
 	// System handlers (Clean Architecture)
 	cleanSystemHandler := httpHandler.NewSystemHandler(container.SystemSlowQueriesUC)
 
@@ -209,6 +215,10 @@ func main() {
 	protected.Get("/risk-objectives/:id", cleanRiskObjectiveHandler.Get)
 	protected.Put("/risk-objectives/:id", cleanRiskObjectiveHandler.Update)
 	protected.Delete("/risk-objectives/:id", cleanRiskObjectiveHandler.Delete)
+
+	// Likelihood Assessment routes
+	protected.Post("/likelihood-assessments", cleanLikelihoodAssessmentHandler.Upsert)
+	protected.Get("/likelihood-assessments/:riskId", cleanLikelihoodAssessmentHandler.GetByRiskID)
 
 	// Users — read endpoints open to all authenticated users
 	protected.Get("/users", cleanUserHandler.ListUsers)

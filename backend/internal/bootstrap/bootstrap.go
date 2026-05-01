@@ -32,6 +32,7 @@ import (
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 	riskcharteruc "github.com/manris/backend/internal/usecase/riskcharter"
 	riskobjectiveuc "github.com/manris/backend/internal/usecase/riskobjective"
+	likelihoodassessmentuc "github.com/manris/backend/internal/usecase/likelihoodassessment"
 	systemuc "github.com/manris/backend/internal/usecase/system"
 	systemsettinguc "github.com/manris/backend/internal/usecase/system_setting"
 	useruc "github.com/manris/backend/internal/usecase/user"
@@ -65,6 +66,7 @@ type Container struct {
 	WPRepository             domainrepo.WorkingPaperRepository
 	RiskCharterRepository    domainrepo.RiskCharterRepository
 	RiskObjectiveRepository   domainrepo.RiskObjectiveRepository
+	LikelihoodAssessmentRepository domainrepo.LikelihoodAssessmentRepository
 
 	// Domain Services
 	OrgHierarchySvc *domainsvc.OrganizationHierarchy
@@ -198,6 +200,10 @@ type Container struct {
 	RiskObjectiveDeleteUC *riskobjectiveuc.DeleteRiskObjectiveUseCase
 	RiskObjectiveListUC   *riskobjectiveuc.ListRiskObjectivesUseCase
 
+	// Likelihood Assessment UseCases
+	LikelihoodAssessmentUpsertUC *likelihoodassessmentuc.UpsertUseCase
+	LikelihoodAssessmentGetUC    *likelihoodassessmentuc.GetByRiskIDUseCase
+
 	// External PIC UseCases
 	ExternalPICGetOrCreateUC *externalextPICuc.GetOrCreateByNameUseCase
 	ExternalPICListUC        *externalextPICuc.ListExternalPICsUseCase
@@ -290,6 +296,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.WPRepository = postgresrepo.NewWorkingPaperRepository(pool)
 	c.RiskCharterRepository = postgresrepo.NewRiskCharterRepository(pool)
 	c.RiskObjectiveRepository = postgresrepo.NewRiskObjectiveRepository(pool)
+	c.LikelihoodAssessmentRepository = postgresrepo.NewLikelihoodAssessmentRepository(pool)
 
 	// ============================================================================
 	// Domain Services
@@ -464,6 +471,8 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskObjectiveUpdateUC = riskobjectiveuc.NewUpdateRiskObjectiveUseCase(c.RiskObjectiveRepository)
 	c.RiskObjectiveDeleteUC = riskobjectiveuc.NewDeleteRiskObjectiveUseCase(c.RiskObjectiveRepository)
 	c.RiskObjectiveListUC = riskobjectiveuc.NewListRiskObjectivesUseCase(c.RiskObjectiveRepository)
+	c.LikelihoodAssessmentUpsertUC = likelihoodassessmentuc.NewUpsertUseCase(c.LikelihoodAssessmentRepository)
+	c.LikelihoodAssessmentGetUC = likelihoodassessmentuc.NewGetByRiskIDUseCase(c.LikelihoodAssessmentRepository)
 
 	// ============================================================================
 	// External PIC UseCases

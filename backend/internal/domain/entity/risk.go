@@ -57,7 +57,8 @@ type Risk struct {
 	CreatedByName  string     `json:"createdByName"`
 	RiskOwnerID    *uuid.UUID `json:"riskOwnerId,omitempty"`
 	ControlOwnerID *uuid.UUID `json:"controlOwnerId,omitempty"`
-	ObjectiveID    *uuid.UUID `json:"objectiveId,omitempty"`
+	ObjectiveID               *uuid.UUID `json:"objectiveId,omitempty"`
+	LikelihoodAssessmentID   *uuid.UUID `json:"likelihoodAssessmentId,omitempty"`
 
 	// Section 1
 	Cause           []string `json:"cause,omitempty"`
