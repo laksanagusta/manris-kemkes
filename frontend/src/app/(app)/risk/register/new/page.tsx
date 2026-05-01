@@ -12,7 +12,7 @@ import { filterToAccessibleOrgs } from "@/lib/organization";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { useAuth } from "@/contexts/auth-context";
 import { ObjectivePicker, type ObjectiveSummary } from "@/components/risk/objective-picker";
-import { LikelihoodAssessmentWizard, type LikelihoodWizardValue } from "@/components/risk/likelihood-assessment-wizard";
+import { ImpactCriteriaSelector } from "@/components/risk/impact-criteria-selector";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -574,7 +574,7 @@ export default function RiskInputPage() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<
-    { id: string; name: string }[]
+    { id: string; name: string; uprLevel?: string }[]
   >([]);
   const [reviewerId, setReviewerId] = useState<string>("");
   const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(
@@ -586,10 +586,10 @@ export default function RiskInputPage() {
     useState<RiskWorkflowState | null>(null);
   const [openSections, setOpenSections] = useState<string[]>(["identifikasi"]);
   const [objectiveSummary, setObjectiveSummary] = useState<ObjectiveSummary | undefined>(undefined);
-  const [likelihoodAssessment, setLikelihoodAssessment] = useState<LikelihoodWizardValue | undefined>(undefined);
   const [assessmentCycleDisplay, setAssessmentCycleDisplay] = useState(
     currentAssessmentCycle(),
   );
+  const [selectedOrganizationUPRLevel, setSelectedOrganizationUPRLevel] = useState<string>("kementerian");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
@@ -989,6 +989,16 @@ export default function RiskInputPage() {
 
   const currentOrganizationId = watch("organizationId");
 
+  // Update UPR level when organization changes
+  useEffect(() => {
+    if (currentOrganizationId && organizations.length > 0) {
+      const org = organizations.find((o) => o.id === currentOrganizationId);
+      if (org?.uprLevel) {
+        setSelectedOrganizationUPRLevel(org.uprLevel);
+      }
+    }
+  }, [currentOrganizationId, organizations]);
+
   useEffect(() => {
     if (!riskId && user?.organizationId && organizations.length > 0) {
       if (!currentOrganizationId || currentOrganizationId === "") {
@@ -1015,7 +1025,7 @@ export default function RiskInputPage() {
             ? res
             : filterToAccessibleOrgs(res, user?.accessibleOrgIds || []);
           setOrganizations(
-            filtered.map((org) => ({ id: org.id, name: org.name })),
+            filtered.map((org) => ({ id: org.id, name: org.name, uprLevel: org.uprLevel })),
           );
         } catch (err) {
           console.error(err);
@@ -1030,30 +1040,6 @@ export default function RiskInputPage() {
 
       if (existingRiskId && token) {
         await loadRiskData(existingRiskId);
-        // Load KMK Likelihood Assessment after risk data
-        if (existingRiskId) {
-          try {
-            const la = await import("@/lib/api/likelihood-assessments").then(
-              ({ getLikelihoodAssessmentByRiskId }) =>
-                getLikelihoodAssessmentByRiskId(token || "", existingRiskId)
-            );
-            if (la) {
-              setLikelihoodAssessment({
-                method: la.method as import("@/types/likelihood-assessment").LikelihoodMethod,
-                frequencyType: la.frequencyType as import("@/types/likelihood-assessment").FrequencyType,
-                observationPeriodMonths: la.observationPeriodMonths,
-                eventCount: la.eventCount,
-                populationCount: la.populationCount,
-                selectedProbabilityLevel: la.selectedProbabilityLevel,
-                justification: la.justification,
-                dataSource: la.dataSource,
-                recommendedLevel: la.selectedProbabilityLevel,
-              });
-            }
-          } catch {
-            // Likelihood assessment may not exist yet — ignore
-          }
-        }
         return;
       }
 
@@ -1467,23 +1453,6 @@ export default function RiskInputPage() {
         if (riskId) {
           await loadRiskVersions(currentRiskId);
         }
-        // Upsert likelihood assessment for existing risk
-        if (currentRiskId && likelihoodAssessment) {
-          await import("@/lib/api/likelihood-assessments").then(
-            ({ upsertLikelihoodAssessment }) =>
-              upsertLikelihoodAssessment(token || "", {
-                riskId: currentRiskId as string,
-                method: likelihoodAssessment.method,
-                frequencyType: likelihoodAssessment.frequencyType,
-                observationPeriodMonths: likelihoodAssessment.observationPeriodMonths,
-                eventCount: likelihoodAssessment.eventCount,
-                populationCount: likelihoodAssessment.populationCount,
-                selectedProbabilityLevel: likelihoodAssessment.selectedProbabilityLevel,
-                justification: likelihoodAssessment.justification,
-                dataSource: likelihoodAssessment.dataSource,
-              })
-          );
-        }
       } else {
         const res = await api.post<RiskSaveResponse>(
           "/risks",
@@ -1493,24 +1462,6 @@ export default function RiskInputPage() {
         setRiskId(res.id);
         setValue("riskCode", res.code || "");
         currentRiskId = res.id;
-      }
-
-      // Save KMK Likelihood Assessment after risk is created/updated
-      if (currentRiskId && likelihoodAssessment) {
-        await import("@/lib/api/likelihood-assessments").then(
-          ({ upsertLikelihoodAssessment }) =>
-            upsertLikelihoodAssessment(token || "", {
-              riskId: currentRiskId,
-              method: likelihoodAssessment.method,
-              frequencyType: likelihoodAssessment.frequencyType,
-              observationPeriodMonths: likelihoodAssessment.observationPeriodMonths,
-              eventCount: likelihoodAssessment.eventCount,
-              populationCount: likelihoodAssessment.populationCount,
-              selectedProbabilityLevel: likelihoodAssessment.selectedProbabilityLevel,
-              justification: likelihoodAssessment.justification,
-              dataSource: likelihoodAssessment.dataSource,
-            })
-        );
       }
 
       if (needsDirectApprovalUpdate && currentRiskId) {
@@ -2775,17 +2726,6 @@ export default function RiskInputPage() {
                       </div>
                     </div>
 
-                    {/* KMK Likelihood Assessment Wizard */}
-                    <LikelihoodAssessmentWizard
-                      value={likelihoodAssessment}
-                      onChange={(val) => {
-                        setLikelihoodAssessment(val);
-                        setValue("probability", val.selectedProbabilityLevel, { shouldValidate: true });
-                      }}
-                      disabled={isRiskLocked}
-                      compact
-                    />
-
                     <div className="grid gap-5 md:grid-cols-2">
                       <div className="space-y-1.5">
                         <ProbabilityCriteriaTooltip className="text-sm font-medium" />
@@ -2856,6 +2796,18 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* KMK Impact Criteria Selector */}
+                    {category && selectedOrganizationUPRLevel && token && (
+                      <ImpactCriteriaSelector
+                        token={token}
+                        category={category as import("@/types/impact-criteria").ImpactCriteriaCategory}
+                        uprLevel={selectedOrganizationUPRLevel as import("@/types/impact-criteria").ImpactCriteriaUPRLevel}
+                        value={impact}
+                        onChange={(level) => setValue("impact", level, { shouldValidate: true })}
+                        disabled={isRiskLocked}
+                      />
+                    )}
 
                     <div
                       className={cn(
