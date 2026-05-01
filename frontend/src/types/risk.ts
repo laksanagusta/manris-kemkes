@@ -300,6 +300,7 @@ export interface Risk {
   draftId?: string | null;
   draftStatus?: RiskStatus | null;
   hasOngoing?: boolean;
+  objectiveId?: string;
 
 }
 

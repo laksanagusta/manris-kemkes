@@ -11,6 +11,7 @@ import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { useAuth } from "@/contexts/auth-context";
+import { ObjectivePicker, type ObjectiveSummary } from "@/components/risk/objective-picker";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -433,6 +434,7 @@ const formSchema = z.object({
   targetImpact: z.number().min(1).max(5).default(1),
   targetWeight: z.number().min(0.1).default(1.0),
   targetNilai: z.number().min(0).default(0),
+  objectiveId: z.string().optional(),
 });
 
 const draftSchema = z
@@ -582,6 +584,7 @@ export default function RiskInputPage() {
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<RiskWorkflowState | null>(null);
   const [openSections, setOpenSections] = useState<string[]>(["identifikasi"]);
+  const [objectiveSummary, setObjectiveSummary] = useState<ObjectiveSummary | undefined>(undefined);
   const [assessmentCycleDisplay, setAssessmentCycleDisplay] = useState(
     currentAssessmentCycle(),
   );
@@ -605,6 +608,7 @@ export default function RiskInputPage() {
       description: "",
       category: undefined,
       organizationId: "",
+      objectiveId: undefined,
       riskCode: "",
       causes: [],
       impacts: [],
@@ -1406,6 +1410,7 @@ export default function RiskInputPage() {
             : null,
         targetCost: 0,
       })),
+      objectiveId: data.objectiveId || undefined,
     };
   };
 
@@ -2384,6 +2389,43 @@ export default function RiskInputPage() {
                       />
                       <FormErrorMessage error={errors.category?.message} />
                     </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">
+                        Sasaran & IKU
+                      </Label>
+                      <ObjectivePicker
+                        organizationId={currentOrganizationId}
+                        value={watch("objectiveId")}
+                        onChange={(id, summary) => {
+                          setValue("objectiveId", id, { shouldDirty: true });
+                          setObjectiveSummary(summary);
+                        }}
+                      />
+                      <p className="text-[11px] leading-[14px] text-muted-foreground">
+                        Pilih sasaran organisasi yang terdampak langsung oleh risiko ini sesuai KMK.
+                      </p>
+                    </div>
+
+                    {objectiveSummary && (
+                      <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-2">
+                        <p className="text-xs font-semibold text-foreground">Ringkasan Sasaran</p>
+                        <div className="grid gap-2 md:grid-cols-2 text-xs text-muted-foreground">
+                          {objectiveSummary.tujuan && (
+                            <div><span className="font-medium text-foreground">Tujuan:</span> {objectiveSummary.tujuan}</div>
+                          )}
+                          {objectiveSummary.sasaran && (
+                            <div><span className="font-medium text-foreground">Sasaran:</span> {objectiveSummary.sasaran}</div>
+                          )}
+                          {objectiveSummary.indikatorKinerjaUtama && (
+                            <div><span className="font-medium text-foreground">IKU:</span> {objectiveSummary.indikatorKinerjaUtama}</div>
+                          )}
+                          {objectiveSummary.program && (
+                            <div><span className="font-medium text-foreground">Program:</span> {objectiveSummary.program}</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="grid gap-5 md:grid-cols-3">
                       <div className="space-y-1.5">
