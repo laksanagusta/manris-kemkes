@@ -93,7 +93,7 @@ func (r *organizationRepository) List(ctx context.Context) ([]*entity.Organizati
 	for rows.Next() {
 		var org entity.Organization
 		var ctxVal *string
-		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &ctxVal, &org.CreatedAt); err != nil {
+		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &ctxVal, &org.UPRLevel, &org.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan organization: %w", err)
 		}
 		if ctxVal != nil {
@@ -140,7 +140,7 @@ func (r *organizationRepository) ListWithFilter(ctx context.Context, filter repo
 	for rows.Next() {
 		var org entity.Organization
 		var ctxVal *string
-		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &ctxVal, &org.CreatedAt); err != nil {
+		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &ctxVal, &org.UPRLevel, &org.CreatedAt); err != nil {
 			return nil, 0, fmt.Errorf("list organizations scan: %w", err)
 		}
 		if ctxVal != nil {
