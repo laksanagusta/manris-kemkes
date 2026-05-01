@@ -33,6 +33,7 @@ import (
 	riskcharteruc "github.com/manris/backend/internal/usecase/riskcharter"
 	riskobjectiveuc "github.com/manris/backend/internal/usecase/riskobjective"
 	likelihoodassessmentuc "github.com/manris/backend/internal/usecase/likelihoodassessment"
+	impactcriteriauc "github.com/manris/backend/internal/usecase/impactcriteria"
 	systemuc "github.com/manris/backend/internal/usecase/system"
 	systemsettinguc "github.com/manris/backend/internal/usecase/system_setting"
 	useruc "github.com/manris/backend/internal/usecase/user"
@@ -67,6 +68,7 @@ type Container struct {
 	RiskCharterRepository    domainrepo.RiskCharterRepository
 	RiskObjectiveRepository   domainrepo.RiskObjectiveRepository
 	LikelihoodAssessmentRepository domainrepo.LikelihoodAssessmentRepository
+	ImpactCriteriaRepository      domainrepo.ImpactCriteriaRepository
 
 	// Domain Services
 	OrgHierarchySvc *domainsvc.OrganizationHierarchy
@@ -204,6 +206,9 @@ type Container struct {
 	LikelihoodAssessmentUpsertUC *likelihoodassessmentuc.UpsertUseCase
 	LikelihoodAssessmentGetUC    *likelihoodassessmentuc.GetByRiskIDUseCase
 
+	// Impact Criteria UseCases
+	ImpactCriteriaListUC impactcriteriauc.ListUseCase
+
 	// External PIC UseCases
 	ExternalPICGetOrCreateUC *externalextPICuc.GetOrCreateByNameUseCase
 	ExternalPICListUC        *externalextPICuc.ListExternalPICsUseCase
@@ -297,6 +302,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskCharterRepository = postgresrepo.NewRiskCharterRepository(pool)
 	c.RiskObjectiveRepository = postgresrepo.NewRiskObjectiveRepository(pool)
 	c.LikelihoodAssessmentRepository = postgresrepo.NewLikelihoodAssessmentRepository(pool)
+	c.ImpactCriteriaRepository = postgresrepo.NewImpactCriteriaRepository(pool)
 
 	// ============================================================================
 	// Domain Services
@@ -473,6 +479,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskObjectiveListUC = riskobjectiveuc.NewListRiskObjectivesUseCase(c.RiskObjectiveRepository)
 	c.LikelihoodAssessmentUpsertUC = likelihoodassessmentuc.NewUpsertUseCase(c.LikelihoodAssessmentRepository)
 	c.LikelihoodAssessmentGetUC = likelihoodassessmentuc.NewGetByRiskIDUseCase(c.LikelihoodAssessmentRepository)
+	c.ImpactCriteriaListUC = impactcriteriauc.NewListUseCase(c.ImpactCriteriaRepository)
 
 	// ============================================================================
 	// External PIC UseCases

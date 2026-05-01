@@ -59,6 +59,8 @@ type Risk struct {
 	ControlOwnerID *uuid.UUID `json:"controlOwnerId,omitempty"`
 	ObjectiveID               *uuid.UUID `json:"objectiveId,omitempty"`
 	LikelihoodAssessmentID   *uuid.UUID `json:"likelihoodAssessmentId,omitempty"`
+	ImpactCriteriaID         *uuid.UUID `json:"impactCriteriaId,omitempty"`
+	ImpactJustification       string     `json:"impactJustification,omitempty"`
 
 	// Section 1
 	Cause           []string `json:"cause,omitempty"`

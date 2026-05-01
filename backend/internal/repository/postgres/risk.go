@@ -61,8 +61,8 @@ func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		  existing_control, control_effectiveness, probability, impact, weight, nilai, inherent_score,
 		  risk_priority, risk_appetite, treatment_option,
 		  target_probability, target_impact, target_weight, target_nilai, target_score, next_review_date, review_schedule_text, assessment_cycle, review_type, change_reason, review_summary, review_started_at, review_submitted_at, review_approved_at, draft_approval_line,
-		  objective_id)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44)
+		  objective_id, impact_criteria_id, impact_justification)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46)
 		 RETURNING id, created_at, updated_at`,
 		risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.VersionNumber, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID, risk.CreatedBy,
 		risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
@@ -70,7 +70,7 @@ func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
 		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.TargetScore, risk.NextReviewDate, risk.ReviewScheduleText,
 		risk.AssessmentCycle, risk.ReviewType, risk.ChangeReason, risk.ReviewSummary, risk.ReviewStartedAt, risk.ReviewSubmittedAt, risk.ReviewApprovedAt, mustJSON(risk.DraftApprovalLine),
-		risk.ObjectiveID,
+		risk.ObjectiveID, risk.ImpactCriteriaID, risk.ImpactJustification,
 	).Scan(&risk.ID, &risk.CreatedAt, &risk.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create risk: %w", err)
@@ -132,7 +132,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 	risk := &entity.Risk{}
 	var draftApprovalLineRaw []byte
 
-	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id,
+	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -167,7 +167,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 	}
 
 	err := r.pool.QueryRow(ctx, query, args...).Scan(
-		&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID,
+		&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 		&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 		&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 		&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -221,7 +221,7 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 		  risk_priority=$26, risk_appetite=$27, treatment_option=$28,
 		  target_probability=$29, target_impact=$30, target_weight=$31, target_nilai=$32, target_score=$33, next_review_date=$34, review_schedule_text=$35,
 		  assessment_cycle=$36, review_type=$37, change_reason=$38, review_summary=$39, review_started_at=$40, review_submitted_at=$41, review_approved_at=$42,
-		  draft_approval_line=$43,
+		  draft_approval_line=$43, impact_criteria_id=$44, impact_justification=$45,
 		  updated_at=now()
 		 WHERE id=$1`,
 		risk.ID, risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.VersionNumber, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID,
@@ -230,6 +230,7 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
 		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.TargetScore, risk.NextReviewDate, risk.ReviewScheduleText,
 		risk.AssessmentCycle, risk.ReviewType, risk.ChangeReason, risk.ReviewSummary, risk.ReviewStartedAt, risk.ReviewSubmittedAt, risk.ReviewApprovedAt, mustJSON(risk.DraftApprovalLine),
+		risk.ImpactCriteriaID, risk.ImpactJustification,
 	)
 	if err != nil {
 		return fmt.Errorf("update risk: %w", err)
@@ -403,7 +404,7 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	for rows.Next() {
 		var risk entity.Risk
 		if err := rows.Scan(
-			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID,
+			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -530,7 +531,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	for rows.Next() {
 		var risk entity.Risk
 		if err := rows.Scan(
-			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID,
+			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -600,7 +601,7 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 	for rows.Next() {
 		var risk entity.Risk
 		if err := rows.Scan(
-			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID,
+			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -1030,7 +1031,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 // ListVersions returns all versions for a risk group ordered newest first.
 func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.Risk, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id,
+		`SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -1054,7 +1055,7 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 	for rows.Next() {
 		var risk entity.Risk
 		if err := rows.Scan(
-			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID,
+			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -1086,7 +1087,7 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 
 	log.Printf("[DEBUG] ListCycleSnapshot called with cycle=%q, orgIDs=%v, available_cycles=%v", cycle, orgIDs, dbCycles)
 
-	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id,
+	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -1122,7 +1123,7 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 	for rows.Next() {
 		risk := &entity.Risk{}
 		if err := rows.Scan(
-			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID,
+			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,

@@ -104,6 +104,11 @@ func main() {
 		container.LikelihoodAssessmentGetUC,
 	)
 
+	// Impact Criteria handler (Clean Architecture)
+	impactCriteriaHandler := httpHandler.NewImpactCriteriaHandler(
+		container.ImpactCriteriaListUC,
+	)
+
 	// System handlers (Clean Architecture)
 	cleanSystemHandler := httpHandler.NewSystemHandler(container.SystemSlowQueriesUC)
 
@@ -219,6 +224,9 @@ func main() {
 	// Likelihood Assessment routes
 	protected.Post("/likelihood-assessments", cleanLikelihoodAssessmentHandler.Upsert)
 	protected.Get("/likelihood-assessments/:riskId", cleanLikelihoodAssessmentHandler.GetByRiskID)
+
+	// Impact Criteria routes
+	protected.Get("/impact-criteria", impactCriteriaHandler.List)
 
 	// Users — read endpoints open to all authenticated users
 	protected.Get("/users", cleanUserHandler.ListUsers)
