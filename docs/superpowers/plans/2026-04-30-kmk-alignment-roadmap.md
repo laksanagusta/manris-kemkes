@@ -308,27 +308,27 @@ CREATE INDEX idx_risks_objective_id ON risks(objective_id);
 
 **Steps:**
 
-- [ ] Add `ObjectiveID *uuid.UUID` to backend risk entity.
-- [ ] Add `objectiveId?: string` to frontend `Risk` type.
-- [ ] Update risk repository insert/select/update.
-- [ ] Update create/update usecases to validate objective belongs to selected organization or accessible child organization.
-- [ ] Add backend test: create risk without objective fails when feature flag `KMK_OBJECTIVE_REQUIRED=true`.
-- [ ] Add backend config flag defaulting to `false` for safe rollout:
+- [x] Add `ObjectiveID *uuid.UUID` to backend risk entity.
+- [x] Add `objectiveId?: string` to frontend `Risk` type.
+- [x] Update risk repository insert/select/update.
+- [x] Update create/update usecases to validate objective belongs to selected organization or accessible child organization.
+- [x] Add backend test: create risk without objective fails when feature flag `KMK_OBJECTIVE_REQUIRED=true`.
+- [x] Add backend config flag defaulting to `false` for safe rollout:
 
 ```env
 KMK_OBJECTIVE_REQUIRED=false
 ```
 
-- [ ] Add objective selector to risk form under Identifikasi section.
-- [ ] Add objective metadata to working paper export headers.
-- [ ] Run:
+- [x] Add objective selector to risk form under Identifikasi section.
+- [x] Add objective metadata to working paper export headers.
+- [x] Run:
 
 ```bash
 cd backend && go test ./internal/usecase/risk/... ./internal/repository/postgres/...
 cd ../frontend && npm run build
 ```
 
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add backend frontend .env.example
@@ -396,7 +396,7 @@ CREATE INDEX idx_likelihood_assessments_risk ON likelihood_assessments(risk_id);
 - [ ] Persist selected level into risk form state.
 - [ ] Add summary to working paper export: method, data source, justification.
 - [ ] Run backend/frontend tests and build.
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add backend frontend
@@ -454,7 +454,7 @@ protected.Get("/impact-criteria", impactCriteriaHandler.List)
 - [ ] Require `impactJustification` for manual override.
 - [ ] Show selected criterion in detail and working paper.
 - [ ] Run tests/build.
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add backend frontend
@@ -502,7 +502,7 @@ ALTER TABLE risks ADD COLUMN residual_acceptance_reason TEXT NOT NULL DEFAULT ''
 - [ ] Add UI warning and blocking validation.
 - [ ] Add residual acceptance reason field shown only when target residual is above appetite.
 - [ ] Run tests/build.
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add backend frontend
@@ -560,7 +560,7 @@ ALTER TABLE risks ADD COLUMN priority_sort_value NUMERIC(12,4) NOT NULL DEFAULT 
 - [ ] Update risk register query default order by `priority_sort_value DESC` then `created_at DESC`.
 - [ ] Add optional field `leaderJudgementRank` visible to pimpinan/reviewer roles.
 - [ ] Run tests/build.
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add backend frontend
@@ -617,7 +617,7 @@ CREATE TABLE risk_cascades (
 - [ ] Build frontend queue page with tabs: mandat masuk, usulan naik, riwayat.
 - [ ] Add org-scope permission checks.
 - [ ] Run tests/build.
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add backend frontend
@@ -674,7 +674,7 @@ ALTER TABLE incidents ADD COLUMN reported_to_parent_at TIMESTAMPTZ;
 - [ ] Add LED dashboard filters: extraordinary, overdue one-day report, linked/unlinked risk.
 - [ ] Add report endpoint `/reports/led`.
 - [ ] Run tests/build.
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add backend frontend
@@ -728,7 +728,7 @@ CREATE TABLE consultation_events (
 - [ ] Add quarterly compliance indicator: each UPR should have at least one `rapat_berkala` per quarter.
 - [ ] Show consultation history in risk detail and charter detail.
 - [ ] Run tests/build.
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add backend frontend
@@ -785,7 +785,7 @@ ALTER TABLE mitigations ADD COLUMN is_existing_control BOOLEAN NOT NULL DEFAULT 
 - [ ] Add validation messages explaining KMK rule.
 - [ ] Include new fields in working paper export.
 - [ ] Run tests/build.
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add backend frontend
@@ -900,7 +900,7 @@ protected.Get("/formal-reports/:id", formalReportHandler.Get)
   - Mitigation task progress
   - TMPMR scores
 - [ ] Run tests/build.
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add backend frontend
