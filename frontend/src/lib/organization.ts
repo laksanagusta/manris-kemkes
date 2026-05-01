@@ -4,6 +4,7 @@ export interface Organization {
   id: string;
   name: string;
   parentId?: string;
+  uprLevel?: string; // "kementerian" | "upr_t1" | "upr_t2"
   createdAt: string;
 }
 
@@ -26,6 +27,7 @@ export interface OrganizationParentOption {
   id: string;
   name: string;
   parentId?: string;
+  uprLevel?: string;
   createdAt: string;
 }
 

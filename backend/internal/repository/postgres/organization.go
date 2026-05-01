@@ -45,8 +45,8 @@ func (r *organizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 	org := &entity.Organization{}
 	var context *string
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, parent_id, context, created_at FROM organizations WHERE id = $1`, id,
-	).Scan(&org.ID, &org.Name, &org.ParentID, &context, &org.CreatedAt)
+		`SELECT id, name, parent_id, context, COALESCE(upr_level, '') as upr_level, created_at FROM organizations WHERE id = $1`, id,
+	).Scan(&org.ID, &org.Name, &org.ParentID, &context, &org.UPRLevel, &org.CreatedAt)
 	if context != nil {
 		org.Context = *context
 	}
@@ -83,7 +83,7 @@ func (r *organizationRepository) Delete(ctx context.Context, id uuid.UUID) error
 
 // List retrieves all organizations
 func (r *organizationRepository) List(ctx context.Context) ([]*entity.Organization, error) {
-	rows, err := r.pool.Query(ctx, `SELECT id, name, parent_id, context, created_at FROM organizations ORDER BY name ASC`)
+	rows, err := r.pool.Query(ctx, `SELECT id, name, parent_id, context, COALESCE(upr_level, '') as upr_level, created_at FROM organizations ORDER BY name ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("list organizations: %w", err)
 	}
@@ -93,7 +93,7 @@ func (r *organizationRepository) List(ctx context.Context) ([]*entity.Organizati
 	for rows.Next() {
 		var org entity.Organization
 		var ctxVal *string
-		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &ctxVal, &org.CreatedAt); err != nil {
+		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &ctxVal, &org.UPRLevel, &org.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan organization: %w", err)
 		}
 		if ctxVal != nil {
@@ -107,7 +107,7 @@ func (r *organizationRepository) List(ctx context.Context) ([]*entity.Organizati
 
 func (r *organizationRepository) ListWithFilter(ctx context.Context, filter repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
 	countQuery := `SELECT COUNT(*) FROM organizations WHERE 1=1`
-	dataQuery := `SELECT id, name, parent_id, context, created_at FROM organizations WHERE 1=1`
+	dataQuery := `SELECT id, name, parent_id, context, COALESCE(upr_level, '') as upr_level, created_at FROM organizations WHERE 1=1`
 
 	var args []interface{}
 	argIdx := 1
@@ -140,7 +140,7 @@ func (r *organizationRepository) ListWithFilter(ctx context.Context, filter repo
 	for rows.Next() {
 		var org entity.Organization
 		var ctxVal *string
-		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &ctxVal, &org.CreatedAt); err != nil {
+		if err := rows.Scan(&org.ID, &org.Name, &org.ParentID, &ctxVal, &org.UPRLevel, &org.CreatedAt); err != nil {
 			return nil, 0, fmt.Errorf("list organizations scan: %w", err)
 		}
 		if ctxVal != nil {

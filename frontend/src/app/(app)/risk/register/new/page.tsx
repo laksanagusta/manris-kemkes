@@ -12,6 +12,7 @@ import { filterToAccessibleOrgs } from "@/lib/organization";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { useAuth } from "@/contexts/auth-context";
 import { ObjectivePicker, type ObjectiveSummary } from "@/components/risk/objective-picker";
+import { ImpactCriteriaTooltip } from "@/components/shared/impact-criteria-tooltip";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -96,6 +97,8 @@ import {
   calculateNilai,
   getRiskPriority,
   resolveRiskScoreSemantics,
+  resolveRiskAppetite,
+  isRiskUtama,
   PROBABILITY_LABELS,
   IMPACT_LABELS,
 } from "@/lib/risk";
@@ -573,7 +576,7 @@ export default function RiskInputPage() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<
-    { id: string; name: string }[]
+    { id: string; name: string; uprLevel?: string }[]
   >([]);
   const [reviewerId, setReviewerId] = useState<string>("");
   const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(
@@ -588,6 +591,7 @@ export default function RiskInputPage() {
   const [assessmentCycleDisplay, setAssessmentCycleDisplay] = useState(
     currentAssessmentCycle(),
   );
+  const [selectedOrganizationUPRLevel, setSelectedOrganizationUPRLevel] = useState<string>("kementerian");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
@@ -663,6 +667,11 @@ export default function RiskInputPage() {
     riskApprovalCapabilityBehavior.usesDirectApprovalCopy
       ? "Finalisasi risiko"
       : "Ajukan review";
+
+  // KMK Risk Appetite Advisory
+  const advisoryInherentScore = probability * impact;
+  const advisoryAppetite = resolveRiskAppetite(advisoryInherentScore);
+  const advisoryIsRiskUtama = isRiskUtama(advisoryInherentScore);;
 
   const handleReviewerSelect = useCallback((option: UserPickerOption) => {
     setReviewerId(option.id);
@@ -987,6 +996,16 @@ export default function RiskInputPage() {
 
   const currentOrganizationId = watch("organizationId");
 
+  // Update UPR level when organization changes
+  useEffect(() => {
+    if (currentOrganizationId && organizations.length > 0) {
+      const org = organizations.find((o) => o.id === currentOrganizationId);
+      if (org?.uprLevel) {
+        setSelectedOrganizationUPRLevel(org.uprLevel);
+      }
+    }
+  }, [currentOrganizationId, organizations]);
+
   useEffect(() => {
     if (!riskId && user?.organizationId && organizations.length > 0) {
       if (!currentOrganizationId || currentOrganizationId === "") {
@@ -1013,7 +1032,7 @@ export default function RiskInputPage() {
             ? res
             : filterToAccessibleOrgs(res, user?.accessibleOrgIds || []);
           setOrganizations(
-            filtered.map((org) => ({ id: org.id, name: org.name })),
+            filtered.map((org) => ({ id: org.id, name: org.name, uprLevel: org.uprLevel })),
           );
         } catch (err) {
           console.error(err);
@@ -1220,14 +1239,8 @@ export default function RiskInputPage() {
       step: "4",
       title: "Rencana Penanganan",
       description:
-        treatmentOption === "mitigate"
-          ? "Tentukan aksi mitigasi yang nyata, siapa PIC-nya, dan kapan eksekusinya."
-          : "Rencana penanganan hanya wajib diisi jika strategi penanganan adalah mitigasi.",
-      done: treatmentOption !== "mitigate" || mitigations.length > 0,
-      hint:
-        treatmentOption === "mitigate"
-          ? "Tambahkan minimal satu rencana penanganan."
-          : "Tidak wajib untuk strategi selain mitigasi.",
+        "Tentukan aksi mitigasi yang nyata, siapa PIC-nya, dan kapan eksekusinya. Opsional — tidak wajib diisi.",
+      done: true, // Always optional — no enforcement based on treatment option
     },
     {
       id: "target",
@@ -2749,9 +2762,19 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="flex h-6 items-center text-sm font-medium">
-                          Dampak (Residual)
-                        </Label>
+                        {category && selectedOrganizationUPRLevel ? (
+                          <ImpactCriteriaTooltip
+                            token={token || ""}
+                            label="Dampak (Residual)"
+                            category={category as import("@/types/impact-criteria").ImpactCriteriaCategory}
+                            uprLevel={selectedOrganizationUPRLevel as import("@/types/impact-criteria").ImpactCriteriaUPRLevel}
+                            className="text-sm font-medium"
+                          />
+                        ) : (
+                          <Label className="flex h-6 items-center text-sm font-medium">
+                            Dampak (Residual)
+                          </Label>
+                        )}
                         <div className="grid grid-cols-5 gap-1.5">
                           {[1, 2, 3, 4, 5].map((val) => (
                             <Tooltip key={val}>
@@ -2797,6 +2820,11 @@ export default function RiskInputPage() {
                           Bobot: {currentPrimarySnapshot.weight.toFixed(2)} |
                           Prioritas: {currentPrimarySnapshot.priority}
                         </p>
+                        {advisoryIsRiskUtama && (
+                          <p className="mt-1.5 text-xs font-medium text-orange-600 dark:text-orange-400">
+                            ⚠️ Risk Utama (Score ≥ 10) — pertimbangkan mitigasi
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-bold">
@@ -2805,6 +2833,19 @@ export default function RiskInputPage() {
                         <p className="text-xs font-mono">
                           {currentScoreLabel}: {currentPrimarySnapshot.score}
                         </p>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "mt-1.5 text-xs font-medium",
+                            advisoryAppetite === "di_atas_batas"
+                              ? "border-orange-400 bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-700"
+                              : "border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-700",
+                          )}
+                        >
+                          {advisoryAppetite === "di_atas_batas"
+                            ? "⚠️ Di Atas Batas"
+                            : "✓ Dalam Batas"}
+                        </Badge>
                       </div>
                     </div>
                   </AccordionContent>
