@@ -17,6 +17,8 @@ type RiskRegisterFilter struct {
 	Query           string
 	Page            int
 	Limit           int
+	SortBy          string // "created_at" or "nilai" (priority sort)
+	SortOrder       string // "asc" or "desc"
 }
 
 // RiskRepository defines the interface for risk data access

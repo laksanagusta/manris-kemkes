@@ -27,6 +27,8 @@ type ListRiskRegisterInput struct {
 	Query           string
 	Page            int
 	Limit           int
+	SortBy          string
+	SortOrder       string
 }
 
 type ListRiskRegisterResult struct {
@@ -60,6 +62,8 @@ func (uc *ListRiskRegisterUseCase) Execute(ctx context.Context, input ListRiskRe
 		Query:           input.Query,
 		Page:            input.Page,
 		Limit:           input.Limit,
+		SortBy:          input.SortBy,
+		SortOrder:       input.SortOrder,
 	})
 	if err != nil {
 		return nil, err

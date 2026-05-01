@@ -1241,6 +1241,7 @@ export default function RiskInputPage() {
       description:
         "Tentukan aksi mitigasi yang nyata, siapa PIC-nya, dan kapan eksekusinya. Opsional — tidak wajib diisi.",
       done: true, // Always optional — no enforcement based on treatment option
+      hint: "Tambahkan aksi mitigasi jika diperlukan.",
     },
     {
       id: "target",
