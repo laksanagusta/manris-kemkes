@@ -83,6 +83,7 @@ type UpdateRiskInput struct {
 	ChangeReason       string                      `json:"changeReason"`
 	ReviewSummary      string                      `json:"reviewSummary"`
 	DraftApprovalLine  []entity.ApprovalLineMember `json:"draftApprovalLine"`
+	ObjectiveID        *uuid.UUID                    `json:"objectiveId"`
 }
 
 type UpdateRiskOutput struct {
@@ -194,6 +195,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	existingRisk.ChangeReason = input.ChangeReason
 	existingRisk.ReviewSummary = input.ReviewSummary
 	existingRisk.DraftApprovalLine = input.DraftApprovalLine
+	existingRisk.ObjectiveID = input.ObjectiveID
 
 	// 7. Validate risk entity
 	if err := existingRisk.Validate(); err != nil {

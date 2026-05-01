@@ -68,6 +68,7 @@ type CreateRiskInput struct {
 	ChangeReason       string                      `json:"changeReason"`
 	ReviewSummary      string                      `json:"reviewSummary"`
 	DraftApprovalLine  []entity.ApprovalLineMember `json:"draftApprovalLine"`
+	ObjectiveID        *uuid.UUID                    `json:"objectiveId"`
 }
 
 type CreateRiskOutput struct {
@@ -168,6 +169,7 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		ChangeReason:       input.ChangeReason,
 		ReviewSummary:      input.ReviewSummary,
 		DraftApprovalLine:  input.DraftApprovalLine,
+		ObjectiveID:        input.ObjectiveID,
 	}
 
 	// 7. Validate risk entity
