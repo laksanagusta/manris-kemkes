@@ -50,8 +50,12 @@ func TestHandleMonitorAndApproveRisk_Success(t *testing.T) {
 		t.Fatalf("Output is nil")
 	}
 
-	if output["status"] != "approved" {
-		t.Errorf("expected status 'approved', got %v", output["status"])
+	if output["id"] != riskID.String() {
+		t.Errorf("expected id %q, got %v", riskID.String(), output["id"])
+	}
+
+	if output["cycle"] != "2026-H1" {
+		t.Errorf("expected cycle '2026-H1', got %v", output["cycle"])
 	}
 }
 

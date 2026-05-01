@@ -1299,7 +1299,7 @@ git commit -m "feat: add objective picker to risk registration"
 - Modify: `docs/superpowers/plans/2026-04-30-kmk-alignment-roadmap.md`
 - Optionally create: `docs/kmk-batch-a-rollout.md`
 
-- [ ] **Step 1: Run full backend verification**
+- [x] **Step 1: Run full backend verification**
 
 Run:
 
@@ -1310,7 +1310,7 @@ go test ./...
 
 Expected: PASS.
 
-- [ ] **Step 2: Run frontend build verification**
+- [x] **Step 2: Run frontend build verification**
 
 Run:
 
@@ -1321,7 +1321,7 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 3: Execute manual smoke test**
+- [x] **Step 3: Execute manual smoke test**
 
 Manual flow:
 1. Login as `superadmin`.
@@ -1338,7 +1338,7 @@ Expected:
 - pages load in sidebar/breadcrumb,
 - export completes.
 
-- [ ] **Step 4: Document rollout defaults**
+- [x] **Step 4: Document rollout defaults**
 
 Create note:
 
@@ -1349,7 +1349,7 @@ Create note:
 - New risks can start optional linkage during transition period.
 ```
 
-- [ ] **Step 5: Final commit**
+- [x] **Step 5: Final commit**
 
 ```bash
 git add docs
