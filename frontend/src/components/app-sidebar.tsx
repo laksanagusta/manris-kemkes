@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   BookOpen,
   FileBarChart,
+  ClipboardList,
   AlertTriangle,
   FileText,
   Users,
@@ -31,7 +32,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 
 interface NavItem {
@@ -45,7 +46,7 @@ interface NavItem {
 interface NavGroup {
   title: string;
   icon?: React.ElementType;
-  items: NavItem[];
+  items?: NavItem[];
   collapsible?: boolean;
 }
 
@@ -56,6 +57,7 @@ const iconMap: Record<string, React.ElementType> = {
   ClipboardCheck,
   BookOpen,
   FileBarChart,
+  ClipboardList,
   AlertTriangle,
   FileSignature,
   ClipboardPenLine,
@@ -66,14 +68,48 @@ const iconMap: Record<string, React.ElementType> = {
   Settings2,
 };
 
+const reportsNavigation: NavGroup = {
+  title: "LAPORAN",
+  icon: FileBarChart,
+  items: [
+    {
+      label: "Analisis Risiko",
+      href: "/reports",
+      icon: ShieldAlert,
+    },
+    {
+      label: "Laporan Formal",
+      href: "/reports/formal",
+      icon: FileText,
+    },
+    {
+      label: "Monitoring Kepatuhan",
+      href: "/reports/compliance-monitoring",
+      icon: ClipboardCheck,
+    },
+    {
+      label: "Detail Siklus Risiko",
+      href: "/reports/cycle-detail",
+      icon: GitBranch,
+    },
+  ],
+};
+
 const navigation: NavGroup[] = [
-  ...mainMenuItems.map((group) => ({
-    ...group,
-    items: group.items.map((item) => ({
-      ...item,
-      icon: iconMap[item.icon] ?? LayoutDashboard,
-    })),
-  })),
+  ...mainMenuItems.map((group) => {
+    const items = group.items
+      .filter((item) => item.href !== "/reports")
+      .map((item) => ({
+        ...item,
+        icon: iconMap[item.icon] ?? LayoutDashboard,
+      }));
+
+    return {
+      ...group,
+      items,
+    };
+  }),
+  reportsNavigation,
   {
     title: "AI & Automation",
     icon: Bot,
@@ -106,9 +142,9 @@ const navigation: NavGroup[] = [
   },
 ];
 
-const allNavHrefs = navigation.flatMap((group) =>
-  group.items.flatMap((item) => item.matchHrefs ?? [item.href]),
-);
+const allNavHrefs = navigation.flatMap((group) => [
+  ...(group.items ?? []).flatMap((item) => item.matchHrefs ?? [item.href]),
+]);
 
 const utilityLinks: NavItem[] = [
   {
@@ -122,16 +158,39 @@ function matchesPath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function isNavItemActive(pathname: string, item: NavItem) {
+function splitHref(href: string) {
+  const [path, fragment = ""] = href.split("#");
+  return { path, fragment };
+}
+
+function matchesLocation(pathname: string, hash: string, href: string) {
+  const { path, fragment } = splitHref(href);
+  if (!matchesPath(pathname, path)) {
+    return false;
+  }
+
+  if (!fragment) {
+    return true;
+  }
+
+  return hash === `#${fragment}` || hash === fragment;
+}
+
+function isNavItemActive(pathname: string, hash: string, item: NavItem) {
   const candidateHrefs = item.matchHrefs ?? [item.href];
   const matchedHref = candidateHrefs.find((href) =>
-    matchesPath(pathname, href),
+    matchesLocation(pathname, hash, href),
   );
   if (!matchedHref) return false;
+
+  if (matchedHref.includes("#")) {
+    return true;
+  }
 
   const hasMoreSpecificMatch = allNavHrefs.some(
     (candidate) =>
       candidate !== matchedHref &&
+      !candidate.includes("#") &&
       candidate.startsWith(`${matchedHref}/`) &&
       matchesPath(pathname, candidate),
   );
@@ -142,14 +201,16 @@ function isNavItemActive(pathname: string, item: NavItem) {
 function NavLink({
   item,
   collapsed,
+  currentHash,
   badgeOverride,
 }: {
   item: NavItem;
   collapsed: boolean;
+  currentHash: string;
   badgeOverride?: number;
 }) {
   const pathname = usePathname();
-  const isActive = isNavItemActive(pathname, item);
+  const isActive = isNavItemActive(pathname, currentHash, item);
   const displayBadge =
     badgeOverride !== undefined
       ? badgeOverride
@@ -202,6 +263,27 @@ function NavLink({
   return content;
 }
 
+function useLocationHash() {
+  const [hash, setHash] = useState("");
+
+  useEffect(() => {
+    const updateHash = () => {
+      setHash(window.location.hash);
+    };
+
+    updateHash();
+    window.addEventListener("hashchange", updateHash);
+    window.addEventListener("popstate", updateHash);
+
+    return () => {
+      window.removeEventListener("hashchange", updateHash);
+      window.removeEventListener("popstate", updateHash);
+    };
+  }, []);
+
+  return hash;
+}
+
 export function AppSidebar({
   collapsed = false,
   inboxBadge = 0,
@@ -210,9 +292,11 @@ export function AppSidebar({
   inboxBadge?: number;
 }) {
   const { user } = useAuth();
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+  const pathname = usePathname();
+  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(
     new Set(),
   );
+  const currentHash = useLocationHash();
   const visibleNavigation = useMemo(
     () =>
       user?.role === "superadmin"
@@ -232,13 +316,13 @@ export function AppSidebar({
       .join("");
   };
 
-  const toggleGroup = (title: string) => {
-    setCollapsedGroups((prev) => {
+  const toggleNode = (key: string) => {
+    setCollapsedNodes((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(title)) {
-        newSet.delete(title);
+      if (newSet.has(key)) {
+        newSet.delete(key);
       } else {
-        newSet.add(title);
+        newSet.add(key);
       }
       return newSet;
     });
@@ -255,40 +339,97 @@ export function AppSidebar({
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-6">
           {visibleNavigation.map((group) => {
-            const isGroupCollapsed = collapsedGroups.has(group.title);
+            const groupKey = `group:${group.title}`;
+            const isGroupCollapsed = collapsedNodes.has(groupKey);
+            const isReportGroup = group.title === reportsNavigation.title;
             return (
               <div key={group.title}>
-                {!collapsed && (
-                  <button
-                    onClick={() => toggleGroup(group.title)}
-                    className="mb-2 flex w-full items-center justify-between px-3 text-[10px] font-semibold tracking-widest text-sidebar-foreground/40 uppercase hover:text-sidebar-foreground/60 transition-colors"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      {group.icon && <group.icon className="size-3" />}
-                      {group.title}
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        "size-3 transition-transform duration-200",
-                        isGroupCollapsed && "-rotate-90",
+                {isReportGroup ? (
+                  collapsed ? (
+                    <>
+                      <Separator className="mb-2 bg-sidebar-border" />
+                      <div className="space-y-0.5">
+                        {group.items?.map((item) => (
+                          <NavLink
+                            key={item.href}
+                            item={item}
+                            collapsed={collapsed}
+                            currentHash={currentHash}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => toggleNode(groupKey)}
+                        className="mb-2 flex w-full items-center justify-between rounded-md px-3 py-1 text-[10px] font-semibold tracking-widest uppercase text-sidebar-foreground/40 transition-colors hover:text-sidebar-foreground/60"
+                        aria-expanded={!isGroupCollapsed}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          {group.icon && <group.icon className="size-3" />}
+                          {group.title}
+                        </span>
+                        <ChevronDown
+                          className={cn(
+                            "size-3 transition-transform duration-200",
+                            isGroupCollapsed && "-rotate-90",
+                          )}
+                        />
+                      </button>
+                      {!isGroupCollapsed && (
+                        <div className="space-y-0.5">
+                          {group.items?.map((item) => (
+                            <NavLink
+                              key={item.href}
+                              item={item}
+                              collapsed={collapsed}
+                              currentHash={currentHash}
+                            />
+                          ))}
+                        </div>
                       )}
-                    />
-                  </button>
-                )}
-                {collapsed && <Separator className="mb-2 bg-sidebar-border" />}
-                {!isGroupCollapsed && (
-                  <div className="space-y-0.5">
-                    {group.items.map((item) => (
-                      <NavLink
-                        key={item.href}
-                        item={item}
-                        collapsed={collapsed}
-                        badgeOverride={
-                          item.href === "/inbox" ? inboxBadge : undefined
-                        }
-                      />
-                    ))}
-                  </div>
+                    </>
+                  )
+                ) : (
+                  <>
+                    {!collapsed && (
+                      <button
+                        type="button"
+                        onClick={() => toggleNode(groupKey)}
+                        className="mb-2 flex w-full items-center justify-between px-3 text-[10px] font-semibold tracking-widest text-sidebar-foreground/40 uppercase transition-colors hover:text-sidebar-foreground/60"
+                        aria-expanded={!isGroupCollapsed}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          {group.icon && <group.icon className="size-3" />}
+                          {group.title}
+                        </span>
+                        <ChevronDown
+                          className={cn(
+                            "size-3 transition-transform duration-200",
+                            isGroupCollapsed && "-rotate-90",
+                          )}
+                        />
+                      </button>
+                    )}
+                    {collapsed && <Separator className="mb-2 bg-sidebar-border" />}
+                    {!isGroupCollapsed && (
+                      <div className="space-y-0.5">
+                        {group.items?.map((item) => (
+                          <NavLink
+                            key={item.href}
+                            item={item}
+                            collapsed={collapsed}
+                            currentHash={currentHash}
+                            badgeOverride={
+                              item.href === "/inbox" ? inboxBadge : undefined
+                            }
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             );
@@ -306,7 +447,12 @@ export function AppSidebar({
           )}
           <div className="space-y-0.5">
             {utilityLinks.map((item) => (
-              <NavLink key={item.href} item={item} collapsed={collapsed} />
+              <NavLink
+                key={item.href}
+                item={item}
+                collapsed={collapsed}
+                currentHash={currentHash}
+              />
             ))}
           </div>
         </div>

@@ -44,6 +44,7 @@ func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateRepo
 		return nil, errors.Wrap(err, "failed to load cycle risks")
 	}
 
+	risks = compactRisks(risks)
 	if len(risks) == 0 {
 		return nil, errors.Wrap(errors.ErrNotFound, "no risks found for cycle "+input.Cycle+" with status approved")
 	}
@@ -59,6 +60,12 @@ func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateRepo
 	sortedRisks := make([]*entity.Risk, len(risks))
 	copy(sortedRisks, risks)
 	sort.Slice(sortedRisks, func(i, j int) bool {
+		if sortedRisks[i] == nil {
+			return false
+		}
+		if sortedRisks[j] == nil {
+			return true
+		}
 		return sortedRisks[i].GetEffectiveScore() > sortedRisks[j].GetEffectiveScore()
 	})
 
@@ -93,6 +100,92 @@ func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateRepo
 	}, nil
 }
 
+// BuildKMKFormalReportData assembles the data bundle required to render a formal KMK report.
+func BuildKMKFormalReportData(
+	report *entity.FormalReport,
+	org *entity.Organization,
+	summary entity.ReportSummary,
+	tmpmr *entity.TMPMRAssessment,
+	sections []entity.KMKReportSectionStatus,
+) *entity.KMKFormalReportData {
+	generatedAt := summary.GeneratedAt
+	if generatedAt.IsZero() {
+		generatedAt = time.Now()
+	}
+
+	return &entity.KMKFormalReportData{
+		Report:        report,
+		GeneratedAt:   generatedAt,
+		Organization:  org,
+		Period:        summary.Cycle,
+		RiskSummary:   summary,
+		TMPMR:         tmpmr,
+		SectionStatus: sections,
+	}
+}
+
+func BuildAnnualRiskProfileData(
+	report *entity.FormalReport,
+	org *entity.Organization,
+	summary entity.ReportSummary,
+	risks []*entity.Risk,
+	topRisks []*entity.Risk,
+	heatmap [5][5]int,
+	previousCycle string,
+) *entity.AnnualRiskProfileData {
+	return &entity.AnnualRiskProfileData{
+		Report:        report,
+		Organization:  org,
+		Summary:       summary,
+		Risks:         risks,
+		TopRisks:      topRisks,
+		Heatmap:       heatmap,
+		PreviousCycle: previousCycle,
+	}
+}
+
+func BuildSemiannualImplementationData(
+	report *entity.FormalReport,
+	org *entity.Organization,
+	summary entity.ReportSummary,
+	sections []entity.KMKReportSectionStatus,
+) *entity.SemiannualImplementationData {
+	return &entity.SemiannualImplementationData{
+		Report:        report,
+		Organization:  org,
+		Summary:       summary,
+		SectionStatus: sections,
+	}
+}
+
+func BuildSemiannualSupervisionData(
+	report *entity.FormalReport,
+	org *entity.Organization,
+	summary entity.ReportSummary,
+	sections []entity.KMKReportSectionStatus,
+) *entity.SemiannualSupervisionData {
+	return &entity.SemiannualSupervisionData{
+		Report:        report,
+		Organization:  org,
+		Summary:       summary,
+		SectionStatus: sections,
+	}
+}
+
+func BuildTMPMRReportData(
+	report *entity.FormalReport,
+	org *entity.Organization,
+	summary entity.ReportSummary,
+	tmpmr *entity.TMPMRAssessment,
+) *entity.TMPMRReportData {
+	return &entity.TMPMRReportData{
+		Report:       report,
+		Organization: org,
+		Summary:      summary,
+		TMPMR:        tmpmr,
+	}
+}
+
 func (uc *GenerateReportUseCase) computeSummary(risks []*entity.Risk, cycle string) entity.ReportSummary {
 	var totalScore float64
 	highExtreme := 0
@@ -101,6 +194,9 @@ func (uc *GenerateReportUseCase) computeSummary(risks []*entity.Risk, cycle stri
 	now := time.Now()
 
 	for _, r := range risks {
+		if r == nil {
+			continue
+		}
 		score := r.GetEffectiveScore()
 		totalScore += float64(score)
 
@@ -141,6 +237,9 @@ func (uc *GenerateReportUseCase) computeSummary(risks []*entity.Risk, cycle stri
 func (uc *GenerateReportUseCase) buildHeatmap(risks []*entity.Risk) [5][5]int {
 	var heatmap [5][5]int
 	for _, r := range risks {
+		if r == nil {
+			continue
+		}
 		p := r.EffectiveProbability() - 1
 		i := r.EffectiveImpact() - 1
 		if p >= 0 && p < 5 && i >= 0 && i < 5 {
@@ -158,6 +257,9 @@ func (uc *GenerateReportUseCase) filterIncidentsByRiskIDs(ctx context.Context, r
 
 	var filtered []*entity.Incident
 	for _, inc := range allIncidents {
+		if inc == nil {
+			continue
+		}
 		if inc.LinkedRiskID != nil {
 			if _, ok := riskIDs[*inc.LinkedRiskID]; ok {
 				filtered = append(filtered, inc)
@@ -182,6 +284,9 @@ func (uc *GenerateReportUseCase) filterKRIsByRiskIDs(ctx context.Context, riskID
 
 	var filtered []*entity.KRI
 	for _, kri := range allKRIs {
+		if kri == nil {
+			continue
+		}
 		if _, ok := riskIDs[kri.RiskID]; ok {
 			filtered = append(filtered, kri)
 		}
@@ -197,6 +302,9 @@ func (uc *GenerateReportUseCase) computeTrendData(ctx context.Context, orgIDs []
 
 	cycleMap := make(map[string][]*entity.Risk)
 	for _, r := range allRisks {
+		if r == nil {
+			continue
+		}
 		if r.AssessmentCycle == "" {
 			continue
 		}
@@ -237,6 +345,20 @@ func (uc *GenerateReportUseCase) computeTrendData(ctx context.Context, orgIDs []
 	}
 
 	return trend, nil
+}
+
+func compactRisks(risks []*entity.Risk) []*entity.Risk {
+	if len(risks) == 0 {
+		return risks
+	}
+
+	compact := make([]*entity.Risk, 0, len(risks))
+	for _, risk := range risks {
+		if risk != nil {
+			compact = append(compact, risk)
+		}
+	}
+	return compact
 }
 
 var _ interface {

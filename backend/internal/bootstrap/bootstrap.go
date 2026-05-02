@@ -22,6 +22,7 @@ import (
 	controluc "github.com/manris/backend/internal/usecase/control"
 	externalextPICuc "github.com/manris/backend/internal/usecase/external_pic"
 	formusecase "github.com/manris/backend/internal/usecase/form"
+	formalreportuc "github.com/manris/backend/internal/usecase/formalreport"
 	impactcriteriauc "github.com/manris/backend/internal/usecase/impactcriteria"
 	incidentuc "github.com/manris/backend/internal/usecase/incident"
 	kriuc "github.com/manris/backend/internal/usecase/kri"
@@ -37,6 +38,7 @@ import (
 	riskobjectiveuc "github.com/manris/backend/internal/usecase/riskobjective"
 	systemuc "github.com/manris/backend/internal/usecase/system"
 	systemsettinguc "github.com/manris/backend/internal/usecase/system_setting"
+	tmpmruc "github.com/manris/backend/internal/usecase/tmpmr"
 	useruc "github.com/manris/backend/internal/usecase/user"
 	workingpaperusecase "github.com/manris/backend/internal/usecase/workingpaper"
 )
@@ -69,6 +71,8 @@ type Container struct {
 	WPRepository                   domainrepo.WorkingPaperRepository
 	RiskCharterRepository          domainrepo.RiskCharterRepository
 	RiskObjectiveRepository        domainrepo.RiskObjectiveRepository
+	TMPMRRepository                domainrepo.TMPMRRepository
+	FormalReportRepository         domainrepo.FormalReportRepository
 	LikelihoodAssessmentRepository domainrepo.LikelihoodAssessmentRepository
 	ImpactCriteriaRepository       domainrepo.ImpactCriteriaRepository
 
@@ -204,12 +208,27 @@ type Container struct {
 	RiskCharterUpdateUC *riskcharteruc.UpdateRiskCharterUseCase
 	RiskCharterListUC   *riskcharteruc.ListRiskChartersUseCase
 
+	// TMPMR UseCases
+	TMPMRCreateUC  *tmpmruc.CreateUseCase
+	TMPMRGetUC     *tmpmruc.GetUseCase
+	TMPMRListUC    *tmpmruc.ListUseCase
+	TMPMRUpdateUC  *tmpmruc.UpdateUseCase
+	TMPMRSubmitUC  *tmpmruc.SubmitUseCase
+	TMPMRReviewUC  *tmpmruc.ReviewUseCase
+	TMPMRApproveUC *tmpmruc.ApproveUseCase
+
 	// Risk Objective UseCases
 	RiskObjectiveCreateUC *riskobjectiveuc.CreateRiskObjectiveUseCase
 	RiskObjectiveGetUC    *riskobjectiveuc.GetRiskObjectiveUseCase
 	RiskObjectiveUpdateUC *riskobjectiveuc.UpdateRiskObjectiveUseCase
 	RiskObjectiveDeleteUC *riskobjectiveuc.DeleteRiskObjectiveUseCase
 	RiskObjectiveListUC   *riskobjectiveuc.ListRiskObjectivesUseCase
+
+	// Formal Report UseCases
+	FormalReportGenerateUC *formalreportuc.GenerateFormalReportUseCase
+	FormalReportGetUC      *formalreportuc.GetUseCase
+	FormalReportListUC     *formalreportuc.ListUseCase
+	FormalReportDownloadUC *formalreportuc.DownloadUseCase
 
 	// Likelihood Assessment UseCases
 	LikelihoodAssessmentUpsertUC *likelihoodassessmentuc.UpsertUseCase
@@ -269,8 +288,9 @@ type Container struct {
 	WPUseCase *workingpaperusecase.UseCase
 
 	// Report UseCases
-	GenerateReportUC  *reportuc.GenerateReportUseCase
-	PDFReportRenderer domainsvc.ReportPDFRenderer
+	GenerateReportUC        *reportuc.GenerateReportUseCase
+	PDFReportRenderer       domainsvc.ReportPDFRenderer
+	FormalReportPDFRenderer domainsvc.FormalReportPDFRenderer
 }
 
 // Build initializes and wires all application dependencies.
@@ -311,6 +331,8 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.WPRepository = postgresrepo.NewWorkingPaperRepository(pool)
 	c.RiskCharterRepository = postgresrepo.NewRiskCharterRepository(pool)
 	c.RiskObjectiveRepository = postgresrepo.NewRiskObjectiveRepository(pool)
+	c.TMPMRRepository = postgresrepo.NewTMPMRRepository(pool)
+	c.FormalReportRepository = postgresrepo.NewFormalReportRepository(pool)
 	c.LikelihoodAssessmentRepository = postgresrepo.NewLikelihoodAssessmentRepository(pool)
 	c.ImpactCriteriaRepository = postgresrepo.NewImpactCriteriaRepository(pool)
 
@@ -319,6 +341,9 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.OrgHierarchySvc = domainsvc.NewOrganizationHierarchy(c.OrgRepository)
+	renderer := reportpdf.NewPDFReportRenderer()
+	c.PDFReportRenderer = renderer
+	c.FormalReportPDFRenderer = renderer.(domainsvc.FormalReportPDFRenderer)
 
 	// ============================================================================
 	// System Settings Services with Shared Cache
@@ -487,6 +512,31 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskCharterUpdateUC = riskcharteruc.NewUpdateRiskCharterUseCase(c.RiskCharterRepository)
 	c.RiskCharterListUC = riskcharteruc.NewListRiskChartersUseCase(c.RiskCharterRepository)
 
+	c.TMPMRCreateUC = tmpmruc.NewCreateUseCase(c.TMPMRRepository)
+	c.TMPMRGetUC = tmpmruc.NewGetUseCase(c.TMPMRRepository)
+	c.TMPMRListUC = tmpmruc.NewListUseCase(c.TMPMRRepository)
+	c.TMPMRUpdateUC = tmpmruc.NewUpdateUseCase(c.TMPMRRepository)
+	c.TMPMRSubmitUC = tmpmruc.NewSubmitUseCase(c.TMPMRRepository)
+	c.TMPMRReviewUC = tmpmruc.NewReviewUseCase(c.TMPMRRepository)
+	c.TMPMRApproveUC = tmpmruc.NewApproveUseCase(c.TMPMRRepository)
+
+	c.FormalReportGenerateUC = formalreportuc.NewGenerateFormalReportUseCase(
+		c.FormalReportRepository,
+		c.RiskRepository,
+		c.IncidentRepository,
+		c.KRIRepository,
+		c.TMPMRRepository,
+	)
+	c.FormalReportGetUC = formalreportuc.NewGetUseCase(c.FormalReportRepository)
+	c.FormalReportListUC = formalreportuc.NewListUseCase(c.FormalReportRepository)
+	c.FormalReportDownloadUC = formalreportuc.NewDownloadUseCase(
+		c.FormalReportRepository,
+		c.OrgRepository,
+		c.RiskRepository,
+		c.TMPMRRepository,
+		c.FormalReportPDFRenderer,
+	)
+
 	// Risk Objective UseCases
 	c.RiskObjectiveCreateUC = riskobjectiveuc.NewCreateRiskObjectiveUseCase(c.RiskObjectiveRepository)
 	c.RiskObjectiveGetUC = riskobjectiveuc.NewGetRiskObjectiveUseCase(c.RiskObjectiveRepository)
@@ -576,7 +626,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.GenerateReportUC = reportuc.NewGenerateReportUseCase(c.RiskRepository, c.IncidentRepository, c.KRIRepository)
-	c.PDFReportRenderer = reportpdf.NewPDFReportRenderer()
 
 	return c, nil
 }

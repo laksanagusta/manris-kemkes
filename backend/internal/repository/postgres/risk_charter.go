@@ -28,7 +28,7 @@ func (r *riskCharterRepository) Create(ctx context.Context, charter *entity.Risk
 		) VALUES (
 			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
 		)
-		RETURNING id, created_at, updated_at
+		RETURNING id, status, created_at, updated_at
 	`
 
 	if err := r.pool.QueryRow(ctx, query,
@@ -46,7 +46,7 @@ func (r *riskCharterRepository) Create(ctx context.Context, charter *entity.Risk
 		charter.CreatedBy,
 		charter.ApprovedBy,
 		charter.ApprovedAt,
-	).Scan(&charter.ID, &charter.CreatedAt, &charter.UpdatedAt); err != nil {
+	).Scan(&charter.ID, &charter.Status, &charter.CreatedAt, &charter.UpdatedAt); err != nil {
 		return fmt.Errorf("create risk charter: %w", err)
 	}
 
@@ -57,7 +57,7 @@ func (r *riskCharterRepository) GetByID(ctx context.Context, id uuid.UUID) (*ent
 	query := `
 		SELECT id, organization_id, upr_level, period, risk_owner_name, risk_owner_user_id,
 			risk_team_name, scope, legal_basis, internal_context, external_context,
-			stakeholder_summary, created_by, approved_by,
+			stakeholder_summary, status, created_by, approved_by,
 			approved_at, created_at, updated_at
 		FROM risk_charters
 		WHERE id = $1
@@ -77,6 +77,7 @@ func (r *riskCharterRepository) GetByID(ctx context.Context, id uuid.UUID) (*ent
 		&charter.InternalContext,
 		&charter.ExternalContext,
 		&charter.StakeholderSummary,
+		&charter.Status,
 		&charter.CreatedBy,
 		&charter.ApprovedBy,
 		&charter.ApprovedAt,
@@ -103,11 +104,12 @@ func (r *riskCharterRepository) Update(ctx context.Context, charter *entity.Risk
 			internal_context = $10,
 			external_context = $11,
 			stakeholder_summary = $12,
-			approved_by = $13,
-			approved_at = $14,
+			status = COALESCE(NULLIF($13, ''), status),
+			approved_by = $14,
+			approved_at = $15,
 			updated_at = now()
 		WHERE id = $1
-		RETURNING updated_at
+		RETURNING status, updated_at
 	`
 
 	if err := r.pool.QueryRow(ctx, query,
@@ -123,9 +125,10 @@ func (r *riskCharterRepository) Update(ctx context.Context, charter *entity.Risk
 		charter.InternalContext,
 		charter.ExternalContext,
 		charter.StakeholderSummary,
+		charter.Status,
 		charter.ApprovedBy,
 		charter.ApprovedAt,
-	).Scan(&charter.UpdatedAt); err != nil {
+	).Scan(&charter.Status, &charter.UpdatedAt); err != nil {
 		return fmt.Errorf("update risk charter: %w", err)
 	}
 
@@ -137,7 +140,7 @@ func (r *riskCharterRepository) List(ctx context.Context, filter repository.Risk
 	dataQuery := `
 		SELECT id, organization_id, upr_level, period, risk_owner_name, risk_owner_user_id,
 			risk_team_name, scope, legal_basis, internal_context, external_context,
-			stakeholder_summary, created_by, approved_by,
+			stakeholder_summary, status, created_by, approved_by,
 			approved_at, created_at, updated_at
 		FROM risk_charters
 		WHERE 1=1
@@ -203,6 +206,7 @@ func (r *riskCharterRepository) List(ctx context.Context, filter repository.Risk
 			&charter.InternalContext,
 			&charter.ExternalContext,
 			&charter.StakeholderSummary,
+			&charter.Status,
 			&charter.CreatedBy,
 			&charter.ApprovedBy,
 			&charter.ApprovedAt,

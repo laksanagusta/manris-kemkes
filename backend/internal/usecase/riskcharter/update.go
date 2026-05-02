@@ -31,6 +31,7 @@ type UpdateRiskCharterInput struct {
 	InternalContext    string     `json:"internalContext"`
 	ExternalContext    string     `json:"externalContext"`
 	StakeholderSummary string     `json:"stakeholderSummary"`
+	Status             string     `json:"status"`
 }
 
 func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRiskCharterInput) (*entity.RiskCharter, error) {
@@ -51,6 +52,9 @@ func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRis
 	updated.InternalContext = strings.TrimSpace(input.InternalContext)
 	updated.ExternalContext = strings.TrimSpace(input.ExternalContext)
 	updated.StakeholderSummary = strings.TrimSpace(input.StakeholderSummary)
+	if strings.TrimSpace(input.Status) != "" {
+		updated.Status = strings.TrimSpace(input.Status)
+	}
 
 	if err := updated.Validate(); err != nil {
 		return nil, errors.Wrap(errors.ErrInvalidInput, err.Error())

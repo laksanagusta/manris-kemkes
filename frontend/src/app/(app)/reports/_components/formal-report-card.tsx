@@ -45,29 +45,37 @@ export function FormalReportCard({
   const subtitle = summary?.headline || "";
 
   return (
-    <Card className="border-border/50 bg-card/80 transition-colors hover:border-primary/25">
-      <CardHeader className="pb-3">
+    <Card className="group flex h-full flex-col border-border/50 bg-card/90 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-lg hover:shadow-primary/5">
+      <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <CardTitle className="text-sm font-semibold leading-5">
+          <div className="space-y-1.5">
+            <CardTitle className="text-[15px] font-semibold leading-5 text-balance">
               {title}
             </CardTitle>
-            <p className="text-xs leading-5 text-muted-foreground">
+            <p className="text-sm leading-6 text-muted-foreground">
               {subtitle || description}
             </p>
           </div>
-          <Badge variant="outline" className="gap-1.5 border-primary/20 bg-primary/[0.06] text-[10px] text-primary">
+          <Badge
+            variant="outline"
+            className="gap-1.5 border-primary/20 bg-primary/[0.06] text-[10px] text-primary"
+          >
             <FileText className="size-3.5" />
             PDF
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="rounded-xl border border-border/50 bg-muted/20 px-3 py-2">
+      <CardContent className="space-y-4">
+        <div className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Latest generated
           </p>
-          <p className={cn("mt-1 text-sm font-medium", latestAt ? "text-foreground" : "text-muted-foreground")}>
+          <p
+            className={cn(
+              "mt-1 text-sm font-medium",
+              latestAt ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
             {latestAt ? formatDateTime(latestAt) : "Belum pernah dibuat"}
           </p>
         </div>
@@ -80,13 +88,13 @@ export function FormalReportCard({
           </div>
         ) : null}
       </CardContent>
-      <CardFooter className="justify-between gap-2">
+      <CardFooter className="mt-auto justify-between gap-2 border-t border-border/50 bg-muted/30">
         <p className="text-xs text-muted-foreground">
-          {reportType}
+          {reportType.replaceAll("_", " ")}
         </p>
         <Button
           size="sm"
-          className="gap-2"
+          className="gap-2 shadow-sm"
           onClick={() => onGenerate(reportType)}
           disabled={disabled || isGenerating}
         >

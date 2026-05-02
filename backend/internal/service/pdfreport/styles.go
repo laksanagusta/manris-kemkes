@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	// Page dimensions (landscape A4).
-	PageWidth  = 297.6
-	PageHeight = 210.0
+	// Page dimensions (portrait A4).
+	PageWidth  = 210.0
+	PageHeight = 297.0
 	Margin     = 15.0
 
 	// Grid system.
@@ -18,9 +18,9 @@ const (
 	FontSizeH1    = 16.0
 	FontSizeH2    = 13.0
 	FontSizeH3    = 11.0
-	FontSizeBody  = 9.0
-	FontSizeSmall = 8.0
-	FontSizeLabel = 7.0
+	FontSizeBody  = 11.0
+	FontSizeSmall = 11.0
+	FontSizeLabel = 11.0
 
 	// Layout.
 	RowHeight      = 12.0

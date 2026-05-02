@@ -21,7 +21,7 @@ func NewUpdateRiskObjectiveUseCase(repo repository.RiskObjectiveRepository) *Upd
 type UpdateRiskObjectiveInput struct {
 	ID                    uuid.UUID  `json:"-"`
 	OrganizationID        uuid.UUID  `json:"organizationId"`
-	CharterID            *uuid.UUID `json:"charterId"`
+	CharterID             *uuid.UUID `json:"charterId"`
 	Period                string     `json:"period"`
 	Tujuan                string     `json:"tujuan"`
 	Sasaran               string     `json:"sasaran"`
@@ -30,6 +30,7 @@ type UpdateRiskObjectiveInput struct {
 	Program               string     `json:"program"`
 	Kegiatan              string     `json:"kegiatan"`
 	ProcessBusiness       string     `json:"processBusiness"`
+	Status                string     `json:"status"`
 }
 
 func (uc *UpdateRiskObjectiveUseCase) Execute(ctx context.Context, input UpdateRiskObjectiveInput) (*entity.RiskObjective, error) {
@@ -49,6 +50,9 @@ func (uc *UpdateRiskObjectiveUseCase) Execute(ctx context.Context, input UpdateR
 	updated.Program = strings.TrimSpace(input.Program)
 	updated.Kegiatan = strings.TrimSpace(input.Kegiatan)
 	updated.ProcessBusiness = strings.TrimSpace(input.ProcessBusiness)
+	if strings.TrimSpace(input.Status) != "" {
+		updated.Status = strings.TrimSpace(input.Status)
+	}
 
 	if err := updated.Validate(); err != nil {
 		return nil, errors.Wrap(errors.ErrInvalidInput, err.Error())

@@ -41,7 +41,7 @@ func (r *pdfReportRenderer) Render(ctx context.Context, data *entity.ReportData)
 		WithTopMargin(Margin).
 		WithBottomMargin(Margin + 8).
 		WithDefaultFont(&props.Font{
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 			Size:   FontSizeBody,
 			Style:  fontstyle.Normal,
 			Color:  BlackColor,
@@ -71,15 +71,25 @@ func (r *pdfReportRenderer) RenderFormal(ctx context.Context, data *entity.KMKFo
 		return nil, fmt.Errorf("formal report data is required")
 	}
 
+	pageNumber := props.PageNumber{
+		Pattern: "Halaman {current} dari {total}",
+		Place:   props.Bottom,
+		Family:  fontfamily.Arial,
+		Style:   fontstyle.Normal,
+		Size:    FontSizeLabel,
+		Color:   MutedText,
+	}
+
 	cfg := config.NewBuilder().
-		WithPageSize(pagesize.A4).
-		WithOrientation(orientation.Horizontal).
+		WithDimensions(PageWidth, PageHeight).
+		WithOrientation(orientation.Vertical).
 		WithLeftMargin(Margin).
 		WithRightMargin(Margin).
 		WithTopMargin(Margin).
 		WithBottomMargin(Margin + 8).
+		WithPageNumber(pageNumber).
 		WithDefaultFont(&props.Font{
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 			Size:   FontSizeBody,
 			Style:  fontstyle.Normal,
 			Color:  BlackColor,
@@ -104,8 +114,6 @@ func (r *pdfReportRenderer) RenderFormal(ctx context.Context, data *entity.KMKFo
 	default:
 		r.renderFormalLegacy(m, data)
 	}
-
-	r.addFormalPageNumbers(m)
 
 	doc, err := m.Generate()
 	if err != nil {
@@ -246,7 +254,7 @@ func (r *pdfReportRenderer) addExecutiveSummary(m core.Maroto, data *entity.Repo
 			Align:  align.Center,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(titleRow)
@@ -258,7 +266,7 @@ func (r *pdfReportRenderer) addExecutiveSummary(m core.Maroto, data *entity.Repo
 			Size:   FontSizeBody,
 			Align:  align.Center,
 			Color:  MutedText,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(dateRow)
@@ -293,7 +301,7 @@ func (r *pdfReportRenderer) addKPIGrid(m core.Maroto, summary *entity.ReportSumm
 					Size:   FontSizeSmall,
 					Align:  align.Center,
 					Color:  MutedText,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 				},
 			))
 			innerCol.Add(text.New(
@@ -302,7 +310,7 @@ func (r *pdfReportRenderer) addKPIGrid(m core.Maroto, summary *entity.ReportSumm
 					Size:   FontSizeH1,
 					Align:  align.Center,
 					Color:  BlackColor,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 					Style:  fontstyle.Bold,
 				},
 			))
@@ -320,7 +328,7 @@ func (r *pdfReportRenderer) addKPIGrid(m core.Maroto, summary *entity.ReportSumm
 				Size:   FontSizeSmall,
 				Align:  align.Left,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 				Style:  fontstyle.Bold,
 			},
 		)))
@@ -335,7 +343,7 @@ func (r *pdfReportRenderer) addKPIGrid(m core.Maroto, summary *entity.ReportSumm
 					Size:   FontSizeSmall,
 					Align:  align.Left,
 					Color:  BlackColor,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 				},
 			))
 		}
@@ -353,7 +361,7 @@ func (r *pdfReportRenderer) addHeatmapSection(m core.Maroto, heatmap [5][5]int) 
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -370,7 +378,7 @@ func (r *pdfReportRenderer) addRiskRegister(m core.Maroto, risks []*entity.Risk)
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -411,7 +419,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -431,7 +439,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 				Size:   FontSizeSmall,
 				Align:  align.Center,
 				Color:  WhiteBg,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 				Style:  fontstyle.Bold,
 			},
 		))
@@ -443,7 +451,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 				Size:   FontSizeBody,
 				Align:  align.Left,
 				Color:  BlackColor,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 				Style:  fontstyle.Bold,
 			},
 		))
@@ -460,7 +468,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 					Size:   FontSizeSmall,
 					Align:  align.Left,
 					Color:  MutedText,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 					Style:  fontstyle.Bold,
 				},
 			))
@@ -471,7 +479,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 					Size:   FontSizeSmall,
 					Align:  align.Left,
 					Color:  BlackColor,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 				},
 			))
 			causeRow.Add(causeLabelCol)
@@ -488,7 +496,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 					Size:   FontSizeSmall,
 					Align:  align.Left,
 					Color:  MutedText,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 					Style:  fontstyle.Bold,
 				},
 			))
@@ -499,7 +507,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 					Size:   FontSizeSmall,
 					Align:  align.Left,
 					Color:  BlackColor,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 				},
 			))
 			ctrlRow.Add(ctrlLabelCol)
@@ -516,7 +524,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 					Size:   FontSizeSmall,
 					Align:  align.Left,
 					Color:  MutedText,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 					Style:  fontstyle.Bold,
 				},
 			))
@@ -527,7 +535,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 					Size:   FontSizeSmall,
 					Align:  align.Left,
 					Color:  BlackColor,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 				},
 			))
 			treatRow.Add(treatLabelCol)
@@ -543,7 +551,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 					Size:   FontSizeSmall,
 					Align:  align.Left,
 					Color:  MutedText,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 					Style:  fontstyle.Bold,
 				},
 			)))
@@ -564,7 +572,7 @@ func (r *pdfReportRenderer) addTopRisks(m core.Maroto, risks []*entity.Risk) {
 						Size:   FontSizeSmall,
 						Align:  align.Left,
 						Color:  BlackColor,
-						Family: fontfamily.Helvetica,
+						Family: fontfamily.Arial,
 					},
 				)))
 				m.AddRows(mitRow)
@@ -585,7 +593,7 @@ func (r *pdfReportRenderer) addIncidentSummary(m core.Maroto, incidents []*entit
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -598,7 +606,7 @@ func (r *pdfReportRenderer) addIncidentSummary(m core.Maroto, incidents []*entit
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -638,7 +646,7 @@ func (r *pdfReportRenderer) addKRISection(m core.Maroto, kris []*entity.KRI) {
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -651,7 +659,7 @@ func (r *pdfReportRenderer) addKRISection(m core.Maroto, kris []*entity.KRI) {
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -689,7 +697,7 @@ func (r *pdfReportRenderer) addTrendSection(m core.Maroto, trendData []entity.Cy
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -702,7 +710,7 @@ func (r *pdfReportRenderer) addTrendSection(m core.Maroto, trendData []entity.Cy
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -738,7 +746,7 @@ func (r *pdfReportRenderer) addPageNumbers(m core.Maroto) {
 			Size:   FontSizeLabel,
 			Align:  align.Left,
 			Color:  MutedText,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	footerRow.Add(col.New().Add(text.New(
@@ -747,7 +755,7 @@ func (r *pdfReportRenderer) addPageNumbers(m core.Maroto) {
 			Size:   FontSizeLabel,
 			Align:  align.Right,
 			Color:  MutedText,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	footerRow.Add(col.New().Add(text.New(
@@ -756,7 +764,7 @@ func (r *pdfReportRenderer) addPageNumbers(m core.Maroto) {
 			Size:   FontSizeLabel,
 			Align:  align.Left,
 			Color:  MutedText,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(footerRow)
@@ -773,15 +781,41 @@ func (r *pdfReportRenderer) addFormalCover(m core.Maroto, data *entity.KMKFormal
 		generatedAt = data.GeneratedAt.Format("02 Jan 2006, 15:04")
 	}
 
-	titleRow := row.New(FontSizeH1 + 6)
+	kpis := []struct {
+		label string
+		value string
+	}{
+		{"Organisasi", orgName},
+		{"Periode", data.Period},
+		{"Dihasilkan pada", generatedAt},
+		{"Status", "-"},
+	}
+	if data.Report != nil {
+		kpis[3].value = strings.ToUpper(data.Report.Status)
+	}
+
+	eyebrowRow := row.New(FontSizeLabel + 2)
+	eyebrowRow.Add(col.New(gridSize).Add(text.New(
+		"DOKUMEN RESMI",
+		props.Text{
+			Size:   FontSizeLabel,
+			Align:  align.Left,
+			Style:  fontstyle.Bold,
+			Color:  MutedText,
+			Family: fontfamily.Arial,
+		},
+	)))
+	m.AddRows(eyebrowRow)
+
+	titleRow := row.New(FontSizeH1 + 2)
 	titleRow.Add(col.New(gridSize).Add(text.New(
-		"Laporan Formal KMK / KMK Formal Report",
+		"Laporan Formal KMK",
 		props.Text{
 			Size:   FontSizeH1 + 2,
-			Align:  align.Center,
+			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(titleRow)
@@ -791,71 +825,33 @@ func (r *pdfReportRenderer) addFormalCover(m core.Maroto, data *entity.KMKFormal
 		reportType,
 		props.Text{
 			Size:   FontSizeBody,
-			Align:  align.Center,
+			Align:  align.Left,
 			Color:  MutedText,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(subtitleRow)
+
+	introRow := row.New(FontSizeBody + 2)
+	introRow.Add(col.New(gridSize).Add(text.New(
+		"Ringkasan ini disusun untuk pembacaan, pencetakan, dan arsip resmi.",
+		props.Text{
+			Size:   FontSizeBody,
+			Align:  align.Left,
+			Color:  BlackColor,
+			Family: fontfamily.Arial,
+		},
+	)))
+	m.AddRows(introRow)
 	m.AddRows(row.New(6))
 
-	infoRows := []struct {
-		label string
-		value string
-	}{
-		{"Organisasi / Organization", orgName},
-		{"Periode / Period", data.Period},
-		{"Dihasilkan pada / Generated on", generatedAt},
+	metaRows := [][]string{
+		{kpis[0].label, kpis[0].value},
+		{kpis[1].label, kpis[1].value},
+		{kpis[2].label, kpis[2].value},
+		{kpis[3].label, kpis[3].value},
 	}
-	for _, item := range infoRows {
-		infoRow := row.New(RowHeight - 1)
-		infoRow.Add(col.New(4).Add(text.New(
-			item.label,
-			props.Text{
-				Size:   FontSizeBody,
-				Align:  align.Left,
-				Color:  MutedText,
-				Family: fontfamily.Helvetica,
-				Style:  fontstyle.Bold,
-			},
-		)))
-		infoRow.Add(col.New(8).Add(text.New(
-			item.value,
-			props.Text{
-				Size:   FontSizeBody,
-				Align:  align.Left,
-				Color:  BlackColor,
-				Family: fontfamily.Helvetica,
-			},
-		)))
-		m.AddRows(infoRow)
-	}
-
-	if data.Report != nil {
-		m.AddRows(row.New(2))
-		statusRow := row.New(RowHeight - 1)
-		statusRow.Add(col.New(4).Add(text.New(
-			"Status Laporan",
-			props.Text{
-				Size:   FontSizeBody,
-				Align:  align.Left,
-				Color:  MutedText,
-				Family: fontfamily.Helvetica,
-				Style:  fontstyle.Bold,
-			},
-		)))
-		statusRow.Add(col.New(8).Add(text.New(
-			strings.ToUpper(data.Report.Status),
-			props.Text{
-				Size:   FontSizeBody,
-				Align:  align.Left,
-				Color:  BlackColor,
-				Family: fontfamily.Helvetica,
-				Style:  fontstyle.Bold,
-			},
-		)))
-		m.AddRows(statusRow)
-	}
+	m.AddRows(RenderTable([]string{"Informasi", "Nilai"}, metaRows, []uint{4, 8}, WithFontSize(FontSizeBody), WithLeftAligned(0, 1))...)
 
 	m.AddRows(row.New(SectionSpacing))
 }
@@ -869,7 +865,7 @@ func (r *pdfReportRenderer) addFormalRiskSummary(m core.Maroto, data *entity.KMK
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -894,7 +890,7 @@ func (r *pdfReportRenderer) addFormalRiskSummary(m core.Maroto, data *entity.KMK
 				Size:   FontSizeSmall,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		))
 		innerCol.Add(text.New(
@@ -903,7 +899,7 @@ func (r *pdfReportRenderer) addFormalRiskSummary(m core.Maroto, data *entity.KMK
 				Size:   FontSizeH1,
 				Align:  align.Center,
 				Color:  BlackColor,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 				Style:  fontstyle.Bold,
 			},
 		))
@@ -920,7 +916,7 @@ func (r *pdfReportRenderer) addFormalRiskSummary(m core.Maroto, data *entity.KMK
 				Size:   FontSizeSmall,
 				Align:  align.Left,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 				Style:  fontstyle.Bold,
 			},
 		)))
@@ -932,7 +928,7 @@ func (r *pdfReportRenderer) addFormalRiskSummary(m core.Maroto, data *entity.KMK
 					Size:   FontSizeSmall,
 					Align:  align.Left,
 					Color:  BlackColor,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 				},
 			))
 		}
@@ -952,7 +948,7 @@ func (r *pdfReportRenderer) addFormalFoundationStatus(m core.Maroto, data *entit
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -966,7 +962,7 @@ func (r *pdfReportRenderer) addFormalFoundationStatus(m core.Maroto, data *entit
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -989,7 +985,7 @@ func (r *pdfReportRenderer) addFormalEvidenceStatus(m core.Maroto, data *entity.
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1003,7 +999,7 @@ func (r *pdfReportRenderer) addFormalEvidenceStatus(m core.Maroto, data *entity.
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1026,7 +1022,7 @@ func (r *pdfReportRenderer) addFormalTMPMRSection(m core.Maroto, data *entity.KM
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1040,7 +1036,7 @@ func (r *pdfReportRenderer) addFormalTMPMRSection(m core.Maroto, data *entity.KM
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1055,7 +1051,7 @@ func (r *pdfReportRenderer) addFormalTMPMRSection(m core.Maroto, data *entity.KM
 			Size:   FontSizeBody,
 			Align:  align.Left,
 			Color:  MutedText,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 			Style:  fontstyle.Bold,
 		},
 	)))
@@ -1065,7 +1061,7 @@ func (r *pdfReportRenderer) addFormalTMPMRSection(m core.Maroto, data *entity.KM
 			Size:   FontSizeH1,
 			Align:  align.Left,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 			Style:  fontstyle.Bold,
 		},
 	)))
@@ -1075,7 +1071,7 @@ func (r *pdfReportRenderer) addFormalTMPMRSection(m core.Maroto, data *entity.KM
 			Size:   FontSizeBody,
 			Align:  align.Left,
 			Color:  MutedText,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 			Style:  fontstyle.Bold,
 		},
 	)))
@@ -1085,7 +1081,7 @@ func (r *pdfReportRenderer) addFormalTMPMRSection(m core.Maroto, data *entity.KM
 			Size:   FontSizeBody,
 			Align:  align.Left,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 			Style:  fontstyle.Bold,
 		},
 	)))
@@ -1120,7 +1116,7 @@ func (r *pdfReportRenderer) addFormalAppendix(m core.Maroto, data *entity.KMKFor
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1134,7 +1130,7 @@ func (r *pdfReportRenderer) addFormalAppendix(m core.Maroto, data *entity.KMKFor
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1155,7 +1151,7 @@ func (r *pdfReportRenderer) addAnnualRiskProfileSummary(m core.Maroto, data *ent
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1168,7 +1164,7 @@ func (r *pdfReportRenderer) addAnnualRiskProfileSummary(m core.Maroto, data *ent
 			Size:   FontSizeBody,
 			Align:  align.Left,
 			Color:  MutedText,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 			Style:  fontstyle.Bold,
 		},
 	)))
@@ -1178,7 +1174,7 @@ func (r *pdfReportRenderer) addAnnualRiskProfileSummary(m core.Maroto, data *ent
 			Size:   FontSizeBody,
 			Align:  align.Left,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(infoRow)
@@ -1202,7 +1198,7 @@ func (r *pdfReportRenderer) addAnnualRiskProfileSummary(m core.Maroto, data *ent
 				Size:   FontSizeSmall,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		))
 		innerCol.Add(text.New(
@@ -1211,7 +1207,7 @@ func (r *pdfReportRenderer) addAnnualRiskProfileSummary(m core.Maroto, data *ent
 				Size:   FontSizeH1,
 				Align:  align.Center,
 				Color:  BlackColor,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 				Style:  fontstyle.Bold,
 			},
 		))
@@ -1228,7 +1224,7 @@ func (r *pdfReportRenderer) addAnnualRiskProfileSummary(m core.Maroto, data *ent
 				Size:   FontSizeSmall,
 				Align:  align.Left,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 				Style:  fontstyle.Bold,
 			},
 		)))
@@ -1240,7 +1236,7 @@ func (r *pdfReportRenderer) addAnnualRiskProfileSummary(m core.Maroto, data *ent
 					Size:   FontSizeSmall,
 					Align:  align.Left,
 					Color:  BlackColor,
-					Family: fontfamily.Helvetica,
+					Family: fontfamily.Arial,
 				},
 			))
 		}
@@ -1260,7 +1256,7 @@ func (r *pdfReportRenderer) addAnnualTopRisksTable(m core.Maroto, data *entity.A
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1273,7 +1269,7 @@ func (r *pdfReportRenderer) addAnnualTopRisksTable(m core.Maroto, data *entity.A
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1312,7 +1308,7 @@ func (r *pdfReportRenderer) addAnnualMitigationPlanTable(m core.Maroto, data *en
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1325,7 +1321,7 @@ func (r *pdfReportRenderer) addAnnualMitigationPlanTable(m core.Maroto, data *en
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1368,7 +1364,7 @@ func (r *pdfReportRenderer) addAnnualPreviousCycleComparison(m core.Maroto, data
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1396,7 +1392,7 @@ func (r *pdfReportRenderer) addImplementationStageOverview(m core.Maroto, data *
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1432,7 +1428,7 @@ func (r *pdfReportRenderer) addImplementationStageOverview(m core.Maroto, data *
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1451,7 +1447,7 @@ func (r *pdfReportRenderer) addImplementationEvidenceMatrix(m core.Maroto, data 
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1475,7 +1471,7 @@ func (r *pdfReportRenderer) addImplementationEvidenceMatrix(m core.Maroto, data 
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1513,7 +1509,7 @@ func (r *pdfReportRenderer) addImplementationMitigationProgress(m core.Maroto, d
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1543,7 +1539,7 @@ func (r *pdfReportRenderer) addImplementationMitigationProgress(m core.Maroto, d
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1571,7 +1567,7 @@ func (r *pdfReportRenderer) addImplementationGapSummary(m core.Maroto, data *ent
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1595,7 +1591,7 @@ func (r *pdfReportRenderer) addImplementationGapSummary(m core.Maroto, data *ent
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  BlackColor,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(noGapRow)
@@ -1640,7 +1636,7 @@ func fmtProgressPercent(part, total int) string {
 	return fmt.Sprintf("%d%%", (part*100)/total)
 }
 
-	// Supervision Report Section Helpers
+// Supervision Report Section Helpers
 
 // addSupervisionExecutiveSummary renders the executive summary for the supervision report.
 // Uses findings-oriented tone, not process-stage terminology.
@@ -1653,7 +1649,7 @@ func (r *pdfReportRenderer) addSupervisionExecutiveSummary(m core.Maroto, data *
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1707,7 +1703,7 @@ func (r *pdfReportRenderer) addSupervisionExecutiveSummary(m core.Maroto, data *
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1726,7 +1722,7 @@ func (r *pdfReportRenderer) addSupervisionFindingsTable(m core.Maroto, data *ent
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1750,7 +1746,7 @@ func (r *pdfReportRenderer) addSupervisionFindingsTable(m core.Maroto, data *ent
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1787,7 +1783,7 @@ func (r *pdfReportRenderer) addSupervisionImprovementRecommendations(m core.Maro
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1823,7 +1819,7 @@ func (r *pdfReportRenderer) addSupervisionImprovementRecommendations(m core.Maro
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  BlackColor,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(noRecRow)
@@ -1849,7 +1845,7 @@ func (r *pdfReportRenderer) addSupervisionFollowUpStatus(m core.Maroto, data *en
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1876,7 +1872,7 @@ func (r *pdfReportRenderer) addSupervisionFollowUpStatus(m core.Maroto, data *en
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1902,7 +1898,7 @@ func (r *pdfReportRenderer) addAnnualHeatmapAppendix(m core.Maroto, data *entity
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1919,7 +1915,7 @@ func (r *pdfReportRenderer) addTMPMRScoreSummary(m core.Maroto, data *entity.TMP
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1933,7 +1929,7 @@ func (r *pdfReportRenderer) addTMPMRScoreSummary(m core.Maroto, data *entity.TMP
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -1959,7 +1955,7 @@ func (r *pdfReportRenderer) addTMPMRDimensionTable(m core.Maroto, data *entity.T
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -1973,7 +1969,7 @@ func (r *pdfReportRenderer) addTMPMRDimensionTable(m core.Maroto, data *entity.T
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -2015,7 +2011,7 @@ func (r *pdfReportRenderer) addTMPMREvidenceTable(m core.Maroto, data *entity.TM
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -2029,7 +2025,7 @@ func (r *pdfReportRenderer) addTMPMREvidenceTable(m core.Maroto, data *entity.TM
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -2065,7 +2061,7 @@ func (r *pdfReportRenderer) addTMPMRImprovementPriorities(m core.Maroto, data *e
 			Align:  align.Left,
 			Style:  fontstyle.Bold,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(headerRow)
@@ -2079,7 +2075,7 @@ func (r *pdfReportRenderer) addTMPMRImprovementPriorities(m core.Maroto, data *e
 				Size:   FontSizeBody,
 				Align:  align.Center,
 				Color:  MutedText,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			},
 		)))
 		m.AddRows(emptyRow)
@@ -2125,7 +2121,7 @@ func (r *pdfReportRenderer) addFormalPageNumbers(m core.Maroto) {
 			Size:   FontSizeLabel,
 			Align:  align.Left,
 			Color:  MutedText,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	footerRow.Add(col.New().Add(text.New(
@@ -2134,7 +2130,7 @@ func (r *pdfReportRenderer) addFormalPageNumbers(m core.Maroto) {
 			Size:   FontSizeLabel,
 			Align:  align.Right,
 			Color:  MutedText,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	footerRow.Add(col.New().Add(text.New(
@@ -2143,7 +2139,7 @@ func (r *pdfReportRenderer) addFormalPageNumbers(m core.Maroto) {
 			Size:   FontSizeLabel,
 			Align:  align.Left,
 			Color:  MutedText,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		},
 	)))
 	m.AddRows(footerRow)

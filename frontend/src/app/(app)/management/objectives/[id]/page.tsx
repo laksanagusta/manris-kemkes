@@ -40,6 +40,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
+const objectiveStatusLabel: Record<string, string> = {
+  draft: "Draft",
+  in_review: "Diperiksa",
+  approved: "Disahkan",
+  archived: "Diarsipkan",
+};
+
+function getObjectiveStatusBadgeClass(status?: string) {
+  switch (status) {
+    case "approved":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "in_review":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "archived":
+      return "border-slate-200 bg-slate-50 text-slate-600";
+    default:
+      return "border-border bg-muted/40 text-muted-foreground";
+  }
+}
+
 const formSchema = z.object({
   organizationId: z.string().min(1, "Organisasi wajib dipilih"),
   period: z.string().min(1, "Periode wajib diisi"),
@@ -131,6 +151,7 @@ export default function RiskObjectiveDetailPage() {
   }, [form, id, isCreateMode, router, token]);
 
   const watched = form.watch();
+  const currentStatus = objective?.status ?? "draft";
 
   // Unsaved changes warning
   useEffect(() => {
@@ -219,6 +240,15 @@ export default function RiskObjectiveDetailPage() {
             <Badge className="gap-2 border-primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
               <Goal className="size-3.5" />
               Risk Governance
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn(
+                "gap-2 px-2.5 py-0.5 text-[11px]",
+                getObjectiveStatusBadgeClass(currentStatus),
+              )}
+            >
+              {objectiveStatusLabel[currentStatus] ?? currentStatus}
             </Badge>
           </>
         }

@@ -48,6 +48,26 @@ const uprLevelLabel: Record<RiskCharterUPRLevel, string> = {
   upr_t2: "UPR T2",
 };
 
+const charterStatusLabel: Record<string, string> = {
+  draft: "Draft",
+  in_review: "Diperiksa",
+  approved: "Disahkan",
+  archived: "Diarsipkan",
+};
+
+function getCharterStatusBadgeClass(status?: string) {
+  switch (status) {
+    case "approved":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "in_review":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "archived":
+      return "border-slate-200 bg-slate-50 text-slate-600";
+    default:
+      return "border-border bg-muted/40 text-muted-foreground";
+  }
+}
+
 const formSchema = z.object({
   organizationId: z.string().min(1, "Organisasi wajib dipilih"),
   uprLevel: z.enum(["eksekutif", "upr_t1", "upr_t2"]),
@@ -146,6 +166,7 @@ export default function RiskCharterDetailPage() {
   }, [form, id, isCreateMode, router, token]);
 
   const watched = form.watch();
+  const currentStatus = charter?.status ?? "draft";
 
   // Unsaved changes warning
   useEffect(() => {
@@ -230,6 +251,15 @@ export default function RiskCharterDetailPage() {
             <Badge className="gap-2 border-primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
               <ClipboardPenLine className="size-3.5" />
               Risk Governance
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn(
+                "gap-2 px-2.5 py-0.5 text-[11px]",
+                getCharterStatusBadgeClass(currentStatus),
+              )}
+            >
+              {charterStatusLabel[currentStatus] ?? currentStatus}
             </Badge>
           </>
         }

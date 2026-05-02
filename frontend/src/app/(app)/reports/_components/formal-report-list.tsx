@@ -87,7 +87,7 @@ export function FormalReportList({
   };
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+    <Card className="border-border/50 bg-card/90 shadow-sm">
       <CardHeader className="border-b border-border/40 pb-4">
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
@@ -98,7 +98,10 @@ export function FormalReportList({
               Histori semua laporan formal KMK yang sudah dibuat dari data sistem.
             </p>
           </div>
-          <Badge variant="outline" className="gap-1.5 border-primary/20 bg-primary/[0.06] text-[10px] text-primary">
+          <Badge
+            variant="outline"
+            className="gap-1.5 border-primary/20 bg-primary/[0.06] text-[10px] text-primary"
+          >
             <FileText className="size-3.5" />
             PDF
           </Badge>
@@ -106,7 +109,7 @@ export function FormalReportList({
       </CardHeader>
       <CardContent className="p-0">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/30">
             <TableRow>
               <TableHead className="whitespace-nowrap">Periode</TableHead>
               <TableHead className="whitespace-nowrap">Organisasi</TableHead>
@@ -118,21 +121,20 @@ export function FormalReportList({
           </TableHeader>
           <TableBody>
             {reports.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
-                  Belum ada laporan formal yang digenerate.
-                </TableCell>
-              </TableRow>
-            ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                    Belum ada laporan formal yang digenerate.
+                  </TableCell>
+                </TableRow>
+              ) : (
               reports.map((report) => {
                 const orgName =
                   organizationNameById.get(report.organizationId) ??
                   report.organizationId;
-                const downloadUrl = `/formal-reports/${report.id}/download`;
                 const isDownloading = downloadingId === report.id;
 
                 return (
-                  <TableRow key={report.id}>
+                  <TableRow key={report.id} className="transition-colors hover:bg-muted/25">
                     <TableCell className="whitespace-nowrap font-medium">
                       {report.period}
                     </TableCell>
