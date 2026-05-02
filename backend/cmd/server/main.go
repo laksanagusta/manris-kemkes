@@ -89,6 +89,15 @@ func main() {
 		container.RiskCharterUpdateUC,
 		container.RiskCharterListUC,
 	)
+	cleanTMPMRHandler := httpHandler.NewTMPMRHandler(
+		container.TMPMRCreateUC,
+		container.TMPMRGetUC,
+		container.TMPMRListUC,
+		container.TMPMRUpdateUC,
+		container.TMPMRSubmitUC,
+		container.TMPMRReviewUC,
+		container.TMPMRApproveUC,
+	)
 	cleanRiskCascadeHandler := httpHandler.NewRiskCascadeHandler(
 		container.RiskCascadeCreateMandatoryUC,
 		container.RiskCascadeCreateBottomUpUC,
@@ -103,6 +112,12 @@ func main() {
 		container.RiskObjectiveUpdateUC,
 		container.RiskObjectiveDeleteUC,
 		container.RiskObjectiveListUC,
+	)
+	cleanFormalReportHandler := httpHandler.NewFormalReportHandler(
+		container.FormalReportGenerateUC,
+		container.FormalReportGetUC,
+		container.FormalReportListUC,
+		container.FormalReportDownloadUC,
 	)
 
 	// Likelihood Assessment handler (Clean Architecture)
@@ -222,6 +237,15 @@ func main() {
 	protected.Get("/risk-charters/:id", cleanRiskCharterHandler.Get)
 	protected.Put("/risk-charters/:id", cleanRiskCharterHandler.Update)
 
+	// TMPMR (Clean Architecture)
+	protected.Get("/tmpmr", cleanTMPMRHandler.List)
+	protected.Post("/tmpmr", cleanTMPMRHandler.Create)
+	protected.Get("/tmpmr/:id", cleanTMPMRHandler.Get)
+	protected.Put("/tmpmr/:id", cleanTMPMRHandler.Update)
+	protected.Post("/tmpmr/:id/submit", cleanTMPMRHandler.Submit)
+	protected.Post("/tmpmr/:id/review", cleanTMPMRHandler.Review)
+	protected.Post("/tmpmr/:id/approve", cleanTMPMRHandler.Approve)
+
 	// Risk Cascades (Clean Architecture)
 	protected.Get("/risk-cascades", cleanRiskCascadeHandler.List)
 	protected.Post("/risk-cascades/mandatory", cleanRiskCascadeHandler.CreateMandatory)
@@ -234,6 +258,11 @@ func main() {
 	protected.Get("/risk-objectives/:id", cleanRiskObjectiveHandler.Get)
 	protected.Put("/risk-objectives/:id", cleanRiskObjectiveHandler.Update)
 	protected.Delete("/risk-objectives/:id", cleanRiskObjectiveHandler.Delete)
+
+	protected.Post("/formal-reports/generate", cleanFormalReportHandler.Generate)
+	protected.Get("/formal-reports", cleanFormalReportHandler.List)
+	protected.Get("/formal-reports/:id/download", cleanFormalReportHandler.Download)
+	protected.Get("/formal-reports/:id", cleanFormalReportHandler.Get)
 
 	// Likelihood Assessment routes
 	protected.Post("/likelihood-assessments", cleanLikelihoodAssessmentHandler.Upsert)

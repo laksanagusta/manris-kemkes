@@ -50,7 +50,7 @@ func RenderHeatmapGrid(heatmap [5][5]int) []core.Row {
 		Align:  align.Center,
 		Style:  fontstyle.Bold,
 		Color:  BlackColor,
-		Family: fontfamily.Helvetica,
+		Family: fontfamily.Arial,
 	})))
 	yTitleRow.Add(col.New(10))
 	rows = append(rows, yTitleRow)
@@ -63,7 +63,7 @@ func RenderHeatmapGrid(heatmap [5][5]int) []core.Row {
 			Color:  BlackColor,
 			Right:  2,
 			Top:    3,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		}))
 		rowCols := []core.Col{labelCol}
 		for c := 0; c < 5; c++ {
@@ -78,7 +78,7 @@ func RenderHeatmapGrid(heatmap [5][5]int) []core.Row {
 				Top:    3,
 				Color:  WhiteBg,
 				Style:  fontstyle.Bold,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 			}))
 			cellCol.WithStyle(&props.Cell{
 				BackgroundColor: cellBgColor(r, c),
@@ -106,7 +106,7 @@ func RenderHeatmapGrid(heatmap [5][5]int) []core.Row {
 			Size:   FontSizeLabel,
 			Align:  align.Center,
 			Color:  BlackColor,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		})))
 	}
 	rows = append(rows, labelRow)
@@ -119,7 +119,7 @@ func RenderHeatmapGrid(heatmap [5][5]int) []core.Row {
 		Align:  align.Center,
 		Style:  fontstyle.Bold,
 		Color:  BlackColor,
-		Family: fontfamily.Helvetica,
+		Family: fontfamily.Arial,
 	})))
 	rows = append(rows, xTitleRow)
 
@@ -144,7 +144,7 @@ func RenderHeatmapGrid(heatmap [5][5]int) []core.Row {
 			Color:  WhiteBg,
 			Style:  fontstyle.Bold,
 			Top:    1,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 		}))
 		c.WithStyle(&props.Cell{BackgroundColor: leg.bg})
 		legendRow.Add(c)

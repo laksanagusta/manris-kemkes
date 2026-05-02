@@ -9,17 +9,18 @@ import (
 )
 
 type RiskObjective struct {
-	ID                    uuid.UUID `json:"id"`
-	OrganizationID        uuid.UUID `json:"organizationId"`
+	ID                    uuid.UUID  `json:"id"`
+	OrganizationID        uuid.UUID  `json:"organizationId"`
 	CharterID             *uuid.UUID `json:"charterId,omitempty"`
-	Period                string    `json:"period"`
-	Tujuan                string    `json:"tujuan"`
-	Sasaran               string    `json:"sasaran"`
-	IndikatorKinerjaUtama string    `json:"indikatorKinerjaUtama"`
-	Target                string    `json:"target"`
-	Program               string    `json:"program"`
-	Kegiatan              string    `json:"kegiatan"`
-	ProcessBusiness       string    `json:"processBusiness"`
+	Period                string     `json:"period"`
+	Tujuan                string     `json:"tujuan"`
+	Sasaran               string     `json:"sasaran"`
+	IndikatorKinerjaUtama string     `json:"indikatorKinerjaUtama"`
+	Target                string     `json:"target"`
+	Program               string     `json:"program"`
+	Kegiatan              string     `json:"kegiatan"`
+	ProcessBusiness       string     `json:"processBusiness"`
+	Status                string     `json:"status"`
 	CreatedBy             *uuid.UUID `json:"createdBy,omitempty"`
 	ApprovedBy            *uuid.UUID `json:"approvedBy,omitempty"`
 	ApprovedAt            *time.Time `json:"approvedAt,omitempty"`

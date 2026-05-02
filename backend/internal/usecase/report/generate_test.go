@@ -392,6 +392,45 @@ func TestReportExcludesSiblingOrgData(t *testing.T) {
 	}
 }
 
+func TestGenerateReportUseCase_IgnoresNilItems(t *testing.T) {
+	risk := approvedRiskWithReviewedBundle("R-NIL", "Nil Guard", entity.RiskCategoryOperasional, "2026-H1", 5, 4, 20)
+	riskRepo := &fakeReportRiskRepo{
+		listCycleSnapshot: func(_ context.Context, cycle string, _ []uuid.UUID) ([]*entity.Risk, error) {
+			return []*entity.Risk{nil, risk}, nil
+		},
+		listApprovedRisks: func(_ context.Context, _ []uuid.UUID) ([]*entity.Risk, error) {
+			return []*entity.Risk{nil, risk}, nil
+		},
+	}
+
+	incidentRepo := &fakeReportIncidentRepo{
+		list: func(context.Context, []uuid.UUID) ([]*entity.Incident, error) {
+			return []*entity.Incident{nil}, nil
+		},
+	}
+	kriRepo := &fakeReportKRIRepo{
+		list: func(context.Context, []uuid.UUID, bool) ([]*entity.KRI, error) {
+			return []*entity.KRI{nil}, nil
+		},
+	}
+
+	uc := NewGenerateReportUseCase(riskRepo, incidentRepo, kriRepo)
+	reportData, err := uc.Execute(context.Background(), GenerateReportInput{Cycle: "2026-H1"})
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	if len(reportData.Risks) != 1 || reportData.Risks[0].Code != "R-NIL" {
+		t.Fatalf("Risks = %#v, want only the non-nil risk", reportData.Risks)
+	}
+	if len(reportData.Incidents) != 0 {
+		t.Fatalf("Incidents = %#v, want empty after nil filtering", reportData.Incidents)
+	}
+	if len(reportData.KRIs) != 0 {
+		t.Fatalf("KRIs = %#v, want empty after nil filtering", reportData.KRIs)
+	}
+}
+
 func approvedRiskWithReviewedBundle(code string, title string, category string, cycle string, probability int, impact int, inherentScore int) *entity.Risk {
 	return &entity.Risk{
 		ID:              uuid.New(),

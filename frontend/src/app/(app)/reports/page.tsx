@@ -34,10 +34,6 @@ import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { listWorkingPapers } from "@/lib/api/working-papers";
 import { useAuth } from "@/contexts/auth-context";
-import { RiskCycleDetailReport } from "./risk-cycle-detail-report";
-import { OverdueMitigationTimeline } from "./_components/overdue-mitigation-timeline";
-import { KRIBreachSummary } from "./_components/kri-breach-summary";
-import { UnitResponseTimeChart } from "./_components/unit-response-time";
 import { InherentResidualTrend } from "./_components/inherent-residual-trend";
 import { CriticalRiskRateTrend } from "./_components/critical-risk-rate-trend";
 import { RiskMovementByOrg } from "./_components/risk-movement-by-org";
@@ -69,12 +65,9 @@ import {
   type RiskTrendWindow,
 } from "@/lib/risk-report-trend";
 import type {
-  KRIBreachItem,
-  OverdueMitigationTimelineItem,
   DashboardRiskCategoryItem,
   Risk,
   RiskCycleComparisonItem,
-  UnitResponseTime,
 } from "@/types/risk";
 import type { WorkingPaper } from "@/types/working-paper";
 
@@ -93,16 +86,16 @@ const trendColors: Record<string, string> = {
 const exportOptions = [
   {
     key: "risk-xlsx",
-    title: "Risk Register (Excel)",
-    description: "Export seluruh risiko ke format Excel lengkap",
+    title: "Daftar Risiko (Excel)",
+    description: "Ekspor seluruh risiko ke format Excel lengkap",
     icon: FileSpreadsheet,
     format: "XLSX",
     isEnabled: true,
   },
   {
     key: "incident-xlsx",
-    title: "Incident Report (Excel)",
-    description: "Export insiden belum diaktifkan pada delivery ini",
+    title: "Laporan Insiden (Excel)",
+    description: "Ekspor insiden belum diaktifkan pada delivery ini",
     icon: FileSpreadsheet,
     format: "XLSX",
     isEnabled: false,
@@ -118,7 +111,7 @@ const exportOptions = [
   {
     key: "risk-pdf",
     title: "Laporan Risiko (PDF)",
-    description: "Download laporan eksekutif lengkap dalam format PDF",
+    description: "Unduh laporan eksekutif lengkap dalam format PDF",
     icon: FileText,
     format: "PDF",
     isEnabled: true,
@@ -210,13 +203,6 @@ export default function ReportsPage() {
   const [selectedMovement, setSelectedMovement] = useState<
     MovementSnapshotDatum["key"] | null
   >(null);
-  const [overdueTimelineData, setOverdueTimelineData] = useState<
-    OverdueMitigationTimelineItem[]
-  >([]);
-  const [kriBreachData, setKriBreachData] = useState<KRIBreachItem[]>([]);
-  const [responseTimeData, setResponseTimeData] = useState<UnitResponseTime[]>(
-    [],
-  );
   const [riskCategoryData, setRiskCategoryData] = useState<
     ReturnType<typeof buildDashboardRiskCategoryData>
   >([]);
@@ -286,7 +272,10 @@ export default function ReportsPage() {
   }, [exportCycle]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setRiskCategoryLoading(false);
+      return;
+    }
 
     Promise.allSettled([
       api.get<RiskTrendSourceItem[]>("/risks/trend", token),
@@ -306,12 +295,6 @@ export default function ReportsPage() {
         `/risks/compare?from=${previousCycle}&to=${exportCycle}`,
         token,
       ),
-      api.get<OverdueMitigationTimelineItem[]>(
-        "/dashboard/overdue-mitigation-timeline",
-        token,
-      ),
-      api.get<KRIBreachItem[]>("/dashboard/kri-breach-summary", token),
-      api.get<UnitResponseTime[]>("/dashboard/unit-response-time", token),
       listAllWorkingPapers(token),
     ]).then(
       ([
@@ -320,9 +303,6 @@ export default function ReportsPage() {
         cycleRiskResult,
         previousCycleRiskResult,
         comparisonResult,
-        overdueResult,
-        kriBreachResult,
-        responseTimeResult,
         workingPaperResult,
       ]) => {
         if (riskResult.status === "fulfilled") {
@@ -363,27 +343,6 @@ export default function ReportsPage() {
         } else {
           console.error(comparisonResult.reason);
           setComparisons([]);
-        }
-
-        if (overdueResult.status === "fulfilled")
-          setOverdueTimelineData(overdueResult.value);
-        else {
-          console.error(overdueResult.reason);
-          setOverdueTimelineData([]);
-        }
-
-        if (kriBreachResult.status === "fulfilled")
-          setKriBreachData(kriBreachResult.value);
-        else {
-          console.error(kriBreachResult.reason);
-          setKriBreachData([]);
-        }
-
-        if (responseTimeResult.status === "fulfilled")
-          setResponseTimeData(responseTimeResult.value);
-        else {
-          console.error(responseTimeResult.reason);
-          setResponseTimeData([]);
         }
 
         if (workingPaperResult.status === "fulfilled") {
@@ -514,11 +473,10 @@ export default function ReportsPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Analisis Risiko</h1>
         <p className="text-sm text-muted-foreground">
-          Untuk review analitis, perbandingan antar-cycle, dan export formal.
-          Pembaruan operasional mitigasi/KRI tetap dilakukan di Monitoring &
-          Updates.
+          Untuk telaah analitis, perbandingan antar siklus, dan ekspor formal.
+          Pembaruan operasional mitigasi/KRI tetap dilakukan di Monitoring.
         </p>
       </div>
 
@@ -626,158 +584,83 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
 
-      <RiskCategoryDistributionCard
-        data={riskCategoryData}
-        loading={riskCategoryLoading}
-        error={riskCategoryError}
-        cycle={exportCycle}
-      />
+      <section id="risk-analytics" className="space-y-4 scroll-mt-24">
+        <RiskCategoryDistributionCard
+          data={riskCategoryData}
+          loading={riskCategoryLoading}
+          error={riskCategoryError}
+          cycle={exportCycle}
+        />
 
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold text-foreground">
-            Analisis Cycle
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Fokus pada perubahan risiko dari {previousCycle} ke {exportCycle}.
-          </p>
-        </div>
-        <Badge variant="outline" className="h-6 px-2 text-[10px]">
-          {`${previousCycle} ke ${exportCycle}`}
-        </Badge>
-      </div>
-
-      <Card className="border-border/50 bg-card/80">
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <CardTitle className="text-sm font-semibold">
-                Risk Movement Report
-              </CardTitle>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Perbandingan movement dari {previousCycle} ke {exportCycle}.
-              </p>
-            </div>
-            <Badge variant="outline" className="h-5 px-2 text-[10px]">
-              {`${previousCycle} ke ${exportCycle}`}
-            </Badge>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Analisis Cycle
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Fokus pada perubahan risiko dari {previousCycle} ke {exportCycle}.
+            </p>
           </div>
-        </CardHeader>
-        <CardContent>
-          {hasMovementData ? (
-            <>
-              <div className="grid gap-3 pb-4 md:grid-cols-5">
-                {movementSnapshotData.map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => toggleMovementFilter(item.key)}
-                    className={cn(
-                      "rounded-lg border px-3 py-2 text-left transition-colors",
-                      selectedMovement === item.key
-                        ? "border-primary/40 bg-primary/10"
-                        : "border-border/50 bg-muted/20 hover:bg-muted/30",
-                    )}
-                  >
-                    <p className="text-[10px] text-muted-foreground">
-                      {item.label}
-                    </p>
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <p className="text-2xl font-semibold tracking-tight text-foreground">
-                        {item.value}
-                      </p>
-                      {selectedMovement === item.key ? (
-                        <Badge
-                          variant="outline"
-                          className="h-5 px-1.5 text-[9px]"
-                        >
-                          Aktif
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </button>
-                ))}
-              </div>
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={movementData}
-                    margin={{ top: 4, right: 12, left: -24, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="oklch(0.5 0 0 / 8%)"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fontSize: 10 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      tick={{ fontSize: 10 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <RechartsTooltip
-                      formatter={(value) => [`${value ?? 0} risiko`, "Jumlah"]}
-                      contentStyle={{
-                        background: "oklch(0.98 0.003 170 / 95%)",
-                        border: "1px solid oklch(0.91 0.008 170)",
-                        borderRadius: "8px",
-                        fontSize: "11px",
-                      }}
-                    />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                      {movementData.map((item) => (
-                        <Cell key={item.label} fill={item.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </>
-          ) : (
-            <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-              Perbandingan cycle belum tersedia
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <Badge variant="outline" className="h-6 px-2 text-[10px]">
+            {`${previousCycle} ke ${exportCycle}`}
+          </Badge>
+        </div>
 
-      <RiskMovementByOrg
-        data={movementByOrgData}
-        currentSort={movementByOrgSort}
-        onSortChange={setMovementByOrgSort}
-      />
-
-      <div className="grid gap-6 lg:grid-cols-3">
         <Card className="border-border/50 bg-card/80">
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-sm font-semibold">
-                  Risk Exposure
+                  Laporan Pergerakan Risiko
                 </CardTitle>
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  Ranking unit berdasarkan weighted exposure score untuk cycle{" "}
-                  {exportCycle}.
+                  Perbandingan pergerakan dari {previousCycle} ke {exportCycle}.
                 </p>
               </div>
               <Badge variant="outline" className="h-5 px-2 text-[10px]">
-                {exportCycle}
+                {`${previousCycle} ke ${exportCycle}`}
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
-            {hasExposureData ? (
+            {hasMovementData ? (
               <>
-                <div className="h-48">
+                <div className="grid gap-3 pb-4 md:grid-cols-5">
+                  {movementSnapshotData.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => toggleMovementFilter(item.key)}
+                      className={cn(
+                        "rounded-lg border px-3 py-2 text-left transition-colors",
+                        selectedMovement === item.key
+                          ? "border-primary/40 bg-primary/10"
+                          : "border-border/50 bg-muted/20 hover:bg-muted/30",
+                      )}
+                    >
+                      <p className="text-[10px] text-muted-foreground">
+                        {item.label}
+                      </p>
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <p className="text-2xl font-semibold tracking-tight text-foreground">
+                          {item.value}
+                        </p>
+                        {selectedMovement === item.key ? (
+                          <Badge
+                            variant="outline"
+                            className="h-5 px-1.5 text-[9px]"
+                          >
+                            Aktif
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={unitExposureData}
+                      data={movementData}
                       margin={{ top: 4, right: 12, left: -24, bottom: 0 }}
                     >
                       <CartesianGrid
@@ -786,11 +669,8 @@ export default function ReportsPage() {
                         vertical={false}
                       />
                       <XAxis
-                        dataKey="orgName"
+                        dataKey="label"
                         tick={{ fontSize: 10 }}
-                        tickFormatter={(value: string) =>
-                          value.length > 16 ? `${value.slice(0, 16)}…` : value
-                        }
                         axisLine={false}
                         tickLine={false}
                       />
@@ -801,10 +681,7 @@ export default function ReportsPage() {
                         tickLine={false}
                       />
                       <RechartsTooltip
-                        formatter={(value) => [
-                          `${value ?? 0} poin`,
-                          "Exposure",
-                        ]}
+                        formatter={(value) => [`${value ?? 0} risiko`, "Jumlah"]}
                         contentStyle={{
                           background: "oklch(0.98 0.003 170 / 95%)",
                           border: "1px solid oklch(0.91 0.008 170)",
@@ -812,162 +689,249 @@ export default function ReportsPage() {
                           fontSize: "11px",
                         }}
                       />
-                      <Bar
-                        dataKey="exposureScore"
-                        fill="oklch(0.68 0.17 35)"
-                        radius={[6, 6, 0, 0]}
-                      />
+                      <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                        {movementData.map((item) => (
+                          <Cell key={item.label} fill={item.fill} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="mt-3 space-y-2">
-                  {unitExposureData.slice(0, 3).map((item) => (
-                    <button
-                      key={item.orgName}
-                      type="button"
-                      onClick={() => toggleUnitFilter(item.orgName)}
-                      className={cn(
-                        "flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors",
-                        selectedUnit === item.orgName
-                          ? "border-primary/40 bg-primary/10"
-                          : "border-border/50 bg-muted/20 hover:bg-muted/30",
-                      )}
-                    >
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {item.orgName}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {item.extreme} sangat tinggi, {item.high} tinggi
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 font-semibold text-foreground">
-                        {item.exposureScore}
-                        <ArrowUpRight className="size-3.5 text-muted-foreground" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
               </>
             ) : (
-              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Belum ada data risiko untuk menyusun ranking unit prioritas.
+              <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+                Perbandingan cycle belum tersedia
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 bg-card/80">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <TrendingUp className="size-4" />
-                Tren Risiko
-              </CardTitle>
-              <Select
-                value={trendWindow}
-                onValueChange={(value) =>
-                  setTrendWindow(value as RiskTrendWindow)
-                }
-              >
-                <SelectTrigger className="h-7 w-28 text-[10px] bg-muted/30 border-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2s">2 Semester</SelectItem>
-                  <SelectItem value="4s">4 Semester</SelectItem>
-                  <SelectItem value="all">Semua</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {hasTrendData ? (
-              <>
-                <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={trendData}
-                      margin={{ top: 4, right: 10, left: -10, bottom: 0 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="oklch(0.5 0 0 / 8%)"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="period"
-                        tick={{ fontSize: 10 }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 10 }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <RechartsTooltip
-                        contentStyle={{
-                          background: "oklch(0.98 0.003 170 / 95%)",
-                          border: "1px solid oklch(0.91 0.008 170)",
-                          borderRadius: "8px",
-                          fontSize: "11px",
-                          backdropFilter: "blur(8px)",
-                        }}
-                      />
-                      {Object.entries(trendColors).map(([key, color]) => (
-                        <Bar
-                          key={key}
-                          dataKey={key}
-                          stackId="risk"
-                          fill={color}
-                          radius={
-                            key === "Sangat Tinggi"
-                              ? [3, 3, 0, 0]
-                              : [0, 0, 0, 0]
-                          }
+        <RiskMovementByOrg
+          data={movementByOrgData}
+          currentSort={movementByOrgSort}
+          onSortChange={setMovementByOrgSort}
+        />
+      </section>
+
+      <section id="risk-exposure-trend" className="space-y-6 scroll-mt-24">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="border-border/50 bg-card/80">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-sm font-semibold">
+                    Paparan Risiko
+                  </CardTitle>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Peringkat unit berdasarkan skor paparan berbobot untuk siklus{" "}
+                    {exportCycle}.
+                  </p>
+                </div>
+                <Badge variant="outline" className="h-5 px-2 text-[10px]">
+                  {exportCycle}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {hasExposureData ? (
+                <>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={unitExposureData}
+                        margin={{ top: 4, right: 12, left: -24, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="oklch(0.5 0 0 / 8%)"
+                          vertical={false}
                         />
-                      ))}
-                    </BarChart>
-                  </ResponsiveContainer>
+                        <XAxis
+                          dataKey="orgName"
+                          tick={{ fontSize: 10 }}
+                          tickFormatter={(value: string) =>
+                            value.length > 16 ? `${value.slice(0, 16)}…` : value
+                          }
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          allowDecimals={false}
+                          tick={{ fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <RechartsTooltip
+                          formatter={(value) => [
+                            `${value ?? 0} poin`,
+                            "Exposure",
+                          ]}
+                          contentStyle={{
+                            background: "oklch(0.98 0.003 170 / 95%)",
+                            border: "1px solid oklch(0.91 0.008 170)",
+                            borderRadius: "8px",
+                            fontSize: "11px",
+                          }}
+                        />
+                        <Bar
+                          dataKey="exposureScore"
+                          fill="oklch(0.68 0.17 35)"
+                          radius={[6, 6, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {unitExposureData.slice(0, 3).map((item) => (
+                      <button
+                        key={item.orgName}
+                        type="button"
+                        onClick={() => toggleUnitFilter(item.orgName)}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                          selectedUnit === item.orgName
+                            ? "border-primary/40 bg-primary/10"
+                            : "border-border/50 bg-muted/20 hover:bg-muted/30",
+                        )}
+                      >
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {item.orgName}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {item.extreme} sangat tinggi, {item.high} tinggi
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 font-semibold text-foreground">
+                          {item.exposureScore}
+                          <ArrowUpRight className="size-3.5 text-muted-foreground" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+                  Belum ada data risiko untuk menyusun ranking unit prioritas.
                 </div>
-                <div className="mt-3 flex items-center justify-center gap-4">
-                  {Object.entries(trendColors).map(([key, color]) => (
-                    <div key={key} className="flex items-center gap-1.5">
-                      <div
-                        className="size-2.5 rounded-full"
-                        style={{ background: color }}
-                      />
-                      <span className="text-[10px] text-muted-foreground">
-                        {key}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Belum ada data semester untuk menampilkan tren risiko.
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-card/80">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <TrendingUp className="size-4" />
+                  Tren Risiko
+                </CardTitle>
+                <Select
+                  value={trendWindow}
+                  onValueChange={(value) =>
+                    setTrendWindow(value as RiskTrendWindow)
+                  }
+                >
+                  <SelectTrigger className="h-7 w-28 border-none bg-muted/30 text-[10px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2s">2 Semester</SelectItem>
+                    <SelectItem value="4s">4 Semester</SelectItem>
+                    <SelectItem value="all">Semua</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </CardContent>
-        </Card>
-        <CriticalRiskRateTrend data={criticalRiskRateData} />
-      </div>
-
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold text-foreground">Analisis Tren</p>
-          <p className="text-xs text-muted-foreground">
-            Tren skor risiko dan tingkat kekritisan antar semester.
-          </p>
+            </CardHeader>
+            <CardContent>
+              {hasTrendData ? (
+                <>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={trendData}
+                        margin={{ top: 4, right: 10, left: -10, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="oklch(0.5 0 0 / 8%)"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="period"
+                          tick={{ fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{
+                            background: "oklch(0.98 0.003 170 / 95%)",
+                            border: "1px solid oklch(0.91 0.008 170)",
+                            borderRadius: "8px",
+                            fontSize: "11px",
+                            backdropFilter: "blur(8px)",
+                          }}
+                        />
+                        {Object.entries(trendColors).map(([key, color]) => (
+                          <Bar
+                            key={key}
+                            dataKey={key}
+                            stackId="risk"
+                            fill={color}
+                            radius={
+                              key === "Sangat Tinggi"
+                                ? [3, 3, 0, 0]
+                                : [0, 0, 0, 0]
+                            }
+                          />
+                        ))}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="mt-3 flex items-center justify-center gap-4">
+                    {Object.entries(trendColors).map(([key, color]) => (
+                      <div key={key} className="flex items-center gap-1.5">
+                        <div
+                          className="size-2.5 rounded-full"
+                          style={{ background: color }}
+                        />
+                        <span className="text-[10px] text-muted-foreground">
+                          {key}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+                  Belum ada data semester untuk menampilkan tren risiko.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <CriticalRiskRateTrend data={criticalRiskRateData} />
         </div>
-      </div>
 
-      <div className="grid gap-6">
-        <InherentResidualTrend data={inherentResidualData} />
-        <OrganizationLatestProgressChart data={organizationProgressData} />
-      </div>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Analisis Tren
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Tren skor risiko dan tingkat kekritisan antar semester.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-6">
+          <InherentResidualTrend data={inherentResidualData} />
+          <OrganizationLatestProgressChart data={organizationProgressData} />
+        </div>
+      </section>
 
       {selectedUnit || selectedMovement ? (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
@@ -991,29 +955,39 @@ export default function ReportsPage() {
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
-        <div>
+      <section className="grid gap-4 md:grid-cols-2">
+        <Link
+          href="/reports/compliance-monitoring"
+          className="group rounded-2xl border border-border/60 bg-card/70 p-5 transition-colors hover:border-primary/30 hover:bg-primary/5"
+        >
           <p className="text-sm font-semibold text-foreground">
-            Analisis Lanjutan
+            Monitoring Kepatuhan
           </p>
-          <p className="text-xs text-muted-foreground">
-            Insight tambahan dari data mitigasi, KRI, dan waktu respons.
+          <p className="mt-1 text-xs text-muted-foreground">
+            Buka overdue mitigasi, breach KRI, dan waktu respons unit.
           </p>
-        </div>
-      </div>
+          <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary">
+            Buka halaman
+            <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </span>
+        </Link>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <OverdueMitigationTimeline data={overdueTimelineData} />
-        <KRIBreachSummary data={kriBreachData} />
-        <UnitResponseTimeChart data={responseTimeData} />
-      </div>
-
-      <RiskCycleDetailReport
-        fromCycle={previousCycle}
-        toCycle={exportCycle}
-        externalOrgName={selectedUnit}
-        externalMovement={selectedMovement}
-      />
+        <Link
+          href="/reports/cycle-detail"
+          className="group rounded-2xl border border-border/60 bg-card/70 p-5 transition-colors hover:border-primary/30 hover:bg-primary/5"
+        >
+          <p className="text-sm font-semibold text-foreground">
+            Detail Siklus Risiko
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Telusuri perubahan risiko antar periode secara rinci.
+          </p>
+          <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary">
+            Buka halaman
+            <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </span>
+        </Link>
+      </section>
     </div>
   );
 }

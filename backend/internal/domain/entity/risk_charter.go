@@ -21,6 +21,7 @@ type RiskCharter struct {
 	InternalContext    string     `json:"internalContext"`
 	ExternalContext    string     `json:"externalContext"`
 	StakeholderSummary string     `json:"stakeholderSummary"`
+	Status             string     `json:"status"`
 	CreatedBy          *uuid.UUID `json:"createdBy,omitempty"`
 	ApprovedBy         *uuid.UUID `json:"approvedBy,omitempty"`
 	ApprovedAt         *time.Time `json:"approvedAt,omitempty"`

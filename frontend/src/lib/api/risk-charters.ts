@@ -29,6 +29,7 @@ export type UpsertRiskCharterRequest = {
   internalContext: string;
   externalContext: string;
   stakeholderSummary: string;
+  status?: string;
 };
 
 export async function listRiskCharters(

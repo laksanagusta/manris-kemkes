@@ -28,6 +28,7 @@ export type UpsertRiskObjectiveRequest = {
   program: string;
   kegiatan: string;
   processBusiness: string;
+  status?: string;
 };
 
 export async function listRiskObjectives(

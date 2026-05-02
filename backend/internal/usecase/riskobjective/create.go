@@ -20,16 +20,17 @@ func NewCreateRiskObjectiveUseCase(repo repository.RiskObjectiveRepository) *Cre
 
 type CreateRiskObjectiveInput struct {
 	OrganizationID        uuid.UUID  `json:"organizationId"`
-	CharterID            *uuid.UUID `json:"charterId"`
-	Period               string     `json:"period"`
-	Tujuan               string     `json:"tujuan"`
-	Sasaran              string     `json:"sasaran"`
-	IndikatorKinerjaUtama string    `json:"indikatorKinerjaUtama"`
-	Target               string     `json:"target"`
-	Program              string     `json:"program"`
-	Kegiatan             string     `json:"kegiatan"`
-	ProcessBusiness      string     `json:"processBusiness"`
-	CreatedBy            *uuid.UUID `json:"-"`
+	CharterID             *uuid.UUID `json:"charterId"`
+	Period                string     `json:"period"`
+	Tujuan                string     `json:"tujuan"`
+	Sasaran               string     `json:"sasaran"`
+	IndikatorKinerjaUtama string     `json:"indikatorKinerjaUtama"`
+	Target                string     `json:"target"`
+	Program               string     `json:"program"`
+	Kegiatan              string     `json:"kegiatan"`
+	ProcessBusiness       string     `json:"processBusiness"`
+	Status                string     `json:"status"`
+	CreatedBy             *uuid.UUID `json:"-"`
 }
 
 func (uc *CreateRiskObjectiveUseCase) Execute(ctx context.Context, input CreateRiskObjectiveInput) (*entity.RiskObjective, error) {
@@ -43,7 +44,8 @@ func (uc *CreateRiskObjectiveUseCase) Execute(ctx context.Context, input CreateR
 		Target:                strings.TrimSpace(input.Target),
 		Program:               strings.TrimSpace(input.Program),
 		Kegiatan:              strings.TrimSpace(input.Kegiatan),
-		ProcessBusiness:      strings.TrimSpace(input.ProcessBusiness),
+		ProcessBusiness:       strings.TrimSpace(input.ProcessBusiness),
+		Status:                strings.TrimSpace(input.Status),
 		CreatedBy:             input.CreatedBy,
 	}
 

@@ -42,7 +42,7 @@ func WithLeftAligned(cols ...int) TableOption {
 	}
 }
 
-// RenderTable renders a header row followed by data rows with full borders.
+// RenderTable renders a plain bordered table with a standard header row.
 // colWidths should ideally sum to gridSize (12) for exact column sizing.
 func RenderTable(header []string, rows [][]string, colWidths []uint, opts ...TableOption) []core.Row {
 	cfg := tableConfig{rowHeight: RowHeight, fontSize: FontSizeBody}
@@ -61,21 +61,20 @@ func RenderTable(header []string, rows [][]string, colWidths []uint, opts ...Tab
 		cell.Add(text.New(h, props.Text{
 			Size:   cfg.fontSize,
 			Align:  align.Center,
-			Color:  WhiteBg,
+			Color:  BlackColor,
 			Style:  fontstyle.Bold,
-			Family: fontfamily.Helvetica,
+			Family: fontfamily.Arial,
 			Top:    2,
 			Left:   2,
 			Right:  2,
 		}))
-		cell.WithStyle(HeaderCellStyle())
+		cell.WithStyle(CellBorder())
 		headerRow.Add(cell)
 	}
 	result = append(result, headerRow)
 
 	// Data rows.
-	for rowIdx, rowData := range rows {
-		isAlt := rowIdx%2 == 1
+	for _, rowData := range rows {
 		dataRow := row.New(cfg.rowHeight)
 		for i, cellText := range rowData {
 			if i >= len(propWidths) {
@@ -90,17 +89,13 @@ func RenderTable(header []string, rows [][]string, colWidths []uint, opts ...Tab
 				Size:   cfg.fontSize,
 				Align:  cellAlign,
 				Color:  BlackColor,
-				Family: fontfamily.Helvetica,
+				Family: fontfamily.Arial,
 				Style:  fontstyle.Normal,
 				Top:    2,
 				Left:   3,
 				Right:  3,
 			}))
-			if isAlt {
-				cell.WithStyle(CellBorderWithBg(AltRowBg))
-			} else {
-				cell.WithStyle(CellBorder())
-			}
+			cell.WithStyle(CellBorder())
 			dataRow.Add(cell)
 		}
 		result = append(result, dataRow)

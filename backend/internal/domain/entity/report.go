@@ -38,3 +38,58 @@ type ReportData struct {
 	KRIs      []*KRI            // KRIs linked to cycle risks
 	TrendData []CycleTrendPoint // Recent cycles trend data
 }
+
+// KMKReportSectionStatus captures the availability of a section in a formal KMK report.
+type KMKReportSectionStatus struct {
+	Key       string `json:"key"`
+	Label     string `json:"label"`
+	Available bool   `json:"available"`
+	Count     int    `json:"count"`
+	Note      string `json:"note"`
+}
+
+// KMKFormalReportData aggregates the inputs required to render a formal KMK report PDF.
+type KMKFormalReportData struct {
+	Report               *FormalReport
+	GeneratedAt          time.Time
+	Organization         *Organization
+	Period               string
+	RiskSummary          ReportSummary
+	TMPMR                *TMPMRAssessment
+	SectionStatus        []KMKReportSectionStatus
+	AnnualProfile        *AnnualRiskProfileData
+	ImplementationReport *SemiannualImplementationData
+	SupervisionReport    *SemiannualSupervisionData
+	TMPMRReport          *TMPMRReportData
+}
+
+type AnnualRiskProfileData struct {
+	Report        *FormalReport
+	Organization  *Organization
+	Summary       ReportSummary
+	Risks         []*Risk
+	TopRisks      []*Risk
+	Heatmap       [5][5]int
+	PreviousCycle string
+}
+
+type SemiannualImplementationData struct {
+	Report        *FormalReport
+	Organization  *Organization
+	Summary       ReportSummary
+	SectionStatus []KMKReportSectionStatus
+}
+
+type SemiannualSupervisionData struct {
+	Report        *FormalReport
+	Organization  *Organization
+	Summary       ReportSummary
+	SectionStatus []KMKReportSectionStatus
+}
+
+type TMPMRReportData struct {
+	Report       *FormalReport
+	Organization *Organization
+	Summary      ReportSummary
+	TMPMR        *TMPMRAssessment
+}

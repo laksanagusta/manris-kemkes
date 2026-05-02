@@ -8,19 +8,17 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
-  Goal,
+  Archive,
   MoreHorizontal,
   Plus,
   RefreshCw,
   RotateCcw,
   Search,
-  Trash2,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -34,7 +32,6 @@ import type { RiskObjective } from "@/types/risk-objective";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -65,8 +62,27 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
+const objectiveStatusLabel: Record<string, string> = {
+  draft: "Draft",
+  in_review: "Diperiksa",
+  approved: "Disahkan",
+  archived: "Diarsipkan",
+};
+
+function getObjectiveStatusBadgeClass(status?: string) {
+  switch (status) {
+    case "approved":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "in_review":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "archived":
+      return "border-slate-200 bg-slate-50 text-slate-600";
+    default:
+      return "border-border bg-muted/40 text-muted-foreground";
+  }
+}
+
 export default function RiskObjectivesPage() {
-  const router = useRouter();
   const { token } = useAuth();
 
   const [items, setItems] = useState<RiskObjective[]>([]);
@@ -77,7 +93,6 @@ export default function RiskObjectivesPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [periodFilter, setPeriodFilter] = useState("all");
-  const [statusFilter] = useState<string | "all">("all");
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
@@ -120,7 +135,7 @@ export default function RiskObjectivesPage() {
         setLoading(false);
       }
     },
-    [token, periodFilter, statusFilter],
+    [token, periodFilter],
   );
 
   useEffect(() => {
@@ -144,6 +159,7 @@ export default function RiskObjectivesPage() {
           program: objective.program,
           kegiatan: objective.kegiatan,
           processBusiness: objective.processBusiness,
+          status: "archived",
         });
         toast.success("Sasaran berhasil diarsipkan.");
         loadData(false);
@@ -181,13 +197,6 @@ export default function RiskObjectivesPage() {
       ].some((value) => value.includes(query));
     });
   }, [deferredSearch, items, organizationMap]);
-
-  const summary = useMemo(
-    () => ({
-      total: filteredItems.length,
-    }),
-    [filteredItems],
-  );
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const paginatedItems = useMemo(
@@ -297,6 +306,7 @@ export default function RiskObjectivesPage() {
                   <TableHead>Periode</TableHead>
                   <TableHead>Sasaran</TableHead>
                   <TableHead>IKU</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Diperbarui</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -348,6 +358,17 @@ export default function RiskObjectivesPage() {
                       <TableCell className="max-w-[180px] truncate">
                         {item.indikatorKinerjaUtama}
                       </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "h-6 rounded-full px-2 text-[10px] font-medium",
+                            getObjectiveStatusBadgeClass(item.status),
+                          )}
+                        >
+                          {objectiveStatusLabel[item.status] ?? item.status}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(item.updatedAt).toLocaleDateString("id-ID", {
                           year: "numeric",
@@ -374,8 +395,8 @@ export default function RiskObjectivesPage() {
                               onClick={() => handleArchive(item.id)}
                               disabled={false}
                             >
-                              <Trash2 className="size-3.5" />
-                              Hapus
+                              <Archive className="size-3.5" />
+                              Arsipkan
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
