@@ -1,6 +1,0 @@
-./auth.go
-./register.go
-./risk_monitoring.go
-./risk_query.go
-./risk_update_merge.go
-./risk_write.go

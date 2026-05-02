@@ -1,6 +1,0 @@
-./dts.go
-./oid.go
-./pkcs1.go
-./pkcs7.go
-./revocate.go
-./sign.go

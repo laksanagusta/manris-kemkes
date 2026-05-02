@@ -1,6 +1,0 @@
-./action.go
-./get_by_entity.go
-./get_detail.go
-./list.go
-./pending_count.go
-./submit.go

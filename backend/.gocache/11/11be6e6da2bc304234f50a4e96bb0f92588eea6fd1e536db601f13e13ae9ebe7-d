@@ -1,7 +1,0 @@
-./create.go
-./delete.go
-./get.go
-./link_risks.go
-./list.go
-./delete_test.go
-./scope_test.go
