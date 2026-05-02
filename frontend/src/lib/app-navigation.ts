@@ -46,6 +46,12 @@ export const mainMenuItems: MainMenuGroup[] = [
         matchHrefs: ["/management/charters"],
       },
       {
+        label: "Eskalasi Risiko",
+        href: "/risk/cascading",
+        icon: "GitBranch",
+        matchHrefs: ["/risk/cascading"],
+      },
+      {
         label: "Sasaran & IKU",
         href: "/management/objectives",
         icon: "Goal",
@@ -113,6 +119,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/management": "Risk Governance",
   "/management/charters": "Piagam MR",
   "/management/charters/new": "Buat Piagam MR",
+  "/risk/cascading": "Eskalasi Risiko",
   "/management/objectives": "Sasaran & IKU",
   "/management/objectives/new": "Buat Sasaran",
   "/management/criteria": "Scope & Criteria",

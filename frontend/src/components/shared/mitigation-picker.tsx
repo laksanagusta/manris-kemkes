@@ -74,7 +74,7 @@ export function MitigationPicker({ title, description, cause, impactDescription,
         open={modalOpen}
         onOpenChange={setModalOpen}
         title="Rekomendasi AI untuk Mitigasi"
-        description="Gunakan saran ini sebagai titik awal, lalu sesuaikan dengan kapasitas unit dan tenggat yang realistis."
+        description="Gunakan saran ini sebagai titik awal, lalu lengkapi detail KMK seperti tahap aktivitas, output, dan sumber daya."
         suggestions={suggestions.filter((s) => !existingActions.some((a) => a.includes(s.text)))}
         isLoading={loading}
         onApply={handleApply}

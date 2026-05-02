@@ -89,6 +89,13 @@ func main() {
 		container.RiskCharterUpdateUC,
 		container.RiskCharterListUC,
 	)
+	cleanRiskCascadeHandler := httpHandler.NewRiskCascadeHandler(
+		container.RiskCascadeCreateMandatoryUC,
+		container.RiskCascadeCreateBottomUpUC,
+		container.RiskCascadeDecideUC,
+		container.RiskCascadeDeleteUC,
+		container.RiskCascadeListUC,
+	)
 
 	cleanRiskObjectiveHandler := httpHandler.NewRiskObjectiveHandler(
 		container.RiskObjectiveCreateUC,
@@ -214,6 +221,13 @@ func main() {
 	protected.Post("/risk-charters", cleanRiskCharterHandler.Create)
 	protected.Get("/risk-charters/:id", cleanRiskCharterHandler.Get)
 	protected.Put("/risk-charters/:id", cleanRiskCharterHandler.Update)
+
+	// Risk Cascades (Clean Architecture)
+	protected.Get("/risk-cascades", cleanRiskCascadeHandler.List)
+	protected.Post("/risk-cascades/mandatory", cleanRiskCascadeHandler.CreateMandatory)
+	protected.Post("/risk-cascades/bottom-up", cleanRiskCascadeHandler.CreateBottomUp)
+	protected.Post("/risk-cascades/:id/decision", cleanRiskCascadeHandler.Decide)
+	protected.Delete("/risk-cascades/:id", cleanRiskCascadeHandler.Delete)
 
 	protected.Get("/risk-objectives", cleanRiskObjectiveHandler.List)
 	protected.Post("/risk-objectives", cleanRiskObjectiveHandler.Create)

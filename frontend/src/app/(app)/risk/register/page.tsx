@@ -208,6 +208,8 @@ function RiskRowActions({
   isReadOnly,
   onContinueMonitoring,
   onStartMonitoring,
+  onMandateCascade,
+  onEscalateCascade,
   onArchive,
   onRestore,
   onDeleteDraft,
@@ -216,6 +218,8 @@ function RiskRowActions({
   isReadOnly: boolean;
   onContinueMonitoring?: () => void;
   onStartMonitoring?: () => void;
+  onMandateCascade?: () => void;
+  onEscalateCascade?: () => void;
   onArchive?: () => void;
   onRestore?: () => void;
   onDeleteDraft?: () => void;
@@ -244,6 +248,22 @@ function RiskRowActions({
             <RefreshCcw className="size-3.5" />
             Mulai Pemantauan
           </DropdownMenuItem>
+        )}
+        {(onMandateCascade || onEscalateCascade) && (
+          <>
+            {onMandateCascade && (
+              <DropdownMenuItem onClick={onMandateCascade}>
+                <GitBranch className="size-3.5" />
+                Mandatkan Risiko
+              </DropdownMenuItem>
+            )}
+            {onEscalateCascade && (
+              <DropdownMenuItem onClick={onEscalateCascade}>
+                <GitBranch className="size-3.5 rotate-180" />
+                Usulkan Naik
+              </DropdownMenuItem>
+            )}
+          </>
         )}
         {onArchive && (
           <DropdownMenuItem onClick={onArchive}>
@@ -861,6 +881,12 @@ export default function RiskRegisterPage() {
         </div>
         {(!token || user?.isGlobal || !!user?.organizationId) && (
           <div className="flex flex-wrap gap-2">
+            <Link href="/risk/cascading">
+              <Button variant="outline" className="gap-2">
+                <GitBranch className="size-4" />
+                Eskalasi Risiko
+              </Button>
+            </Link>
             <Link href="/risk/register/bulk">
               <Button variant="outline" className="gap-2">
                 <Upload className="size-4" />
@@ -1261,6 +1287,16 @@ export default function RiskRegisterPage() {
                                   ? () => handleOpenConfirmDialog(risk)
                                   : undefined
                               }
+                              onMandateCascade={() =>
+                                router.push(
+                                  `/risk/cascading?sourceRiskId=${risk.id}&mode=mandatory`,
+                                )
+                              }
+                              onEscalateCascade={() =>
+                                router.push(
+                                  `/risk/cascading?sourceRiskId=${risk.id}&mode=bottom-up`,
+                                )
+                              }
                               onArchive={
                                 canArchive
                                   ? () => setRiskToArchive(risk)
@@ -1486,6 +1522,16 @@ export default function RiskRegisterPage() {
                             <RiskRowActions
                               risk={draft}
                               isReadOnly={isReadOnly}
+                              onMandateCascade={() =>
+                                router.push(
+                                  `/risk/cascading?sourceRiskId=${draft.id}&mode=mandatory`,
+                                )
+                              }
+                              onEscalateCascade={() =>
+                                router.push(
+                                  `/risk/cascading?sourceRiskId=${draft.id}&mode=bottom-up`,
+                                )
+                              }
                               onDeleteDraft={
                                 draft.status === "assessment_draft" &&
                                 !isReadOnly

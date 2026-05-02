@@ -72,6 +72,7 @@ type WorkingPaperRiskData struct {
 	TreatmentOption      string    `json:"treatment_option,omitempty"`
 	Mitigations          []string  `json:"mitigations,omitempty"`
 	MitigationDueDates   []string  `json:"mitigation_due_dates,omitempty"`
+	MitigationDetails    []string  `json:"mitigation_details,omitempty"`
 	TargetProbability    int       `json:"target_probability,omitempty"`
 	TargetImpact         int       `json:"target_impact,omitempty"`
 	TargetBobot          float64   `json:"target_bobot,omitempty"`
@@ -81,56 +82,57 @@ type WorkingPaperRiskData struct {
 	VersionNumber        int       `json:"versionNumber,omitempty"`
 
 	// Human-readable display labels
-	TingkatRisikoDisplay       string `json:"tingkat_risiko_display,omitempty"`
-	TargetTingkatRisikoDisplay string `json:"target_tingkat_risiko_display,omitempty"`
-	RiskAppetiteDisplay        string `json:"risk_appetite_display,omitempty"`
-	TreatmentOptionDisplay     string `json:"treatment_option_display,omitempty"`
+	TingkatRisikoDisplay        string `json:"tingkat_risiko_display,omitempty"`
+	TargetTingkatRisikoDisplay  string `json:"target_tingkat_risiko_display,omitempty"`
+	RiskAppetiteDisplay         string `json:"risk_appetite_display,omitempty"`
+	TreatmentOptionDisplay      string `json:"treatment_option_display,omitempty"`
 	ControlEffectivenessDisplay string `json:"control_effectiveness_display,omitempty"`
 
 	// Previous semester risk profile (for sheets 1 & 2)
 	Previous *WorkingPaperRiskSnapshot `json:"previous,omitempty"`
 
 	// Monitoring/realization data (for sheet 3)
-	MonitoringP              int     `json:"monitoring_p,omitempty"`
-	MonitoringD              int     `json:"monitoring_d,omitempty"`
-	MonitoringBobot           float64 `json:"monitoring_bobot,omitempty"`
-	MonitoringNilai           float64 `json:"monitoring_nilai,omitempty"`
-	MonitoringTingkatRisiko   string  `json:"monitoring_tingkat_risiko,omitempty"`
-	MonitoringTingkatRisikoDisplay string `json:"monitoring_tingkat_risiko_display,omitempty"`
-	MonitoringSimpulan        string  `json:"monitoring_simpulan,omitempty"`
-	MonitoringEfektivitas     string  `json:"monitoring_efektivitas,omitempty"`
-	JadwalPelaksanaan        string  `json:"jadwal_pelaksanaan,omitempty"`
-	PenanggungJawab          string  `json:"penanggung_jawab,omitempty"`
+	MonitoringP                    int     `json:"monitoring_p,omitempty"`
+	MonitoringD                    int     `json:"monitoring_d,omitempty"`
+	MonitoringBobot                float64 `json:"monitoring_bobot,omitempty"`
+	MonitoringNilai                float64 `json:"monitoring_nilai,omitempty"`
+	MonitoringTingkatRisiko        string  `json:"monitoring_tingkat_risiko,omitempty"`
+	MonitoringTingkatRisikoDisplay string  `json:"monitoring_tingkat_risiko_display,omitempty"`
+	MonitoringSimpulan             string  `json:"monitoring_simpulan,omitempty"`
+	MonitoringEfektivitas          string  `json:"monitoring_efektivitas,omitempty"`
+	JadwalPelaksanaan              string  `json:"jadwal_pelaksanaan,omitempty"`
+	PenanggungJawab                string  `json:"penanggung_jawab,omitempty"`
 }
 
 // WorkingPaperRiskSnapshot captures a previous-semester risk snapshot for export.
 type WorkingPaperRiskSnapshot struct {
-	Probability         int       `json:"probability,omitempty"`
-	Impact              int       `json:"impact,omitempty"`
-	Bobot               float64   `json:"bobot,omitempty"`
-	Nilai               float64   `json:"nilai,omitempty"`
-	TingkatRisiko       string    `json:"tingkat_risiko,omitempty"`
-	TingkatRisikoDisplay string    `json:"tingkat_risiko_display,omitempty"`
-	PrioritasRisiko     int       `json:"prioritas_risiko,omitempty"`
-	Cause               []string  `json:"cause,omitempty"`
-	RiskSource          string    `json:"risk_source,omitempty"`
-	Controllability    string    `json:"controllability,omitempty"`
-	ImpactDesc          []string  `json:"impact_desc,omitempty"`
-	RiskAppetite        string    `json:"risk_appetite,omitempty"`
-	RiskAppetiteDisplay string    `json:"risk_appetite_display,omitempty"`
-	TreatmentOption         string `json:"treatment_option,omitempty"`
-	TreatmentOptionDisplay  string `json:"treatment_option_display,omitempty"`
-	ExistingControl         string `json:"existing_control,omitempty"`
-	ControlEffectiveness         string `json:"control_effectiveness,omitempty"`
-	ControlEffectivenessDisplay  string `json:"control_effectiveness_display,omitempty"`
-	TargetProbability    int       `json:"target_probability,omitempty"`
-	TargetImpact        int       `json:"target_impact,omitempty"`
-	TargetBobot         float64   `json:"target_bobot,omitempty"`
-	TargetNilai         float64   `json:"target_nilai,omitempty"`
-	TargetTingkatRisiko string    `json:"target_tingkat_risiko,omitempty"`
-	TargetTingkatRisikoDisplay string `json:"target_tingkat_risiko_display,omitempty"`
-	Mitigations         []string  `json:"mitigations,omitempty"`
-	MitigationDueDates  []string  `json:"mitigation_due_dates,omitempty"`
+	Probability                 int      `json:"probability,omitempty"`
+	Impact                      int      `json:"impact,omitempty"`
+	Bobot                       float64  `json:"bobot,omitempty"`
+	Nilai                       float64  `json:"nilai,omitempty"`
+	TingkatRisiko               string   `json:"tingkat_risiko,omitempty"`
+	TingkatRisikoDisplay        string   `json:"tingkat_risiko_display,omitempty"`
+	PrioritasRisiko             int      `json:"prioritas_risiko,omitempty"`
+	Cause                       []string `json:"cause,omitempty"`
+	RiskSource                  string   `json:"risk_source,omitempty"`
+	Controllability             string   `json:"controllability,omitempty"`
+	ImpactDesc                  []string `json:"impact_desc,omitempty"`
+	RiskAppetite                string   `json:"risk_appetite,omitempty"`
+	RiskAppetiteDisplay         string   `json:"risk_appetite_display,omitempty"`
+	TreatmentOption             string   `json:"treatment_option,omitempty"`
+	TreatmentOptionDisplay      string   `json:"treatment_option_display,omitempty"`
+	ExistingControl             string   `json:"existing_control,omitempty"`
+	ControlEffectiveness        string   `json:"control_effectiveness,omitempty"`
+	ControlEffectivenessDisplay string   `json:"control_effectiveness_display,omitempty"`
+	TargetProbability           int      `json:"target_probability,omitempty"`
+	TargetImpact                int      `json:"target_impact,omitempty"`
+	TargetBobot                 float64  `json:"target_bobot,omitempty"`
+	TargetNilai                 float64  `json:"target_nilai,omitempty"`
+	TargetTingkatRisiko         string   `json:"target_tingkat_risiko,omitempty"`
+	TargetTingkatRisikoDisplay  string   `json:"target_tingkat_risiko_display,omitempty"`
+	Mitigations                 []string `json:"mitigations,omitempty"`
+	MitigationDueDates          []string `json:"mitigation_due_dates,omitempty"`
+	MitigationDetails           []string `json:"mitigation_details,omitempty"`
 }
 
 func (r *WorkingPaperRiskData) NormalizeDerivedScores() {

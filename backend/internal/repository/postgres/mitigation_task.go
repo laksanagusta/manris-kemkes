@@ -158,7 +158,8 @@ func (r *mitigationTaskRepository) GetRecurringMitigations(ctx context.Context) 
 	rows, err := r.pool.Query(ctx,
 		`SELECT m.id, m.risk_id, m.action, m.owner, m.owner_user_id, m.due_date::text,
 		        m.frequency, m.recurring_interval, m.report_day, m.report_date,
-		        m.target_cost, m.sort_order, m.created_at, COALESCE(r.assessment_cycle, '')
+		        m.target_cost, m.sort_order, m.created_at, COALESCE(r.assessment_cycle, ''),
+		        m.mitigation_type, m.activity_stage, m.expected_output, m.quantitative_target, m.supporting_unit, m.resources_required, m.contingency_plan, m.potential_obstacle, m.cost_benefit_note, m.is_breakthrough_activity, m.is_existing_control
 		 FROM mitigations m
 		 JOIN risks r ON m.risk_id = r.id
 		 WHERE m.frequency = 'rutin'
@@ -178,6 +179,7 @@ func (r *mitigationTaskRepository) GetRecurringMitigations(ctx context.Context) 
 			&m.ID, &m.RiskID, &m.Action, &m.Owner, &m.OwnerUserID, &m.DueDate,
 			&m.Frequency, &m.RecurringInterval, &m.ReportDay, &m.ReportDate,
 			&m.TargetCost, &m.SortOrder, &m.CreatedAt, &m.AssessmentCycle,
+			&m.MitigationType, &m.ActivityStage, &m.ExpectedOutput, &m.QuantitativeTarget, &m.SupportingUnit, &m.ResourcesRequired, &m.ContingencyPlan, &m.PotentialObstacle, &m.CostBenefitNote, &m.IsBreakthroughActivity, &m.IsExistingControl,
 		); err != nil {
 			return nil, fmt.Errorf("scan recurring mitigation: %w", err)
 		}

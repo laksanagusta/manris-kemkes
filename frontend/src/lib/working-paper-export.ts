@@ -40,6 +40,7 @@ function getProfileRow(risk: WorkingPaperRiskData): ExportableRiskRow {
     treatment_option_display: src === prev ? (prev.treatment_option_display ?? prev.treatment_option) : (risk.treatment_option_display ?? risk.treatment_option),
     mitigations: src.mitigations ?? risk.mitigations,
     mitigation_due_dates: src.mitigation_due_dates ?? risk.mitigation_due_dates,
+    mitigation_details: src.mitigation_details ?? risk.mitigation_details,
     // Target scores — prefer previous snapshot
     target_probability: src.target_probability ?? risk.target_probability,
     target_impact: src.target_impact ?? risk.target_impact,
@@ -138,6 +139,14 @@ function estimateRowHeight(worksheet: ExcelJS.Worksheet, rowNum: number, startCo
 function joinArray(values: string[] | undefined | null): string {
   if (!values || values.length === 0) return "";
   return values.filter(Boolean).join("\n");
+}
+
+function formatMitigationNarrative(risk: ExportableRiskRow): string {
+  const detailBlocks = (risk.mitigation_details as string[] | undefined)?.filter(Boolean) ?? [];
+  if (detailBlocks.length > 0) {
+    return detailBlocks.join("\n\n");
+  }
+  return joinArray(risk.mitigations as string[] | undefined);
 }
 
 function safeStr(value: string | undefined | null): string {
@@ -498,7 +507,7 @@ function buildPenilaianRisikoSheet(
     dataRow.getCell(C + 15).value = safeNum(risk.prioritas_risiko);
     dataRow.getCell(C + 16).value = safeStr(riskAppetite);
     dataRow.getCell(C + 17).value = safeStr(treatmentOption);
-    dataRow.getCell(C + 18).value = (risk.mitigations ?? []).filter(Boolean).join(", ");
+    dataRow.getCell(C + 18).value = formatMitigationNarrative(risk);
     dataRow.getCell(C + 19).value = (risk.mitigation_due_dates ?? []).filter(Boolean).map((d: string) => formatDate(d)).join(", ");
     dataRow.getCell(C + 20).value = safeNum(risk.target_probability);
     dataRow.getCell(C + 21).value = safeNum(risk.target_impact);

@@ -55,6 +55,7 @@ var (
 	ErrInvalidProbability     = &AppError{Code: "INVALID_PROBABILITY", Message: "probability must be between 1-5"}
 	ErrInvalidImpact          = &AppError{Code: "INVALID_IMPACT", Message: "impact must be between 1-5"}
 	ErrInvalidRiskCategory    = &AppError{Code: "INVALID_RISK_CATEGORY", Message: "invalid risk category"}
+	ErrInvalidMitigationType  = &AppError{Code: "INVALID_MITIGATION_TYPE", Message: "invalid mitigation type"}
 	ErrInvalidOwner           = &AppError{Code: "INVALID_OWNER", Message: "owner cannot be empty"}
 	ErrInvalidFileType        = &AppError{Code: "INVALID_FILE_TYPE", Message: "only PDF files are supported"}
 	ErrFileTooLarge           = &AppError{Code: "FILE_TOO_LARGE", Message: "file exceeds the maximum allowed size"}
@@ -148,6 +149,7 @@ func IsValidation(err error) bool {
 		errors.Is(err, ErrInvalidProbability) ||
 		errors.Is(err, ErrInvalidImpact) ||
 		errors.Is(err, ErrInvalidRiskCategory) ||
+		errors.Is(err, ErrInvalidMitigationType) ||
 		errors.Is(err, ErrInvalidOwner) ||
 		errors.Is(err, ErrInvalidFileType) ||
 		errors.Is(err, ErrFileTooLarge) ||

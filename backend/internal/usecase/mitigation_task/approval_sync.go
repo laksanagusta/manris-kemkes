@@ -37,6 +37,9 @@ func (uc *EnsureTasksForApprovedRiskUseCase) Execute(ctx context.Context, riskID
 		if mitigation.ID == uuid.Nil || mitigation.DueDate == nil || *mitigation.DueDate == "" {
 			continue
 		}
+		if mitigation.IsExistingControl {
+			continue
+		}
 
 		dueDate := *mitigation.DueDate
 		exists, err := uc.taskRepo.TaskExistsForPeriod(ctx, mitigation.ID, dueDate, dueDate)
