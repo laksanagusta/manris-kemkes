@@ -1,0 +1,8 @@
+./cell.go
+./config.go
+./customfont.go
+./dimensions.go
+./image.go
+./margins.go
+./metadata.go
+./protection.go

@@ -1,0 +1,10 @@
+./change_password.go
+./login.go
+./me.go
+./payload.go
+./session.go
+./update_profile.go
+./change_password_test.go
+./login_test.go
+./me_test.go
+./update_profile_test.go

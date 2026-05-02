@@ -1,0 +1,7 @@
+./basic.go
+./batch_create.go
+./create.go
+./helpers.go
+./helpers_test.go
+./list_scope_test.go
+./scope_test.go

@@ -1,0 +1,7 @@
+./chart.go
+./heatmap.go
+./renderer.go
+./styles.go
+./table.go
+./chart_png_test.go
+./renderer_test.go

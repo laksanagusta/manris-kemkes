@@ -1,0 +1,4 @@
+./approval_sync.go
+./usecases.go
+./approval_sync_test.go
+./usecases_test.go

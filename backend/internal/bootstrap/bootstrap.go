@@ -22,18 +22,19 @@ import (
 	controluc "github.com/manris/backend/internal/usecase/control"
 	externalextPICuc "github.com/manris/backend/internal/usecase/external_pic"
 	formusecase "github.com/manris/backend/internal/usecase/form"
+	impactcriteriauc "github.com/manris/backend/internal/usecase/impactcriteria"
 	incidentuc "github.com/manris/backend/internal/usecase/incident"
 	kriuc "github.com/manris/backend/internal/usecase/kri"
 	krireportuc "github.com/manris/backend/internal/usecase/kri_report"
+	likelihoodassessmentuc "github.com/manris/backend/internal/usecase/likelihoodassessment"
 	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
 	reportuc "github.com/manris/backend/internal/usecase/report"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
+	riskcascadeuc "github.com/manris/backend/internal/usecase/riskcascade"
 	riskcharteruc "github.com/manris/backend/internal/usecase/riskcharter"
 	riskobjectiveuc "github.com/manris/backend/internal/usecase/riskobjective"
-	likelihoodassessmentuc "github.com/manris/backend/internal/usecase/likelihoodassessment"
-	impactcriteriauc "github.com/manris/backend/internal/usecase/impactcriteria"
 	systemuc "github.com/manris/backend/internal/usecase/system"
 	systemsettinguc "github.com/manris/backend/internal/usecase/system_setting"
 	useruc "github.com/manris/backend/internal/usecase/user"
@@ -47,28 +48,29 @@ type Container struct {
 	Cfg  *config.Config
 
 	// Repositories
-	UserRepository           domainrepo.UserRepository
-	OrgRepository            domainrepo.OrganizationRepository
-	RiskRepository           domainrepo.RiskRepository
-	IncidentRepository       domainrepo.IncidentRepository
-	KRIRepository            domainrepo.KRIRepository
-	ControlRepository        domainrepo.ControlRepository
-	ApprovalRepository       domainrepo.ApprovalRepository
-	SystemRepository         domainrepo.SystemRepository
-	SystemSettingRepository  domainrepo.SystemSettingRepository
-	MitigationTaskRepository domainrepo.MitigationTaskRepository
-	KRIReportRepository      domainrepo.KRIReportRepository
-	CommLogRepository        domainrepo.CommunicationLogRepository
-	MMRepository             domainrepo.MeetingMinuteRepository
-	FormRepository           domainrepo.FormRepository
-	FormAssignmentRepository domainrepo.FormAssignmentRepository
-	FormResponseRepository   domainrepo.FormResponseRepository
-	ExternalPICRepository    domainrepo.ExternalPICRepository
-	WPRepository             domainrepo.WorkingPaperRepository
-	RiskCharterRepository    domainrepo.RiskCharterRepository
-	RiskObjectiveRepository   domainrepo.RiskObjectiveRepository
+	UserRepository                 domainrepo.UserRepository
+	OrgRepository                  domainrepo.OrganizationRepository
+	RiskRepository                 domainrepo.RiskRepository
+	RiskCascadeRepository          domainrepo.RiskCascadeRepository
+	IncidentRepository             domainrepo.IncidentRepository
+	KRIRepository                  domainrepo.KRIRepository
+	ControlRepository              domainrepo.ControlRepository
+	ApprovalRepository             domainrepo.ApprovalRepository
+	SystemRepository               domainrepo.SystemRepository
+	SystemSettingRepository        domainrepo.SystemSettingRepository
+	MitigationTaskRepository       domainrepo.MitigationTaskRepository
+	KRIReportRepository            domainrepo.KRIReportRepository
+	CommLogRepository              domainrepo.CommunicationLogRepository
+	MMRepository                   domainrepo.MeetingMinuteRepository
+	FormRepository                 domainrepo.FormRepository
+	FormAssignmentRepository       domainrepo.FormAssignmentRepository
+	FormResponseRepository         domainrepo.FormResponseRepository
+	ExternalPICRepository          domainrepo.ExternalPICRepository
+	WPRepository                   domainrepo.WorkingPaperRepository
+	RiskCharterRepository          domainrepo.RiskCharterRepository
+	RiskObjectiveRepository        domainrepo.RiskObjectiveRepository
 	LikelihoodAssessmentRepository domainrepo.LikelihoodAssessmentRepository
-	ImpactCriteriaRepository      domainrepo.ImpactCriteriaRepository
+	ImpactCriteriaRepository       domainrepo.ImpactCriteriaRepository
 
 	// Domain Services
 	OrgHierarchySvc *domainsvc.OrganizationHierarchy
@@ -116,6 +118,13 @@ type Container struct {
 	RiskListCycleSnapshotUC     *riskuc.ListRiskCycleSnapshotUseCase
 	RiskMonitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase
 	RiskCreateMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase
+
+	// Risk Cascade UseCases
+	RiskCascadeCreateMandatoryUC *riskcascadeuc.CreateMandatoryUseCase
+	RiskCascadeCreateBottomUpUC  *riskcascadeuc.CreateBottomUpUseCase
+	RiskCascadeDecideUC          *riskcascadeuc.DecideUseCase
+	RiskCascadeDeleteUC          *riskcascadeuc.DeleteUseCase
+	RiskCascadeListUC            *riskcascadeuc.ListUseCase
 
 	// Incident UseCases
 	IncidentCreateUC      *incidentuc.CreateIncidentUseCase
@@ -284,6 +293,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.UserRepository = postgresrepo.NewUserRepository(pool)
 	c.OrgRepository = postgresrepo.NewOrganizationRepository(pool)
 	c.RiskRepository = postgresrepo.NewRiskRepository(pool)
+	c.RiskCascadeRepository = postgresrepo.NewRiskCascadeRepository(pool)
 	c.IncidentRepository = postgresrepo.NewIncidentRepository(pool)
 	c.KRIRepository = postgresrepo.NewKRIRepository(pool)
 	c.ControlRepository = postgresrepo.NewControlRepository(pool)
@@ -362,6 +372,12 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskListCycleSnapshotUC = riskuc.NewListRiskCycleSnapshotUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskMonitoringSpreadsheetUC = riskuc.NewBulkMonitoringSpreadsheetUseCase(c.OrgRepository, c.UserRepository, c.RiskRepository)
 	c.RiskCreateMonitoringBatchUC = riskuc.NewCreateMonitoringBatchUseCase(c.RiskRepository, c.UserRepository)
+
+	c.RiskCascadeCreateMandatoryUC = riskcascadeuc.NewCreateMandatoryUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)
+	c.RiskCascadeCreateBottomUpUC = riskcascadeuc.NewCreateBottomUpUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)
+	c.RiskCascadeDecideUC = riskcascadeuc.NewDecideUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository, c.UserRepository, c.MitigationTaskRepository)
+	c.RiskCascadeDeleteUC = riskcascadeuc.NewDeleteUseCase(c.RiskCascadeRepository)
+	c.RiskCascadeListUC = riskcascadeuc.NewListUseCase(c.RiskCascadeRepository)
 
 	// ============================================================================
 	// Incident UseCases

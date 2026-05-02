@@ -86,6 +86,20 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(risk.treatment_option, ''),
 		       COALESCE((SELECT array_agg(m.action ORDER BY m.sort_order) FROM mitigations m WHERE m.risk_id = risk.id), ARRAY[]::text[]),
 		       COALESCE((SELECT array_agg(m.due_date::text ORDER BY m.sort_order) FROM mitigations m WHERE m.risk_id = risk.id AND m.due_date IS NOT NULL), ARRAY[]::text[]),
+		       COALESCE((SELECT array_agg(concat_ws(' · ',
+		       	'Aksi: ' || m.action,
+		       	CASE WHEN btrim(COALESCE(m.mitigation_type, '')) <> '' THEN 'Jenis: ' || m.mitigation_type END,
+		       	CASE WHEN btrim(COALESCE(m.activity_stage, '')) <> '' THEN 'Tahap: ' || m.activity_stage END,
+		       	CASE WHEN btrim(COALESCE(m.expected_output, '')) <> '' THEN 'Output: ' || m.expected_output END,
+		       	CASE WHEN btrim(COALESCE(m.quantitative_target, '')) <> '' THEN 'Target: ' || m.quantitative_target END,
+		       	CASE WHEN btrim(COALESCE(m.supporting_unit, '')) <> '' THEN 'Unit: ' || m.supporting_unit END,
+		       	CASE WHEN btrim(COALESCE(m.resources_required, '')) <> '' THEN 'Sumber daya: ' || m.resources_required END,
+		       	CASE WHEN btrim(COALESCE(m.contingency_plan, '')) <> '' THEN 'Kontinjensi: ' || m.contingency_plan END,
+		       	CASE WHEN btrim(COALESCE(m.potential_obstacle, '')) <> '' THEN 'Hambatan: ' || m.potential_obstacle END,
+		       	CASE WHEN btrim(COALESCE(m.cost_benefit_note, '')) <> '' THEN 'Cost-benefit: ' || m.cost_benefit_note END,
+		       	CASE WHEN m.is_breakthrough_activity THEN 'Breakthrough: Ya' END,
+		       	CASE WHEN m.is_existing_control THEN 'Kontrol eksisting: Ya' END
+		       ) ORDER BY m.sort_order) FROM mitigations m WHERE m.risk_id = risk.id), ARRAY[]::text[]),
 		       risk.target_probability,
 		       risk.target_impact,
 		       risk.target_weight,
@@ -114,6 +128,20 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(prev_risk.impact_description, ARRAY[]::text[]),
 		       COALESCE((SELECT array_agg(pm.action ORDER BY pm.sort_order) FROM mitigations pm WHERE pm.risk_id = prev_risk.id), ARRAY[]::text[]),
 		       COALESCE((SELECT array_agg(pm.due_date::text ORDER BY pm.sort_order) FROM mitigations pm WHERE pm.risk_id = prev_risk.id AND pm.due_date IS NOT NULL), ARRAY[]::text[]),
+		       COALESCE((SELECT array_agg(concat_ws(' · ',
+		       	'Aksi: ' || pm.action,
+		       	CASE WHEN btrim(COALESCE(pm.mitigation_type, '')) <> '' THEN 'Jenis: ' || pm.mitigation_type END,
+		       	CASE WHEN btrim(COALESCE(pm.activity_stage, '')) <> '' THEN 'Tahap: ' || pm.activity_stage END,
+		       	CASE WHEN btrim(COALESCE(pm.expected_output, '')) <> '' THEN 'Output: ' || pm.expected_output END,
+		       	CASE WHEN btrim(COALESCE(pm.quantitative_target, '')) <> '' THEN 'Target: ' || pm.quantitative_target END,
+		       	CASE WHEN btrim(COALESCE(pm.supporting_unit, '')) <> '' THEN 'Unit: ' || pm.supporting_unit END,
+		       	CASE WHEN btrim(COALESCE(pm.resources_required, '')) <> '' THEN 'Sumber daya: ' || pm.resources_required END,
+		       	CASE WHEN btrim(COALESCE(pm.contingency_plan, '')) <> '' THEN 'Kontinjensi: ' || pm.contingency_plan END,
+		       	CASE WHEN btrim(COALESCE(pm.potential_obstacle, '')) <> '' THEN 'Hambatan: ' || pm.potential_obstacle END,
+		       	CASE WHEN btrim(COALESCE(pm.cost_benefit_note, '')) <> '' THEN 'Cost-benefit: ' || pm.cost_benefit_note END,
+		       	CASE WHEN pm.is_breakthrough_activity THEN 'Breakthrough: Ya' END,
+		       	CASE WHEN pm.is_existing_control THEN 'Kontrol eksisting: Ya' END
+		       ) ORDER BY pm.sort_order) FROM mitigations pm WHERE pm.risk_id = prev_risk.id), ARRAY[]::text[]),
 		       -- Monitoring data
 		       %s AS mon_id,
 		       COALESCE(mon_risk.probability, 0),
@@ -153,7 +181,9 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 
 		// Nullable fields that may be empty arrays from COALESCE
 		var nullableCause, nullableImpactDesc, nullableMitigations, nullableMitigationDueDates []string
+		var nullableMitigationDetails []string
 		var nullablePrevMitigations, nullablePrevMitigationDueDates []string
+		var nullablePrevMitigationDetails []string
 
 		if err := rows.Scan(
 			&link.ID,
@@ -183,6 +213,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&link.Risk.TreatmentOption,
 			&nullableMitigations,
 			&nullableMitigationDueDates,
+			&nullableMitigationDetails,
 			&link.Risk.TargetProbability,
 			&link.Risk.TargetImpact,
 			&link.Risk.TargetBobot,
@@ -211,6 +242,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&prevImpactDesc,
 			&nullablePrevMitigations,
 			&nullablePrevMitigationDueDates,
+			&nullablePrevMitigationDetails,
 			// Monitoring
 			&monID,
 			&monProbability,
@@ -226,6 +258,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		link.Risk.ImpactDesc = nullableImpactDesc
 		link.Risk.Mitigations = nullableMitigations
 		link.Risk.MitigationDueDates = nullableMitigationDueDates
+		link.Risk.MitigationDetails = nullableMitigationDetails
 		link.Risk.VersionNumber = versionNumber
 		link.Risk.JadwalPelaksanaan = jadwalPelaksanaan
 		link.Risk.PenanggungJawab = penanggungJawab
@@ -233,26 +266,27 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		// Previous semester snapshot
 		if prevID != nil {
 			prev := &entity.WorkingPaperRiskSnapshot{
-				Probability:         prevProbability,
-				Impact:              prevImpact,
-				Bobot:               prevWeight,
-				Nilai:               prevNilai,
-				Cause:               prevCause,
-				RiskSource:          prevRiskSource,
-				Controllability:    prevControllability,
-				ImpactDesc:          prevImpactDesc,
-				RiskAppetite:        prevRiskAppetite,
-				TreatmentOption:     prevTreatmentOption,
-				ExistingControl:     prevExistingControl,
+				Probability:          prevProbability,
+				Impact:               prevImpact,
+				Bobot:                prevWeight,
+				Nilai:                prevNilai,
+				Cause:                prevCause,
+				RiskSource:           prevRiskSource,
+				Controllability:      prevControllability,
+				ImpactDesc:           prevImpactDesc,
+				RiskAppetite:         prevRiskAppetite,
+				TreatmentOption:      prevTreatmentOption,
+				ExistingControl:      prevExistingControl,
 				ControlEffectiveness: prevControlEffectiveness,
-				TargetProbability:   prevTargetProbability,
-				TargetImpact:       prevTargetImpact,
-				TargetBobot:        prevTargetWeight,
-				TargetNilai:        prevTargetNilai,
-				Mitigations:        nullablePrevMitigations,
-				MitigationDueDates: nullablePrevMitigationDueDates,
+				TargetProbability:    prevTargetProbability,
+				TargetImpact:         prevTargetImpact,
+				TargetBobot:          prevTargetWeight,
+				TargetNilai:          prevTargetNilai,
+				Mitigations:          nullablePrevMitigations,
+				MitigationDueDates:   nullablePrevMitigationDueDates,
 			}
 			prev.Normalize()
+			prev.MitigationDetails = nullablePrevMitigationDetails
 			link.Risk.Previous = prev
 		}
 

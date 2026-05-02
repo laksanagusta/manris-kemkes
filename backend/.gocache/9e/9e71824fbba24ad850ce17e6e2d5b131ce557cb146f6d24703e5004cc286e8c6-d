@@ -1,0 +1,11 @@
+./auth.go
+./register.go
+./risk_monitoring.go
+./risk_query.go
+./risk_update_merge.go
+./risk_write.go
+./auth_test.go
+./mocks_test.go
+./risk_monitoring_test.go
+./risk_query_test.go
+./risk_write_test.go

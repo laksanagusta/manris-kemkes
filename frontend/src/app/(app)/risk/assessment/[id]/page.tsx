@@ -949,6 +949,17 @@ export default function AssessmentFormPage() {
                         treatmentOwnerId: m.treatmentOwnerId,
                         externalPicId: m.externalPicId,
                         dueDate: m.dueDate ?? "",
+                        mitigationType: m.mitigationType ?? "reduce_probability",
+                        activityStage: m.activityStage ?? "",
+                        expectedOutput: m.expectedOutput ?? "",
+                        quantitativeTarget: m.quantitativeTarget ?? "",
+                        supportingUnit: m.supportingUnit ?? "",
+                        resourcesRequired: m.resourcesRequired ?? "",
+                        contingencyPlan: m.contingencyPlan ?? "",
+                        potentialObstacle: m.potentialObstacle ?? "",
+                        costBenefitNote: m.costBenefitNote ?? "",
+                        isBreakthroughActivity: m.isBreakthroughActivity ?? false,
+                        isExistingControl: m.isExistingControl ?? false,
                       }),
                     );
                     return mitigationItems.length > 0 ? (

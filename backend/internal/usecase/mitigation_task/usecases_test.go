@@ -94,4 +94,36 @@ func TestGenerateTasksUseCase_ExecuteUsesAssessmentCycleAsPeriodLabel(t *testing
 	}
 }
 
+func TestGenerateTasksUseCase_ExecuteSkipsExistingControls(t *testing.T) {
+	mitigationID := uuid.New()
+	riskID := uuid.New()
+	taskRepo := &fakeGenerateTaskRepo{
+		recurring: []*entity.Mitigation{
+			{
+				ID:                mitigationID,
+				RiskID:            riskID,
+				AssessmentCycle:   "2026-H1",
+				RecurringInterval: ptrString("mingguan"),
+				Owner:             "PIC",
+				Action:            "Kontrol lama",
+				IsExistingControl: true,
+				DueDate:           ptrString("2026-06-10"),
+			},
+		},
+	}
+
+	uc := NewGenerateTasksUseCase(taskRepo)
+
+	created, err := uc.Execute(context.Background(), time.Date(2026, time.April, 15, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if created != 0 {
+		t.Fatalf("expected 0 created task, got %d", created)
+	}
+	if len(taskRepo.created) != 0 {
+		t.Fatalf("expected no persisted tasks, got %d", len(taskRepo.created))
+	}
+}
+
 func ptrString(value string) *string { return &value }

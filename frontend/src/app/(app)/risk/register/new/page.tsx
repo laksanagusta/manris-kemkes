@@ -429,6 +429,17 @@ const formSchema = z.object({
         treatmentOwnerId: z.string().optional(),
         externalPicId: z.string().optional(),
         dueDate: z.string().optional(),
+        mitigationType: z.enum(["reduce_probability", "reduce_impact", "reduce_both"]).default("reduce_probability"),
+        activityStage: z.string().optional(),
+        expectedOutput: z.string().optional(),
+        quantitativeTarget: z.string().optional(),
+        supportingUnit: z.string().optional(),
+        resourcesRequired: z.string().optional(),
+        contingencyPlan: z.string().optional(),
+        potentialObstacle: z.string().optional(),
+        costBenefitNote: z.string().optional(),
+        isBreakthroughActivity: z.boolean().default(false),
+        isExistingControl: z.boolean().default(false),
       }),
     )
     .default([]),
@@ -488,6 +499,17 @@ function normalizeFormValues(values: FormInput): FormValues {
     mitigations: (values.mitigations ?? []).map((mitigation) => ({
       ...mitigation,
       owner: mitigation.owner ?? "",
+      mitigationType: mitigation.mitigationType ?? "reduce_probability",
+      activityStage: mitigation.activityStage ?? "",
+      expectedOutput: mitigation.expectedOutput ?? "",
+      quantitativeTarget: mitigation.quantitativeTarget ?? "",
+      supportingUnit: mitigation.supportingUnit ?? "",
+      resourcesRequired: mitigation.resourcesRequired ?? "",
+      contingencyPlan: mitigation.contingencyPlan ?? "",
+      potentialObstacle: mitigation.potentialObstacle ?? "",
+      costBenefitNote: mitigation.costBenefitNote ?? "",
+      isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
+      isExistingControl: mitigation.isExistingControl ?? false,
     })),
     targetProbability: values.targetProbability ?? 1,
     targetImpact: values.targetImpact ?? 1,
@@ -869,6 +891,19 @@ export default function RiskInputPage() {
                 ...mitigation,
                 treatmentOwnerId:
                   mitigation.ownerUserId || mitigation.treatmentOwnerId,
+                mitigationType:
+                  mitigation.mitigationType || "reduce_probability",
+                activityStage: mitigation.activityStage || "",
+                expectedOutput: mitigation.expectedOutput || "",
+                quantitativeTarget: mitigation.quantitativeTarget || "",
+                supportingUnit: mitigation.supportingUnit || "",
+                resourcesRequired: mitigation.resourcesRequired || "",
+                contingencyPlan: mitigation.contingencyPlan || "",
+                potentialObstacle: mitigation.potentialObstacle || "",
+                costBenefitNote: mitigation.costBenefitNote || "",
+                isBreakthroughActivity:
+                  mitigation.isBreakthroughActivity || false,
+                isExistingControl: mitigation.isExistingControl || false,
               }))
             : [],
           targetProbability: risk.targetProbability || 1,
@@ -1113,6 +1148,9 @@ export default function RiskInputPage() {
                   action: meetingPrefill.mitigation,
                   owner: "",
                   dueDate: "",
+                  mitigationType: "reduce_probability",
+                  isBreakthroughActivity: false,
+                  isExistingControl: false,
                 },
               ]
             : [],
@@ -1423,6 +1461,17 @@ export default function RiskInputPage() {
             ? mitigation.dueDate
             : null,
         targetCost: 0,
+        mitigationType: mitigation.mitigationType,
+        activityStage: mitigation.activityStage || "",
+        expectedOutput: mitigation.expectedOutput || "",
+        quantitativeTarget: mitigation.quantitativeTarget || "",
+        supportingUnit: mitigation.supportingUnit || "",
+        resourcesRequired: mitigation.resourcesRequired || "",
+        contingencyPlan: mitigation.contingencyPlan || "",
+        potentialObstacle: mitigation.potentialObstacle || "",
+        costBenefitNote: mitigation.costBenefitNote || "",
+        isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
+        isExistingControl: mitigation.isExistingControl ?? false,
       })),
       objectiveId: data.objectiveId || undefined,
     };
@@ -3024,6 +3073,26 @@ export default function RiskInputPage() {
                               treatmentOwnerId: mitigation.treatmentOwnerId,
                               externalPicId: mitigation.externalPicId,
                               dueDate: mitigation.dueDate ?? "",
+                              mitigationType:
+                                mitigation.mitigationType ??
+                                "reduce_probability",
+                              activityStage: mitigation.activityStage ?? "",
+                              expectedOutput: mitigation.expectedOutput ?? "",
+                              quantitativeTarget:
+                                mitigation.quantitativeTarget ?? "",
+                              supportingUnit: mitigation.supportingUnit ?? "",
+                              resourcesRequired:
+                                mitigation.resourcesRequired ?? "",
+                              contingencyPlan:
+                                mitigation.contingencyPlan ?? "",
+                              potentialObstacle:
+                                mitigation.potentialObstacle ?? "",
+                              costBenefitNote:
+                                mitigation.costBenefitNote ?? "",
+                              isBreakthroughActivity:
+                                mitigation.isBreakthroughActivity ?? false,
+                              isExistingControl:
+                                mitigation.isExistingControl ?? false,
                             }),
                           )}
                           onChange={field.onChange}
@@ -3053,6 +3122,9 @@ export default function RiskInputPage() {
                               action,
                               owner: "",
                               dueDate: "",
+                              mitigationType: "reduce_probability",
+                              isBreakthroughActivity: false,
+                              isExistingControl: false,
                             },
                           ],
                           { shouldValidate: true },

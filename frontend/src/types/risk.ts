@@ -18,6 +18,7 @@ export type DraftApprovalLineMember = {
 export type RiskLevel = "sangat_rendah" | "rendah" | "sedang" | "tinggi" | "sangat_tinggi";
 
 export type RiskReviewType = "periodic" | "ad_hoc";
+export type MitigationType = "reduce_probability" | "reduce_impact" | "reduce_both";
 
 export interface RiskMitigation {
   id?: string;
@@ -32,6 +33,17 @@ export interface RiskMitigation {
   reportDate?: number;  // 1-31 (for bulanan/triwulan)
   executionScheduleText?: string;
   targetCost?: number;
+  mitigationType?: MitigationType;
+  activityStage?: string;
+  expectedOutput?: string;
+  quantitativeTarget?: string;
+  supportingUnit?: string;
+  resourcesRequired?: string;
+  contingencyPlan?: string;
+  potentialObstacle?: string;
+  costBenefitNote?: string;
+  isBreakthroughActivity?: boolean;
+  isExistingControl?: boolean;
 }
 
 export type MitigationTaskStatus = "pending" | "done" | "overdue" | "skipped";

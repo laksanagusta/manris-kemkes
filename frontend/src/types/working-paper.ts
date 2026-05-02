@@ -30,6 +30,7 @@ export interface WorkingPaperRiskData {
   treatment_option_display?: string;
   mitigations?: string[];
   mitigation_due_dates?: string[];
+  mitigation_details?: string[];
   target_probability?: number;
   target_impact?: number;
   target_bobot?: number;
@@ -82,6 +83,7 @@ export interface WorkingPaperRiskSnapshot {
   target_tingkat_risiko_display?: string;
   mitigations?: string[];
   mitigation_due_dates?: string[];
+  mitigation_details?: string[];
 }
 
 export interface WorkingPaperRiskLink {

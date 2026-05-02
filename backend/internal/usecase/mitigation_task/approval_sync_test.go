@@ -25,7 +25,7 @@ func (r *fakeApprovalSyncRiskRepo) GetByID(_ context.Context, id uuid.UUID, _ []
 	return &clone, nil
 }
 func (r *fakeApprovalSyncRiskRepo) Update(context.Context, *entity.Risk) error { return nil }
-func (r *fakeApprovalSyncRiskRepo) Delete(context.Context, uuid.UUID) error { return nil }
+func (r *fakeApprovalSyncRiskRepo) Delete(context.Context, uuid.UUID) error    { return nil }
 func (r *fakeApprovalSyncRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, nil
 }
@@ -54,7 +54,9 @@ func (r *fakeApprovalSyncRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*
 func (r *fakeApprovalSyncRiskRepo) ListCycleSnapshot(context.Context, string, []uuid.UUID) ([]*entity.Risk, error) {
 	return nil, nil
 }
-func (r *fakeApprovalSyncRiskRepo) ActivateApprovedVersion(context.Context, uuid.UUID) error { return nil }
+func (r *fakeApprovalSyncRiskRepo) ActivateApprovedVersion(context.Context, uuid.UUID) error {
+	return nil
+}
 func (r *fakeApprovalSyncRiskRepo) ListReviewQueue(context.Context, string, []uuid.UUID, string, string, int, int) ([]*entity.RiskReviewQueueItem, int, error) {
 	return nil, 0, nil
 }
@@ -197,5 +199,39 @@ func TestEnsureTasksForApprovedRiskUseCase_ExecuteSkipsExistingTask(t *testing.T
 	}
 	if len(taskRepo.created) != 0 {
 		t.Fatalf("expected no persisted tasks, got %d", len(taskRepo.created))
+	}
+}
+
+func TestEnsureTasksForApprovedRiskUseCase_ExecuteSkipsExistingControls(t *testing.T) {
+	riskID := uuid.New()
+	newMitigationID := uuid.New()
+	existingControlID := uuid.New()
+	dueDate := "2026-06-10"
+
+	riskRepo := &fakeApprovalSyncRiskRepo{
+		risk: &entity.Risk{
+			ID:     riskID,
+			Status: entity.RiskStatusApproved,
+			Mitigations: []entity.Mitigation{
+				{ID: existingControlID, RiskID: riskID, Action: "Kontrol lama", Owner: "PIC A", DueDate: &dueDate, IsExistingControl: true},
+				{ID: newMitigationID, RiskID: riskID, Action: "Mitigasi baru", Owner: "PIC B", DueDate: &dueDate},
+			},
+		},
+	}
+	taskRepo := &fakeApprovalSyncTaskRepo{}
+	uc := NewEnsureTasksForApprovedRiskUseCase(taskRepo, riskRepo)
+
+	created, err := uc.Execute(context.Background(), riskID, nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if created != 1 {
+		t.Fatalf("expected 1 created task, got %d", created)
+	}
+	if len(taskRepo.created) != 1 {
+		t.Fatalf("expected 1 persisted task, got %d", len(taskRepo.created))
+	}
+	if taskRepo.created[0].MitigationID != newMitigationID {
+		t.Fatalf("expected task for new mitigation, got %s", taskRepo.created[0].MitigationID)
 	}
 }

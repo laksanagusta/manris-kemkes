@@ -1,0 +1,5 @@
+./codelayout.go
+./codesize.go
+./datamatrixcode.go
+./encoder.go
+./errorcorrection.go

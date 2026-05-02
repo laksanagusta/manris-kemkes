@@ -83,7 +83,7 @@ type UpdateRiskInput struct {
 	ChangeReason       string                      `json:"changeReason"`
 	ReviewSummary      string                      `json:"reviewSummary"`
 	DraftApprovalLine  []entity.ApprovalLineMember `json:"draftApprovalLine"`
-	ObjectiveID        *uuid.UUID                    `json:"objectiveId"`
+	ObjectiveID        *uuid.UUID                  `json:"objectiveId"`
 }
 
 type UpdateRiskOutput struct {
@@ -126,9 +126,11 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 
 	// 5. Validate mitigations
 	for i, m := range input.Mitigations {
+		normalizeMitigationKMKFields(&m)
 		if err := m.Validate(); err != nil {
 			return nil, errors.Wrap(err, "mitigation validation failed")
 		}
+		input.Mitigations[i] = m
 		input.Mitigations[i].RiskID = input.ID
 	}
 
@@ -177,6 +179,10 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 
 	// Section 4
 	existingRisk.Mitigations = input.Mitigations
+	existingRisk.CalculateAll()
+	if err := validateRiskMitigationRequirements(existingRisk); err != nil {
+		return nil, err
+	}
 
 	// Section 5
 	existingRisk.TargetProbability = input.TargetProbability

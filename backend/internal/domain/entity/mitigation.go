@@ -1,11 +1,25 @@
 package entity
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/errors"
 )
+
+const (
+	MitigationTypeReduceProbability = "reduce_probability"
+	MitigationTypeReduceImpact      = "reduce_impact"
+	MitigationTypeReduceBoth        = "reduce_both"
+)
+
+var allowedMitigationTypes = map[string]struct{}{
+	"":                              {},
+	MitigationTypeReduceProbability: {},
+	MitigationTypeReduceImpact:      {},
+	MitigationTypeReduceBoth:        {},
+}
 
 // Mitigation represents a risk treatment plan item
 type Mitigation struct {
@@ -24,6 +38,18 @@ type Mitigation struct {
 	TargetCost            float64    `json:"targetCost"`
 	SortOrder             int        `json:"sortOrder"`
 	CreatedAt             time.Time  `json:"createdAt"`
+
+	MitigationType         string `json:"mitigationType,omitempty"`
+	ActivityStage          string `json:"activityStage,omitempty"`
+	ExpectedOutput         string `json:"expectedOutput,omitempty"`
+	QuantitativeTarget     string `json:"quantitativeTarget,omitempty"`
+	SupportingUnit         string `json:"supportingUnit,omitempty"`
+	ResourcesRequired      string `json:"resourcesRequired,omitempty"`
+	ContingencyPlan        string `json:"contingencyPlan,omitempty"`
+	PotentialObstacle      string `json:"potentialObstacle,omitempty"`
+	CostBenefitNote        string `json:"costBenefitNote,omitempty"`
+	IsBreakthroughActivity bool   `json:"isBreakthroughActivity,omitempty"`
+	IsExistingControl      bool   `json:"isExistingControl,omitempty"`
 }
 
 // MitigationAssoc represents a mitigation joined with its parent risk info
@@ -38,13 +64,28 @@ type MitigationAssoc struct {
 
 // Validate performs domain validation on Mitigation
 func (m *Mitigation) Validate() error {
+	m.Action = strings.TrimSpace(m.Action)
+	m.Owner = strings.TrimSpace(m.Owner)
+	m.MitigationType = strings.TrimSpace(m.MitigationType)
 	if m.Action == "" {
 		return errors.ErrInvalidAction
 	}
 	if m.Owner == "" {
 		return errors.ErrInvalidOwner
 	}
+	if _, ok := allowedMitigationTypes[m.MitigationType]; !ok {
+		return errors.ErrInvalidMitigationType
+	}
 	return nil
+}
+
+// NormalizeMitigationType returns a safe mitigation type default.
+func NormalizeMitigationType(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return MitigationTypeReduceProbability
+	}
+	return value
 }
 
 // IsOverdue checks if mitigation is overdue

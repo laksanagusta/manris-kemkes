@@ -21,6 +21,7 @@ import {
   FileSignature,
   ClipboardPenLine,
   Goal,
+  GitBranch,
 } from "lucide-react";
 import { adminMenuGroup, mainMenuItems } from "@/lib/app-navigation";
 import {
@@ -59,6 +60,7 @@ const iconMap: Record<string, React.ElementType> = {
   FileSignature,
   ClipboardPenLine,
   Goal,
+  GitBranch,
   Users,
   Building2,
   Settings2,

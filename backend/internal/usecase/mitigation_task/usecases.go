@@ -206,6 +206,9 @@ func (uc *GenerateTasksUseCase) Execute(ctx context.Context, now time.Time) (int
 		if m.RecurringInterval == nil {
 			continue
 		}
+		if m.IsExistingControl {
+			continue
+		}
 
 		var periodStart, periodEnd, dueDate time.Time
 
