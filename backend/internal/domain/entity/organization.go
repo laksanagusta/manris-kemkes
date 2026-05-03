@@ -1,11 +1,24 @@
 package entity
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/errors"
 )
+
+const (
+	OrganizationUPRLevelKementerian = "kementerian"
+	OrganizationUPRLevelUPRT1       = "upr_t1"
+	OrganizationUPRLevelUPRT2       = "upr_t2"
+)
+
+var allowedOrganizationUPRLevels = map[string]struct{}{
+	OrganizationUPRLevelKementerian: {},
+	OrganizationUPRLevelUPRT1:       {},
+	OrganizationUPRLevelUPRT2:       {},
+}
 
 // Organization represents a unit kerja
 type Organization struct {
@@ -54,4 +67,9 @@ func (o *Organization) IsUPRLevel2() bool {
 // Org under upr_t1 = "upr_t2"
 func (o *Organization) ResolveUPRLevel() string {
 	return o.UPRLevel
+}
+
+func IsValidOrganizationUPRLevel(level string) bool {
+	_, ok := allowedOrganizationUPRLevels[strings.TrimSpace(level)]
+	return ok
 }

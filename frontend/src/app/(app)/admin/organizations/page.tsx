@@ -16,7 +16,6 @@ import {
 import { toast } from "sonner";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,7 +33,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import {
   Plus,
   Search,
@@ -46,14 +44,11 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import {
   type Organization,
-  type OrganizationTreeNode,
-  buildOrganizationTree,
 } from "@/lib/organization";
-import { flattenVisibleOrganizationTree } from "@/lib/organization-tree";
 import { OrganizationFormDialog } from "@/components/organization/organization-form-dialog";
 import { OrganizationDeleteDialog } from "@/components/organization/organization-delete-dialog";
 import { OrganizationRowActions } from "@/components/organization/organization-row-actions";
-import { listOrganizations } from "@/lib/api/organizations";
+import { listAllOrganizations, listOrganizations } from "@/lib/api/organizations";
 
 function parsePositiveInt(value: string | null, fallback: number): number {
   const parsed = Number(value);
@@ -65,7 +60,13 @@ function parsePositiveInt(value: string | null, fallback: number): number {
   return Math.floor(parsed);
 }
 
-function getOrganizationKey(org: OrganizationTreeNode) {
+const uprLevelLabel: Record<string, string> = {
+  kementerian: "Kementerian",
+  upr_t1: "UPR T1",
+  upr_t2: "UPR T2",
+};
+
+function getOrganizationKey(org: Organization) {
   return org.id || `${org.name}-${org.parentId ?? "root"}-${org.createdAt}`;
 }
 
@@ -89,6 +90,7 @@ function normalizeOrganization(value: unknown): Organization | null {
   const id = readStringField(value, ["id", "ID"]);
   const name = readStringField(value, ["name", "Name"]);
   const parentId = readStringField(value, ["parentId", "parent_id", "ParentID"]);
+  const uprLevel = readStringField(value, ["uprLevel", "upr_level", "UPRLevel"]);
   const createdAt = readStringField(value, ["createdAt", "created_at", "CreatedAt"]);
 
   if (!id || !name) return null;
@@ -97,61 +99,31 @@ function normalizeOrganization(value: unknown): Organization | null {
     id,
     name,
     ...(parentId ? { parentId } : {}),
+    ...(uprLevel ? { uprLevel } : {}),
     createdAt,
   };
 }
 
 function OrgRow({
   org,
-  level = 0,
-  isExpanded = false,
   parentNameMap,
   onEdit,
   onDelete,
-  onToggleExpand,
 }: {
-  org: OrganizationTreeNode;
-  level?: number;
-  isExpanded?: boolean;
+  org: Organization;
   parentNameMap: Map<string, string>;
   onEdit: (org: Organization) => void;
   onDelete: (org: Organization) => void;
-  onToggleExpand: (orgId: string) => void;
 }) {
-  const hasChildren = org.children && org.children.length > 0;
   const createdAt = new Date(org.createdAt);
   const createdAtLabel = Number.isNaN(createdAt.getTime())
     ? "—"
     : createdAt.toLocaleDateString("id-ID");
-  const handleToggleExpand = useCallback(() => {
-    onToggleExpand(org.id);
-  }, [onToggleExpand, org.id]);
 
   return (
     <TableRow className="border-border/30 hover:bg-muted/30 transition-colors">
-      <TableCell className="max-w-[300px]">
-        <div
-          className="flex items-center gap-2"
-          style={{ paddingLeft: `${level * 24}px` }}
-        >
-          {hasChildren ? (
-            <button
-              type="button"
-              onClick={handleToggleExpand}
-              className="inline-flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label={`${isExpanded ? "Collapse" : "Expand"} ${org.name}`}
-              aria-expanded={isExpanded}
-            >
-              <ChevronRight
-                className={cn(
-                  "size-3.5 transition-transform duration-200",
-                  isExpanded && "rotate-90"
-                )}
-              />
-            </button>
-          ) : (
-            <span className="inline-flex size-4 shrink-0" />
-          )}
+      <TableCell className="max-w-[220px]">
+        <div className="flex items-center gap-2">
           <Building2 className="size-4 shrink-0 text-muted-foreground" />
           <span className="truncate text-xs font-medium">{org.name}</span>
         </div>
@@ -162,20 +134,10 @@ function OrgRow({
           : "—"}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {createdAtLabel}
+        {uprLevelLabel[org.uprLevel || ""] || org.uprLevel || "—"}
       </TableCell>
-      <TableCell>
-        <Badge
-          variant="outline"
-          className={cn(
-            "text-[10px] h-5 px-1.5",
-            hasChildren
-              ? "text-primary border-primary/20"
-              : "text-muted-foreground"
-          )}
-        >
-          {hasChildren ? `${org.children!.length} sub-unit` : "Unit"}
-        </Badge>
+      <TableCell className="text-sm text-muted-foreground">
+        {createdAtLabel}
       </TableCell>
       <TableCell>
         <OrganizationRowActions
@@ -196,9 +158,9 @@ export default function OrganizationsManagementPage() {
   const [isPending, startTransition] = useTransition();
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [allOrganizations, setAllOrganizations] = useState<Organization[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [collapsedOrgIds, setCollapsedOrgIds] = useState<Set<string>>(new Set());
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
@@ -268,12 +230,17 @@ export default function OrganizationsManagementPage() {
     let cancelled = false;
     setLoading(true);
 
-    listOrganizations(token, {
-      q: deferredSearch.trim() || undefined,
-      page,
-      limit,
-    })
-      .then((result) => {
+    Promise.all([
+      listOrganizations(token, {
+        q: deferredSearch.trim() || undefined,
+        page,
+        limit,
+      }),
+      listAllOrganizations(token, {
+        q: deferredSearch.trim() || undefined,
+      }),
+    ])
+      .then(([result, allResult]) => {
         if (cancelled) return;
 
         const normalized = (result.data ?? [])
@@ -282,6 +249,11 @@ export default function OrganizationsManagementPage() {
           .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
         setOrganizations(normalized);
+        setAllOrganizations(
+          (allResult ?? [])
+            .map((item) => normalizeOrganization(item))
+            .filter((org): org is Organization => org !== null),
+        );
         setTotal(result.total ?? 0);
         setPage(result.page ?? page);
         setLimit(result.limit ?? limit);
@@ -303,18 +275,29 @@ export default function OrganizationsManagementPage() {
     if (!token) return;
 
     setLoading(true);
-    listOrganizations(token, {
-      q: deferredSearch.trim() || undefined,
-      page,
-      limit,
-    })
-      .then((result) => {
+    Promise.all([
+      listOrganizations(token, {
+        q: deferredSearch.trim() || undefined,
+        page,
+        limit,
+      }),
+      listAllOrganizations(token, {
+        q: deferredSearch.trim() || undefined,
+      }),
+    ])
+      .then(([result, allResult]) => {
         const normalized = (result.data ?? [])
           .map((item) => normalizeOrganization(item))
           .filter((org): org is Organization => org !== null)
           .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
         setOrganizations(normalized);
+        setAllOrganizations(
+          (allResult ?? [])
+            .map((item) => normalizeOrganization(item))
+            .filter((org): org is Organization => org !== null)
+            .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()),
+        );
         setTotal(result.total ?? 0);
         setLoading(false);
       })
@@ -342,32 +325,14 @@ export default function OrganizationsManagementPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleToggleExpand = useCallback((orgId: string) => {
-    setCollapsedOrgIds((current) => {
-      const next = new Set(current);
-      if (next.has(orgId)) {
-        next.delete(orgId);
-      } else {
-        next.add(orgId);
-      }
-      return next;
-    });
-  }, []);
-
   // Memoized Map for O(1) parent name lookups
   const parentNameMap = useMemo(() => {
     const map = new Map<string, string>();
-    for (const org of organizations) {
+    for (const org of allOrganizations) {
       map.set(org.id, org.name);
     }
     return map;
-  }, [organizations]);
-
-  const orgTree = buildOrganizationTree(organizations);
-  const visibleOrgRows = useMemo(
-    () => flattenVisibleOrganizationTree(orgTree, collapsedOrgIds),
-    [orgTree, collapsedOrgIds]
-  );
+  }, [allOrganizations]);
 
   const totalPages = Math.ceil(total / limit) || 1;
   const rootUnits = organizations.filter((o) => !o.parentId).length;
@@ -431,19 +396,19 @@ export default function OrganizationsManagementPage() {
         />
       </div>
 
-      <Card className="border-border/50 bg-card/80 overflow-hidden">
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
         <Table>
-           <TableHeader>
-             <TableRow className="border-border/50 hover:bg-transparent">
-               <TableHead className="text-xs whitespace-nowrap">Nama Organisasi</TableHead>
-               <TableHead className="text-xs w-40 whitespace-nowrap">Parent Unit</TableHead>
-               <TableHead className="text-xs w-32 whitespace-nowrap">Dibuat</TableHead>
-               <TableHead className="text-xs w-24 whitespace-nowrap">Tipe</TableHead>
-               <TableHead className="text-xs w-10 whitespace-nowrap">
-                 <span className="sr-only">Aksi</span>
-               </TableHead>
-             </TableRow>
-           </TableHeader>
+          <TableHeader>
+            <TableRow className="border-border/50 hover:bg-transparent">
+              <TableHead className="text-xs w-[220px] whitespace-nowrap">Nama Organisasi</TableHead>
+              <TableHead className="text-xs w-40 whitespace-nowrap">Parent Unit</TableHead>
+              <TableHead className="text-xs w-28 whitespace-nowrap">UPR Level</TableHead>
+              <TableHead className="text-xs w-32 whitespace-nowrap">Dibuat</TableHead>
+              <TableHead className="text-xs w-10 whitespace-nowrap">
+                <span className="sr-only">Aksi</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
@@ -461,16 +426,13 @@ export default function OrganizationsManagementPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              visibleOrgRows.map((org) => (
+              organizations.map((org) => (
                 <OrgRow
                   key={getOrganizationKey(org)}
                   org={org}
-                  level={org.level}
-                  isExpanded={org.isExpanded}
                   parentNameMap={parentNameMap}
                   onEdit={handleEditClick}
                   onDelete={handleDeleteClick}
-                  onToggleExpand={handleToggleExpand}
                 />
               ))
             )}
@@ -542,14 +504,14 @@ export default function OrganizationsManagementPage() {
       </Card>
 
       <OrganizationFormDialog
-          mode={dialogMode}
-          open={isFormDialogOpen}
-          onOpenChange={setIsFormDialogOpen}
-          token={token ?? undefined}
-          organizations={organizations}
-          initialOrganization={selectedOrg}
-          onSuccess={handleRefetch}
-        />
+        mode={dialogMode}
+        open={isFormDialogOpen}
+        onOpenChange={setIsFormDialogOpen}
+        token={token ?? undefined}
+        organizations={allOrganizations}
+        initialOrganization={selectedOrg}
+        onSuccess={handleRefetch}
+      />
 
       <OrganizationDeleteDialog
         open={isDeleteDialogOpen}

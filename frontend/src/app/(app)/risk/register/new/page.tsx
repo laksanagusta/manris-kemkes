@@ -11,7 +11,10 @@ import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { useAuth } from "@/contexts/auth-context";
-import { ObjectivePicker, type ObjectiveSummary } from "@/components/risk/objective-picker";
+import {
+  ObjectivePicker,
+  type ObjectiveSummary,
+} from "@/components/risk/objective-picker";
 import { ImpactCriteriaTooltip } from "@/components/shared/impact-criteria-tooltip";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -150,6 +153,10 @@ import {
   AiSuggestionModal,
   type SuggestionItem,
 } from "@/components/shared/ai-suggestion-modal";
+import {
+  currentAssessmentCycle,
+  getSelectableAssessmentCycles,
+} from "@/lib/risk-cycle-options";
 
 const RiskLogTimeline = dynamic(
   () =>
@@ -322,12 +329,6 @@ type RiskSaveResponse = {
   code?: string;
 };
 
-function currentAssessmentCycle() {
-  const now = new Date();
-  const half = now.getMonth() < 6 ? "H1" : "H2";
-  return `${now.getFullYear()}-${half}`;
-}
-
 type CausesResponse = {
   categories: Partial<Record<CategoryKey, string[]>>;
 };
@@ -378,78 +379,112 @@ function AiFieldButton({
 // ----------------------
 // Zod Schema
 // ----------------------
-const formSchema = z.object({
-  title: z.string().min(3, "Judul risiko minimal 3 karakter"),
-  description: z.string().min(10, "Deskripsi minimal 10 karakter"),
-  category: z.enum(riskCategoryValues, {
-    error: "Kategori risiko wajib dipilih",
-  }),
-  organizationId: z.string().optional(),
-  riskCode: z.string().optional(),
-
-  causes: z
-    .array(
-      z.object({
-        id: z.string(),
-        text: z.string().min(1, "Sebab tidak boleh kosong"),
-      }),
-    )
-    .min(1, "Minimal pilih/isi 1 sebab"),
-
-  riskSource: z.enum(["internal", "eksternal"]).default("internal"),
-  controllability: z.enum(["C", "UC"]).default("C"),
-
-  impacts: z
-    .array(
-      z.object({
-        id: z.string(),
-        text: z.string().min(1, "Dampak tidak boleh kosong"),
-      }),
-    )
-    .min(1, "Minimal isi 1 dampak"),
-
-  existingControl: z.string().optional(),
-  controlEffectiveness: z.string().optional(),
-  probability: z.number().min(1).max(5).default(3),
-  impact: z.number().min(1).max(5).default(3),
-  weight: z.number().min(0.1).default(1.0),
-  nilai: z.number().min(0).default(0),
-
-  riskPriority: z.number().min(0).default(0),
-  riskAppetite: z.enum(["dalam_batas", "di_atas_batas"]).default("dalam_batas"),
-  treatmentOption: z.enum(["avoid", "transfer", "mitigate", "accept"]).optional(),
-  nextReviewDate: z.string().optional(),
-
-  mitigations: z
-    .array(
-      z.object({
-        id: z.string().optional(),
-        action: z.string(),
-        owner: z.string().default(""),
-        treatmentOwnerId: z.string().optional(),
-        externalPicId: z.string().optional(),
-        dueDate: z.string().optional(),
-        mitigationType: z.enum(["reduce_probability", "reduce_impact", "reduce_both"]).default("reduce_probability"),
-        activityStage: z.string().optional(),
-        expectedOutput: z.string().optional(),
-        quantitativeTarget: z.string().optional(),
-        supportingUnit: z.string().optional(),
-        resourcesRequired: z.string().optional(),
-        contingencyPlan: z.string().optional(),
-        potentialObstacle: z.string().optional(),
-        costBenefitNote: z.string().optional(),
-        isBreakthroughActivity: z.boolean().default(false),
-        isExistingControl: z.boolean().default(false),
-      }),
-    )
-    .default([]),
-
-  targetProbability: z.number().min(1).max(5).default(1),
-  targetImpact: z.number().min(1).max(5).default(1),
-  targetWeight: z.number().min(0.1).default(1.0),
-  targetNilai: z.number().min(0).default(0),
-  objectiveId: z.string().optional(),
+const mitigationSchema = z.object({
+  id: z.string().optional(),
+  action: z.string().default(""),
+  owner: z.string().default(""),
+  treatmentOwnerId: z.string().optional(),
+  externalPicId: z.string().optional(),
+  dueDate: z.string().optional(),
+  mitigationType: z
+    .enum(["reduce_probability", "reduce_impact", "reduce_both"])
+    .default("reduce_probability"),
+  activityStage: z.string().optional(),
+  expectedOutput: z.string().optional(),
+  quantitativeTarget: z.string().optional(),
+  supportingUnit: z.string().optional(),
+  resourcesRequired: z.string().optional(),
+  contingencyPlan: z.string().optional(),
+  potentialObstacle: z.string().optional(),
+  costBenefitNote: z.string().optional(),
+  isBreakthroughActivity: z.boolean().default(false),
+  isExistingControl: z.boolean().default(false),
 });
+
+const formSchema = z
+  .object({
+    title: z.string().min(3, "Judul risiko minimal 3 karakter"),
+    description: z.string().min(10, "Deskripsi minimal 10 karakter"),
+    category: z.enum(riskCategoryValues, {
+      error: "Kategori risiko wajib dipilih",
+    }),
+    organizationId: z.string().optional(),
+    riskCode: z.string().optional(),
+
+    causes: z
+      .array(
+        z.object({
+          id: z.string(),
+          text: z.string().min(1, "Sebab tidak boleh kosong"),
+        }),
+      )
+      .min(1, "Minimal pilih/isi 1 sebab"),
+
+    riskSource: z.enum(["internal", "eksternal"]).default("internal"),
+    controllability: z.enum(["C", "UC"]).default("C"),
+
+    impacts: z
+      .array(
+        z.object({
+          id: z.string(),
+          text: z.string().min(1, "Dampak tidak boleh kosong"),
+        }),
+      )
+      .min(1, "Minimal isi 1 dampak"),
+
+    existingControl: z.string().optional(),
+    controlEffectiveness: z.string().optional(),
+    probability: z.number().min(1).max(5).default(3),
+    impact: z.number().min(1).max(5).default(3),
+    weight: z.number().min(0.1).default(1.0),
+    nilai: z.number().min(0).default(0),
+
+    riskPriority: z.number().min(0).default(0),
+    riskAppetite: z
+      .enum(["dalam_batas", "di_atas_batas"])
+      .default("dalam_batas"),
+    treatmentOption: z
+      .enum(["avoid", "transfer", "mitigate", "accept"])
+      .optional(),
+    nextReviewDate: z.string().optional(),
+
+    mitigations: z.array(mitigationSchema).default([]),
+
+    targetProbability: z.number().min(1).max(5).default(1),
+    targetImpact: z.number().min(1).max(5).default(1),
+    targetWeight: z.number().min(0.1).default(1.0),
+    targetNilai: z.number().min(0).default(0),
+    objectiveId: z.string().optional(),
+  })
+  .superRefine((values, ctx) => {
+    values.mitigations.forEach((mitigation, index) => {
+      const hasContent =
+        [
+          mitigation.owner,
+          mitigation.dueDate,
+          mitigation.activityStage,
+          mitigation.expectedOutput,
+          mitigation.quantitativeTarget,
+          mitigation.supportingUnit,
+          mitigation.resourcesRequired,
+          mitigation.contingencyPlan,
+          mitigation.potentialObstacle,
+          mitigation.costBenefitNote,
+          mitigation.treatmentOwnerId,
+          mitigation.externalPicId,
+        ].some((value) => Boolean(String(value ?? "").trim())) ||
+        mitigation.isBreakthroughActivity ||
+        mitigation.isExistingControl;
+
+      if (hasContent && !mitigation.action.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["mitigations", index, "action"],
+          message: "Aksi mitigasi wajib diisi",
+        });
+      }
+    });
+  });
 
 const draftSchema = z
   .object({
@@ -498,6 +533,7 @@ function normalizeFormValues(values: FormInput): FormValues {
     nextReviewDate: values.nextReviewDate ?? "",
     mitigations: (values.mitigations ?? []).map((mitigation) => ({
       ...mitigation,
+      action: mitigation.action ?? "",
       owner: mitigation.owner ?? "",
       mitigationType: mitigation.mitigationType ?? "reduce_probability",
       activityStage: mitigation.activityStage ?? "",
@@ -609,11 +645,27 @@ export default function RiskInputPage() {
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<RiskWorkflowState | null>(null);
   const [openSections, setOpenSections] = useState<string[]>(["identifikasi"]);
-  const [objectiveSummary, setObjectiveSummary] = useState<ObjectiveSummary | undefined>(undefined);
+  const [objectiveSummary, setObjectiveSummary] = useState<
+    ObjectiveSummary | undefined
+  >(undefined);
   const [assessmentCycleDisplay, setAssessmentCycleDisplay] = useState(
     currentAssessmentCycle(),
   );
-  const [selectedOrganizationUPRLevel, setSelectedOrganizationUPRLevel] = useState<string>("kementerian");
+  const assessmentCycleOptions = useMemo(() => {
+    const options = getSelectableAssessmentCycles(currentAssessmentCycle());
+    if (
+      assessmentCycleDisplay &&
+      !options.some((option) => option.value === assessmentCycleDisplay)
+    ) {
+      return [
+        { value: assessmentCycleDisplay, label: assessmentCycleDisplay },
+        ...options,
+      ];
+    }
+    return options;
+  }, [assessmentCycleDisplay]);
+  const [selectedOrganizationUPRLevel, setSelectedOrganizationUPRLevel] =
+    useState<string>("kementerian");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
@@ -675,6 +727,15 @@ export default function RiskInputPage() {
   const probability = watch("probability") ?? 3;
   const impact = watch("impact") ?? 3;
   const mitigations = watch("mitigations") ?? [];
+  const mitigationActionErrors = useMemo(
+    () =>
+      (
+        (errors.mitigations as
+          | Array<{ action?: { message?: string } }>
+          | undefined) ?? []
+      ).map((item) => item?.action?.message),
+    [errors.mitigations],
+  );
   const targetProbability = watch("targetProbability") ?? 1;
   const targetImpact = watch("targetImpact") ?? 1;
   const existingControl = watch("existingControl") ?? "";
@@ -693,7 +754,7 @@ export default function RiskInputPage() {
   // KMK Risk Appetite Advisory
   const advisoryInherentScore = probability * impact;
   const advisoryAppetite = resolveRiskAppetite(advisoryInherentScore);
-  const advisoryIsRiskUtama = isRiskUtama(advisoryInherentScore);;
+  const advisoryIsRiskUtama = isRiskUtama(advisoryInherentScore);
 
   const handleReviewerSelect = useCallback((option: UserPickerOption) => {
     setReviewerId(option.id);
@@ -1067,7 +1128,11 @@ export default function RiskInputPage() {
             ? res
             : filterToAccessibleOrgs(res, user?.accessibleOrgIds || []);
           setOrganizations(
-            filtered.map((org) => ({ id: org.id, name: org.name, uprLevel: org.uprLevel })),
+            filtered.map((org) => ({
+              id: org.id,
+              name: org.name,
+              uprLevel: org.uprLevel,
+            })),
           );
         } catch (err) {
           console.error(err);
@@ -1334,7 +1399,9 @@ export default function RiskInputPage() {
 
     const normalizedCategory = categoryMatch[1]?.trim().toLowerCase();
     const matchedCategory = CATEGORY_ORDER.find(
-      (category) => CATEGORY_TITLES[category as CategoryKey].toLowerCase() === normalizedCategory,
+      (category) =>
+        CATEGORY_TITLES[category as CategoryKey].toLowerCase() ===
+        normalizedCategory,
     );
     return matchedCategory && isRiskCategory(matchedCategory)
       ? matchedCategory
@@ -1450,6 +1517,7 @@ export default function RiskInputPage() {
       targetProbability: data.targetProbability,
       targetImpact: data.targetImpact,
       targetWeight: data.targetWeight,
+      assessmentCycle: assessmentCycleDisplay,
       mitigations: (data.mitigations || []).map((mitigation) => ({
         action: mitigation.action,
         owner: mitigation.owner,
@@ -1720,9 +1788,12 @@ export default function RiskInputPage() {
       return [];
     }
 
-    const current = riskVersions.find((version) => version.isCurrent) ?? riskVersions[0];
+    const current =
+      riskVersions.find((version) => version.isCurrent) ?? riskVersions[0];
 
-    return riskVersions.map((version) => buildVersionHistoryItem(version, current));
+    return riskVersions.map((version) =>
+      buildVersionHistoryItem(version, current),
+    );
   }, [riskVersions]);
 
   useEffect(() => {
@@ -1971,10 +2042,7 @@ export default function RiskInputPage() {
               )}
 
               {riskId && (
-                <Sheet
-                  open={historyOpen}
-                  onOpenChange={setHistoryOpen}
-                >
+                <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <SheetTrigger asChild>
@@ -2466,25 +2534,48 @@ export default function RiskInputPage() {
                         }}
                       />
                       <p className="text-[11px] leading-[14px] text-muted-foreground">
-                        Pilih sasaran organisasi yang terdampak langsung oleh risiko ini sesuai KMK.
+                        Pilih sasaran organisasi yang terdampak langsung oleh
+                        risiko ini sesuai KMK.
                       </p>
                     </div>
 
                     {objectiveSummary && (
                       <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-2">
-                        <p className="text-xs font-semibold text-foreground">Ringkasan Sasaran</p>
+                        <p className="text-xs font-semibold text-foreground">
+                          Ringkasan Sasaran
+                        </p>
                         <div className="grid gap-2 md:grid-cols-2 text-xs text-muted-foreground">
                           {objectiveSummary.tujuan && (
-                            <div><span className="font-medium text-foreground">Tujuan:</span> {objectiveSummary.tujuan}</div>
+                            <div>
+                              <span className="font-medium text-foreground">
+                                Tujuan:
+                              </span>{" "}
+                              {objectiveSummary.tujuan}
+                            </div>
                           )}
                           {objectiveSummary.sasaran && (
-                            <div><span className="font-medium text-foreground">Sasaran:</span> {objectiveSummary.sasaran}</div>
+                            <div>
+                              <span className="font-medium text-foreground">
+                                Sasaran:
+                              </span>{" "}
+                              {objectiveSummary.sasaran}
+                            </div>
                           )}
                           {objectiveSummary.indikatorKinerjaUtama && (
-                            <div><span className="font-medium text-foreground">IKU:</span> {objectiveSummary.indikatorKinerjaUtama}</div>
+                            <div>
+                              <span className="font-medium text-foreground">
+                                IKU:
+                              </span>{" "}
+                              {objectiveSummary.indikatorKinerjaUtama}
+                            </div>
                           )}
                           {objectiveSummary.program && (
-                            <div><span className="font-medium text-foreground">Program:</span> {objectiveSummary.program}</div>
+                            <div>
+                              <span className="font-medium text-foreground">
+                                Program:
+                              </span>{" "}
+                              {objectiveSummary.program}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -2509,16 +2600,25 @@ export default function RiskInputPage() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
-                          Assessment Cycle
-                        </Label>
-                        <Input
+                        <Label className="text-sm font-medium">Periode</Label>
+                        <Select
                           value={assessmentCycleDisplay}
-                          disabled
-                          className="text-sm"
-                        />
+                          onValueChange={setAssessmentCycleDisplay}
+                        >
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue placeholder="Pilih semester" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {assessmentCycleOptions.map((cycle) => (
+                              <SelectItem key={cycle.value} value={cycle.value}>
+                                {cycle.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <p className="text-xs text-muted-foreground">
-                          Diisi otomatis mengikuti siklus aktif.
+                          Pilih semester yang dinilai. Riwayat periode lebih
+                          baru akan mengunci semester sebelumnya.
                         </p>
                       </div>
                       <div className="space-y-1.5">
@@ -2816,8 +2916,12 @@ export default function RiskInputPage() {
                           <ImpactCriteriaTooltip
                             token={token || ""}
                             label="Dampak (Residual)"
-                            category={category as import("@/types/impact-criteria").ImpactCriteriaCategory}
-                            uprLevel={selectedOrganizationUPRLevel as import("@/types/impact-criteria").ImpactCriteriaUPRLevel}
+                            category={
+                              category as import("@/types/impact-criteria").ImpactCriteriaCategory
+                            }
+                            uprLevel={
+                              selectedOrganizationUPRLevel as import("@/types/impact-criteria").ImpactCriteriaUPRLevel
+                            }
                             className="text-sm font-medium"
                           />
                         ) : (
@@ -3068,7 +3172,7 @@ export default function RiskInputPage() {
                           items={(field.value ?? []).map(
                             (mitigation): MitigationItem => ({
                               id: mitigation.id,
-                              action: mitigation.action,
+                              action: mitigation.action ?? "",
                               owner: mitigation.owner ?? "",
                               treatmentOwnerId: mitigation.treatmentOwnerId,
                               externalPicId: mitigation.externalPicId,
@@ -3083,12 +3187,10 @@ export default function RiskInputPage() {
                               supportingUnit: mitigation.supportingUnit ?? "",
                               resourcesRequired:
                                 mitigation.resourcesRequired ?? "",
-                              contingencyPlan:
-                                mitigation.contingencyPlan ?? "",
+                              contingencyPlan: mitigation.contingencyPlan ?? "",
                               potentialObstacle:
                                 mitigation.potentialObstacle ?? "",
-                              costBenefitNote:
-                                mitigation.costBenefitNote ?? "",
+                              costBenefitNote: mitigation.costBenefitNote ?? "",
                               isBreakthroughActivity:
                                 mitigation.isBreakthroughActivity ?? false,
                               isExistingControl:
@@ -3098,6 +3200,7 @@ export default function RiskInputPage() {
                           onChange={field.onChange}
                           loadPicOptions={loadPicOptions}
                           disabled={isRiskLocked}
+                          actionErrors={mitigationActionErrors}
                         />
                       )}
                     />
@@ -3130,9 +3233,9 @@ export default function RiskInputPage() {
                           { shouldValidate: true },
                         );
                       }}
-                      existingActions={(mitigations || []).map(
-                        (mitigation) => mitigation.action,
-                      )}
+                      existingActions={(mitigations || [])
+                        .map((mitigation) => mitigation.action)
+                        .filter((action): action is string => Boolean(action))}
                       disabled={isRiskLocked}
                     />
 
@@ -3298,9 +3401,9 @@ export default function RiskInputPage() {
                     <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
                       <div className="flex flex-1 items-center justify-between pr-4">
                         <div className="flex items-center gap-3">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                          5
-                        </div>
+                          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
+                            5
+                          </div>
                           <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
                             Approval Line
                           </p>

@@ -21,10 +21,10 @@ func NewUpdateOrganizationUseCase(
 }
 
 type UpdateOrganizationInput struct {
-	ID       uuid.UUID
-	Name     string
-	ParentID *uuid.UUID
-	Context  *string `json:"context"`
+	ID       uuid.UUID  `json:"-"`
+	Name     string     `json:"name"`
+	ParentID *uuid.UUID `json:"parentId"`
+	Context  *string    `json:"context"`
 }
 
 type UpdateOrganizationOutput struct {

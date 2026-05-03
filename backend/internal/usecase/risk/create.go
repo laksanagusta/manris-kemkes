@@ -112,8 +112,8 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 	}
 
 	// 5. Validate mitigations
+	input.Mitigations = pruneEmptyMitigations(input.Mitigations)
 	for i, m := range input.Mitigations {
-		normalizeMitigationKMKFields(&m)
 		if err := m.Validate(); err != nil {
 			return nil, errors.Wrap(err, "mitigation validation failed")
 		}
@@ -174,9 +174,6 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		ObjectiveID:        input.ObjectiveID,
 	}
 	risk.CalculateAll()
-	if err := validateRiskMitigationRequirements(risk); err != nil {
-		return nil, err
-	}
 
 	// 7. Validate risk entity
 	if err := risk.Validate(); err != nil {

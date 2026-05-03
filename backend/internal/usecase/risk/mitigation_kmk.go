@@ -24,6 +24,61 @@ func normalizeMitigationKMKFields(m *entity.Mitigation) {
 	m.CostBenefitNote = strings.TrimSpace(m.CostBenefitNote)
 }
 
+func pruneEmptyMitigations(mitigations []entity.Mitigation) []entity.Mitigation {
+	if len(mitigations) == 0 {
+		return nil
+	}
+
+	pruned := make([]entity.Mitigation, 0, len(mitigations))
+	for _, mitigation := range mitigations {
+		normalizeMitigationKMKFields(&mitigation)
+		if mitigationHasContent(mitigation) {
+			pruned = append(pruned, mitigation)
+		}
+	}
+
+	return pruned
+}
+
+func mitigationHasContent(m entity.Mitigation) bool {
+	if strings.TrimSpace(m.Action) != "" {
+		return true
+	}
+	if strings.TrimSpace(m.Owner) != "" {
+		return true
+	}
+	if m.OwnerUserID != nil || m.DueDate != nil {
+		return true
+	}
+	if strings.TrimSpace(m.Frequency) != "" || m.RecurringInterval != nil {
+		return true
+	}
+	if m.ReportDay != nil || m.ReportDate != nil {
+		return true
+	}
+	if strings.TrimSpace(m.ExecutionScheduleText) != "" {
+		return true
+	}
+	if m.TargetCost != 0 {
+		return true
+	}
+	if strings.TrimSpace(m.ActivityStage) != "" ||
+		strings.TrimSpace(m.ExpectedOutput) != "" ||
+		strings.TrimSpace(m.QuantitativeTarget) != "" ||
+		strings.TrimSpace(m.SupportingUnit) != "" ||
+		strings.TrimSpace(m.ResourcesRequired) != "" ||
+		strings.TrimSpace(m.ContingencyPlan) != "" ||
+		strings.TrimSpace(m.PotentialObstacle) != "" ||
+		strings.TrimSpace(m.CostBenefitNote) != "" {
+		return true
+	}
+	if m.IsBreakthroughActivity || m.IsExistingControl {
+		return true
+	}
+
+	return false
+}
+
 func requiresNewMitigationPlan(option string) bool {
 	switch strings.TrimSpace(strings.ToLower(option)) {
 	case "mitigate", "mitigasi", "mitigasi risiko", "mitigate risiko":
