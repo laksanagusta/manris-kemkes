@@ -45,6 +45,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  currentAssessmentCycle,
+  getSelectableAssessmentCycles,
+} from "@/lib/risk-cycle-options";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -188,13 +192,6 @@ function computeCompleteness(draft: RiskListItem) {
   if (draft.targetProbability && draft.targetImpact) score++;
   if (draft.nextReviewDate) score++;
   return Math.round((score / total) * 100);
-}
-
-function currentGlobalCycle() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const half = now.getMonth() < 6 ? "H1" : "H2";
-  return `${year}-${half}`;
 }
 
 function formatCycleLabel(cycle?: string, createdAt?: string) {
@@ -357,6 +354,13 @@ export default function RiskRegisterPage() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
     useState<RiskListItem | null>(null);
+  const [selectedAssessmentCycle, setSelectedAssessmentCycle] = useState(
+    currentAssessmentCycle(),
+  );
+  const selectableAssessmentCycles = useMemo(
+    () => getSelectableAssessmentCycles(currentAssessmentCycle()),
+    [],
+  );
   const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
   const [riskToArchive, setRiskToArchive] = useState<RiskListItem | null>(null);
   const [archiveReason, setArchiveReason] = useState("");
@@ -781,6 +785,7 @@ export default function RiskRegisterPage() {
 
   const handleOpenConfirmDialog = (risk: RiskListItem) => {
     setSelectedRiskForReassessment(risk);
+    setSelectedAssessmentCycle(currentAssessmentCycle());
     setConfirmDialogOpen(true);
   };
 
@@ -791,7 +796,6 @@ export default function RiskRegisterPage() {
     }
 
     setConfirmDialogOpen(false);
-    const cycle = currentGlobalCycle();
 
     toast.promise(
       (async () => {
@@ -801,7 +805,7 @@ export default function RiskRegisterPage() {
           existingDraft?: boolean;
         }>(
           `/risks/${selectedRiskForReassessment.id}/reassess`,
-          { cycle },
+          { cycle: selectedAssessmentCycle },
           token,
         );
         await refreshRegisterData(token);
@@ -815,11 +819,11 @@ export default function RiskRegisterPage() {
         return result;
       })(),
       {
-        loading: `Membuat draft reassessment ${cycle}...`,
+        loading: `Membuat draft reassessment ${selectedAssessmentCycle}...`,
         success: (result) =>
           result.existingDraft
-            ? `Melanjutkan draft reassessment ${cycle} yang sudah ada.`
-            : `Draft reassessment ${cycle} berhasil dibuat.`,
+            ? `Melanjutkan draft reassessment ${selectedAssessmentCycle} yang sudah ada.`
+            : `Draft reassessment ${selectedAssessmentCycle} berhasil dibuat.`,
         error: (err) =>
           err instanceof Error
             ? err.message
@@ -1084,7 +1088,8 @@ export default function RiskRegisterPage() {
                   <TableHead className="w-28 whitespace-nowrap">
                     Kategori
                   </TableHead>
-                  <TableHead className="text-center w-16 whitespace-nowrap cursor-pointer select-none"
+                  <TableHead
+                    className="text-center w-16 whitespace-nowrap cursor-pointer select-none"
                     onClick={() => {
                       if (sortBy === "nilai") {
                         setSortOrder((prev) =>
@@ -1854,8 +1859,31 @@ export default function RiskRegisterPage() {
             <div className="text-sm">
               <span className="font-medium text-foreground">Cycle: </span>
               <span className="text-muted-foreground">
-                {currentGlobalCycle()}
+                {selectedAssessmentCycle}
               </span>
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-foreground">
+                Periode Pemantauan
+              </div>
+              <Select
+                value={selectedAssessmentCycle}
+                onValueChange={setSelectedAssessmentCycle}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Pilih semester" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectableAssessmentCycles.map((cycleOption) => (
+                    <SelectItem
+                      key={cycleOption.value}
+                      value={cycleOption.value}
+                    >
+                      {cycleOption.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="text-sm">
               <span className="font-medium text-foreground">Score: </span>

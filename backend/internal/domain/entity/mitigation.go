@@ -68,10 +68,10 @@ func (m *Mitigation) Validate() error {
 	m.Owner = strings.TrimSpace(m.Owner)
 	m.MitigationType = strings.TrimSpace(m.MitigationType)
 	if m.Action == "" {
-		return errors.ErrInvalidAction
+		return errors.Wrap(errors.ErrInvalidInput, "mitigation action is required")
 	}
 	if m.Owner == "" {
-		return errors.ErrInvalidOwner
+		return errors.Wrap(errors.ErrInvalidInput, "mitigation owner is required")
 	}
 	if _, ok := allowedMitigationTypes[m.MitigationType]; !ok {
 		return errors.ErrInvalidMitigationType

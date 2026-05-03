@@ -29,9 +29,9 @@ func NewOrganizationRepository(pool *pgxpool.Pool) repository.OrganizationReposi
 // Create inserts a new organization
 func (r *organizationRepository) Create(ctx context.Context, org *entity.Organization) error {
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO organizations (name, parent_id, context, created_at) VALUES ($1,$2,$3,NOW()) RETURNING id, created_at`,
-		org.Name, org.ParentID, nilIfEmpty(org.Context),
-	).Scan(&org.ID, &org.CreatedAt)
+		`INSERT INTO organizations (name, parent_id, context, upr_level, created_at) VALUES ($1,$2,$3,$4,NOW()) RETURNING id, upr_level, created_at`,
+		org.Name, org.ParentID, nilIfEmpty(org.Context), org.UPRLevel,
+	).Scan(&org.ID, &org.UPRLevel, &org.CreatedAt)
 
 	if err != nil {
 		return fmt.Errorf("create organization: %w", err)

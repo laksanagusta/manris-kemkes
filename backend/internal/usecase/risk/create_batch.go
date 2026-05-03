@@ -219,7 +219,7 @@ func validateBatchItem(item CreateRiskBatchItemInput) error {
 	}
 	for _, mitigation := range item.Mitigations {
 		if mitigation.Action == "" {
-			return apperrors.Wrap(apperrors.ErrInvalidAction, "mitigation action is required")
+			return apperrors.Wrap(apperrors.ErrInvalidInput, "mitigation action is required")
 		}
 	}
 	return nil

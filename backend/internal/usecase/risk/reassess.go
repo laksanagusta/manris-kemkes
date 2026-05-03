@@ -2,6 +2,7 @@ package risk
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,14 +12,20 @@ import (
 )
 
 type CreateRiskReassessmentUseCase struct {
-	riskRepo repository.RiskRepository
+	riskRepo reassessmentRiskRepository
 }
 
 type periodicReassessmentReservation interface {
 	GetOrCreatePeriodicReassessmentInTx(ctx context.Context, sourceRisk *entity.Risk, cycle string, createdBy uuid.UUID) (*entity.Risk, bool, error)
 }
 
-func NewCreateRiskReassessmentUseCase(riskRepo repository.RiskRepository) *CreateRiskReassessmentUseCase {
+type reassessmentRiskRepository interface {
+	GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Risk, error)
+	ListVersions(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.Risk, error)
+	Create(ctx context.Context, risk *entity.Risk) error
+}
+
+func NewCreateRiskReassessmentUseCase(riskRepo reassessmentRiskRepository) *CreateRiskReassessmentUseCase {
 	return &CreateRiskReassessmentUseCase{riskRepo: riskRepo}
 }
 
@@ -52,6 +59,9 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 	}
 	if !sourceRisk.CanBeReassessed() {
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "only current approved risks can be reassessed")
+	}
+	if err := validateNoNewerCycle(ctx, uc.riskRepo, sourceRisk.VersionGroupID, input.Cycle); err != nil {
+		return nil, err
 	}
 	if manager, ok := uc.riskRepo.(periodicReassessmentReservation); ok {
 		reservedRisk, created, err := manager.GetOrCreatePeriodicReassessmentInTx(ctx, sourceRisk, input.Cycle, input.CreatedBy)
@@ -117,6 +127,47 @@ func FindInProgressReassessmentForCycle(versions []*entity.Risk, cycle string) *
 		}
 	}
 	return nil
+}
+
+func validateNoNewerCycle(ctx context.Context, riskRepo reassessmentRiskRepository, versionGroupID uuid.UUID, requestedCycle string) error {
+	versions, err := riskRepo.ListVersions(ctx, versionGroupID)
+	if err != nil {
+		return errors.Wrap(err, "failed to load risk versions")
+	}
+
+	var blockingCycles []string
+	for _, version := range versions {
+		if version == nil || version.AssessmentCycle == "" {
+			continue
+		}
+		cmp, err := CompareCycles(version.AssessmentCycle, requestedCycle)
+		if err != nil {
+			return err
+		}
+		if cmp > 0 {
+			blockingCycles = append(blockingCycles, version.AssessmentCycle)
+		}
+	}
+
+	if len(blockingCycles) == 0 {
+		return nil
+	}
+
+	earliest := blockingCycles[0]
+	for _, cycle := range blockingCycles[1:] {
+		cmp, err := CompareCycles(cycle, earliest)
+		if err != nil {
+			return err
+		}
+		if cmp < 0 {
+			earliest = cycle
+		}
+	}
+
+	return errors.Wrap(
+		errors.ErrInvalidInput,
+		fmt.Sprintf("Tidak bisa membuat reassessment untuk %s karena risiko ini sudah memiliki penilaian pada periode lebih baru: %s.", requestedCycle, earliest),
+	)
 }
 
 func BuildPeriodicReassessmentDraft(source *entity.Risk, cycle string, startedAt time.Time, createdBy uuid.UUID) *entity.Risk {

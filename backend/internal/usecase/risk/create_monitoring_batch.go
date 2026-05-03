@@ -148,6 +148,16 @@ func (uc *CreateMonitoringBatchUseCase) processItem(
 		}
 	}
 
+	if err := validateNoNewerCycle(ctx, uc.riskRepo, sourceRisk.VersionGroupID, cycle); err != nil {
+		return BulkMonitoringBatchItemOutput{
+			ClientKey: item.ClientKey,
+			Code:      &sourceRisk.Code,
+			Status:    "failed",
+			Message:   "cannot create reassessment for older cycle",
+			Error:     err.Error(),
+		}
+	}
+
 	draft := BuildPeriodicReassessmentDraft(sourceRisk, cycle, now, *createdBy)
 
 	draft.Probability = item.RealisasiP

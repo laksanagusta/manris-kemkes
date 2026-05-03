@@ -11,6 +11,7 @@ export interface Organization {
 export interface OrganizationPayloadInput {
   name: string;
   parentId: string | "__ROOT__";
+  uprLevel?: string;
 }
 
 export interface OrganizationTreeNode extends Organization {
@@ -143,11 +144,13 @@ export function getAvailableParentOptions(
 export function toOrganizationRequestBody({
   name,
   parentId,
-}: OrganizationPayloadInput): { Name: string; ParentID: string | null } {
+  uprLevel,
+}: OrganizationPayloadInput): { name: string; parentId: string | null; uprLevel: string } {
   return {
-    Name: name,
-    ParentID:
+    name,
+    parentId:
       parentId === "__ROOT__" || parentId.trim() === "" ? null : parentId,
+    uprLevel: uprLevel ?? "",
   };
 }
 

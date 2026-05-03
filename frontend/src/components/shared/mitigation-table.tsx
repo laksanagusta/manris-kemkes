@@ -50,6 +50,7 @@ interface MitigationTableProps {
   items: MitigationItem[];
   onChange: (items: MitigationItem[]) => void;
   disabled?: boolean;
+  actionErrors?: Array<string | undefined>;
   loadPicOptions?: (params: {
     q: string;
     page: number;
@@ -84,6 +85,7 @@ export function MitigationTable({
   items,
   onChange,
   disabled,
+  actionErrors,
   loadPicOptions,
 }: MitigationTableProps) {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
@@ -148,6 +150,11 @@ export function MitigationTable({
                   className="text-sm bg-background border-border/50"
                   disabled={disabled}
                 />
+                {actionErrors?.[index] ? (
+                  <p className="text-xs font-medium text-destructive">
+                    {actionErrors[index]}
+                  </p>
+                ) : null}
               </div>
               <Button
                 variant="ghost"
