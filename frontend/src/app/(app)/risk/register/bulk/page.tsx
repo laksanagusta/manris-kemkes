@@ -554,7 +554,7 @@ export default function BulkRiskRegisterPage() {
                             ? preview.errors.join(" ")
                             : preview.warnings.length > 0
                               ? preview.warnings.join(" ")
-                              : "Siap dikirim ke server."}
+                              : "Siap dibuat."}
                         </TableCell>
                       </TableRow>
                     ))}

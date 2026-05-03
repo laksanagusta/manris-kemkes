@@ -77,14 +77,16 @@ export function ObjectivePicker({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between truncate font-normal"
+          className="w-full min-w-0 max-w-full shrink justify-between overflow-hidden font-normal"
         >
           {selected ? (
-            <span className="truncate">
+            <span className="min-w-0 flex-1 truncate text-left">
               {selected.sasaran} — {selected.indikatorKinerjaUtama}
             </span>
           ) : (
-            <span className="text-muted-foreground">Pilih sasaran & IKU...</span>
+            <span className="min-w-0 flex-1 truncate text-left text-muted-foreground">
+              Pilih sasaran & IKU...
+            </span>
           )}
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
@@ -114,7 +116,7 @@ export function ObjectivePicker({
               <button
                 key={item.id}
                 className={cn(
-                  "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                  "relative flex w-full cursor-pointer select-none items-start rounded-sm px-2 py-2 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground",
                   value === item.id && "bg-accent text-accent-foreground",
                 )}
                 onClick={() => {
@@ -135,9 +137,11 @@ export function ObjectivePicker({
                     value === item.id ? "opacity-100" : "opacity-0",
                   )}
                 />
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">{item.sasaran}</span>
-                  <span className="text-xs text-muted-foreground">
+                <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+                  <span className="w-full break-words font-medium leading-snug">
+                    {item.sasaran}
+                  </span>
+                  <span className="w-full break-words text-xs leading-snug text-muted-foreground">
                     {item.indikatorKinerjaUtama}
                     {item.period ? ` · ${item.period}` : ""}
                   </span>

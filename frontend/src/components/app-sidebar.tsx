@@ -16,7 +16,6 @@ import {
   Users,
   Settings2,
   ChevronDown,
-  Bot,
   Calculator,
   Building2,
   FileSignature,
@@ -70,7 +69,6 @@ const iconMap: Record<string, React.ElementType> = {
 
 const reportsNavigation: NavGroup = {
   title: "LAPORAN",
-  icon: FileBarChart,
   items: [
     {
       label: "Analisis Risiko",
@@ -95,10 +93,16 @@ const reportsNavigation: NavGroup = {
   ],
 };
 
+const dashboardNavigation: NavItem = {
+  label: "Dashboard",
+  href: "/overview",
+  icon: LayoutDashboard,
+};
+
 const navigation: NavGroup[] = [
   ...mainMenuItems.map((group) => {
     const items = group.items
-      .filter((item) => item.href !== "/reports")
+      .filter((item) => item.href !== "/overview" && item.href !== "/reports")
       .map((item) => ({
         ...item,
         icon: iconMap[item.icon] ?? LayoutDashboard,
@@ -112,7 +116,6 @@ const navigation: NavGroup[] = [
   reportsNavigation,
   {
     title: "AI & Automation",
-    icon: Bot,
     items: [
       {
         label: "Meeting",
@@ -142,9 +145,16 @@ const navigation: NavGroup[] = [
   },
 ];
 
-const allNavHrefs = navigation.flatMap((group) => [
-  ...(group.items ?? []).flatMap((item) => item.matchHrefs ?? [item.href]),
-]);
+const allNavHrefs = [
+  dashboardNavigation.href,
+  ...navigation.flatMap((group) => [
+    ...(group.items ?? []).flatMap((item) => item.matchHrefs ?? [item.href]),
+  ]),
+];
+
+const defaultCollapsedNodes = new Set(
+  navigation.map((group) => `group:${group.title}`),
+);
 
 const utilityLinks: NavItem[] = [
   {
@@ -222,7 +232,7 @@ function NavLink({
     <Link
       href={item.href}
       className={cn(
-        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
+        "group flex min-h-10 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
         isActive
           ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
@@ -230,7 +240,7 @@ function NavLink({
     >
       <item.icon
         className={cn(
-          "size-4 shrink-0 transition-colors",
+          "size-[18px] shrink-0 transition-colors",
           isActive
             ? "text-sidebar-primary"
             : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70",
@@ -292,9 +302,8 @@ export function AppSidebar({
   inboxBadge?: number;
 }) {
   const { user } = useAuth();
-  const pathname = usePathname();
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(
-    new Set(),
+    () => new Set(defaultCollapsedNodes),
   );
   const currentHash = useLocationHash();
   const visibleNavigation = useMemo(
@@ -331,13 +340,20 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        "fixed left-0 top-14 z-40 flex h-[calc(100vh-3.5rem)] flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
+        "fixed left-0 top-14 z-40 flex h-[calc(100vh-3.5rem)] min-h-0 flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
         collapsed ? "w-16" : "w-64",
       )}
     >
       {/* Navigation */}
-      <ScrollArea className="flex-1 px-3 py-4">
-        <nav className="space-y-6">
+      <ScrollArea className="min-h-0 flex-1 px-3 py-4">
+        <nav className="space-y-5">
+          <div>
+            <NavLink
+              item={dashboardNavigation}
+              collapsed={collapsed}
+              currentHash={currentHash}
+            />
+          </div>
           {visibleNavigation.map((group) => {
             const groupKey = `group:${group.title}`;
             const isGroupCollapsed = collapsedNodes.has(groupKey);
@@ -364,11 +380,11 @@ export function AppSidebar({
                       <button
                         type="button"
                         onClick={() => toggleNode(groupKey)}
-                        className="mb-2 flex w-full items-center justify-between rounded-md px-3 py-1 text-[10px] font-semibold tracking-widest uppercase text-sidebar-foreground/40 transition-colors hover:text-sidebar-foreground/60"
+                        className="mb-2 flex min-h-9 w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-semibold tracking-widest uppercase text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/60"
                         aria-expanded={!isGroupCollapsed}
                       >
-                        <span className="flex items-center gap-1.5">
-                          {group.icon && <group.icon className="size-3" />}
+                        <span className="flex items-center gap-2">
+                          {group.icon && <group.icon className="size-4" />}
                           {group.title}
                         </span>
                         <ChevronDown
@@ -398,11 +414,11 @@ export function AppSidebar({
                       <button
                         type="button"
                         onClick={() => toggleNode(groupKey)}
-                        className="mb-2 flex w-full items-center justify-between px-3 text-[10px] font-semibold tracking-widest text-sidebar-foreground/40 uppercase transition-colors hover:text-sidebar-foreground/60"
+                        className="mb-2 flex min-h-9 w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-semibold tracking-widest text-sidebar-foreground/40 uppercase transition-colors hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/60"
                         aria-expanded={!isGroupCollapsed}
                       >
-                        <span className="flex items-center gap-1.5">
-                          {group.icon && <group.icon className="size-3" />}
+                        <span className="flex items-center gap-2">
+                          {group.icon && <group.icon className="size-4" />}
                           {group.title}
                         </span>
                         <ChevronDown
@@ -413,7 +429,9 @@ export function AppSidebar({
                         />
                       </button>
                     )}
-                    {collapsed && <Separator className="mb-2 bg-sidebar-border" />}
+                    {collapsed && (
+                      <Separator className="mb-2 bg-sidebar-border" />
+                    )}
                     {!isGroupCollapsed && (
                       <div className="space-y-0.5">
                         {group.items?.map((item) => (
@@ -438,7 +456,7 @@ export function AppSidebar({
       </ScrollArea>
 
       {/* Footer */}
-      <div className="border-t border-sidebar-border p-3">
+      <div className="shrink-0 border-t border-sidebar-border p-3">
         <div className="mb-3">
           {!collapsed && (
             <p className="mb-2 px-3 text-[10px] font-semibold tracking-widest text-sidebar-foreground/40 uppercase">

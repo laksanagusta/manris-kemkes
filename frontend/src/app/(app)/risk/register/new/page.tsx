@@ -2257,7 +2257,7 @@ export default function RiskInputPage() {
                     : "bg-muted/40 text-muted-foreground",
                 )}
               >
-                {completedSectionCount}/6 bagian siap
+                {completedSectionCount}/5 bagian lengkap
               </Badge>
             </div>
           </div>
@@ -2540,13 +2540,13 @@ export default function RiskInputPage() {
                     </div>
 
                     {objectiveSummary && (
-                      <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-2">
+                      <div className="min-w-0 space-y-2 rounded-lg border border-border/50 bg-muted/30 p-4">
                         <p className="text-xs font-semibold text-foreground">
                           Ringkasan Sasaran
                         </p>
-                        <div className="grid gap-2 md:grid-cols-2 text-xs text-muted-foreground">
+                        <div className="grid min-w-0 gap-2 text-xs text-muted-foreground md:grid-cols-2">
                           {objectiveSummary.tujuan && (
-                            <div>
+                            <div className="min-w-0 break-words">
                               <span className="font-medium text-foreground">
                                 Tujuan:
                               </span>{" "}
@@ -2554,7 +2554,7 @@ export default function RiskInputPage() {
                             </div>
                           )}
                           {objectiveSummary.sasaran && (
-                            <div>
+                            <div className="min-w-0 break-words">
                               <span className="font-medium text-foreground">
                                 Sasaran:
                               </span>{" "}
@@ -2562,7 +2562,7 @@ export default function RiskInputPage() {
                             </div>
                           )}
                           {objectiveSummary.indikatorKinerjaUtama && (
-                            <div>
+                            <div className="min-w-0 break-words">
                               <span className="font-medium text-foreground">
                                 IKU:
                               </span>{" "}
@@ -2570,7 +2570,7 @@ export default function RiskInputPage() {
                             </div>
                           )}
                           {objectiveSummary.program && (
-                            <div>
+                            <div className="min-w-0 break-words">
                               <span className="font-medium text-foreground">
                                 Program:
                               </span>{" "}
