@@ -13,8 +13,8 @@ export function MonitoringReportingWorkspace() {
           Monitoring
         </h1>
         <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-          Pantau queue reassessment semester global, lihat risiko yang due,
-          draft berjalan, hingga yang sudah approved dalam satu halaman.
+          Pemantauan per semester, lihat risiko yang due, draft berjalan, hingga
+          yang sudah disetujui dalam satu halaman.
         </p>
       </section>
 

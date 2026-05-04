@@ -1,10 +1,8 @@
 package http
 
 import (
-	"fmt"
+	"io"
 	"mime/multipart"
-	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -14,6 +12,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/middleware"
+	"github.com/manris/backend/internal/service/documenttext"
 	aiuc "github.com/manris/backend/internal/usecase/ai"
 )
 
@@ -27,17 +26,18 @@ func scopeOrgID(scope *entity.AccessScope) *uuid.UUID {
 
 // AIHandler handles AI-related HTTP requests using clean architecture
 type AIHandler struct {
-	fishboneUC        *aiuc.GenerateFishboneUseCase
-	impactUC          *aiuc.GenerateImpactUseCase
-	mitigationUC      *aiuc.GenerateMitigationUseCase
-	minutesUC         *aiuc.GenerateMinutesUseCase
-	transcriptUC      *aiuc.AnalyzeTranscriptUseCase
-	applyRiskChangeUC *aiuc.ApplyTranscriptRiskChangesUseCase
-	predictiveUC      *aiuc.GeneratePredictiveUseCase
-	riskSuggestionUC  *aiuc.GenerateRiskSuggestionsUseCase
-	kriUC             *aiuc.GenerateKRIUseCase
-	incidentBatchUC   *aiuc.GenerateIncidentBatchExtractionUseCase
-	incidentRiskUC    *aiuc.GenerateManualIncidentRiskSuggestionsUseCase
+	fishboneUC             *aiuc.GenerateFishboneUseCase
+	impactUC               *aiuc.GenerateImpactUseCase
+	mitigationUC           *aiuc.GenerateMitigationUseCase
+	minutesUC              *aiuc.GenerateMinutesUseCase
+	transcriptUC           *aiuc.AnalyzeTranscriptUseCase
+	applyRiskChangeUC      *aiuc.ApplyTranscriptRiskChangesUseCase
+	predictiveUC           *aiuc.GeneratePredictiveUseCase
+	riskSuggestionUC       *aiuc.GenerateRiskSuggestionsUseCase
+	kriUC                  *aiuc.GenerateKRIUseCase
+	incidentBatchUC        *aiuc.GenerateIncidentBatchExtractionUseCase
+	incidentRiskUC         *aiuc.GenerateManualIncidentRiskSuggestionsUseCase
+	documentIntelligenceUC *aiuc.AnalyzeDocumentIntelligenceUseCase
 }
 
 // NewAIHandler creates a new AI handler
@@ -53,19 +53,21 @@ func NewAIHandler(
 	kriUC *aiuc.GenerateKRIUseCase,
 	incidentBatchUC *aiuc.GenerateIncidentBatchExtractionUseCase,
 	incidentRiskUC *aiuc.GenerateManualIncidentRiskSuggestionsUseCase,
+	documentIntelligenceUC *aiuc.AnalyzeDocumentIntelligenceUseCase,
 ) *AIHandler {
 	return &AIHandler{
-		fishboneUC:        fishboneUC,
-		impactUC:          impactUC,
-		mitigationUC:      mitigationUC,
-		minutesUC:         minutesUC,
-		transcriptUC:      transcriptUC,
-		applyRiskChangeUC: applyRiskChangeUC,
-		predictiveUC:      predictiveUC,
-		riskSuggestionUC:  riskSuggestionUC,
-		kriUC:             kriUC,
-		incidentBatchUC:   incidentBatchUC,
-		incidentRiskUC:    incidentRiskUC,
+		fishboneUC:             fishboneUC,
+		impactUC:               impactUC,
+		mitigationUC:           mitigationUC,
+		minutesUC:              minutesUC,
+		transcriptUC:           transcriptUC,
+		applyRiskChangeUC:      applyRiskChangeUC,
+		predictiveUC:           predictiveUC,
+		riskSuggestionUC:       riskSuggestionUC,
+		kriUC:                  kriUC,
+		incidentBatchUC:        incidentBatchUC,
+		incidentRiskUC:         incidentRiskUC,
+		documentIntelligenceUC: documentIntelligenceUC,
 	}
 }
 
@@ -397,7 +399,7 @@ func (h *AIHandler) GenerateIncidentBatch(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/invalid-file-type", domainerrors.ErrInvalidFileType.Error())
 	}
 
-	documentText, err := extractTextFromPDF(c, fileHeader)
+	documentText, err := extractTextFromPDF(fileHeader)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -422,6 +424,80 @@ func (h *AIHandler) GenerateIncidentBatch(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": result})
 }
 
+// AnalyzeDocumentIntelligence handles POST /api/v1/ai/document-intelligence/analyze
+func (h *AIHandler) AnalyzeDocumentIntelligence(c *fiber.Ctx) error {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "file is required")
+	}
+
+	if fileHeader.Size > 10*1024*1024 {
+		return sendProblemDetails(c, fiber.StatusRequestEntityTooLarge, "File Too Large", "https://api.manris.com/errors/file-too-large", domainerrors.ErrFileTooLarge.Error())
+	}
+
+	if !isDocumentIntelligenceFile(fileHeader.Filename) {
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/invalid-file-type", "only PDF and XLSX files are supported")
+	}
+
+	mode := entity.DocumentAnalysisMode(strings.TrimSpace(c.FormValue("mode")))
+	if !entity.IsValidDocumentAnalysisMode(mode) {
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid document analysis mode")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+	}
+
+	var requestedOrgID *uuid.UUID
+	var orgIDs []uuid.UUID
+	if orgIDStr := strings.TrimSpace(c.FormValue("organizationId")); orgIDStr != "" {
+		parsedOrgID, err := uuid.Parse(orgIDStr)
+		if err != nil {
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		}
+		if !scope.IsGlobal {
+			if _, err := scope.NarrowToOrg(parsedOrgID); err != nil {
+				return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "insufficient permissions")
+			}
+		}
+		requestedOrgID = &parsedOrgID
+		orgIDs = []uuid.UUID{parsedOrgID}
+	} else if !scope.IsGlobal {
+		requestedOrgID = scope.OrganizationID
+		orgIDs = append([]uuid.UUID(nil), scope.AccessibleOrgIDs...)
+	}
+
+	documentResult, err := extractDocumentFromUpload(fileHeader)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	result, err := h.documentIntelligenceUC.Execute(c.Context(), aiuc.AnalyzeDocumentIntelligenceInput{
+		Mode:           mode,
+		DocumentText:   documentResult.Text,
+		Filename:       fileHeader.Filename,
+		Period:         strings.TrimSpace(c.FormValue("period")),
+		OrganizationID: requestedOrgID,
+		OrgIDs:         orgIDs,
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{
+		"data": fiber.Map{
+			"mode": mode,
+			"document": fiber.Map{
+				"filename":   fileHeader.Filename,
+				"textLength": documentResult.Length,
+				"warnings":   documentResult.Warnings,
+			},
+			"result": result,
+		},
+	})
+}
+
 func isPDFFile(filename, contentType string) bool {
 	if strings.EqualFold(contentType, "application/pdf") {
 		return true
@@ -430,38 +506,38 @@ func isPDFFile(filename, contentType string) bool {
 	return strings.EqualFold(filepath.Ext(filename), ".pdf")
 }
 
-func extractTextFromPDF(c *fiber.Ctx, fileHeader *multipart.FileHeader) (string, error) {
+func extractDocumentFromUpload(fileHeader *multipart.FileHeader) (*documenttext.ExtractResult, error) {
 	src, err := fileHeader.Open()
 	if err != nil {
-		return "", domainerrors.Wrap(err, "failed to open uploaded file")
+		return nil, domainerrors.Wrap(err, "failed to open uploaded file")
 	}
 	defer src.Close()
 
-	tmpFile, err := os.CreateTemp("", "incident-upload-*.pdf")
+	content, err := io.ReadAll(src)
 	if err != nil {
-		return "", domainerrors.Wrap(err, "failed to prepare temporary file")
-	}
-	tmpPath := tmpFile.Name()
-	defer os.Remove(tmpPath)
-
-	if _, err := tmpFile.ReadFrom(src); err != nil {
-		_ = tmpFile.Close()
-		return "", domainerrors.Wrap(err, "failed to copy uploaded file")
-	}
-	if err := tmpFile.Close(); err != nil {
-		return "", domainerrors.Wrap(err, "failed to finalize uploaded file")
+		return nil, domainerrors.Wrap(err, "failed to read uploaded file")
 	}
 
-	cmd := exec.CommandContext(c.Context(), "pdftotext", "-layout", "-enc", "UTF-8", tmpPath, "-")
-	output, err := cmd.CombinedOutput()
+	return documenttext.Extract(documenttext.ExtractInput{
+		Filename: fileHeader.Filename,
+		Content:  content,
+		MaxChars: documenttext.DefaultMaxChars,
+	})
+}
+
+func extractTextFromPDF(fileHeader *multipart.FileHeader) (string, error) {
+	result, err := extractDocumentFromUpload(fileHeader)
 	if err != nil {
-		return "", domainerrors.Wrap(err, fmt.Sprintf("failed to extract PDF text: %s", string(output)))
+		return "", err
 	}
+	return result.Text, nil
+}
 
-	text := strings.TrimSpace(string(output))
-	if text == "" {
-		return "", domainerrors.ErrDocumentUnreadable
+func isDocumentIntelligenceFile(filename string) bool {
+	switch strings.ToLower(filepath.Ext(filename)) {
+	case ".pdf", ".xlsx":
+		return true
+	default:
+		return false
 	}
-
-	return text, nil
 }

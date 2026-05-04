@@ -11,10 +11,12 @@ import {
   getSimpulanEfektifitasColor,
   getSimpulanEfektifitas,
 } from "@/lib/risk";
+import { resolveAssessmentScoreComparison } from "@/lib/risk-assessment-summary";
 
 export interface SimpulanCardProps {
   nilaiCurrent: number;
   nilaiBaru: number;
+  currentInherentScore?: number;
   targetScore?: number;
   probability?: number;
   impact?: number;
@@ -23,6 +25,7 @@ export interface SimpulanCardProps {
 export function SimpulanCard({
   nilaiCurrent,
   nilaiBaru,
+  currentInherentScore,
   targetScore = 0,
   probability = 1,
   impact = 1,
@@ -46,12 +49,18 @@ export function SimpulanCard({
   const bobot = getBobot(probability, impact);
   const prioritas = Math.round(nilaiBaru / 10) || 1;
   const levelColorClass = levelToColor(levelBaru);
-  const isStable = nilaiBaru === nilaiCurrent;
-  const isDecrease = nilaiBaru < nilaiCurrent;
-
-  const delta = nilaiBaru - nilaiCurrent;
-  const deltaPercent =
-    nilaiCurrent > 0 ? Math.round((delta / nilaiCurrent) * 100) : 0;
+  const {
+    currentScore,
+    newScore,
+    delta,
+    deltaPercent,
+    isStable,
+    isDecrease,
+  } = resolveAssessmentScoreComparison({
+    currentInherentScore,
+    currentNilai: nilaiCurrent,
+    newNilai: nilaiBaru,
+  });
 
   const TrendIcon = isStable ? Minus : isDecrease ? TrendingDown : TrendingUp;
   const trendColorClass = isStable
@@ -61,20 +70,23 @@ export function SimpulanCard({
       : "text-risk-extreme";
 
   const progress =
-    targetScore > 0 && nilaiCurrent !== targetScore
+    targetScore > 0 && currentScore !== targetScore
       ? Math.min(
           100,
           Math.max(
             0,
             Math.round(
-              ((nilaiCurrent - nilaiBaru) / (nilaiCurrent - targetScore)) * 100,
+              ((currentScore - newScore) / (currentScore - targetScore)) * 100,
             ),
           ),
         )
       : 0;
 
-  const efektifitasColor = getSimpulanEfektifitasColor(nilaiCurrent, nilaiBaru);
-  const efektifitasLabel = getSimpulanEfektifitas(nilaiCurrent, nilaiBaru);
+  const efektifitasColor = getSimpulanEfektifitasColor(
+    currentScore,
+    newScore,
+  );
+  const efektifitasLabel = getSimpulanEfektifitas(currentScore, newScore);
 
   return (
     <div className="space-y-4">
@@ -93,7 +105,7 @@ export function SimpulanCard({
         <div className="text-right">
           <p className="text-lg font-bold">{getRiskLevelLabel(levelBaru)}</p>
           <p className="text-xs font-mono opacity-80">
-            Skor Risiko: {Math.round(nilaiBaru)}
+            Skor Risiko: {newScore}
           </p>
         </div>
       </div>
@@ -106,7 +118,7 @@ export function SimpulanCard({
             </p>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-foreground">
-                {Math.round(nilaiCurrent)} &rarr; {Math.round(nilaiBaru)}
+                {currentScore} &rarr; {newScore}
               </span>
               <span
                 className={cn(
@@ -129,10 +141,10 @@ export function SimpulanCard({
                 </p>
                 <div className="text-right">
                   <span className="text-xs font-medium text-foreground">
-                    {Math.round(nilaiBaru)} / {Math.round(targetScore)}
+                    {newScore} / {Math.round(targetScore)}
                   </span>
                   <span className="text-xs text-muted-foreground ml-1">
-                    ({Math.max(0, Math.round(nilaiBaru - targetScore))} selisih)
+                    ({Math.max(0, newScore - Math.round(targetScore))} selisih)
                   </span>
                 </div>
               </div>

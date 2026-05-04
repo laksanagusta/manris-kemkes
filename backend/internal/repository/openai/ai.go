@@ -355,7 +355,67 @@ func (r *aiRepository) callOpenAI(ctx context.Context, prompt string, systemMess
 		return "", err
 	}
 
+	if len(resp.Choices) == 0 {
+		return "", fmt.Errorf("OpenAI returned no choices")
+	}
+
 	return resp.Choices[0].Message.Content, nil
+}
+
+func (r *aiRepository) callOpenAIJSON(ctx context.Context, prompt string, systemMessage string, feature string, orgContext string, maxTokens int) (string, error) {
+	if orgContext != "" {
+		systemMessage = "Konteks Organisasi:\n" + orgContext + "\n\n" + systemMessage
+	}
+
+	model := "gpt-4o-mini"
+	if r.modelProvider != nil {
+		model = r.modelProvider.GetModelForFeature(feature)
+	}
+
+	log.Println(model)
+	resp, err := r.client.CreateChatCompletion(
+		ctx,
+		openai.ChatCompletionRequest{
+			Model: model,
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    openai.ChatMessageRoleSystem,
+					Content: systemMessage,
+				},
+				{
+					Role:    openai.ChatMessageRoleUser,
+					Content: prompt,
+				},
+			},
+			MaxCompletionTokens: maxTokens,
+			ResponseFormat: &openai.ChatCompletionResponseFormat{
+				Type: openai.ChatCompletionResponseFormatTypeJSONObject,
+			},
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+
+	if len(resp.Choices) == 0 {
+		return "", fmt.Errorf("OpenAI returned no choices")
+	}
+
+	choice := resp.Choices[0]
+	content := strings.TrimSpace(choice.Message.Content)
+	log.Printf("OpenAI JSON feature=%s finish_reason=%s content_length=%d", feature, choice.FinishReason, len(content))
+
+	if choice.FinishReason == openai.FinishReasonLength {
+		return "", fmt.Errorf("OpenAI response was truncated before completing JSON")
+	}
+	if choice.FinishReason == openai.FinishReasonContentFilter {
+		return "", fmt.Errorf("OpenAI response was blocked by content filter")
+	}
+	if content == "" {
+		return "", fmt.Errorf("OpenAI returned empty JSON response")
+	}
+
+	return content, nil
 }
 
 func cleanMarkdown(content string) string {
@@ -782,6 +842,79 @@ func (r *aiRepository) GenerateKRI(ctx context.Context, req entity.AIRequest, or
 	return &suggestions, nil
 }
 
+func (r *aiRepository) AnalyzeDocument(ctx context.Context, req entity.DocumentAnalysisRequest, orgContext string) (*entity.DocumentIntelligenceResult, error) {
+	if r.client == nil {
+		return nil, fmt.Errorf("OpenAI client is not configured")
+	}
+
+	prompt := r.buildDocumentIntelligencePrompt(req)
+	content, err := r.callOpenAIJSON(ctx, prompt, "Anda adalah analis manajemen risiko sektor kesehatan pemerintahan. Kembalikan JSON valid saja tanpa markdown.", "document-intelligence", orgContext, 6000)
+	if err != nil {
+		return nil, err
+	}
+
+	content = cleanMarkdown(content)
+	log.Printf("document-intelligence raw response length=%d", len(content))
+
+	result, err := parseDocumentIntelligenceResult(req.Mode, content)
+	if err != nil {
+		log.Printf("document-intelligence parse error: %v; raw response=%q", err, content)
+		return nil, err
+	}
+
+	result.Mode = req.Mode
+	return result, nil
+}
+
+func parseDocumentIntelligenceResult(mode entity.DocumentAnalysisMode, content string) (*entity.DocumentIntelligenceResult, error) {
+	content = strings.TrimSpace(cleanMarkdown(content))
+	if content == "" {
+		return nil, fmt.Errorf("failed to parse AI response: empty response")
+	}
+
+	var envelope entity.DocumentIntelligenceResult
+	if err := json.Unmarshal([]byte(content), &envelope); err == nil {
+		if envelope.SOP != nil || envelope.Audit != nil || envelope.Strategic != nil || envelope.Mitigation != nil {
+			envelope.Mode = mode
+			return &envelope, nil
+		}
+	} else {
+		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+	}
+
+	result := &entity.DocumentIntelligenceResult{Mode: mode}
+	switch mode {
+	case entity.DocumentModeSOPRiskUniverse:
+		var sop entity.SOPRiskUniverseResult
+		if err := json.Unmarshal([]byte(content), &sop); err != nil {
+			return nil, fmt.Errorf("failed to parse SOP AI response: %w", err)
+		}
+		result.SOP = &sop
+	case entity.DocumentModeAuditFindingMapper:
+		var audit entity.AuditFindingMapperResult
+		if err := json.Unmarshal([]byte(content), &audit); err != nil {
+			return nil, fmt.Errorf("failed to parse audit AI response: %w", err)
+		}
+		result.Audit = &audit
+	case entity.DocumentModeStrategicObjectiveRisk:
+		var strategic entity.StrategicObjectiveRiskResult
+		if err := json.Unmarshal([]byte(content), &strategic); err != nil {
+			return nil, fmt.Errorf("failed to parse strategic AI response: %w", err)
+		}
+		result.Strategic = &strategic
+	case entity.DocumentModeMitigationReportMapper:
+		var mitigation entity.MitigationReportMapperResult
+		if err := json.Unmarshal([]byte(content), &mitigation); err != nil {
+			return nil, fmt.Errorf("failed to parse mitigation AI response: %w", err)
+		}
+		result.Mitigation = &mitigation
+	default:
+		return nil, fmt.Errorf("failed to parse AI response: invalid document mode %q", mode)
+	}
+
+	return result, nil
+}
+
 func (r *aiRepository) buildKRIPrompt(title, description string) string {
 	return fmt.Sprintf(`Sebagai analis risiko profesional di Kementerian Kesehatan, buatkan 3 Key Risk Indicator (KRI) yang relevan untuk risiko berikut:
 
@@ -816,4 +949,234 @@ PENTING:
 - threshold harus realistis dan masuk akal untuk konteks kesehatan
 - thresholdMin harus lebih kecil dari thresholdMax
 - Jangan sertakan teks pembuka atau penutup, hanya JSON`, title, description)
+}
+
+func (r *aiRepository) buildDocumentIntelligencePrompt(req entity.DocumentAnalysisRequest) string {
+	baseInstructions := `Aturan wajib:
+- Balas JSON valid tanpa markdown.
+- Jangan mengarang kutipan sumber. sourceRefs.quote harus potongan teks yang benar-benar ada di dokumen.
+- confidence memakai angka 0 sampai 100.
+- Jika data tidak ditemukan, isi string kosong atau array kosong.
+- Gunakan bahasa Indonesia formal dan ringkas.`
+
+	switch req.Mode {
+	case entity.DocumentModeSOPRiskUniverse:
+		return fmt.Sprintf(`Tugas Anda adalah membaca dokumen SOP, pedoman, atau alur proses bisnis dan menyusun universe risiko per tahapan proses.
+
+Nama file: %s
+Periode konteks: %s
+Teks dokumen:
+%s
+
+Kembalikan HANYA JSON valid dengan struktur:
+{
+  "processStages": [
+    {
+      "clientKey": "stage-1",
+      "stageName": "Nama tahap proses",
+      "description": "Apa yang terjadi di tahap ini",
+      "existingControl": "Kontrol yang disebutkan di dokumen",
+      "controlGap": "Celah kontrol yang terlihat",
+      "confidence": 0,
+      "sourceRefs": [
+        { "quote": "kutipan dokumen", "location": "Halaman 3" }
+      ],
+      "suggestedRisks": [
+        {
+          "clientKey": "risk-1",
+          "title": "Judul risiko",
+          "description": "Deskripsi risiko",
+          "category": "operasional",
+          "riskSource": "internal",
+          "cause": ["..."],
+          "impactDesc": ["..."],
+          "existingControl": "",
+          "controlGap": "",
+          "probability": 3,
+          "impact": 4,
+          "treatmentOption": "mitigate",
+          "mitigations": [
+            { "action": "Aksi mitigasi", "owner": "", "dueDate": "", "frequency": "insidental" }
+          ],
+          "reasoning": "Alasan",
+          "confidence": 0,
+          "sourceRefs": [
+            { "quote": "kutipan", "location": "Halaman 3" }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+%s`, req.Filename, req.Period, req.DocumentText, baseInstructions)
+	case entity.DocumentModeAuditFindingMapper:
+		return fmt.Sprintf(`Tugas Anda adalah membaca dokumen audit/reviu/evaluasi lalu memetakan temuan menjadi risiko existing atau draft risiko baru.
+
+Nama file: %s
+Periode konteks: %s
+Risiko existing:
+%s
+
+Teks dokumen:
+%s
+
+Kembalikan HANYA JSON valid dengan struktur:
+{
+  "findings": [
+    {
+      "clientKey": "finding-1",
+      "findingTitle": "Judul temuan",
+      "findingDescription": "Deskripsi temuan",
+      "rootCause": "Akar masalah",
+      "impact": "Dampak",
+      "affectedArea": "Area terdampak",
+      "mappingStatus": "map_to_existing|create_new_risk|needs_review",
+      "existingRiskId": "",
+      "existingRiskCode": "",
+      "existingRiskTitle": "",
+      "suggestedRisk": {
+        "clientKey": "risk-1",
+        "title": "Judul risiko baru",
+        "description": "Deskripsi risiko baru",
+        "category": "kepatuhan",
+        "riskSource": "internal",
+        "cause": ["..."],
+        "impactDesc": ["..."],
+        "existingControl": "",
+        "controlGap": "",
+        "probability": 3,
+        "impact": 4,
+        "treatmentOption": "mitigate",
+        "mitigations": [],
+        "reasoning": "Alasan",
+        "confidence": 0,
+        "sourceRefs": [
+          { "quote": "kutipan", "location": "Halaman 5" }
+        ]
+      },
+      "reasoning": "Alasan pemetaan",
+      "confidence": 0,
+      "sourceRefs": [
+        { "quote": "kutipan dokumen", "location": "Halaman 5" }
+      ]
+    }
+  ]
+}
+
+%s`, req.Filename, req.Period, req.ExistingRisksJSON, req.DocumentText, baseInstructions)
+	case entity.DocumentModeStrategicObjectiveRisk:
+		return fmt.Sprintf(`Tugas Anda adalah membaca dokumen strategis dan mengekstrak Sasaran dan IKU, lalu menyusun risiko yang terkait ke setiap IKU.
+
+Nama file: %s
+Periode konteks: %s
+Sasaran existing:
+%s
+
+Teks dokumen:
+%s
+
+Kembalikan HANYA JSON valid dengan struktur:
+{
+  "objectives": [
+    {
+      "clientKey": "obj-1",
+      "tujuan": "Tujuan organisasi",
+      "sasaran": "Sasaran strategis",
+      "period": "2026-H1",
+      "unit": "Unit terkait",
+      "confidence": 0,
+      "sourceRefs": [
+        { "quote": "kutipan dokumen", "location": "Halaman 2" }
+      ],
+      "ikus": [
+        {
+          "clientKey": "iku-1",
+          "name": "Nama IKU",
+          "target": "90%%",
+          "program": "Program",
+          "kegiatan": "Kegiatan",
+          "processBusiness": "Proses bisnis",
+          "confidence": 0,
+          "sourceRefs": [
+            { "quote": "kutipan dokumen", "location": "Halaman 2" }
+          ],
+          "suggestedRisks": [
+            {
+              "clientKey": "risk-1",
+              "title": "Judul risiko",
+              "description": "Risiko terhadap IKU ini",
+              "category": "strategis",
+              "riskSource": "internal",
+              "cause": ["..."],
+              "impactDesc": ["..."],
+              "existingControl": "",
+              "controlGap": "",
+              "probability": 3,
+              "impact": 4,
+              "treatmentOption": "mitigate",
+              "mitigations": [],
+              "reasoning": "Alasan",
+              "confidence": 0,
+              "sourceRefs": [
+                { "quote": "kutipan", "location": "Halaman 2" }
+              ],
+              "relatedObjectiveText": "Tujuan organisasi",
+              "relatedIkuText": "Nama IKU"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+%s`, req.Filename, req.Period, req.ObjectivesJSON, req.DocumentText, baseInstructions)
+	case entity.DocumentModeMitigationReportMapper:
+		return fmt.Sprintf(`Tugas Anda adalah membaca dokumen laporan/bukti dan mencocokkannya dengan task mitigasi yang masih open.
+
+Nama file: %s
+Periode konteks: %s
+Task mitigasi open:
+%s
+
+Teks dokumen:
+%s
+
+Kembalikan HANYA JSON valid dengan struktur:
+{
+  "taskMatches": [
+    {
+      "clientKey": "match-1",
+      "taskId": "uuid-task",
+      "riskCode": "R-001",
+      "riskTitle": "Judul risiko",
+      "mitigationAction": "Aksi mitigasi",
+      "periodLabel": "2026-H1",
+      "suggestedStatus": "done|on_track|blocked|pending",
+      "progressPct": 100,
+      "actualCost": 0,
+      "reportNotes": "Ringkasan pelaporan yang bisa dipakai",
+      "blocker": "",
+      "reasoning": "Alasan pencocokan dokumen dengan task",
+      "confidence": 0,
+      "sourceRefs": [
+        { "quote": "kutipan dokumen", "location": "Halaman 3" }
+      ]
+    }
+  ]
+}
+
+Aturan tambahan:
+- Hanya gunakan taskId dari daftar task open yang diberikan.
+- Jangan isi evidenceUrl.
+- Jika belum cukup bukti, gunakan suggestedStatus = "pending".
+
+%s`, req.Filename, req.Period, req.OpenTasksJSON, req.DocumentText, baseInstructions)
+	default:
+		return fmt.Sprintf(`%s
+
+Teks dokumen:
+%s`, baseInstructions, req.DocumentText)
+	}
 }

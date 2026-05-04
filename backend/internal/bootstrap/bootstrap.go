@@ -189,6 +189,7 @@ type Container struct {
 	AIKIUUC                       *aiuc.GenerateKRIUseCase
 	AIIncidentBatchUC             *aiuc.GenerateIncidentBatchExtractionUseCase
 	AIIncidentRiskUC              *aiuc.GenerateManualIncidentRiskSuggestionsUseCase
+	AIDocumentIntelligenceUC      *aiuc.AnalyzeDocumentIntelligenceUseCase
 
 	// CBA UseCases
 	CBARecommendUC *cbauc.RecommendVariablesUseCase
@@ -484,6 +485,13 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.AIKIUUC = aiuc.NewGenerateKRIUseCase(c.AIRepository, c.OrgRepository)
 	c.AIIncidentBatchUC = aiuc.NewGenerateIncidentBatchExtractionUseCase(c.AIRepository, c.OrgRepository)
 	c.AIIncidentRiskUC = aiuc.NewGenerateManualIncidentRiskSuggestionsUseCase(c.AIRepository, c.OrgRepository)
+	c.AIDocumentIntelligenceUC = aiuc.NewAnalyzeDocumentIntelligenceUseCase(
+		c.AIRepository,
+		c.OrgRepository,
+		c.RiskRepository,
+		c.RiskObjectiveRepository,
+		c.MitigationTaskRepository,
+	)
 
 	// ============================================================================
 	// CBA UseCases

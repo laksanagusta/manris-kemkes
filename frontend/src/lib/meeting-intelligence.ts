@@ -18,6 +18,18 @@ function getStorageKey(token: string) {
   return `${MEETING_INTELLIGENCE_PREFILL_PREFIX}${token}`;
 }
 
+function parseStoredPrefill<T>(raw: string | null): T | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    return null;
+  }
+}
+
 export function createMeetingIntelligencePrefillToken() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -37,10 +49,5 @@ export function consumeMeetingIntelligencePrefill(token: string) {
   if (!raw) return null;
 
   window.localStorage.removeItem(storageKey);
-
-  try {
-    return JSON.parse(raw) as RiskDraftPrefill;
-  } catch {
-    return null;
-  }
+  return parseStoredPrefill<RiskDraftPrefill>(raw);
 }

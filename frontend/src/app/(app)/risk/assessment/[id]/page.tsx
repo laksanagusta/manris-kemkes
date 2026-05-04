@@ -1235,7 +1235,8 @@ export default function AssessmentFormPage() {
             </div>
             <div className="p-4">
               <SimpulanCard
-                nilaiCurrent={sourceRisk.inherentScore || sourceRisk.nilai || 0}
+                nilaiCurrent={sourceRisk.nilai ?? sourceRisk.inherentScore ?? 0}
+                currentInherentScore={sourceRisk.inherentScore}
                 nilaiBaru={computedNilai}
                 probability={probability}
                 impact={impact}

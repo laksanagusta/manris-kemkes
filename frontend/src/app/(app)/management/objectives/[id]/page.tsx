@@ -39,6 +39,10 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import {
+  consumeDocumentIntelligencePrefill,
+  DOCUMENT_INTELLIGENCE_PREFILL_PARAM,
+} from "@/lib/document-intelligence-prefill";
 
 const objectiveStatusLabel: Record<string, string> = {
   draft: "Draft",
@@ -121,6 +125,9 @@ export default function RiskObjectiveDetailPage() {
 
     const activeToken = token;
     let active = true;
+    const documentPrefillToken = new URLSearchParams(window.location.search).get(
+      DOCUMENT_INTELLIGENCE_PREFILL_PARAM,
+    );
 
     async function load() {
       try {
@@ -133,6 +140,30 @@ export default function RiskObjectiveDetailPage() {
         if (!active) return;
         setOrganizations(orgs);
         setObjective(currentObjective);
+
+        if (isCreateMode && documentPrefillToken) {
+          const documentPrefill = consumeDocumentIntelligencePrefill(
+            documentPrefillToken,
+          );
+          if (documentPrefill?.kind === "objective") {
+            form.reset({
+              organizationId:
+                documentPrefill.organizationId || orgs[0]?.id || "",
+              period: documentPrefill.period || "",
+              tujuan: documentPrefill.tujuan || "",
+              sasaran: documentPrefill.sasaran || "",
+              indikatorKinerjaUtama:
+                documentPrefill.indikatorKinerjaUtama || "",
+              target: documentPrefill.target || "",
+              program: documentPrefill.program || "",
+              kegiatan: documentPrefill.kegiatan || "",
+              processBusiness: documentPrefill.processBusiness || "",
+            });
+            toast.success("Draft Sasaran & IKU diisi dari Document Intelligence.");
+            return;
+          }
+        }
+
         form.reset(normalizeFormValues(currentObjective));
       } catch (err) {
         if (!active) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -42,9 +42,18 @@ import {
 } from "@/lib/validation/reporting";
 import { isWithinMitigationSubmissionWindow } from "@/lib/kri-reporting";
 
+export interface MitigationProgressDraft {
+  taskId: string;
+  progressPct: number;
+  actualCost: number;
+  notes: string;
+}
+
 interface MitigationProgressTabProps {
   riskId: string;
   token: string;
+  aiDraft?: MitigationProgressDraft | null;
+  onAiDraftConsumed?: () => void;
 }
 
 const STATUS_CONFIG: Record<
@@ -76,6 +85,8 @@ const STATUS_CONFIG: Record<
 export function MitigationProgressTab({
   riskId,
   token,
+  aiDraft,
+  onAiDraftConsumed,
 }: MitigationProgressTabProps) {
   const [tasks, setTasks] = useState<MitigationTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,6 +102,7 @@ export function MitigationProgressTab({
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const appliedDraftTaskIdRef = useRef<string | null>(null);
 
   const formErrors = useMemo(
     () =>
@@ -126,15 +138,61 @@ export function MitigationProgressTab({
     }
   }, [riskId, token, fetchTasks]);
 
+  const openSubmitDialog = useCallback(
+    (task: MitigationTask, draft?: MitigationProgressDraft | null) => {
+      setSelectedTask(task);
+      setProgressPct(
+        draft
+          ? String(draft.progressPct)
+          : task.progressPct
+            ? String(task.progressPct)
+            : "",
+      );
+      setActualCost(
+        draft
+          ? String(draft.actualCost)
+          : task.actualCost
+            ? String(task.actualCost)
+            : "",
+      );
+      setEvidenceUrl(draft ? "" : task.evidenceUrl || "");
+      setNotes(draft ? draft.notes : task.notes || "");
+      setShowValidationErrors(false);
+      setShowDialog(true);
+    },
+    [],
+  );
+
   const handleOpenSubmit = (task: MitigationTask) => {
-    setSelectedTask(task);
-    setProgressPct(task.progressPct ? String(task.progressPct) : "");
-    setActualCost(task.actualCost ? String(task.actualCost) : "");
-    setEvidenceUrl(task.evidenceUrl || "");
-    setNotes(task.notes || "");
-    setShowValidationErrors(false);
-    setShowDialog(true);
+    openSubmitDialog(task);
   };
+
+  useEffect(() => {
+    if (!aiDraft?.taskId || !tasks.length) {
+      if (!aiDraft) {
+        appliedDraftTaskIdRef.current = null;
+      }
+      return;
+    }
+
+    if (appliedDraftTaskIdRef.current === aiDraft.taskId) {
+      return;
+    }
+
+    const matchedTask = tasks.find((task) => task.id === aiDraft.taskId);
+    if (!matchedTask) return;
+
+    appliedDraftTaskIdRef.current = aiDraft.taskId;
+    openSubmitDialog(matchedTask, aiDraft);
+    onAiDraftConsumed?.();
+    toast.success("Draft laporan mitigasi diisi dari Document Intelligence.");
+  }, [aiDraft, onAiDraftConsumed, openSubmitDialog, tasks]);
+
+  useEffect(() => {
+    if (!showDialog && !aiDraft) {
+      appliedDraftTaskIdRef.current = null;
+    }
+  }, [aiDraft, showDialog]);
 
   const handleOpenDetail = (task: MitigationTask) => {
     setDetailTask(task);

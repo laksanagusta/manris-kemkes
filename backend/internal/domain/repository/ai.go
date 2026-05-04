@@ -32,6 +32,9 @@ type AIRepository interface {
 	// GenerateKRI generates KRI suggestions based on a risk's title and description
 	GenerateKRI(ctx context.Context, req entity.AIRequest, orgContext string) (*entity.KRISuggestions, error)
 
+	// AnalyzeDocument analyzes a text-extracted document and returns structured intelligence results.
+	AnalyzeDocument(ctx context.Context, req entity.DocumentAnalysisRequest, orgContext string) (*entity.DocumentIntelligenceResult, error)
+
 	// GenerateIncidentBatchExtraction extracts multiple incident candidates from a PDF-derived text document.
 	GenerateIncidentBatchExtraction(ctx context.Context, req entity.IncidentExtractionRequest, orgContext string) (*entity.IncidentBatchExtraction, error)
 

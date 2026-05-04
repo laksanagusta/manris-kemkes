@@ -200,6 +200,46 @@ function formatCycleLabel(cycle?: string, createdAt?: string) {
   return `Baseline ${new Date(createdAt).toLocaleDateString("id-ID", { year: "numeric", month: "short" })}`;
 }
 
+function formatTreatmentOption(value?: string | null) {
+  if (!value) return "-";
+
+  switch (value.trim().toLowerCase()) {
+    case "avoid":
+    case "menghindari":
+    case "menghindari risiko":
+      return "Menghindari Risiko";
+    case "transfer":
+    case "berbagi":
+    case "berbagi risiko":
+      return "Berbagi Risiko";
+    case "mitigate":
+    case "mitigasi":
+    case "mitigasi risiko":
+    case "mitigasi / penanganan":
+      return "Mitigasi";
+    case "accept":
+    case "terima":
+    case "menerima":
+    case "menerima risiko":
+      return "Menerima Risiko";
+    default:
+      return value;
+  }
+}
+
+function formatLocalDateTime(value?: string | null) {
+  if (!value) return "-";
+
+  return new Date(value).toLocaleString("id-ID", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 function RiskRowActions({
   risk,
   isReadOnly,
@@ -1143,7 +1183,7 @@ export default function RiskRegisterPage() {
                         ))}
                     </div>
                   </TableHead>
-                  <TableHead className="w-28 text-right whitespace-nowrap">
+                  <TableHead className="w-28 whitespace-nowrap">
                     Aksi
                   </TableHead>
                 </TableRow>
@@ -1153,7 +1193,7 @@ export default function RiskRegisterPage() {
                   <TableRow>
                     <TableCell
                       colSpan={10}
-                      className="text-center py-8 text-muted-foreground text-xs"
+                      className="py-8 text-left text-xs text-muted-foreground"
                     >
                       Tidak ada risiko yang ditemukan
                     </TableCell>
@@ -1190,7 +1230,7 @@ export default function RiskRegisterPage() {
                             {risk.code || "-"}
                           </span>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell>
                           {risk.versionNumber != null ? (
                             <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-border/50">
                               v{risk.versionNumber}
@@ -1210,7 +1250,7 @@ export default function RiskRegisterPage() {
                         <TableCell className="text-muted-foreground">
                           {riskCategoryLabels[risk.category ?? ""]}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell>
                           <span className="text-sm font-bold">
                             {scoreSemantics.effective.score}
                           </span>
@@ -1259,23 +1299,14 @@ export default function RiskRegisterPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground capitalize">
-                          {risk.treatmentOption || "-"}
+                        <TableCell className="text-muted-foreground">
+                          {formatTreatmentOption(risk.treatmentOption)}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs">
-                          {risk.createdAt
-                            ? new Date(risk.createdAt).toLocaleDateString(
-                                "id-ID",
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                },
-                              )
-                            : "-"}
+                          {formatLocalDateTime(risk.createdAt)}
                         </TableCell>
                         <TableCell>
-                          <div className="flex justify-end">
+                          <div className="flex">
                             <RiskRowActions
                               risk={risk}
                               isReadOnly={isReadOnly}
@@ -1419,7 +1450,7 @@ export default function RiskRegisterPage() {
                   <TableHead className="text-xs w-32 whitespace-nowrap">
                     Pembaruan
                   </TableHead>
-                  <TableHead className="text-xs w-28 text-center whitespace-nowrap">
+                  <TableHead className="text-xs w-28 whitespace-nowrap">
                     Progres
                   </TableHead>
                   <TableHead className="text-xs w-24 whitespace-nowrap"></TableHead>
@@ -1430,7 +1461,7 @@ export default function RiskRegisterPage() {
                   <TableRow>
                     <TableCell
                       colSpan={7}
-                      className="text-center py-8 text-muted-foreground text-xs"
+                      className="py-8 text-left text-xs text-muted-foreground"
                     >
                       Belum ada draft.
                     </TableCell>
@@ -1442,15 +1473,7 @@ export default function RiskRegisterPage() {
                       user,
                       draft.organizationId || "",
                     );
-                    const date = draft.updatedAt
-                      ? new Date(draft.updatedAt).toLocaleDateString("id-ID", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "-";
+                    const date = formatLocalDateTime(draft.updatedAt);
 
                     return (
                       <TableRow
@@ -1504,7 +1527,7 @@ export default function RiskRegisterPage() {
                             <Clock className="size-3" /> {date}
                           </span>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell>
                           <div className="flex items-center gap-2">
                             <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden">
                               <div
@@ -1523,7 +1546,7 @@ export default function RiskRegisterPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex justify-end">
+                          <div className="flex">
                             <RiskRowActions
                               risk={draft}
                               isReadOnly={isReadOnly}
@@ -1652,13 +1675,13 @@ export default function RiskRegisterPage() {
                         <TableHead className="text-xs w-28 whitespace-nowrap">
                           Versi Lama
                         </TableHead>
-                        <TableHead className="text-xs text-center w-12 whitespace-nowrap">
+                        <TableHead className="text-xs w-12 whitespace-nowrap">
                           →
                         </TableHead>
                         <TableHead className="text-xs w-28 whitespace-nowrap">
                           Versi Current
                         </TableHead>
-                        <TableHead className="text-xs w-16 text-center whitespace-nowrap">
+                        <TableHead className="text-xs w-16 whitespace-nowrap">
                           Tren
                         </TableHead>
                       </TableRow>
@@ -1668,7 +1691,7 @@ export default function RiskRegisterPage() {
                         <TableRow>
                           <TableCell
                             colSpan={6}
-                            className="text-center h-24 text-muted-foreground"
+                            className="h-24 text-left text-muted-foreground"
                           >
                             Belum ada history untuk risiko ini.
                           </TableCell>
@@ -1704,7 +1727,7 @@ export default function RiskRegisterPage() {
                               {selectedHistory.previousLevel || "Rendah"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center text-muted-foreground">
+                          <TableCell className="text-muted-foreground">
                             →
                           </TableCell>
                           <TableCell>
@@ -1719,16 +1742,16 @@ export default function RiskRegisterPage() {
                               {selectedHistory.currentLevel || "Rendah"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell>
                             {selectedHistory.trend === "up" && (
-                              <TrendingUp className="size-4 text-risk-extreme mx-auto" />
+                              <TrendingUp className="size-4 text-risk-extreme" />
                             )}
                             {selectedHistory.trend === "down" && (
-                              <TrendingDown className="size-4 text-success mx-auto" />
+                              <TrendingDown className="size-4 text-success" />
                             )}
                             {(selectedHistory.trend === "stable" ||
                               !selectedHistory.trend) && (
-                              <Minus className="size-4 text-muted-foreground mx-auto" />
+                              <Minus className="size-4 text-muted-foreground" />
                             )}
                           </TableCell>
                         </TableRow>

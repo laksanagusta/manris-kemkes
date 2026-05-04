@@ -50,6 +50,10 @@ func (r *fakeIncidentSuggestionAIRepository) GenerateKRI(context.Context, entity
 	return nil, errors.New("not implemented")
 }
 
+func (r *fakeIncidentSuggestionAIRepository) AnalyzeDocument(context.Context, entity.DocumentAnalysisRequest, string) (*entity.DocumentIntelligenceResult, error) {
+	return nil, errors.New("not implemented")
+}
+
 func (r *fakeIncidentSuggestionAIRepository) GenerateIncidentBatchExtraction(context.Context, entity.IncidentExtractionRequest, string) (*entity.IncidentBatchExtraction, error) {
 	return nil, errors.New("not implemented")
 }

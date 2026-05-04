@@ -12,31 +12,6 @@ export type MainMenuGroup = {
 
 export const mainMenuItems: MainMenuGroup[] = [
   {
-    title: "MAIN MENU",
-    items: [
-      { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
-      { label: "Risiko", href: "/risk/register", icon: "ShieldAlert" },
-      {
-        label: "Kertas Kerja",
-        href: "/risk/working-papers",
-        icon: "FileSignature",
-      },
-      { label: "Persetujuan", href: "/inbox", icon: "Inbox" },
-      {
-        label: "Penanganan",
-        href: "/compliance/penanganan",
-        icon: "ClipboardCheck",
-      },
-      {
-        label: "Monitoring",
-        href: "/compliance/monitoring",
-        icon: "ClipboardCheck",
-        matchHrefs: ["/compliance/monitoring", "/compliance/kri"],
-      },
-      { label: "Laporan", href: "/reports", icon: "FileBarChart" },
-    ],
-  },
-  {
     title: "RISK GOVERNANCE",
     items: [
       {
@@ -65,10 +40,35 @@ export const mainMenuItems: MainMenuGroup[] = [
       },
     ],
   },
+  {
+    title: "MANAJEMEN RISIKO",
+    items: [
+      { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
+      { label: "Register Risiko", href: "/risk/register", icon: "ShieldAlert" },
+      {
+        label: "Kertas Kerja",
+        href: "/risk/working-papers",
+        icon: "FileSignature",
+      },
+      { label: "Persetujuan & TTE", href: "/inbox", icon: "Inbox" },
+      {
+        label: "Penanganan",
+        href: "/compliance/penanganan",
+        icon: "ClipboardCheck",
+      },
+      {
+        label: "Monitoring",
+        href: "/compliance/monitoring",
+        icon: "ClipboardCheck",
+        matchHrefs: ["/compliance/monitoring", "/compliance/kri"],
+      },
+      { label: "Laporan", href: "/reports", icon: "FileBarChart" },
+    ],
+  },
 ];
 
 export const adminMenuGroup: MainMenuGroup = {
-  title: "ADMINISTRATION",
+  title: "MASTER",
   items: [
     { label: "Users", href: "/admin/users", icon: "Users" },
     {
@@ -96,7 +96,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/compliance/kri": "Monitoring",
   "/compliance/controls": "Control Library",
   "/risk": "Risk Assessments",
-  "/risk/register": "Risiko",
+  "/risk/register": "Register Risiko",
   "/risk/new": "New Risk",
   "/risk/history": "Risk History",
   "/risk/working-papers": "Kertas Kerja",
@@ -115,6 +115,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/intelligence/transcript": "Meeting",
   "/intelligence/minutes": "Meeting",
   "/intelligence/minutes/new": "Buat Notulen",
+  "/intelligence/document": "Document Intelligence",
   "/minutes": "Meeting",
   "/minutes/new": "Buat Notulen",
   "/intelligence/predictive": "Predictive Scoring",

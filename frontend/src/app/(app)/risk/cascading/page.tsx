@@ -261,17 +261,7 @@ export default function RiskCascadingPage() {
             }}
           >
             <Plus className="size-4" />
-            Mandat Baru
-          </Button>
-          <Button
-            className="gap-2 shadow-lg shadow-primary/20"
-            onClick={() => {
-              setCreateCascadeType("bottom_up_escalation");
-              setCreateOpen(true);
-            }}
-          >
-            <WandSparkles className="size-4" />
-            Usulan Naik
+            Eskalasi
           </Button>
         </div>
       </div>
