@@ -1,6 +1,11 @@
-export type RiskRegisterTab = "all-risks" | "my-drafts" | "history";
+export type RiskRegisterTab =
+  | "all-risks"
+  | "my-drafts"
+  | "history"
+  | "monitoring-transactions";
 export type RiskRegisterStatusFilter =
   | "all"
+  | "assessment_draft"
   | "assessment_in_review"
   | "approved";
 export type RiskRegisterLifecycleFilter = "active" | "archived" | "all";
@@ -29,7 +34,11 @@ export type RiskRegisterQueryState = {
 };
 
 function getRiskRegisterTab(value: string | null): RiskRegisterTab {
-  if (value === "my-drafts" || value === "history") {
+  if (
+    value === "my-drafts" ||
+    value === "history" ||
+    value === "monitoring-transactions"
+  ) {
     return value;
   }
 
@@ -49,7 +58,11 @@ function getRiskRegisterLifecycleFilter(
 function getRiskRegisterStatusFilter(
   value: string | null,
 ): RiskRegisterStatusFilter {
-  if (value === "assessment_in_review" || value === "approved") {
+  if (
+    value === "assessment_draft" ||
+    value === "assessment_in_review" ||
+    value === "approved"
+  ) {
     return value;
   }
 

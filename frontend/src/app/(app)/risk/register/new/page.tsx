@@ -1161,9 +1161,8 @@ export default function RiskInputPage() {
       }
 
       if (documentPrefillToken) {
-        const documentPrefill = consumeDocumentIntelligencePrefill(
-          documentPrefillToken,
-        );
+        const documentPrefill =
+          consumeDocumentIntelligencePrefill(documentPrefillToken);
         if (documentPrefill?.kind === "mitigation-report") {
           setMitigationProgressDraft({
             taskId: documentPrefill.taskId,
@@ -1172,7 +1171,9 @@ export default function RiskInputPage() {
             notes: documentPrefill.notes || "",
           });
           if (existingRiskId) {
-            toast.success("Draft laporan mitigasi siap dipakai di tab Progress.");
+            toast.success(
+              "Draft laporan mitigasi siap dipakai di tab Progress.",
+            );
           }
         } else if (documentPrefill?.kind === "risk" && !existingRiskId) {
           try {
@@ -1231,7 +1232,10 @@ export default function RiskInputPage() {
             toast.success("Draft risiko diisi dari Document Intelligence.");
             return;
           } catch (error) {
-            console.error("Failed to apply Document Intelligence prefill:", error);
+            console.error(
+              "Failed to apply Document Intelligence prefill:",
+              error,
+            );
             toast.error(
               "Prefill dari Document Intelligence tidak dapat dibaca. Silakan isi draft secara manual.",
             );
@@ -3813,7 +3817,7 @@ export default function RiskInputPage() {
               )}
               <div>
                 <span className="font-medium text-foreground">
-                  Bagian siap:{" "}
+                  Bagian lengkap:{" "}
                 </span>
                 <span className="text-muted-foreground">
                   {sectionStatuses.length - missingSections.length}/

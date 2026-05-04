@@ -754,6 +754,8 @@ func TestPreview_TemplateRoundTrip(t *testing.T) {
 		TargetImpact:      3,
 		TargetWeight:      entity.GetBobot(2, 3),
 		TargetNilai:       entity.CalculateNilai(2, 3, entity.GetBobot(2, 3)),
+		InherentScore:     18,
+		ReviewScheduleText: "Review bulanan",
 	}
 
 	riskRepo := &fakeMonitoringRiskRepo{
@@ -800,6 +802,25 @@ func TestPreview_TemplateRoundTrip(t *testing.T) {
 	if len(rows[2]) < 18 || rows[2][17] != "18" {
 		t.Fatalf("expected row 3 to end at column 18, got %v", rows[2])
 	}
+	if value, err := templateRows.GetCellValue("Template Upload", "G4"); err != nil {
+		t.Fatalf("read G4: %v", err)
+	} else if value != "18" {
+		t.Fatalf("expected G4 to use inherent score 18, got %q", value)
+	}
+	if value, err := templateRows.GetCellValue("Template Upload", "K4"); err != nil {
+		t.Fatalf("read K4: %v", err)
+	} else if value != "Review bulanan" {
+		t.Fatalf("expected K4 to be prefilled schedule, got %q", value)
+	}
+	for _, cell := range []string{"N4", "O4", "P4", "Q4", "R4"} {
+		formula, err := templateRows.GetCellFormula("Template Upload", cell)
+		if err != nil {
+			t.Fatalf("read formula %s: %v", cell, err)
+		}
+		if formula == "" {
+			t.Fatalf("expected %s to contain a formula", cell)
+		}
+	}
 
 	result, err := uc.Preview(context.Background(), BulkMonitoringSpreadsheetInput{
 		Filename:       "template.xlsx",
@@ -827,6 +848,9 @@ func TestPreview_TemplateRoundTrip(t *testing.T) {
 	}
 	if item.TargetD != 3 {
 		t.Fatalf("expected TargetD=3, got %d", item.TargetD)
+	}
+	if item.TargetNilai != 18 {
+		t.Fatalf("expected TargetNilai to follow inherent score 18, got %v", item.TargetNilai)
 	}
 }
 

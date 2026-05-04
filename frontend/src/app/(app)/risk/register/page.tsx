@@ -86,6 +86,7 @@ import {
   parseRiskRegisterQueryState,
   shouldReplaceRiskRegisterUrl,
 } from "@/lib/risk-register-query";
+import { MonitoringTransactionsTable } from "@/app/(app)/risk/components/monitoring-transactions-table";
 import {
   Plus,
   Search,
@@ -156,7 +157,11 @@ type VersionOption = {
   versionNumber?: number;
 };
 
-type RiskRegisterTab = "all-risks" | "my-drafts" | "history";
+type RiskRegisterTab =
+  | "all-risks"
+  | "my-drafts"
+  | "history"
+  | "monitoring-transactions";
 
 function getRiskLevel(nilai: number | undefined): string {
   if (nilai === undefined || isNaN(nilai)) return "Sangat Rendah";
@@ -291,7 +296,7 @@ function RiskRowActions({
             {onMandateCascade && (
               <DropdownMenuItem onClick={onMandateCascade}>
                 <GitBranch className="size-3.5" />
-                Mandatkan Risiko
+                Turunkan Risiko
               </DropdownMenuItem>
             )}
             {onEscalateCascade && (
@@ -334,6 +339,9 @@ export default function RiskRegisterPage() {
   const isApplyingSearchParamsRef = useRef(false);
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
+  const [monitoringTransactions, setMonitoringTransactions] = useState<
+    RiskListItem[]
+  >([]);
   const [historyRisks, setHistoryRisks] = useState<RiskListItem[]>([]);
   const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
   const [historyRiskId, setHistoryRiskId] = useState<string>("");
@@ -384,7 +392,8 @@ export default function RiskRegisterPage() {
       parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
         .limit,
   );
-  const [total, setTotal] = useState(0);
+  const [registerTotal, setRegisterTotal] = useState(0);
+  const [monitoringTotal, setMonitoringTotal] = useState(0);
   const [selectedVersion, setSelectedVersion] = useState("");
   const [activeTab, setActiveTab] = useState<RiskRegisterTab>(
     () =>
@@ -436,11 +445,22 @@ export default function RiskRegisterPage() {
       queryOverrides?.createdAt ?? createdAtFilter
     ).trim();
 
-    const [allRisksResponse, draftRisks, approvedRisks] = await Promise.all([
+    const registerStatus =
+      statusFilter === "all" || statusFilter === "assessment_draft"
+        ? undefined
+        : statusFilter;
+    const monitoringStatus = statusFilter === "all" ? undefined : statusFilter;
+
+    const [
+      allRisksResponse,
+      draftRisks,
+      approvedRisks,
+      monitoringTransactionsResponse,
+    ] = await Promise.all([
       listRiskRegister(activeToken, {
         q: normalizedSearch || undefined,
         lifecycle: lifecycleFilter,
-        status: statusFilter === "all" ? undefined : statusFilter,
+        status: registerStatus,
         category: categoryFilter === "all" ? undefined : categoryFilter,
         assessment_cycle: normalizedAssessmentCycle || undefined,
         created_at: normalizedCreatedAt || undefined,
@@ -451,14 +471,29 @@ export default function RiskRegisterPage() {
       }),
       api.get<RiskListItem[]>("/risks?status=draft", activeToken),
       api.get<RiskListItem[]>("/risks?status=approved", activeToken),
+      listRiskRegister(activeToken, {
+        view: "monitoring-transactions",
+        q: normalizedSearch || undefined,
+        lifecycle: lifecycleFilter,
+        status: monitoringStatus,
+        category: categoryFilter === "all" ? undefined : categoryFilter,
+        assessment_cycle: normalizedAssessmentCycle || undefined,
+        created_at: normalizedCreatedAt || undefined,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+        page,
+        limit,
+      }),
     ]);
 
     const approvedCurrentRisks = approvedRisks.filter((risk) => risk.isCurrent);
 
     setDrafts(draftRisks);
+    setMonitoringTransactions(monitoringTransactionsResponse.data ?? []);
     setHistoryRisks(approvedCurrentRisks);
     setRisks(allRisksResponse.data ?? []);
-    setTotal(allRisksResponse.total ?? 0);
+    setRegisterTotal(allRisksResponse.total ?? 0);
+    setMonitoringTotal(monitoringTransactionsResponse.total ?? 0);
     setPage(allRisksResponse.page ?? page);
     setLimit(allRisksResponse.limit ?? limit);
 
@@ -700,7 +735,7 @@ export default function RiskRegisterPage() {
   const riskSummaryCards = [
     {
       label: "Total Risiko",
-      value: total,
+      value: registerTotal,
     },
     {
       label: "Sangat Tinggi",
@@ -727,7 +762,9 @@ export default function RiskRegisterPage() {
     },
   ];
 
-  const totalPages = Math.ceil(total / limit) || 1;
+  const activeTotal =
+    activeTab === "monitoring-transactions" ? monitoringTotal : registerTotal;
+  const totalPages = Math.ceil(activeTotal / limit) || 1;
 
   const handleDeleteDraft = async (id: string) => {
     toast.promise(
@@ -971,6 +1008,15 @@ export default function RiskRegisterPage() {
             <History className="size-3.5" />
             Version History
           </TabsTrigger>
+          <TabsTrigger value="monitoring-transactions" className="gap-2">
+            <RefreshCcw className="size-3.5" />
+            Pemantauan
+            {monitoringTransactions.length > 0 && (
+              <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
+                {monitoringTransactions.length}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* TAB 1: ALL RISKS */}
@@ -1183,9 +1229,7 @@ export default function RiskRegisterPage() {
                         ))}
                     </div>
                   </TableHead>
-                  <TableHead className="w-28 whitespace-nowrap">
-                    Aksi
-                  </TableHead>
+                  <TableHead className="w-28 whitespace-nowrap">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1386,8 +1430,9 @@ export default function RiskRegisterPage() {
                   </Select>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
-                  {Math.min(page * limit, total)} dari {total} risiko
+                  Menampilkan {registerTotal === 0 ? 0 : (page - 1) * limit + 1}{" "}
+                  - {Math.min(page * limit, registerTotal)} dari {registerTotal}{" "}
+                  risiko
                 </p>
               </div>
               <div className="flex items-center gap-1">
@@ -1416,7 +1461,10 @@ export default function RiskRegisterPage() {
                   size="icon-xs"
                   className="text-muted-foreground"
                   disabled={
-                    page === totalPages || total === 0 || loading || isPending
+                    page === totalPages ||
+                    registerTotal === 0 ||
+                    loading ||
+                    isPending
                   }
                   onClick={() =>
                     setPage((current) => Math.min(totalPages, current + 1))
@@ -1429,7 +1477,214 @@ export default function RiskRegisterPage() {
           </Card>
         </TabsContent>
 
-        {/* TAB 2: MY DRAFTS */}
+        {/* TAB 2: MONITORING TRANSACTIONS */}
+        <TabsContent value="monitoring-transactions" className="space-y-6 mt-6">
+          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-[200px] max-w-sm">
+                  <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari transaksi pemantauan..."
+                    value={search}
+                    onChange={(event) => {
+                      setSearch(event.target.value);
+                      setPage(1);
+                    }}
+                    className="h-8 pl-8 text-xs bg-background/80 border border-border/50"
+                  />
+                </div>
+                <div className="relative min-w-[180px] md:w-40">
+                  <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Semester"
+                    value={assessmentCycleFilter}
+                    onChange={(event) => {
+                      setAssessmentCycleFilter(event.target.value);
+                      setPage(1);
+                    }}
+                    className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
+                  />
+                </div>
+                <div className="relative min-w-[160px] md:w-44">
+                  <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="date"
+                    value={createdAtFilter}
+                    onChange={(event) => {
+                      setCreatedAtFilter(event.target.value);
+                      setPage(1);
+                    }}
+                    className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
+                  />
+                </div>
+                <Select
+                  value={lifecycleFilter}
+                  onValueChange={(value) => {
+                    setLifecycleFilter(value as RiskRegisterLifecycleFilter);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-32 text-xs bg-background/80 border border-border/50">
+                    <SelectValue placeholder="Lifecycle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Aktif</SelectItem>
+                    <SelectItem value="archived">Arsip</SelectItem>
+                    <SelectItem value="all">Semua</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(value as RiskRegisterStatusFilter);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-32 text-xs bg-background/80 border border-border/50">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Status</SelectItem>
+                    <SelectItem value="assessment_draft">
+                      Draf Pemantauan
+                    </SelectItem>
+                    <SelectItem value="assessment_in_review">
+                      Dalam Review
+                    </SelectItem>
+                    <SelectItem value="approved">Disetujui</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={(value) => {
+                    setCategoryFilter(value as RiskRegisterCategoryFilter);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-44 text-xs bg-background/80 border border-border/50">
+                    <SelectValue placeholder="Kategori" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Kategori</SelectItem>
+                    <SelectItem value="kebijakan">
+                      {riskCategoryLabels.kebijakan}
+                    </SelectItem>
+                    <SelectItem value="reputasi">
+                      {riskCategoryLabels.reputasi}
+                    </SelectItem>
+                    <SelectItem value="fraud_korupsi">
+                      {riskCategoryLabels.fraud_korupsi}
+                    </SelectItem>
+                    <SelectItem value="legal">
+                      {riskCategoryLabels.legal}
+                    </SelectItem>
+                    <SelectItem value="kepatuhan">
+                      {riskCategoryLabels.kepatuhan}
+                    </SelectItem>
+                    <SelectItem value="operasional">
+                      {riskCategoryLabels.operasional}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="border-b border-border/40 pb-4">
+              <CardTitle className="text-[15px] font-semibold">
+                Transaksi Pemantauan
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Pantau versi hasil mulai pemantauan, bandingkan nilai sebelum
+                dan hasil pemantauan, lalu lanjutkan draf yang masih berjalan.
+              </p>
+            </CardHeader>
+            <MonitoringTransactionsTable
+              items={monitoringTransactions}
+              levelBadgeVariant={levelBadgeVariant}
+              statusVariant={statusVariant}
+              statusLabel={statusLabel}
+              getRiskLevelLabel={getRiskLevelLabel}
+              formatTreatmentOption={formatTreatmentOption}
+              formatLocalDateTime={formatLocalDateTime}
+            />
+
+            <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    Baris per halaman:
+                  </span>
+                  <Select
+                    value={limit.toString()}
+                    onValueChange={(val) => {
+                      setLimit(Number(val));
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-7 w-[65px] text-xs bg-muted/30 border-none">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[10, 20, 50, 100].map((pageSize) => (
+                        <SelectItem key={pageSize} value={pageSize.toString()}>
+                          {pageSize}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Menampilkan {activeTotal === 0 ? 0 : (page - 1) * limit + 1} -{" "}
+                  {Math.min(page * limit, activeTotal)} dari {activeTotal}{" "}
+                  transaksi pemantauan
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-muted-foreground"
+                  disabled={page === 1 || loading || isPending}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                >
+                  <ChevronLeft className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="text-xs font-medium bg-primary/10 text-primary"
+                  disabled
+                >
+                  {page}
+                </Button>
+                <span className="px-1 text-xs text-muted-foreground">
+                  dari {totalPages}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-muted-foreground"
+                  disabled={
+                    page === totalPages ||
+                    activeTotal === 0 ||
+                    loading ||
+                    isPending
+                  }
+                  onClick={() =>
+                    setPage((current) => Math.min(totalPages, current + 1))
+                  }
+                >
+                  <ChevronRight className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 3: MY DRAFTS */}
         <TabsContent value="my-drafts" className="space-y-6 mt-6">
           <Card className="border-border/50 bg-card/80 overflow-hidden">
             <Table>
@@ -1578,7 +1833,7 @@ export default function RiskRegisterPage() {
           </Card>
         </TabsContent>
 
-        {/* TAB 3: HISTORY */}
+        {/* TAB 4: HISTORY */}
         <TabsContent value="history" className="space-y-6 mt-6">
           <Card className="border-border/50 bg-card/80">
             <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">

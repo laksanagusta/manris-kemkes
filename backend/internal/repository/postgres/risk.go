@@ -442,31 +442,37 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		FROM risks r
 		WHERE 1=1`
 	dataQuery := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
-	                  r.cause, r.risk_source, r.controllability, r.impact_description,
-	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
-	                  r.risk_priority, r.risk_appetite, r.treatment_option,
-	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
-	                  r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
-	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
-	                  r.created_at, r.updated_at,
-	                  COALESCE(o.name, '') as org_name,
-	                  COALESCE(u.name, '') as created_by_name,
-	                  draft.id as draft_id,
-	                  draft.status as draft_status,
-	                  CASE WHEN draft.id IS NOT NULL THEN true ELSE false END as has_ongoing
-	           FROM risks r
-	           LEFT JOIN organizations o ON r.organization_id = o.id
-	           LEFT JOIN users u ON r.created_by = u.id
-	           LEFT JOIN risks draft ON 
-	             draft.code = r.code 
-	             AND draft.status IN ('assessment_draft', 'assessment_in_review')
-	             AND draft.created_at > r.created_at
-	             AND draft.archived_at IS NULL
-	           WHERE 1=1`
+		                  r.cause, r.risk_source, r.controllability, r.impact_description,
+		                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
+		                  r.risk_priority, r.risk_appetite, r.treatment_option,
+		                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
+		                  r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
+		                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
+		                  r.created_at, r.updated_at,
+		                  COALESCE(o.name, '') as org_name,
+		                  COALESCE(u.name, '') as created_by_name,
+		                  draft.id as draft_id,
+		                  draft.status as draft_status,
+		                  CASE WHEN draft.id IS NOT NULL THEN true ELSE false END as has_ongoing,
+		                  prev.inherent_score as before_monitoring_nilai,
+		                  r.inherent_score as monitoring_result_nilai
+		           FROM risks r
+		           LEFT JOIN organizations o ON r.organization_id = o.id
+		           LEFT JOIN users u ON r.created_by = u.id
+		           LEFT JOIN risks prev ON prev.id = r.previous_risk_id
+		           LEFT JOIN risks draft ON 
+		             draft.code = r.code 
+		             AND draft.status IN ('assessment_draft', 'assessment_in_review')
+		             AND draft.created_at > r.created_at
+		             AND draft.archived_at IS NULL
+		           WHERE 1=1`
 	args := []interface{}{}
 	argIdx := 1
 
-	if filter.Status == entity.RiskStatusDraft {
+	if filter.View == "monitoring-transactions" {
+		countQuery += " AND r.version_number > 1"
+		dataQuery += " AND r.version_number > 1"
+	} else if filter.Status == entity.RiskStatusDraft {
 		countQuery += " AND r.status = 'assessment_draft'"
 		dataQuery += " AND r.status = 'assessment_draft'"
 	} else {
@@ -565,6 +571,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 			&risk.DraftID, &risk.DraftStatus, &risk.HasOngoing,
+			&risk.BeforeMonitoringNilai, &risk.MonitoringResultNilai,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan risk register row: %w", err)
 		}

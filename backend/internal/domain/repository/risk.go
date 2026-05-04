@@ -8,6 +8,7 @@ import (
 )
 
 type RiskRegisterFilter struct {
+	View            string
 	OrgIDs          []uuid.UUID
 	Status          string
 	Lifecycle       string

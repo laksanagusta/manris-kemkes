@@ -158,6 +158,7 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 	}
 
 	input := riskuc.ListRiskRegisterInput{
+		View:            strings.TrimSpace(c.Query("view", "")),
 		OrgIDs:          orgIDs,
 		Status:          strings.TrimSpace(c.Query("status", "all")),
 		Lifecycle:       strings.TrimSpace(c.Query("lifecycle", "active")),
@@ -176,6 +177,9 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 	// Validate sort_order
 	if input.SortOrder != "" && input.SortOrder != "asc" && input.SortOrder != "desc" {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid sort_order")
+	}
+	if input.View != "" && input.View != "monitoring-transactions" {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid view")
 	}
 	if input.Lifecycle != "active" && input.Lifecycle != "archived" && input.Lifecycle != "all" {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid lifecycle")

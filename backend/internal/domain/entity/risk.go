@@ -38,29 +38,29 @@ var BobotMatrix = [5][5]float64{
 
 // Risk represents a risk register entry
 type Risk struct {
-	ID             uuid.UUID  `json:"id"`
-	Code           string     `json:"code"`
-	Title          string     `json:"title"`
-	Description    string     `json:"description"`
-	Category       string     `json:"category"`
-	Status         string     `json:"status"`
-	VersionGroupID uuid.UUID  `json:"versionGroupId"`
-	PreviousRiskID *uuid.UUID `json:"previousRiskId,omitempty"`
-	IsCurrent      bool       `json:"isCurrent"`
-	IsCycleCurrent bool       `json:"isCycleCurrent"`
-	VersionNumber  int        `json:"versionNumber"`
-	ArchivedAt     *time.Time `json:"archivedAt,omitempty"`
-	ArchivedReason string     `json:"archivedReason,omitempty"`
-	OrganizationID *uuid.UUID `json:"organizationId,omitempty"`
-	OrgName        string     `json:"orgName"`
-	CreatedBy      *uuid.UUID `json:"createdBy,omitempty"`
-	CreatedByName  string     `json:"createdByName"`
-	RiskOwnerID    *uuid.UUID `json:"riskOwnerId,omitempty"`
-	ControlOwnerID *uuid.UUID `json:"controlOwnerId,omitempty"`
-	ObjectiveID               *uuid.UUID `json:"objectiveId,omitempty"`
-	LikelihoodAssessmentID   *uuid.UUID `json:"likelihoodAssessmentId,omitempty"`
-	ImpactCriteriaID         *uuid.UUID `json:"impactCriteriaId,omitempty"`
-	ImpactJustification       string     `json:"impactJustification,omitempty"`
+	ID                     uuid.UUID  `json:"id"`
+	Code                   string     `json:"code"`
+	Title                  string     `json:"title"`
+	Description            string     `json:"description"`
+	Category               string     `json:"category"`
+	Status                 string     `json:"status"`
+	VersionGroupID         uuid.UUID  `json:"versionGroupId"`
+	PreviousRiskID         *uuid.UUID `json:"previousRiskId,omitempty"`
+	IsCurrent              bool       `json:"isCurrent"`
+	IsCycleCurrent         bool       `json:"isCycleCurrent"`
+	VersionNumber          int        `json:"versionNumber"`
+	ArchivedAt             *time.Time `json:"archivedAt,omitempty"`
+	ArchivedReason         string     `json:"archivedReason,omitempty"`
+	OrganizationID         *uuid.UUID `json:"organizationId,omitempty"`
+	OrgName                string     `json:"orgName"`
+	CreatedBy              *uuid.UUID `json:"createdBy,omitempty"`
+	CreatedByName          string     `json:"createdByName"`
+	RiskOwnerID            *uuid.UUID `json:"riskOwnerId,omitempty"`
+	ControlOwnerID         *uuid.UUID `json:"controlOwnerId,omitempty"`
+	ObjectiveID            *uuid.UUID `json:"objectiveId,omitempty"`
+	LikelihoodAssessmentID *uuid.UUID `json:"likelihoodAssessmentId,omitempty"`
+	ImpactCriteriaID       *uuid.UUID `json:"impactCriteriaId,omitempty"`
+	ImpactJustification    string     `json:"impactJustification,omitempty"`
 
 	// Section 1
 	Cause           []string `json:"cause,omitempty"`
@@ -86,27 +86,29 @@ type Risk struct {
 	Mitigations []Mitigation `json:"mitigations,omitempty"`
 
 	// Section 5
-	TargetProbability  int                  `json:"targetProbability,omitempty"`
-	TargetImpact       int                  `json:"targetImpact,omitempty"`
-	TargetWeight       float64              `json:"targetWeight,omitempty"`
-	TargetNilai                float64   `json:"targetNilai,omitempty"`
-	TargetScore                int       `json:"targetScore,omitempty"`
-	ResidualAcceptanceReason   string    `json:"residualAcceptanceReason,omitempty"`
-	NextReviewDate             *string   `json:"nextReviewDate,omitempty"`
-	ReviewScheduleText         string    `json:"reviewScheduleText,omitempty"`
-	AssessmentCycle    string               `json:"assessmentCycle,omitempty"`
-	ReviewType         string               `json:"reviewType,omitempty"`
-	ChangeReason       string               `json:"changeReason,omitempty"`
-	ReviewSummary      string               `json:"reviewSummary,omitempty"`
-	ReviewStartedAt    *time.Time           `json:"reviewStartedAt,omitempty"`
-	ReviewSubmittedAt  *time.Time           `json:"reviewSubmittedAt,omitempty"`
-	ReviewApprovedAt   *time.Time           `json:"reviewApprovedAt,omitempty"`
-	DraftApprovalLine  []ApprovalLineMember `json:"draftApprovalLine,omitempty"`
+	TargetProbability        int                  `json:"targetProbability,omitempty"`
+	TargetImpact             int                  `json:"targetImpact,omitempty"`
+	TargetWeight             float64              `json:"targetWeight,omitempty"`
+	TargetNilai              float64              `json:"targetNilai,omitempty"`
+	TargetScore              int                  `json:"targetScore,omitempty"`
+	ResidualAcceptanceReason string               `json:"residualAcceptanceReason,omitempty"`
+	NextReviewDate           *string              `json:"nextReviewDate,omitempty"`
+	ReviewScheduleText       string               `json:"reviewScheduleText,omitempty"`
+	AssessmentCycle          string               `json:"assessmentCycle,omitempty"`
+	ReviewType               string               `json:"reviewType,omitempty"`
+	ChangeReason             string               `json:"changeReason,omitempty"`
+	ReviewSummary            string               `json:"reviewSummary,omitempty"`
+	ReviewStartedAt          *time.Time           `json:"reviewStartedAt,omitempty"`
+	ReviewSubmittedAt        *time.Time           `json:"reviewSubmittedAt,omitempty"`
+	ReviewApprovedAt         *time.Time           `json:"reviewApprovedAt,omitempty"`
+	DraftApprovalLine        []ApprovalLineMember `json:"draftApprovalLine,omitempty"`
 
 	// Ongoing draft tracking (for list views)
-	DraftID     *uuid.UUID `json:"draftId,omitempty"`
-	DraftStatus *string    `json:"draftStatus,omitempty"`
-	HasOngoing  bool       `json:"hasOngoing"`
+	DraftID               *uuid.UUID `json:"draftId,omitempty"`
+	DraftStatus           *string    `json:"draftStatus,omitempty"`
+	HasOngoing            bool       `json:"hasOngoing"`
+	BeforeMonitoringNilai *float64   `json:"beforeMonitoringNilai,omitempty"`
+	MonitoringResultNilai *float64   `json:"monitoringResultNilai,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`

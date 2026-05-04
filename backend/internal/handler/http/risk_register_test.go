@@ -163,6 +163,68 @@ func TestRiskRegisterListSupportsFiltersScopeAndPaginationEnvelope(t *testing.T)
 	}
 }
 
+func TestRiskRegisterListSupportsMonitoringTransactionsView(t *testing.T) {
+	orgID := uuid.New()
+	repo := &riskRegisterRepoStub{
+		registerItems: []*entity.Risk{
+			{
+				ID:                    uuid.New(),
+				Code:                  "R-002",
+				Title:                 "Gangguan layanan semesteran",
+				Status:                entity.RiskStatusApproved,
+				Category:              entity.RiskCategoryOperasional,
+				VersionNumber:         2,
+				AssessmentCycle:       "2026-H1",
+				BeforeMonitoringNilai: floatPtr(12.5),
+				MonitoringResultNilai: floatPtr(9.75),
+			},
+		},
+		registerTotal: 1,
+	}
+	handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repo)}
+
+	app := fiber.New()
+	app.Get("/risks/register", func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{AccessibleOrgIDs: []uuid.UUID{orgID}})
+		return c.Next()
+	}, handler.ListRiskRegister)
+
+	req := httptest.NewRequest(
+		fiber.MethodGet,
+		"/risks/register?view=monitoring-transactions&assessment_cycle=2026-H1",
+		nil,
+	)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, body)
+	}
+	if repo.registerFilter.View != "monitoring-transactions" {
+		t.Fatalf("expected view monitoring-transactions, got %q", repo.registerFilter.View)
+	}
+
+	var payload struct {
+		Data []map[string]any `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(payload.Data) != 1 {
+		t.Fatalf("expected 1 data item, got %d", len(payload.Data))
+	}
+	if payload.Data[0]["beforeMonitoringNilai"] != 12.5 {
+		t.Fatalf("expected beforeMonitoringNilai 12.5, got %#v", payload.Data[0]["beforeMonitoringNilai"])
+	}
+	if payload.Data[0]["monitoringResultNilai"] != 9.75 {
+		t.Fatalf("expected monitoringResultNilai 9.75, got %#v", payload.Data[0]["monitoringResultNilai"])
+	}
+}
+
 func TestRiskRegisterListRejectsInvalidLifecycle(t *testing.T) {
 	handler := &RiskHandler{}
 	app := fiber.New()
@@ -187,6 +249,24 @@ func TestRiskRegisterListRejectsInvalidCategory(t *testing.T) {
 	app.Get("/risks/register", handler.ListRiskRegister)
 
 	req := httptest.NewRequest(fiber.MethodGet, "/risks/register?category=invalid", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusBadRequest {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected status 400, got %d: %s", resp.StatusCode, body)
+	}
+}
+
+func TestRiskRegisterListRejectsInvalidView(t *testing.T) {
+	handler := &RiskHandler{}
+	app := fiber.New()
+	app.Get("/risks/register", handler.ListRiskRegister)
+
+	req := httptest.NewRequest(fiber.MethodGet, "/risks/register?view=unknown", nil)
 	resp, err := app.Test(req)
 	if err != nil {
 		t.Fatalf("app.Test: %v", err)
@@ -247,3 +327,5 @@ func TestRiskRegisterListSerializesReviewScheduleText(t *testing.T) {
 		t.Fatalf("expected nextReviewDate %q, got %#v", reviewDate, payload.Data[0]["nextReviewDate"])
 	}
 }
+
+func floatPtr(v float64) *float64 { return &v }

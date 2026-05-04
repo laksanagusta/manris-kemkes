@@ -458,9 +458,12 @@ func writeMonitoringDataRows(f *excelize.File, sheet string, risks []*entity.Ris
 			f.SetCellValue(sheet, cell, targetBobot)
 		}
 
-		// Col G (7): Target Nilai (computed, pre-filled)
+		// Col G (7): Target Nilai (prefilled from inherent score)
 		cell, _ = excelize.CoordinatesToCellName(7, row)
-		targetNilai := risk.TargetNilai
+		targetNilai := float64(risk.InherentScore)
+		if targetNilai == 0 {
+			targetNilai = risk.TargetNilai
+		}
 		if targetNilai == 0 && risk.TargetProbability > 0 && risk.TargetImpact > 0 && targetBobot > 0 {
 			targetNilai = entity.CalculateNilai(risk.TargetProbability, risk.TargetImpact, targetBobot)
 		}
@@ -468,7 +471,7 @@ func writeMonitoringDataRows(f *excelize.File, sheet string, risks []*entity.Ris
 			f.SetCellValue(sheet, cell, targetNilai)
 		}
 
-		// Col H (8): Target Tingkat Risiko (computed, pre-filled)
+		// Col H (8): Target Tingkat Risiko (prefilled from target nilai)
 		cell, _ = excelize.CoordinatesToCellName(8, row)
 		targetTingkat := ""
 		if targetNilai > 0 {
@@ -495,20 +498,33 @@ func writeMonitoringDataRows(f *excelize.File, sheet string, risks []*entity.Ris
 			f.SetCellValue(sheet, cell, risk.ExistingControl)
 		}
 
-		// Col K (11): Jadwal Pelaksanaan (pre-filled if available)
+		// Col K (11): Jadwal Pelaksanaan (prefilled if available)
 		cell, _ = excelize.CoordinatesToCellName(11, row)
-		if strings.TrimSpace(risk.ReviewScheduleText) != "" {
-			f.SetCellValue(sheet, cell, risk.ReviewScheduleText)
+		if schedule := formatMonitoringSchedule(risk); schedule != "" {
+			f.SetCellValue(sheet, cell, schedule)
 		}
+
+		rowStr := strconv.Itoa(row)
 
 		// Col L (12): Realisasi P — EMPTY (user fills)
 		// Col M (13): Realisasi D — EMPTY (user fills)
 
-		// Col N (14): Realisasi Bobot (computed by server, empty in template)
-		// Col O (15): Realisasi Nilai (computed by server, empty in template)
-		// Col P (16): Realisasi Tingkat Risiko (computed by server, empty in template)
-		// Col Q (17): Simpulan (computed by server, empty in template)
-		// Col R (18): Efektivitas (computed by server, empty in template)
+		// Col N-R are formula-driven so the template can self-calculate when L/M are filled.
+		if err := f.SetCellFormula(sheet, "N"+rowStr, monitoringBobotFormula(row)); err != nil {
+			return err
+		}
+		if err := f.SetCellFormula(sheet, "O"+rowStr, monitoringNilaiFormula(row)); err != nil {
+			return err
+		}
+		if err := f.SetCellFormula(sheet, "P"+rowStr, monitoringTingkatFormula(row)); err != nil {
+			return err
+		}
+		if err := f.SetCellFormula(sheet, "Q"+rowStr, monitoringSimpulanFormula(row)); err != nil {
+			return err
+		}
+		if err := f.SetCellFormula(sheet, "R"+rowStr, monitoringEfektivitasFormula(row)); err != nil {
+			return err
+		}
 
 		// Apply styles to data row
 		startCell, _ := excelize.CoordinatesToCellName(1, row)
@@ -533,6 +549,42 @@ func writeMonitoringDataRows(f *excelize.File, sheet string, risks []*entity.Ris
 	}
 
 	return nil
+}
+
+func formatMonitoringSchedule(risk *entity.Risk) string {
+	if risk == nil {
+		return ""
+	}
+	if schedule := strings.TrimSpace(risk.ReviewScheduleText); schedule != "" {
+		return schedule
+	}
+	if risk.NextReviewDate != nil {
+		return strings.TrimSpace(*risk.NextReviewDate)
+	}
+	return ""
+}
+
+func monitoringBobotFormula(row int) string {
+	return fmt.Sprintf(
+		`=IF(AND(L%d<>"",M%d<>""),CHOOSE(L%d,CHOOSE(M%d,1,1.5,2,3,4),CHOOSE(M%d,1,1.8,1.83,1.9,2.1),CHOOSE(M%d,1.17,1.42,1.43,1.46,1.47),CHOOSE(M%d,1.2,1.19,1.3,1.16,1.2),CHOOSE(M%d,1.5,1.4,1.13,1.15,1)),"")`,
+		row, row, row, row, row, row, row, row,
+	)
+}
+
+func monitoringNilaiFormula(row int) string {
+	return fmt.Sprintf(`=IF(AND(L%d<>"",M%d<>""),ROUND(L%d*M%d*N%d,2),"")`, row, row, row, row, row)
+}
+
+func monitoringTingkatFormula(row int) string {
+	return fmt.Sprintf(`=IF(O%d="","",IF(O%d>=20,"Sangat Tinggi",IF(O%d>=15,"Tinggi",IF(O%d>=10,"Sedang",IF(O%d>=5,"Rendah","Sangat Rendah")))))`, row, row, row, row, row)
+}
+
+func monitoringSimpulanFormula(row int) string {
+	return fmt.Sprintf(`=IF(OR(O%d="",G%d=""),"",IF(O%d>G%d,"Meningkat",IF(O%d=G%d,"Tetap","Menurun")))`, row, row, row, row, row, row)
+}
+
+func monitoringEfektivitasFormula(row int) string {
+	return fmt.Sprintf(`=IF(OR(O%d="",G%d=""),"",IF(O%d<=G%d,"Efektif","Tidak Efektif"))`, row, row, row, row)
 }
 
 // Preview parses a monitoring spreadsheet and returns preview items with computed values and validation.
@@ -797,8 +849,11 @@ func mapBulkMonitoringRecord(
 			item.TargetP = risk.TargetProbability
 			item.TargetD = risk.TargetImpact
 			item.TargetBobot = risk.TargetWeight
-			item.TargetNilai = risk.TargetNilai
-			item.TargetTingkat = entity.GetRiskLevelFromNilai(risk.TargetNilai)
+			item.TargetNilai = float64(risk.InherentScore)
+			if item.TargetNilai == 0 {
+				item.TargetNilai = risk.TargetNilai
+			}
+			item.TargetTingkat = entity.GetRiskLevelFromNilai(item.TargetNilai)
 
 			if item.TargetBobot == 0 && item.TargetP > 0 && item.TargetD > 0 {
 				item.TargetBobot = entity.GetBobot(item.TargetP, item.TargetD)
