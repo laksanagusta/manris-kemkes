@@ -29,6 +29,14 @@ test("parseRiskRegisterQueryState falls back to register defaults", () => {
   });
 });
 
+test("parseRiskRegisterQueryState accepts monitoring transactions tab", () => {
+  const result = parseRiskRegisterQueryState(
+    new URLSearchParams("tab=monitoring-transactions"),
+  );
+
+  assert.equal(result.activeTab, "monitoring-transactions");
+});
+
 test("buildRiskRegisterQueryString keeps deep-linkable non-default filters only", () => {
   const result = buildRiskRegisterQueryString({
     activeTab: "my-drafts",
@@ -48,6 +56,24 @@ test("buildRiskRegisterQueryString keeps deep-linkable non-default filters only"
     result,
     "tab=my-drafts&q=risiko+strategis&lifecycle=archived&status=approved&category=operasional&assessment_cycle=2026-H1&created_at=2026-02-01&sort_by=title&sort_order=asc&page=2&limit=25",
   );
+});
+
+test("buildRiskRegisterQueryString persists monitoring transactions tab", () => {
+  const result = buildRiskRegisterQueryString({
+    activeTab: "monitoring-transactions",
+    search: "",
+    lifecycleFilter: "active",
+    statusFilter: "all",
+    categoryFilter: "all",
+    assessmentCycleFilter: "2026-H1",
+    createdAtFilter: "",
+    page: 1,
+    limit: 10,
+    sortBy: "created_at",
+    sortOrder: "desc",
+  });
+
+  assert.equal(result, "tab=monitoring-transactions&assessment_cycle=2026-H1");
 });
 
 test("parseRiskRegisterQueryState normalizes archived lifecycle filter", () => {

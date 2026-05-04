@@ -39,6 +39,7 @@ import {
 import { FormPage, FormHeader, FormSection } from "@/components/shared/form-shell";
 
 import { cn } from "@/lib/utils";
+import { getRiskLevelLabel } from "@/lib/risk";
 import {
   AlertCircle,
   ArrowRight,
@@ -109,6 +110,13 @@ const timelineStatusClassName = {
   upcoming: "border-border bg-muted/40 text-muted-foreground",
 } as const;
 
+const workingPaperRiskStatusLabel: Record<string, string> = {
+  approved: "Disetujui",
+  reviewed: "Ditinjau",
+  pending_review: "Menunggu Review",
+  draft: "Draft",
+};
+
 function formatDate(value?: string) {
   if (!value) return "-";
 
@@ -119,6 +127,32 @@ function formatDateTime(value?: string) {
   if (!value) return "-";
 
   return dateTimeFormatter.format(new Date(value));
+}
+
+function formatWorkingPaperRiskLevel(
+  level?: string | null,
+  display?: string | null,
+) {
+  const trimmedDisplay = display?.trim();
+  if (trimmedDisplay) return trimmedDisplay;
+
+  const normalized = (level ?? "").trim().toLowerCase().replace(/\s+/g, "_");
+  switch (normalized) {
+    case "sangat_rendah":
+    case "rendah":
+    case "sedang":
+    case "tinggi":
+    case "sangat_tinggi":
+      return getRiskLevelLabel(normalized as Parameters<typeof getRiskLevelLabel>[0]);
+    default:
+      return level?.trim() || "-";
+  }
+}
+
+function formatWorkingPaperRiskStatus(status?: string | null) {
+  const normalized = (status ?? "").trim().toLowerCase();
+  if (!normalized) return "-";
+  return workingPaperRiskStatusLabel[normalized] || normalized.replace(/_/g, " ");
 }
 
 export default function WorkingPaperDetailPage(props: { params: Promise<{ id: string }> }) {
@@ -484,26 +518,30 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                     }
                     return data.risks.map((link, index) => {
                       const risk = link.risk;
-                      const levelLabel = risk.tingkat_risiko || "Rendah";
-                      const badgeCls = levelBadgeVariant[levelLabel] || levelBadgeVariant["Rendah"];
+                      const levelLabel = formatWorkingPaperRiskLevel(
+                        risk.tingkat_risiko,
+                        risk.tingkat_risiko_display,
+                      );
+                      const badgeCls =
+                        levelBadgeVariant[levelLabel] || levelBadgeVariant["Rendah"];
                       const riskHref = `/risk/register/new?id=${risk.id}`;
                       
                       let statusBadge = null;
-                      switch (risk.status) {
-                        case 'approved':
+                      switch ((risk.status || "").toLowerCase()) {
+                        case "approved":
                           statusBadge = <Badge className="text-[10px] font-semibold border px-1.5 h-5 bg-success/15 text-success border-success/20">Disetujui</Badge>;
                           break;
-                        case 'reviewed':
+                        case "reviewed":
                           statusBadge = <Badge className="text-[10px] font-semibold border px-1.5 h-5 bg-primary/15 text-primary border-primary/20">Ditinjau</Badge>;
                           break;
-                        case 'pending_review':
+                        case "pending_review":
                           statusBadge = <Badge className="text-[10px] font-semibold border px-1.5 h-5 bg-amber-500/15 text-amber-700 border-amber-500/20">Menunggu Review</Badge>;
                           break;
-                        case 'draft':
+                        case "draft":
                           statusBadge = <Badge className="text-[10px] font-semibold border px-1.5 h-5 bg-muted text-muted-foreground border-border">Draft</Badge>;
                           break;
                         default:
-                          statusBadge = <Badge className="text-[10px] font-semibold border px-1.5 h-5 bg-muted text-muted-foreground border-border capitalize">{risk.status || '-'}</Badge>;
+                          statusBadge = <Badge className="text-[10px] font-semibold border px-1.5 h-5 bg-muted text-muted-foreground border-border">{formatWorkingPaperRiskStatus(risk.status)}</Badge>;
                       }
                        
                       return (

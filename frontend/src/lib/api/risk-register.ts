@@ -1,7 +1,7 @@
 import { api } from "@/lib/api";
 import type { RiskCategory, RiskStatus } from "@/types/risk";
 
-export type RiskRegisterStatusFilter = "all" | Exclude<RiskStatus, "assessment_draft">;
+export type RiskRegisterStatusFilter = "all" | RiskStatus;
 export type RiskRegisterLifecycleFilter = "active" | "archived" | "all";
 export type RiskRegisterCategoryFilter = "all" | Exclude<RiskCategory, "">;
 
@@ -44,6 +44,8 @@ export interface RiskRegisterListItem {
   hasOngoing?: boolean;
   archivedAt?: string | null;
   archivedReason?: string;
+  beforeMonitoringNilai?: number | null;
+  monitoringResultNilai?: number | null;
 }
 
 export interface PaginatedRiskRegisterResponse {
@@ -54,9 +56,10 @@ export interface PaginatedRiskRegisterResponse {
 }
 
 interface ListRiskRegisterParams {
+   view?: "monitoring-transactions";
    q?: string;
    lifecycle?: RiskRegisterLifecycleFilter;
-   status?: Exclude<RiskStatus, "assessment_draft">;
+   status?: RiskStatus;
    category?: Exclude<RiskCategory, "">;
    assessment_cycle?: string;
    created_at?: string;
@@ -73,6 +76,7 @@ export async function listRiskRegister(
   const searchParams = new URLSearchParams();
 
   if (params?.q) searchParams.set("q", params.q);
+  if (params?.view) searchParams.set("view", params.view);
   if (params?.lifecycle && params.lifecycle !== "active") {
     searchParams.set("lifecycle", params.lifecycle);
   }
