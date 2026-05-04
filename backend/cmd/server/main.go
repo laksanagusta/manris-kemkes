@@ -76,6 +76,7 @@ func main() {
 		container.AIKIUUC,
 		container.AIIncidentBatchUC,
 		container.AIIncidentRiskUC,
+		container.AIDocumentIntelligenceUC,
 	)
 
 	// CBA handler (Clean Architecture)
@@ -362,6 +363,7 @@ func main() {
 	protected.Post("/ai/kris", cleanAIHandler.GenerateKRI)
 	protected.Post("/ai/incidents/suggest-risks", cleanAIHandler.GenerateManualIncidentRiskSuggestions)
 	protected.Post("/ai/incidents/extract-batch", cleanAIHandler.GenerateIncidentBatch)
+	protected.Post("/ai/document-intelligence/analyze", cleanAIHandler.AnalyzeDocumentIntelligence)
 
 	// CBA Advocacy (Clean Architecture)
 	protected.Post("/cba/recommend", cleanCBAHandler.RecommendVariables)

@@ -121,7 +121,10 @@ import {
 } from "@/components/shared/mitigation-table";
 import { MitigationPicker } from "@/components/shared/mitigation-picker";
 import { ProbabilityCriteriaTooltip } from "@/components/shared/probability-criteria-tooltip";
-import { MitigationProgressTab } from "@/components/shared/mitigation-progress-tab";
+import {
+  MitigationProgressTab,
+  type MitigationProgressDraft,
+} from "@/components/shared/mitigation-progress-tab";
 import { RiskAnalysisTab } from "@/components/risk/risk-analysis-tab";
 import type {
   RiskCategory,
@@ -134,6 +137,11 @@ import {
   MEETING_INTELLIGENCE_PREFILL_KEY,
   type RiskDraftPrefill,
 } from "@/lib/meeting-intelligence";
+import {
+  consumeDocumentIntelligencePrefill,
+  consumeLatestMitigationReportPrefill,
+  DOCUMENT_INTELLIGENCE_PREFILL_PARAM,
+} from "@/lib/document-intelligence-prefill";
 import {
   ReviewSidePanel,
   type RiskWorkflowState,
@@ -1141,12 +1149,108 @@ export default function RiskInputPage() {
 
       const searchParams = new URLSearchParams(window.location.search);
       const existingRiskId = searchParams.get("id");
+      const documentPrefillToken = searchParams.get(
+        DOCUMENT_INTELLIGENCE_PREFILL_PARAM,
+      );
       const meetingPrefillToken = searchParams.get(
         MEETING_INTELLIGENCE_PREFILL_PARAM,
       );
 
       if (existingRiskId && token) {
         await loadRiskData(existingRiskId);
+      }
+
+      if (documentPrefillToken) {
+        const documentPrefill = consumeDocumentIntelligencePrefill(
+          documentPrefillToken,
+        );
+        if (documentPrefill?.kind === "mitigation-report") {
+          setMitigationProgressDraft({
+            taskId: documentPrefill.taskId,
+            progressPct: documentPrefill.progressPct || 0,
+            actualCost: documentPrefill.actualCost || 0,
+            notes: documentPrefill.notes || "",
+          });
+          if (existingRiskId) {
+            toast.success("Draft laporan mitigasi siap dipakai di tab Progress.");
+          }
+        } else if (documentPrefill?.kind === "risk" && !existingRiskId) {
+          try {
+            reset({
+              title: documentPrefill.title || "",
+              description: documentPrefill.description || "",
+              category: undefined,
+              organizationId: user?.organizationId || "",
+              riskCode: documentPrefill.riskCode || "",
+              causes: documentPrefill.quote
+                ? [
+                    {
+                      id: "document-intelligence-quote",
+                      text: documentPrefill.quote,
+                    },
+                  ]
+                : [],
+              impacts: [],
+              riskSource:
+                (documentPrefill.source as "internal" | "eksternal") ||
+                "internal",
+              controllability: "C",
+              existingControl: "",
+              controlEffectiveness: "",
+              probability: documentPrefill.probability || 3,
+              impact: documentPrefill.impact || 3,
+              weight: 1.0,
+              riskPriority: 0,
+              riskAppetite: "dalam_batas",
+              treatmentOption: normalizeTreatmentOption(
+                documentPrefill.treatmentOption,
+              ),
+              nextReviewDate: "",
+              mitigations: documentPrefill.mitigation
+                ? [
+                    {
+                      action: documentPrefill.mitigation,
+                      owner: "",
+                      dueDate: "",
+                      mitigationType: "reduce_probability",
+                      isBreakthroughActivity: false,
+                      isExistingControl: false,
+                    },
+                  ]
+                : [],
+              targetProbability: Math.max(
+                1,
+                (documentPrefill.probability || 3) - 1,
+              ),
+              targetImpact: Math.max(1, (documentPrefill.impact || 3) - 1),
+              targetWeight: 1.0,
+            });
+            setAssessmentCycleDisplay(currentAssessmentCycle());
+            setRiskId(null);
+            setRiskStatus("assessment_draft");
+            toast.success("Draft risiko diisi dari Document Intelligence.");
+            return;
+          } catch (error) {
+            console.error("Failed to apply Document Intelligence prefill:", error);
+            toast.error(
+              "Prefill dari Document Intelligence tidak dapat dibaca. Silakan isi draft secara manual.",
+            );
+          }
+        }
+      } else if (existingRiskId) {
+        const latestMitigationPrefill = consumeLatestMitigationReportPrefill();
+        if (latestMitigationPrefill?.kind === "mitigation-report") {
+          setMitigationProgressDraft({
+            taskId: latestMitigationPrefill.taskId,
+            progressPct: latestMitigationPrefill.progressPct || 0,
+            actualCost: latestMitigationPrefill.actualCost || 0,
+            notes: latestMitigationPrefill.notes || "",
+          });
+          toast.success("Draft laporan mitigasi siap dipakai di tab Progress.");
+        }
+      }
+
+      if (existingRiskId) {
         return;
       }
 
@@ -1161,7 +1265,10 @@ export default function RiskInputPage() {
         );
         if (meetingPrefillRaw) {
           try {
-            meetingPrefill = JSON.parse(meetingPrefillRaw) as RiskDraftPrefill;
+            const trimmedMeetingPrefillRaw = meetingPrefillRaw.trim();
+            meetingPrefill = trimmedMeetingPrefillRaw
+              ? (JSON.parse(trimmedMeetingPrefillRaw) as RiskDraftPrefill)
+              : null;
           } catch (error) {
             console.error(
               "Failed to parse legacy Meeting Intelligence prefill:",
@@ -1255,6 +1362,8 @@ export default function RiskInputPage() {
   const [riskSuggestions, setRiskSuggestions] = useState<RiskSuggestion[]>([]);
   const [showRiskSuggestions, setShowRiskSuggestions] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("form");
+  const [mitigationProgressDraft, setMitigationProgressDraft] =
+    useState<MitigationProgressDraft | null>(null);
 
   // Computed - using new bobot matrix and nilai calculation
   const weight = useMemo(
@@ -3551,7 +3660,12 @@ export default function RiskInputPage() {
 
         {activeView === "progress" && riskId && (
           <div className="space-y-6">
-            <MitigationProgressTab riskId={riskId} token={token || ""} />
+            <MitigationProgressTab
+              riskId={riskId}
+              token={token || ""}
+              aiDraft={mitigationProgressDraft}
+              onAiDraftConsumed={() => setMitigationProgressDraft(null)}
+            />
           </div>
         )}
 

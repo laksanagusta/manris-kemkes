@@ -592,20 +592,6 @@ export default function ReportsPage() {
           cycle={exportCycle}
         />
 
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-foreground">
-              Analisis Cycle
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Fokus pada perubahan risiko dari {previousCycle} ke {exportCycle}.
-            </p>
-          </div>
-          <Badge variant="outline" className="h-6 px-2 text-[10px]">
-            {`${previousCycle} ke ${exportCycle}`}
-          </Badge>
-        </div>
-
         <Card className="border-border/50 bg-card/80">
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
@@ -681,7 +667,10 @@ export default function ReportsPage() {
                         tickLine={false}
                       />
                       <RechartsTooltip
-                        formatter={(value) => [`${value ?? 0} risiko`, "Jumlah"]}
+                        formatter={(value) => [
+                          `${value ?? 0} risiko`,
+                          "Jumlah",
+                        ]}
                         contentStyle={{
                           background: "oklch(0.98 0.003 170 / 95%)",
                           border: "1px solid oklch(0.91 0.008 170)",
@@ -723,8 +712,8 @@ export default function ReportsPage() {
                     Paparan Risiko
                   </CardTitle>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Peringkat unit berdasarkan skor paparan berbobot untuk siklus{" "}
-                    {exportCycle}.
+                    Peringkat unit berdasarkan skor paparan berbobot untuk
+                    siklus {exportCycle}.
                   </p>
                 </div>
                 <Badge variant="outline" className="h-5 px-2 text-[10px]">
@@ -914,17 +903,6 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
           <CriticalRiskRateTrend data={criticalRiskRateData} />
-        </div>
-
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-foreground">
-              Analisis Tren
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Tren skor risiko dan tingkat kekritisan antar semester.
-            </p>
-          </div>
         </div>
 
         <div className="grid gap-6">

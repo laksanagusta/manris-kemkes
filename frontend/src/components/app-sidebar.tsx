@@ -13,6 +13,7 @@ import {
   ClipboardList,
   AlertTriangle,
   FileText,
+  FileSearch,
   Users,
   Settings2,
   ChevronDown,
@@ -122,6 +123,12 @@ const navigation: NavGroup[] = [
         href: "/minutes",
         icon: FileText,
         matchHrefs: ["/minutes", "/intelligence/transcript"],
+      },
+      {
+        label: "Document Intelligence",
+        href: "/intelligence/document",
+        icon: FileSearch,
+        matchHrefs: ["/intelligence/document"],
       },
       // {
       //   label: "Predictive Scoring",

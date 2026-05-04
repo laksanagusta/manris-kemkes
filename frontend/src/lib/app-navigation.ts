@@ -115,6 +115,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/intelligence/transcript": "Meeting",
   "/intelligence/minutes": "Meeting",
   "/intelligence/minutes/new": "Buat Notulen",
+  "/intelligence/document": "Document Intelligence",
   "/minutes": "Meeting",
   "/minutes/new": "Buat Notulen",
   "/intelligence/predictive": "Predictive Scoring",
