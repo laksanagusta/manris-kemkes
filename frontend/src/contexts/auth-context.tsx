@@ -28,6 +28,7 @@ export interface User {
   organizationId: string | null;
   orgName: string;
   status: string;
+  phoneNumber: string;
   nip: string;
   jabatan: string;
   pangkat: string;
@@ -53,6 +54,7 @@ type RawUser = {
   orgName?: string;
   org_name?: string;
   status?: string;
+  phoneNumber?: string;
   nip?: string;
   jabatan?: string;
   pangkat?: string;
@@ -89,6 +91,7 @@ function parseUser(raw: unknown): User | null {
     organizationId: user.organizationId ?? user.organization_id ?? null,
     orgName: user.orgName ?? user.org_name ?? "",
     status: user.status ?? "",
+    phoneNumber: user.phoneNumber ?? "",
     nip: user.nip ?? "",
     jabatan: user.jabatan ?? "",
     pangkat: user.pangkat ?? "",

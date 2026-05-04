@@ -60,6 +60,11 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -2375,59 +2380,40 @@ export default function RiskInputPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border/50 bg-muted/20 p-1.5">
-            <div
-              className="flex flex-col gap-1 sm:flex-row"
-              role="tablist"
-              aria-label="Ruang kerja risiko"
-            >
-              {[
-                {
-                  id: "form" as const,
-                  label: "Form aktif",
-                },
-                {
-                  id: "analysis" as const,
-                  label: "Analisa detail",
-                },
-                {
-                  id: "progress" as const,
-                  label: "Progress penanganan",
-                },
-                {
-                  id: "log" as const,
-                  label: "Activity log",
-                },
-              ].map((item) => {
-                const isActive = activeView === item.id;
-                const isDisabled = item.id !== "form" && !riskId;
-
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-disabled={isDisabled}
-                    disabled={isDisabled}
-                    onClick={() => handleViewChange(item.id)}
-                    className={cn(
-                      "relative flex-1 rounded-[16px] px-4 py-3 text-left transition-all duration-200 ease-out",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                      isActive
-                        ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
-                        : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
-                      isDisabled && "cursor-not-allowed opacity-50",
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium">{item.label}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <Tabs
+            value={activeView}
+            onValueChange={(value) => handleViewChange(value as WorkspaceView)}
+          >
+            <TabsList className="flex w-fit h-auto flex-col gap-1 rounded-xl border border-border/50 bg-muted/40 p-1 sm:flex-row">
+              <TabsTrigger
+                value="form"
+                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+              >
+                Form aktif
+              </TabsTrigger>
+              <TabsTrigger
+                value="analysis"
+                disabled={!riskId}
+                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+              >
+                Analisa detail
+              </TabsTrigger>
+              <TabsTrigger
+                value="progress"
+                disabled={!riskId}
+                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+              >
+                Progress penanganan
+              </TabsTrigger>
+              <TabsTrigger
+                value="log"
+                disabled={!riskId}
+                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+              >
+                Activity log
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {activeView === "analysis" && riskId && (

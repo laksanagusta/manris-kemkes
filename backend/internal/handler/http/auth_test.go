@@ -19,7 +19,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func TestAuthHandlerLoginReturnsSetupSessionPayloadForPendingActivationUser(t *testing.T) {
+func TestAuthHandlerLoginRejectsPendingActivationUser(t *testing.T) {
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte("TempPass123!"), bcrypt.DefaultCost)
 	if err != nil {
 		t.Fatalf("hash password: %v", err)
@@ -39,6 +39,7 @@ func TestAuthHandlerLoginReturnsSetupSessionPayloadForPendingActivationUser(t *t
 			Jabatan:            "Koordinator",
 			Pangkat:            "III/c",
 		}}, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24, true),
+		nil,
 		nil,
 		nil,
 		nil,
@@ -64,56 +65,9 @@ func TestAuthHandlerLoginReturnsSetupSessionPayloadForPendingActivationUser(t *t
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != fiber.StatusOK {
+	if resp.StatusCode != fiber.StatusForbidden {
 		payload, _ := io.ReadAll(resp.Body)
-		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, payload)
-	}
-
-	var payload struct {
-		Data struct {
-			Token              string `json:"token"`
-			SessionMode        string `json:"sessionMode"`
-			MustChangePassword bool   `json:"mustChangePassword"`
-			User               struct {
-				Email              string `json:"email"`
-				Status             string `json:"status"`
-				NIP                string `json:"nip"`
-				Jabatan            string `json:"jabatan"`
-				Pangkat            string `json:"pangkat"`
-				MustChangePassword bool   `json:"mustChangePassword"`
-				Capabilities       struct {
-					RiskApprovalWorkflowEnabled bool `json:"riskApprovalWorkflowEnabled"`
-				} `json:"capabilities"`
-			} `json:"user"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-
-	if payload.Data.Token == "" {
-		t.Fatal("expected token in response")
-	}
-	if payload.Data.SessionMode != entity.AuthSessionModeSetup {
-		t.Fatalf("expected sessionMode %q, got %q", entity.AuthSessionModeSetup, payload.Data.SessionMode)
-	}
-	if !payload.Data.MustChangePassword {
-		t.Fatal("expected mustChangePassword to be true")
-	}
-	if payload.Data.User.Status != entity.UserStatusPendingActivation {
-		t.Fatalf("expected user.status %q, got %q", entity.UserStatusPendingActivation, payload.Data.User.Status)
-	}
-	if !payload.Data.User.MustChangePassword {
-		t.Fatal("expected user.mustChangePassword to be true")
-	}
-	if payload.Data.User.Email != "pending-user@manris.local" {
-		t.Fatalf("expected user.email to be included, got %q", payload.Data.User.Email)
-	}
-	if payload.Data.User.NIP != "19880101" || payload.Data.User.Jabatan != "Koordinator" || payload.Data.User.Pangkat != "III/c" {
-		t.Fatalf("expected profile fields in login payload, got %+v", payload.Data.User)
-	}
-	if !payload.Data.User.Capabilities.RiskApprovalWorkflowEnabled {
-		t.Fatal("expected user.capabilities.riskApprovalWorkflowEnabled to be true")
+		t.Fatalf("expected status 403, got %d: %s", resp.StatusCode, payload)
 	}
 }
 
@@ -138,6 +92,7 @@ func TestAuthHandlerChangePasswordReturnsFullSessionPayload(t *testing.T) {
 	}}
 
 	handler := NewAuthHandler(
+		nil,
 		nil,
 		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), false),
 		nil,
@@ -231,6 +186,7 @@ func TestAuthHandlerChangePasswordRejectsMalformedInput(t *testing.T) {
 
 	handler := NewAuthHandler(
 		nil,
+		nil,
 		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), false),
 		nil,
 		authuc.NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24, false),
@@ -292,6 +248,7 @@ func TestAuthHandlerChangePasswordAllowsActiveUserWithCurrentPassword(t *testing
 
 	handler := NewAuthHandler(
 		nil,
+		nil,
 		authuc.NewGetCurrentUserUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), false),
 		nil,
 		authuc.NewChangePasswordUseCase(userRepo, service.NewOrganizationHierarchy(&stubOrgRepo{}), "secret", 24, false),
@@ -350,6 +307,7 @@ func TestAuthHandlerUpdateProfileReturnsUpdatedProfile(t *testing.T) {
 
 	hierarchySvc := service.NewOrganizationHierarchy(&stubOrgRepo{descendants: []uuid.UUID{orgID}})
 	handler := NewAuthHandler(
+		nil,
 		nil,
 		authuc.NewGetCurrentUserUseCase(userRepo, hierarchySvc, false),
 		authuc.NewUpdateProfileUseCase(userRepo, hierarchySvc, false),
@@ -421,6 +379,9 @@ func (s *loginStubUserRepo) GetByID(_ context.Context, _ uuid.UUID) (*entity.Use
 func (s *loginStubUserRepo) GetByUsername(_ context.Context, _ string) (*entity.User, error) {
 	return s.user, s.err
 }
+func (s *loginStubUserRepo) GetByNIP(_ context.Context, _ string) (*entity.User, error) {
+	return s.user, s.err
+}
 func (s *loginStubUserRepo) Update(_ context.Context, _ *entity.User) error { return nil }
 func (s *loginStubUserRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
 func (s *loginStubUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
@@ -449,6 +410,16 @@ func (s *changePasswordHandlerUserRepo) GetByUsername(_ context.Context, usernam
 		return nil, domainErrors.ErrNotFound
 	}
 	if username != s.user.Username && username != s.user.Email {
+		return nil, domainErrors.ErrNotFound
+	}
+	userCopy := *s.user
+	return &userCopy, nil
+}
+func (s *changePasswordHandlerUserRepo) GetByNIP(_ context.Context, nip string) (*entity.User, error) {
+	if s.user == nil {
+		return nil, domainErrors.ErrNotFound
+	}
+	if nip != s.user.NIP {
 		return nil, domainErrors.ErrNotFound
 	}
 	userCopy := *s.user

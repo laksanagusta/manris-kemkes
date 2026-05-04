@@ -57,6 +57,10 @@ func (s *createUserStubRepo) GetByUsername(_ context.Context, username string) (
 	return s.byLookup[username], nil
 }
 
+func (s *createUserStubRepo) GetByNIP(_ context.Context, nip string) (*entity.User, error) {
+	return s.GetByUsername(context.Background(), nip)
+}
+
 func (s *createUserStubRepo) Update(_ context.Context, _ *entity.User) error { return nil }
 func (s *createUserStubRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
 func (s *createUserStubRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
@@ -109,6 +113,7 @@ func TestCreateUserExecuteHashesPasswordAndSetsOnboardingDefaults(t *testing.T) 
 		Password:       "TempPass123!",
 		Role:           entity.RoleUnit,
 		OrganizationID: &orgID,
+		PhoneNumber:    "081234567890",
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -124,6 +129,9 @@ func TestCreateUserExecuteHashesPasswordAndSetsOnboardingDefaults(t *testing.T) 
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(userRepo.created.PasswordHash), []byte("TempPass123!")); err != nil {
 		t.Fatalf("expected bcrypt hash to match password: %v", err)
+	}
+	if userRepo.created.PhoneNumber != "081234567890" {
+		t.Fatalf("expected phone number %q, got %q", "081234567890", userRepo.created.PhoneNumber)
 	}
 	if userRepo.created.Status != entity.UserStatusPendingActivation {
 		t.Fatalf("expected status %q, got %q", entity.UserStatusPendingActivation, userRepo.created.Status)

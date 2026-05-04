@@ -165,6 +165,13 @@ export default function LoginScreen() {
                 >
                   Panduan
                 </Link>
+                <span className="mx-2 text-muted-foreground/40">•</span>
+                <Link
+                  href="/register"
+                  className="text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                >
+                  Daftar akun
+                </Link>
               </div>
             </form>
           </CardContent>

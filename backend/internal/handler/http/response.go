@@ -29,7 +29,7 @@ func handleError(c *fiber.Ctx, err error) error {
 	if errors.IsUnauthorized(err) || errors.IsInvalidCredentials(err) {
 		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", err.Error())
 	}
-	if errors.IsForbidden(err) || errors.IsAccountInactive(err) {
+	if errors.IsForbidden(err) || errors.IsAccountInactive(err) || errors.IsAccountPendingApproval(err) {
 		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", err.Error())
 	}
 

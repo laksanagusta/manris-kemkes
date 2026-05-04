@@ -762,6 +762,11 @@ export default function RiskRegisterPage() {
     },
   ];
 
+  const monitoringDraftCount = useMemo(
+    () => drafts.filter((risk) => risk.status === "assessment_draft").length,
+    [drafts],
+  );
+
   const activeTotal =
     activeTab === "monitoring-transactions" ? monitoringTotal : registerTotal;
   const totalPages = Math.ceil(activeTotal / limit) || 1;
@@ -1011,9 +1016,9 @@ export default function RiskRegisterPage() {
           <TabsTrigger value="monitoring-transactions" className="gap-2">
             <RefreshCcw className="size-3.5" />
             Pemantauan
-            {monitoringTransactions.length > 0 && (
+            {monitoringDraftCount > 0 && (
               <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
-                {monitoringTransactions.length}
+                {monitoringDraftCount}
               </Badge>
             )}
           </TabsTrigger>

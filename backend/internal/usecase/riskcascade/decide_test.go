@@ -241,6 +241,7 @@ func (f *fakeUserRepo) GetByID(_ context.Context, id uuid.UUID) (*entity.User, e
 	return nil, fiber.ErrNotFound
 }
 func (f *fakeUserRepo) GetByUsername(context.Context, string) (*entity.User, error) { return nil, nil }
+func (f *fakeUserRepo) GetByNIP(context.Context, string) (*entity.User, error)      { return nil, nil }
 func (f *fakeUserRepo) Update(context.Context, *entity.User) error                  { return nil }
 func (f *fakeUserRepo) Delete(context.Context, uuid.UUID) error                     { return nil }
 func (f *fakeUserRepo) List(context.Context) ([]*entity.User, error)                { return nil, nil }

@@ -104,6 +104,9 @@ func (r *fakeBatchUserRepo) GetByID(context.Context, uuid.UUID) (*entity.User, e
 func (r *fakeBatchUserRepo) GetByUsername(context.Context, string) (*entity.User, error) {
 	return nil, nil
 }
+func (r *fakeBatchUserRepo) GetByNIP(context.Context, string) (*entity.User, error) {
+	return nil, nil
+}
 func (r *fakeBatchUserRepo) Update(context.Context, *entity.User) error   { return nil }
 func (r *fakeBatchUserRepo) Delete(context.Context, uuid.UUID) error      { return nil }
 func (r *fakeBatchUserRepo) List(context.Context) ([]*entity.User, error) { return nil, nil }

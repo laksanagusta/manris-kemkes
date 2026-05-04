@@ -25,6 +25,9 @@ func (s *updateProfileStubUserRepo) GetByID(_ context.Context, _ uuid.UUID) (*en
 func (s *updateProfileStubUserRepo) GetByUsername(context.Context, string) (*entity.User, error) {
 	return nil, nil
 }
+func (s *updateProfileStubUserRepo) GetByNIP(context.Context, string) (*entity.User, error) {
+	return nil, nil
+}
 func (s *updateProfileStubUserRepo) Update(_ context.Context, user *entity.User) error {
 	copy := *user
 	s.updatedUser = &copy

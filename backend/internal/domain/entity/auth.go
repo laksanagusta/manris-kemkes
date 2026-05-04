@@ -39,6 +39,7 @@ type UserPublic struct {
 	NIP                string           `json:"nip,omitempty"`
 	Jabatan            string           `json:"jabatan,omitempty"`
 	Pangkat            string           `json:"pangkat,omitempty"`
+	PhoneNumber        string           `json:"phoneNumber,omitempty"`
 	Capabilities       UserCapabilities `json:"capabilities"`
 	MustChangePassword bool             `json:"mustChangePassword"`
 }
@@ -75,6 +76,7 @@ type UserProfile struct {
 	NIP                string           `json:"nip,omitempty"`
 	Jabatan            string           `json:"jabatan,omitempty"`
 	Pangkat            string           `json:"pangkat,omitempty"`
+	PhoneNumber        string           `json:"phoneNumber,omitempty"`
 	Capabilities       UserCapabilities `json:"capabilities"`
 	MustChangePassword bool             `json:"mustChangePassword"`
 	CreatedAt          time.Time        `json:"createdAt"`
@@ -97,6 +99,7 @@ func (u *UserProfile) ToPublic() *UserPublic {
 		NIP:                u.NIP,
 		Jabatan:            u.Jabatan,
 		Pangkat:            u.Pangkat,
+		PhoneNumber:        u.PhoneNumber,
 		Capabilities:       u.Capabilities,
 		MustChangePassword: u.MustChangePassword,
 	}

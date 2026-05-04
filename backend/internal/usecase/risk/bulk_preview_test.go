@@ -54,6 +54,9 @@ func (r *fakePreviewUserRepo) GetByID(context.Context, uuid.UUID) (*entity.User,
 func (r *fakePreviewUserRepo) GetByUsername(context.Context, string) (*entity.User, error) {
 	return nil, nil
 }
+func (r *fakePreviewUserRepo) GetByNIP(context.Context, string) (*entity.User, error) {
+	return nil, nil
+}
 func (r *fakePreviewUserRepo) Update(context.Context, *entity.User) error   { return nil }
 func (r *fakePreviewUserRepo) Delete(context.Context, uuid.UUID) error      { return nil }
 func (r *fakePreviewUserRepo) List(context.Context) ([]*entity.User, error) { return nil, nil }

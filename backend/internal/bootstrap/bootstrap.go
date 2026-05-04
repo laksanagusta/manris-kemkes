@@ -140,12 +140,14 @@ type Container struct {
 	IncidentSummaryUC     *incidentuc.GetIncidentSummaryUseCase
 
 	// User UseCases
-	UserCreateUC     *useruc.CreateUserUseCase
-	UserGetUC        *useruc.GetUserUseCase
-	UserUpdateUC     *useruc.UpdateUserUseCase
-	UserDeleteUC     *useruc.DeleteUserUseCase
-	UserListUC       *useruc.ListUsersUseCase
-	UserListFilterUC *useruc.ListUsersWithFilterUseCase
+	UserCreateUC              *useruc.CreateUserUseCase
+	UserGetUC                 *useruc.GetUserUseCase
+	UserUpdateUC              *useruc.UpdateUserUseCase
+	UserDeleteUC              *useruc.DeleteUserUseCase
+	UserListUC                *useruc.ListUsersUseCase
+	UserListFilterUC          *useruc.ListUsersWithFilterUseCase
+	UserApproveRegistrationUC *useruc.ApproveRegistrationUseCase
+	UserRejectRegistrationUC  *useruc.RejectRegistrationUseCase
 
 	// Control UseCases
 	ControlCreateUC    *controluc.CreateControlUseCase
@@ -173,6 +175,7 @@ type Container struct {
 
 	// Auth UseCases
 	AuthLoginUC          *authuc.LoginUseCase
+	AuthRegisterUC       *authuc.RegisterUseCase
 	AuthMeUC             *authuc.GetCurrentUserUseCase
 	AuthUpdateProfileUC  *authuc.UpdateProfileUseCase
 	AuthChangePasswordUC *authuc.ChangePasswordUseCase
@@ -427,6 +430,8 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.UserDeleteUC = useruc.NewDeleteUserUseCase(c.UserRepository)
 	c.UserListUC = useruc.NewListUsersUseCase(c.UserRepository)
 	c.UserListFilterUC = useruc.NewListUsersWithFilterUseCase(c.UserRepository)
+	c.UserApproveRegistrationUC = useruc.NewApproveRegistrationUseCase(c.UserRepository)
+	c.UserRejectRegistrationUC = useruc.NewRejectRegistrationUseCase(c.UserRepository)
 
 	// ============================================================================
 	// Control UseCases
@@ -466,6 +471,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.AuthLoginUC = authuc.NewLoginUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry, cfg.RiskApprovalWorkflowEnabled)
+	c.AuthRegisterUC = authuc.NewRegisterUseCase(c.UserRepository, c.OrgRepository)
 	c.AuthMeUC = authuc.NewGetCurrentUserUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.RiskApprovalWorkflowEnabled)
 	c.AuthUpdateProfileUC = authuc.NewUpdateProfileUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.RiskApprovalWorkflowEnabled)
 	c.AuthChangePasswordUC = authuc.NewChangePasswordUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry, cfg.RiskApprovalWorkflowEnabled)

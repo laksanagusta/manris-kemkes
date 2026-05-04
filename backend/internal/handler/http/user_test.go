@@ -20,8 +20,11 @@ import (
 )
 
 type handlerUserRepo struct {
-	created  *entity.User
-	byLookup map[string]*entity.User
+	created     *entity.User
+	updatedUser *entity.User
+	deletedID   uuid.UUID
+	byLookup    map[string]*entity.User
+	byID        map[uuid.UUID]*entity.User
 }
 
 func (s *handlerUserRepo) Create(_ context.Context, user *entity.User) error {
@@ -38,11 +41,29 @@ func (s *handlerUserRepo) Create(_ context.Context, user *entity.User) error {
 	return nil
 }
 
-func (s *handlerUserRepo) GetByID(_ context.Context, _ uuid.UUID) (*entity.User, error) {
+func (s *handlerUserRepo) GetByID(_ context.Context, id uuid.UUID) (*entity.User, error) {
+	if s.byID == nil {
+		return nil, nil
+	}
+	if user, ok := s.byID[id]; ok {
+		return user, nil
+	}
 	return nil, nil
 }
-func (s *handlerUserRepo) Update(_ context.Context, _ *entity.User) error { return nil }
-func (s *handlerUserRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
+func (s *handlerUserRepo) Update(_ context.Context, user *entity.User) error {
+	copy := *user
+	s.updatedUser = &copy
+	if s.byID == nil {
+		s.byID = map[uuid.UUID]*entity.User{}
+	}
+	s.byID[user.ID] = &copy
+	return nil
+}
+func (s *handlerUserRepo) Delete(_ context.Context, id uuid.UUID) error {
+	s.deletedID = id
+	delete(s.byID, id)
+	return nil
+}
 func (s *handlerUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
 func (s *handlerUserRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {
 	return nil, 0, nil
@@ -52,6 +73,9 @@ func (s *handlerUserRepo) GetByUsername(_ context.Context, username string) (*en
 		return nil, nil
 	}
 	return s.byLookup[username], nil
+}
+func (s *handlerUserRepo) GetByNIP(_ context.Context, _ string) (*entity.User, error) {
+	return nil, nil
 }
 
 type handlerOrgRepo struct {
@@ -87,7 +111,7 @@ func TestUserHandlerCreateAcceptsPlainPassword(t *testing.T) {
 		orgID: {ID: orgID, Name: "Direktorat Surveilans"},
 	}}
 	createUC := useruc.NewCreateUserUseCase(userRepo, orgRepo)
-	handler := NewUserHandler(createUC, nil, nil, nil, nil, nil)
+	handler := NewUserHandler(createUC, nil, nil, nil, nil, nil, nil, nil)
 
 	body, err := json.Marshal(map[string]any{
 		"name":           "Unit Test User",
@@ -133,6 +157,75 @@ func TestUserHandlerCreateAcceptsPlainPassword(t *testing.T) {
 	}
 	if !userRepo.created.MustChangePassword {
 		t.Fatal("expected must_change_password to be true")
+	}
+}
+
+func TestUserHandlerApproveRegistrationActivatesPendingUser(t *testing.T) {
+	userID := uuid.New()
+	userRepo := &handlerUserRepo{
+		byID: map[uuid.UUID]*entity.User{
+			userID: {
+				ID:                 userID,
+				Status:             entity.UserStatusPendingActivation,
+				MustChangePassword: false,
+			},
+		},
+	}
+	handler := NewUserHandler(nil, nil, nil, nil, nil, nil, useruc.NewApproveRegistrationUseCase(userRepo), nil)
+
+	app := fiber.New()
+	app.Post("/users/:id/approve-registration", func(c *fiber.Ctx) error {
+		c.Locals("role", entity.RoleSuperAdmin)
+		return c.Next()
+	}, middleware.RoleGuard(entity.RoleSuperAdmin), handler.ApproveRegistration)
+
+	req := httptest.NewRequest(fiber.MethodPost, "/users/"+userID.String()+"/approve-registration", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusOK {
+		payload, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, payload)
+	}
+	if userRepo.updatedUser == nil || userRepo.updatedUser.Status != entity.UserStatusActive {
+		t.Fatalf("expected pending user to be activated, got %#v", userRepo.updatedUser)
+	}
+}
+
+func TestUserHandlerRejectRegistrationDeletesPendingUser(t *testing.T) {
+	userID := uuid.New()
+	userRepo := &handlerUserRepo{
+		byID: map[uuid.UUID]*entity.User{
+			userID: {
+				ID:     userID,
+				Status: entity.UserStatusPendingActivation,
+			},
+		},
+	}
+	handler := NewUserHandler(nil, nil, nil, nil, nil, nil, nil, useruc.NewRejectRegistrationUseCase(userRepo))
+
+	app := fiber.New()
+	app.Delete("/users/:id/reject-registration", func(c *fiber.Ctx) error {
+		c.Locals("role", entity.RoleSuperAdmin)
+		return c.Next()
+	}, middleware.RoleGuard(entity.RoleSuperAdmin), handler.RejectRegistration)
+
+	req := httptest.NewRequest(fiber.MethodDelete, "/users/"+userID.String()+"/reject-registration", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusOK {
+		payload, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, payload)
+	}
+	if userRepo.deletedID != userID {
+		t.Fatalf("expected delete for %s, got %s", userID, userRepo.deletedID)
 	}
 }
 

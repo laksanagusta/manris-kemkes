@@ -125,6 +125,9 @@ func (r *fakeMonitoringUserRepo) GetByID(context.Context, uuid.UUID) (*entity.Us
 func (r *fakeMonitoringUserRepo) GetByUsername(context.Context, string) (*entity.User, error) {
 	return nil, nil
 }
+func (r *fakeMonitoringUserRepo) GetByNIP(context.Context, string) (*entity.User, error) {
+	return nil, nil
+}
 func (r *fakeMonitoringUserRepo) Update(context.Context, *entity.User) error   { return nil }
 func (r *fakeMonitoringUserRepo) Delete(context.Context, uuid.UUID) error      { return nil }
 func (r *fakeMonitoringUserRepo) List(context.Context) ([]*entity.User, error) { return nil, nil }

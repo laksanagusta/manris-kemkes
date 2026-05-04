@@ -54,6 +54,7 @@ type User struct {
 	NIP                string     `json:"nip"`
 	Jabatan            string     `json:"jabatan"`
 	Pangkat            string     `json:"pangkat"`
+	PhoneNumber        string     `json:"phoneNumber"`
 	CreatedAt          time.Time  `json:"createdAt"`
 	UpdatedAt          time.Time  `json:"updatedAt"`
 }
