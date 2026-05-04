@@ -55,7 +55,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FormHeader } from "@/components/shared/form-shell";
+import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
 import {
   AlertDialog,
@@ -130,6 +130,18 @@ function getRiskOrganizationId(risk: Risk): string {
 const approvalRoleLabels: Record<string, string> = {
   reviewer: "Reviewer",
   approval: "Pimpinan",
+};
+
+const assessmentStatusLabel: Record<string, string> = {
+  assessment_draft: "Draf Pemantauan",
+  assessment_in_review: "Dalam Review",
+  approved: "Disetujui",
+};
+
+const assessmentStatusBadgeClass: Record<string, string> = {
+  assessment_draft: "border-border bg-muted/40 text-muted-foreground",
+  assessment_in_review: "border-blue-500/20 bg-blue-500/10 text-blue-700",
+  approved: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
 };
 
 function toHydratedUserPickerOption(user: {
@@ -215,6 +227,9 @@ export default function AssessmentFormPage() {
   const isApprovalLineReady =
     selectedApprovalLine.length > 0 &&
     approvalLine.every((member) => member.id);
+  const isAssessmentSectionReady =
+    Boolean(form.watch("changeReason")?.trim()) &&
+    Boolean(form.watch("reviewSummary")?.trim());
   const submitActionLabel =
     riskApprovalCapabilityBehavior.usesDirectApprovalCopy
       ? "Finalisasi pemantauan"
@@ -727,17 +742,34 @@ export default function AssessmentFormPage() {
       : ["hasil-pemantauan"];
 
   return (
-    <div className="space-y-6 animate-fade-in pb-20">
+    <FormPage className="max-w-6xl space-y-6 animate-fade-in">
       <FormHeader
         title="Form Pemantauan Risiko"
-        description={`${sourceRisk.code || sourceRisk.riskCode} - ${sourceRisk.title}`}
+        description={
+          isAssessmentLocked
+            ? "Dokumen pemantauan ini sudah final. Gunakan riwayat versi dan ringkasan risiko untuk meninjau perubahan yang sudah disetujui."
+            : "Perbarui skor residual berdasarkan kondisi terbaru, jelaskan perubahan utamanya, lalu kirim untuk review saat seluruh catatan sudah siap."
+        }
         badges={
           <>
-            <Badge variant="outline" className="font-medium">
-              Status: {draftRisk.status}
+            <Badge
+              variant="outline"
+              className={cn(
+                "font-medium",
+                assessmentStatusBadgeClass[draftRisk.status] ??
+                  "border-border bg-muted/40 text-muted-foreground",
+              )}
+            >
+              {assessmentStatusLabel[draftRisk.status] ?? draftRisk.status}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="border-primary/15 bg-primary/[0.06] text-primary"
+            >
+              {sourceRisk.code || sourceRisk.riskCode}
             </Badge>
             <Badge variant="secondary" className="font-medium">
-              Versi: {draftRisk.versionNumber}
+              Versi {draftRisk.versionNumber}
             </Badge>
           </>
         }
@@ -905,9 +937,9 @@ export default function AssessmentFormPage() {
         }
       />
       {/* Form Content */} {/* Form Content */}
-      <div className="flex flex-col xl:flex-row gap-6 items-start">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         {/* Left Column */}
-        <div className="w-full xl:w-2/3 space-y-6">
+        <div className="space-y-6">
           <ProfilRisikoCard
             risk={sourceRisk}
             detailHref={`/risk/register/${sourceRisk.id}`}
@@ -932,10 +964,40 @@ export default function AssessmentFormPage() {
                       Hasil Pemantauan
                     </p>
                   </div>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                      isAssessmentSectionReady
+                        ? "bg-success/10 text-success border-success/20"
+                        : "bg-muted/40 text-muted-foreground",
+                    )}
+                  >
+                    {isAssessmentSectionReady ? (
+                      <CheckCircle2 className="size-3.5" />
+                    ) : (
+                      <CircleDot className="size-3.5" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {isAssessmentSectionReady
+                        ? "Siap dikirim"
+                        : "Perlu dilengkapi"}
+                    </span>
+                  </Badge>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
                 <div className="grid gap-6">
+                  <div className="rounded-xl border border-border/50 bg-background px-4 py-3">
+                    <p className="text-sm font-medium text-foreground">
+                      {sourceRisk.title}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Nilai ulang probabilitas dan dampak residual berdasarkan
+                      kondisi terbaru, lalu catat alasan perubahan dengan bahasa
+                      yang singkat dan operasional.
+                    </p>
+                  </div>
                   {(() => {
                     const mitigations =
                       draftRisk?.mitigations ??
@@ -949,7 +1011,8 @@ export default function AssessmentFormPage() {
                         treatmentOwnerId: m.treatmentOwnerId,
                         externalPicId: m.externalPicId,
                         dueDate: m.dueDate ?? "",
-                        mitigationType: m.mitigationType ?? "reduce_probability",
+                        mitigationType:
+                          m.mitigationType ?? "reduce_probability",
                         activityStage: m.activityStage ?? "",
                         expectedOutput: m.expectedOutput ?? "",
                         quantitativeTarget: m.quantitativeTarget ?? "",
@@ -958,7 +1021,8 @@ export default function AssessmentFormPage() {
                         contingencyPlan: m.contingencyPlan ?? "",
                         potentialObstacle: m.potentialObstacle ?? "",
                         costBenefitNote: m.costBenefitNote ?? "",
-                        isBreakthroughActivity: m.isBreakthroughActivity ?? false,
+                        isBreakthroughActivity:
+                          m.isBreakthroughActivity ?? false,
                         isExistingControl: m.isExistingControl ?? false,
                       }),
                     );
@@ -987,7 +1051,7 @@ export default function AssessmentFormPage() {
                   })()}
 
                   <TooltipProvider>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div className="flex flex-col gap-2">
                         <ProbabilityCriteriaTooltip className="text-sm font-medium" />
                         <Controller
@@ -1033,7 +1097,7 @@ export default function AssessmentFormPage() {
 
                       <div className="flex flex-col gap-2">
                         <Label className="flex h-6 items-center text-sm font-medium">
-                          Dampak (Residual)
+                          Dampak
                         </Label>
                         <Controller
                           control={form.control}
@@ -1140,7 +1204,7 @@ export default function AssessmentFormPage() {
                           2
                         </div>
                         <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
-                          Approval Line
+                          Rantai Persetujuan
                         </p>
                       </div>
                       <Badge
@@ -1192,7 +1256,7 @@ export default function AssessmentFormPage() {
                     <div className="rounded-xl border border-primary/10 bg-white p-5 space-y-4">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
-                          2. Approval Line (Pimpinan)
+                          2. Rantai Persetujuan (Pimpinan)
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
                         <p className="text-xs text-muted-foreground">
@@ -1208,13 +1272,13 @@ export default function AssessmentFormPage() {
                         onAddRow={handleAddApproverRow}
                         onRemoveRow={removeApprover}
                         onMoveRow={moveApprover}
-                        pickerTitle="Pilih approver"
-                        pickerDescription="Cari approver untuk disusun ke dalam rantai persetujuan berurutan."
-                        pickerPlaceholder="Pilih approver"
+                        pickerTitle="Pilih pimpinan"
+                        pickerDescription="Cari pimpinan untuk disusun ke dalam rantai persetujuan berurutan."
+                        pickerPlaceholder="Pilih pimpinan"
                         pickerSearchPlaceholder="Cari nama approver"
-                        pickerEmptyMessage="Approver tidak ditemukan."
-                        emptyStateMessage="Belum ada approver. Tambahkan minimal satu user sebelum klik Ajukan review."
-                        addRowLabel="Tambah Approver"
+                        pickerEmptyMessage="Pimpinan tidak ditemukan."
+                        emptyStateMessage="Belum ada pimpinan. Tambahkan minimal satu user sebelum klik Ajukan review."
+                        addRowLabel="Tambah Pimpinan"
                         footerNote="Urutan baris menentukan sequence persetujuan pimpinan."
                         dndGroup="assessment-approval-line"
                       />
@@ -1226,9 +1290,9 @@ export default function AssessmentFormPage() {
         </div>
 
         {/* Right Column / Side Panel */}
-        <div className="w-full space-y-4 xl:sticky xl:top-24 xl:w-1/3">
+        <div className="space-y-4 xl:sticky xl:top-24">
           <div className="rounded-xl border border-border/40 bg-card shadow-sm overflow-hidden">
-            <div className="border-b border-border/40 bg-muted/20 px-4 py-3">
+            <div className="border-b border-border/40 px-4 py-3">
               <p className="text-sm font-semibold text-foreground">
                 Simpulan Pemantauan
               </p>
@@ -1308,6 +1372,6 @@ export default function AssessmentFormPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </FormPage>
   );
 }

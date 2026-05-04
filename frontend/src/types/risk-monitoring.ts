@@ -5,13 +5,16 @@ export interface MonitoringPreviewItem {
   raw: Record<string, string>;
   code?: string;           // Kode Risiko
   title?: string;          // Uraian Risiko
+  inherentScore?: number;  // from approved risk
   targetP?: number;        // from approved risk
   targetD?: number;        // from approved risk
   targetBobot?: number;    // from approved risk
   targetNilai?: number;   // computed
   targetTingkat?: string;  // from approved risk
-  realizationP?: number;     // user input from template (note: backend uses RealisasiP)
-  realizationD?: number;     // user input from template (note: backend uses RealisasiD)
+  realizationP?: number;     // frontend alias
+  realizationD?: number;     // frontend alias
+  realisasiP?: number;       // backend field name
+  realisasiD?: number;       // backend field name
   computedBobot?: number;  // server computed
   computedNilai?: number; // server computed
   computedTingkat?: string; // server computed
@@ -26,8 +29,10 @@ export interface MonitoringPreviewItem {
 export interface MonitoringBatchPayload {
   clientKey: string;
   code: string;           // Kode Risiko to match
-  realizationP: number;    // 1-5 (note: backend uses RealisasiP)
-  realizationD: number;   // 1-5 (note: backend uses RealisasiD)
+  realizationP: number;    // frontend alias
+  realizationD: number;   // frontend alias
+  realisasiP?: number;     // backend field name
+  realisasiD?: number;     // backend field name
 }
 
 // Monitoring Batch Result Item — corresponds to BulkMonitoringBatchItemOutput

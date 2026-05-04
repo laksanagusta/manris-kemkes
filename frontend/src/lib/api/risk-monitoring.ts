@@ -67,7 +67,7 @@ export async function submitMonitoringBatch(
 ): Promise<MonitoringBatchResponse> {
   return api.post<MonitoringBatchResponse>(
     `/risks/batch/monitoring?organization_id=${orgId}&cycle=${cycle}`,
-    { items },
+    { items, cycle },
     token
   );
 }

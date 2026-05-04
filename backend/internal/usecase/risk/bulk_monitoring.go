@@ -163,6 +163,7 @@ type BulkMonitoringPreviewItem struct {
 	Raw             map[string]string             `json:"raw"`
 	Code            string                        `json:"code,omitempty"`            // Kode Risiko
 	Title           string                        `json:"title,omitempty"`           // Uraian Risiko
+	InherentScore   float64                       `json:"inherentScore,omitempty"`   // from approved risk
 	TargetP         int                           `json:"targetP,omitempty"`         // from approved risk
 	TargetD         int                           `json:"targetD,omitempty"`         // from approved risk
 	TargetBobot     float64                       `json:"targetBobot,omitempty"`     // from approved risk
@@ -846,10 +847,11 @@ func mapBulkMonitoringRecord(
 			}
 
 			item.Title = risk.Title
+			item.InherentScore = float64(risk.InherentScore)
 			item.TargetP = risk.TargetProbability
 			item.TargetD = risk.TargetImpact
 			item.TargetBobot = risk.TargetWeight
-			item.TargetNilai = float64(risk.InherentScore)
+			item.TargetNilai = item.InherentScore
 			if item.TargetNilai == 0 {
 				item.TargetNilai = risk.TargetNilai
 			}

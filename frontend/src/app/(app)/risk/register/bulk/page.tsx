@@ -164,6 +164,12 @@ export default function BulkRiskRegisterPage() {
     (item) => item.status === "failed",
   ).length;
 
+  const getMonitoringRealizationP = (preview: MonitoringPreviewItem) =>
+    preview.realizationP ?? preview.realisasiP ?? "-";
+
+  const getMonitoringRealizationD = (preview: MonitoringPreviewItem) =>
+    preview.realizationD ?? preview.realisasiD ?? "-";
+
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -575,7 +581,7 @@ export default function BulkRiskRegisterPage() {
             <CardContent className="space-y-5 px-6 py-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  Siklus Pemantauan
+                  Periode Pemantauan
                 </label>
                 <Select
                   value={selectedCycle}
@@ -667,81 +673,141 @@ export default function BulkRiskRegisterPage() {
                   Belum ada data. Upload template untuk mulai review.
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Baris</TableHead>
-                      <TableHead>Kode Risiko</TableHead>
-                      <TableHead>Uraian Risiko</TableHead>
-                      <TableHead>Target P</TableHead>
-                      <TableHead>Target D</TableHead>
-                      <TableHead>Target Nilai</TableHead>
-                      <TableHead>Target Tingkat</TableHead>
-                      <TableHead>Realisasi P</TableHead>
-                      <TableHead>Realisasi D</TableHead>
-                      <TableHead>Bobot</TableHead>
-                      <TableHead>Nilai</TableHead>
-                      <TableHead>Tingkat</TableHead>
-                      <TableHead>Simpulan</TableHead>
-                      <TableHead>Efektivitas</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Catatan</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {monitoringPreviews.map((preview) => (
-                      <TableRow key={preview.clientKey}>
-                        <TableCell>{preview.rowNumber}</TableCell>
-                        <TableCell>{preview.code}</TableCell>
-                        <TableCell className="max-w-[200px] whitespace-normal">
-                          {preview.title}
-                        </TableCell>
-                        <TableCell>{preview.targetP}</TableCell>
-                        <TableCell>{preview.targetD}</TableCell>
-                        <TableCell>{preview.targetNilai}</TableCell>
-                        <TableCell>{preview.targetTingkat}</TableCell>
-                        <TableCell>{preview.realizationP ?? "-"}</TableCell>
-                        <TableCell>{preview.realizationD ?? "-"}</TableCell>
-                        <TableCell>{preview.computedBobot ?? "-"}</TableCell>
-                        <TableCell>{preview.computedNilai ?? "-"}</TableCell>
-                        <TableCell>{preview.computedTingkat ?? "-"}</TableCell>
-                        <TableCell>{preview.simpulan ?? "-"}</TableCell>
-                        <TableCell>{preview.efektivitas ?? "-"}</TableCell>
-                        <TableCell>
-                          {preview.errors.length > 0 ? (
-                            <Badge
-                              variant="outline"
-                              className="border-destructive/30 bg-destructive/10 text-destructive"
-                            >
-                              Invalid
-                            </Badge>
-                          ) : preview.warnings.length > 0 ? (
-                            <Badge
-                              variant="outline"
-                              className="border-risk-high/30 bg-risk-high/10 text-risk-high"
-                            >
-                              Warning
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="border-success/30 bg-success/10 text-success"
-                            >
-                              Valid
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="max-w-[200px] whitespace-normal text-xs text-muted-foreground">
-                          {preview.errors.length > 0
-                            ? preview.errors.join(" ")
-                            : preview.warnings.length > 0
-                              ? preview.warnings.join(" ")
-                              : "Siap dikirim."}
-                        </TableCell>
+                <div className="overflow-hidden rounded-2xl border border-border/50">
+                  <Table>
+                    <TableHeader className="bg-muted/20">
+                      <TableRow>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Baris
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Kode Risiko
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Uraian Risiko
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Target P
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Target D
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Target Nilai
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Target Tingkat
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Realisasi P
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Realisasi D
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Bobot
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Skor Inherent
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Tingkat
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Simpulan
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Efektivitas
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Status
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-xs font-medium text-muted-foreground">
+                          Catatan
+                        </TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {monitoringPreviews.map((preview) => (
+                        <TableRow key={preview.clientKey} className="hover:bg-muted/20">
+                          <TableCell className="px-3 py-4 font-medium tabular-nums">
+                            {preview.rowNumber}
+                          </TableCell>
+                          <TableCell className="px-3 py-4 font-medium">
+                            {preview.code}
+                          </TableCell>
+                          <TableCell className="max-w-[220px] px-3 py-4 whitespace-normal leading-6">
+                            {preview.title}
+                          </TableCell>
+                          <TableCell className="px-3 py-4 tabular-nums">
+                            {preview.targetP}
+                          </TableCell>
+                          <TableCell className="px-3 py-4 tabular-nums">
+                            {preview.targetD}
+                          </TableCell>
+                          <TableCell className="px-3 py-4 tabular-nums">
+                            {preview.targetNilai}
+                          </TableCell>
+                          <TableCell className="px-3 py-4">
+                            {preview.targetTingkat}
+                          </TableCell>
+                          <TableCell className="px-3 py-4 tabular-nums">
+                            {getMonitoringRealizationP(preview)}
+                          </TableCell>
+                          <TableCell className="px-3 py-4 tabular-nums">
+                            {getMonitoringRealizationD(preview)}
+                          </TableCell>
+                          <TableCell className="px-3 py-4 tabular-nums">
+                            {preview.computedBobot ?? "-"}
+                          </TableCell>
+                          <TableCell className="px-3 py-4 tabular-nums">
+                            {preview.inherentScore ?? preview.targetNilai ?? "-"}
+                          </TableCell>
+                          <TableCell className="px-3 py-4">
+                            {preview.computedTingkat ?? "-"}
+                          </TableCell>
+                          <TableCell className="px-3 py-4">
+                            {preview.simpulan ?? "-"}
+                          </TableCell>
+                          <TableCell className="px-3 py-4">
+                            {preview.efektivitas ?? "-"}
+                          </TableCell>
+                          <TableCell className="px-3 py-4">
+                            {preview.errors.length > 0 ? (
+                              <Badge
+                                variant="outline"
+                                className="h-6 rounded-full border-destructive/30 bg-destructive/10 px-2 text-[10px] font-medium text-destructive"
+                              >
+                                Invalid
+                              </Badge>
+                            ) : preview.warnings.length > 0 ? (
+                              <Badge
+                                variant="outline"
+                                className="h-6 rounded-full border-risk-high/30 bg-risk-high/10 px-2 text-[10px] font-medium text-risk-high"
+                              >
+                                Warning
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="h-6 rounded-full border-success/30 bg-success/10 px-2 text-[10px] font-medium text-success"
+                              >
+                                Valid
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="max-w-[220px] px-3 py-4 whitespace-normal text-xs leading-6 text-muted-foreground">
+                            {preview.errors.length > 0
+                              ? preview.errors.join(" ")
+                              : preview.warnings.length > 0
+                                ? preview.warnings.join(" ")
+                                : "Siap dikirim."}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>

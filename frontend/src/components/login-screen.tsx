@@ -154,10 +154,6 @@ export default function LoginScreen() {
                   </>
                 )}
               </Button>
-              <p className="text-center text-xs text-muted-foreground">
-                Jika ini login pertama Anda, sistem akan meminta penggantian
-                password sementara.
-              </p>
               <div className="flex justify-center">
                 <Link
                   href="/panduan-risiko"
@@ -179,10 +175,10 @@ export default function LoginScreen() {
 
         <div className="mt-6 text-center">
           <p className="text-xs text-muted-foreground/60">
-            Kementerian Kesehatan RI · Ditjen P2P
+            Kementerian Kesehatan RI · Ditjen Penanggulangan Penyakit
           </p>
           <p className="mt-1 text-[10px] text-muted-foreground/40">
-            MANRIS v2.0 · Powered by AI
+            Tim Kerja Manajemen Risiko Reformasi Birokrasi dan Monev
           </p>
         </div>
       </div>
