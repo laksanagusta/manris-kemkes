@@ -1,11 +1,6 @@
 import * as React from "react";
 import { UseFormReturn, Controller, FieldError } from "react-hook-form";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Tooltip,
   TooltipContent,
@@ -41,7 +36,10 @@ interface HasilPemantauanCardProps {
   } | null;
 }
 
-export function HasilPemantauanCard({ form, treatmentPlan }: HasilPemantauanCardProps) {
+export function HasilPemantauanCard({
+  form,
+  treatmentPlan,
+}: HasilPemantauanCardProps) {
   const probability = form.watch("probability");
   const impact = form.watch("impact");
   const probError = form.formState.errors.probability;
@@ -70,19 +68,37 @@ export function HasilPemantauanCard({ form, treatmentPlan }: HasilPemantauanCard
             </Label>
             {treatmentPlan.action ? (
               <div className="space-y-2 text-sm">
-                <p><span className="font-medium text-muted-foreground">Tindakan:</span> {treatmentPlan.action}</p>
+                <p>
+                  <span className="font-medium text-muted-foreground">
+                    Tindakan:
+                  </span>{" "}
+                  {treatmentPlan.action}
+                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <p><span className="text-muted-foreground">PIC:</span> {treatmentPlan.owner || "-"}</p>
-                  <p><span className="text-muted-foreground">Tenggat Waktu:</span> {treatmentPlan.dueDate || "-"}</p>
-                  <p><span className="text-muted-foreground">Frekuensi:</span> {treatmentPlan.frequency || "-"}</p>
+                  <p>
+                    <span className="text-muted-foreground">PIC:</span>{" "}
+                    {treatmentPlan.owner || "-"}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">
+                      Tenggat Waktu:
+                    </span>{" "}
+                    {treatmentPlan.dueDate || "-"}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Frekuensi:</span>{" "}
+                    {treatmentPlan.frequency || "-"}
+                  </p>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground italic">Belum ada rencana penanganan</p>
+              <p className="text-sm text-muted-foreground italic">
+                Belum ada rencana penanganan
+              </p>
             )}
           </div>
         )}
-        
+
         <TooltipProvider>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
@@ -102,9 +118,13 @@ export function HasilPemantauanCard({ form, treatmentPlan }: HasilPemantauanCard
                               "h-14 rounded-xl border-2 text-lg font-bold transition-all",
                               val === field.value
                                 ? "border-amber-600 bg-amber-50 text-amber-900"
-                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50",
                             )}
-                            data-testid={val === field.value ? "new-probability" : undefined}
+                            data-testid={
+                              val === field.value
+                                ? "new-probability"
+                                : undefined
+                            }
                           >
                             {val}
                           </button>
@@ -125,7 +145,7 @@ export function HasilPemantauanCard({ form, treatmentPlan }: HasilPemantauanCard
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label>Dampak (Residual)</Label>
+              <Label>Dampak</Label>
               <Controller
                 control={form.control}
                 name="impact"
@@ -141,9 +161,11 @@ export function HasilPemantauanCard({ form, treatmentPlan }: HasilPemantauanCard
                               "h-14 rounded-xl border-2 text-lg font-bold transition-all",
                               val === field.value
                                 ? "border-amber-600 bg-amber-50 text-amber-900"
-                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50",
                             )}
-                            data-testid={val === field.value ? "new-impact" : undefined}
+                            data-testid={
+                              val === field.value ? "new-impact" : undefined
+                            }
                           >
                             {val}
                           </button>

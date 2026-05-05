@@ -222,6 +222,9 @@ func (r *fakeSubmitUserRepo) GetByID(_ context.Context, id uuid.UUID) (*entity.U
 func (r *fakeSubmitUserRepo) GetByUsername(context.Context, string) (*entity.User, error) {
 	return nil, errors.New("not implemented")
 }
+func (r *fakeSubmitUserRepo) GetByNIP(context.Context, string) (*entity.User, error) {
+	return nil, errors.New("not implemented")
+}
 func (r *fakeSubmitUserRepo) Update(context.Context, *entity.User) error {
 	return errors.New("not implemented")
 }

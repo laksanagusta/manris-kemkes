@@ -713,10 +713,14 @@ func (h *RiskHandler) CreateMonitoringBatch(c *fiber.Ctx) error {
 	if len(req.Items) > maxBatchSize {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", fmt.Sprintf("batch size exceeds %d items limit", maxBatchSize))
 	}
-	if req.Cycle == "" {
+	cycle := strings.TrimSpace(req.Cycle)
+	if cycle == "" {
+		cycle = strings.TrimSpace(c.Query("cycle"))
+	}
+	if cycle == "" {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
 	}
-	if !riskuc.IsValidCycleFormat(req.Cycle) {
+	if !riskuc.IsValidCycleFormat(cycle) {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-HN format (e.g. 2026-H1)")
 	}
 
@@ -736,7 +740,7 @@ func (h *RiskHandler) CreateMonitoringBatch(c *fiber.Ctx) error {
 
 	result, err := h.createMonitoringBatchUC.Execute(c.Context(), riskuc.CreateMonitoringBatchInput{
 		Items:          req.Items,
-		Cycle:          req.Cycle,
+		Cycle:          cycle,
 		OrganizationID: orgID,
 		CreatedBy:      &userID,
 	})

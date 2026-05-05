@@ -169,6 +169,9 @@ func (r *reviewScheduleUserRepo) GetByID(_ context.Context, id uuid.UUID) (*enti
 func (r *reviewScheduleUserRepo) GetByUsername(context.Context, string) (*entity.User, error) {
 	return nil, nil
 }
+func (r *reviewScheduleUserRepo) GetByNIP(context.Context, string) (*entity.User, error) {
+	return nil, nil
+}
 func (r *reviewScheduleUserRepo) Update(context.Context, *entity.User) error { return nil }
 func (r *reviewScheduleUserRepo) Delete(context.Context, uuid.UUID) error    { return nil }
 func (r *reviewScheduleUserRepo) List(context.Context) ([]*entity.User, error) {

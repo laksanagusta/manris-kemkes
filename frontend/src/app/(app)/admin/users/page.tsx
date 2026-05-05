@@ -18,12 +18,15 @@ import {
   ChevronRight,
   Clock3,
   Loader2,
-  MoreHorizontal,
   MinusCircle,
   Plus,
   Search,
+  MoreHorizontal,
+  ShieldCheck,
+  ShieldX,
   Users,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { AdminOnlyState } from "@/components/admin/admin-only-state";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +47,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -53,7 +62,12 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/auth-context";
 import { ApiError } from "@/lib/api";
-import { listUsers, type UserListItem } from "@/lib/api/users";
+import {
+  approveUserRegistration,
+  listUsers,
+  rejectUserRegistration,
+  type UserListItem,
+} from "@/lib/api/users";
 import { cn } from "@/lib/utils";
 
 const roleMeta: Record<string, { label: string; badgeClassName: string }> = {
@@ -169,6 +183,10 @@ export default function UsersManagementPage() {
   const [limit, setLimit] = useState(() =>
     parsePositiveInt(searchParams.get("limit"), 10),
   );
+  const [pendingAction, setPendingAction] = useState<{
+    id: string;
+    type: "approve" | "reject";
+  } | null>(null);
 
   const deferredSearch = useDeferredValue(search);
 
@@ -299,6 +317,45 @@ export default function UsersManagementPage() {
 
   const totalPages = Math.ceil(total / limit) || 1;
 
+  const handleRegistrationAction = async (
+    managedUser: UserListItem,
+    action: "approve" | "reject",
+  ) => {
+    if (!token) {
+      toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+
+    setPendingAction({ id: managedUser.id, type: action });
+
+    try {
+      if (action === "approve") {
+        await approveUserRegistration(token, managedUser.id);
+        setUsers((current) =>
+          current.map((userRow) =>
+            userRow.id === managedUser.id
+              ? { ...userRow, status: "active" }
+              : userRow,
+          ),
+        );
+        toast.success(`Registrasi ${managedUser.name} disetujui.`);
+        return;
+      }
+
+      await rejectUserRegistration(token, managedUser.id);
+      setUsers((current) => current.filter((userRow) => userRow.id !== managedUser.id));
+      setTotal((current) => Math.max(0, current - 1));
+      toast.success(`Registrasi ${managedUser.name} ditolak.`);
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : "Aksi registrasi belum berhasil diproses.",
+      );
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
   const stats = [
     {
       label: "Total akun",
@@ -335,8 +392,8 @@ export default function UsersManagementPage() {
             Administrasi pengguna
           </h1>
           <p className="text-sm text-muted-foreground">
-            Kelola akun, sampaikan password sementara secara manual, dan
-            pantau aktivasi awal pengguna.
+            Kelola akun, verifikasi registrasi unit, dan pantau aktivasi awal
+            pengguna.
           </p>
         </div>
         <Button asChild className="shadow-lg shadow-primary/20">
@@ -425,14 +482,14 @@ export default function UsersManagementPage() {
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
                 <TableHead className="text-xs whitespace-nowrap">User</TableHead>
-                <TableHead className="w-32 text-xs whitespace-nowrap">Username</TableHead>
+                <TableHead className="w-32 text-xs whitespace-nowrap">Phone</TableHead>
                 <TableHead className="w-32 text-xs whitespace-nowrap">NIP</TableHead>
                 <TableHead className="w-28 text-xs whitespace-nowrap">Role</TableHead>
                 <TableHead className="w-36 text-xs whitespace-nowrap">Jabatan</TableHead>
                 <TableHead className="w-28 text-xs whitespace-nowrap">Pangkat</TableHead>
                 <TableHead className="w-40 text-xs whitespace-nowrap">Organisasi</TableHead>
                 <TableHead className="w-40 text-xs whitespace-nowrap">Status</TableHead>
-                <TableHead className="w-10 text-xs whitespace-nowrap"></TableHead>
+                <TableHead className="w-16 text-xs whitespace-nowrap">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -471,8 +528,8 @@ export default function UsersManagementPage() {
                           </div>
                         </div>
                       </TableCell>
-                       <TableCell className="text-sm font-mono text-muted-foreground">
-                         {managedUser.username}
+                       <TableCell className="text-sm text-muted-foreground">
+                         {managedUser.phoneNumber || "\u2014"}
                        </TableCell>
                        <TableCell className="text-sm text-muted-foreground">
                          {managedUser.nip || "\u2014"}
@@ -520,14 +577,55 @@ export default function UsersManagementPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          className="text-muted-foreground"
-                          aria-label={`Opsi untuk ${managedUser.name}`}
-                        >
-                          <MoreHorizontal className="size-3.5" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              className="text-muted-foreground"
+                              aria-label={`Aksi untuk ${managedUser.name}`}
+                            >
+                              <MoreHorizontal className="size-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            {managedUser.status === "pending_activation" ? (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleRegistrationAction(managedUser, "approve")
+                                  }
+                                >
+                                  {pendingAction?.id === managedUser.id &&
+                                  pendingAction?.type === "approve" ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                  ) : (
+                                    <ShieldCheck className="size-3.5" />
+                                  )}
+                                  Approve
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  variant="destructive"
+                                  onClick={() =>
+                                    handleRegistrationAction(managedUser, "reject")
+                                  }
+                                >
+                                  {pendingAction?.id === managedUser.id &&
+                                  pendingAction?.type === "reject" ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                  ) : (
+                                    <ShieldX className="size-3.5" />
+                                  )}
+                                  Reject
+                                </DropdownMenuItem>
+                              </>
+                            ) : (
+                              <DropdownMenuItem disabled>
+                                Tidak ada aksi
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );

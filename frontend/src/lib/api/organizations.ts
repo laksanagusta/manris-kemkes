@@ -29,7 +29,7 @@ type OrganizationPageRequest = {
 const ORGANIZATION_PAGE_LIMIT = 100;
 
 export async function listOrganizations(
-  token: string,
+  token?: string,
   params?: ListOrganizationsParams,
 ): Promise<PaginatedOrganizationsResponse> {
   const searchParams = new URLSearchParams();
@@ -71,7 +71,7 @@ export async function collectAllOrganizations(
 }
 
 export async function listAllOrganizations(
-  token: string,
+  token?: string,
   params?: Pick<ListOrganizationsParams, "q">,
 ): Promise<OrganizationListItem[]> {
   return collectAllOrganizations(({ page, limit }) =>
@@ -80,5 +80,19 @@ export async function listAllOrganizations(
       page,
       limit,
     }),
+  );
+}
+
+export async function listRegistrationOrganizations(
+  params?: Pick<ListOrganizationsParams, "q">,
+): Promise<OrganizationListItem[]> {
+  return collectAllOrganizations(({ page, limit }) =>
+    api.get<PaginatedOrganizationsResponse>(
+      `/auth/register/organizations?${new URLSearchParams({
+        ...(params?.q ? { q: params.q } : {}),
+        page: page.toString(),
+        limit: limit.toString(),
+      }).toString()}`,
+    ),
   );
 }

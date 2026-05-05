@@ -44,7 +44,7 @@ export const mainMenuItems: MainMenuGroup[] = [
     title: "MANAJEMEN RISIKO",
     items: [
       { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
-      { label: "Register Risiko", href: "/risk/register", icon: "ShieldAlert" },
+      { label: "Daftar Risiko", href: "/risk/register", icon: "ShieldAlert" },
       {
         label: "Kertas Kerja",
         href: "/risk/working-papers",

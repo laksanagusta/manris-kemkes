@@ -28,6 +28,9 @@ func (s *loginStubUserRepo) GetByID(_ context.Context, _ uuid.UUID) (*entity.Use
 func (s *loginStubUserRepo) GetByUsername(_ context.Context, _ string) (*entity.User, error) {
 	return s.user, s.err
 }
+func (s *loginStubUserRepo) GetByNIP(_ context.Context, _ string) (*entity.User, error) {
+	return s.user, s.err
+}
 func (s *loginStubUserRepo) Update(_ context.Context, _ *entity.User) error { return nil }
 func (s *loginStubUserRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
 func (s *loginStubUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
@@ -134,7 +137,7 @@ func TestLoginExecuteReturnsTokenForActiveUser(t *testing.T) {
 	}
 }
 
-func TestLoginExecuteReturnsSetupTokenForPendingActivationUser(t *testing.T) {
+func TestLoginExecuteRejectsPendingActivationUser(t *testing.T) {
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte("TempPass123!"), bcrypt.DefaultCost)
 	if err != nil {
 		t.Fatalf("hash password: %v", err)
@@ -152,45 +155,17 @@ func TestLoginExecuteReturnsSetupTokenForPendingActivationUser(t *testing.T) {
 		PasswordHash:       string(passwordHash),
 	}}, hierarchySvc, "secret", 24, true)
 
-	result, err := uc.Execute(context.Background(), LoginInput{
+	_, err = uc.Execute(context.Background(), LoginInput{
 		Username: "pending-user",
 		Password: "TempPass123!",
 	})
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		if err != domainErrors.ErrAccountPendingApproval {
+			t.Fatalf("expected ErrAccountPendingApproval, got %v", err)
+		}
+		return
 	}
-	if result == nil || result.Token == "" {
-		t.Fatal("expected auth token, got nil/empty token")
-	}
-	if result.SessionMode != entity.AuthSessionModeSetup {
-		t.Fatalf("expected session mode %q, got %q", entity.AuthSessionModeSetup, result.SessionMode)
-	}
-	if !result.MustChangePassword {
-		t.Fatal("expected mustChangePassword to be true for pending activation user")
-	}
-	if result.User == nil {
-		t.Fatal("expected user payload")
-	}
-	if result.User.Status != entity.UserStatusPendingActivation {
-		t.Fatalf("expected user status %q, got %q", entity.UserStatusPendingActivation, result.User.Status)
-	}
-	if !result.User.MustChangePassword {
-		t.Fatal("expected user mustChangePassword to be true for pending activation user")
-	}
-
-	claims := &middleware.JWTClaims{}
-	parsedToken, err := jwt.ParseWithClaims(result.Token, claims, func(token *jwt.Token) (any, error) {
-		return []byte("secret"), nil
-	})
-	if err != nil {
-		t.Fatalf("parse jwt claims: %v", err)
-	}
-	if !parsedToken.Valid {
-		t.Fatal("expected generated token to be valid")
-	}
-	if !claims.SetupOnly {
-		t.Fatal("expected pending-activation token to set setupOnly=true")
-	}
+	t.Fatal("expected error, got nil")
 }
 
 func TestLoginExecuteRejectsInactiveUser(t *testing.T) {

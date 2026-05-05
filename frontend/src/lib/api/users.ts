@@ -5,6 +5,7 @@ export interface UserListItem {
   name: string;
   username: string;
   email: string;
+  phoneNumber?: string | null;
   role: string;
   status: string;
   nip?: string | null;
@@ -48,4 +49,23 @@ export async function listUsers(
     `/users${qs ? `?${qs}` : ""}`,
     token,
   );
+}
+
+export interface UserActionResponse {
+  message: string;
+  updatedAt?: string;
+}
+
+export async function approveUserRegistration(
+  token: string,
+  userId: string,
+): Promise<UserActionResponse> {
+  return api.post<UserActionResponse>(`/users/${userId}/approve-registration`, {}, token);
+}
+
+export async function rejectUserRegistration(
+  token: string,
+  userId: string,
+): Promise<UserActionResponse> {
+  return api.delete<UserActionResponse>(`/users/${userId}/reject-registration`, undefined, token);
 }

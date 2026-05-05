@@ -60,6 +60,7 @@ export default function NewUserPage() {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("unit");
   const [orgId, setOrgId] = useState("");
@@ -96,9 +97,9 @@ export default function NewUserPage() {
   };
 
   const handleSave = async () => {
-    if (!name || !username || !email || !password) {
+    if (!name || !username || !email || !phoneNumber || !password) {
       toast.error(
-        "Lengkapi nama, username, email, dan password terlebih dahulu.",
+        "Lengkapi nama, username, email, phone number, dan password terlebih dahulu.",
       );
       return;
     }
@@ -119,6 +120,7 @@ export default function NewUserPage() {
           password,
           role,
           organizationId: role === "superadmin" ? null : orgId,
+          phoneNumber,
           nip,
           jabatan,
           pangkat,
@@ -232,6 +234,17 @@ export default function NewUserPage() {
               className="h-10 text-sm"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">
+              Phone number<span className="ml-0.5 text-destructive">*</span>
+            </Label>
+            <Input
+              placeholder="Contoh: 081234567890"
+              className="h-10 text-sm"
+              value={phoneNumber}
+              onChange={(event) => setPhoneNumber(event.target.value)}
             />
           </div>
           <div className="space-y-1.5">

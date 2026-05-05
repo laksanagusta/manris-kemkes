@@ -39,6 +39,7 @@ type CreateUserInput struct {
 	NIP            string
 	Jabatan        string
 	Pangkat        string
+	PhoneNumber    string
 }
 
 type CreateUserOutput struct {
@@ -110,6 +111,7 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, input CreateUserInput)
 		NIP:                input.NIP,
 		Jabatan:            input.Jabatan,
 		Pangkat:            input.Pangkat,
+		PhoneNumber:        input.PhoneNumber,
 	}
 
 	// 5. Validate user entity

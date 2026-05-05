@@ -47,6 +47,16 @@ func (s *changePasswordStubUserRepo) GetByUsername(_ context.Context, username s
 	userCopy := *s.user
 	return &userCopy, nil
 }
+func (s *changePasswordStubUserRepo) GetByNIP(_ context.Context, nip string) (*entity.User, error) {
+	if s.user == nil {
+		return nil, domainErrors.ErrNotFound
+	}
+	if nip != s.user.NIP {
+		return nil, domainErrors.ErrNotFound
+	}
+	userCopy := *s.user
+	return &userCopy, nil
+}
 
 func (s *changePasswordStubUserRepo) Update(_ context.Context, user *entity.User) error {
 	if s.updateErr != nil {

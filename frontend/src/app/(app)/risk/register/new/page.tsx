@@ -59,6 +59,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,
@@ -1475,6 +1476,8 @@ export default function RiskInputPage() {
   ).length;
   const missingSections = sectionStatuses.filter((section) => !section.done);
   const isFinalizeReady = missingSections.length === 0;
+  const lockedControlClass =
+    "disabled:!bg-background disabled:!text-foreground/90 disabled:!opacity-100 disabled:!cursor-not-allowed";
   const isRiskLocked =
     riskStatus === "assessment_in_review" ||
     riskStatus === "approved" ||
@@ -2375,59 +2378,40 @@ export default function RiskInputPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border/50 bg-muted/20 p-1.5">
-            <div
-              className="flex flex-col gap-1 sm:flex-row"
-              role="tablist"
-              aria-label="Ruang kerja risiko"
-            >
-              {[
-                {
-                  id: "form" as const,
-                  label: "Form aktif",
-                },
-                {
-                  id: "analysis" as const,
-                  label: "Analisa detail",
-                },
-                {
-                  id: "progress" as const,
-                  label: "Progress penanganan",
-                },
-                {
-                  id: "log" as const,
-                  label: "Activity log",
-                },
-              ].map((item) => {
-                const isActive = activeView === item.id;
-                const isDisabled = item.id !== "form" && !riskId;
-
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-disabled={isDisabled}
-                    disabled={isDisabled}
-                    onClick={() => handleViewChange(item.id)}
-                    className={cn(
-                      "relative flex-1 rounded-[16px] px-4 py-3 text-left transition-all duration-200 ease-out",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                      isActive
-                        ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
-                        : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
-                      isDisabled && "cursor-not-allowed opacity-50",
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium">{item.label}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <Tabs
+            value={activeView}
+            onValueChange={(value) => handleViewChange(value as WorkspaceView)}
+          >
+            <TabsList className="flex w-fit h-auto flex-col gap-1 rounded-xl border border-border/50 bg-muted/40 p-1 sm:flex-row">
+              <TabsTrigger
+                value="form"
+                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+              >
+                Form aktif
+              </TabsTrigger>
+              <TabsTrigger
+                value="analysis"
+                disabled={!riskId}
+                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+              >
+                Analisa detail
+              </TabsTrigger>
+              <TabsTrigger
+                value="progress"
+                disabled={!riskId}
+                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+              >
+                Progress penanganan
+              </TabsTrigger>
+              <TabsTrigger
+                value="log"
+                disabled={!riskId}
+                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+              >
+                Activity log
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {activeView === "analysis" && riskId && (
@@ -2507,6 +2491,7 @@ export default function RiskInputPage() {
                             disabled={isRiskLocked}
                             className={cn(
                               "text-sm",
+                              lockedControlClass,
                               errors.title && "border-destructive",
                             )}
                           />
@@ -2587,6 +2572,7 @@ export default function RiskInputPage() {
                             disabled={isRiskLocked}
                             className={cn(
                               "min-h-[120px] text-sm",
+                              lockedControlClass,
                               errors.description && "border-destructive",
                             )}
                           />
@@ -2612,6 +2598,7 @@ export default function RiskInputPage() {
                             <SelectTrigger
                               className={cn(
                                 "h-9 text-sm",
+                                lockedControlClass,
                                 errors.category && "border-destructive",
                               )}
                             >
@@ -2653,7 +2640,7 @@ export default function RiskInputPage() {
                     </div>
 
                     {objectiveSummary && (
-                      <div className="min-w-0 space-y-2 rounded-lg border border-border/50 bg-muted/30 p-4">
+                      <div className="min-w-0 space-y-2 rounded-lg border border-border/50 bg-background p-4">
                         <p className="text-xs font-semibold text-foreground">
                           Ringkasan Sasaran
                         </p>
@@ -2707,7 +2694,7 @@ export default function RiskInputPage() {
                               {...field}
                               placeholder="Terisi otomatis setelah draft disimpan"
                               disabled
-                              className="text-sm"
+                              className={cn("text-sm", lockedControlClass)}
                             />
                           )}
                         />
@@ -2718,7 +2705,9 @@ export default function RiskInputPage() {
                           value={assessmentCycleDisplay}
                           onValueChange={setAssessmentCycleDisplay}
                         >
-                          <SelectTrigger className="h-9 text-sm">
+                          <SelectTrigger
+                            className={cn("h-9 text-sm", lockedControlClass)}
+                          >
                             <SelectValue placeholder="Pilih semester" />
                           </SelectTrigger>
                           <SelectContent>
@@ -2747,7 +2736,12 @@ export default function RiskInputPage() {
                               onValueChange={field.onChange}
                               disabled={true}
                             >
-                              <SelectTrigger className="h-9 text-sm">
+                              <SelectTrigger
+                                className={cn(
+                                  "h-9 text-sm",
+                                  lockedControlClass,
+                                )}
+                              >
                                 <SelectValue placeholder="Pilih Unit Kerja" />
                               </SelectTrigger>
                               <SelectContent>
@@ -2814,7 +2808,12 @@ export default function RiskInputPage() {
                               onValueChange={field.onChange}
                               disabled={isRiskLocked}
                             >
-                              <SelectTrigger className="h-9 text-sm">
+                              <SelectTrigger
+                                className={cn(
+                                  "h-9 text-sm",
+                                  lockedControlClass,
+                                )}
+                              >
                                 <SelectValue placeholder="Pilih sumber risiko" />
                               </SelectTrigger>
                               <SelectContent>
@@ -2849,7 +2848,12 @@ export default function RiskInputPage() {
                               onValueChange={field.onChange}
                               disabled={isRiskLocked}
                             >
-                              <SelectTrigger className="h-9 text-sm">
+                              <SelectTrigger
+                                className={cn(
+                                  "h-9 text-sm",
+                                  lockedControlClass,
+                                )}
+                              >
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -2935,7 +2939,7 @@ export default function RiskInputPage() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md border border-border/50">
+                    <p className="text-sm text-muted-foreground bg-background p-3 rounded-md border border-border/50">
                       Nilai probabilitas dan dampak sudah mempertimbangkan
                       kontrol yang ada (residual risk).
                     </p>
@@ -2970,7 +2974,12 @@ export default function RiskInputPage() {
                               onValueChange={field.onChange}
                               disabled={isRiskLocked}
                             >
-                              <SelectTrigger className="h-9 text-sm">
+                              <SelectTrigger
+                                className={cn(
+                                  "h-9 text-sm",
+                                  lockedControlClass,
+                                )}
+                              >
                                 <SelectValue placeholder="Belum dinilai" />
                               </SelectTrigger>
                               <SelectContent>
@@ -3182,7 +3191,12 @@ export default function RiskInputPage() {
                               onValueChange={field.onChange}
                               disabled={isRiskLocked}
                             >
-                              <SelectTrigger className="h-9 text-sm">
+                              <SelectTrigger
+                                className={cn(
+                                  "h-9 text-sm",
+                                  lockedControlClass,
+                                )}
+                              >
                                 <SelectValue placeholder="Pilih selera risiko" />
                               </SelectTrigger>
                               <SelectContent>
@@ -3218,7 +3232,9 @@ export default function RiskInputPage() {
                             onValueChange={field.onChange}
                             disabled={isRiskLocked}
                           >
-                            <SelectTrigger className="h-9 text-sm">
+                            <SelectTrigger
+                              className={cn("h-9 text-sm", lockedControlClass)}
+                            >
                               <SelectValue placeholder="Pilih penanganan" />
                             </SelectTrigger>
                             <SelectContent>
@@ -3366,7 +3382,7 @@ export default function RiskInputPage() {
                           })
                         }
                         disabled={isRiskLocked}
-                        className="h-9 text-sm"
+                        className={cn("h-9 text-sm", lockedControlClass)}
                       />
                       <p className="text-xs text-muted-foreground">
                         Isi bebas sesuai format jadwal yang dipakai tim.
@@ -3685,7 +3701,7 @@ export default function RiskInputPage() {
                 Draft yang dihapus tidak bisa dikembalikan.
               </DialogDescription>
             </DialogHeader>
-            <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+            <div className="rounded-lg border bg-background px-3 py-2 text-sm">
               <p className="font-medium">{title || "Tanpa judul"}</p>
               <p className="text-xs text-muted-foreground">
                 {riskId || "Belum tersimpan"}
@@ -3794,7 +3810,7 @@ export default function RiskInputPage() {
                   : "Risiko akan disimpan lalu dikirim ke reviewer dan approval line yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan."}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+            <div className="space-y-2 rounded-lg border border-border bg-background p-3 text-sm">
               {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
                 <>
                   <div>

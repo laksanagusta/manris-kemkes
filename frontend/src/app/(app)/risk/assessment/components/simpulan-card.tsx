@@ -49,18 +49,12 @@ export function SimpulanCard({
   const bobot = getBobot(probability, impact);
   const prioritas = Math.round(nilaiBaru / 10) || 1;
   const levelColorClass = levelToColor(levelBaru);
-  const {
-    currentScore,
-    newScore,
-    delta,
-    deltaPercent,
-    isStable,
-    isDecrease,
-  } = resolveAssessmentScoreComparison({
-    currentInherentScore,
-    currentNilai: nilaiCurrent,
-    newNilai: nilaiBaru,
-  });
+  const { currentScore, newScore, delta, deltaPercent, isStable, isDecrease } =
+    resolveAssessmentScoreComparison({
+      currentInherentScore,
+      currentNilai: nilaiCurrent,
+      newNilai: nilaiBaru,
+    });
 
   const TrendIcon = isStable ? Minus : isDecrease ? TrendingDown : TrendingUp;
   const trendColorClass = isStable
@@ -69,23 +63,29 @@ export function SimpulanCard({
       ? "text-success"
       : "text-risk-extreme";
 
-  const progress =
-    targetScore > 0 && currentScore !== targetScore
-      ? Math.min(
-          100,
-          Math.max(
-            0,
-            Math.round(
-              ((currentScore - newScore) / (currentScore - targetScore)) * 100,
-            ),
-          ),
-        )
-      : 0;
+  const normalizedTargetScore = Math.round(targetScore);
+  let progress = 0;
+  let progressLabel = "Kedekatan ke Target";
 
-  const efektifitasColor = getSimpulanEfektifitasColor(
-    currentScore,
-    newScore,
-  );
+  if (normalizedTargetScore > 0) {
+    if (newScore <= normalizedTargetScore) {
+      progress = 100;
+      progressLabel = "Target tercapai";
+    } else if (
+      currentScore > normalizedTargetScore &&
+      newScore < currentScore
+    ) {
+      const rawProgress =
+        ((currentScore - newScore) / (currentScore - normalizedTargetScore)) *
+        100;
+      progress = Math.min(100, Math.max(0, Math.round(rawProgress)));
+    } else {
+      progress = 0;
+      progressLabel = "Masih di atas target";
+    }
+  }
+
+  const efektifitasColor = getSimpulanEfektifitasColor(currentScore, newScore);
   const efektifitasLabel = getSimpulanEfektifitas(currentScore, newScore);
 
   return (
@@ -110,13 +110,13 @@ export function SimpulanCard({
         </div>
       </div>
 
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <div className="rounded-xl border border-border/50 bg-background p-4">
+        <div className="space-y-4">
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1">
-              Tingkat Risiko
+            <p className="mb-1 text-xs font-medium text-muted-foreground">
+              Perubahan Skor
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-foreground">
                 {currentScore} &rarr; {newScore}
               </span>
@@ -126,31 +126,30 @@ export function SimpulanCard({
                   trendColorClass,
                 )}
               >
-                <TrendIcon className="size-3.5 mr-1" />({delta > 0 ? "+" : ""}
-                {Math.round(delta)}, {deltaPercent > 0 ? "+" : ""}
-                {deltaPercent}%)
+                <TrendIcon className="mr-1 size-3.5" />({delta > 0 ? "+" : ""}
+                {Math.round(delta)})
               </span>
             </div>
           </div>
 
           {targetScore > 0 && (
             <div className="border-t border-border/50 pt-4">
-              <div className="flex justify-between items-end mb-2">
+              <div className="mb-2 flex items-end justify-between">
                 <p className="text-xs font-medium text-muted-foreground">
-                  vs Target Penurunan
+                  {progressLabel}
                 </p>
                 <div className="text-right">
                   <span className="text-xs font-medium text-foreground">
-                    {newScore} / {Math.round(targetScore)}
+                    {newScore} / {normalizedTargetScore}
                   </span>
-                  <span className="text-xs text-muted-foreground ml-1">
-                    ({Math.max(0, newScore - Math.round(targetScore))} selisih)
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    ({Math.max(0, newScore - normalizedTargetScore)} selisih)
                   </span>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Progress value={progress} className="h-2 flex-1" />
-                <span className="text-xs font-medium text-muted-foreground w-8 text-right">
+                <span className="w-8 text-right text-xs font-medium text-muted-foreground">
                   {progress}%
                 </span>
               </div>
@@ -159,7 +158,7 @@ export function SimpulanCard({
 
           <div className="flex items-center justify-between border-t border-border/50 pt-4">
             <p className="text-xs font-medium text-muted-foreground">
-              Efektifitas Penanganan
+              Efektivitas Penanganan
             </p>
             <Badge
               variant="outline"
@@ -170,7 +169,7 @@ export function SimpulanCard({
           </div>
 
           <div className="border-t border-border/50 pt-4">
-            <p className="text-xs font-medium text-muted-foreground mb-1">
+            <p className="mb-1 text-xs font-medium text-muted-foreground">
               Status Tingkat Risiko
             </p>
             <p
@@ -190,8 +189,8 @@ export function SimpulanCard({
                   : "Tingkat risiko mengalami peningkatan"}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

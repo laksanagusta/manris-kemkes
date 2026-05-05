@@ -39,7 +39,7 @@ type AnalysisRow = {
   label: string;
   period: string;
   createdAt: string;
-  score: number;
+  inherentScore: number;
   targetScore: number;
   delta: number | null;
   level: string;
@@ -69,12 +69,12 @@ function formatVersionLabel(version: RiskVersionTimelineItem) {
   return formatShortDate(version.createdAt);
 }
 
-function getVersionScore(version: RiskVersionTimelineItem) {
-  return version.nilai ?? version.inherentScore ?? 0;
+function getVersionInherentScore(version: RiskVersionTimelineItem) {
+  return version.inherentScore ?? 0;
 }
 
 function getVersionTargetScore(version: RiskVersionTimelineItem) {
-  return version.targetNilai ?? version.targetScore ?? 0;
+  return version.targetScore ?? 0;
 }
 
 function formatDelta(delta: number | null) {
@@ -94,21 +94,20 @@ export function RiskAnalysisTab({
           new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
       )
       .map((version, index, all) => {
-        const score = getVersionScore(version);
+        const inherentScore = getVersionInherentScore(version);
         const targetScore = getVersionTargetScore(version);
         const previousScore =
-          index > 0 ? getVersionScore(all[index - 1]) : null;
+          index > 0 ? getVersionInherentScore(all[index - 1]) : null;
 
         return {
           id: version.id,
           label: formatVersionLabel(version),
           period: version.assessmentCycle || formatShortDate(version.createdAt),
           createdAt: version.createdAt,
-          score,
+          inherentScore,
           targetScore,
-          delta:
-            previousScore === null ? null : score - previousScore,
-          level: getRiskLevelLabel(getRiskLevelFromNilai(score)),
+          delta: previousScore === null ? null : inherentScore - previousScore,
+          level: getRiskLevelLabel(getRiskLevelFromNilai(inherentScore)),
           targetLevel:
             targetScore > 0
               ? getRiskLevelLabel(getRiskLevelFromNilai(targetScore))
@@ -125,9 +124,11 @@ export function RiskAnalysisTab({
   const latest = rows.at(-1);
   const previous = rows.length > 1 ? rows.at(-2) : undefined;
   const deltaFromPrevious =
-    latest && previous ? latest.score - previous.score : null;
+    latest && previous ? latest.inherentScore - previous.inherentScore : null;
   const targetGap =
-    latest && latest.targetScore > 0 ? latest.score - latest.targetScore : null;
+    latest && latest.targetScore > 0
+      ? latest.inherentScore - latest.targetScore
+      : null;
   const trendLabel =
     deltaFromPrevious === null
       ? "Belum cukup data"
@@ -177,10 +178,10 @@ export function RiskAnalysisTab({
       <div className="grid gap-3 md:grid-cols-4">
         <div className="rounded-2xl border border-border/50 bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-            Skor terakhir
+            Skor inherent terakhir
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-            {latest?.score ?? 0}
+            {latest?.inherentScore ?? 0}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {latest ? latest.level : "Belum ada data"}
@@ -188,10 +189,10 @@ export function RiskAnalysisTab({
         </div>
         <div className="rounded-2xl border border-border/50 bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-            Skor sebelumnya
+            Skor inherent sebelumnya
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-            {previous?.score ?? "—"}
+            {previous?.inherentScore ?? "—"}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {previous ? previous.level : "Belum ada pembanding"}
@@ -234,11 +235,11 @@ export function RiskAnalysisTab({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <CardTitle className="text-sm font-semibold">
-                  Tren nilai risiko
+                  Tren skor inherent risiko
                 </CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Pergerakan skor dari versi ke versi, dengan pembanding target
-                  untuk membaca jarak residual.
+                  Pergerakan skor inherent dari versi ke versi, dengan
+                  pembanding target untuk membaca jarak residual.
                 </p>
               </div>
               <Badge variant="outline" className="h-5 px-2 text-[10px]">
@@ -279,12 +280,14 @@ export function RiskAnalysisTab({
                     }}
                     formatter={(value, name) => [
                       `${value ?? 0}`,
-                      name === "score" ? "Skor risiko" : "Skor target",
+                      name === "inherentScore"
+                        ? "Skor inherent"
+                        : "Skor target",
                     ]}
                   />
                   <Line
                     type="monotone"
-                    dataKey="score"
+                    dataKey="inherentScore"
                     stroke="oklch(0.68 0.17 35)"
                     strokeWidth={2.25}
                     dot={false}
@@ -305,7 +308,7 @@ export function RiskAnalysisTab({
             <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <span className="size-2.5 rounded-full bg-[oklch(0.68_0.17_35)]" />
-                Skor risiko
+                Skor inherent
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="size-2.5 rounded-full bg-[oklch(0.53_0.12_240)]" />
@@ -326,12 +329,12 @@ export function RiskAnalysisTab({
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-72">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[140px]">Periode</TableHead>
-                    <TableHead className="w-[84px] text-right">Skor</TableHead>
-                    <TableHead className="w-[84px] text-right">Target</TableHead>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[140px]">Periode</TableHead>
+                      <TableHead className="w-[84px] text-right">Inherent</TableHead>
+                      <TableHead className="w-[84px] text-right">Target</TableHead>
                     <TableHead className="w-[70px] text-right">Delta</TableHead>
                     <TableHead className="w-[120px]">Level</TableHead>
                     <TableHead>Catatan</TableHead>
@@ -358,7 +361,7 @@ export function RiskAnalysisTab({
                         </div>
                       </TableCell>
                       <TableCell className="align-top text-right text-sm font-medium">
-                        {row.score}
+                        {row.inherentScore}
                       </TableCell>
                       <TableCell className="align-top text-right text-sm text-muted-foreground">
                         {row.targetScore > 0 ? row.targetScore : "—"}

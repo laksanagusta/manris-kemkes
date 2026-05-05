@@ -21,15 +21,31 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
   const code = risk.riskCode || risk.code || "-";
   const inherentScore = risk.inherentScore ?? risk.nilai;
   const targetScore = risk.targetScore ?? 0;
-  const level = inherentScore !== undefined && inherentScore !== null ? getRiskLevelFromNilai(inherentScore) : undefined;
-  
+  const level =
+    inherentScore !== undefined && inherentScore !== null
+      ? getRiskLevelFromNilai(inherentScore)
+      : undefined;
+  const mitigationCount = (
+    risk.mitigations?.length ? risk.mitigations : risk.mitigation ? [risk.mitigation] : []
+  ).filter((item) => item?.action).length;
+
   return (
-    <Card data-testid="profil-risiko-card">
-      <CardHeader className="gap-3">
-        <CardTitle className="flex justify-between items-center">
-          Profil Risiko Saat Ini
-          <Badge variant="outline" className="font-mono">{code}</Badge>
-        </CardTitle>
+    <Card
+      data-testid="profil-risiko-card"
+      className="border-border/40 shadow-sm overflow-hidden"
+    >
+      <CardHeader className="gap-3 border-b border-border/40 pb-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle className="text-base">Profil Risiko Saat Ini</CardTitle>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Ringkasan versi terakhir yang menjadi acuan pemantauan saat ini.
+            </p>
+          </div>
+          <Badge variant="outline" className="font-mono">
+            {code}
+          </Badge>
+        </div>
         {detailHref ? (
           <Button
             asChild
@@ -46,31 +62,45 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
       </CardHeader>
       <CardContent className="grid gap-6">
         <div>
-          <p className="text-sm font-medium text-muted-foreground mb-1">Judul Risiko</p>
+          <p className="mb-1 text-sm font-medium text-muted-foreground">Judul Risiko</p>
           <p className="text-base font-medium">{risk.title || "-"}</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Probabilitas</p>
-            <p className="text-sm">{risk.probability || "-"} — {PROBABILITY_LABELS[risk.probability] || "-"}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-mono">{risk.probability || "-"}</span>
+              {risk.probability ? (
+                <Badge
+                  variant="outline"
+                  className="border-border/50 bg-muted/30 text-foreground"
+                >
+                  {PROBABILITY_LABELS[risk.probability]}
+                </Badge>
+              ) : null}
+            </div>
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Dampak</p>
-            <p className="text-sm">{risk.impact || "-"} — {IMPACT_LABELS[risk.impact] || "-"}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-mono">{risk.impact || "-"}</span>
+              {risk.impact ? (
+                <Badge
+                  variant="outline"
+                  className="border-border/50 bg-muted/30 text-foreground"
+                >
+                  {IMPACT_LABELS[risk.impact]}
+                </Badge>
+              ) : null}
+            </div>
           </div>
-
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Bobot</p>
-            <p className="text-sm font-mono">{risk.weight || "-"}</p>
+            <p className="text-sm font-medium text-muted-foreground">Skor Saat Ini</p>
+            <p className="text-sm font-mono">{inherentScore ?? "-"}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Skor</p>
-            <p className="text-sm font-mono">{inherentScore}</p>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Level</p>
+            <p className="text-sm font-medium text-muted-foreground">Level Risiko</p>
             {level ? (
               <Badge variant="outline" className={levelToColor(level)}>
                 {getRiskLevelLabel(level)}
@@ -79,51 +109,30 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
               <span className="text-sm">-</span>
             )}
           </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Prioritas Risiko</p>
             <p className="text-sm">{risk.riskPriority || "-"}</p>
           </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">Bobot</p>
+            <p className="text-sm font-mono">{risk.weight || "-"}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">Aksi Penanganan</p>
+            <p className="text-sm">{mitigationCount > 0 ? `${mitigationCount} tindakan` : "Belum ada"}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">Target Skor</p>
+            <p className="text-sm font-mono">{targetScore}</p>
+          </div>
         </div>
 
-        <div className="pt-4 border-t border-border/50">
-          <p className="text-sm font-medium text-muted-foreground mb-3">Rencana Penanganan</p>
-          {(() => {
-            const mitigations = risk.mitigations?.length ? risk.mitigations : (risk.mitigation ? [risk.mitigation] : []);
-            const validMitigations = mitigations.filter(m => m && m.action);
-            return validMitigations.length > 0 ? (
-              <div className="bg-background rounded-md border border-border/50 overflow-hidden overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50 border-b border-border/50">
-                    <tr>
-                      <th className="text-left text-muted-foreground font-medium px-4 py-3 w-12">No</th>
-                      <th className="text-left text-muted-foreground font-medium px-4 py-3">Tindakan</th>
-                      <th className="text-left text-muted-foreground font-medium px-4 py-3">PIC</th>
-                      <th className="text-left text-muted-foreground font-medium px-4 py-3">Tenggat Waktu</th>
-                      <th className="text-left text-muted-foreground font-medium px-4 py-3">Frekuensi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/50">
-                    {validMitigations.map((m, i) => (
-                      <tr key={i} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
-                        <td className="px-4 py-3">{m.action}</td>
-                        <td className="px-4 py-3">{m.owner || "-"}</td>
-                        <td className="px-4 py-3">{m.dueDate || "-"}</td>
-                        <td className="px-4 py-3">{m.frequency || "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">Belum ada rencana penanganan</p>
-            );
-          })()}
-        </div>
-
-        <div className="pt-4 border-t border-border/50">
-          <p className="text-sm font-medium text-muted-foreground mb-3">Target Penurunan</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="border-t border-border/50 pt-4">
+          <p className="mb-3 text-sm font-medium text-muted-foreground">Target Penurunan</p>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Probabilitas</p>
               <p className="text-sm font-mono">{risk.targetProbability || "-"}</p>
@@ -137,7 +146,7 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
               <p className="text-sm font-mono">{risk.targetWeight || "-"}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Target Score</p>
+              <p className="text-xs font-medium text-muted-foreground">Skor Target</p>
               <p className="text-sm font-mono">{targetScore}</p>
             </div>
           </div>

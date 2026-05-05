@@ -21,12 +21,14 @@ type createUserRequest struct {
 }
 
 type UserHandler struct {
-	createUC     *useruc.CreateUserUseCase
-	getUC        *useruc.GetUserUseCase
-	updateUC     *useruc.UpdateUserUseCase
-	deleteUC     *useruc.DeleteUserUseCase
-	listUC       *useruc.ListUsersUseCase
+	createUC    *useruc.CreateUserUseCase
+	getUC       *useruc.GetUserUseCase
+	updateUC    *useruc.UpdateUserUseCase
+	deleteUC    *useruc.DeleteUserUseCase
+	listUC      *useruc.ListUsersUseCase
 	listFilterUC *useruc.ListUsersWithFilterUseCase
+	approveUC   *useruc.ApproveRegistrationUseCase
+	rejectUC    *useruc.RejectRegistrationUseCase
 }
 
 func NewUserHandler(
@@ -36,6 +38,8 @@ func NewUserHandler(
 	deleteUC *useruc.DeleteUserUseCase,
 	listUC *useruc.ListUsersUseCase,
 	listFilterUC *useruc.ListUsersWithFilterUseCase,
+	approveUC *useruc.ApproveRegistrationUseCase,
+	rejectUC *useruc.RejectRegistrationUseCase,
 ) *UserHandler {
 	return &UserHandler{
 		createUC:     createUC,
@@ -44,6 +48,8 @@ func NewUserHandler(
 		deleteUC:     deleteUC,
 		listUC:       listUC,
 		listFilterUC: listFilterUC,
+		approveUC:    approveUC,
+		rejectUC:     rejectUC,
 	}
 }
 
@@ -128,6 +134,36 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	}
 
 	result, err := h.deleteUC.Execute(c.Context(), id)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
+}
+
+// ApproveRegistration handles POST /api/users/:id/approve-registration
+func (h *UserHandler) ApproveRegistration(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid user ID")
+	}
+
+	result, err := h.approveUC.Execute(c.Context(), id)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
+}
+
+// RejectRegistration handles DELETE /api/users/:id/reject-registration
+func (h *UserHandler) RejectRegistration(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid user ID")
+	}
+
+	result, err := h.rejectUC.Execute(c.Context(), id)
 	if err != nil {
 		return handleError(c, err)
 	}

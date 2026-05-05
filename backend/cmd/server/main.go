@@ -48,7 +48,7 @@ func main() {
 		container.IncidentCreateUC, container.IncidentCreateBatchUC, container.IncidentGetUC, container.IncidentUpdateUC, container.IncidentDeleteUC, container.IncidentListUC, container.IncidentSummaryUC,
 	)
 	cleanUserHandler := httpHandler.NewUserHandler(
-		container.UserCreateUC, container.UserGetUC, container.UserUpdateUC, container.UserDeleteUC, container.UserListUC, container.UserListFilterUC,
+		container.UserCreateUC, container.UserGetUC, container.UserUpdateUC, container.UserDeleteUC, container.UserListUC, container.UserListFilterUC, container.UserApproveRegistrationUC, container.UserRejectRegistrationUC,
 	)
 	cleanControlHandler := httpHandler.NewControlHandler(
 		container.ControlCreateUC, container.ControlGetUC, container.ControlUpdateUC, container.ControlDeleteUC, container.ControlListUC, container.ControlDashboardUC,
@@ -61,7 +61,7 @@ func main() {
 	)
 
 	// Auth handlers (Clean Architecture)
-	cleanAuthHandler := httpHandler.NewAuthHandler(container.AuthLoginUC, container.AuthMeUC, container.AuthUpdateProfileUC, container.AuthChangePasswordUC)
+	cleanAuthHandler := httpHandler.NewAuthHandler(container.AuthLoginUC, container.AuthRegisterUC, container.AuthMeUC, container.AuthUpdateProfileUC, container.AuthChangePasswordUC)
 
 	// AI handlers (Clean Architecture)
 	cleanAIHandler := httpHandler.NewAIHandler(
@@ -206,6 +206,8 @@ func main() {
 
 	// Auth (public)
 	api.Post("/auth/login", cleanAuthHandler.Login)
+	api.Post("/auth/register", cleanAuthHandler.Register)
+	api.Get("/auth/register/organizations", cleanOrgHandler.List)
 
 	authProtected := api.Group("/auth", middleware.AuthRequired(cfg.JWTSecret))
 	authProtected.Get("/me", cleanAuthHandler.Me)
@@ -278,6 +280,8 @@ func main() {
 	// Users — write endpoints restricted to superadmin
 	usersAdmin := protected.Group("/users", middleware.RoleGuard("superadmin"))
 	usersAdmin.Post("/", cleanUserHandler.CreateUser)
+	usersAdmin.Post("/:id/approve-registration", cleanUserHandler.ApproveRegistration)
+	usersAdmin.Delete("/:id/reject-registration", cleanUserHandler.RejectRegistration)
 	usersAdmin.Put("/:id", cleanUserHandler.UpdateUser)
 	usersAdmin.Delete("/:id", cleanUserHandler.DeleteUser)
 

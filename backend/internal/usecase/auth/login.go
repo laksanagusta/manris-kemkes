@@ -63,14 +63,11 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*entity.
 		return nil, errors.ErrAccountInactive
 	}
 
-	sessionMode := entity.AuthSessionModeFull
-	setupOnly := false
 	if user.IsPendingActivation() {
-		sessionMode = entity.AuthSessionModeSetup
-		setupOnly = true
+		return nil, errors.ErrAccountPendingApproval
 	}
 
-	return buildAuthToken(ctx, uc.hierarchySvc, uc.jwtSecret, uc.jwtExpiry, uc.riskApprovalWorkflowEnabled, user, sessionMode, setupOnly)
+	return buildAuthToken(ctx, uc.hierarchySvc, uc.jwtSecret, uc.jwtExpiry, uc.riskApprovalWorkflowEnabled, user, entity.AuthSessionModeFull, false)
 }
 
 func validateLoginInput(input LoginInput) error {

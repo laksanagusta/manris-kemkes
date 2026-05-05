@@ -9,6 +9,7 @@ import (
 // AuthHandler handles authentication HTTP requests using clean architecture
 type AuthHandler struct {
 	loginUC          *authuc.LoginUseCase
+	registerUC       *authuc.RegisterUseCase
 	meUC             *authuc.GetCurrentUserUseCase
 	updateProfileUC  *authuc.UpdateProfileUseCase
 	changePasswordUC *authuc.ChangePasswordUseCase
@@ -17,12 +18,14 @@ type AuthHandler struct {
 // NewAuthHandler creates a new auth handler
 func NewAuthHandler(
 	loginUC *authuc.LoginUseCase,
+	registerUC *authuc.RegisterUseCase,
 	meUC *authuc.GetCurrentUserUseCase,
 	updateProfileUC *authuc.UpdateProfileUseCase,
 	changePasswordUC *authuc.ChangePasswordUseCase,
 ) *AuthHandler {
 	return &AuthHandler{
 		loginUC:          loginUC,
+		registerUC:       registerUC,
 		meUC:             meUC,
 		updateProfileUC:  updateProfileUC,
 		changePasswordUC: changePasswordUC,
@@ -50,6 +53,19 @@ type UpdateProfileRequest struct {
 	Pangkat  string `json:"pangkat"`
 }
 
+type RegisterRequest struct {
+	Name            string `json:"name"`
+	Email           string `json:"email"`
+	Username        string `json:"username"`
+	Password        string `json:"password"`
+	ConfirmPassword string `json:"confirmPassword"`
+	OrganizationID  string `json:"organizationId"`
+	NIP             string `json:"nip"`
+	Jabatan         string `json:"jabatan"`
+	Pangkat         string `json:"pangkat"`
+	PhoneNumber     string `json:"phoneNumber"`
+}
+
 // Login handles POST /api/v1/auth/login
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	// 1. Parse request
@@ -69,6 +85,37 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	// 3. Return response
 	return c.JSON(fiber.Map{"data": result})
+}
+
+// Register handles POST /api/v1/auth/register
+func (h *AuthHandler) Register(c *fiber.Ctx) error {
+	var req RegisterRequest
+	if err := c.BodyParser(&req); err != nil {
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+
+	orgID, err := uuid.Parse(req.OrganizationID)
+	if err != nil {
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+	}
+
+	result, err := h.registerUC.Execute(c.Context(), authuc.RegisterInput{
+		Name:            req.Name,
+		Email:           req.Email,
+		Username:        req.Username,
+		Password:        req.Password,
+		ConfirmPassword: req.ConfirmPassword,
+		OrganizationID:  &orgID,
+		NIP:             req.NIP,
+		Jabatan:         req.Jabatan,
+		Pangkat:         req.Pangkat,
+		PhoneNumber:     req.PhoneNumber,
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": result})
 }
 
 // Me handles GET /api/v1/auth/me

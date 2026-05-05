@@ -74,6 +74,7 @@ var (
 	ErrForbidden          = &AppError{Code: "FORBIDDEN", Message: "insufficient permissions"}
 	ErrInvalidCredentials = &AppError{Code: "INVALID_CREDENTIALS", Message: "invalid username or password"}
 	ErrAccountInactive    = &AppError{Code: "ACCOUNT_INACTIVE", Message: "account is inactive"}
+	ErrAccountPendingApproval = &AppError{Code: "ACCOUNT_PENDING_APPROVAL", Message: "account is waiting for superadmin approval"}
 	ErrTokenGeneration    = &AppError{Code: "TOKEN_GENERATION", Message: "failed to generate token"}
 
 	// System errors
@@ -108,6 +109,11 @@ func IsUnauthorized(err error) bool {
 // IsForbidden checks if error is a forbidden error
 func IsForbidden(err error) bool {
 	return errors.Is(err, ErrForbidden)
+}
+
+// IsAccountPendingApproval checks if error is a pending-approval error
+func IsAccountPendingApproval(err error) bool {
+	return errors.Is(err, ErrAccountPendingApproval)
 }
 
 // IsInvalidCredentials checks if error is an invalid credentials error

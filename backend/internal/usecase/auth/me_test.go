@@ -21,6 +21,9 @@ func (s *stubUserRepo) Create(_ context.Context, _ *entity.User) error { return 
 func (s *stubUserRepo) GetByUsername(_ context.Context, _ string) (*entity.User, error) {
 	return nil, nil
 }
+func (s *stubUserRepo) GetByNIP(_ context.Context, _ string) (*entity.User, error) {
+	return nil, nil
+}
 func (s *stubUserRepo) Update(_ context.Context, _ *entity.User) error { return nil }
 func (s *stubUserRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
 func (s *stubUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }

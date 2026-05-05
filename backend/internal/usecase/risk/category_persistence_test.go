@@ -111,6 +111,9 @@ func (r *categoryUserRepo) GetByID(context.Context, uuid.UUID) (*entity.User, er
 func (r *categoryUserRepo) GetByUsername(context.Context, string) (*entity.User, error) {
 	return nil, nil
 }
+func (r *categoryUserRepo) GetByNIP(context.Context, string) (*entity.User, error) {
+	return nil, nil
+}
 func (r *categoryUserRepo) Update(context.Context, *entity.User) error   { return nil }
 func (r *categoryUserRepo) Delete(context.Context, uuid.UUID) error      { return nil }
 func (r *categoryUserRepo) List(context.Context) ([]*entity.User, error) { return nil, nil }
