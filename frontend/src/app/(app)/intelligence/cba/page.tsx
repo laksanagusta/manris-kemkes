@@ -3,7 +3,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
+import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -142,6 +144,19 @@ function formatNumber(value: number): string {
 }
 
 export default function CBAPage() {
+  if (isAIFeaturesDisabled()) {
+    return (
+      <AIFeaturesDisabledState
+        title="Cost Benefit Analysis Dinonaktifkan"
+        description="Workflow analisis biaya-manfaat berbasis AI sedang dimatikan melalui environment frontend."
+      />
+    );
+  }
+
+  return <CBAPageContent />;
+}
+
+function CBAPageContent() {
   const { token } = useAuth();
   const [step, setStep] = useState(1);
   const [riskDescription, setRiskDescription] = useState("");

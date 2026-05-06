@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth-context";
+import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
+import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { deleteMeetingMinute, listMeetingMinutes } from "@/lib/meeting-minutes";
 import type { MeetingMinute } from "@/types/meeting-minute";
@@ -56,6 +58,19 @@ function parsePositiveInt(value: string | null, fallback: number): number {
 }
 
 export default function MinutesPage() {
+  if (isAIFeaturesDisabled()) {
+    return (
+      <AIFeaturesDisabledState
+        title="Meeting Dinonaktifkan"
+        description="Daftar notulen dan workflow meeting intelligence sedang dimatikan melalui environment frontend."
+      />
+    );
+  }
+
+  return <MinutesPageContent />;
+}
+
+function MinutesPageContent() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();

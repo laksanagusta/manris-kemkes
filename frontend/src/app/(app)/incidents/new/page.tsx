@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
@@ -156,6 +157,7 @@ function isManualSuggestionInputComplete(input: {
 }
 
 export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
+  const aiFeaturesDisabled = isAIFeaturesDisabled();
   const router = useRouter();
   const { token, user } = useAuth();
 
@@ -326,6 +328,10 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
   }, [deferredManualRiskSearch, risks]);
 
   const handleUploadFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (aiFeaturesDisabled) {
+      event.target.value = "";
+      return;
+    }
     const file = event.target.files?.[0];
     if (!file || !token) return;
 
@@ -567,6 +573,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
   };
 
   const handleGenerateManualSuggestions = async () => {
+    if (aiFeaturesDisabled) return;
     if (!token) return;
 
     if (!canGenerateManualSuggestions) {
@@ -767,6 +774,7 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
                 variant="outline"
                 className="gap-2 text-xs"
                 onClick={() => setShowBatchUpload((value) => !value)}
+                disabled={aiFeaturesDisabled}
               >
                 <Upload className="size-3.5" />
                 {showBatchUpload ? "Kembali ke input manual" : "Upload PDF batch"}
@@ -1149,7 +1157,11 @@ export function IncidentFormPage({ incidentId }: { incidentId?: string }) {
                       variant="outline"
                       className="gap-2"
                       onClick={handleGenerateManualSuggestions}
-                      disabled={!canGenerateManualSuggestions || isGeneratingRiskSuggestions}
+                      disabled={
+                        aiFeaturesDisabled ||
+                        !canGenerateManualSuggestions ||
+                        isGeneratingRiskSuggestions
+                      }
                     >
                       {isGeneratingRiskSuggestions ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
                       {isGeneratingRiskSuggestions ? "Menganalisis..." : "Generate suggestion"}

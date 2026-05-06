@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
+import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -406,6 +408,24 @@ function buildNextFieldSnapshot(risk: RiskDetailResponse | null, change: Transcr
 }
 
 export function MeetingIntelligenceWorkspace({
+  initialMode,
+}: {
+  initialMode: WorkspaceMode;
+}) {
+  if (isAIFeaturesDisabled()) {
+    return (
+      <AIFeaturesDisabledState
+        title="Workspace AI Dinonaktifkan"
+        description="Analisis meeting, transkrip, dan generator notulen sedang dimatikan melalui environment frontend."
+        backHref="/overview"
+      />
+    );
+  }
+
+  return <MeetingIntelligenceWorkspaceContent initialMode={initialMode} />;
+}
+
+function MeetingIntelligenceWorkspaceContent({
   initialMode,
 }: {
   initialMode: WorkspaceMode;

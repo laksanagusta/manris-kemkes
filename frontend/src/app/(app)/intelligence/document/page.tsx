@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth-context";
+import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
+import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -188,6 +190,7 @@ function formatMitigationDraft(task: MitigationTaskReportSuggestion) {
 }
 
 export default function DocumentIntelligencePage() {
+  const aiFeaturesDisabled = isAIFeaturesDisabled();
   const { token, user } = useAuth();
   const router = useRouter();
 
@@ -204,6 +207,15 @@ export default function DocumentIntelligencePage() {
     () => modeOptions.find((option) => option.value === mode) ?? modeOptions[0],
     [mode],
   );
+
+  if (aiFeaturesDisabled) {
+    return (
+      <AIFeaturesDisabledState
+        title="Document Intelligence Dinonaktifkan"
+        description="Analisis dokumen berbasis AI sedang dimatikan melalui environment frontend."
+      />
+    );
+  }
 
   async function handleAnalyze() {
     if (!token) {
