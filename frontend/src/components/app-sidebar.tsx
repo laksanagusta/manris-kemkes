@@ -34,6 +34,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
+import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 
 interface NavItem {
   label: string;
@@ -76,21 +77,21 @@ const reportsNavigation: NavGroup = {
       href: "/reports",
       icon: ShieldAlert,
     },
-    {
-      label: "Laporan Formal",
-      href: "/reports/formal",
-      icon: FileText,
-    },
+    // {
+    //   label: "Laporan Formal",
+    //   href: "/reports/formal",
+    //   icon: FileText,
+    // },
     {
       label: "Monitoring Kepatuhan",
       href: "/reports/compliance-monitoring",
       icon: ClipboardCheck,
     },
-    {
-      label: "Detail Siklus Risiko",
-      href: "/reports/cycle-detail",
-      icon: GitBranch,
-    },
+    // {
+    //   label: "Detail Siklus Risiko",
+    //   href: "/reports/cycle-detail",
+    //   icon: GitBranch,
+    // },
   ],
 };
 
@@ -313,13 +314,19 @@ export function AppSidebar({
     () => new Set(defaultCollapsedNodes),
   );
   const currentHash = useLocationHash();
-  const visibleNavigation = useMemo(
-    () =>
+  const aiFeaturesDisabled = isAIFeaturesDisabled();
+  const visibleNavigation = useMemo(() => {
+    const baseNavigation =
       user?.role === "superadmin"
         ? navigation
-        : navigation.filter((group) => group.title !== adminMenuGroup.title),
-    [user?.role],
-  );
+        : navigation.filter((group) => group.title !== adminMenuGroup.title);
+
+    if (!aiFeaturesDisabled) {
+      return baseNavigation;
+    }
+
+    return baseNavigation.filter((group) => group.title !== "AI & Automation");
+  }, [aiFeaturesDisabled, user?.role]);
 
   // Get initials from user name (e.g., "Dr. Farah Indah" -> "FI")
   const getInitials = (name: string | undefined): string => {

@@ -1,9 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2, Check } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/lib/api";
+import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
 import { AiSuggestionModal, type SuggestionItem } from "./ai-suggestion-modal";
 
@@ -19,12 +20,14 @@ interface MitigationPickerProps {
 
 
 export function MitigationPicker({ title, description, cause, impactDescription, onSelect, existingActions, disabled }: MitigationPickerProps) {
+  const aiFeaturesDisabled = isAIFeaturesDisabled();
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
 
   async function handleGenerate() {
+    if (aiFeaturesDisabled) return;
     setLoading(true);
     setModalOpen(true);
     try {
@@ -63,7 +66,13 @@ export function MitigationPicker({ title, description, cause, impactDescription,
         variant="outline"
         size="sm"
         onClick={handleGenerate}
-        disabled={disabled || loading || !description.trim() || !title.trim()}
+        disabled={
+          aiFeaturesDisabled ||
+          disabled ||
+          loading ||
+          !description.trim() ||
+          !title.trim()
+        }
         className="mt-2 gap-2 text-xs text-primary border-primary/20 bg-primary/[0.03] hover:bg-primary/10"
       >
         {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}

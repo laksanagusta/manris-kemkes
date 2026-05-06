@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Save, Sparkles } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
 import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ interface RiskOption {
 }
 
 export default function NewKRIPage() {
+  const aiFeaturesDisabled = isAIFeaturesDisabled();
   const router = useRouter();
   const { token, user } = useAuth();
   const [generating, setGenerating] = useState(false);
@@ -70,6 +72,7 @@ export default function NewKRIPage() {
   const selectedRisk = risks.find((risk) => risk.id === riskId);
 
   async function handleAIGenerate() {
+    if (aiFeaturesDisabled) return;
     if (!riskId || !selectedRisk) {
       toast.error("Pilih risiko terlebih dahulu sebelum meminta saran AI.");
       return;
@@ -166,7 +169,7 @@ export default function NewKRIPage() {
               variant="outline"
               className={cn("gap-2 text-xs", !riskId && "opacity-60")}
               onClick={handleAIGenerate}
-              disabled={generating || !riskId}
+              disabled={aiFeaturesDisabled || generating || !riskId}
             >
               {generating ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
               {generating ? "Memproses..." : "Gunakan saran AI"}

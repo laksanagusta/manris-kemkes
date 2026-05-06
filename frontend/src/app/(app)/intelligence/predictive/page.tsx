@@ -26,7 +26,9 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
+import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
 
 
 const levelColors: Record<string, string> = {
@@ -61,6 +63,19 @@ function ConfidenceBar({ value }: { value: number }) {
 }
 
 export default function PredictivePage() {
+  if (isAIFeaturesDisabled()) {
+    return (
+      <AIFeaturesDisabledState
+        title="Predictive Scoring Dinonaktifkan"
+        description="Prediksi tren risiko berbasis AI sedang dimatikan melalui environment frontend."
+      />
+    );
+  }
+
+  return <PredictivePageContent />;
+}
+
+function PredictivePageContent() {
   const { token, user } = useAuth();
   const [isRunning, setIsRunning] = useState(false);
   const [predictions, setPredictions] = useState<any[]>([]);

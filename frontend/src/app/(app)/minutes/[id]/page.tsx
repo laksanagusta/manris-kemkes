@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
+import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { deleteMeetingMinute, getMeetingMinute } from "@/lib/meeting-minutes";
@@ -32,6 +34,20 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function MeetingMinuteDetailPage() {
+  if (isAIFeaturesDisabled()) {
+    return (
+      <AIFeaturesDisabledState
+        title="Detail Notulen Dinonaktifkan"
+        description="Akses ke detail notulen meeting intelligence sedang dimatikan melalui environment frontend."
+        backHref="/overview"
+      />
+    );
+  }
+
+  return <MeetingMinuteDetailContent />;
+}
+
+function MeetingMinuteDetailContent() {
   const { id } = useParams<{ id: string }>();
   const { token, user } = useAuth();
   const router = useRouter();

@@ -11,35 +11,35 @@ export type MainMenuGroup = {
 };
 
 export const mainMenuItems: MainMenuGroup[] = [
-  {
-    title: "RISK GOVERNANCE",
-    items: [
-      {
-        label: "Piagam MR",
-        href: "/management/charters",
-        icon: "ClipboardPenLine",
-        matchHrefs: ["/management/charters"],
-      },
-      {
-        label: "Eskalasi Risiko",
-        href: "/risk/cascading",
-        icon: "GitBranch",
-        matchHrefs: ["/risk/cascading"],
-      },
-      {
-        label: "Sasaran & IKU",
-        href: "/management/objectives",
-        icon: "Goal",
-        matchHrefs: ["/management/objectives"],
-      },
-      {
-        label: "TMPMR",
-        href: "/management/tmpmr",
-        icon: "ClipboardList",
-        matchHrefs: ["/management/tmpmr"],
-      },
-    ],
-  },
+  // {
+  //   title: "RISK GOVERNANCE",
+  //   items: [
+  //     {
+  //       label: "Piagam MR",
+  //       href: "/management/charters",
+  //       icon: "ClipboardPenLine",
+  //       matchHrefs: ["/management/charters"],
+  //     },
+  //     {
+  //       label: "Eskalasi Risiko",
+  //       href: "/risk/cascading",
+  //       icon: "GitBranch",
+  //       matchHrefs: ["/risk/cascading"],
+  //     },
+  //     {
+  //       label: "Sasaran & IKU",
+  //       href: "/management/objectives",
+  //       icon: "Goal",
+  //       matchHrefs: ["/management/objectives"],
+  //     },
+  //     {
+  //       label: "TMPMR",
+  //       href: "/management/tmpmr",
+  //       icon: "ClipboardList",
+  //       matchHrefs: ["/management/tmpmr"],
+  //     },
+  //   ],
+  // },
   {
     title: "MANAJEMEN RISIKO",
     items: [
