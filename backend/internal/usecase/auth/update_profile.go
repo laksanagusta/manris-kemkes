@@ -14,7 +14,6 @@ import (
 type UpdateProfileInput struct {
 	UserID   uuid.UUID
 	Name     string
-	Username string
 	Email    string
 	NIP      string
 	Jabatan  string
@@ -49,7 +48,6 @@ func (uc *UpdateProfileUseCase) Execute(ctx context.Context, input UpdateProfile
 	}
 
 	user.Name = strings.TrimSpace(input.Name)
-	user.Username = strings.TrimSpace(input.Username)
 	user.Email = strings.TrimSpace(input.Email)
 	user.NIP = strings.TrimSpace(input.NIP)
 	user.Jabatan = strings.TrimSpace(input.Jabatan)

@@ -86,6 +86,7 @@ func TestChangePasswordExecuteActivatesPendingUserAndReturnsFullSession(t *testi
 	userRepo := &changePasswordStubUserRepo{user: &entity.User{
 		ID:                 userID,
 		Username:           "pending-user",
+		NIP:                "pending-user",
 		Email:              "pending-user@manris.local",
 		Name:               "Pending User",
 		Role:               entity.RoleSuperAdmin,
@@ -223,6 +224,7 @@ func TestChangePasswordExecuteInvalidatesOldTemporaryPassword(t *testing.T) {
 	userRepo := &changePasswordStubUserRepo{user: &entity.User{
 		ID:                 userID,
 		Username:           "pending-user",
+		NIP:                "pending-user",
 		Email:              "pending-user@manris.local",
 		Name:               "Pending User",
 		Role:               entity.RoleSuperAdmin,
@@ -245,14 +247,14 @@ func TestChangePasswordExecuteInvalidatesOldTemporaryPassword(t *testing.T) {
 
 	loginUC := NewLoginUseCase(userRepo, hierarchySvc, "secret", 24, true)
 	if _, err := loginUC.Execute(context.Background(), LoginInput{
-		Username: "pending-user",
+		NIP:      "pending-user",
 		Password: temporaryPassword,
 	}); err == nil || !stderrors.Is(err, domainErrors.ErrInvalidCredentials) {
 		t.Fatalf("expected old password login to fail with invalid credentials, got %v", err)
 	}
 
 	result, err := loginUC.Execute(context.Background(), LoginInput{
-		Username: "pending-user",
+		NIP:      "pending-user",
 		Password: newPassword,
 	})
 	if err != nil {
@@ -308,6 +310,7 @@ func TestChangePasswordExecuteAllowsActiveUserWithCurrentPassword(t *testing.T) 
 	userRepo := &changePasswordStubUserRepo{user: &entity.User{
 		ID:                 userID,
 		Username:           "active-user",
+		NIP:                "active-user",
 		Email:              "active-user@manris.local",
 		Name:               "Active User",
 		Role:               entity.RoleUnit,
@@ -346,6 +349,7 @@ func TestChangePasswordExecuteRejectsActiveUserWithoutCurrentPassword(t *testing
 	userRepo := &changePasswordStubUserRepo{user: &entity.User{
 		ID:                 uuid.New(),
 		Username:           "active-user",
+		NIP:                "active-user",
 		Email:              "active-user@manris.local",
 		Name:               "Active User",
 		Role:               entity.RoleUnit,

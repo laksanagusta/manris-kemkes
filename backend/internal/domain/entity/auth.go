@@ -27,7 +27,6 @@ const (
 // UserPublic represents user information that can be exposed publicly
 type UserPublic struct {
 	ID                 uuid.UUID        `json:"id"`
-	Username           string           `json:"username"`
 	Name               string           `json:"name"`
 	Email              string           `json:"email"`
 	Role               string           `json:"role"`
@@ -46,14 +45,14 @@ type UserPublic struct {
 
 // LoginCredentials represents user login input
 type LoginCredentials struct {
-	Username string `json:"username"`
+	NIP      string `json:"nip"`
 	Password string `json:"password"`
 }
 
 // Validate validates the login credentials
 func (c *LoginCredentials) Validate() error {
-	if c.Username == "" {
-		return errors.ErrInvalidUsername
+	if c.NIP == "" {
+		return errors.Wrap(errors.ErrInvalidInput, "nip cannot be empty")
 	}
 	if c.Password == "" {
 		return errors.ErrInvalidPassword
@@ -64,7 +63,6 @@ func (c *LoginCredentials) Validate() error {
 // UserProfile represents detailed user profile information
 type UserProfile struct {
 	ID                 uuid.UUID        `json:"id"`
-	Username           string           `json:"username"`
 	Name               string           `json:"name"`
 	Email              string           `json:"email"`
 	Role               string           `json:"role"`
@@ -87,7 +85,6 @@ type UserProfile struct {
 func (u *UserProfile) ToPublic() *UserPublic {
 	return &UserPublic{
 		ID:                 u.ID,
-		Username:           u.Username,
 		Name:               u.Name,
 		Email:              u.Email,
 		Role:               u.Role,

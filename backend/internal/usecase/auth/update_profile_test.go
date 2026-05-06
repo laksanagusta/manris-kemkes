@@ -62,13 +62,12 @@ func TestUpdateProfileUseCase_UpdatesEditableFieldsOnly(t *testing.T) {
 
 	uc := NewUpdateProfileUseCase(repo, service.NewOrganizationHierarchy(&stubOrgRepo{descendants: []uuid.UUID{orgID}}), false)
 	profile, err := uc.Execute(context.Background(), UpdateProfileInput{
-		UserID:   userID,
-		Name:     "New Name",
-		Username: "new-unit-user",
-		Email:    "new@manris.local",
-		NIP:      "456",
-		Jabatan:  "Koordinator",
-		Pangkat:  "III/b",
+		UserID:  userID,
+		Name:    "New Name",
+		Email:   "new@manris.local",
+		NIP:     "456",
+		Jabatan: "Koordinator",
+		Pangkat: "III/b",
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)

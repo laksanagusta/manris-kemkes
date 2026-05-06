@@ -41,7 +41,6 @@ export default function RegisterScreen() {
   );
 
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [organizationId, setOrganizationId] = useState("");
@@ -83,7 +82,6 @@ export default function RegisterScreen() {
 
     if (
       !name ||
-      !username ||
       !email ||
       !phoneNumber ||
       !organizationId ||
@@ -109,7 +107,6 @@ export default function RegisterScreen() {
     try {
       await registerUser({
         name,
-        username,
         email,
         phoneNumber,
         password,
@@ -122,7 +119,6 @@ export default function RegisterScreen() {
         "Registrasi berhasil. Akun sekarang menunggu approval sebelum bisa digunakan.",
       );
       setName("");
-      setUsername("");
       setEmail("");
       setPhoneNumber("");
       setOrganizationId("");
@@ -199,19 +195,6 @@ export default function RegisterScreen() {
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Contoh: Dr. Andi Pratama, M.Kes"
-                    className="h-10 border-border/50 bg-muted/30"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="username" className="text-xs font-medium">
-                    Username
-                  </Label>
-                  <Input
-                    id="username"
-                    value={username}
-                    onChange={(event) => setUsername(event.target.value)}
-                    placeholder="contoh: andi.pratama"
                     className="h-10 border-border/50 bg-muted/30"
                     required
                   />

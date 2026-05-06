@@ -46,7 +46,7 @@ func TestAuthHandlerLoginRejectsPendingActivationUser(t *testing.T) {
 	)
 
 	body, err := json.Marshal(LoginRequest{
-		Username: "pending-user",
+		NIP:      "pending-user",
 		Password: "TempPass123!",
 	})
 	if err != nil {

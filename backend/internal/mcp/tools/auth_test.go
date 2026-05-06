@@ -26,14 +26,14 @@ func TestHandleLogin_Success(t *testing.T) {
 	orgID := uuid.New()
 
 	mockUC := &mockLoginUC{
-		result: &entity.AuthToken{
-			Token:       "fake-jwt-token",
-			SessionMode: entity.AuthSessionModeFull,
-			User: &entity.UserPublic{
-				ID:               userID,
-				Username:         "testuser",
-				Name:             "Test User",
-				Email:            "test@example.com",
+			result: &entity.AuthToken{
+				Token:       "fake-jwt-token",
+				SessionMode: entity.AuthSessionModeFull,
+				User: &entity.UserPublic{
+					ID:               userID,
+					NIP:              "199001012020122001",
+					Name:             "Test User",
+					Email:            "test@example.com",
 				Role:             "unit",
 				OrganizationID:   &orgID,
 				AccessibleOrgIDs: []uuid.UUID{orgID},
@@ -48,7 +48,7 @@ func TestHandleLogin_Success(t *testing.T) {
 		SessionManager: &session.Manager{},
 	}
 
-	output, err := HandleLogin(context.Background(), deps, "testuser", "password123")
+	output, err := HandleLogin(context.Background(), deps, "199001012020122001", "password123")
 	if err != nil {
 		t.Fatalf("HandleLogin failed: %v", err)
 	}
@@ -61,8 +61,8 @@ func TestHandleLogin_Success(t *testing.T) {
 		t.Errorf("user_id mismatch")
 	}
 
-	if output["username"] != "testuser" {
-		t.Errorf("username mismatch")
+	if output["nip"] != "199001012020122001" {
+		t.Errorf("nip mismatch")
 	}
 
 	if _, ok := output["session_expires_at"]; !ok {
@@ -115,14 +115,14 @@ func TestHandleLogin_SessionSet(t *testing.T) {
 	orgID := uuid.New()
 
 	mockUC := &mockLoginUC{
-		result: &entity.AuthToken{
-			Token:       "fake-jwt",
-			SessionMode: entity.AuthSessionModeFull,
-			User: &entity.UserPublic{
-				ID:               userID,
-				Username:         "testuser",
-				Name:             "Test User",
-				Email:            "test@example.com",
+			result: &entity.AuthToken{
+				Token:       "fake-jwt",
+				SessionMode: entity.AuthSessionModeFull,
+				User: &entity.UserPublic{
+					ID:               userID,
+					NIP:              "199001012020122001",
+					Name:             "Test User",
+					Email:            "test@example.com",
 				Role:             "admin",
 				OrganizationID:   &orgID,
 				AccessibleOrgIDs: []uuid.UUID{orgID},
@@ -138,7 +138,7 @@ func TestHandleLogin_SessionSet(t *testing.T) {
 		SessionManager: manager,
 	}
 
-	_, err := HandleLogin(context.Background(), deps, "testuser", "password")
+	_, err := HandleLogin(context.Background(), deps, "199001012020122001", "password")
 	if err != nil {
 		t.Fatalf("HandleLogin failed: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestHandleLogin_SessionSet(t *testing.T) {
 		t.Errorf("Session UserID mismatch")
 	}
 
-	if retrievedSession.Username != "testuser" {
+	if retrievedSession.Username != "199001012020122001" {
 		t.Errorf("Session Username mismatch")
 	}
 

@@ -11,7 +11,7 @@ import (
 )
 
 type LoginInput struct {
-	Username string
+	NIP      string
 	Password string
 }
 
@@ -44,11 +44,8 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*entity.
 		return nil, err
 	}
 
-	user, err := uc.userRepo.GetByUsername(ctx, input.Username)
-	if err != nil {
-		return nil, errors.ErrInvalidCredentials
-	}
-	if user == nil {
+	user, err := uc.userRepo.GetByNIP(ctx, input.NIP)
+	if err != nil || user == nil {
 		return nil, errors.ErrInvalidCredentials
 	}
 
@@ -71,8 +68,8 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*entity.
 }
 
 func validateLoginInput(input LoginInput) error {
-	if input.Username == "" {
-		return errors.ErrInvalidUsername
+	if input.NIP == "" {
+		return errors.Wrap(errors.ErrInvalidInput, "nip cannot be empty")
 	}
 	if input.Password == "" {
 		return errors.ErrInvalidPassword

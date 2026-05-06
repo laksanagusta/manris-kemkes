@@ -43,7 +43,7 @@ func NormalizeRole(role string) string {
 type User struct {
 	ID                 uuid.UUID  `json:"id"`
 	Name               string     `json:"name"`
-	Username           string     `json:"username"`
+	Username           string     `json:"username,omitempty"`
 	Email              string     `json:"email"`
 	PasswordHash       string     `json:"-"`
 	Role               string     `json:"role"`
@@ -66,9 +66,6 @@ func (u *User) Validate() error {
 	}
 	if u.Email == "" {
 		return errors.ErrInvalidEmail
-	}
-	if u.Username == "" {
-		return errors.ErrInvalidUsername
 	}
 	if u.Role == "" {
 		return errors.ErrInvalidRole

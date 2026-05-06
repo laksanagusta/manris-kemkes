@@ -20,7 +20,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [username, setUsername] = useState("");
+  const [nip, setNip] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
   const { login, isAuthenticated, loading, postAuthRedirectPath } = useAuth();
@@ -43,7 +43,7 @@ export default function LoginScreen() {
     setIsLoading(true);
 
     try {
-      const result = await login(username, password);
+      const result = await login(nip, password);
       router.replace(result.redirectTo);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -94,16 +94,16 @@ export default function LoginScreen() {
                 </div>
               )}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="username" className="text-xs font-medium">
-                  Username atau Email
+                <Label htmlFor="nip" className="text-xs font-medium">
+                  NIP
                 </Label>
                 <Input
-                  id="username"
-                  placeholder="masukkan username atau email"
+                  id="nip"
+                  placeholder="masukkan NIP"
                   className="h-10 border-border/50 bg-muted/30 focus-visible:ring-primary/30"
                   required
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
+                  value={nip}
+                  onChange={(event) => setNip(event.target.value)}
                 />
               </div>
 

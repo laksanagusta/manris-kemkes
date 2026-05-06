@@ -31,7 +31,6 @@ func NewCreateUserUseCase(
 
 type CreateUserInput struct {
 	Name           string
-	Username       string
 	Email          string
 	Password       string
 	Role           string
@@ -55,11 +54,11 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, input CreateUserInput)
 	if input.Name == "" {
 		return nil, errors.ErrInvalidName
 	}
-	if input.Username == "" {
-		return nil, errors.ErrInvalidUsername
-	}
 	if input.Email == "" {
 		return nil, errors.ErrInvalidEmail
+	}
+	if input.NIP == "" {
+		return nil, errors.Wrap(errors.ErrInvalidInput, "nip cannot be empty")
 	}
 	if normalizedRole == "" {
 		return nil, errors.ErrInvalidRole
@@ -87,21 +86,21 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, input CreateUserInput)
 		return nil, errors.Wrap(err, "failed to hash password")
 	}
 
-	// 3. Check if username already exists
-	existingUser, err := uc.lookupExistingUser(ctx, input.Username, "username")
-	if existingUser != nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "username already exists")
-	}
-
-	existingUser, err = uc.lookupExistingUser(ctx, input.Email, "email")
+	// 3. Check if email already exists
+	existingUser, err := uc.lookupExistingUser(ctx, input.Email, "email")
 	if existingUser != nil {
 		return nil, errors.Wrap(errors.ErrInvalidInput, "email already exists")
+	}
+
+	existingUser, err = uc.lookupExistingUser(ctx, input.NIP, "nip")
+	if existingUser != nil {
+		return nil, errors.Wrap(errors.ErrInvalidInput, "nip already exists")
 	}
 
 	// 4. Create user entity
 	user := &entity.User{
 		Name:               input.Name,
-		Username:           input.Username,
+		Username:           input.NIP,
 		Email:              input.Email,
 		PasswordHash:       string(passwordHash),
 		Role:               normalizedRole,
@@ -146,7 +145,14 @@ func roleRequiresOrganization(role string) bool {
 }
 
 func (uc *CreateUserUseCase) lookupExistingUser(ctx context.Context, identifier, field string) (*entity.User, error) {
-	existingUser, err := uc.userRepo.GetByUsername(ctx, identifier)
+	var existingUser *entity.User
+	var err error
+	switch field {
+	case "nip":
+		existingUser, err = uc.userRepo.GetByNIP(ctx, identifier)
+	default:
+		existingUser, err = uc.userRepo.GetByUsername(ctx, identifier)
+	}
 	if err != nil {
 		if stderrors.Is(err, pgx.ErrNoRows) {
 			return nil, nil

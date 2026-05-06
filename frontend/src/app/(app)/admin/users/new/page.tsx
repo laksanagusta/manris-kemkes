@@ -58,7 +58,6 @@ export default function NewUserPage() {
   const [loading, setLoading] = useState(false);
 
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
@@ -97,9 +96,9 @@ export default function NewUserPage() {
   };
 
   const handleSave = async () => {
-    if (!name || !username || !email || !phoneNumber || !password) {
+    if (!name || !nip || !email || !phoneNumber || !password) {
       toast.error(
-        "Lengkapi nama, username, email, phone number, dan password terlebih dahulu.",
+        "Lengkapi nama, NIP, email, phone number, dan password terlebih dahulu.",
       );
       return;
     }
@@ -115,7 +114,6 @@ export default function NewUserPage() {
         "/users",
         {
           name,
-          username,
           email,
           password,
           role,
@@ -128,7 +126,7 @@ export default function NewUserPage() {
         token || undefined,
       );
       toast.success(
-        "Pengguna berhasil dibuat. Sampaikan username dan password sementara secara manual. Akun akan tetap menunggu aktivasi sampai password diganti saat login pertama.",
+        "Pengguna berhasil dibuat. Sampaikan NIP dan password sementara secara manual. Akun akan tetap menunggu aktivasi sampai password diganti saat login pertama.",
       );
       router.push("/admin/users");
     } catch (error) {
@@ -162,7 +160,7 @@ export default function NewUserPage() {
     <FormPage className="max-w-4xl">
       <FormHeader
         title="Tambah pengguna"
-        description="Buat akun baru, tetapkan peran, lalu sampaikan username dan password sementara secara manual. Akun akan berstatus menunggu aktivasi sampai pengguna mengganti password saat login pertama."
+        description="Buat akun baru, tetapkan peran, lalu sampaikan NIP dan password sementara secara manual. Akun akan berstatus menunggu aktivasi sampai pengguna mengganti password saat login pertama."
         badges={
           <div className="flex flex-wrap items-center gap-2">
             <Badge
@@ -212,13 +210,13 @@ export default function NewUserPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Username<span className="ml-0.5 text-destructive">*</span>
+              NIP<span className="ml-0.5 text-destructive">*</span>
             </Label>
             <Input
-              placeholder="Contoh: andi.pratama"
+              placeholder="Contoh: 198001012006041001"
               className="h-10 text-sm"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              value={nip}
+              onChange={(event) => setNip(event.target.value)}
             />
           </div>
         </div>
@@ -274,15 +272,6 @@ export default function NewUserPage() {
         contentClassName="space-y-5"
       >
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">NIP</Label>
-            <Input
-              placeholder="Contoh: 198501012010011001"
-              className="h-10 text-sm"
-              value={nip}
-              onChange={(event) => setNip(event.target.value)}
-            />
-          </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">Jabatan</Label>
             <Input
