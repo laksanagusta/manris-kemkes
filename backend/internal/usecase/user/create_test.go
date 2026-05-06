@@ -58,7 +58,18 @@ func (s *createUserStubRepo) GetByUsername(_ context.Context, username string) (
 }
 
 func (s *createUserStubRepo) GetByNIP(_ context.Context, nip string) (*entity.User, error) {
-	return s.GetByUsername(context.Background(), nip)
+	if s.getErr != nil {
+		return nil, s.getErr
+	}
+	if s.errByLookup != nil {
+		if err, ok := s.errByLookup[nip]; ok {
+			return nil, err
+		}
+	}
+	if s.byLookup == nil {
+		return nil, nil
+	}
+	return s.byLookup[nip], nil
 }
 
 func (s *createUserStubRepo) Update(_ context.Context, _ *entity.User) error { return nil }
@@ -108,11 +119,11 @@ func TestCreateUserExecuteHashesPasswordAndSetsOnboardingDefaults(t *testing.T) 
 
 	result, err := uc.Execute(context.Background(), CreateUserInput{
 		Name:           "Unit Test User",
-		Username:       "unit-test-user",
 		Email:          "unit-test-user@manris.local",
 		Password:       "TempPass123!",
 		Role:           entity.RoleUnit,
 		OrganizationID: &orgID,
+		NIP:            "199001012020122001",
 		PhoneNumber:    "081234567890",
 	})
 	if err != nil {
@@ -146,10 +157,10 @@ func TestCreateUserExecuteRejectsUnsupportedRole(t *testing.T) {
 
 	_, err := uc.Execute(context.Background(), CreateUserInput{
 		Name:     "Viewer User",
-		Username: "viewer-user",
 		Email:    "viewer@manris.local",
 		Password: "TempPass123!",
 		Role:     "viewer",
+		NIP:      "199001012020122001",
 	})
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -162,35 +173,35 @@ func TestCreateUserExecuteRejectsUnsupportedRole(t *testing.T) {
 	}
 }
 
-func TestCreateUserExecuteRejectsDuplicateUsernameOrEmail(t *testing.T) {
+func TestCreateUserExecuteRejectsDuplicateEmailOrNIP(t *testing.T) {
 	tests := []struct {
-		name   string
-		lookup map[string]*entity.User
+		name     string
+		byLookup map[string]*entity.User
 	}{
 		{
-			name: "duplicate username",
-			lookup: map[string]*entity.User{
-				"unit-test-user": {ID: uuid.New(), Username: "unit-test-user"},
+			name: "duplicate email",
+			byLookup: map[string]*entity.User{
+				"unit-test-user@manris.local": {ID: uuid.New(), Email: "unit-test-user@manris.local"},
 			},
 		},
 		{
-			name: "duplicate email",
-			lookup: map[string]*entity.User{
-				"unit-test-user@manris.local": {ID: uuid.New(), Email: "unit-test-user@manris.local"},
+			name: "duplicate nip",
+			byLookup: map[string]*entity.User{
+				"199001012020122001": {ID: uuid.New(), NIP: "199001012020122001"},
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewCreateUserUseCase(&createUserStubRepo{byLookup: tt.lookup}, &createUserStubOrgRepo{})
+			uc := NewCreateUserUseCase(&createUserStubRepo{byLookup: tt.byLookup}, &createUserStubOrgRepo{})
 
 			_, err := uc.Execute(context.Background(), CreateUserInput{
 				Name:     "Unit Test User",
-				Username: "unit-test-user",
 				Email:    "unit-test-user@manris.local",
 				Password: "TempPass123!",
 				Role:     entity.RoleSuperAdmin,
+				NIP:      "199001012020122001",
 			})
 			if err == nil {
 				t.Fatal("expected error, got nil")
@@ -212,10 +223,10 @@ func TestCreateUserExecuteAllowsNotFoundLookupsWrappedFromRepository(t *testing.
 
 	result, err := uc.Execute(context.Background(), CreateUserInput{
 		Name:     "Missing User",
-		Username: "missing-user",
 		Email:    "missing-user@manris.local",
 		Password: "TempPass123!",
 		Role:     entity.RoleSuperAdmin,
+		NIP:      "199001012020122001",
 	})
 	if err != nil {
 		t.Fatalf("expected wrapped not-found lookups to be ignored, got %v", err)
@@ -241,10 +252,10 @@ func TestCreateUserExecuteRequiresOrganizationForScopedRoles(t *testing.T) {
 
 			_, err := uc.Execute(context.Background(), CreateUserInput{
 				Name:     "Scoped User",
-				Username: "scoped-user",
 				Email:    "scoped-user@manris.local",
 				Password: "TempPass123!",
 				Role:     tt.role,
+				NIP:      "199001012020122001",
 			})
 			if err == nil {
 				t.Fatal("expected error, got nil")

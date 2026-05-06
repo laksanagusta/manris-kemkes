@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrMissingCredentials = errors.New("email and password required")
+	ErrMissingCredentials = errors.New("nip and password required")
 	ErrUserNotFound       = errors.New("user not found")
 )
 
@@ -27,13 +27,13 @@ type Deps struct {
 	SessionTTL time.Duration
 }
 
-func HandleLogin(ctx context.Context, deps Deps, email, password string) (map[string]interface{}, error) {
-	if email == "" || password == "" {
+func HandleLogin(ctx context.Context, deps Deps, nip, password string) (map[string]interface{}, error) {
+	if nip == "" || password == "" {
 		return nil, ErrMissingCredentials
 	}
 
 	result, err := deps.AuthLoginUC.Execute(ctx, authuc.LoginInput{
-		Username: email,
+		NIP:      nip,
 		Password: password,
 	})
 	if err != nil {
@@ -56,7 +56,7 @@ func HandleLogin(ctx context.Context, deps Deps, email, password string) (map[st
 
 	sessionData := &session.Session{
 		UserID:           result.User.ID,
-		Username:         result.User.Username,
+		Username:         result.User.NIP,
 		Name:             result.User.Name,
 		Role:             result.User.Role,
 		AccessibleOrgIDs: result.User.AccessibleOrgIDs,
@@ -77,7 +77,7 @@ func HandleLogin(ctx context.Context, deps Deps, email, password string) (map[st
 
 	output := map[string]interface{}{
 		"user_id":              result.User.ID.String(),
-		"username":             result.User.Username,
+		"nip":                  result.User.NIP,
 		"name":                 result.User.Name,
 		"email":                result.User.Email,
 		"role":                 result.User.Role,

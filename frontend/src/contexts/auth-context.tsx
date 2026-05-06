@@ -118,7 +118,6 @@ export interface AuthTransition {
 
 export interface UpdateProfileInput {
   name: string;
-  username: string;
   email: string;
   nip: string;
   jabatan: string;
@@ -166,7 +165,7 @@ interface AuthContextType {
   sessionMode: SessionMode | null;
   mustChangePassword: boolean;
   loading: boolean;
-  login: (username: string, password: string) => Promise<AuthTransition>;
+  login: (nip: string, password: string) => Promise<AuthTransition>;
   completeFirstPasswordChange: (newPassword: string, confirmPassword: string) => Promise<AuthTransition>;
   changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) => Promise<AuthTransition>;
   updateProfile: (input: UpdateProfileInput) => Promise<User>;
@@ -291,9 +290,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [applyAuthState, clearSession]);
 
-  const login = useCallback(async (username: string, password: string) => {
+  const login = useCallback(async (nip: string, password: string) => {
     const res = await api.post<AuthPayload>("/auth/login", {
-      username,
+      nip,
       password,
     });
     return applyAuthState(res, res.token);

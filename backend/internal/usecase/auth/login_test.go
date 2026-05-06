@@ -44,7 +44,7 @@ func TestLoginExecuteReturnsInvalidCredentialsForUnknownUser(t *testing.T) {
 	uc := NewLoginUseCase(&loginStubUserRepo{err: pgx.ErrNoRows}, hierarchySvc, "secret", 24, true)
 
 	_, err := uc.Execute(context.Background(), LoginInput{
-		Username: "missing-user",
+		NIP:      "missing-user",
 		Password: "TempPass123!",
 	})
 	if err == nil {
@@ -66,6 +66,7 @@ func TestLoginExecuteReturnsTokenForActiveUser(t *testing.T) {
 	uc := NewLoginUseCase(&loginStubUserRepo{user: &entity.User{
 		ID:           uuid.New(),
 		Username:     "active-user",
+		NIP:          "active-user",
 		Name:         "Active User",
 		Role:         entity.RoleSuperAdmin,
 		Status:       entity.UserStatusActive,
@@ -73,7 +74,7 @@ func TestLoginExecuteReturnsTokenForActiveUser(t *testing.T) {
 	}}, hierarchySvc, "secret", 24, true)
 
 	result, err := uc.Execute(context.Background(), LoginInput{
-		Username: "active-user",
+		NIP:      "active-user",
 		Password: "TempPass123!",
 	})
 	if err != nil {
@@ -148,6 +149,7 @@ func TestLoginExecuteRejectsPendingActivationUser(t *testing.T) {
 	uc := NewLoginUseCase(&loginStubUserRepo{user: &entity.User{
 		ID:                 uuid.New(),
 		Username:           "pending-user",
+		NIP:                "pending-user",
 		Name:               "Pending User",
 		Role:               entity.RoleSuperAdmin,
 		Status:             entity.UserStatusPendingActivation,
@@ -156,7 +158,7 @@ func TestLoginExecuteRejectsPendingActivationUser(t *testing.T) {
 	}}, hierarchySvc, "secret", 24, true)
 
 	_, err = uc.Execute(context.Background(), LoginInput{
-		Username: "pending-user",
+		NIP:      "pending-user",
 		Password: "TempPass123!",
 	})
 	if err != nil {
@@ -179,6 +181,7 @@ func TestLoginExecuteRejectsInactiveUser(t *testing.T) {
 	uc := NewLoginUseCase(&loginStubUserRepo{user: &entity.User{
 		ID:           uuid.New(),
 		Username:     "inactive-user",
+		NIP:          "inactive-user",
 		Name:         "Inactive User",
 		Role:         entity.RoleUnit,
 		Status:       entity.UserStatusInactive,
@@ -186,7 +189,7 @@ func TestLoginExecuteRejectsInactiveUser(t *testing.T) {
 	}}, hierarchySvc, "secret", 24, true)
 
 	_, err = uc.Execute(context.Background(), LoginInput{
-		Username: "inactive-user",
+		NIP:      "inactive-user",
 		Password: "TempPass123!",
 	})
 	if err == nil {
@@ -208,6 +211,7 @@ func TestLoginExecuteReturnsFullSessionForActiveUserEvenIfPasswordChangeRequired
 	uc := NewLoginUseCase(&loginStubUserRepo{user: &entity.User{
 		ID:                 uuid.New(),
 		Username:           "active-reset-user",
+		NIP:                "active-reset-user",
 		Name:               "Active Reset User",
 		Role:               entity.RoleSuperAdmin,
 		Status:             entity.UserStatusActive,
@@ -216,7 +220,7 @@ func TestLoginExecuteReturnsFullSessionForActiveUserEvenIfPasswordChangeRequired
 	}}, hierarchySvc, "secret", 24, false)
 
 	result, err := uc.Execute(context.Background(), LoginInput{
-		Username: "active-reset-user",
+		NIP:      "active-reset-user",
 		Password: "TempPass123!",
 	})
 	if err != nil {

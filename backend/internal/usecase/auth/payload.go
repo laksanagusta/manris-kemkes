@@ -5,7 +5,6 @@ import "github.com/manris/backend/internal/domain/entity"
 func buildUserProfile(user *entity.User, scope *entity.AccessScope, riskApprovalWorkflowEnabled bool) *entity.UserProfile {
 	return &entity.UserProfile{
 		ID:               user.ID,
-		Username:         user.Username,
 		Name:             user.Name,
 		Email:            user.Email,
 		Role:             user.Role,

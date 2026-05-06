@@ -19,7 +19,6 @@ import { Label } from "@/components/ui/label";
 
 type ProfileFormState = {
   name: string;
-  username: string;
   email: string;
   nip: string;
   jabatan: string;
@@ -28,7 +27,6 @@ type ProfileFormState = {
 
 const emptyProfile: ProfileFormState = {
   name: "",
-  username: "",
   email: "",
   nip: "",
   jabatan: "",
@@ -52,7 +50,6 @@ export default function AccountPage() {
 
     setProfile({
       name: user.name || "",
-      username: user.username || "",
       email: user.email || "",
       nip: user.nip || "",
       jabatan: user.jabatan || "",
@@ -154,16 +151,6 @@ export default function AccountPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="account-username">Username</Label>
-                <Input
-                  id="account-username"
-                  value={profile.username}
-                  onChange={(event) => setProfile((current) => ({ ...current, username: event.target.value }))}
-                  placeholder="Username"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="account-email">Email</Label>
                 <Input
                   id="account-email"
@@ -181,6 +168,7 @@ export default function AccountPage() {
                   value={profile.nip}
                   onChange={(event) => setProfile((current) => ({ ...current, nip: event.target.value }))}
                   placeholder="Nomor induk pegawai"
+                  required
                 />
               </div>
               <div className="space-y-2">

@@ -14,7 +14,6 @@ import (
 type RegisterInput struct {
 	Name            string
 	Email           string
-	Username        string
 	Password        string
 	ConfirmPassword string
 	OrganizationID  *uuid.UUID
@@ -58,10 +57,6 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) (*R
 		return nil, errors.Wrap(errors.ErrInvalidInput, "organization not found")
 	}
 
-	if existingUser, err := uc.userRepo.GetByUsername(ctx, input.Username); err == nil && existingUser != nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "username already exists")
-	}
-
 	if existingUser, err := uc.userRepo.GetByUsername(ctx, input.Email); err == nil && existingUser != nil {
 		return nil, errors.Wrap(errors.ErrInvalidInput, "email already exists")
 	}
@@ -77,7 +72,7 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) (*R
 
 	user := &entity.User{
 		Name:               input.Name,
-		Username:           input.Username,
+		Username:           input.NIP,
 		Email:              input.Email,
 		PasswordHash:       string(passwordHash),
 		Role:               entity.RoleUnit,
@@ -111,9 +106,6 @@ func validateRegisterInput(input RegisterInput) error {
 	}
 	if input.Email == "" {
 		return errors.ErrInvalidEmail
-	}
-	if input.Username == "" {
-		return errors.ErrInvalidUsername
 	}
 	if input.Password == "" {
 		return errors.ErrInvalidPassword

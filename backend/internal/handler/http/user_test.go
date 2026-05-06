@@ -24,6 +24,7 @@ type handlerUserRepo struct {
 	updatedUser *entity.User
 	deletedID   uuid.UUID
 	byLookup    map[string]*entity.User
+	byNIP       map[string]*entity.User
 	byID        map[uuid.UUID]*entity.User
 }
 
@@ -74,8 +75,11 @@ func (s *handlerUserRepo) GetByUsername(_ context.Context, username string) (*en
 	}
 	return s.byLookup[username], nil
 }
-func (s *handlerUserRepo) GetByNIP(_ context.Context, _ string) (*entity.User, error) {
-	return nil, nil
+func (s *handlerUserRepo) GetByNIP(_ context.Context, nip string) (*entity.User, error) {
+	if s.byNIP == nil {
+		return nil, nil
+	}
+	return s.byNIP[nip], nil
 }
 
 type handlerOrgRepo struct {
@@ -115,11 +119,11 @@ func TestUserHandlerCreateAcceptsPlainPassword(t *testing.T) {
 
 	body, err := json.Marshal(map[string]any{
 		"name":           "Unit Test User",
-		"username":       "unit-test-user",
 		"email":          "unit-test-user@manris.local",
 		"password":       "TempPass123!",
 		"role":           entity.RoleUnit,
 		"organizationId": orgID.String(),
+		"nip":            "199001012020122001",
 	})
 	if err != nil {
 		t.Fatalf("marshal request body: %v", err)
@@ -237,7 +241,7 @@ func TestUserRoutesRequireSuperadmin(t *testing.T) {
 		body   string
 	}{
 		{name: "list users", method: fiber.MethodGet, path: "/users"},
-		{name: "create user", method: fiber.MethodPost, path: "/users", body: `{"name":"User","username":"user","email":"user@manris.local","password":"TempPass123!","role":"unit"}`},
+		{name: "create user", method: fiber.MethodPost, path: "/users", body: `{"name":"User","email":"user@manris.local","password":"TempPass123!","role":"unit","nip":"199001012020122001"}`},
 		{name: "get user", method: fiber.MethodGet, path: "/users/123"},
 		{name: "update user", method: fiber.MethodPut, path: "/users/123", body: `{"name":"User"}`},
 		{name: "delete user", method: fiber.MethodDelete, path: "/users/123"},

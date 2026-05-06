@@ -2,7 +2,6 @@ import { api } from "@/lib/api";
 
 export interface RegisterInput {
   name: string;
-  username: string;
   email: string;
   phoneNumber?: string;
   password: string;
@@ -21,7 +20,6 @@ export interface RegisterResponse {
 export async function registerUser(input: RegisterInput): Promise<RegisterResponse> {
   return api.post<RegisterResponse>("/auth/register", {
     name: input.name,
-    username: input.username,
     email: input.email,
     phoneNumber: input.phoneNumber,
     password: input.password,

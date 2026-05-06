@@ -10,7 +10,6 @@ import (
 
 type createUserRequest struct {
 	Name           string `json:"name"`
-	Username       string `json:"username"`
 	Email          string `json:"email"`
 	Password       string `json:"password"`
 	Role           string `json:"role"`
@@ -71,7 +70,6 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 
 	input := useruc.CreateUserInput{
 		Name:           req.Name,
-		Username:       req.Username,
 		Email:          req.Email,
 		Password:       req.Password,
 		Role:           req.Role,

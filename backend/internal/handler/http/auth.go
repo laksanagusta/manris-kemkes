@@ -34,7 +34,7 @@ func NewAuthHandler(
 
 // LoginRequest represents the login request body
 type LoginRequest struct {
-	Username string `json:"username"`
+	NIP      string `json:"nip"`
 	Password string `json:"password"`
 }
 
@@ -45,18 +45,16 @@ type ChangePasswordRequest struct {
 }
 
 type UpdateProfileRequest struct {
-	Name     string `json:"name"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	NIP      string `json:"nip"`
-	Jabatan  string `json:"jabatan"`
-	Pangkat  string `json:"pangkat"`
+	Name    string `json:"name"`
+	Email   string `json:"email"`
+	NIP     string `json:"nip"`
+	Jabatan string `json:"jabatan"`
+	Pangkat string `json:"pangkat"`
 }
 
 type RegisterRequest struct {
 	Name            string `json:"name"`
 	Email           string `json:"email"`
-	Username        string `json:"username"`
 	Password        string `json:"password"`
 	ConfirmPassword string `json:"confirmPassword"`
 	OrganizationID  string `json:"organizationId"`
@@ -76,7 +74,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	// 2. Execute use case
 	result, err := h.loginUC.Execute(c.Context(), authuc.LoginInput{
-		Username: req.Username,
+		NIP:      req.NIP,
 		Password: req.Password,
 	})
 	if err != nil {
@@ -102,7 +100,6 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	result, err := h.registerUC.Execute(c.Context(), authuc.RegisterInput{
 		Name:            req.Name,
 		Email:           req.Email,
-		Username:        req.Username,
 		Password:        req.Password,
 		ConfirmPassword: req.ConfirmPassword,
 		OrganizationID:  &orgID,
@@ -175,7 +172,6 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 	result, err := h.updateProfileUC.Execute(c.Context(), authuc.UpdateProfileInput{
 		UserID:   userID,
 		Name:     req.Name,
-		Username: req.Username,
 		Email:    req.Email,
 		NIP:      req.NIP,
 		Jabatan:  req.Jabatan,

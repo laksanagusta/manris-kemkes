@@ -105,7 +105,6 @@ func TestRegisterUseCaseCreatesPendingUnitUser(t *testing.T) {
 	result, err := uc.Execute(context.Background(), RegisterInput{
 		Name:            "Siti Rahma",
 		Email:           "siti@kemenkes.go.id",
-		Username:        "siti.rahma",
 		Password:        "TempPass123!",
 		ConfirmPassword: "TempPass123!",
 		OrganizationID:  &orgID,
@@ -148,7 +147,6 @@ func TestRegisterUseCaseRejectsPasswordMismatch(t *testing.T) {
 	_, err := uc.Execute(context.Background(), RegisterInput{
 		Name:            "Siti Rahma",
 		Email:           "siti@kemenkes.go.id",
-		Username:        "siti.rahma",
 		Password:        "TempPass123!",
 		ConfirmPassword: "Mismatch123!",
 		OrganizationID:  &orgID,
@@ -163,28 +161,22 @@ func TestRegisterUseCaseRejectsPasswordMismatch(t *testing.T) {
 	}
 }
 
-func TestRegisterUseCaseRejectsDuplicateUsernameEmailAndNIP(t *testing.T) {
+func TestRegisterUseCaseRejectsDuplicateEmailAndNIP(t *testing.T) {
 	orgID := uuid.New()
 	tests := []struct {
-		name    string
-		userMap map[string]*entity.User
-		nipMap  map[string]*entity.User
+		name     string
+		byLookup map[string]*entity.User
+		byNIP    map[string]*entity.User
 	}{
 		{
-			name: "duplicate username",
-			userMap: map[string]*entity.User{
-				"siti.rahma": {ID: uuid.New(), Username: "siti.rahma"},
-			},
-		},
-		{
 			name: "duplicate email",
-			userMap: map[string]*entity.User{
+			byLookup: map[string]*entity.User{
 				"siti@kemenkes.go.id": {ID: uuid.New(), Email: "siti@kemenkes.go.id"},
 			},
 		},
 		{
 			name: "duplicate nip",
-			nipMap: map[string]*entity.User{
+			byNIP: map[string]*entity.User{
 				"199001012020122001": {ID: uuid.New(), NIP: "199001012020122001"},
 			},
 		},
@@ -192,7 +184,7 @@ func TestRegisterUseCaseRejectsDuplicateUsernameEmailAndNIP(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewRegisterUseCase(&registerStubUserRepo{byLookup: tt.userMap, byNIP: tt.nipMap}, &registerStubOrgRepo{
+			uc := NewRegisterUseCase(&registerStubUserRepo{byLookup: tt.byLookup, byNIP: tt.byNIP}, &registerStubOrgRepo{
 				orgs: map[uuid.UUID]*entity.Organization{
 					orgID: {ID: orgID, Name: "Direktorat Surveilans"},
 				},
@@ -201,7 +193,6 @@ func TestRegisterUseCaseRejectsDuplicateUsernameEmailAndNIP(t *testing.T) {
 			_, err := uc.Execute(context.Background(), RegisterInput{
 				Name:            "Siti Rahma",
 				Email:           "siti@kemenkes.go.id",
-				Username:        "siti.rahma",
 				Password:        "TempPass123!",
 				ConfirmPassword: "TempPass123!",
 				OrganizationID:  &orgID,
@@ -225,7 +216,6 @@ func TestRegisterUseCaseRejectsMissingOrganization(t *testing.T) {
 	_, err := uc.Execute(context.Background(), RegisterInput{
 		Name:            "Siti Rahma",
 		Email:           "siti@kemenkes.go.id",
-		Username:        "siti.rahma",
 		Password:        "TempPass123!",
 		ConfirmPassword: "TempPass123!",
 		OrganizationID:  &orgID,

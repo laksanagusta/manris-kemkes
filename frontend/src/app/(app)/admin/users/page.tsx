@@ -422,7 +422,7 @@ export default function UsersManagementPage() {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Cari pengguna, username, atau email"
+            placeholder="Cari pengguna, NIP, atau email"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);

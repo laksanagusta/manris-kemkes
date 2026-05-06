@@ -14,7 +14,6 @@ func TestUserProfileToPublicIncludesLifecycleState(t *testing.T) {
 
 	profile := &UserProfile{
 		ID:                 uuid.New(),
-		Username:           "test-user",
 		Name:               "Test User",
 		Role:               RoleReviewer,
 		OrganizationID:     &organizationID,
