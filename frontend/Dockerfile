@@ -16,9 +16,11 @@ WORKDIR /app
 
 # Build-time argument for API URL
 ARG NEXT_PUBLIC_API_URL=https://api-manris.marvcore.com/api/v1
+ARG NEXT_PUBLIC_DISABLE_AI_FEATURES=true
 
 # Set environment variable from ARG
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_DISABLE_AI_FEATURES=$NEXT_PUBLIC_DISABLE_AI_FEATURES
 ENV NODE_OPTIONS=--max-old-space-size=1024
 
 # Copy node_modules from deps stage
