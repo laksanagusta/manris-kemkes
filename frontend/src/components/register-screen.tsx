@@ -168,8 +168,8 @@ export default function RegisterScreen() {
           <CardHeader className="pb-4">
             <CardTitle>Buat akun baru</CardTitle>
             <CardDescription>
-              Akun yang dibuat akan berstatus menunggu aktivasi sampai
-              superadmin menyetujui permintaanmu.
+              Akun yang dibuat akan berstatus menunggu aktivasi sampai admin
+              menyetujui registrasi.
             </CardDescription>
           </CardHeader>
           <CardContent>
