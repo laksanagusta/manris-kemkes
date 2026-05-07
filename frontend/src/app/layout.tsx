@@ -1,27 +1,18 @@
 import type { Metadata } from "next";
-import { Manrope, DM_Sans, Geist_Mono } from "next/font/google";
+import type { CSSProperties } from "react";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { SuppressRadixWarnings } from "@/components/suppress-radix-warnings";
 import "./globals.css";
 
-const manrope = Manrope({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const dmSans = DM_Sans({
-  variable: "--font-display",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
+const fontVariables = {
+  "--font-sans":
+    '"Manrope", "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  "--font-display":
+    '"DM Sans", "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  "--font-mono":
+    '"Geist Mono", ui-monospace, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", monospace',
+} as CSSProperties;
 
 export const metadata: Metadata = {
   title: "Manris",
@@ -35,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${manrope.variable} ${dmSans.variable} ${geistMono.variable}`}>
+    <html lang="id" style={fontVariables}>
       <body className="antialiased">
         <AuthProvider>
           {children}
