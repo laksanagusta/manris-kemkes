@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ChevronsUpDown,
+  Eye,
+  EyeOff,
+  Loader2,
+  Search,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -15,19 +22,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ApiError } from "@/lib/api";
 import {
   listRegistrationOrganizations,
   type OrganizationListItem,
 } from "@/lib/api/organizations";
 import { registerUser } from "@/lib/api/auth";
+import { cn } from "@/lib/utils";
 
 export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
@@ -39,6 +41,11 @@ export default function RegisterScreen() {
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
     [],
   );
+  const [organizationPickerOpen, setOrganizationPickerOpen] = useState(false);
+  const [organizationQuery, setOrganizationQuery] = useState("");
+  const deferredOrganizationQuery = useDeferredValue(
+    organizationQuery.trim().toLowerCase(),
+  );
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -49,6 +56,18 @@ export default function RegisterScreen() {
   const [pangkat, setPangkat] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const selectedOrganization = useMemo(
+    () => organizations.find((organization) => organization.id === organizationId),
+    [organizationId, organizations],
+  );
+
+  const filteredOrganizations = useMemo(() => {
+    if (!deferredOrganizationQuery) return organizations;
+    return organizations.filter((organization) =>
+      organization.name.toLowerCase().includes(deferredOrganizationQuery),
+    );
+  }, [deferredOrganizationQuery, organizations]);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +155,12 @@ export default function RegisterScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const selectOrganization = (organization: OrganizationListItem) => {
+    setOrganizationId(organization.id);
+    setOrganizationPickerOpen(false);
+    setOrganizationQuery("");
   };
 
   return (
@@ -236,31 +261,77 @@ export default function RegisterScreen() {
                   <Label htmlFor="organization" className="text-xs font-medium">
                     Unit kerja
                   </Label>
-                  <Select
-                    value={organizationId}
-                    onValueChange={setOrganizationId}
-                    disabled={orgLoading}
+                  <Popover
+                    open={organizationPickerOpen}
+                    onOpenChange={setOrganizationPickerOpen}
                   >
-                    <SelectTrigger className="h-10 border-border/50 bg-muted/30">
-                      <SelectValue
-                        placeholder={
-                          orgLoading
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={organizationPickerOpen}
+                        disabled={orgLoading}
+                        className="h-10 w-full justify-between gap-2 border-border/50 bg-muted/30 font-normal"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-left">
+                          {orgLoading
                             ? "Memuat organisasi..."
-                            : "Pilih unit kerja"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {organizations.map((organization) => (
-                        <SelectItem
-                          key={organization.id}
-                          value={organization.id}
-                        >
-                          {organization.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                            : selectedOrganization?.name || "Pilih unit kerja"}
+                        </span>
+                        <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-[var(--radix-popover-trigger-width)] p-0"
+                      align="start"
+                    >
+                      <div className="flex items-center border-b border-border/50 px-3">
+                        <Search className="mr-2 size-4 shrink-0 text-muted-foreground/70" />
+                        <input
+                          className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                          placeholder="Cari nama unit kerja..."
+                          value={organizationQuery}
+                          onChange={(event) =>
+                            setOrganizationQuery(event.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="max-h-60 overflow-y-auto p-1">
+                        {filteredOrganizations.length === 0 ? (
+                          <div className="py-6 text-center text-sm text-muted-foreground">
+                            Tidak ada unit kerja ditemukan.
+                          </div>
+                        ) : (
+                          filteredOrganizations.map((organization) => {
+                            const isSelected =
+                              organization.id === organizationId;
+                            return (
+                              <button
+                                key={organization.id}
+                                type="button"
+                                className={cn(
+                                  "relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-2 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground",
+                                  isSelected && "bg-accent text-accent-foreground",
+                                )}
+                                onClick={() => selectOrganization(organization)}
+                              >
+                                <Check
+                                  className={cn(
+                                    "absolute left-2 size-4",
+                                    isSelected ? "opacity-100" : "opacity-0",
+                                  )}
+                                />
+                                <span className="min-w-0 flex-1 truncate">
+                                  {organization.name}
+                                </span>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="nip" className="text-xs font-medium">
