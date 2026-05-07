@@ -20,14 +20,20 @@ interface TopRisksPanelProps {
 export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
   if (loading) {
     return (
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2" data-testid="top-risks-panel">
+      <Card
+        className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2"
+        data-testid="top-risks-panel"
+      >
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">Top Risks</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-lg bg-muted/40" />
+              <div
+                key={i}
+                className="h-16 animate-pulse rounded-lg bg-muted/40"
+              />
             ))}
           </div>
         </CardContent>
@@ -36,12 +42,19 @@ export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
   }
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2" data-testid="top-risks-panel">
+    <Card
+      className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2"
+      data-testid="top-risks-panel"
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-base font-semibold">Top Risks</CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">Risiko dengan skor tertinggi pada cycle ini.</p>
+            <CardTitle className="text-base font-semibold">
+              Risiko Teratas
+            </CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Risiko dengan skor tertinggi pada cycle ini.
+            </p>
           </div>
           <Badge variant="outline" className="text-[10px]">
             {risks.length} risiko
@@ -54,50 +67,54 @@ export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
             Belum ada data risiko.
           </div>
         ) : (
-           <div className="space-y-2">
-             {risks.slice(0, 7).map((risk) => {
-               const scoreSemantics = resolveRiskScoreSemantics({
-                 status: risk.status,
-                 probability: risk.probability,
-                 impact: risk.impact,
-                 weight: getBobot(risk.probability, risk.impact),
-                 nilai: risk.nilai,
-                 inherentScore: risk.inherentScore,
-               });
+          <div className="space-y-2">
+            {risks.slice(0, 7).map((risk) => {
+              const scoreSemantics = resolveRiskScoreSemantics({
+                status: risk.status,
+                probability: risk.probability,
+                impact: risk.impact,
+                weight: getBobot(risk.probability, risk.impact),
+                nilai: risk.nilai,
+                inherentScore: risk.inherentScore,
+              });
 
-               const score = scoreSemantics.primary.score;
-               const level = getRiskLevelFromNilai(scoreSemantics.primary.nilai);
+              const score = scoreSemantics.primary.score;
+              const level = getRiskLevelFromNilai(scoreSemantics.primary.nilai);
 
-               return (
-                 <div
-                   key={risk.id}
-                   data-testid="risk-row"
-                   className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 p-3 transition-colors hover:bg-muted/30"
-                 >
-                   <div className="min-w-0 flex-1">
-                     <div className="flex items-center gap-2">
-                       <span className="shrink-0 text-xs font-mono font-semibold text-muted-foreground">
-                         {risk.code}
-                       </span>
-                       <span
-                         className={cn(
-                           "inline-block rounded border px-1.5 py-0.5 text-[10px] font-semibold",
-                           levelToColor(level),
-                         )}
-                       >
-                         {score}
-                       </span>
-                     </div>
-                     <p className="mt-1 truncate text-sm font-medium text-foreground">{risk.title}</p>
-                     {risk.orgName && (
-                       <p className="mt-0.5 truncate text-xs text-muted-foreground">{risk.orgName}</p>
-                     )}
-                   </div>
-                   <ChevronRight className="ml-2 size-4 shrink-0 text-muted-foreground" />
-                 </div>
-               );
-             })}
-           </div>
+              return (
+                <div
+                  key={risk.id}
+                  data-testid="risk-row"
+                  className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 p-3 transition-colors hover:bg-muted/30"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="shrink-0 text-xs font-mono font-semibold text-muted-foreground">
+                        {risk.code}
+                      </span>
+                      <span
+                        className={cn(
+                          "inline-block rounded border px-1.5 py-0.5 text-[10px] font-semibold",
+                          levelToColor(level),
+                        )}
+                      >
+                        {score}
+                      </span>
+                    </div>
+                    <p className="mt-1 truncate text-sm font-medium text-foreground">
+                      {risk.title}
+                    </p>
+                    {risk.orgName && (
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {risk.orgName}
+                      </p>
+                    )}
+                  </div>
+                  <ChevronRight className="ml-2 size-4 shrink-0 text-muted-foreground" />
+                </div>
+              );
+            })}
+          </div>
         )}
       </CardContent>
     </Card>

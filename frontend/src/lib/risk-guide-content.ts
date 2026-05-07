@@ -30,6 +30,13 @@ export type RiskGuideContent = {
     description: string;
     summary: string;
   };
+  video: {
+    title: string;
+    description: string;
+    url: string;
+    embedUrl: string;
+    label: string;
+  };
   flow: {
     title: string;
     phase1: string;
@@ -61,6 +68,14 @@ export const riskGuideContent: RiskGuideContent = {
       "Pahami alur pemantauan risiko di aplikasi - dari pendaftaran, persetujuan, hingga pemantauan berkala.",
     summary:
       "Setiap risiko melewati dua fase utama: (1) Fase Pendaftaran - dari draft hingga disetujui, dan (2) Fase Pemantauan - siklus penilaian ulang berkala untuk memastikan risiko terkontrol.",
+  },
+  video: {
+    title: "Video panduan singkat",
+    description:
+      "Ikuti ringkasan visual alur penggunaan aplikasi lewat video panduan resmi ini.",
+    url: "https://www.youtube.com/watch?v=IXlINKzRdQk",
+    embedUrl: "https://www.youtube-nocookie.com/embed/IXlINKzRdQk",
+    label: "Tonton di YouTube",
   },
   flow: {
     title: "Alur Proses Risiko",

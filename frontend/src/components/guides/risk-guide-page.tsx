@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -13,9 +12,10 @@ import {
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
+  ExternalLink,
   CheckCircle2,
   Circle,
-  CircleDot,
+  PlayCircle,
   RotateCcw,
 } from "lucide-react";
 
@@ -234,6 +234,62 @@ export function RiskGuidePage({
             {content.hero.summary}
           </p>
         </div>
+      </section>
+
+      <section aria-labelledby="risk-guide-video" className="space-y-3">
+        <div className="flex items-center gap-2">
+          <h2
+            id="risk-guide-video"
+            className="text-xs font-mono font-semibold uppercase tracking-widest text-muted-foreground"
+          >
+            video panduan
+          </h2>
+          <div className="h-px flex-1 bg-border/50" />
+        </div>
+
+        <Card className="overflow-hidden border-border/50 bg-card/40">
+          <CardHeader className="space-y-2 border-b border-border/40 pb-4">
+            <div className="flex items-center gap-2">
+              <PlayCircle className="size-4 text-primary" />
+              <CardTitle className="text-sm font-semibold">
+                {content.video.title}
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs leading-6 text-muted-foreground">
+              {content.video.description}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 p-4">
+            <div className="overflow-hidden rounded-xl border border-border/50 bg-black shadow-sm">
+              <div className="aspect-video">
+                <iframe
+                  className="h-full w-full"
+                  src={content.video.embedUrl}
+                  title={content.video.title}
+                  loading="lazy"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <p className="leading-6">
+                Jika video tidak tampil, buka langsung lewat YouTube.
+              </p>
+              <a
+                href={content.video.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 font-medium text-foreground underline-offset-4 transition hover:underline"
+              >
+                {content.video.label}
+                <ExternalLink className="size-3.5" />
+              </a>
+            </div>
+          </CardContent>
+        </Card>
       </section>
 
       <section aria-labelledby="risk-guide-flow" className="space-y-3">

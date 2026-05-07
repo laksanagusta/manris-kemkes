@@ -16,6 +16,7 @@ import {
   deleteWorkingPaper,
 } from "@/lib/api/working-papers";
 import { buildWorkingPaperDetailViewModel } from "@/lib/working-paper-detail-view-model";
+import { resolveWorkingPaperRiskDisplay } from "@/lib/working-paper-risk-display";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,13 +40,11 @@ import {
 import { FormPage, FormHeader, FormSection } from "@/components/shared/form-shell";
 
 import { cn } from "@/lib/utils";
-import { getRiskLevelLabel } from "@/lib/risk";
 import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
   Circle,
-  Copy,
   Download,
   FileSignature,
   Loader2,
@@ -127,26 +126,6 @@ function formatDateTime(value?: string) {
   if (!value) return "-";
 
   return dateTimeFormatter.format(new Date(value));
-}
-
-function formatWorkingPaperRiskLevel(
-  level?: string | null,
-  display?: string | null,
-) {
-  const trimmedDisplay = display?.trim();
-  if (trimmedDisplay) return trimmedDisplay;
-
-  const normalized = (level ?? "").trim().toLowerCase().replace(/\s+/g, "_");
-  switch (normalized) {
-    case "sangat_rendah":
-    case "rendah":
-    case "sedang":
-    case "tinggi":
-    case "sangat_tinggi":
-      return getRiskLevelLabel(normalized as Parameters<typeof getRiskLevelLabel>[0]);
-    default:
-      return level?.trim() || "-";
-  }
 }
 
 function formatWorkingPaperRiskStatus(status?: string | null) {
@@ -234,11 +213,6 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal menghapus Kertas Kerja.");
     }
-  };
-
-  const copyHash = (hash: string) => {
-    navigator.clipboard.writeText(hash);
-    toast.success("Hash disalin ke clipboard");
   };
 
   if (loading) {
@@ -432,27 +406,6 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                 </div>
               ))}
 
-              <div className="space-y-1 sm:col-span-2">
-                <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                  Hash dokumen
-                </dt>
-                <dd className="flex flex-wrap items-center gap-2 text-sm text-foreground">
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {data.document_hash ? `${data.document_hash.substring(0, 24)}...` : "Belum tersedia"}
-                  </span>
-                  {data.document_hash ? (
-                    <button
-                      type="button"
-                      onClick={() => copyHash(data.document_hash!)}
-                      className="inline-flex items-center gap-1 rounded-full border border-border/60 px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/25 hover:text-foreground"
-                      title="Salin hash dokumen"
-                    >
-                      <Copy className="size-3" />
-                      Salin hash
-                    </button>
-                  ) : null}
-                </dd>
-              </div>
             </dl>
           </FormSection>
           <FormSection
@@ -518,12 +471,9 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                     }
                     return data.risks.map((link, index) => {
                       const risk = link.risk;
-                      const levelLabel = formatWorkingPaperRiskLevel(
-                        risk.tingkat_risiko,
-                        risk.tingkat_risiko_display,
-                      );
+                      const riskDisplay = resolveWorkingPaperRiskDisplay(risk);
                       const badgeCls =
-                        levelBadgeVariant[levelLabel] || levelBadgeVariant["Rendah"];
+                        levelBadgeVariant[riskDisplay.label] || levelBadgeVariant["Rendah"];
                       const riskHref = `/risk/register/new?id=${risk.id}`;
                       
                       let statusBadge = null;
@@ -561,10 +511,10 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                           </TableCell>
                           <TableCell className="hidden xl:table-cell text-center text-xs">{risk.probability || '-'}</TableCell>
                           <TableCell className="hidden xl:table-cell text-center text-xs">{risk.impact || '-'}</TableCell>
-                          <TableCell className="text-center text-xs font-semibold">{risk.nilai || '-'}</TableCell>
+                          <TableCell className="text-center text-xs font-semibold">{riskDisplay.score}</TableCell>
                           <TableCell>
                             <Badge className={cn("text-[10px] font-semibold border px-1.5 h-5", badgeCls)}>
-                              {levelLabel}
+                              {riskDisplay.label}
                             </Badge>
                           </TableCell>
                           <TableCell>
