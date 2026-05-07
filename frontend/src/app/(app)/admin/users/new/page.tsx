@@ -6,7 +6,11 @@ import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminOnlyState } from "@/components/admin/admin-only-state";
-import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
+import {
+  FormHeader,
+  FormPage,
+  FormSection,
+} from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,10 +26,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { api, ApiError } from "@/lib/api";
 import { listAllOrganizations } from "@/lib/api/organizations";
-import {
-  filterToAccessibleOrgs,
-  type Organization,
-} from "@/lib/organization";
+import { filterToAccessibleOrgs, type Organization } from "@/lib/organization";
 
 const roleOptions = [
   {
@@ -98,7 +99,7 @@ export default function NewUserPage() {
   const handleSave = async () => {
     if (!name || !nip || !email || !phoneNumber || !password) {
       toast.error(
-        "Lengkapi nama, NIP, email, phone number, dan password terlebih dahulu.",
+        "Lengkapi nama, NIP, email, No HP, dan password terlebih dahulu.",
       );
       return;
     }
@@ -153,7 +154,9 @@ export default function NewUserPage() {
   }
 
   if (!isSuperadmin) {
-    return <AdminOnlyState title="Pembuatan pengguna hanya untuk Super Admin" />;
+    return (
+      <AdminOnlyState title="Pembuatan pengguna hanya untuk Super Admin" />
+    );
   }
 
   return (
@@ -236,7 +239,7 @@ export default function NewUserPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">
-              Phone number<span className="ml-0.5 text-destructive">*</span>
+              No HP<span className="ml-0.5 text-destructive">*</span>
             </Label>
             <Input
               placeholder="Contoh: 081234567890"

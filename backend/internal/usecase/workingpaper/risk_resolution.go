@@ -142,6 +142,7 @@ func buildWorkingPaperRiskData(risk *entity.Risk) entity.WorkingPaperRiskData {
 		Impact:               risk.EffectiveImpact(),
 		Bobot:                effectiveWorkingPaperWeight(risk),
 		Nilai:                risk.EffectiveNilai(),
+		InherentScore:        risk.GetEffectiveScore(),
 		Cause:                append([]string(nil), risk.Cause...),
 		RiskSource:           risk.RiskSource,
 		Controllability:      risk.Controllability,

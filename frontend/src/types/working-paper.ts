@@ -14,6 +14,7 @@ export interface WorkingPaperRiskData {
   impact: number;
   bobot: number;
   nilai: number;
+  inherentScore?: number;
   tingkat_risiko: string;
   tingkat_risiko_display?: string;
   prioritas_risiko: number;

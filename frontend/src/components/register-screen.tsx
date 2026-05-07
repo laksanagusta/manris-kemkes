@@ -218,7 +218,7 @@ export default function RegisterScreen() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phoneNumber" className="text-xs font-medium">
-                    Phone number
+                    No HP
                   </Label>
                   <Input
                     id="phoneNumber"
@@ -286,7 +286,7 @@ export default function RegisterScreen() {
                     id="jabatan"
                     value={jabatan}
                     onChange={(event) => setJabatan(event.target.value)}
-                    placeholder="Opsional"
+                    placeholder="Jabatan"
                     className="h-10 border-border/50 bg-muted/30"
                   />
                 </div>
@@ -298,7 +298,7 @@ export default function RegisterScreen() {
                     id="pangkat"
                     value={pangkat}
                     onChange={(event) => setPangkat(event.target.value)}
-                    placeholder="Opsional"
+                    placeholder="Pangkat"
                     className="h-10 border-border/50 bg-muted/30"
                   />
                 </div>

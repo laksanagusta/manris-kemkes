@@ -60,6 +60,7 @@ type WorkingPaperRiskData struct {
 	Impact               int       `json:"impact"`
 	Bobot                float64   `json:"bobot"`
 	Nilai                float64   `json:"nilai"`
+	InherentScore        int       `json:"inherentScore"`
 	TingkatRisiko        string    `json:"tingkat_risiko"`
 	PrioritasRisiko      int       `json:"prioritas_risiko"`
 	Cause                []string  `json:"cause,omitempty"`
@@ -142,7 +143,11 @@ func (r *WorkingPaperRiskData) NormalizeDerivedScores() {
 	if r.Nilai == 0 && r.Bobot > 0 && r.Probability > 0 && r.Impact > 0 {
 		r.Nilai = CalculateNilai(r.Probability, r.Impact, r.Bobot)
 	}
-	r.TingkatRisiko = GetRiskLevelFromNilai(r.Nilai)
+	currentScore := r.Nilai
+	if r.InherentScore > 0 {
+		currentScore = float64(r.InherentScore)
+	}
+	r.TingkatRisiko = GetRiskLevelFromNilai(currentScore)
 	r.PrioritasRisiko = GetRiskPriorityFromLevel(r.TingkatRisiko)
 
 	if r.TargetBobot == 0 && r.TargetProbability > 0 && r.TargetImpact > 0 {

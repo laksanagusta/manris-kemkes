@@ -87,6 +87,7 @@ func TestGetReturnsLinkedRisksInsteadOfSnapshots(t *testing.T) {
 				Probability:     4,
 				Impact:          5,
 				Nilai:           20,
+				InherentScore:   20,
 				TingkatRisiko:   entity.RiskLevelSangatTinggi,
 				AssessmentCycle: "2026-H1",
 			},
@@ -106,21 +107,48 @@ func TestGetReturnsLinkedRisksInsteadOfSnapshots(t *testing.T) {
 	}
 }
 
-func TestWorkingPaperRiskDataNormalizeDerivedScoresRecomputesPriority(t *testing.T) {
+func TestWorkingPaperRiskDataNormalizeDerivedScoresPrefersInherentScore(t *testing.T) {
 	risk := entity.WorkingPaperRiskData{
 		Probability:     4,
 		Impact:          5,
-		Nilai:           20,
+		Nilai:           12,
+		InherentScore:   16,
 		PrioritasRisiko: 5,
 	}
 
 	risk.NormalizeDerivedScores()
 
-	if risk.TingkatRisiko != entity.RiskLevelSangatTinggi {
-		t.Fatalf("expected tingkat risiko %q, got %q", entity.RiskLevelSangatTinggi, risk.TingkatRisiko)
+	if risk.TingkatRisiko != entity.RiskLevelTinggi {
+		t.Fatalf("expected tingkat risiko %q, got %q", entity.RiskLevelTinggi, risk.TingkatRisiko)
 	}
-	if risk.PrioritasRisiko != 1 {
-		t.Fatalf("expected finalized priority 1, got %d", risk.PrioritasRisiko)
+	if risk.PrioritasRisiko != 2 {
+		t.Fatalf("expected finalized priority 2, got %d", risk.PrioritasRisiko)
+	}
+}
+
+func TestBuildWorkingPaperRiskDataIncludesInherentScore(t *testing.T) {
+	risk := &entity.Risk{
+		ID:            uuid.New(),
+		Code:          "R-002",
+		Title:         "Keterlambatan distribusi",
+		Probability:   3,
+		Impact:        4,
+		Weight:        1,
+		Nilai:         12,
+		InherentScore: 16,
+		Status:        entity.RiskStatusApproved,
+	}
+
+	data := buildWorkingPaperRiskData(risk)
+
+	if data.InherentScore != 16 {
+		t.Fatalf("expected inherent score 16, got %d", data.InherentScore)
+	}
+	if data.TingkatRisiko != entity.RiskLevelTinggi {
+		t.Fatalf("expected tingkat risiko %q, got %q", entity.RiskLevelTinggi, data.TingkatRisiko)
+	}
+	if data.PrioritasRisiko != 2 {
+		t.Fatalf("expected priority 2, got %d", data.PrioritasRisiko)
 	}
 }
 
