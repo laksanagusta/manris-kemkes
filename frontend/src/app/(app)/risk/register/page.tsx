@@ -291,7 +291,7 @@ function RiskRowActions({
             Mulai Pemantauan
           </DropdownMenuItem>
         )}
-        {(onMandateCascade || onEscalateCascade) && (
+        {/*{(onMandateCascade || onEscalateCascade) && (
           <>
             {onMandateCascade && (
               <DropdownMenuItem onClick={onMandateCascade}>
@@ -306,7 +306,7 @@ function RiskRowActions({
               </DropdownMenuItem>
             )}
           </>
-        )}
+        )}*/}
         {onArchive && (
           <DropdownMenuItem onClick={onArchive}>
             <Archive className="size-3.5" />
@@ -967,12 +967,12 @@ export default function RiskRegisterPage() {
         </div>
         {(!token || user?.isGlobal || !!user?.organizationId) && (
           <div className="flex flex-wrap gap-2">
-            <Link href="/risk/cascading">
+            {/*<Link href="/risk/cascading">
               <Button variant="outline" className="gap-2">
                 <GitBranch className="size-4" />
                 Eskalasi Risiko
               </Button>
-            </Link>
+            </Link>*/}
             <Link href="/risk/register/bulk">
               <Button variant="outline" className="gap-2">
                 <Upload className="size-4" />
