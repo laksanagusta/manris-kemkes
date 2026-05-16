@@ -71,6 +71,7 @@ func TestFormalReportTypeHelpers(t *testing.T) {
 		FormalReportTypeSemiannualImplementation,
 		FormalReportTypeSemiannualSupervision,
 		FormalReportTypeTMPMR,
+		FormalReportTypeMonitoringEvaluation,
 	} {
 		if !IsValidFormalReportType(typ) {
 			t.Fatalf("expected report type %q to be valid", typ)

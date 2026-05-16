@@ -71,35 +71,43 @@ func (r *pdfReportRenderer) RenderFormal(ctx context.Context, data *entity.KMKFo
 		return nil, fmt.Errorf("formal report data is required")
 	}
 
-	pageNumber := props.PageNumber{
-		Pattern: "Halaman {current} dari {total}",
-		Place:   props.Bottom,
-		Family:  fontfamily.Arial,
-		Style:   fontstyle.Normal,
-		Size:    FontSizeLabel,
-		Color:   MutedText,
+	reportType := ""
+	if data.Report != nil {
+		reportType = data.Report.ReportType
 	}
 
-	cfg := config.NewBuilder().
-		WithDimensions(PageWidth, PageHeight).
+	pageWidth, pageHeight := formalReportDimensions(reportType)
+	bottomMargin := Margin + 8
+	if reportType == entity.FormalReportTypeMonitoringEvaluation {
+		bottomMargin = 8
+	}
+	builder := config.NewBuilder().
+		WithDimensions(pageWidth, pageHeight).
 		WithOrientation(orientation.Vertical).
 		WithLeftMargin(Margin).
 		WithRightMargin(Margin).
 		WithTopMargin(Margin).
-		WithBottomMargin(Margin + 8).
-		WithPageNumber(pageNumber).
-		WithDefaultFont(&props.Font{
-			Family: fontfamily.Arial,
-			Size:   FontSizeBody,
-			Style:  fontstyle.Normal,
-			Color:  BlackColor,
-		}).Build()
+		WithBottomMargin(bottomMargin)
+	if reportType != entity.FormalReportTypeMonitoringEvaluation {
+		builder = builder.WithPageNumber(props.PageNumber{
+			Pattern: "Halaman {current} dari {total}",
+			Place:   props.Bottom,
+			Family:  fontfamily.Arial,
+			Style:   fontstyle.Normal,
+			Size:    FontSizeLabel,
+			Color:   MutedText,
+		})
+	}
+	cfg := builder.WithDefaultFont(&props.Font{
+		Family: fontfamily.Arial,
+		Size:   FontSizeBody,
+		Style:  fontstyle.Normal,
+		Color:  BlackColor,
+	}).Build()
 
 	m := maroto.New(cfg)
-
-	reportType := ""
-	if data.Report != nil {
-		reportType = data.Report.ReportType
+	if reportType == entity.FormalReportTypeMonitoringEvaluation {
+		_ = m.RegisterFooter(monitoringFooterRows()...)
 	}
 
 	switch reportType {
@@ -111,6 +119,8 @@ func (r *pdfReportRenderer) RenderFormal(ctx context.Context, data *entity.KMKFo
 		r.renderFormalSemiannualSupervision(m, data)
 	case entity.FormalReportTypeTMPMR:
 		r.renderFormalTMPMRReport(m, data)
+	case entity.FormalReportTypeMonitoringEvaluation:
+		r.renderFormalMonitoringEvaluation(m, data)
 	default:
 		r.renderFormalLegacy(m, data)
 	}
@@ -120,6 +130,13 @@ func (r *pdfReportRenderer) RenderFormal(ctx context.Context, data *entity.KMKFo
 		return nil, err
 	}
 	return doc.GetBytes(), nil
+}
+
+func formalReportDimensions(reportType string) (float64, float64) {
+	if reportType == entity.FormalReportTypeMonitoringEvaluation {
+		return 215.9, 279.4
+	}
+	return PageWidth, PageHeight
 }
 
 func (r *pdfReportRenderer) renderFormalLegacy(m core.Maroto, data *entity.KMKFormalReportData) {

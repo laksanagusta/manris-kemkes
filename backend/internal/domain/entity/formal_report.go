@@ -20,6 +20,7 @@ const (
 	FormalReportTypeSemiannualImplementation = "semiannual_mr_implementation"
 	FormalReportTypeSemiannualSupervision    = "semiannual_mr_supervision"
 	FormalReportTypeTMPMR                    = "tmpmr_report"
+	FormalReportTypeMonitoringEvaluation     = "monitoring_evaluation_report"
 )
 
 var validFormalReportTypes = map[string]struct{}{
@@ -27,6 +28,7 @@ var validFormalReportTypes = map[string]struct{}{
 	FormalReportTypeSemiannualImplementation: {},
 	FormalReportTypeSemiannualSupervision:    {},
 	FormalReportTypeTMPMR:                    {},
+	FormalReportTypeMonitoringEvaluation:     {},
 }
 
 var validFormalReportStatuses = map[string]struct{}{

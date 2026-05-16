@@ -5,7 +5,8 @@ import type {
   WorkingPaperRiskData,
   WorkingPaperSignatory,
 } from "@/types/working-paper";
-import { getWorkingPaperRiskRows } from "./working-paper-linked-risks";
+import { getWorkingPaperRiskRows } from "./working-paper-linked-risks.ts";
+import { buildWorkingPaperSignatureLayout } from "./working-paper-signature-layout.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExportableRiskRow = Record<string, any>;
@@ -81,6 +82,39 @@ const WRAP_ALIGNMENT: Partial<ExcelJS.Alignment> = {
   vertical: "top",
   wrapText: true,
 };
+
+type WorkingPaperSheetMetadata = {
+  objective: string;
+  target: string;
+  keyIndicator: string;
+  targetValue: string;
+  program: string;
+  activity: string;
+  riskOwnerUnit: string;
+  riskOwnerName: string;
+  riskManagementTeam: string;
+  assessmentDate: string;
+  riskPeriod: string;
+  riskUpdateDate: string;
+};
+
+const DEFAULT_WORKING_PAPER_METADATA = {
+  objective:
+    "Terwujudnya Alat Angkut, Orang, Barang, dan Lingkungan yang bebas dari Penyakit Menular dan Faktor Risiko Kesehatan",
+  target:
+    "(1) Meningkatnya Pelayanan Kekarantinaan di Pintu Masuk Negara dan Wilayah\n\n(2) Meningkatnya Dukungan Manajemen dan Pelaksanaan Tugas Teknis Lainnya pada Program Penanggulangan Penyakit",
+  keyIndicator:
+    "(1) Pintu Masuk yang melaksanakan deteksi penyakit dan faktor risiko kesehatan berpotensi KLB/Wabah dengan Target 76%\n(2) Nilai Maturitas Manajemen Risiko dengan Target Nilai 4",
+  targetValue: "76% untuk indikator 1 dan Nilai 4 indikator 2",
+  program:
+    "Persentase Faktor Risiko Penyakit di Pintu Masuk Negara yang dikendalikan\nNilai Maturitas Sistem Pengendalian Intern Pemerintah Terintegrasi (SPIPT)",
+  activity:
+    "Pelaksanaan surveilans dan deteksi dini penyakit dan faktor risiko kesehatan berpotensi KLB/Wabah di pintu masuk sesuai standar",
+  riskOwnerName: "Kepala Loka Kekarantinaan Kesehatan Entikong",
+  riskManagementTeam:
+    "Para Ketua Tim Kerja 1,2,3,4, Bendahara Penerimaan, Bendahara Pengeluaran, dan TIM SKI",
+  riskUpdateDate: "-",
+} as const;
 
 // ── Risk level color map (matches app labels in src/lib/risk.ts) ──
 const RISK_LEVEL_COLORS: Record<
@@ -187,6 +221,178 @@ function todayDateString(): string {
   return `${yyyy}${mm}${dd}`;
 }
 
+function formatLongDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return "-";
+  try {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "Asia/Jakarta",
+    }).format(date);
+  } catch {
+    return dateStr;
+  }
+}
+
+function getRiskPeriodLabel(assessmentCycle: string | undefined | null, createdAt: string | undefined | null): string {
+  const createdDate = createdAt ? new Date(createdAt) : null;
+  const createdValid = createdDate && !Number.isNaN(createdDate.getTime()) ? createdDate : null;
+  const match = (assessmentCycle ?? "").trim().match(/^(\d{4})-H([12])$/i);
+  if (!match) return "-";
+
+  const year = Number(match[1]);
+  const half = match[2];
+  const fallbackStartMonth = half === "1" ? 0 : 6;
+  const endMonth = half === "1" ? 5 : 11;
+  const startMonth = createdValid && createdValid.getUTCFullYear() === year
+    ? Math.min(Math.max(createdValid.getUTCMonth(), fallbackStartMonth), endMonth)
+    : fallbackStartMonth;
+
+  const startLabel = new Intl.DateTimeFormat("id-ID", {
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, startMonth, 1)));
+  const endLabel = new Intl.DateTimeFormat("id-ID", {
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, endMonth, 1)));
+
+  return `${startLabel} s/d ${endLabel} ${year}`;
+}
+
+function buildSheetMetadata(workingPaper: WorkingPaper, risks: WorkingPaperRiskData[]): WorkingPaperSheetMetadata {
+  const primaryOrgName = risks.find((risk) => safeStr(risk.org_name).trim().length > 0)?.org_name
+    ?? DEFAULT_WORKING_PAPER_METADATA.riskOwnerName.replace(/^Kepala\s+/i, "");
+
+  return {
+    ...DEFAULT_WORKING_PAPER_METADATA,
+    riskOwnerUnit: primaryOrgName,
+    assessmentDate: formatLongDate(workingPaper.created_at),
+    riskPeriod: getRiskPeriodLabel(workingPaper.assessment_cycle, workingPaper.created_at),
+  };
+}
+
+function applyWorkingPaperMetadataBlock(
+  ws: ExcelJS.Worksheet,
+  firstCol: number,
+  lastCol: number,
+  metadata: WorkingPaperSheetMetadata,
+): void {
+  const titleRow = 2;
+  ws.mergeCells(titleRow, firstCol + 4, titleRow, Math.min(lastCol, firstCol + 15));
+  const titleCell = ws.getCell(titleRow, firstCol + 4);
+  titleCell.value = "PROFIL RISIKO TINGKAT UPR T-II KEMENTERIAN KESEHATAN";
+  titleCell.font = { name: BASE_FONT_NAME, bold: true, size: 12 };
+  titleCell.alignment = { horizontal: "center", vertical: "middle" };
+
+  const labelFont: Partial<ExcelJS.Font> = { name: BASE_FONT_NAME, size: 11 };
+  const valueFont: Partial<ExcelJS.Font> = { name: BASE_FONT_NAME, size: 11 };
+  const labelAlign: Partial<ExcelJS.Alignment> = { vertical: "top", wrapText: true };
+  const centerValueAlign: Partial<ExcelJS.Alignment> = { horizontal: "center", vertical: "top", wrapText: true };
+  const leftValueAlign: Partial<ExcelJS.Alignment> = { vertical: "top", wrapText: true };
+
+  const leftLabelCol = firstCol;
+  const leftValueStartCol = firstCol + 2;
+  const leftValueEndCol = Math.min(lastCol, firstCol + 6);
+  const rightLabelCol = Math.min(lastCol, firstCol + 7);
+  const rightValueStartCol = Math.min(lastCol, firstCol + 8);
+  const rightValueEndCol = lastCol;
+
+  const rows: Array<{
+    row: number;
+    leftLabel?: string;
+    leftValue?: string;
+    rightLabel?: string;
+    rightValue?: string;
+    leftHeight?: number;
+    rightAlign?: Partial<ExcelJS.Alignment>;
+  }> = [
+    {
+      row: 4,
+      leftLabel: "Tujuan  * :",
+      leftValue: metadata.objective,
+      rightLabel: "Unit Pemilik Risiko  * :",
+      rightValue: `${metadata.riskOwnerUnit} * :`,
+      leftHeight: 54,
+      rightAlign: centerValueAlign,
+    },
+    {
+      row: 5,
+      leftLabel: "Sasaran * :",
+      leftValue: metadata.target,
+      rightLabel: "Nama Pemilik Risiko * :",
+      rightValue: `${metadata.riskOwnerName} * :`,
+      leftHeight: 60,
+      rightAlign: centerValueAlign,
+    },
+    {
+      row: 7,
+      leftLabel: "Indikator Kinerja Utama * :",
+      leftValue: metadata.keyIndicator,
+      rightLabel: "Nama Tim Pengelola Risiko * :",
+      rightValue: `${metadata.riskManagementTeam} * :`,
+      leftHeight: 60,
+      rightAlign: centerValueAlign,
+    },
+    {
+      row: 9,
+      leftLabel: "Target * :",
+      leftValue: metadata.targetValue,
+      rightLabel: "Tgl Penilaian Risiko * :",
+      rightValue: `${metadata.assessmentDate} * :`,
+      rightAlign: centerValueAlign,
+    },
+    {
+      row: 10,
+      leftLabel: "Program * :",
+      leftValue: metadata.program,
+      rightLabel: "Periode Risiko * :",
+      rightValue: `${metadata.riskPeriod} * :`,
+      leftHeight: 48,
+      rightAlign: centerValueAlign,
+    },
+    {
+      row: 11,
+      leftLabel: "Kegiatan * :",
+      leftValue: metadata.activity,
+      rightLabel: "Tgl Update Risiko * :",
+      rightValue: `${metadata.riskUpdateDate} * :`,
+      leftHeight: 42,
+      rightAlign: centerValueAlign,
+    },
+  ];
+
+  rows.forEach(({ row, leftLabel, leftValue, rightLabel, rightValue, leftHeight, rightAlign }) => {
+    const rowRef = ws.getRow(row);
+    if (leftHeight) rowRef.height = leftHeight;
+
+    const leftLabelCell = ws.getCell(row, leftLabelCol);
+    leftLabelCell.value = leftLabel;
+    leftLabelCell.font = labelFont;
+    leftLabelCell.alignment = labelAlign;
+
+    ws.mergeCells(row, leftValueStartCol, row, leftValueEndCol);
+    const leftValueCell = ws.getCell(row, leftValueStartCol);
+    leftValueCell.value = leftValue;
+    leftValueCell.font = valueFont;
+    leftValueCell.alignment = leftValueAlign;
+
+    const rightLabelCell = ws.getCell(row, rightLabelCol);
+    rightLabelCell.value = rightLabel;
+    rightLabelCell.font = labelFont;
+    rightLabelCell.alignment = labelAlign;
+
+    ws.mergeCells(row, rightValueStartCol, row, rightValueEndCol);
+    const rightValueCell = ws.getCell(row, rightValueStartCol);
+    rightValueCell.value = rightValue;
+    rightValueCell.font = valueFont;
+    rightValueCell.alignment = rightAlign ?? leftValueAlign;
+  });
+}
+
 /** Apply borders to data rows. startCol/endCol are 1-based column numbers. */
 function applyDataBorders(
   worksheet: ExcelJS.Worksheet,
@@ -214,6 +420,7 @@ function buildProfilRisikoSheet(
   workbook: ExcelJS.Workbook,
   risks: ExportableRiskRow[],
   signatories: WorkingPaperSignatory[],
+  metadata: WorkingPaperSheetMetadata,
 ): void {
   const ws = workbook.addWorksheet("Profil Risiko");
 
@@ -248,6 +455,8 @@ function buildProfilRisikoSheet(
   columnWidths.forEach((width, index) => {
     ws.getColumn(FIRST_COL + index).width = width;
   });
+
+  applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL, metadata);
 
   const H_FILL: ExcelJS.FillPattern = {
     type: "pattern",
@@ -359,6 +568,7 @@ function buildPenilaianRisikoSheet(
   workbook: ExcelJS.Workbook,
   risks: ExportableRiskRow[],
   signatories: WorkingPaperSignatory[],
+  metadata: WorkingPaperSheetMetadata,
 ): void {
   const ws = workbook.addWorksheet("KK Penilaian Risiko");
 
@@ -399,6 +609,8 @@ function buildPenilaianRisikoSheet(
   columnWidths.forEach((width, index) => {
     ws.getColumn(FIRST_COL + index).width = width;
   });
+
+  applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL, metadata);
 
   const H_FILL: ExcelJS.FillPattern = {
     type: "pattern",
@@ -532,6 +744,7 @@ function buildPemantauanReviuSheet(
   workbook: ExcelJS.Workbook,
   risks: WorkingPaperRiskData[],
   signatories: WorkingPaperSignatory[],
+  metadata: WorkingPaperSheetMetadata,
 ): void {
   const ws = workbook.addWorksheet("KK Pemantauan Reviu");
 
@@ -564,6 +777,8 @@ function buildPemantauanReviuSheet(
   columnWidths.forEach((width, index) => {
     ws.getColumn(FIRST_COL + index).width = width;
   });
+
+  applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL, metadata);
 
   const H_FILL: ExcelJS.FillPattern = {
     type: "pattern",
@@ -835,8 +1050,6 @@ function appendSignatureBlock(
 
   const sorted = [...signatories].sort((a, b) => a.sequence_no - b.sequence_no);
   const n = sorted.length;
-  const totalColumns = endCol - startCol + 1;
-  const colsPerSig = Math.floor(totalColumns / n);
   const sigFont: Partial<ExcelJS.Font> = { name: BASE_FONT_NAME, size: 11 };
   const centerAlign: Partial<ExcelJS.Alignment> = { horizontal: "center", vertical: "middle", wrapText: true };
 
@@ -849,15 +1062,30 @@ function appendSignatureBlock(
   const GAP_ROW_COUNT = 3;
   const PT_TO_PX = 1.333;
   const DEFAULT_COL_WIDTH = 8.43;
+  const PX_PER_CHAR = 7.5;
   const gapHeightPx = GAP_ROW_COUNT * GAP_ROW_HEIGHT * PT_TO_PX;
 
   for (let r = jabatanRow + 1; r <= jabatanRow + GAP_ROW_COUNT; r++) {
     ws.getRow(r).height = GAP_ROW_HEIGHT;
   }
 
+  const columnWidths = new Map<number, number>();
+  for (let c = 1; c <= endCol; c++) {
+    columnWidths.set(c, ws.getColumn(c).width ?? DEFAULT_COL_WIDTH);
+  }
+  const signatureLayout = buildWorkingPaperSignatureLayout({
+    startCol,
+    endCol,
+    signatureCount: n,
+    columnWidths,
+    qrSizePx: QR_SIZE,
+    pxPerColumnWidthUnit: PX_PER_CHAR,
+  });
+
   sorted.forEach((sig, index) => {
-    const sigStartCol = index * colsPerSig + startCol;
-    const sigEndCol = index === n - 1 ? endCol : (index + 1) * colsPerSig + startCol - 1;
+    const layout = signatureLayout[index];
+    const sigStartCol = layout.textStartCol;
+    const sigEndCol = layout.textEndCol;
 
     if (sigEndCol > sigStartCol) {
       ws.mergeCells(jabatanRow, sigStartCol, jabatanRow, sigEndCol);
@@ -886,39 +1114,19 @@ function appendSignatureBlock(
         extension: "png",
       });
 
-      // Horizontal center: convert pixel midpoint to fractional 0-based column
-      const PX_PER_CHAR = 7.5;
-      let pxBefore = 0;
-      for (let c = 1; c < sigStartCol; c++) {
-        pxBefore += (ws.getColumn(c).width ?? DEFAULT_COL_WIDTH) * PX_PER_CHAR;
-      }
-      let rangePx = 0;
-      for (let c = sigStartCol; c <= sigEndCol; c++) {
-        rangePx += (ws.getColumn(c).width ?? DEFAULT_COL_WIDTH) * PX_PER_CHAR;
-      }
-      const centerXPx = pxBefore + rangePx / 2;
-      const qrLeftPx = centerXPx - QR_SIZE / 2;
-
-      let accPx = 0;
-      let fracCol = 0;
-      for (let c = 1; c <= endCol; c++) {
-        const colWidthPx = (ws.getColumn(c).width ?? DEFAULT_COL_WIDTH) * PX_PER_CHAR;
-        if (accPx + colWidthPx > qrLeftPx) {
-          fracCol = (c - 1) + (qrLeftPx - accPx) / colWidthPx;
-          break;
-        }
-        accPx += colWidthPx;
-      }
-
-      // Vertical center: fractional 0-based row in gap between jabatan and nama
-      const gapStartRow0 = jabatanRow;
+      // Vertical center: native 0-based row in gap between jabatan and nama
+      const nativeRow = jabatanRow;
       const verticalOffsetPx = (gapHeightPx - QR_SIZE) / 2;
-      const pxPerRow = GAP_ROW_HEIGHT * PT_TO_PX;
-      const fracRow = gapStartRow0 + verticalOffsetPx / pxPerRow;
+      const nativeRowOff = Math.round((verticalOffsetPx / PT_TO_PX) * 10000);
+      const anchorColumnWidth = ws.getColumn(layout.qrTopLeft.nativeCol + 1).width ?? DEFAULT_COL_WIDTH;
+      const imageCol = layout.qrTopLeft.nativeCol +
+        (layout.qrTopLeft.nativeColOff / (anchorColumnWidth * 10000));
+      const imageRow = nativeRow + (nativeRowOff / (GAP_ROW_HEIGHT * 10000));
 
       ws.addImage(imageId, {
-        tl: { col: fracCol, row: fracRow },
+        tl: { col: imageCol, row: imageRow },
         ext: { width: QR_SIZE, height: QR_SIZE },
+        editAs: "oneCell",
       });
     }
   });
@@ -941,17 +1149,7 @@ function downloadBlob(blob: Blob, filename: string): void {
 }
 
 export async function exportWorkingPaper(workingPaper: WorkingPaper): Promise<void> {
-  const workbook = new ExcelJS.Workbook();
-  const risks = getWorkingPaperRiskRows(workingPaper);
-  const profileRows = risks.map(r => getProfileRow(r));
-  const signatories = workingPaper.signatories;
-
-  buildProfilRisikoSheet(workbook, profileRows, signatories);
-  buildPenilaianRisikoSheet(workbook, profileRows, signatories);
-  buildPemantauanReviuSheet(workbook, risks, signatories);
-  buildTandaTanganSheet(workbook, workingPaper);
-
-  const buffer = await workbook.xlsx.writeBuffer();
+  const buffer = await createWorkingPaperWorkbookBuffer(workingPaper);
   const filename = `Kertas_Kerja_${sanitizeFilename(workingPaper.title)}_${todayDateString()}.xlsx`;
 
   downloadBlob(
@@ -960,4 +1158,19 @@ export async function exportWorkingPaper(workingPaper: WorkingPaper): Promise<vo
     }),
     filename,
   );
+}
+
+export async function createWorkingPaperWorkbookBuffer(workingPaper: WorkingPaper): Promise<ExcelJS.Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  const risks = getWorkingPaperRiskRows(workingPaper);
+  const profileRows = risks.map(r => getProfileRow(r));
+  const signatories = workingPaper.signatories;
+  const metadata = buildSheetMetadata(workingPaper, risks);
+
+  buildProfilRisikoSheet(workbook, profileRows, signatories, metadata);
+  buildPenilaianRisikoSheet(workbook, profileRows, signatories, metadata);
+  buildPemantauanReviuSheet(workbook, risks, signatories, metadata);
+  buildTandaTanganSheet(workbook, workingPaper);
+
+  return workbook.xlsx.writeBuffer();
 }

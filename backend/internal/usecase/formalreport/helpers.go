@@ -28,6 +28,8 @@ func formalReportHeadline(reportType string) string {
 		return "Laporan pengawasan manajemen risiko semesteran"
 	case entity.FormalReportTypeTMPMR:
 		return "Laporan TMPMR"
+	case entity.FormalReportTypeMonitoringEvaluation:
+		return "Laporan hasil pemantauan dan evaluasi manajemen risiko"
 	default:
 		return "Laporan formal"
 	}

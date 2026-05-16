@@ -24,6 +24,7 @@ import {
 import { FormalReportCard } from "../_components/formal-report-card";
 import { FormalReportList } from "../_components/formal-report-list";
 import type { OrganizationListItem } from "@/lib/api/organizations";
+import { formalReportDefinitions } from "@/lib/formal-report-definitions";
 import type { FormalReport, FormalReportType } from "@/types/formal-report";
 
 function currentGlobalCycle() {
@@ -32,33 +33,6 @@ function currentGlobalCycle() {
   const half = now.getMonth() < 6 ? "H1" : "H2";
   return `${year}-${half}`;
 }
-
-const formalReportDefinitions: Array<{
-  reportType: FormalReportType;
-  title: string;
-  description: string;
-}> = [
-  {
-    reportType: "annual_risk_profile",
-    title: "Profil Risiko Tahunan",
-    description: "Ringkasan profil risiko organisasi untuk periode tahunan.",
-  },
-  {
-    reportType: "semiannual_mr_implementation",
-    title: "Laporan Penerapan MR Semesteran",
-    description: "Rekap penerapan manajemen risiko pada semester berjalan.",
-  },
-  {
-    reportType: "semiannual_mr_supervision",
-    title: "Laporan Pengawasan MR Semesteran",
-    description: "Ringkasan pengawasan manajemen risiko oleh fungsi pengawas.",
-  },
-  {
-    reportType: "tmpmr_report",
-    title: "Laporan TMPMR",
-    description: "Output resmi penilaian maturitas manajemen risiko.",
-  },
-];
 
 export default function FormalReportsPage() {
   const { token, user } = useAuth();

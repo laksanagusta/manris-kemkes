@@ -1,6 +1,6 @@
-# 📋 PRODUCT REQUIREMENTS DOCUMENT (PRD) — Manris v2
+# 📋 PRODUCT REQUIREMENTS DOCUMENT (PRD) — Manris 
 
-**Nama Produk:** Manris v2 — AI-Driven Risk & Incident Management SaaS  
+**Nama Produk:** Manris  — AI-Driven Risk & Incident Management SaaS  
 **Konteks:** Lingkungan Kementerian (Ditjen Penanggulangan Penyakit) / Proyek Aktualisasi Latsar CPNS  
 **Tanggal:** 10 Maret 2026
 

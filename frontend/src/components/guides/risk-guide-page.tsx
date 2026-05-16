@@ -292,6 +292,55 @@ export function RiskGuidePage({
         </Card>
       </section>
 
+      <section aria-labelledby="risk-guide-documents" className="space-y-3">
+        <div className="flex items-center gap-2">
+          <h2
+            id="risk-guide-documents"
+            className="text-xs font-mono font-semibold uppercase tracking-widest text-muted-foreground"
+          >
+            {content.documents.title}
+          </h2>
+          <div className="h-px flex-1 bg-border/50" />
+        </div>
+
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          {content.documents.description}
+        </p>
+
+        <div className="grid gap-4">
+          {content.documents.items.map((document) => (
+            <Card
+              key={document.title}
+              className="overflow-hidden border-border/50 bg-card/40"
+            >
+              <CardHeader className="space-y-2 border-b border-border/40 pb-4">
+                <CardTitle className="text-sm font-semibold">
+                  {document.title}
+                </CardTitle>
+                <CardDescription className="text-xs leading-6 text-muted-foreground">
+                  {document.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="max-w-2xl text-xs leading-6 text-muted-foreground">
+                  Buka dokumen di tab baru untuk membaca versi lengkapnya
+                  langsung dari Google Drive.
+                </p>
+                <a
+                  href={document.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border/60 px-3 py-2 text-xs font-medium text-foreground transition hover:border-border hover:bg-muted/40"
+                >
+                  {document.label}
+                  <ExternalLink className="size-3.5" />
+                </a>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
       <section aria-labelledby="risk-guide-flow" className="space-y-3">
         <div className="flex items-center gap-2">
           <h2
