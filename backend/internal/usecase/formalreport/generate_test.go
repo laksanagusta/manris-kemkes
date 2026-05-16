@@ -163,6 +163,12 @@ func TestGenerateFormalReportUseCase_StoresTypeAwareSummaryMetadata(t *testing.T
 			wantHeadline: "Laporan TMPMR",
 			wantFocus:    entity.FormalReportTypeTMPMR,
 		},
+		{
+			name:         "monitoring evaluation report",
+			reportType:   entity.FormalReportTypeMonitoringEvaluation,
+			wantHeadline: "Laporan hasil pemantauan dan evaluasi manajemen risiko",
+			wantFocus:    entity.FormalReportTypeMonitoringEvaluation,
+		},
 	}
 
 	for _, tt := range tests {

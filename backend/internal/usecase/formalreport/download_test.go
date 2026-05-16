@@ -145,6 +145,7 @@ func TestDownloadUseCase_ExecuteUsesDistinctFormalTemplatesPerType(t *testing.T)
 	tmpmrID := uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
 	implID := uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
 	supervID := uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+	monitoringID := uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 	generatedAt := time.Date(2026, 5, 3, 9, 15, 0, 0, time.UTC)
 
 	reports := map[uuid.UUID]*entity.FormalReport{
@@ -192,6 +193,19 @@ func TestDownloadUseCase_ExecuteUsesDistinctFormalTemplatesPerType(t *testing.T)
 			OrganizationID: orgID,
 			Period:         "2025",
 			ReportType:     entity.FormalReportTypeSemiannualSupervision,
+			Status:         entity.FormalReportStatusGenerated,
+			GeneratedAt:    &generatedAt,
+			Metadata: map[string]any{
+				"summary": map[string]any{
+					"riskCount": 1,
+				},
+			},
+		},
+		monitoringID: &entity.FormalReport{
+			ID:             monitoringID,
+			OrganizationID: orgID,
+			Period:         "2025-H2",
+			ReportType:     entity.FormalReportTypeMonitoringEvaluation,
 			Status:         entity.FormalReportStatusGenerated,
 			GeneratedAt:    &generatedAt,
 			Metadata: map[string]any{
@@ -283,6 +297,21 @@ func TestDownloadUseCase_ExecuteUsesDistinctFormalTemplatesPerType(t *testing.T)
 				"Tahapan Proses Penerapan MR",
 			},
 		},
+		{
+			name: "monitoring evaluation",
+			id:   monitoringID,
+			wantContain: []string{
+				"LAPORAN HASIL PEMANTAUAN DAN EVALUASI",
+				"PENERAPAN MANAJEMEN RISIKO",
+				"Kelengkapan dokumen pendukung",
+				"Format pemantauan pelaksanaan mitigasi risiko",
+			},
+			wantNotContain: []string{
+				"Ringkasan Profil Risiko Tahunan",
+				"Ringkasan Skor TMPMR",
+				"Tahapan Proses Penerapan MR",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -313,6 +342,7 @@ func TestDownloadUseCase_ExecutePopulatesTypeSpecificPayloads(t *testing.T) {
 	annualID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 	tmpmrID := uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
 	implID := uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
+	monitoringID := uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 	generatedAt := time.Date(2026, 5, 3, 9, 15, 0, 0, time.UTC)
 
 	reports := map[uuid.UUID]*entity.FormalReport{
@@ -349,10 +379,30 @@ func TestDownloadUseCase_ExecutePopulatesTypeSpecificPayloads(t *testing.T) {
 				"summary": map[string]any{"riskCount": 1},
 			},
 		},
+		monitoringID: &entity.FormalReport{
+			ID:             monitoringID,
+			OrganizationID: orgID,
+			Period:         "2025-H2",
+			ReportType:     entity.FormalReportTypeMonitoringEvaluation,
+			Status:         entity.FormalReportStatusGenerated,
+			GeneratedAt:    &generatedAt,
+			Metadata: map[string]any{
+				"summary": map[string]any{"riskCount": 1},
+			},
+		},
 	}
 
 	testRisks := []*entity.Risk{
-		{Code: "R-10", Title: "Ketergantungan Vendor", Probability: 5, Impact: 4, Weight: 1, Nilai: 20, TreatmentOption: "Mitigasi vendor"},
+		{
+			Code: "R-10", Title: "Ketergantungan Vendor", Probability: 5, Impact: 4, Weight: 1, Nilai: 20,
+			TreatmentOption: "Mitigasi vendor",
+		},
+		{
+			Code: "R-11", Title: "Sistem Stabil", Probability: 3, Impact: 3, Weight: 1, Nilai: 10,
+			BeforeMonitoringNilai: func() *float64 { v := 12.0; return &v }(),
+			MonitoringResultNilai: func() *float64 { v := 8.0; return &v }(),
+			Mitigations:           []entity.Mitigation{{Action: "Kontrol A"}, {Action: "Kontrol B"}},
+		},
 	}
 
 	renderer := &capturingFormalRenderer{}
@@ -435,5 +485,24 @@ func TestDownloadUseCase_ExecutePopulatesTypeSpecificPayloads(t *testing.T) {
 	}
 	if !hasContextCriteria || !hasRiskIdentification || !hasRiskTreatment {
 		t.Fatalf("implementation report missing expected KMK section keys: context=%v, riskId=%v, riskTreatment=%v", hasContextCriteria, hasRiskIdentification, hasRiskTreatment)
+	}
+
+	// Monitoring evaluation report
+	renderer.data = nil
+	_, err = uc.Execute(context.Background(), DownloadInput{
+		ID:    monitoringID,
+		Scope: &entity.AccessScope{IsGlobal: true},
+	})
+	if err != nil {
+		t.Fatalf("Execute(monitoring) error = %v", err)
+	}
+	if renderer.data == nil || renderer.data.MonitoringEvaluationReport == nil {
+		t.Fatal("expected monitoring evaluation payload to be populated")
+	}
+	if renderer.data.AnnualProfile != nil || renderer.data.ImplementationReport != nil || renderer.data.SupervisionReport != nil || renderer.data.TMPMRReport != nil {
+		t.Fatalf("monitoring payload populated unexpected type-specific fields: %#v", renderer.data)
+	}
+	if got := len(renderer.data.MonitoringEvaluationReport.MitigationSummary); got != 6 {
+		t.Fatalf("monitoring mitigation summary rows = %d, want 6", got)
 	}
 }

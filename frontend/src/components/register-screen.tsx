@@ -2,6 +2,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   Check,
@@ -181,9 +182,21 @@ export default function RegisterScreen() {
 
       <div className="relative z-10 w-full max-w-3xl animate-fade-in">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-medium tracking-tight">
-            <span className="gradient-text">M A N R I S</span>
-          </h1>
+          <div className="flex items-center justify-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background p-2">
+              <Image
+                src="/logo.svg"
+                alt="MANRIS logo"
+                width={26}
+                height={26}
+                className="object-contain"
+                priority
+              />
+            </div>
+            <h1 className="text-2xl font-medium tracking-tight">
+              <span className="gradient-text">M A N R I S</span>
+            </h1>
+          </div>
           <p className="mt-2 text-sm text-muted-foreground">
             Registrasi mandiri untuk pengguna unit kerja
           </p>

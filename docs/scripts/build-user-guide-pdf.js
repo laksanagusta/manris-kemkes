@@ -1,0 +1,979 @@
+const fs = require("fs");
+const path = require("path");
+const { chromium } = require("playwright");
+
+const repoRoot = path.resolve(__dirname, "../..");
+const outDir = path.join(repoRoot, "docs");
+const htmlPath = path.join(outDir, "panduan-penggunaan-manris-v2-fitur-aktif.html");
+const pdfPath = path.join(outDir, "panduan-penggunaan-manris-v2-fitur-aktif.pdf");
+
+const generatedAt = new Intl.DateTimeFormat("id-ID", {
+  dateStyle: "long",
+  timeStyle: "short",
+  timeZone: "Asia/Jakarta",
+}).format(new Date());
+
+const sections = [
+  {
+    title: "1. Ringkasan Dokumen",
+    body: `
+      <p>Dokumen ini adalah panduan penggunaan aplikasi MANRIS v2 untuk fitur yang aktif pada konfigurasi saat ini. Berdasarkan konfigurasi frontend, fitur AI & Automation sedang dinonaktifkan melalui <code>NEXT_PUBLIC_DISABLE_AI_FEATURES=true</code>, sehingga modul Meeting AI, Document Intelligence, Predictive Scoring, dan Cost Benefit Analysis tidak dibahas sebagai fitur operasional.</p>
+      <div class="callout">
+        <strong>Ruang lingkup aktif.</strong> Panduan ini mencakup Login, Dashboard, Daftar Risiko, Import Risiko, Form Registrasi Risiko, Pemantauan/Reassessment, Kertas Kerja dan TTE, Persetujuan, Penanganan mitigasi, Monitoring dan KRI, Laporan aktif, Master Users, Master Organizations, Context Organisasi, Panduan Risiko, dan Account.
+      </div>
+      <div class="shot">TEMPATKAN SCREENSHOT: tampilan aplikasi setelah login dengan sidebar terbuka dan menu aktif terlihat.</div>
+      <h3>Siapa yang sebaiknya membaca panduan ini</h3>
+      <ul>
+        <li><strong>Unit Kerja:</strong> membuat dan memperbarui risiko, menindaklanjuti mitigasi, mengisi pemantauan, dan melihat data sesuai cakupan organisasi.</li>
+        <li><strong>Reviewer:</strong> meninjau pengajuan risiko, pemantauan, dan laporan KRI sesuai penugasan.</li>
+        <li><strong>Pimpinan:</strong> memberi persetujuan, melihat ringkasan risiko, dan melakukan TTE kertas kerja jika ditugaskan sebagai penandatangan.</li>
+        <li><strong>Super Admin:</strong> mengelola pengguna, organisasi, konteks organisasi, dan dapat mengakses data lintas organisasi sesuai hak akses.</li>
+      </ul>
+      <h3>Istilah penting</h3>
+      <table>
+        <thead><tr><th>Istilah</th><th>Makna dalam aplikasi</th></tr></thead>
+        <tbody>
+          <tr><td>Cycle / Periode</td><td>Periode manajemen risiko, misalnya 2026-H1 atau 2026-H2.</td></tr>
+          <tr><td>Risk Register</td><td>Daftar risiko organisasi, termasuk status draft, review, approved, arsip, dan versi pemantauan.</td></tr>
+          <tr><td>Reassessment / Pemantauan</td><td>Penilaian ulang risiko approved pada cycle baru untuk membandingkan nilai sebelumnya dan kondisi terbaru.</td></tr>
+          <tr><td>KRI</td><td>Key Risk Indicator, indikator pemantauan risiko beserta batas aman/waspada/kritis dan jadwal pelaporan.</td></tr>
+          <tr><td>TTE</td><td>Tanda tangan elektronik atau proses pengesahan kertas kerja oleh penandatangan berurutan.</td></tr>
+        </tbody>
+      </table>
+    `,
+  },
+  {
+    title: "2. Akses, Login, dan Navigasi Dasar",
+    body: `
+      <h3>Login ke aplikasi</h3>
+      <ol>
+        <li>Buka alamat aplikasi MANRIS v2.</li>
+        <li>Masukkan NIP dan password.</li>
+        <li>Klik tombol login.</li>
+        <li>Jika akun diwajibkan mengganti password, aplikasi akan mengarahkan ke halaman Change Password sebelum dashboard dapat diakses.</li>
+      </ol>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman login dengan field NIP dan password.</div>
+      <h3>Ganti password pertama kali</h3>
+      <ol>
+        <li>Masukkan password saat ini.</li>
+        <li>Masukkan password baru minimal sesuai kebijakan organisasi.</li>
+        <li>Ulangi password baru di field konfirmasi.</li>
+        <li>Simpan perubahan. Setelah berhasil, aplikasi membuka area dashboard.</li>
+      </ol>
+      <h3>Navigasi utama</h3>
+      <p>Area aplikasi terdiri dari header atas, sidebar kiri, dan konten halaman. Header menyediakan breadcrumb, tombol buka/tutup sidebar, pengubah tema terang/gelap, menu profil, dan logout. Sidebar berisi menu aktif.</p>
+      <table>
+        <thead><tr><th>Area</th><th>Fungsi</th><th>Catatan</th></tr></thead>
+        <tbody>
+          <tr><td>Header</td><td>Breadcrumb, collapse sidebar, dark/light mode, profil, logout.</td><td>Menu Settings di dropdown masih berupa item tampilan dan tidak menjadi fitur utama aktif.</td></tr>
+          <tr><td>Sidebar</td><td>Akses cepat ke Dashboard, Risiko, Kertas Kerja, Inbox, Penanganan, Monitoring, Laporan, Master, Panduan.</td><td>Group menu dapat dibuka/tutup.</td></tr>
+          <tr><td>Konten</td><td>Form, tabel, chart, detail data, dialog konfirmasi.</td><td>Perhatikan toast/notifikasi setelah simpan atau submit.</td></tr>
+        </tbody>
+      </table>
+      <h3>Menu aktif di sidebar</h3>
+      <ul>
+        <li><strong>Dashboard:</strong> ringkasan kondisi risiko.</li>
+        <li><strong>Daftar Risiko:</strong> register, draft, history, dan transaksi pemantauan.</li>
+        <li><strong>Kertas Kerja:</strong> pembuatan dokumen kertas kerja dan proses TTE.</li>
+        <li><strong>Persetujuan & TTE:</strong> inbox approval, review KRI, dan signing kertas kerja.</li>
+        <li><strong>Penanganan:</strong> laporan progres mitigasi.</li>
+        <li><strong>Monitoring:</strong> workspace monitoring, KRI, dan dashboard operasional.</li>
+        <li><strong>Laporan:</strong> Analisis Risiko dan Monitoring Kepatuhan.</li>
+        <li><strong>Master:</strong> Users, Organizations, dan Context, khusus Super Admin.</li>
+        <li><strong>Panduan:</strong> panduan risiko bawaan aplikasi.</li>
+      </ul>
+    `,
+  },
+  {
+    title: "3. Role dan Hak Akses",
+    body: `
+      <p>Hak akses ditentukan oleh role dan cakupan organisasi. Pengguna dari satu unit biasanya hanya dapat mengubah data dalam unitnya, sedangkan data di luar cakupan dapat tampil read-only bila diizinkan.</p>
+      <table>
+        <thead><tr><th>Role</th><th>Akses utama</th><th>Batasan penting</th></tr></thead>
+        <tbody>
+          <tr><td>Super Admin</td><td>Kelola pengguna, organisasi, context organisasi, dan akses master.</td><td>Gunakan perubahan master dengan hati-hati karena berdampak lintas unit.</td></tr>
+          <tr><td>Unit Kerja</td><td>Buat draft risiko, import risiko, update pemantauan, lapor mitigasi, isi KRI jika menjadi PIC.</td><td>Data luar organisasi dapat read-only.</td></tr>
+          <tr><td>Reviewer</td><td>Meninjau pengajuan risiko, pemantauan, atau laporan sesuai penugasan.</td><td>Tindakan approval hanya muncul untuk item yang ditugaskan.</td></tr>
+          <tr><td>Pimpinan</td><td>Memberi approval dan TTE sesuai urutan penugasan.</td><td>Jika belum giliran, tombol tanda tangan dapat belum aktif.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Prinsip kerja.</strong> Jika tombol aksi tidak muncul, penyebab paling umum adalah status data belum sesuai, pengguna tidak berada pada organisasi pemilik, atau pengguna bukan approver/penandatangan yang sedang aktif.
+      </div>
+    `,
+  },
+  {
+    title: "4. Dashboard",
+    body: `
+      <p>Dashboard menampilkan ringkasan kondisi risiko organisasi pada cycle berjalan dan membandingkan beberapa metrik dengan cycle sebelumnya.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Dashboard dengan KPI, heatmap, dan chart unit.</div>
+      <h3>Komponen dashboard</h3>
+      <ul>
+        <li><strong>Total Risiko:</strong> jumlah risiko terdaftar pada periode aktif.</li>
+        <li><strong>Risiko Tinggi & Sangat Tinggi:</strong> risiko yang membutuhkan perhatian prioritas.</li>
+        <li><strong>Penanganan Overdue:</strong> jumlah tindakan mitigasi melewati tenggat.</li>
+        <li><strong>Insiden Bulan Ini:</strong> jumlah insiden yang tercatat pada bulan berjalan.</li>
+        <li><strong>Risk Exposure:</strong> skor eksposur tertimbang dari portofolio risiko.</li>
+        <li><strong>Multi-phase heatmap:</strong> perbandingan peta risiko antar fase/cycle.</li>
+        <li><strong>Unit total risk score:</strong> perbandingan skor total risiko per unit.</li>
+      </ul>
+      <h3>Cara membaca dashboard</h3>
+      <ol>
+        <li>Lihat KPI pertama untuk memahami volume risiko dan perubahan dari cycle sebelumnya.</li>
+        <li>Prioritaskan kartu Risiko Tinggi & Sangat Tinggi dan Penanganan Overdue.</li>
+        <li>Gunakan heatmap untuk melihat konsentrasi probabilitas dan dampak.</li>
+        <li>Buka Monitoring jika perlu menindaklanjuti update mitigasi atau KRI.</li>
+        <li>Buka Reports & Export jika perlu analisis dan unduhan dokumen.</li>
+      </ol>
+    `,
+  },
+  {
+    title: "5. Daftar Risiko",
+    body: `
+      <p>Menu Daftar Risiko adalah pusat pekerjaan manajemen risiko. Di dalamnya ada empat tab aktif: All Risks, Draf, Version History, dan Pemantauan.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Daftar Risiko dengan tab All Risks dan filter.</div>
+      <h3>Tab All Risks</h3>
+      <p>Tab ini menampilkan register risiko aktif atau arsip. Tabel berisi kode, versi, judul, kategori, nilai, tingkat risiko, status, pilihan penanganan, tanggal dibuat, dan aksi.</p>
+      <h4>Filter yang tersedia</h4>
+      <ul>
+        <li><strong>Cari risiko:</strong> mencari judul, kode, atau kata kunci terkait.</li>
+        <li><strong>Semester:</strong> menyaring berdasarkan cycle seperti 2026-H1.</li>
+        <li><strong>Tanggal dibuat:</strong> menyaring data berdasarkan tanggal.</li>
+        <li><strong>Lifecycle:</strong> Aktif, Arsip, atau Semua.</li>
+        <li><strong>Status:</strong> Semua Status, Dalam Review, atau Disetujui.</li>
+        <li><strong>Kategori:</strong> Kebijakan, Reputasi, Fraud/Korupsi, Legal, Kepatuhan, Operasional.</li>
+      </ul>
+      <h4>Aksi pada baris risiko</h4>
+      <table>
+        <thead><tr><th>Aksi</th><th>Kapan muncul</th><th>Efek</th></tr></thead>
+        <tbody>
+          <tr><td>Mulai Pemantauan</td><td>Risiko approved, current, belum arsip, dan belum ada draft ongoing.</td><td>Membuat draft reassessment untuk cycle yang dipilih.</td></tr>
+          <tr><td>Lanjutkan Pemantauan</td><td>Risiko approved punya draft pemantauan berjalan.</td><td>Membuka form pemantauan yang belum selesai.</td></tr>
+          <tr><td>Arsipkan</td><td>Risiko approved current dan pengguna boleh mengubah.</td><td>Memindahkan risiko dari daftar aktif ke arsip dengan alasan.</td></tr>
+          <tr><td>Pulihkan</td><td>Risiko sedang diarsipkan.</td><td>Mengembalikan risiko ke daftar aktif.</td></tr>
+          <tr><td>Hapus Draft</td><td>Risk berstatus assessment_draft dan pengguna bukan read-only.</td><td>Menghapus draft yang belum final.</td></tr>
+        </tbody>
+      </table>
+      <h3>Tab Draf</h3>
+      <p>Tab Draf menampilkan risiko yang masih dalam pengerjaan. Kolom progres menunjukkan kelengkapan data. Semakin tinggi persentasenya, semakin siap risiko diajukan.</p>
+      <ol>
+        <li>Klik judul draft untuk melanjutkan pengisian.</li>
+        <li>Periksa progres dan status.</li>
+        <li>Hapus draft hanya jika benar-benar tidak akan digunakan.</li>
+      </ol>
+      <h3>Tab Version History</h3>
+      <p>Tab ini digunakan untuk melihat timeline versi risiko approved. Pilih risiko current, lalu pilih versi snapshot untuk dibandingkan dengan versi current.</p>
+      <ul>
+        <li>Menampilkan cycle atau nama versi.</li>
+        <li>Menampilkan badge Current pada versi aktif.</li>
+        <li>Menampilkan perubahan level risiko dan alasan perubahan.</li>
+      </ul>
+      <h3>Tab Pemantauan</h3>
+      <p>Tab Pemantauan menampilkan transaksi reassessment. Di sini pengguna dapat melihat nilai sebelum dan hasil pemantauan, status, lifecycle, kategori, serta melanjutkan draft pemantauan.</p>
+    `,
+  },
+  {
+    title: "6. Form Registrasi Risiko",
+    body: `
+      <p>Form registrasi risiko digunakan untuk membuat risiko baru atau mengedit draft. Alur form mengikuti siklus ISO 31000: identifikasi, analisis, evaluasi, rencana penanganan, target penurunan, dan review/approval.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: form registrasi risiko dengan tab identifikasi, analisis, evaluasi, penanganan, target.</div>
+      <h3>Membuat risiko baru</h3>
+      <ol>
+        <li>Buka <strong>Daftar Risiko</strong>.</li>
+        <li>Klik <strong>Tambah Risiko</strong>.</li>
+        <li>Isi bagian Identifikasi Risiko terlebih dahulu.</li>
+        <li>Simpan draft jika data belum lengkap.</li>
+        <li>Lengkapi analisis, evaluasi, rencana penanganan, target, reviewer, dan approval line.</li>
+        <li>Klik submit sesuai label tombol yang tersedia.</li>
+      </ol>
+      <h3>Bagian Identifikasi Risiko</h3>
+      <table>
+        <thead><tr><th>Field</th><th>Isi yang diharapkan</th><th>Tips kualitas data</th></tr></thead>
+        <tbody>
+          <tr><td>Judul Risiko</td><td>Nama singkat risiko, minimal 3 karakter.</td><td>Gunakan format kejadian yang jelas, bukan kalimat terlalu umum.</td></tr>
+          <tr><td>Deskripsi</td><td>Kondisi atau skenario risiko secara lengkap.</td><td>Sertakan pemicu, area terdampak, dan konteks unit.</td></tr>
+          <tr><td>Kategori Risiko</td><td>Kebijakan, Reputasi, Fraud/Korupsi, Legal, Kepatuhan, atau Operasional.</td><td>Pilih kategori dominan; kategori dapat mempengaruhi pelaporan.</td></tr>
+          <tr><td>Kode Risiko</td><td>Terisi otomatis setelah draft disimpan.</td><td>Jangan gunakan kode manual di judul.</td></tr>
+          <tr><td>Periode</td><td>Cycle manajemen risiko.</td><td>Pastikan sesuai semester kerja.</td></tr>
+          <tr><td>Unit Kerja</td><td>Organisasi pemilik risiko.</td><td>Untuk user unit, biasanya terkunci ke unit sendiri.</td></tr>
+        </tbody>
+      </table>
+      <h3>Bagian penyebab dan dampak</h3>
+      <ul>
+        <li>Tambahkan penyebab satu per satu agar mudah dianalisis.</li>
+        <li>Pilih sumber risiko yang relevan.</li>
+        <li>Tambahkan dampak secara spesifik, misalnya dampak layanan, kepatuhan, reputasi, biaya, atau keselamatan.</li>
+        <li>Hindari menggabungkan banyak risiko berbeda dalam satu record.</li>
+      </ul>
+      <h3>Bagian Analisis Risiko</h3>
+      <p>Pengguna menilai probabilitas dan dampak. Sistem menghitung skor dan tingkat risiko. Jika kriteria probabilitas/dampak tersedia, gunakan tooltip kriteria agar penilaian konsisten.</p>
+      <ol>
+        <li>Isi pengendalian yang sudah berjalan.</li>
+        <li>Pilih efektivitas pengendalian.</li>
+        <li>Pilih nilai probabilitas.</li>
+        <li>Pilih nilai dampak.</li>
+        <li>Periksa skor dan level risiko yang dihitung.</li>
+      </ol>
+      <h3>Bagian Evaluasi Risiko</h3>
+      <ul>
+        <li>Tentukan selera risiko atau appetite.</li>
+        <li>Pilih opsi penanganan: menghindari, berbagi, mitigasi, atau menerima risiko.</li>
+        <li>Pastikan pilihan penanganan sejalan dengan nilai risiko dan kapasitas unit.</li>
+      </ul>
+      <h3>Bagian Rencana Penanganan</h3>
+      <p>Masukkan rencana mitigasi secara terstruktur. Data mitigasi akan menjadi dasar penugasan dan laporan progres di menu Penanganan.</p>
+      <table>
+        <thead><tr><th>Elemen</th><th>Penjelasan</th></tr></thead>
+        <tbody>
+          <tr><td>Aksi mitigasi</td><td>Aktivitas konkret yang akan dilakukan.</td></tr>
+          <tr><td>PIC</td><td>Penanggung jawab internal atau eksternal.</td></tr>
+          <tr><td>Target waktu</td><td>Tenggat atau periode pelaksanaan.</td></tr>
+          <tr><td>Output</td><td>Bukti hasil yang diharapkan.</td></tr>
+          <tr><td>Indikator keberhasilan</td><td>Ukuran keberhasilan mitigasi.</td></tr>
+          <tr><td>Resource</td><td>SDM, anggaran, sistem, atau dukungan lain.</td></tr>
+        </tbody>
+      </table>
+      <h3>Bagian Target Penurunan</h3>
+      <ol>
+        <li>Pilih target probabilitas dan target dampak setelah mitigasi.</li>
+        <li>Periksa target level risiko yang dihasilkan.</li>
+        <li>Isi jadwal review berikutnya.</li>
+      </ol>
+      <h3>Reviewer dan approval line</h3>
+      <ol>
+        <li>Pilih reviewer.</li>
+        <li>Tambahkan approver/pimpinan sesuai urutan approval.</li>
+        <li>Pastikan setiap approver benar sebelum submit.</li>
+      </ol>
+      <div class="callout">
+        <strong>Validasi sebelum final.</strong> Sistem mewajibkan judul, deskripsi, kategori, penyebab, dampak, pengendalian, efektivitas pengendalian, pilihan penanganan, target probabilitas, target dampak, dan approval line sesuai kondisi submit.
+      </div>
+    `,
+  },
+  {
+    title: "7. Import Risiko",
+    body: `
+      <p>Import Risiko digunakan untuk memasukkan data secara massal. Halaman ini memiliki tab <strong>Risiko Baru</strong> dan <strong>Pemantauan</strong>.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Import Risiko dengan tab Risiko Baru dan Pemantauan.</div>
+      <h3>Import risiko baru</h3>
+      <ol>
+        <li>Buka Daftar Risiko lalu klik <strong>Import Risiko</strong>.</li>
+        <li>Pilih tab <strong>Risiko Baru</strong>.</li>
+        <li>Unduh template jika tersedia.</li>
+        <li>Pilih unit kerja tujuan.</li>
+        <li>Upload file template yang sudah diisi.</li>
+        <li>Klik preview untuk memvalidasi baris.</li>
+        <li>Periksa baris valid dan error.</li>
+        <li>Submit hanya jika baris valid sudah sesuai.</li>
+      </ol>
+      <h3>Import pemantauan</h3>
+      <ol>
+        <li>Pilih tab <strong>Pemantauan</strong>.</li>
+        <li>Pilih siklus pemantauan.</li>
+        <li>Pilih unit kerja.</li>
+        <li>Upload template pemantauan.</li>
+        <li>Preview data dan perbaiki error jika ada.</li>
+        <li>Submit untuk membuat batch monitoring.</li>
+      </ol>
+      <h3>Tips agar import tidak gagal</h3>
+      <ul>
+        <li>Jangan mengubah nama kolom template.</li>
+        <li>Gunakan cycle sesuai format aplikasi, misalnya 2026-H1.</li>
+        <li>Pastikan kategori risiko sama dengan opsi aplikasi.</li>
+        <li>Pastikan nilai probabilitas dan dampak berada dalam rentang 1 sampai 5.</li>
+        <li>Periksa pesan error preview sebelum submit.</li>
+      </ul>
+    `,
+  },
+  {
+    title: "8. Pemantauan Risiko / Reassessment",
+    body: `
+      <p>Pemantauan digunakan untuk menilai kembali risiko approved pada periode baru. Draft pemantauan dibuat dari risiko current agar perubahan dapat dibandingkan dengan versi sebelumnya.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: dialog Konfirmasi Reassessment dan form Pemantauan Risiko.</div>
+      <h3>Membuat draft pemantauan</h3>
+      <ol>
+        <li>Buka Daftar Risiko.</li>
+        <li>Pada risiko approved, klik menu aksi.</li>
+        <li>Pilih <strong>Mulai Pemantauan</strong>.</li>
+        <li>Pilih periode pemantauan.</li>
+        <li>Klik <strong>Lanjutkan</strong>.</li>
+      </ol>
+      <h3>Mengisi form pemantauan</h3>
+      <ul>
+        <li>Periksa profil risiko sumber sebelum mengubah penilaian.</li>
+        <li>Isi probabilitas dan dampak hasil pemantauan.</li>
+        <li>Tambahkan alasan perubahan skor jika nilai berubah.</li>
+        <li>Isi ringkasan review atau saran tindak lanjut.</li>
+        <li>Pilih reviewer dan approval line.</li>
+        <li>Simpan draft atau ajukan review sesuai kesiapan.</li>
+      </ul>
+      <h3>Hal yang perlu diperhatikan</h3>
+      <ul>
+        <li>Pemantauan yang sudah diajukan tidak dapat diedit lagi oleh pembuat.</li>
+        <li>Versi sebelumnya tetap disimpan untuk audit trail.</li>
+        <li>Jika user memiliki hak direct approval, pemantauan dapat langsung disetujui sesuai konfigurasi.</li>
+      </ul>
+    `,
+  },
+  {
+    title: "9. Kertas Kerja dan TTE",
+    body: `
+      <p>Kertas Kerja dipakai untuk mengompilasi risiko approved ke dalam dokumen pengesahan dan menjalankan proses tanda tangan berurutan.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Kertas Kerja dengan summary status dan daftar dokumen.</div>
+      <h3>Daftar Kertas Kerja</h3>
+      <p>Halaman daftar menampilkan jumlah total, draft, proses TTE, selesai, dan dibatalkan. Tabel memuat judul, siklus asesmen, status, jumlah risiko, progres TTE, dan tanggal dibuat.</p>
+      <h4>Filter yang tersedia</h4>
+      <ul>
+        <li>Tab status: Semua, Draft, Proses TTE, Selesai, Dibatalkan.</li>
+        <li>Pencarian judul kertas kerja.</li>
+        <li>Filter siklus asesmen.</li>
+        <li>Filter tanggal dibuat.</li>
+        <li>Pagination dan jumlah baris per halaman.</li>
+      </ul>
+      <h3>Membuat kertas kerja baru</h3>
+      <ol>
+        <li>Klik <strong>Buat Kertas Kerja</strong>.</li>
+        <li>Isi judul kertas kerja.</li>
+        <li>Isi deskripsi bila perlu.</li>
+        <li>Pilih risiko yang akan dimasukkan. Risiko dapat dicari berdasarkan judul atau kode.</li>
+        <li>Atur penandatangan pada bagian Konfigurasi Penandatangan.</li>
+        <li>Klik simpan/buat kertas kerja.</li>
+      </ol>
+      <div class="shot">TEMPATKAN SCREENSHOT: form Buat Kertas Kerja Baru dengan pilihan risiko dan penandatangan.</div>
+      <h3>Detail kertas kerja</h3>
+      <p>Detail kertas kerja menampilkan ringkasan dokumen, daftar risiko yang masuk dokumen, status tanda tangan, dan tombol aksi sesuai status.</p>
+      <table>
+        <thead><tr><th>Aksi</th><th>Kapan digunakan</th></tr></thead>
+        <tbody>
+          <tr><td>Export</td><td>Mengunduh atau menghasilkan dokumen kertas kerja.</td></tr>
+          <tr><td>Tandatangani</td><td>Muncul untuk penandatangan yang sedang mendapat giliran.</td></tr>
+          <tr><td>Batalkan</td><td>Membatalkan kertas kerja yang tidak akan dilanjutkan.</td></tr>
+          <tr><td>Hapus</td><td>Menghapus draft kertas kerja jika masih boleh dihapus.</td></tr>
+        </tbody>
+      </table>
+      <h3>Alur TTE</h3>
+      <ol>
+        <li>Pembuat membuat kertas kerja dan menentukan penandatangan.</li>
+        <li>Sistem memasukkan kertas kerja ke status Proses TTE.</li>
+        <li>Penandatangan pertama melihat item di Persetujuan & TTE.</li>
+        <li>Setelah penandatangan pertama menandatangani, giliran berpindah ke penandatangan berikutnya.</li>
+        <li>Jika semua penandatangan selesai, status menjadi Selesai.</li>
+      </ol>
+    `,
+  },
+  {
+    title: "10. Persetujuan & TTE",
+    body: `
+      <p>Menu Persetujuan & TTE adalah inbox terpadu untuk approval risiko, review laporan KRI, dan signing kertas kerja.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Persetujuan & TTE dengan tab/filter Perlu Tindakan.</div>
+      <h3>Ringkasan dan filter</h3>
+      <ul>
+        <li><strong>Total:</strong> semua item inbox yang dimuat.</li>
+        <li><strong>Perlu Tindakan:</strong> item yang menunggu aksi user saat ini.</li>
+        <li><strong>Disetujui:</strong> request approval yang sudah disetujui.</li>
+        <li><strong>Ditolak:</strong> request approval yang ditolak.</li>
+        <li><strong>Type filter:</strong> risk, incident, KRI report, atau working paper.</li>
+        <li><strong>Search:</strong> mencari kode, judul, unit, periode, nama pemohon, atau metadata lain.</li>
+      </ul>
+      <h3>Approval risiko atau assessment</h3>
+      <ol>
+        <li>Buka item dari daftar inbox.</li>
+        <li>Periksa detail risiko atau assessment melalui link detail.</li>
+        <li>Klik approve atau reject jika tombol tersedia.</li>
+        <li>Isi catatan bila diperlukan, terutama saat reject.</li>
+        <li>Kirim aksi dan tunggu notifikasi berhasil.</li>
+      </ol>
+      <h3>Review laporan KRI</h3>
+      <ol>
+        <li>Pilih item KRI Report dengan status Menunggu Review.</li>
+        <li>Periksa nilai, periode, dan catatan laporan.</li>
+        <li>Klik accept jika laporan benar.</li>
+        <li>Klik request revision jika perlu perbaikan dan isi catatan revisi.</li>
+      </ol>
+      <h3>TTE kertas kerja</h3>
+      <ol>
+        <li>Pilih item Kertas Kerja dengan status Menunggu TTE.</li>
+        <li>Buka detail kertas kerja untuk memeriksa isi dokumen dan daftar risiko.</li>
+        <li>Klik tombol tanda tangan jika user adalah penandatangan aktif.</li>
+        <li>Setelah berhasil, progres TTE bertambah.</li>
+      </ol>
+    `,
+  },
+  {
+    title: "11. Penanganan Mitigasi",
+    body: `
+      <p>Menu Penanganan digunakan untuk memantau dan melaporkan progres mitigasi. Data berasal dari rencana penanganan pada risk register yang sudah menghasilkan task mitigasi.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Penanganan dengan daftar mitigasi dan tombol laporan progres.</div>
+      <h3>Informasi yang tersedia</h3>
+      <ul>
+        <li>Daftar mitigasi berdasarkan risk dan periode.</li>
+        <li>Status pelaporan dan progres penyelesaian.</li>
+        <li>Detail mitigation action, PIC, due date, evidence, dan catatan.</li>
+        <li>Tombol submit progress untuk pelaporan berkala.</li>
+      </ul>
+      <h3>Melaporkan progres mitigasi</h3>
+      <ol>
+        <li>Buka <strong>Penanganan</strong>.</li>
+        <li>Pilih task mitigasi yang perlu dilaporkan.</li>
+        <li>Klik tombol laporan progres.</li>
+        <li>Isi persentase penyelesaian.</li>
+        <li>Isi nilai realisasi bila field tersedia.</li>
+        <li>Tambahkan URL bukti, misalnya Google Drive atau repository dokumen resmi.</li>
+        <li>Isi catatan pencapaian, kendala, atau kebutuhan eskalasi.</li>
+        <li>Klik Submit.</li>
+      </ol>
+      <h3>Validasi laporan</h3>
+      <ul>
+        <li>Persentase harus bernilai valid.</li>
+        <li>Field wajib harus lengkap sebelum tombol submit dapat digunakan.</li>
+        <li>Gunakan catatan untuk menjelaskan lonjakan, keterlambatan, atau perubahan rencana.</li>
+      </ul>
+    `,
+  },
+  {
+    title: "12. Monitoring dan KRI",
+    body: `
+      <p>Menu Monitoring menggabungkan workspace pelaporan, panel operasional, dan pengelolaan KRI. Halaman ini dipakai untuk memantau perubahan risiko, pemenuhan mitigasi, dan indikator kunci risiko.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Monitoring dengan workspace, panel operasional, dan daftar KRI.</div>
+      <h3>Panel operasional monitoring</h3>
+      <ul>
+        <li>Heatmap risiko per cycle.</li>
+        <li>Velocity atau pergerakan cell heatmap.</li>
+        <li>Top risks pada cycle terpilih.</li>
+        <li>Perbandingan risiko antar cycle.</li>
+        <li>Action pressure, yaitu tekanan tindak lanjut mitigasi.</li>
+      </ul>
+      <h3>Daftar KRI</h3>
+      <p>Panel KRI menampilkan ringkasan dashboard KRI dan daftar indikator. Pengguna dapat mencari KRI atau kode risiko, memfilter status, dan memfilter frekuensi.</p>
+      <table>
+        <thead><tr><th>Elemen KRI</th><th>Penjelasan</th></tr></thead>
+        <tbody>
+          <tr><td>Nama indikator</td><td>Indikator yang dipantau.</td></tr>
+          <tr><td>Risiko terkait</td><td>Risk yang menjadi sumber atau objek pemantauan.</td></tr>
+          <tr><td>Batas bawah/atas</td><td>Ambang batas yang menentukan kondisi aman atau breach.</td></tr>
+          <tr><td>Nilai saat ini</td><td>Nilai terbaru dari laporan KRI.</td></tr>
+          <tr><td>Arah indikator</td><td>Menentukan apakah nilai lebih tinggi atau lebih rendah dianggap memburuk.</td></tr>
+          <tr><td>Frekuensi</td><td>Jadwal pembaruan, misalnya bulanan atau triwulanan.</td></tr>
+        </tbody>
+      </table>
+      <h3>Membuat KRI baru</h3>
+      <ol>
+        <li>Buka Monitoring.</li>
+        <li>Klik <strong>Tambah KRI</strong>.</li>
+        <li>Pilih risiko terkait.</li>
+        <li>Isi nama indikator.</li>
+        <li>Isi deskripsi dan satuan ukur.</li>
+        <li>Isi batas bawah, batas atas, dan nilai saat ini.</li>
+        <li>Pilih arah indikator.</li>
+        <li>Pilih frekuensi pembaruan.</li>
+        <li>Simpan KRI.</li>
+      </ol>
+      <div class="shot">TEMPATKAN SCREENSHOT: form Tambah indikator KRI.</div>
+      <div class="callout">
+        <strong>Catatan konfigurasi.</strong> Pada build ini AI dinonaktifkan, sehingga bagian saran AI pada form KRI tidak perlu digunakan dalam panduan operasional.
+      </div>
+      <h3>Detail dan pelaporan KRI</h3>
+      <ol>
+        <li>Klik KRI dari daftar Monitoring.</li>
+        <li>Periksa metadata, risiko terkait, dan status laporan terbaru.</li>
+        <li>Pada jadwal pelaporan, klik Submit untuk periode yang perlu dilaporkan.</li>
+        <li>Isi nilai KRI dan catatan.</li>
+        <li>Kirim laporan. Nilai KRI saat ini akan diperbarui setelah proses diterima sesuai workflow.</li>
+      </ol>
+      <h3>Review laporan KRI</h3>
+      <p>Laporan KRI yang dikirim masuk ke Persetujuan & TTE sebagai KRI Report. Reviewer dapat menerima laporan atau meminta revisi.</p>
+    `,
+  },
+  {
+    title: "13. Laporan Aktif",
+    body: `
+      <p>Group Laporan yang aktif terdiri dari <strong>Analisis Risiko</strong> dan <strong>Monitoring Kepatuhan</strong>. Pada halaman Analisis Risiko terdapat analitik, perbandingan cycle, dan export aktif.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Analisis Risiko dengan export data dan grafik pergerakan risiko.</div>
+      <h3>Analisis Risiko</h3>
+      <ul>
+        <li>Distribusi kategori risiko per cycle.</li>
+        <li>Laporan pergerakan risiko dari cycle sebelumnya ke cycle terpilih.</li>
+        <li>Trend inherent dan residual.</li>
+        <li>Critical risk rate.</li>
+        <li>Pergerakan risiko per organisasi.</li>
+        <li>Progress kertas kerja per organisasi.</li>
+      </ul>
+      <h3>Export yang aktif</h3>
+      <table>
+        <thead><tr><th>Export</th><th>Format</th><th>Kegunaan</th></tr></thead>
+        <tbody>
+          <tr><td>Daftar Risiko</td><td>Excel</td><td>Mengunduh data risiko approved pada cycle terpilih.</td></tr>
+          <tr><td>Laporan Risiko</td><td>PDF</td><td>Mengunduh laporan eksekutif lengkap untuk cycle terpilih.</td></tr>
+          <tr><td>Pergerakan per Unit</td><td>Excel</td><td>Mengunduh tabel pergerakan risiko per organisasi.</td></tr>
+        </tbody>
+      </table>
+      <h3>Cara export laporan</h3>
+      <ol>
+        <li>Buka menu <strong>Laporan</strong> lalu <strong>Analisis Risiko</strong>.</li>
+        <li>Pilih cycle pada bagian Export Data.</li>
+        <li>Klik export yang diinginkan.</li>
+        <li>Tunggu notifikasi berhasil.</li>
+        <li>Jika tidak ada data, aplikasi menampilkan pesan bahwa data belum tersedia untuk cycle tersebut.</li>
+      </ol>
+      <h3>Monitoring Kepatuhan</h3>
+      <p>Halaman Monitoring Kepatuhan digunakan untuk membaca ringkasan kepatuhan, KRI breach, mitigasi overdue, response time unit, dan komponen monitoring lain yang bersumber dari dashboard risiko dan KRI.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Monitoring Kepatuhan.</div>
+    `,
+  },
+  {
+    title: "14. Master Users",
+    body: `
+      <p>Menu Users berada di group Master dan hanya tersedia untuk Super Admin. Fitur ini digunakan untuk mengelola akun aplikasi dan menyetujui registrasi pengguna.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Master Users dengan tabel pengguna dan filter.</div>
+      <h3>Daftar pengguna</h3>
+      <ul>
+        <li>Search berdasarkan nama, NIP, atau email.</li>
+        <li>Filter status pengguna.</li>
+        <li>Filter role pengguna.</li>
+        <li>Pagination dan jumlah baris per halaman.</li>
+        <li>Aksi approve/reject registrasi bila ada user pending.</li>
+      </ul>
+      <h3>Menambah pengguna</h3>
+      <ol>
+        <li>Buka <strong>Master - Users</strong>.</li>
+        <li>Klik <strong>Tambah Pengguna</strong>.</li>
+        <li>Isi Informasi akun: nama, NIP, email, nomor telepon, dan password awal.</li>
+        <li>Isi Informasi kepegawaian: jabatan dan pangkat.</li>
+        <li>Pilih role dan unit kerja.</li>
+        <li>Klik Simpan.</li>
+      </ol>
+      <h3>Role yang dapat dipilih</h3>
+      <ul>
+        <li>Super Admin.</li>
+        <li>Unit Kerja.</li>
+        <li>Reviewer.</li>
+        <li>Pimpinan.</li>
+      </ul>
+      <div class="callout">
+        <strong>Praktik aman.</strong> Gunakan password awal sementara dan minta pengguna mengganti password setelah login pertama. Pastikan unit kerja benar karena mempengaruhi cakupan data.
+      </div>
+    `,
+  },
+  {
+    title: "15. Master Organizations",
+    body: `
+      <p>Menu Organizations digunakan Super Admin untuk mengelola struktur organisasi. Struktur ini menentukan cakupan data, pemilik risiko, dan konteks organisasi.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Organizations dengan search dan tree/table organisasi.</div>
+      <h3>Fungsi utama</h3>
+      <ul>
+        <li>Melihat daftar organisasi.</li>
+        <li>Mencari organisasi.</li>
+        <li>Menambah organisasi.</li>
+        <li>Mengubah detail organisasi.</li>
+        <li>Menghapus organisasi jika tidak melanggar relasi data.</li>
+        <li>Melihat level UPR organisasi.</li>
+      </ul>
+      <h3>Data organisasi yang perlu dijaga</h3>
+      <ul>
+        <li>Nama organisasi.</li>
+        <li>Kode organisasi bila tersedia.</li>
+        <li>Parent organization untuk hierarki.</li>
+        <li>UPR level atau level unit pemilik risiko.</li>
+      </ul>
+      <h3>Dampak perubahan organisasi</h3>
+      <p>Perubahan struktur organisasi dapat mempengaruhi daftar risiko, akses user, pilihan unit pada form, dan agregasi dashboard. Lakukan perubahan master di luar jam sibuk jika dampaknya besar.</p>
+    `,
+  },
+  {
+    title: "16. Context Organisasi",
+    body: `
+      <p>Menu Context digunakan untuk menyimpan konteks organisasi yang mempengaruhi pemahaman risiko. Fitur ini aktif untuk Super Admin.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Context Organisasi dengan selector organisasi dan textarea konteks.</div>
+      <h3>Cara mengisi context</h3>
+      <ol>
+        <li>Buka <strong>Master - Context</strong>.</li>
+        <li>Pilih organisasi dari daftar.</li>
+        <li>Isi konteks internal dan eksternal organisasi.</li>
+        <li>Sertakan mandat, batasan, stakeholder, kondisi operasional, dan faktor penting lain.</li>
+        <li>Klik Simpan.</li>
+      </ol>
+      <h3>Contoh isi context yang baik</h3>
+      <ul>
+        <li>Mandat organisasi dan lingkup layanan.</li>
+        <li>Proses kritikal yang harus dijaga.</li>
+        <li>Ketergantungan pada sistem, vendor, atau unit lain.</li>
+        <li>Regulasi atau standar yang wajib dipenuhi.</li>
+        <li>Kondisi eksternal seperti wabah, perubahan kebijakan, atau keterbatasan anggaran.</li>
+      </ul>
+    `,
+  },
+  {
+    title: "17. Account dan Preferensi Pengguna",
+    body: `
+      <p>Halaman Account dapat dibuka dari dropdown profil di kanan atas. Fitur ini aktif untuk pengguna login.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Manage Account dengan profil, ringkasan akses, dan ganti password.</div>
+      <h3>Mengubah profil</h3>
+      <ol>
+        <li>Klik avatar/nama pengguna di header.</li>
+        <li>Pilih <strong>Profile</strong>.</li>
+        <li>Ubah nama lengkap, email, NIP, jabatan, atau pangkat.</li>
+        <li>Klik <strong>Simpan Profil</strong>.</li>
+      </ol>
+      <h3>Mengubah password</h3>
+      <ol>
+        <li>Isi password saat ini.</li>
+        <li>Isi password baru.</li>
+        <li>Ulangi password baru.</li>
+        <li>Klik simpan/ganti password.</li>
+      </ol>
+      <h3>Ringkasan akses</h3>
+      <p>Panel ringkasan akses menampilkan role, unit, dan status akun. Gunakan informasi ini untuk memastikan Anda sedang bekerja dengan hak akses yang tepat.</p>
+      <h3>Logout</h3>
+      <p>Klik avatar/nama pengguna di header lalu pilih Logout. Sesi token akan dihapus dan aplikasi kembali ke halaman login.</p>
+    `,
+  },
+  {
+    title: "18. Panduan Risiko Bawaan Aplikasi",
+    body: `
+      <p>Menu Panduan membuka panduan risiko bawaan aplikasi. Halaman ini membantu pengguna memahami alur manajemen risiko, konsep pemantauan, dan prosedur umum.</p>
+      <div class="shot">TEMPATKAN SCREENSHOT: halaman Panduan Risiko.</div>
+      <h3>Cara memanfaatkan panduan</h3>
+      <ul>
+        <li>Gunakan sebagai referensi cepat saat mengisi risk register.</li>
+        <li>Baca bagian lifecycle untuk memahami kapan membuat risk baru dan kapan membuat pemantauan.</li>
+        <li>Gunakan istilah yang konsisten dengan panduan saat menulis penyebab, dampak, dan mitigasi.</li>
+      </ul>
+    `,
+  },
+  {
+    title: "19. Praktik Kerja Harian yang Disarankan",
+    body: `
+      <h3>Untuk Unit Kerja</h3>
+      <ol>
+        <li>Masuk ke Dashboard untuk melihat kondisi umum.</li>
+        <li>Buka Daftar Risiko dan cek Draf.</li>
+        <li>Lengkapi draft yang belum siap.</li>
+        <li>Cek tab Pemantauan untuk draft reassessment yang sedang berjalan.</li>
+        <li>Buka Penanganan untuk melaporkan mitigasi yang jatuh tempo.</li>
+        <li>Buka Monitoring untuk cek KRI dan laporan yang perlu diisi.</li>
+      </ol>
+      <h3>Untuk Reviewer atau Pimpinan</h3>
+      <ol>
+        <li>Buka Persetujuan & TTE.</li>
+        <li>Filter Perlu Tindakan.</li>
+        <li>Buka detail item sebelum memberi keputusan.</li>
+        <li>Gunakan catatan reject atau revision secara spesifik.</li>
+        <li>Cek Dashboard atau Laporan bila perlu konteks portofolio.</li>
+      </ol>
+      <h3>Untuk Super Admin</h3>
+      <ol>
+        <li>Cek registrasi user yang pending.</li>
+        <li>Pastikan organisasi dan UPR level benar.</li>
+        <li>Lengkapi context organisasi untuk unit strategis.</li>
+        <li>Audit data master sebelum periode input risiko dimulai.</li>
+      </ol>
+    `,
+  },
+  {
+    title: "20. Troubleshooting Pengguna",
+    body: `
+      <table>
+        <thead><tr><th>Masalah</th><th>Kemungkinan penyebab</th><th>Langkah pengguna</th></tr></thead>
+        <tbody>
+          <tr><td>Tidak bisa login</td><td>NIP/password salah, akun belum approved, atau token lama.</td><td>Periksa NIP, reset password melalui admin, atau logout-login ulang.</td></tr>
+          <tr><td>Menu Master tidak muncul</td><td>User bukan Super Admin.</td><td>Hubungi admin jika memang perlu akses master.</td></tr>
+          <tr><td>Tombol tambah/edit tidak muncul</td><td>Data read-only, role tidak sesuai, atau status tidak mengizinkan edit.</td><td>Periksa role dan organisasi pemilik data.</td></tr>
+          <tr><td>Submit risiko ditolak validasi</td><td>Field wajib belum lengkap.</td><td>Periksa bagian identifikasi, analisis, evaluasi, penanganan, target, reviewer, dan approval line.</td></tr>
+          <tr><td>Export laporan gagal</td><td>Tidak ada data approved pada cycle yang dipilih.</td><td>Pilih cycle lain atau pastikan risiko sudah approved.</td></tr>
+          <tr><td>KRI tidak bisa disubmit</td><td>Nilai tidak valid atau periode tidak tepat.</td><td>Isi angka sesuai format dan tambahkan catatan jika ada perubahan ekstrem.</td></tr>
+          <tr><td>TTE tidak bisa dilakukan</td><td>Belum giliran user, bukan penandatangan aktif, atau status dokumen belum signing.</td><td>Periksa urutan tanda tangan di detail kertas kerja.</td></tr>
+        </tbody>
+      </table>
+    `,
+  },
+  {
+    title: "21. Checklist Screenshot untuk Finalisasi Manual",
+    body: `
+      <p>Gunakan daftar berikut jika dokumen ingin dilengkapi foto halaman aplikasi. Ambil screenshot pada resolusi desktop dengan sidebar terbuka agar konteks menu terlihat.</p>
+      <ol>
+        <li>Login.</li>
+        <li>Dashboard.</li>
+        <li>Daftar Risiko - All Risks.</li>
+        <li>Form Registrasi Risiko.</li>
+        <li>Import Risiko.</li>
+        <li>Form Pemantauan Risiko.</li>
+        <li>Kertas Kerja - daftar.</li>
+        <li>Buat Kertas Kerja Baru.</li>
+        <li>Persetujuan & TTE.</li>
+        <li>Penanganan.</li>
+        <li>Monitoring dan daftar KRI.</li>
+        <li>Tambah KRI.</li>
+        <li>Analisis Risiko / Export.</li>
+        <li>Monitoring Kepatuhan.</li>
+        <li>Users.</li>
+        <li>Organizations.</li>
+        <li>Context Organisasi.</li>
+        <li>Manage Account.</li>
+        <li>Panduan Risiko.</li>
+      </ol>
+    `,
+  },
+];
+
+const toc = sections
+  .map((section) => `<li><a href="#${slug(section.title)}">${section.title}</a></li>`)
+  .join("");
+
+function slug(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+const html = `<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Panduan Penggunaan MANRIS v2 - Fitur Aktif</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #172033;
+      background: #ffffff;
+      font-size: 10.4pt;
+      line-height: 1.55;
+    }
+    .cover {
+      min-height: 248mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10mm 0;
+      page-break-after: always;
+    }
+    .brand {
+      font-size: 11pt;
+      letter-spacing: 0.26em;
+      font-weight: 700;
+      color: #0f766e;
+      text-transform: uppercase;
+    }
+    .cover h1 {
+      margin: 28mm 0 5mm;
+      font-size: 32pt;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: #111827;
+    }
+    .cover .subtitle {
+      max-width: 150mm;
+      font-size: 13pt;
+      color: #4b5563;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: 42mm 1fr;
+      gap: 2.5mm 6mm;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 8mm;
+      color: #374151;
+      font-size: 10pt;
+    }
+    .meta .label {
+      color: #64748b;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 8pt;
+      letter-spacing: 0.12em;
+    }
+    .toc {
+      page-break-after: always;
+    }
+    .toc h2, section h2 {
+      font-size: 19pt;
+      color: #111827;
+      margin: 0 0 6mm;
+      letter-spacing: -0.01em;
+    }
+    .toc ol {
+      columns: 2;
+      column-gap: 12mm;
+      padding-left: 5mm;
+      margin: 0;
+      font-size: 9.5pt;
+    }
+    .toc li {
+      break-inside: avoid;
+      margin: 0 0 2.1mm;
+    }
+    a { color: #0f766e; text-decoration: none; }
+    section {
+      page-break-before: always;
+    }
+    section:first-of-type {
+      page-break-before: auto;
+    }
+    h3 {
+      margin: 7mm 0 2.5mm;
+      font-size: 13pt;
+      color: #0f172a;
+    }
+    h4 {
+      margin: 5mm 0 2mm;
+      font-size: 11.2pt;
+      color: #1f2937;
+    }
+    p { margin: 0 0 3.6mm; }
+    ul, ol {
+      margin: 0 0 4mm 5.5mm;
+      padding: 0;
+    }
+    li { margin: 0 0 1.8mm; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 3.5mm 0 6mm;
+      page-break-inside: avoid;
+      font-size: 9.2pt;
+    }
+    th {
+      background: #eef7f5;
+      color: #0f3f3a;
+      text-align: left;
+      font-weight: 700;
+      border: 1px solid #b9d8d3;
+      padding: 2.5mm 2.6mm;
+      vertical-align: top;
+    }
+    td {
+      border: 1px solid #d7e2e8;
+      padding: 2.5mm 2.6mm;
+      vertical-align: top;
+    }
+    code {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 3px;
+      padding: 0.2mm 1mm;
+      font-size: 8.8pt;
+    }
+    .callout {
+      margin: 4mm 0 6mm;
+      padding: 4mm;
+      border-left: 4px solid #0f766e;
+      background: #f0fdfa;
+      color: #134e4a;
+      page-break-inside: avoid;
+    }
+    .shot {
+      margin: 5mm 0 6mm;
+      min-height: 32mm;
+      border: 1.2px dashed #94a3b8;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 5mm;
+      font-size: 9.3pt;
+      font-weight: 700;
+      page-break-inside: avoid;
+    }
+    .footer-note {
+      margin-top: 8mm;
+      color: #64748b;
+      font-size: 9pt;
+    }
+    .scope-pill {
+      display: inline-block;
+      margin: 0 1.5mm 1.5mm 0;
+      padding: 1.4mm 2.5mm;
+      border: 1px solid #b9d8d3;
+      border-radius: 999px;
+      color: #115e59;
+      background: #f0fdfa;
+      font-size: 8.5pt;
+      font-weight: 700;
+    }
+    strong { color: #0f172a; }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div>
+      <div class="brand">MANRIS v2</div>
+      <h1>Panduan Penggunaan Aplikasi untuk Fitur Aktif</h1>
+      <p class="subtitle">Dokumen operasional super detail untuk pengguna aplikasi Manajemen Risiko dan Incident Management, disusun berdasarkan menu aktif dan konfigurasi aplikasi saat ini.</p>
+      <div style="margin-top: 10mm;">
+        <span class="scope-pill">Dashboard</span>
+        <span class="scope-pill">Risk Register</span>
+        <span class="scope-pill">Pemantauan</span>
+        <span class="scope-pill">Kertas Kerja</span>
+        <span class="scope-pill">Persetujuan & TTE</span>
+        <span class="scope-pill">Penanganan</span>
+        <span class="scope-pill">KRI</span>
+        <span class="scope-pill">Laporan</span>
+        <span class="scope-pill">Master Data</span>
+      </div>
+    </div>
+    <div class="meta">
+      <div class="label">Aplikasi</div><div>MANRIS v2 - AI-Driven Risk & Incident Management SaaS</div>
+      <div class="label">Standar</div><div>ISO 31000:2018 Risk Management Lifecycle</div>
+      <div class="label">Konfigurasi</div><div>Fitur AI & Automation dinonaktifkan pada frontend saat dokumen dibuat.</div>
+      <div class="label">Dibuat</div><div>${generatedAt} WIB</div>
+      <div class="label">Catatan</div><div>Gunakan kotak "TEMPATKAN SCREENSHOT" sebagai penanda foto halaman aplikasi yang perlu ditambahkan bila dokumen ingin diperkaya secara visual.</div>
+    </div>
+  </div>
+  <div class="toc">
+    <h2>Daftar Isi</h2>
+    <ol>${toc}</ol>
+  </div>
+  ${sections
+    .map(
+      (section) => `
+        <section id="${slug(section.title)}">
+          <h2>${section.title}</h2>
+          ${section.body}
+        </section>
+      `,
+    )
+    .join("\n")}
+  <section>
+    <h2>Penutup</h2>
+    <p>Dokumen ini sengaja hanya membahas fitur yang aktif dan terlihat dalam navigasi aplikasi pada konfigurasi saat ini. Jika konfigurasi AI atau modul lain diaktifkan pada release berikutnya, panduan perlu diperbarui agar mencakup alur baru tersebut.</p>
+    <p class="footer-note">Sumber penyusunan: struktur menu frontend, route aplikasi, konfigurasi environment, dan endpoint backend MANRIS v2 di workspace lokal.</p>
+  </section>
+</body>
+</html>`;
+
+async function main() {
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(htmlPath, html, "utf8");
+
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width: 1240, height: 1754 } });
+  await page.goto(`file://${htmlPath}`, { waitUntil: "networkidle" });
+  await page.pdf({
+    path: pdfPath,
+    format: "A4",
+    printBackground: true,
+    preferCSSPageSize: true,
+    displayHeaderFooter: true,
+    headerTemplate: `<div style="font-family:Arial,sans-serif;font-size:8px;color:#64748b;width:100%;padding:0 16mm;">Panduan Penggunaan MANRIS v2 - Fitur Aktif</div>`,
+    footerTemplate: `<div style="font-family:Arial,sans-serif;font-size:8px;color:#64748b;width:100%;padding:0 16mm;display:flex;justify-content:space-between;"><span>MANRIS v2</span><span>Halaman <span class="pageNumber"></span> dari <span class="totalPages"></span></span></div>`,
+    margin: { top: "18mm", right: "16mm", bottom: "18mm", left: "16mm" },
+  });
+  await browser.close();
+
+  console.log(JSON.stringify({ htmlPath, pdfPath }, null, 2));
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

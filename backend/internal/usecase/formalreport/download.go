@@ -125,6 +125,8 @@ func (uc *DownloadUseCase) Execute(ctx context.Context, input DownloadInput) (*D
 		// payload built after data shell via buildSupervisionReportData below
 	case entity.FormalReportTypeTMPMR:
 		data.TMPMRReport = reportgen.BuildTMPMRReportData(report, org, summary, tmpmr)
+	case entity.FormalReportTypeMonitoringEvaluation:
+		// payload built after data shell via buildMonitoringEvaluationData below
 	default:
 		return nil, errors.Wrap(errors.ErrInvalidInput, "unsupported formal report type")
 	}
@@ -137,6 +139,14 @@ func (uc *DownloadUseCase) Execute(ctx context.Context, input DownloadInput) (*D
 	// Build supervision-specific section status
 	if report.ReportType == entity.FormalReportTypeSemiannualSupervision {
 		data.SupervisionReport = uc.buildSupervisionReportData(ctx, report, org, summary, input.Scope)
+	}
+
+	if report.ReportType == entity.FormalReportTypeMonitoringEvaluation {
+		monitoringReport, err := uc.buildMonitoringEvaluationData(ctx, report, org, summary, input.Scope)
+		if err != nil {
+			return nil, err
+		}
+		data.MonitoringEvaluationReport = monitoringReport
 	}
 
 	pdfBytes, err := uc.pdfRenderer.RenderFormal(ctx, data)
@@ -259,6 +269,26 @@ func sortRisksByScoreDesc(risks []*entity.Risk) {
 		}
 		return left > right
 	})
+}
+
+func (uc *DownloadUseCase) buildMonitoringEvaluationData(
+	ctx context.Context,
+	report *entity.FormalReport,
+	org *entity.Organization,
+	summary entity.ReportSummary,
+	scope *entity.AccessScope,
+) (*entity.MonitoringEvaluationReportData, error) {
+	if uc.riskRepo == nil {
+		return buildMonitoringEvaluationReportData(report, org, summary, nil), nil
+	}
+
+	orgIDs := reportScopeOrgIDs(scope, report.OrganizationID)
+	risks, err := uc.riskRepo.ListCycleSnapshot(ctx, report.Period, orgIDs)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load monitoring evaluation risk snapshot")
+	}
+
+	return buildMonitoringEvaluationReportData(report, org, summary, compactRisks(risks)), nil
 }
 
 // buildImplementationReportData builds the implementation report payload with KMK process-stage

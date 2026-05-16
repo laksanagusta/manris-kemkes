@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
@@ -70,7 +71,17 @@ export default function LoginScreen() {
       />
 
       <div className="relative z-10 w-full max-w-md px-4 animate-fade-in">
-        <div className="mb-8 text-center">
+        <div className="mb-8 flex items-center justify-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background p-2">
+            <Image
+              src="/logo.svg"
+              alt="MANRIS logo"
+              width={26}
+              height={26}
+              className="object-contain"
+              priority
+            />
+          </div>
           <h1 className="text-2xl font-medium tracking-tight">
             <span className="gradient-text">M A N R I S</span>
           </h1>

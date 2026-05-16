@@ -50,17 +50,18 @@ type KMKReportSectionStatus struct {
 
 // KMKFormalReportData aggregates the inputs required to render a formal KMK report PDF.
 type KMKFormalReportData struct {
-	Report               *FormalReport
-	GeneratedAt          time.Time
-	Organization         *Organization
-	Period               string
-	RiskSummary          ReportSummary
-	TMPMR                *TMPMRAssessment
-	SectionStatus        []KMKReportSectionStatus
-	AnnualProfile        *AnnualRiskProfileData
-	ImplementationReport *SemiannualImplementationData
-	SupervisionReport    *SemiannualSupervisionData
-	TMPMRReport          *TMPMRReportData
+	Report                     *FormalReport
+	GeneratedAt                time.Time
+	Organization               *Organization
+	Period                     string
+	RiskSummary                ReportSummary
+	TMPMR                      *TMPMRAssessment
+	SectionStatus              []KMKReportSectionStatus
+	AnnualProfile              *AnnualRiskProfileData
+	ImplementationReport       *SemiannualImplementationData
+	SupervisionReport          *SemiannualSupervisionData
+	TMPMRReport                *TMPMRReportData
+	MonitoringEvaluationReport *MonitoringEvaluationReportData
 }
 
 type AnnualRiskProfileData struct {
@@ -92,4 +93,51 @@ type TMPMRReportData struct {
 	Organization *Organization
 	Summary      ReportSummary
 	TMPMR        *TMPMRAssessment
+}
+
+type MonitoringEvaluationReportData struct {
+	Report                  *FormalReport
+	Organization            *Organization
+	Summary                 ReportSummary
+	OrganizationName        string
+	Year                    string
+	SemesterLabel           string
+	ReportNumber            string
+	ReportDate              string
+	AssignmentLetterNumber  string
+	AssignmentLetterDate    string
+	MonitoringDateRange     string
+	UnitCode                string
+	UnitLocation            string
+	UnitAddress             string
+	UnitEselonI             string
+	UnitLeaderName          string
+	DocumentChecklist       []MonitoringEvaluationChecklistRow
+	InfrastructureChecklist []MonitoringEvaluationChecklistRow
+	ResultChecklist         []MonitoringEvaluationChecklistRow
+	MitigationSummary       []MonitoringEvaluationMitigationSummaryRow
+}
+
+type MonitoringEvaluationChecklistRow struct {
+	No          string
+	Item        string
+	Yes         bool
+	NoChecked   bool
+	Condition   string
+	Description string
+	Analysis    string
+}
+
+type MonitoringEvaluationMitigationSummaryRow struct {
+	No                         string
+	LevelKey                   string
+	LevelLabel                 string
+	RiskCount                  int
+	MitigationPlanCount        int
+	MitigationRealizationCount int
+	DownCount                  int
+	SameCount                  int
+	UpCount                    int
+	NewCount                   int
+	Total                      bool
 }

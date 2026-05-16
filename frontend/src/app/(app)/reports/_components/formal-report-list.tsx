@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { downloadFormalReport } from "@/lib/api/formal-reports";
+import { formalReportTypeLabels } from "@/lib/formal-report-definitions";
 import { cn } from "@/lib/utils";
 import { parseFormalReportSummary } from "@/types/formal-report";
 import type { FormalReport } from "@/types/formal-report";
@@ -29,13 +30,6 @@ import type { FormalReport } from "@/types/formal-report";
 type FormalReportListProps = {
   reports: FormalReport[];
   organizationNameById: Map<string, string>;
-};
-
-const reportTypeLabel: Record<FormalReport["reportType"], string> = {
-  annual_risk_profile: "Profil Risiko Tahunan",
-  semiannual_mr_implementation: "Laporan Penerapan MR Semesteran",
-  semiannual_mr_supervision: "Laporan Pengawasan MR Semesteran",
-  tmpmr_report: "Laporan TMPMR",
 };
 
 const reportStatusStyles: Record<FormalReport["status"], string> = {
@@ -144,7 +138,7 @@ export function FormalReportList({
                     <TableCell className="max-w-[280px] truncate">
                       {(() => {
                         const summary = parseFormalReportSummary(report.metadata);
-                        return summary?.headline || reportTypeLabel[report.reportType];
+                        return summary?.headline || formalReportTypeLabels[report.reportType];
                       })()}
                     </TableCell>
                     <TableCell>

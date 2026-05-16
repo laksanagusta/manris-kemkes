@@ -1,0 +1,88 @@
+<h2>Audit PDF Referensi: Laporan Monev MR per Unit</h2>
+<p class="subtitle">Saya sudah ekstrak PDF 12 halaman, ukuran Letter portrait, font dominan Arial, footer BSrE di tiap halaman. Berikut bagian yang perlu direplikasi.</p>
+
+<div class="section">
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Halaman 1: Cover dan Identitas</div>
+      <div class="mockup-body" style="padding:0;background:#f6f3ee">
+        <img src="reference-cover.png" alt="Cover PDF referensi" style="display:block;width:100%;height:auto;border-radius:6px">
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Halaman 5: Kelengkapan Dokumen</div>
+      <div class="mockup-body" style="padding:0;background:#f6f3ee">
+        <img src="reference-doc-table.png" alt="Tabel dokumen pendukung" style="display:block;width:100%;height:auto;border-radius:6px">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Halaman 8: Infrastruktur dan Hasil</div>
+      <div class="mockup-body" style="padding:0;background:#f6f3ee">
+        <img src="reference-infra-result.png" alt="Tabel infrastruktur dan hasil" style="display:block;width:100%;height:auto;border-radius:6px">
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Halaman 10: Format Mitigasi Risiko</div>
+      <div class="mockup-body" style="padding:0;background:#f6f3ee">
+        <img src="reference-mitigation.png" alt="Tabel mitigasi risiko" style="display:block;width:100%;height:auto;border-radius:6px">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">Halaman 12: Penutup dan Tanda Tangan</div>
+    <div class="mockup-body" style="padding:0;background:#f6f3ee;max-width:560px;margin:auto">
+      <img src="reference-signature.png" alt="Tanda tangan laporan" style="display:block;width:100%;height:auto;border-radius:6px">
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Struktur yang terdeteksi</h3>
+  <div class="options" data-multiselect>
+    <div class="option" data-choice="cover" onclick="toggleSelect(this)">
+      <div class="letter">1</div>
+      <div class="content">
+        <h3>Cover resmi</h3>
+        <p>Judul, unit kerja, semester/tahun, nomor, tanggal, kotak identitas unit, footer TTE elektronik.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="narrative" onclick="toggleSelect(this)">
+      <div class="letter">2</div>
+      <div class="content">
+        <h3>Narasi Bab 1-7</h3>
+        <p>Alamat tujuan, dasar pelaksanaan, tujuan, sasaran/ruang lingkup, metodologi, waktu, tim, identitas unit.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="checklists" onclick="toggleSelect(this)">
+      <div class="letter">3</div>
+      <div class="content">
+        <h3>Tabel pengujian</h3>
+        <p>Kelengkapan dokumen, kecukupan infrastruktur/rancangan proses MR, dan hasil pelaksanaan MR.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="mitigation" onclick="toggleSelect(this)">
+      <div class="letter">4</div>
+      <div class="content">
+        <h3>Tabel rekap mitigasi</h3>
+        <p>Jumlah risiko per level, rencana/realisasi mitigasi, risiko turun/menetap/naik/baru, plus kesimpulan naratif otomatis.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="signature" onclick="toggleSelect(this)">
+      <div class="letter">5</div>
+      <div class="content">
+        <h3>Penutup dan tanda tangan</h3>
+        <p>Saran perbaikan, ucapan terima kasih, kepala unit, ketua SKI, dan tim reviu, termasuk QR/TTE bila tersedia.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle">Klik bagian yang menurut Anda wajib ada. Kalau targetnya “persis attachment”, kemungkinan semua bagian di atas masuk scope.</p>
