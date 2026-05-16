@@ -23,6 +23,13 @@ export type RiskGuideFaqItem = {
   answer: string;
 };
 
+export type RiskGuideDocument = {
+  title: string;
+  description: string;
+  url: string;
+  label: string;
+};
+
 export type RiskGuideContent = {
   hero: {
     eyebrow: string;
@@ -36,6 +43,11 @@ export type RiskGuideContent = {
     url: string;
     embedUrl: string;
     label: string;
+  };
+  documents: {
+    title: string;
+    description: string;
+    items: readonly [RiskGuideDocument, RiskGuideDocument];
   };
   flow: {
     title: string;
@@ -76,6 +88,27 @@ export const riskGuideContent: RiskGuideContent = {
     url: "https://www.youtube.com/watch?v=IXlINKzRdQk",
     embedUrl: "https://www.youtube-nocookie.com/embed/IXlINKzRdQk",
     label: "Tonton di YouTube",
+  },
+  documents: {
+    title: "Dokumen pedoman & SOP",
+    description:
+      "Baca draf pedoman dan SOP langsung dari halaman ini. Jika pratinjau tidak muncul, buka dokumen di Google Drive.",
+    items: [
+      {
+        title: "Draf Pedoman",
+        description:
+          "Dokumen pedoman utama sebagai acuan penggunaan dan penerapan proses di MANRIS.",
+        url: "https://drive.google.com/file/d/1bV0VoGhhcnJ1MrJU5B4a564oQTk8IvoV/view?usp=sharing",
+        label: "Buka Draf Pedoman",
+      },
+      {
+        title: "Draf SOP",
+        description:
+          "Dokumen SOP pendukung untuk alur kerja operasional dan langkah pelaksanaan.",
+        url: "https://drive.google.com/file/d/1yt7OeYWWbG-Gd6_m5lYsl5p8KT6SDqZO/view?usp=sharing",
+        label: "Buka Draf SOP",
+      },
+    ],
   },
   flow: {
     title: "Alur Proses Risiko",

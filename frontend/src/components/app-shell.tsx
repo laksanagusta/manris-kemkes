@@ -53,7 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <main
             className={cn(
               "flex-1 px-18 py-6 transition-all duration-300 animate-fade-in",
-              collapsed ? "ml-14" : "ml-60",
+              collapsed ? "ml-16" : "ml-64",
             )}
           >
             {children}

@@ -240,7 +240,7 @@ function NavLink({
     <Link
       href={item.href}
       className={cn(
-        "group flex min-h-9 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
+        "group flex min-h-10 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
         isActive
           ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
@@ -355,12 +355,12 @@ export function AppSidebar({
     <aside
       className={cn(
         "fixed left-0 top-14 z-40 flex h-[calc(100vh-3.5rem)] min-h-0 flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
-        collapsed ? "w-14" : "w-60",
+        collapsed ? "w-16" : "w-64",
       )}
     >
       {/* Navigation */}
       <ScrollArea className="min-h-0 flex-1 px-3 py-4">
-        <nav className="space-y-4">
+        <nav className="space-y-5">
           <div>
             <NavLink
               item={dashboardNavigation}
@@ -378,7 +378,7 @@ export function AppSidebar({
                   collapsed ? (
                     <>
                       <Separator className="mb-2 bg-sidebar-border" />
-                      <div className="space-y-1.5">
+                      <div className="space-y-0.5">
                         {group.items?.map((item) => (
                           <NavLink
                             key={item.href}
@@ -409,7 +409,7 @@ export function AppSidebar({
                         />
                       </button>
                       {!isGroupCollapsed && (
-                        <div className="space-y-1.5">
+                        <div className="space-y-0.5">
                           {group.items?.map((item) => (
                             <NavLink
                               key={item.href}
@@ -447,7 +447,7 @@ export function AppSidebar({
                       <Separator className="mb-2 bg-sidebar-border" />
                     )}
                     {!isGroupCollapsed && (
-                      <div className="space-y-1.5">
+                      <div className="space-y-0.5">
                         {group.items?.map((item) => (
                           <NavLink
                             key={item.href}
