@@ -1,6 +1,8 @@
 package http
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -11,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/middleware"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
@@ -22,6 +25,7 @@ type RiskHandler struct {
 	createBatchUC           *riskuc.CreateRiskBatchUseCase
 	spreadsheetUC           *riskuc.BulkRiskSpreadsheetUseCase
 	getUC                   *riskuc.GetRiskUseCase
+	exportPDFUC             riskExportPDFUseCase
 	reassessUC              *riskuc.CreateRiskReassessmentUseCase
 	archiveUC               *riskuc.ArchiveRiskUseCase
 	restoreUC               *riskuc.RestoreRiskUseCase
@@ -52,11 +56,16 @@ type RiskHandler struct {
 	mmRepo                  repository.MeetingMinuteRepository
 }
 
+type riskExportPDFUseCase interface {
+	Execute(ctx context.Context, input riskuc.ExportRiskPDFInput) (*riskuc.ExportRiskPDFResult, error)
+}
+
 func NewRiskHandler(
 	createUC *riskuc.CreateRiskUseCase,
 	createBatchUC *riskuc.CreateRiskBatchUseCase,
 	spreadsheetUC *riskuc.BulkRiskSpreadsheetUseCase,
 	getUC *riskuc.GetRiskUseCase,
+	exportPDFUC riskExportPDFUseCase,
 	reassessUC *riskuc.CreateRiskReassessmentUseCase,
 	archiveUC *riskuc.ArchiveRiskUseCase,
 	restoreUC *riskuc.RestoreRiskUseCase,
@@ -91,6 +100,7 @@ func NewRiskHandler(
 		createBatchUC:           createBatchUC,
 		spreadsheetUC:           spreadsheetUC,
 		getUC:                   getUC,
+		exportPDFUC:             exportPDFUC,
 		reassessUC:              reassessUC,
 		archiveUC:               archiveUC,
 		restoreUC:               restoreUC,
@@ -770,6 +780,36 @@ func (h *RiskHandler) GetRisk(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"data": risk})
+}
+
+// ExportRiskPDF handles GET /api/v1/risks/:id/export-pdf
+func (h *RiskHandler) ExportRiskPDF(c *fiber.Ctx) error {
+	if h.exportPDFUC == nil {
+		return sendProblemDetails(c, fiber.StatusInternalServerError, "Internal Server Error", "https://api.manris.com/errors/internal-server-error", "risk pdf export use case is not configured")
+	}
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+	}
+
+	result, err := h.exportPDFUC.Execute(c.Context(), riskuc.ExportRiskPDFInput{
+		ID:    id,
+		Scope: middleware.GetAccessScope(c),
+	})
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrInvalidStatus) {
+			return sendProblemDetails(c, fiber.StatusConflict, "Conflict", "https://api.manris.com/errors/conflict", "export PDF only available for finalized risks")
+		}
+		return handleError(c, err)
+	}
+	if result == nil || len(result.Bytes) == 0 {
+		return sendProblemDetails(c, fiber.StatusInternalServerError, "Internal Server Error", "https://api.manris.com/errors/internal-server-error", "risk pdf export returned empty result")
+	}
+
+	c.Set("Content-Type", "application/pdf")
+	c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, result.Filename))
+	return c.Send(result.Bytes)
 }
 
 // CreateReassessment handles POST /api/risks/:id/reassess

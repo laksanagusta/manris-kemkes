@@ -113,4 +113,10 @@ test("createRiskBulkExportWorkbookBuffer creates worksheet with template headers
   assert.equal(sheet.getRow(2).getCell(12).alignment?.horizontal, "right");
   assert.equal(sheet.getRow(2).getCell(12).alignment?.vertical, "top");
   assert.equal(sheet.getColumn(17).alignment?.wrapText, true);
+  assert.equal(sheet.getRow(1).font?.name, "Bookman Old Style");
+  assert.equal(sheet.getRow(1).font?.bold, true);
+  assert.equal(sheet.getRow(1).getCell(1).fill?.type, "pattern");
+  assert.equal(sheet.getRow(1).getCell(1).border?.top?.style, "thin");
+  assert.equal(sheet.views?.[0]?.state, "frozen");
+  assert.equal(sheet.views?.[0]?.ySplit, 1);
 });

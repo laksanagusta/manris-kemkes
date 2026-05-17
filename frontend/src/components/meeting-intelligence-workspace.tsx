@@ -47,6 +47,7 @@ import {
   filterMeetingRiskOptions,
   normalizeMeetingMinuteDate,
 } from "@/lib/meeting-minutes-utils";
+import { exportMeetingMinuteDocument } from "@/lib/meeting-minute-export";
 import {
   AlertTriangle,
   CalendarDays,
@@ -54,6 +55,7 @@ import {
   CheckCircle2,
   ClipboardPaste,
   Clock3,
+  Download,
   GitBranch,
   Link2,
   Loader2,
@@ -69,7 +71,6 @@ import { createMeetingMinute } from "@/lib/meeting-minutes";
 
 type WorkspaceMode = "minutes" | "risk";
 type MinutesPriority = "High" | "Medium" | "Low";
-type MinutesStatus = "open" | "on_track" | "blocked";
 type TranscriptSuggestionTargetType = "existing" | "new";
 type TranscriptRiskChangeOperation = "set" | "append";
 
@@ -170,7 +171,7 @@ interface MinutesActionItem {
   ownerUnit?: string;
   deadline: string;
   priority: MinutesPriority;
-  status?: MinutesStatus;
+  status?: string;
   notes?: string;
   relatedDecision?: string;
   needsConfirmation?: string[];
@@ -225,18 +226,18 @@ const modeConfig: Record<
   }
 > = {
   minutes: {
-    title: "Buat Notulen",
-    summary: "Susun notulen rapat yang rapi tanpa membuka hasil analisis risiko.",
-    actionLabel: "Buat Notulen",
-    runningLabel: "Menyusun notulen...",
+    title: "Briefing Rapat",
+    summary: "Susun ringkasan formal rapat dan tindak lanjut tanpa membuka analisis risiko.",
+    actionLabel: "Susun Briefing",
+    runningLabel: "Menyusun briefing...",
     icon: CalendarDays,
     accent: "border-primary/30 bg-primary/[0.06] text-primary",
     chip: "bg-primary/10 text-primary border-primary/20",
   },
   risk: {
-    title: "Tinjau Perubahan Risiko",
+    title: "Tinjau Risiko",
     summary: "Nilai apakah rapat memunculkan risiko baru atau perubahan pada risiko yang sudah ada.",
-    actionLabel: "Tinjau Perubahan Risiko",
+    actionLabel: "Tinjau Risiko",
     runningLabel: "Meninjau perubahan risiko...",
     icon: ShieldAlert,
     accent: "border-amber-500/30 bg-amber-500/[0.06] text-amber-700",
@@ -248,18 +249,6 @@ const priorityVariant: Record<MinutesPriority, string> = {
   High: "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
   Medium: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
   Low: "bg-risk-low/15 text-risk-low border-risk-low/20",
-};
-
-const statusVariant: Record<MinutesStatus, string> = {
-  open: "bg-primary/10 text-primary border-primary/20",
-  on_track: "bg-success/10 text-success border-success/20",
-  blocked: "bg-amber-500/10 text-amber-700 border-amber-500/20",
-};
-
-const statusLabel: Record<MinutesStatus, string> = {
-  open: "Open",
-  on_track: "On Track",
-  blocked: "Blocked",
 };
 
 const suggestionTypeConfig: Record<
@@ -306,10 +295,6 @@ function getRiskStatusLabel(status?: string) {
 
 function normalizePriority(priority?: string): MinutesPriority {
   return priority === "High" || priority === "Low" ? priority : "Medium";
-}
-
-function normalizeStatus(status?: string): MinutesStatus {
-  return status === "on_track" || status === "blocked" ? status : "open";
 }
 
 function needsConfirmation(item: MinutesActionItem, field: "pic" | "deadline") {
@@ -416,7 +401,7 @@ export function MeetingIntelligenceWorkspace({
     return (
       <AIFeaturesDisabledState
         title="Workspace AI Dinonaktifkan"
-        description="Analisis meeting, transkrip, dan generator notulen sedang dimatikan melalui environment frontend."
+        description="Analisis meeting, transkrip, dan generator briefing sedang dimatikan melalui environment frontend."
         backHref="/overview"
       />
     );
@@ -502,7 +487,7 @@ function MeetingIntelligenceWorkspaceContent({
 
         const nextMinutes: MinutesResult = {
           id: createMinutesId(1),
-          title: data.title || "Notulen Rapat",
+          title: data.title || "Briefing Rapat",
           date: normalizeMeetingMinuteDate(data.date),
           participants: data.participants || [],
           agenda: data.agenda || [],
@@ -513,7 +498,6 @@ function MeetingIntelligenceWorkspaceContent({
           actionItems: (data.actionItems || []).map((item) => ({
             ...item,
             priority: normalizePriority(item.priority),
-            status: normalizeStatus(item.status),
             needsConfirmation: item.needsConfirmation || [],
           })),
           nextCheckIn: data.nextCheckIn || "",
@@ -521,7 +505,7 @@ function MeetingIntelligenceWorkspaceContent({
         };
 
         setGeneratedMinutes(nextMinutes);
-        toast.success("Notulen siap ditinjau.");
+        toast.success("Briefing siap ditinjau.");
         return;
       }
 
@@ -537,7 +521,7 @@ function MeetingIntelligenceWorkspaceContent({
       console.error(error);
       toast.error(
         mode === "minutes"
-          ? "Notulen belum berhasil dibuat. Silakan coba lagi."
+          ? "Briefing belum berhasil dibuat. Silakan coba lagi."
           : "Perubahan risiko belum berhasil dianalisis. Silakan coba lagi."
       );
     } finally {
@@ -576,7 +560,7 @@ function MeetingIntelligenceWorkspaceContent({
     saveMeetingIntelligencePrefill(tokenizedPrefill, payload);
     const draftUrl = `/risk/register/new?${MEETING_INTELLIGENCE_PREFILL_PARAM}=${encodeURIComponent(tokenizedPrefill)}`;
     window.open(draftUrl, "_blank", "noopener,noreferrer");
-    toast.success("Draft risiko dibuka di tab baru tanpa menghapus hasil analisis transcript.");
+    toast.success("Draf risiko dibuka di tab baru tanpa menghapus hasil analisis transkrip.");
   };
 
   const handleReviewExistingSuggestion = async (suggestion: Suggestion) => {
@@ -709,9 +693,19 @@ function MeetingIntelligenceWorkspaceContent({
     }
   };
 
+  const handleExportMinutes = () => {
+    if (!generatedMinutes) {
+      toast.error("Belum ada briefing yang bisa diekspor.");
+      return;
+    }
+
+    exportMeetingMinuteDocument(generatedMinutes);
+    toast.success("Briefing berhasil diekspor.");
+  };
+
   const handleSaveMinutes = async () => {
     if (!generatedMinutes) {
-      toast.error("Belum ada notulen yang digenerate.");
+      toast.error("Belum ada briefing yang digenerate.");
       return;
     }
     if (!token) {
@@ -741,12 +735,12 @@ function MeetingIntelligenceWorkspaceContent({
       console.log("[SaveMinutes] Result:", result);
       
       setSavedMinutesId(result.id);
-      toast.success("Notulen berhasil disimpan");
+      toast.success("Briefing berhasil disimpan");
       setShowSaveDialog(false);
       router.push(`/minutes/${result.id}`);
     } catch (error) {
       console.error("[SaveMinutes] Error:", error);
-      const msg = error instanceof Error ? error.message : "Gagal menyimpan notulen";
+      const msg = error instanceof Error ? error.message : "Gagal menyimpan briefing";
       toast.error(msg);
     } finally {
       setIsSavingMinutes(false);
@@ -757,13 +751,13 @@ function MeetingIntelligenceWorkspaceContent({
     <div className="space-y-6 animate-fade-in">
       <section className="space-y-2">
         <Badge variant="outline" className="border-border/70 text-[10px] uppercase tracking-[0.18em]">
-          Meeting
+          Briefing
         </Badge>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Tinjau rapat, lalu pilih satu keluaran.
+          Tinjau rapat, lalu susun briefing atau tinjauan risiko.
         </h1>
         <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-          Paste transkrip sekali, lalu pilih apakah Anda ingin menyusun notulen atau menilai perubahan risiko.
+          Paste transkrip sekali, lalu pilih apakah Anda ingin menyusun briefing formal atau menilai perubahan risiko.
         </p>
       </section>
 
@@ -774,10 +768,10 @@ function MeetingIntelligenceWorkspaceContent({
                 <div className="space-y-1.5">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ClipboardPaste className="size-4 text-primary" />
-                    Transcript
+                    Transkrip
                   </CardTitle>
                   <p className="text-sm leading-6 text-muted-foreground">
-                    Pilih satu output dulu. Anda bisa memakai transkrip yang sama lagi nanti.
+                    Pilih satu keluaran dulu. Anda bisa memakai transkrip yang sama lagi nanti.
                   </p>
                 </div>
               </div>
@@ -868,8 +862,17 @@ function MeetingIntelligenceWorkspaceContent({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Badge className={cn("w-fit border text-[10px] uppercase tracking-[0.18em]", modeConfig.minutes.chip)}>
-                          Draf Notulen
+                          Draf Briefing
                         </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs"
+                          onClick={handleExportMinutes}
+                        >
+                          <Download className="size-3.5" />
+                          Export Briefing
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -878,13 +881,13 @@ function MeetingIntelligenceWorkspaceContent({
                           disabled={savedMinutesId !== null}
                         >
                           <Save className="size-3.5" />
-                          {savedMinutesId ? "Tersimpan" : "Simpan Notulen"}
+                          {savedMinutesId ? "Tersimpan" : "Simpan Briefing"}
                         </Button>
                       </div>
                       <div>
                         <CardTitle className="text-lg">{generatedMinutes.title}</CardTitle>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          Tinjau hasil notulen ini sebelum dibagikan ke peserta rapat.
+                          Tinjau briefing ini sebelum dibagikan ke peserta rapat.
                         </p>
                       </div>
                     </div>
@@ -901,27 +904,81 @@ function MeetingIntelligenceWorkspaceContent({
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6 p-5">
-                  <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <div className="border border-border/60 bg-muted/[0.16] p-4">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Tindak lanjut</p>
-                      <p className="mt-2 text-2xl font-semibold">{minutesSummary?.total ?? 0}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Item aksi yang terdeteksi</p>
+                  <section className="border border-border/50 bg-muted/[0.12] px-4 py-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          Ringkasan operasional
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Snapshot tindak lanjut yang paling penting untuk dibaca cepat.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1">
+                          <span className="font-medium text-foreground">{minutesSummary?.total ?? 0}</span>
+                          Tindak lanjut
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1">
+                          <span className="font-medium text-foreground">{minutesSummary?.missingPic ?? 0}</span>
+                          Perlu PIC
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1">
+                          <span className="font-medium text-foreground">{minutesSummary?.missingDeadline ?? 0}</span>
+                          Perlu deadline
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1">
+                          <span className="font-medium text-foreground">{minutesSummary?.highPriority ?? 0}</span>
+                          Prioritas tinggi
+                        </span>
+                      </div>
                     </div>
-                    <div className="border border-border/60 bg-muted/[0.16] p-4">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Perlu PIC</p>
-                      <p className="mt-2 text-2xl font-semibold">{minutesSummary?.missingPic ?? 0}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Item belum punya PIC yang pasti</p>
+                  </section>
+
+                  <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Peserta rapat
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {generatedMinutes.participants.length > 0 ? (
+                          generatedMinutes.participants.map((participant) => (
+                            <Badge key={participant} variant="outline" className="border-border/70 bg-background px-2.5 py-1 text-xs">
+                              <Users className="mr-1 size-3" />
+                              {participant}
+                            </Badge>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Belum ada peserta yang teridentifikasi.</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="border border-border/60 bg-muted/[0.16] p-4">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Perlu deadline</p>
-                      <p className="mt-2 text-2xl font-semibold">{minutesSummary?.missingDeadline ?? 0}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Item belum punya tenggat yang jelas</p>
+
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Agenda
+                      </p>
+                      <div className="mt-3 space-y-2">
+                        {generatedMinutes.agenda.length > 0 ? (
+                          generatedMinutes.agenda.map((item, index) => (
+                            <div key={`${item}-${index}`} className="border border-border/60 bg-background px-3 py-2 text-sm">
+                              {item}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Agenda belum terdeteksi dari transkrip ini.</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="border border-border/60 bg-muted/[0.16] p-4">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Prioritas tinggi</p>
-                      <p className="mt-2 text-2xl font-semibold">{minutesSummary?.highPriority ?? 0}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Butuh perhatian lebih cepat</p>
-                    </div>
+                  </section>
+
+                  <section>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Ringkasan
+                    </p>
+                    <p className="mt-3 text-sm leading-6 text-foreground">
+                      {generatedMinutes.summary || "AI belum memberikan ringkasan. Gunakan transkrip yang lebih lengkap lalu coba lagi."}
+                    </p>
                   </section>
 
                   <section className="space-y-3">
@@ -949,7 +1006,7 @@ function MeetingIntelligenceWorkspaceContent({
                           Tindak Lanjut
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          Fokus utama notulen ini adalah memastikan hasil rapat bisa langsung ditindaklanjuti.
+                          Fokus utama briefing ini adalah memastikan hasil rapat bisa langsung ditindaklanjuti.
                         </p>
                       </div>
                       {generatedMinutes.nextCheckIn ? (
@@ -960,70 +1017,87 @@ function MeetingIntelligenceWorkspaceContent({
                     </div>
                     <div className="space-y-3">
                       {generatedMinutes.actionItems.length > 0 ? (
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="border-border/50 hover:bg-transparent">
-                              <TableHead className="text-xs max-w-[280px]">Tindak Lanjut</TableHead>
-                              <TableHead className="text-xs max-w-[140px]">PIC</TableHead>
-                              <TableHead className="text-xs max-w-[120px]">Deadline</TableHead>
-                              <TableHead className="text-xs w-[100px]">Prioritas</TableHead>
-                              <TableHead className="text-xs w-[100px]">Status</TableHead>
-                              <TableHead className="text-xs max-w-[200px]">Catatan</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {generatedMinutes.actionItems.map((item, index) => {
-                              const itemPriority = normalizePriority(item.priority);
-                              const itemStatus = normalizeStatus(item.status);
-                              const missingPic = needsConfirmation(item, "pic");
-                              const missingDeadline = needsConfirmation(item, "deadline");
-
-                              return (
-                                <TableRow key={`${item.task}-${index}`} className="border-border/30 hover:bg-muted/30">
-                                  <TableCell className="max-w-[280px]">
-                                    <p className="truncate text-xs font-medium" title={item.task}>{item.task}</p>
-                                    {item.ownerUnit && (
-                                      <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={item.ownerUnit}>Unit: {item.ownerUnit}</p>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="max-w-[140px] text-xs">
-                                    {item.pic ? (
-                                      <span className="truncate block" title={item.pic}>{item.pic}</span>
-                                    ) : (
-                                      <span className="text-muted-foreground">
-                                        {missingPic && <Badge variant="outline" className="border-amber-500/30 bg-amber-500/5 text-[9px] text-amber-700">Perlu PIC</Badge>}
-                                      </span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="max-w-[120px] text-xs">
-                                    {item.deadline ? (
-                                      <span className="truncate block" title={item.deadline}>{item.deadline}</span>
-                                    ) : (
-                                      <span className="text-muted-foreground">
-                                        {missingDeadline && <Badge variant="outline" className="border-amber-500/30 bg-amber-500/5 text-[9px] text-amber-700">Perlu deadline</Badge>}
-                                      </span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="w-[100px] text-center">
-                                    <Badge className={cn("w-fit border text-[9px]", priorityVariant[itemPriority])}>
-                                      {itemPriority}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="w-[100px] text-center">
-                                    <Badge className={cn("w-fit border text-[9px]", statusVariant[itemStatus])}>
-                                      {statusLabel[itemStatus]}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="max-w-[200px] text-xs text-muted-foreground">
-                                    <span className="block truncate" title={item.notes || item.relatedDecision}>
-                                      {item.notes || item.relatedDecision || "-"}
-                                    </span>
-                                  </TableCell>
+                        <div className="overflow-hidden rounded-2xl border border-border/50">
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow className="border-border/50 hover:bg-transparent">
+                                  <TableHead className="text-xs max-w-[280px]">Tindak lanjut</TableHead>
+                                  <TableHead className="text-xs max-w-[140px]">PIC</TableHead>
+                                  <TableHead className="text-xs max-w-[120px]">Deadline</TableHead>
+                                  <TableHead className="text-xs w-[100px]">Prioritas</TableHead>
+                                  <TableHead className="text-xs max-w-[200px]">Catatan</TableHead>
                                 </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
+                              </TableHeader>
+                              <TableBody>
+                                {generatedMinutes.actionItems.map((item, index) => {
+                                  const itemPriority = normalizePriority(item.priority);
+                                  const missingPic = needsConfirmation(item, "pic");
+                                  const missingDeadline = needsConfirmation(item, "deadline");
+
+                                  return (
+                                    <TableRow key={`${item.task}-${index}`} className="border-border/50 hover:bg-muted/20">
+                                      <TableCell className="max-w-[280px] align-top">
+                                        <p className="truncate text-sm font-medium leading-snug" title={item.task}>
+                                          {item.task}
+                                        </p>
+                                        {item.ownerUnit && (
+                                          <p className="mt-1 truncate text-xs text-muted-foreground" title={item.ownerUnit}>
+                                            Unit: {item.ownerUnit}
+                                          </p>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="max-w-[140px] align-top text-xs">
+                                        {item.pic ? (
+                                          <span className="block truncate" title={item.pic}>
+                                            {item.pic}
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground">
+                                            {missingPic ? (
+                                              <Badge variant="outline" className="border-amber-500/30 bg-amber-500/5 text-[9px] text-amber-700">
+                                                Perlu PIC
+                                              </Badge>
+                                            ) : (
+                                              "-"
+                                            )}
+                                          </span>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="max-w-[120px] align-top text-xs">
+                                        {item.deadline ? (
+                                          <span className="block truncate" title={item.deadline}>
+                                            {item.deadline}
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground">
+                                            {missingDeadline ? (
+                                              <Badge variant="outline" className="border-amber-500/30 bg-amber-500/5 text-[9px] text-amber-700">
+                                                Perlu deadline
+                                              </Badge>
+                                            ) : (
+                                              "-"
+                                            )}
+                                          </span>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="w-[100px] align-top text-center">
+                                        <Badge className={cn("w-fit border text-[9px]", priorityVariant[itemPriority])}>
+                                          {itemPriority}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="max-w-[200px] align-top text-xs text-muted-foreground">
+                                        <span className="block truncate" title={item.notes || item.relatedDecision}>
+                                          {item.notes || item.relatedDecision || "-"}
+                                        </span>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">Belum ada tindak lanjut yang terdeteksi.</p>
                       )}
@@ -1048,73 +1122,25 @@ function MeetingIntelligenceWorkspaceContent({
                     </div>
                   </section>
 
-                  <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-                    <div className="space-y-6">
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          Keputusan
-                        </p>
-                        <div className="mt-3 space-y-2">
-                          {generatedMinutes.decisions.length > 0 ? (
-                            generatedMinutes.decisions.map((decision, index) => (
-                              <div
-                                key={`${decision}-${index}`}
-                                className="flex gap-3 border-l border-primary/30 bg-primary/[0.04] px-4 py-3"
-                              >
-                                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                                <p className="text-sm leading-6 text-foreground">{decision}</p>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-sm text-muted-foreground">Belum ada keputusan yang terstruktur.</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          Ringkasan
-                        </p>
-                        <p className="mt-3 text-sm leading-6 text-foreground">
-                          {generatedMinutes.summary || "AI belum memberikan ringkasan. Gunakan transkrip yang lebih lengkap lalu coba lagi."}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          Peserta
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {generatedMinutes.participants.length > 0 ? (
-                            generatedMinutes.participants.map((participant) => (
-                              <Badge key={participant} variant="outline" className="border-border/70 bg-background px-2.5 py-1 text-xs">
-                                <Users className="mr-1 size-3" />
-                                {participant}
-                              </Badge>
-                            ))
-                          ) : (
-                            <p className="text-sm text-muted-foreground">Belum ada peserta yang teridentifikasi.</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          Agenda
-                        </p>
-                        <div className="mt-3 space-y-2">
-                          {generatedMinutes.agenda.length > 0 ? (
-                            generatedMinutes.agenda.map((item, index) => (
-                              <div key={`${item}-${index}`} className="border border-border/60 bg-background px-3 py-2 text-sm">
-                                {item}
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-sm text-muted-foreground">Agenda belum terdeteksi dari transkrip ini.</p>
-                          )}
-                        </div>
+                  <section>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Keputusan
+                      </p>
+                      <div className="mt-3 space-y-2">
+                        {generatedMinutes.decisions.length > 0 ? (
+                          generatedMinutes.decisions.map((decision, index) => (
+                            <div
+                              key={`${decision}-${index}`}
+                              className="flex gap-3 border-l border-primary/30 bg-primary/[0.04] px-4 py-3"
+                            >
+                              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                              <p className="text-sm leading-6 text-foreground">{decision}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Belum ada keputusan yang terstruktur.</p>
+                        )}
                       </div>
                     </div>
                   </section>
@@ -1124,7 +1150,7 @@ function MeetingIntelligenceWorkspaceContent({
               <Card className="border-dashed border-border/70 bg-muted/[0.12]">
                 <CardContent className="flex flex-col items-start gap-3 p-6">
                   <div>
-                    <p className="text-base font-medium text-foreground">Notulen akan muncul di sini setelah Anda menjalankan mode ini.</p>
+                    <p className="text-base font-medium text-foreground">Briefing akan muncul di sini setelah Anda menjalankan mode ini.</p>
                   </div>
                 </CardContent>
               </Card>
@@ -1148,7 +1174,7 @@ function MeetingIntelligenceWorkspaceContent({
                     </Badge>
                     {suggestionSummary.lowConfidence > 0 ? (
                       <Badge className="border border-amber-500/20 bg-amber-500/10 text-[10px] uppercase tracking-[0.12em] text-amber-700">
-                        Low confidence: {suggestionSummary.lowConfidence}
+                        Keyakinan rendah: {suggestionSummary.lowConfidence}
                       </Badge>
                     ) : null}
                   </div>
@@ -1162,10 +1188,7 @@ function MeetingIntelligenceWorkspaceContent({
                   return (
                     <Card
                       key={suggestion.id}
-                      className={cn(
-                        "border-border/60 bg-card/90",
-                        suggestion.targetType === "existing" ? "border-l-4 border-l-primary" : "border-l-4 border-l-success"
-                      )}
+                      className="border-border/60 bg-card/90 shadow-sm"
                     >
                       <CardContent className="space-y-4 p-5">
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -1189,7 +1212,7 @@ function MeetingIntelligenceWorkspaceContent({
                                       : "border-success/30 bg-success/5 text-success"
                                   )}
                                 >
-                                  Confidence {suggestion.matchConfidence}%
+                                  Tingkat keyakinan {suggestion.matchConfidence}%
                                 </Badge>
                               ) : null}
                             </div>
@@ -1221,7 +1244,7 @@ function MeetingIntelligenceWorkspaceContent({
                               <div className="flex gap-3 border border-amber-500/20 bg-amber-500/5 px-4 py-3">
                                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" />
                                 <p className="text-sm leading-6 text-amber-800">
-                                  AI belum cukup yakin dengan target existing risk. Reviewer perlu memastikan target risk sebelum apply.
+                                  AI belum cukup yakin dengan target risiko eksisting. Reviewer perlu memastikan target risiko sebelum menerapkan perubahan.
                                 </p>
                               </div>
                             ) : null}
@@ -1230,7 +1253,7 @@ function MeetingIntelligenceWorkspaceContent({
                               <div className="flex flex-col gap-3 border border-success/20 bg-success/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                   <p className="text-sm font-medium text-success">
-                                    {appliedResult.createdNewVersion ? "Versi draft baru sudah dibuat." : "Draft existing sudah diperbarui."}
+                                    {appliedResult.createdNewVersion ? "Versi draf baru sudah dibuat." : "Draf existing sudah diperbarui."}
                                   </p>
                                   <p className="mt-1 text-xs text-muted-foreground">
                                     {appliedResult.riskCode} • status {appliedResult.status}
@@ -1251,23 +1274,23 @@ function MeetingIntelligenceWorkspaceContent({
 
                           <div className="w-full border border-border/60 bg-muted/[0.16] p-4 lg:w-[320px]">
                             <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                              {suggestion.targetType === "existing" ? "Ringkasan perubahan" : "Prefill draft"}
+                              {suggestion.targetType === "existing" ? "Ringkasan perubahan" : "Isian awal draf"}
                             </p>
                             <div className="mt-3 space-y-2 text-sm">
                               {suggestion.targetType === "existing" ? (
                                 <>
                                   <div className="flex items-start justify-between gap-3">
-                                    <span className="text-muted-foreground">Perubahan</span>
+                                    <span className="text-muted-foreground">Jumlah perubahan</span>
                                     <span className="font-medium text-foreground">{changeCount}</span>
                                   </div>
                                   <div className="flex items-start justify-between gap-3">
-                                    <span className="text-muted-foreground">Target</span>
+                                    <span className="text-muted-foreground">Target risiko</span>
                                     <span className="text-right font-medium text-foreground">
                                       {suggestion.targetRiskTitle || "Perlu dipastikan"}
                                     </span>
                                   </div>
                                   <div className="flex items-start justify-between gap-3">
-                                    <span className="text-muted-foreground">Candidates</span>
+                                    <span className="text-muted-foreground">Kandidat</span>
                                     <span className="text-right font-medium text-foreground">
                                       {suggestion.candidateRisks?.length || 0}
                                     </span>
@@ -1276,17 +1299,17 @@ function MeetingIntelligenceWorkspaceContent({
                               ) : (
                                 <>
                                   <div className="flex items-start justify-between gap-3">
-                                    <span className="text-muted-foreground">Source</span>
+                                    <span className="text-muted-foreground">Sumber</span>
                                     <span className="text-right font-medium text-foreground">
                                       {suggestion.draftPrefill?.source || "Belum tersedia"}
                                     </span>
                                   </div>
                                   <div className="flex items-start justify-between gap-3">
-                                    <span className="text-muted-foreground">Probability</span>
+                                    <span className="text-muted-foreground">Probabilitas</span>
                                     <span className="font-medium text-foreground">{suggestion.draftPrefill?.probability || "-"}</span>
                                   </div>
                                   <div className="flex items-start justify-between gap-3">
-                                    <span className="text-muted-foreground">Impact</span>
+                                    <span className="text-muted-foreground">Dampak</span>
                                     <span className="font-medium text-foreground">{suggestion.draftPrefill?.impact || "-"}</span>
                                   </div>
                                 </>
@@ -1303,12 +1326,12 @@ function MeetingIntelligenceWorkspaceContent({
                               onClick={() => handleReviewExistingSuggestion(suggestion)}
                             >
                               <GitBranch className="size-3.5" />
-                              Review perubahan
+                              Tinjau perubahan
                             </Button>
                           ) : (
                             <Button size="sm" className="gap-2 text-xs" onClick={() => handleOpenDraft(suggestion)}>
                               <Check className="size-3.5" />
-                              Susun draft
+                              Susun draf
                             </Button>
                           )}
                           <Button
@@ -1318,11 +1341,11 @@ function MeetingIntelligenceWorkspaceContent({
                             onClick={() => handleDismissSuggestion(suggestion.id)}
                           >
                             <X className="size-3.5" />
-                            Abaikan
+                            Abaikan saran
                           </Button>
                           {suggestion.targetType === "existing" && !canApplyExistingRisk ? (
                             <p className="ml-auto text-xs text-muted-foreground">
-                              Hanya role Unit dan Super Admin yang bisa apply update langsung.
+                              Hanya peran Unit dan Super Admin yang bisa menerapkan pembaruan langsung.
                             </p>
                           ) : null}
                         </div>
@@ -1348,7 +1371,7 @@ function MeetingIntelligenceWorkspaceContent({
                       <DialogHeader className="shrink-0 border-b border-border/60 bg-background px-6 py-4">
                         <div className="space-y-3">
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                            <span className="font-medium text-foreground">Review perubahan</span>
+                            <span className="font-medium text-foreground">Tinjau perubahan</span>
                             {reviewSuggestion.targetRiskCode ? <span>{reviewSuggestion.targetRiskCode}</span> : null}
                             <span>{reviewSuggestion.changes?.length || 0} perubahan</span>
                             <span>{selectedChangeIds.length} dipilih</span>
@@ -1373,7 +1396,7 @@ function MeetingIntelligenceWorkspaceContent({
                           {isLowConfidenceSuggestion(reviewSuggestion) ? (
                             <div className="space-y-2 border-t border-border/60 pt-3">
                               <p className="text-sm text-amber-700">
-                                Confidence match masih rendah. Pilih target risk yang benar sebelum perubahan diterapkan.
+                                Tingkat keyakinan masih rendah. Pilih target risiko yang benar sebelum perubahan diterapkan.
                               </p>
                               <div className="max-w-xl space-y-2">
                                 <Label htmlFor="target-risk-select" className="text-xs font-medium text-foreground">
@@ -1381,7 +1404,7 @@ function MeetingIntelligenceWorkspaceContent({
                                 </Label>
                                 <Select value={manualTargetRiskId} onValueChange={handleChangeManualTargetRisk}>
                                   <SelectTrigger id="target-risk-select" className="w-full bg-background">
-                                    <SelectValue placeholder="Pilih target risk" />
+                                    <SelectValue placeholder="Pilih target risiko" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {(reviewSuggestion.candidateRisks || []).map((candidate) => (
@@ -1401,7 +1424,7 @@ function MeetingIntelligenceWorkspaceContent({
                                   (targetRiskDetails?.title || reviewSuggestion.targetRiskTitle || "Belum termuat")}
                               </span>
                               <span>•</span>
-                              <span>{reviewTargetIsLocked ? "Buat versi baru" : "Update draft current"}</span>
+                              <span>{reviewTargetIsLocked ? "Buat draf versi baru" : "Perbarui draf saat ini"}</span>
                             </div>
                           )}
                         </div>
@@ -1419,18 +1442,18 @@ function MeetingIntelligenceWorkspaceContent({
                               <p>
                                 {reviewTargetIsLocked ? (
                                   <>
-                                    Risk target berstatus <span className="font-medium text-foreground">{getRiskStatusLabel(targetRiskDetails.status)}</span>, jadi sistem akan membuat <span className="font-medium text-foreground">draft versi baru</span>.
+                                    Target risiko berstatus <span className="font-medium text-foreground">{getRiskStatusLabel(targetRiskDetails.status)}</span>, jadi sistem akan membuat <span className="font-medium text-foreground">draf versi baru</span>.
                                   </>
                                 ) : (
                                   <>
-                                    Risk target masih berstatus <span className="font-medium text-foreground">{getRiskStatusLabel(targetRiskDetails.status)}</span>, jadi perubahan akan masuk ke <span className="font-medium text-foreground">draft current</span>.
+                                    Target risiko masih berstatus <span className="font-medium text-foreground">{getRiskStatusLabel(targetRiskDetails.status)}</span>, jadi perubahan akan masuk ke <span className="font-medium text-foreground">draf saat ini</span>.
                                   </>
                                 )}
                               </p>
                             </div>
                           ) : (
                             <div className="border border-dashed border-border/60 bg-muted/[0.08] px-4 py-4 text-sm text-muted-foreground">
-                              {isLoadingRiskDetails ? "Memuat snapshot risk existing..." : "Detail risk target akan tampil di sini setelah dipilih."}
+                              {isLoadingRiskDetails ? "Memuat cuplikan risiko eksisting..." : "Detail target risiko akan tampil di sini setelah dipilih."}
                             </div>
                           )}
 
@@ -1441,7 +1464,7 @@ function MeetingIntelligenceWorkspaceContent({
                                   Daftar perubahan
                                 </p>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                  Centang perubahan yang benar-benar ingin dibawa ke draft hasil transcript.
+                                  Centang perubahan yang benar-benar ingin dibawa ke draf hasil transkrip.
                                 </p>
                               </div>
                               <p className="text-xs text-muted-foreground">
@@ -1535,8 +1558,8 @@ function MeetingIntelligenceWorkspaceContent({
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {reviewTargetIsLocked
-                              ? "Risk yang sudah ditinjau akan tetap terkunci dan sistem membuat draft versi baru."
-                              : "Perubahan terpilih akan diterapkan ke draft current yang sama."}
+                              ? "Risiko yang sudah ditinjau akan tetap terkunci dan sistem membuat draf versi baru."
+                              : "Perubahan terpilih akan diterapkan ke draf saat ini yang sama."}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -1565,8 +1588,8 @@ function MeetingIntelligenceWorkspaceContent({
                             {isApplyingSuggestion
                               ? "Menerapkan..."
                               : reviewTargetIsLocked
-                                ? "Buat draft versi baru"
-                                : "Apply update ke draft"}
+                                ? "Buat draf versi baru"
+                                : "Terapkan pembaruan ke draf"}
                           </Button>
                         </div>
                       </div>
@@ -1590,9 +1613,9 @@ function MeetingIntelligenceWorkspaceContent({
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:max-w-2xl">
           <DialogHeader className="shrink-0 border-b border-border/60 bg-background px-6 py-4">
-            <DialogTitle className="text-lg">Simpan Notulen</DialogTitle>
+            <DialogTitle className="text-lg">Simpan Briefing</DialogTitle>
             <DialogDescription className="mt-1 text-sm text-muted-foreground">
-              Simpan notulen ini dan hubungkan dengan risiko terkait.
+              Simpan briefing ini dan hubungkan dengan risiko terkait.
             </DialogDescription>
           </DialogHeader>
           
@@ -1600,7 +1623,7 @@ function MeetingIntelligenceWorkspaceContent({
             <div className="space-y-5">
               <div className="space-y-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Ringkasan Notulen
+                  Ringkasan Briefing
                 </p>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-start justify-between gap-3">
@@ -1633,7 +1656,7 @@ function MeetingIntelligenceWorkspaceContent({
                       Hubungkan Risiko
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Cari dan pilih risiko yang relevan dengan notulen ini.
+                      Cari dan pilih risiko yang relevan dengan briefing ini.
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -1773,7 +1796,7 @@ function MeetingIntelligenceWorkspaceContent({
                   Menyimpan...
                 </>
               ) : (
-                "Simpan Notulen"
+                "Simpan Briefing"
               )}
             </Button>
           </DialogFooter>

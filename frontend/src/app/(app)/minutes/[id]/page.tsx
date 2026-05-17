@@ -7,11 +7,11 @@ import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { deleteMeetingMinute, getMeetingMinute } from "@/lib/meeting-minutes";
+import { exportMeetingMinuteDocument } from "@/lib/meeting-minute-export";
 import type { MeetingMinuteWithRisks } from "@/types/meeting-minute";
 import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -28,17 +28,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, CalendarDays, Users, CheckCircle2, Link2, AlertCircle, Clock, Trash2 } from "lucide-react";
+import { Loader2, CalendarDays, Users, CheckCircle2, Link2, AlertCircle, Clock, Trash2, Download } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function MeetingMinuteDetailPage() {
   if (isAIFeaturesDisabled()) {
     return (
       <AIFeaturesDisabledState
-        title="Detail Notulen Dinonaktifkan"
-        description="Akses ke detail notulen meeting intelligence sedang dimatikan melalui environment frontend."
+        title="Detail Briefing Dinonaktifkan"
+        description="Akses ke detail briefing meeting intelligence sedang dimatikan melalui environment frontend."
         backHref="/overview"
       />
     );
@@ -76,7 +75,7 @@ function MeetingMinuteDetailContent() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="size-6 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Memuat detail notulen...</p>
+          <p className="text-sm text-muted-foreground">Memuat detail briefing...</p>
         </div>
       </div>
     );
@@ -87,9 +86,9 @@ function MeetingMinuteDetailContent() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <AlertCircle className="size-10 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-bold">Notulen Tidak Ditemukan</h2>
-          <p className="text-sm text-muted-foreground mt-2 mb-4">Notulen tidak ditemukan atau Anda tidak memiliki akses.</p>
-          <Button onClick={() => router.push("/minutes")} variant="outline">Kembali ke Daftar Notulen</Button>
+          <h2 className="text-xl font-bold">Briefing Tidak Ditemukan</h2>
+          <p className="text-sm text-muted-foreground mt-2 mb-4">Briefing tidak ditemukan atau Anda tidak memiliki akses.</p>
+          <Button onClick={() => router.push("/minutes")} variant="outline">Kembali ke Daftar Briefing</Button>
         </div>
       </div>
     );
@@ -101,34 +100,35 @@ function MeetingMinuteDetailContent() {
     Low: { label: "Rendah", variant: "secondary" as const },
   };
 
-  const statusConfig = {
-    open: { label: "Terbuka", variant: "outline" as const, className: "border-orange-500/50 text-orange-600" },
-    on_track: { label: "On Track", variant: "outline" as const, className: "border-green-500/50 text-green-600" },
-    blocked: { label: "Terblokir", variant: "outline" as const, className: "border-red-500/50 text-red-600" },
-  };
-
   const handleDelete = async () => {
     if (!token || !minutes) return;
 
     setIsDeleting(true);
     try {
       await deleteMeetingMinute(minutes.id, token);
-      toast.success("Notulen berhasil dihapus.");
+      toast.success("Briefing berhasil dihapus.");
       router.push("/minutes");
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "Gagal menghapus notulen.");
+      toast.error(error instanceof Error ? error.message : "Gagal menghapus briefing.");
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
     }
   };
 
+  const handleExport = () => {
+    if (!minutes) return;
+
+    exportMeetingMinuteDocument(minutes);
+    toast.success("Briefing berhasil diekspor.");
+  };
+
   return (
     <FormPage>
       <FormHeader
         title={minutes.title}
-        description="Detail notulen rapat dan informasi terkait."
+        description="Detail briefing rapat dan informasi terkait."
         badges={
           <>
             <Badge variant="outline" className="font-mono text-[10px]">
@@ -145,15 +145,22 @@ function MeetingMinuteDetailContent() {
           </>
         }
         actions={
-          !isReadOnlyForOrg(user, minutes.organizationId || "") ? (
-            <Button
-              variant="outline"
-              className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setShowDeleteConfirm(true)}
-            >
-              <Trash2 className="size-4" /> Hapus Notulen
+          <>
+            <Button variant="outline" className="gap-2" onClick={handleExport}>
+              <Download className="size-4" /> Export Briefing
             </Button>
-          ) : undefined
+            {!isReadOnlyForOrg(user, minutes.organizationId || "") ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="size-4" /> Hapus Briefing
+                </Button>
+              </>
+            ) : null}
+          </>
         }
         onBack={() => router.back()}
       />
@@ -162,7 +169,7 @@ function MeetingMinuteDetailContent() {
         <div className="md:col-span-2 space-y-8 lg:space-y-10">
           <FormSection
             title="Informasi Rapat"
-            description="Peserta, agenda, dan ringkasan notulen."
+            description="Peserta, agenda, dan ringkasan briefing."
           >
             <div className="space-y-8">
               <div className="space-y-3">
@@ -195,7 +202,7 @@ function MeetingMinuteDetailContent() {
 
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-foreground">Ringkasan</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{minutes.summary}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">{minutes.summary}</p>
               </div>
 
               {minutes.nextCheckIn && (
@@ -204,7 +211,7 @@ function MeetingMinuteDetailContent() {
                     <Clock className="size-4 text-primary" />
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-xs font-medium text-muted-foreground">Next Check-in</span>
+                    <span className="text-xs font-medium text-muted-foreground">Next check-in</span>
                     <span className="text-sm font-semibold text-foreground">
                       {new Date(minutes.nextCheckIn).toLocaleDateString("id-ID", {
                         year: "numeric",
@@ -255,82 +262,64 @@ function MeetingMinuteDetailContent() {
 
           {minutes.actionItems.length > 0 && (
             <FormSection title="Tindak Lanjut">
-              <Card className="overflow-hidden border-border/50 bg-card/80 py-0 backdrop-blur-sm">
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-border/50 hover:bg-transparent">
-                          <TableHead className="min-w-[260px] text-xs">Tindak Lanjut</TableHead>
-                          <TableHead className="min-w-[140px] text-xs">PIC</TableHead>
-                          <TableHead className="min-w-[120px] text-xs">Deadline</TableHead>
-                          <TableHead className="w-[110px] text-xs">Prioritas</TableHead>
-                          <TableHead className="w-[120px] text-xs">Status</TableHead>
-                          <TableHead className="min-w-[220px] text-xs">Catatan</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {minutes.actionItems.map((action, idx) => (
-                          <TableRow key={`${action.task}-${idx}`} className="border-border/40 hover:bg-muted/30">
-                            <TableCell className="align-top">
-                              <div className="max-w-[320px]">
-                                <p className="truncate text-sm font-semibold leading-snug text-foreground" title={action.task}>
-                                  {action.task}
+              <div className="overflow-hidden rounded-2xl border border-border/50">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border/50 hover:bg-transparent">
+                        <TableHead className="min-w-[260px] text-xs">Tindak Lanjut</TableHead>
+                        <TableHead className="min-w-[140px] text-xs">PIC</TableHead>
+                        <TableHead className="min-w-[120px] text-xs">Deadline</TableHead>
+                        <TableHead className="w-[110px] text-xs">Prioritas</TableHead>
+                        <TableHead className="min-w-[220px] text-xs">Catatan</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {minutes.actionItems.map((action, idx) => (
+                        <TableRow key={`${action.task}-${idx}`} className="border-border/50 hover:bg-muted/20">
+                          <TableCell className="align-top">
+                            <div className="max-w-[320px]">
+                              <p className="truncate text-sm font-semibold leading-snug text-foreground" title={action.task}>
+                                {action.task}
+                              </p>
+                              {action.ownerUnit ? (
+                                <p className="mt-1 truncate text-xs text-muted-foreground" title={action.ownerUnit}>
+                                  {action.ownerUnit}
                                 </p>
-                                {action.ownerUnit ? (
-                                  <p className="mt-1 truncate text-xs text-muted-foreground" title={action.ownerUnit}>
-                                    {action.ownerUnit}
-                                  </p>
-                                ) : null}
-                              </div>
-                            </TableCell>
-                            <TableCell className="max-w-[180px] align-top text-sm text-foreground">
-                              <span className="block truncate" title={action.pic}>
-                                {action.pic}
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-[180px] align-top text-sm text-foreground">
+                            <span className="block truncate" title={action.pic}>
+                              {action.pic}
+                            </span>
+                          </TableCell>
+                          <TableCell className="align-top text-sm text-foreground whitespace-nowrap">
+                            {new Date(action.deadline).toLocaleDateString("id-ID")}
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Badge
+                              variant={priorityConfig[action.priority].variant}
+                              className="px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+                            >
+                              {priorityConfig[action.priority].label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[260px] align-top text-sm text-muted-foreground">
+                            {action.notes ? (
+                              <span className="block truncate" title={action.notes}>
+                                {action.notes}
                               </span>
-                            </TableCell>
-                            <TableCell className="align-top text-sm text-foreground whitespace-nowrap">
-                              {new Date(action.deadline).toLocaleDateString("id-ID")}
-                            </TableCell>
-                            <TableCell className="align-top">
-                              <Badge
-                                variant={priorityConfig[action.priority].variant}
-                                className="px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
-                              >
-                                {priorityConfig[action.priority].label}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="align-top">
-                              {action.status ? (
-                                <Badge
-                                  variant={statusConfig[action.status].variant}
-                                  className={cn(
-                                    "px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                                    statusConfig[action.status].className,
-                                  )}
-                                >
-                                  {statusConfig[action.status].label}
-                                </Badge>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">&mdash;</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="max-w-[260px] align-top text-sm text-muted-foreground">
-                              {action.notes ? (
-                                <span className="block truncate" title={action.notes}>
-                                  {action.notes}
-                                </span>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">&mdash;</span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">&mdash;</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </FormSection>
           )}
 
@@ -365,7 +354,7 @@ function MeetingMinuteDetailContent() {
                       <span className="font-mono text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
                         {risk.riskCode || risk.riskId.substring(0, 8)}
                       </span>
-                      <Badge variant="outline" className="shrink-0 px-2 py-0 text-[9px] uppercase tracking-wider font-bold">Lihat</Badge>
+                              <Badge variant="outline" className="shrink-0 px-2 py-0 text-[9px] uppercase tracking-wider font-bold">Lihat</Badge>
                     </div>
                     <p className="text-sm font-medium leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-2">
                       {risk.riskTitle || "Risiko"}
@@ -421,9 +410,9 @@ function MeetingMinuteDetailContent() {
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Hapus Notulen?</DialogTitle>
+            <DialogTitle>Hapus Briefing?</DialogTitle>
             <DialogDescription>
-              Notulen ini akan dihapus permanen beserta relasinya dengan risiko terkait.
+              Briefing ini akan dihapus permanen beserta relasinya dengan risiko terkait.
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
