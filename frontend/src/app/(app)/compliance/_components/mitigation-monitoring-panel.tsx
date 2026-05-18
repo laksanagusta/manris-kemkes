@@ -74,6 +74,16 @@ const tierConfig: Record<string, { label: string; color: string; bg: string; bor
   heavy: { label: "Overdue Berat", color: "text-risk-extreme", bg: "bg-risk-extreme/10", border: "border-risk-extreme/20" },
 };
 
+type MitigationTaskRow = MitigationTask & {
+  tier: keyof typeof tierConfig;
+  level: keyof typeof levelBadgeVariant;
+  unit: string;
+  pic: string;
+  daysOverdue: number;
+  mitigationAction: string;
+  title: string;
+};
+
 export function MitigationMonitoringPanel() {
   const { token } = useAuth();
   const searchParams = useSearchParams();
@@ -88,12 +98,12 @@ export function MitigationMonitoringPanel() {
   const page = parsePositiveInt(searchParams.get("page"), 1);
   const limit = parsePositiveInt(searchParams.get("limit"), 10);
 
-  const [mitigations, setMitigations] = useState<any[]>([]);
+  const [mitigations, setMitigations] = useState<MitigationTaskRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [detailTask, setDetailTask] = useState<MitigationTask | null>(null);
+  const [detailTask, setDetailTask] = useState<MitigationTaskRow | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<MitigationTask | null>(null);
+  const [selectedTask, setSelectedTask] = useState<MitigationTaskRow | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [progressPct, setProgressPct] = useState("");
@@ -127,7 +137,7 @@ export function MitigationMonitoringPanel() {
       const rawData = response.data || [];
       setTotal(response.total || 0);
 
-      const processed = rawData.map((m) => {
+      const processed: MitigationTaskRow[] = rawData.map((m) => {
         const dueDate = new Date(m.dueDate);
         const today = new Date();
 
@@ -137,7 +147,7 @@ export function MitigationMonitoringPanel() {
         const diffTime = today.getTime() - dueDate.getTime();
         const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-        let tier = "upcoming";
+        let tier: MitigationTaskRow["tier"] = "upcoming";
         if (daysOverdue > 7) tier = "heavy";
         else if (daysOverdue > 0) tier = "light";
         else if (daysOverdue >= -7) tier = "reminder";
@@ -175,7 +185,7 @@ export function MitigationMonitoringPanel() {
       };
 
       setMitigations(
-        processed.sort((a: any, b: any) => {
+        processed.sort((a, b) => {
           const statusDelta = statusRank(a.status) - statusRank(b.status);
           if (statusDelta !== 0) return statusDelta;
 
@@ -199,7 +209,7 @@ export function MitigationMonitoringPanel() {
     fetchMitigations();
   }, [fetchMitigations]);
 
-  const handleOpenSubmit = (task: MitigationTask) => {
+  const handleOpenSubmit = (task: MitigationTaskRow) => {
     setSelectedTask(task);
     setProgressPct(task.progressPct ? String(task.progressPct) : "");
     setActualCost(task.actualCost ? String(task.actualCost) : "");
@@ -209,7 +219,7 @@ export function MitigationMonitoringPanel() {
     setShowDialog(true);
   };
 
-  const handleOpenDetail = (task: MitigationTask) => {
+  const handleOpenDetail = (task: MitigationTaskRow) => {
     setDetailTask(task);
     setShowDetailDialog(true);
   };
@@ -367,24 +377,29 @@ export function MitigationMonitoringPanel() {
         </Card>
       </div>
 
-      <Card className="overflow-hidden border-border/50 bg-card/80">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Daftar mitigasi</CardTitle>
+      <Card className="overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm">
+        <CardHeader className="border-b border-border/40 pb-4">
+          <CardTitle className="text-[15px] font-semibold">Daftar mitigasi</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Tinjau rencana penanganan yang mendekati tenggat, lalu buka detail atau kirim progress langsung dari daftar ini.
+          </p>
         </CardHeader>
-         <Table>
-           <TableHeader>
-             <TableRow className="border-border/50 hover:bg-transparent">
-               <TableHead className="w-20 text-sm whitespace-nowrap">Kode</TableHead>
-               <TableHead className="text-sm whitespace-nowrap">Rencana Penanganan</TableHead>
-               <TableHead className="w-28 text-sm whitespace-nowrap">Unit / PIC</TableHead>
-               <TableHead className="w-24 text-sm whitespace-nowrap">Jatuh Tempo</TableHead>
-               <TableHead className="w-20 text-center text-sm whitespace-nowrap">Hari</TableHead>
-               <TableHead className="w-20 text-sm whitespace-nowrap">Status</TableHead>
-                 <TableHead className="w-28 text-sm whitespace-nowrap">Eskalasi</TableHead>
-                 <TableHead className="w-32 text-sm text-right whitespace-nowrap">Aksi</TableHead>
-               </TableRow>
-           </TableHeader>
-          <TableBody>
+        <CardContent className="space-y-5">
+          <div className="overflow-hidden rounded-2xl border border-border/50">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/40 hover:bg-transparent">
+                  <TableHead className="w-20 whitespace-nowrap text-sm">Kode</TableHead>
+                  <TableHead className="whitespace-nowrap text-sm">Rencana Penanganan</TableHead>
+                  <TableHead className="w-32 whitespace-nowrap text-sm">Unit / PIC</TableHead>
+                  <TableHead className="w-28 whitespace-nowrap text-sm">Jatuh Tempo</TableHead>
+                  <TableHead className="w-20 whitespace-nowrap text-center text-sm">Hari</TableHead>
+                  <TableHead className="w-20 whitespace-nowrap text-sm">Status</TableHead>
+                  <TableHead className="w-28 whitespace-nowrap text-sm">Eskalasi</TableHead>
+                  <TableHead className="w-32 whitespace-nowrap text-right text-sm">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
@@ -403,7 +418,7 @@ export function MitigationMonitoringPanel() {
                 </TableCell>
               </TableRow>
             ) : (
-              mitigations.map((item) => {
+                  mitigations.map((item) => {
                 const tier = tierConfig[item.tier];
                 const submissionCheck = isWithinMitigationSubmissionWindow(item.periodEnd, item.dueDate);
                 return (
@@ -418,30 +433,30 @@ export function MitigationMonitoringPanel() {
                     <TableCell className="text-sm font-mono text-muted-foreground">
                       {item.riskCode}
                     </TableCell>
-                     <TableCell className="max-w-0">
+                    <TableCell className="max-w-[320px]">
                       <p className="truncate text-sm font-medium leading-relaxed text-primary">
                         {item.mitigationAction}
                       </p>
                     </TableCell>
-                     <TableCell>
-                       <div>
-                         <p className="text-sm">{item.unit}</p>
-                         <p className="text-[10px] text-muted-foreground">{item.pic}</p>
-                       </div>
-                     </TableCell>
-                     <TableCell className="text-sm text-muted-foreground">
-                       {item.dueDate ? new Date(item.dueDate).toLocaleDateString("id-ID") : "—"}
-                     </TableCell>
-                     <TableCell className="text-center">
-                       <span
-                         className={cn(
-                           "text-sm font-bold",
-                           item.daysOverdue > 0 ? tier.color : "text-muted-foreground"
-                         )}
-                       >
-                         {item.daysOverdue > 0 ? `+${item.daysOverdue}` : item.daysOverdue}
-                       </span>
-                     </TableCell>
+                    <TableCell>
+                      <div className="space-y-0.5">
+                        <p className="truncate text-sm">{item.unit}</p>
+                        <p className="truncate text-[10px] text-muted-foreground">{item.pic}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {item.dueDate ? new Date(item.dueDate).toLocaleDateString("id-ID") : "—"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span
+                        className={cn(
+                          "text-sm font-bold",
+                          item.daysOverdue > 0 ? tier.color : "text-muted-foreground"
+                        )}
+                      >
+                        {item.daysOverdue > 0 ? `+${item.daysOverdue}` : item.daysOverdue}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Badge
                         className={cn(
@@ -464,21 +479,21 @@ export function MitigationMonitoringPanel() {
                         {tier.label}
                       </Badge>
                     </TableCell>
-                     <TableCell className="text-right">
-                       {item.status === "done" ? (
-                         <span className="text-sm text-success">Selesai</span>
-                       ) : !submissionCheck.allowed ? (
+                    <TableCell className="text-right">
+                      {item.status === "done" ? (
+                        <span className="text-sm text-success">Selesai</span>
+                      ) : !submissionCheck.allowed ? (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="inline-block cursor-not-allowed">
                                 <Button
-                                   size="sm"
-                                   variant={item.status === "overdue" ? "destructive" : "default"}
-                                   disabled
-                                   className="opacity-50 pointer-events-none text-sm"
-                                   onClick={(event) => event.stopPropagation()}
-                                 >
+                                  size="sm"
+                                  variant={item.status === "overdue" ? "destructive" : "default"}
+                                  disabled
+                                  className="pointer-events-none text-sm opacity-50"
+                                  onClick={(event) => event.stopPropagation()}
+                                >
                                   <Send className="size-3 mr-1" /> Lapor
                                 </Button>
                               </span>
@@ -489,15 +504,15 @@ export function MitigationMonitoringPanel() {
                           </Tooltip>
                         </TooltipProvider>
                       ) : (
-                         <Button
-                           size="sm"
-                           variant={item.status === "overdue" ? "destructive" : "default"}
-                           onClick={(event) => {
-                             event.stopPropagation();
-                             handleOpenSubmit(item);
-                           }}
-                           className="text-sm"
-                         >
+                        <Button
+                          size="sm"
+                          variant={item.status === "overdue" ? "destructive" : "default"}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleOpenSubmit(item);
+                          }}
+                          className="text-sm"
+                        >
                           <Send className="size-3 mr-1" /> Lapor
                         </Button>
                       )}
@@ -506,70 +521,72 @@ export function MitigationMonitoringPanel() {
                 );
               })
             )}
-          </TableBody>
-        </Table>
+              </TableBody>
+            </Table>
+          </div>
 
-        <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Baris per halaman:</span>
-              <Select
-                value={limit.toString()}
-                onValueChange={(val) => {
-                  const params = new URLSearchParams(searchParams.toString());
-                  params.set("limit", val);
-                  params.set("page", "1");
-                  router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-                }}
-              >
-                <SelectTrigger className="h-7 w-[65px] border-none bg-muted/30 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[10, 20, 50, 100].map((pageSize) => (
-                    <SelectItem key={pageSize} value={pageSize.toString()}>
-                      {pageSize}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="flex flex-col gap-3 border-t border-border/30 pt-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Baris per halaman:</span>
+                <Select
+                  value={limit.toString()}
+                  onValueChange={(val) => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set("limit", val);
+                    params.set("page", "1");
+                    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+                  }}
+                >
+                  <SelectTrigger className="h-7 w-[65px] border-none bg-muted/30 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50, 100].map((pageSize) => (
+                      <SelectItem key={pageSize} value={pageSize.toString()}>
+                        {pageSize}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} mitigasi
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} mitigasi
-            </p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground"
+                disabled={page === 1 || loading}
+                onClick={() => handlePageChange(Math.max(1, page - 1))}
+              >
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 bg-primary/10 text-xs font-medium text-primary"
+                disabled
+              >
+                {page}
+              </Button>
+              <span className="px-1 text-xs text-muted-foreground">
+                dari {totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground"
+                disabled={page === totalPages || total === 0 || loading}
+                onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
+              >
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground"
-              disabled={page === 1 || loading}
-              onClick={() => handlePageChange(Math.max(1, page - 1))}
-            >
-              <ChevronLeft className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs font-medium bg-primary/10 text-primary"
-              disabled
-            >
-              {page}
-            </Button>
-            <span className="px-1 text-xs text-muted-foreground">
-              dari {totalPages}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground"
-              disabled={page === totalPages || total === 0 || loading}
-              onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
-            >
-              <ChevronRight className="size-3.5" />
-            </Button>
-          </div>
-        </div>
+        </CardContent>
       </Card>
 
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>

@@ -5,8 +5,8 @@ import type {
   WorkingPaperRiskData,
   WorkingPaperSignatory,
 } from "@/types/working-paper";
-import { getWorkingPaperRiskRows } from "./working-paper-linked-risks.ts";
-import { buildWorkingPaperSignatureLayout } from "./working-paper-signature-layout.ts";
+import { getWorkingPaperRiskRows } from "./working-paper-linked-risks";
+import { buildWorkingPaperSignatureLayout } from "./working-paper-signature-layout";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExportableRiskRow = Record<string, any>;

@@ -1,1 +1,1 @@
-export * from "./dashboard-insights.ts";
+export * from "./dashboard-insights";

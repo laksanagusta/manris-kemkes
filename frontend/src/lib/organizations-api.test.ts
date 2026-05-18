@@ -15,7 +15,7 @@ register(
 );
 
 const organizationsApi = (await import(
-  new URL("./api/organizations.ts", import.meta.url).href
+  new URL("./api/organizations", import.meta.url).href
 )) as typeof import("./api/organizations");
 
 const { collectAllOrganizations } = organizationsApi;

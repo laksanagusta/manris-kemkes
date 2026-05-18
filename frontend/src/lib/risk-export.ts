@@ -65,6 +65,37 @@ export type RiskExportItem = {
 
 export type BulkRiskExportRow = Record<BulkRiskExportColumn, string | number>;
 type RiskExportMitigation = NonNullable<RiskExportItem["mitigations"]>[number];
+const EXCEL_EXPORT_FONT_NAME = "Bookman Old Style";
+
+const EXCEL_EXPORT_HEADER_FILL: ExcelJS.FillPattern = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FFD9D9D9" },
+};
+
+const EXCEL_EXPORT_HEADER_FONT: Partial<ExcelJS.Font> = {
+  name: EXCEL_EXPORT_FONT_NAME,
+  bold: true,
+  color: { argb: "FF000000" },
+  size: 11,
+};
+
+const EXCEL_EXPORT_DATA_FONT: Partial<ExcelJS.Font> = {
+  name: EXCEL_EXPORT_FONT_NAME,
+  size: 11,
+};
+
+const EXCEL_EXPORT_THIN_BORDER: Partial<ExcelJS.Borders> = {
+  top: { style: "thin" },
+  left: { style: "thin" },
+  bottom: { style: "thin" },
+  right: { style: "thin" },
+};
+
+const EXCEL_EXPORT_WRAP_ALIGNMENT: Partial<ExcelJS.Alignment> = {
+  vertical: "top",
+  wrapText: true,
+};
 
 function toDelimited(value?: string[]) {
   return Array.isArray(value)
@@ -181,6 +212,91 @@ export function buildRiskBulkExportRows(
   });
 }
 
+function estimateBulkExportRowHeight(
+  worksheet: ExcelJS.Worksheet,
+  rowNum: number,
+  startCol: number,
+  endCol: number,
+): number {
+  const row = worksheet.getRow(rowNum);
+  let maxLines = 1;
+
+  for (let c = startCol; c <= endCol; c += 1) {
+    const val = row.getCell(c).value;
+    if (typeof val !== "string") continue;
+
+    const colWidth = worksheet.getColumn(c).width ?? 10;
+    const charsPerLine = Math.max(colWidth * 1.15, 1);
+    const lines = val.split("\n");
+    let totalLines = 0;
+
+    for (const line of lines) {
+      totalLines += Math.max(1, Math.ceil(line.length / charsPerLine));
+    }
+
+    maxLines = Math.max(maxLines, totalLines);
+  }
+
+  return Math.max(24, maxLines * 14);
+}
+
+function applyBulkExportTableStyles(worksheet: ExcelJS.Worksheet, rowCount: number) {
+  const lastRow = Math.max(rowCount + 1, 1);
+  const lastCol = BULK_RISK_EXPORT_COLUMNS.length;
+
+  for (let col = 1; col <= lastCol; col += 1) {
+    worksheet.getColumn(col).alignment = EXCEL_EXPORT_WRAP_ALIGNMENT;
+  }
+
+  const headerRow = worksheet.getRow(1);
+  headerRow.font = EXCEL_EXPORT_HEADER_FONT;
+  headerRow.alignment = {
+    vertical: "middle",
+    horizontal: "center",
+    wrapText: true,
+  };
+  headerRow.height = 28;
+
+  for (let col = 1; col <= lastCol; col += 1) {
+    const headerCell = headerRow.getCell(col);
+    headerCell.fill = EXCEL_EXPORT_HEADER_FILL;
+    headerCell.border = EXCEL_EXPORT_THIN_BORDER;
+    headerCell.alignment = {
+      vertical: "middle",
+      horizontal: "center",
+      wrapText: true,
+    };
+  }
+
+  for (let rowNum = 2; rowNum <= lastRow; rowNum += 1) {
+    const row = worksheet.getRow(rowNum);
+    row.font = EXCEL_EXPORT_DATA_FONT;
+    row.alignment = EXCEL_EXPORT_WRAP_ALIGNMENT;
+    row.height = estimateBulkExportRowHeight(worksheet, rowNum, 1, lastCol);
+
+    for (let col = 1; col <= lastCol; col += 1) {
+      const cell = row.getCell(col);
+      const value = cell.value;
+      const isNumeric = typeof value === "number";
+      cell.border = EXCEL_EXPORT_THIN_BORDER;
+      cell.alignment = {
+        vertical: "top",
+        horizontal: isNumeric ? "right" : "left",
+        wrapText: true,
+      };
+      if (isNumeric) {
+        cell.numFmt = "0.##";
+      }
+    }
+  }
+
+  worksheet.views = [{ state: "frozen", ySplit: 1 }];
+  worksheet.autoFilter = {
+    from: "A1",
+    to: `${String.fromCharCode(64 + lastCol)}${lastRow}`,
+  };
+}
+
 export async function createRiskBulkExportWorkbookBuffer(
   risks: RiskExportItem[],
   cycle: string,
@@ -188,13 +304,6 @@ export async function createRiskBulkExportWorkbookBuffer(
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Risk Export");
   const rows = buildRiskBulkExportRows(risks);
-  const multilineColumns = new Set<BulkRiskExportColumn>([
-    "Sebab",
-    "Dampak",
-    "RPR Uraian",
-    "PIC RPR",
-    "Jadwal Pelaksanaan",
-  ]);
 
   sheet.columns = BULK_RISK_EXPORT_COLUMNS.map((header) => ({
     header,
@@ -202,39 +311,7 @@ export async function createRiskBulkExportWorkbookBuffer(
     width: header === "Deskripsi" || header === "Pengendalian Uraian" ? 28 : 20,
   }));
   sheet.addRows(rows);
-  sheet.getRow(1).font = { bold: true };
-  sheet.getRow(1).alignment = { vertical: "top", horizontal: "left" };
-
-  BULK_RISK_EXPORT_COLUMNS.forEach((header, index) => {
-    if (!multilineColumns.has(header)) return;
-    sheet.getColumn(index + 1).alignment = {
-      wrapText: true,
-      vertical: "top",
-    };
-  });
-
-  rows.forEach((row, rowIndex) => {
-    const excelRow = sheet.getRow(rowIndex + 2);
-    BULK_RISK_EXPORT_COLUMNS.forEach((header, columnIndex) => {
-      const value = row[header];
-      const isNumeric = typeof value === "number";
-      const column = sheet.getColumn(columnIndex + 1);
-      const baseWrap = column.alignment?.wrapText ?? false;
-      excelRow.getCell(columnIndex + 1).alignment = {
-        vertical: "top",
-        horizontal: isNumeric ? "right" : "left",
-        wrapText: baseWrap,
-      };
-    });
-  });
-
-  sheet.views = [{ state: "frozen", ySplit: 1 }];
-  sheet.autoFilter = {
-    from: "A1",
-    to:
-      String.fromCharCode(64 + BULK_RISK_EXPORT_COLUMNS.length) +
-      Math.max(rows.length + 1, 1),
-  };
+  applyBulkExportTableStyles(sheet, rows.length);
 
   const meta = workbook.addWorksheet("Metadata");
   meta.addRows([

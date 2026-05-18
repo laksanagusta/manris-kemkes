@@ -95,6 +95,7 @@ type Container struct {
 	RiskCreateBatchUC           *riskuc.CreateRiskBatchUseCase
 	RiskSpreadsheetUC           *riskuc.BulkRiskSpreadsheetUseCase
 	RiskGetUC                   *riskuc.GetRiskUseCase
+	RiskExportPDFUC             *riskuc.ExportRiskPDFUseCase
 	RiskReassessUC              *riskuc.CreateRiskReassessmentUseCase
 	RiskArchiveUC               *riskuc.ArchiveRiskUseCase
 	RiskRestoreUC               *riskuc.RestoreRiskUseCase
@@ -345,9 +346,13 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.OrgHierarchySvc = domainsvc.NewOrganizationHierarchy(c.OrgRepository)
-	renderer := reportpdf.NewPDFReportRenderer()
+	renderer := reportpdf.NewPDFReportRenderer().(interface {
+		domainsvc.ReportPDFRenderer
+		domainsvc.FormalReportPDFRenderer
+		domainsvc.RiskDetailPDFRenderer
+	})
 	c.PDFReportRenderer = renderer
-	c.FormalReportPDFRenderer = renderer.(domainsvc.FormalReportPDFRenderer)
+	c.FormalReportPDFRenderer = renderer
 
 	// ============================================================================
 	// System Settings Services with Shared Cache
@@ -374,6 +379,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskCreateBatchUC = riskuc.NewCreateRiskBatchUseCase(c.RiskCreateUC, c.UserRepository)
 	c.RiskSpreadsheetUC = riskuc.NewBulkRiskSpreadsheetUseCase(c.OrgRepository, c.UserRepository)
 	c.RiskGetUC = riskuc.NewGetRiskUseCase(c.RiskRepository)
+	c.RiskExportPDFUC = riskuc.NewExportRiskPDFUseCase(c.RiskRepository, renderer)
 	c.RiskReassessUC = riskuc.NewCreateRiskReassessmentUseCase(c.RiskRepository)
 	c.RiskArchiveUC = riskuc.NewArchiveRiskUseCase(c.RiskRepository, c.WPRepository)
 	c.RiskRestoreUC = riskuc.NewRestoreRiskUseCase(c.RiskRepository)

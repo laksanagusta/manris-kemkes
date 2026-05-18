@@ -6,7 +6,7 @@ let workingPaperSignatoriesImportError: unknown = null;
 
 try {
   workingPaperSignatoriesLib = await import(
-    new URL("./working-paper-signatories.ts", import.meta.url).href,
+    new URL("./working-paper-signatories", import.meta.url).href,
   );
 } catch (error) {
   workingPaperSignatoriesImportError = error;

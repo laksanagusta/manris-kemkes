@@ -1,1 +1,1 @@
-export * from "./meeting-minutes-utils.ts";
+export * from "./meeting-minutes-utils";

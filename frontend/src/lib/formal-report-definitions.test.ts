@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import {
   formalReportDefinitions,
   formalReportTypeLabels,
-} from "./formal-report-definitions.ts";
+} from "./formal-report-definitions";
 
 test("formal report definitions include monitoring evaluation", () => {
   const item = formalReportDefinitions.find(

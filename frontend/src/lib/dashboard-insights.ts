@@ -1,7 +1,7 @@
 // @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
-import type { DashboardRiskCategoryItem } from "../types/risk.ts";
+import type { DashboardRiskCategoryItem } from "../types/risk";
 // @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
-import { dashboardCategoryLabels, getBobot, resolveRiskScoreSemantics } from "./risk.ts";
+import { dashboardCategoryLabels, getBobot, resolveRiskScoreSemantics } from "./risk";
 
 type Severity = "Sangat Rendah" | "Rendah" | "Sedang" | "Tinggi" | "Sangat Tinggi";
 

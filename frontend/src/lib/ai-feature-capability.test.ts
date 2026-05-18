@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const capabilityLib = await import("./ai-feature-capability.ts");
+const capabilityLib = await import("./ai-feature-capability");
 
 const { isAIFeaturesDisabled } =
-  capabilityLib as typeof import("./ai-feature-capability.ts");
+  capabilityLib as typeof import("./ai-feature-capability");
 
 test("isAIFeaturesDisabled returns false by default", () => {
   assert.equal(isAIFeaturesDisabled(undefined), false);

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const monitoringLib = await import(
-  new URL("./risk-register-monitoring.ts", import.meta.url).href,
+  new URL("./risk-register-monitoring", import.meta.url).href,
 );
 
 const {

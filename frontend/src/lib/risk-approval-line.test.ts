@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const approvalLineLib = await import(
-  new URL("./risk-approval-line.ts", import.meta.url).href
+  new URL("./risk-approval-line", import.meta.url).href
 );
 
 type ApprovalLineMember = {

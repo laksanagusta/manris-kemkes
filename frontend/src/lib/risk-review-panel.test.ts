@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const panelLib = await import(new URL("./risk-review-panel.ts", import.meta.url).href);
+const panelLib = await import(new URL("./risk-review-panel", import.meta.url).href);
 
 const { getVisibleRiskReviewItems } = panelLib as typeof import("./risk-review-panel");
 

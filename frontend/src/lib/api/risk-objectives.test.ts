@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const riskObjectiveQueryLib = await import(
-  new URL("./risk-objective-query.ts", import.meta.url).href
+  new URL("./risk-objective-query", import.meta.url).href
 );
 
 test("buildRiskObjectiveListQuery serializes supported params only", () => {

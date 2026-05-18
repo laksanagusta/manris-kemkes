@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const riskRegisterUserPickerLib = await import(
-  new URL("./risk-register-user-picker.ts", import.meta.url).href,
+  new URL("./risk-register-user-picker", import.meta.url).href,
 ).catch(() => ({}));
 
 type UserPickerOption = {

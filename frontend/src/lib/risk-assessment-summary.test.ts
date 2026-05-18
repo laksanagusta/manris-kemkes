@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const riskAssessmentSummaryLib = await import(
-  new URL("./risk-assessment-summary.ts", import.meta.url).href,
+  new URL("./risk-assessment-summary", import.meta.url).href,
 );
 
 const { resolveAssessmentScoreComparison } = riskAssessmentSummaryLib;

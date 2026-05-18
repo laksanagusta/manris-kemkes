@@ -15,3 +15,8 @@ type ReportPDFRenderer interface {
 type FormalReportPDFRenderer interface {
 	RenderFormal(ctx context.Context, data *entity.KMKFormalReportData) ([]byte, error)
 }
+
+// RiskDetailPDFRenderer renders a finalized risk detail attachment into PDF bytes.
+type RiskDetailPDFRenderer interface {
+	RenderRiskDetail(ctx context.Context, data *entity.RiskDetailPDFData) ([]byte, error)
+}

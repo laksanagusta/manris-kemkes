@@ -79,6 +79,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   Loader2,
+  Download,
   History,
   Save,
   Send,
@@ -167,6 +168,8 @@ import {
   currentAssessmentCycle,
   getSelectableAssessmentCycles,
 } from "@/lib/risk-cycle-options";
+import { downloadRiskDetailPDF } from "@/lib/api/risk-export-pdf";
+import { buildRiskDetailPDFFilename } from "@/lib/risk-export-pdf-utils";
 
 const RiskLogTimeline = dynamic(
   () =>
@@ -653,6 +656,7 @@ export default function RiskInputPage() {
   const [riskStatus, setRiskStatus] = useState<string>("assessment_draft");
   const [riskArchivedAt, setRiskArchivedAt] = useState<string | null>(null);
   const [riskArchivedReason, setRiskArchivedReason] = useState("");
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [ongoingAssessmentId, setOngoingAssessmentId] = useState<string | null>(
     null,
   );
@@ -765,6 +769,7 @@ export default function RiskInputPage() {
   const controlEffectiveness = watch("controlEffectiveness") ?? "";
   const treatmentOption = watch("treatmentOption") ?? "";
   const nextReviewDate = watch("nextReviewDate") ?? "";
+  const riskCode = watch("riskCode") ?? "";
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
     selectedApprovalLine.length > 0 &&
@@ -1112,6 +1117,39 @@ export default function RiskInputPage() {
     },
     [reset, token],
   );
+
+  const handleExportPDF = async () => {
+    if (!token || !riskId) {
+      toast.error("Risiko belum siap untuk diekspor.");
+      return;
+    }
+    if (riskStatus !== "approved") {
+      toast.error("Export PDF hanya tersedia untuk risiko final.");
+      return;
+    }
+
+    setIsExportingPDF(true);
+    try {
+      await downloadRiskDetailPDF(
+        token,
+        riskId,
+        buildRiskDetailPDFFilename({ code: riskCode, id: riskId }),
+      );
+      toast.success("PDF risiko berhasil diunduh.");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        toast.error("Export PDF hanya tersedia untuk risiko final.");
+      } else if (error instanceof ApiError && error.status === 404) {
+        toast.error("Risiko tidak ditemukan.");
+      } else if (error instanceof ApiError && error.status === 403) {
+        toast.error("Anda tidak memiliki akses ke risiko ini.");
+      } else {
+        toast.error("PDF belum berhasil dibuat. Silakan coba lagi.");
+      }
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
 
   const currentOrganizationId = watch("organizationId");
 
@@ -2275,6 +2313,22 @@ export default function RiskInputPage() {
                 >
                   <Activity className="size-4" />
                   Lihat pemantauan
+                </Button>
+              )}
+
+              {riskId && riskStatus === "approved" && (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handleExportPDF}
+                  disabled={isExportingPDF}
+                >
+                  {isExportingPDF ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Download className="size-4" />
+                  )}
+                  Export PDF
                 </Button>
               )}
 

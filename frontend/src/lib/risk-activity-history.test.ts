@@ -4,7 +4,7 @@ import test from "node:test";
 const {
   mergeApprovalHistories,
   normalizeApprovalHistoryItems,
-} = await import(new URL("./risk-activity-history.ts", import.meta.url).href);
+} = await import(new URL("./risk-activity-history", import.meta.url).href);
 
 test("normalizeApprovalHistoryItems maps mixed API casing into timeline-safe approval history", () => {
   const items = normalizeApprovalHistoryItems([

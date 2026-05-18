@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const accessLib = await import(new URL("./review-side-panel-access.ts", import.meta.url).href);
+const accessLib = await import(new URL("./review-side-panel-access", import.meta.url).href);
 
 const { canActivateApprovalPanel, shouldRenderReviewSidePanelWorkflow } = accessLib as typeof import("./review-side-panel-access");
 
