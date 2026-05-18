@@ -6,7 +6,7 @@ let signatureLayoutImportError: unknown = null;
 
 try {
   signatureLayoutLib = await import(
-    new URL("./working-paper-signature-layout.ts", import.meta.url).href,
+    new URL("./working-paper-signature-layout", import.meta.url).href,
   );
 } catch (error) {
   signatureLayoutImportError = error;

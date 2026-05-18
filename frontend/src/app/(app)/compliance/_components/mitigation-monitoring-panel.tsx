@@ -209,7 +209,7 @@ export function MitigationMonitoringPanel() {
     fetchMitigations();
   }, [fetchMitigations]);
 
-  const handleOpenSubmit = (task: MitigationTask) => {
+  const handleOpenSubmit = (task: MitigationTaskRow) => {
     setSelectedTask(task);
     setProgressPct(task.progressPct ? String(task.progressPct) : "");
     setActualCost(task.actualCost ? String(task.actualCost) : "");
@@ -219,7 +219,7 @@ export function MitigationMonitoringPanel() {
     setShowDialog(true);
   };
 
-  const handleOpenDetail = (task: MitigationTask) => {
+  const handleOpenDetail = (task: MitigationTaskRow) => {
     setDetailTask(task);
     setShowDetailDialog(true);
   };

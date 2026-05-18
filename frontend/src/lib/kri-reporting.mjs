@@ -1,1 +1,1 @@
-export * from "./kri-reporting.ts";
+export * from "./kri-reporting";

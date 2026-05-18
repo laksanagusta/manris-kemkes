@@ -1,1 +1,1 @@
-export * from "./risk-report-trend.ts";
+export * from "./risk-report-trend";

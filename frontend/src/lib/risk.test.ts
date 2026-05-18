@@ -3,7 +3,7 @@ import test from "node:test";
 
 import type { Risk, RiskLevel } from "../types/risk";
 
-const riskLib = await import(new URL("./risk.ts", import.meta.url).href);
+const riskLib = await import(new URL("./risk", import.meta.url).href);
 
 type RiskScoreSnapshot = {
   probability: number;

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const dashboardInsightsLib = await import(
-  new URL("./dashboard-insights.ts", import.meta.url).href,
+  new URL("./dashboard-insights", import.meta.url).href,
 );
 
 const {

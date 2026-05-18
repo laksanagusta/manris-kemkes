@@ -5,7 +5,7 @@ import {
   currentAssessmentCycle,
   getSelectableAssessmentCycles,
   shiftAssessmentCycle,
-} from "./risk-cycle-options.ts";
+} from "./risk-cycle-options";
 
 test("shiftAssessmentCycle moves across semesters", () => {
   assert.equal(shiftAssessmentCycle("2026-H2", -1), "2026-H1");

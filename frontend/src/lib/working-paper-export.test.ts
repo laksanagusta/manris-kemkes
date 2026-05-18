@@ -4,7 +4,7 @@ import test from "node:test";
 import type { WorkingPaper } from "./working-paper";
 
 const { createWorkingPaperWorkbookBuffer } = await import(
-  new URL("./working-paper-export.ts", import.meta.url).href
+  new URL("./working-paper-export", import.meta.url).href
 );
 
 function makeWorkingPaper(): WorkingPaper {

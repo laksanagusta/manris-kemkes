@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveWorkingPaperRiskDisplay } from "./working-paper-risk-display.ts";
+import { resolveWorkingPaperRiskDisplay } from "./working-paper-risk-display";
 
 test("resolveWorkingPaperRiskDisplay prefers inherent score over nilai", () => {
   const resolved = resolveWorkingPaperRiskDisplay({

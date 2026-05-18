@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const { getWorkingPaperRiskRows } = await import(
-  new URL("./working-paper-linked-risks.ts", import.meta.url).href
+  new URL("./working-paper-linked-risks", import.meta.url).href
 );
 
 test("getWorkingPaperRiskRows returns nested linked risk payloads in sort order", () => {

@@ -20,7 +20,7 @@ register(
     ].join("\n")),
 );
 
-const authApi = (await import(new URL("./auth.ts", import.meta.url).href)) as typeof import("./auth");
+const authApi = (await import(new URL("./auth", import.meta.url).href)) as typeof import("./auth");
 
 test("registerUser sends confirmPassword with the registration payload", async () => {
   await authApi.registerUser({

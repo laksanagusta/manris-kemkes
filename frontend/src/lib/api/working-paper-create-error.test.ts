@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const { getWorkingPaperCreateErrorMessage } = await import(
-  new URL("./working-paper-create-error.ts", import.meta.url).href,
+  new URL("./working-paper-create-error", import.meta.url).href,
 );
 
 test("returns a human-readable Indonesian message when a reassessment for the current cycle already exists", () => {

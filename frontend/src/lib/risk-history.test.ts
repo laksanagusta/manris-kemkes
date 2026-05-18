@@ -4,7 +4,7 @@ import test from "node:test";
 import type { Risk } from "../types/risk";
 
 const riskHistoryLib = await import(
-  new URL("./risk-history.ts", import.meta.url).href,
+  new URL("./risk-history", import.meta.url).href,
 );
 
 const {

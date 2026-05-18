@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const riskCharterQueryLib = await import(
-  new URL("./risk-charter-query.ts", import.meta.url).href,
+  new URL("./risk-charter-query", import.meta.url).href,
 );
 
 test("buildRiskCharterListQuery serializes supported params only", () => {

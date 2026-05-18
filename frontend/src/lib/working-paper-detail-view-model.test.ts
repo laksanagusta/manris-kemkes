@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const viewModelLib = await import(new URL("./working-paper-detail-view-model.ts", import.meta.url).href);
+const viewModelLib = await import(new URL("./working-paper-detail-view-model", import.meta.url).href);
 
 const { buildWorkingPaperDetailViewModel } = viewModelLib as typeof import("./working-paper-detail-view-model");
 

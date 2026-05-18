@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const treeLib = await import(new URL("./organization-tree.ts", import.meta.url).href);
+const treeLib = await import(new URL("./organization-tree", import.meta.url).href);
 
 type OrganizationTreeNode = {
   id: string;

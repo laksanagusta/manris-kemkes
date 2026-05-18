@@ -18,11 +18,11 @@ register("data:text/javascript," + encodeURIComponent([
 ].join("\n")));
 
 const authHelpers = (await import(
-  new URL("./auth-helpers.ts", import.meta.url).href
+  new URL("./auth-helpers", import.meta.url).href
 )) as typeof import("./auth-helpers");
 
 const orgLib = (await import(
-  new URL("./organization.ts", import.meta.url).href
+  new URL("./organization", import.meta.url).href
 )) as typeof import("./organization");
 
 const { canWriteInOrg, canReadOrg, isReadOnlyForOrg } = authHelpers;

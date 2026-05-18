@@ -43,6 +43,7 @@ import {
   saveMeetingIntelligencePrefill,
   type RiskDraftPrefill,
 } from "@/lib/meeting-intelligence";
+import type { ActionItem } from "@/types/meeting-minute";
 import {
   filterMeetingRiskOptions,
   normalizeMeetingMinuteDate,
@@ -165,16 +166,8 @@ interface ApplyRiskChangeResponse {
   createdNewVersion: boolean;
 }
 
-interface MinutesActionItem {
-  task: string;
-  pic: string;
-  ownerUnit?: string;
-  deadline: string;
+interface MinutesActionItem extends ActionItem {
   priority: MinutesPriority;
-  status?: string;
-  notes?: string;
-  relatedDecision?: string;
-  needsConfirmation?: string[];
 }
 
 interface MinutesResult {

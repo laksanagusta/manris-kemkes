@@ -3,7 +3,7 @@ import test from "node:test";
 
 import type { RiskCycleDetailedComparisonReport } from "@/types/risk";
 // @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
-import { classifyRiskCycleDetailMovement, createRiskCycleDetailWorkbookBuffer } from "./risk-cycle-detail-export.ts";
+import { classifyRiskCycleDetailMovement, createRiskCycleDetailWorkbookBuffer } from "./risk-cycle-detail-export";
 
 const sampleReport: RiskCycleDetailedComparisonReport = {
   summary: {

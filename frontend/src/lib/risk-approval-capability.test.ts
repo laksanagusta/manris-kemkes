@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const capabilityLib = await import(
-  new URL("./risk-approval-capability.ts", import.meta.url).href
+  new URL("./risk-approval-capability", import.meta.url).href
 );
 
 const { getRiskApprovalCapabilityBehavior } = capabilityLib as typeof import("./risk-approval-capability");

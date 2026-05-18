@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const riskRegisterQueryLib = await import(
-  new URL("./risk-register-query.ts", import.meta.url).href,
+  new URL("./risk-register-query", import.meta.url).href,
 );
 
 const {

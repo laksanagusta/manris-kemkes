@@ -7,7 +7,7 @@ import {
   createDocumentIntelligencePrefillToken,
   saveLatestMitigationReportPrefill,
   saveDocumentIntelligencePrefill,
-} from "./document-intelligence-prefill.ts";
+} from "./document-intelligence-prefill";
 
 function withMockWindow<T>(fn: () => T): T {
   const originalWindow = (globalThis as typeof globalThis & { window?: unknown }).window;

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildRiskDetailPDFFilename } from "../risk-export-pdf-utils.ts";
+import { buildRiskDetailPDFFilename } from "../risk-export-pdf-utils";
 
 test("buildRiskDetailPDFFilename prefers risk code", () => {
   assert.equal(
