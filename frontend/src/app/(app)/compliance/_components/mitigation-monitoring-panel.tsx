@@ -385,142 +385,187 @@ export function MitigationMonitoringPanel() {
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="overflow-hidden rounded-2xl border border-border/50">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/40 hover:bg-transparent">
-                  <TableHead className="w-20 whitespace-nowrap text-sm">Kode</TableHead>
-                  <TableHead className="whitespace-nowrap text-sm">Rencana Penanganan</TableHead>
-                  <TableHead className="w-32 whitespace-nowrap text-sm">Unit / PIC</TableHead>
-                  <TableHead className="w-28 whitespace-nowrap text-sm">Jatuh Tempo</TableHead>
-                  <TableHead className="w-20 whitespace-nowrap text-center text-sm">Hari</TableHead>
-                  <TableHead className="w-20 whitespace-nowrap text-sm">Status</TableHead>
-                  <TableHead className="w-28 whitespace-nowrap text-sm">Eskalasi</TableHead>
-                  <TableHead className="w-32 whitespace-nowrap text-right text-sm">Aksi</TableHead>
+          <div className="overflow-hidden rounded-xl border border-border/50 bg-card/80 shadow-sm">
+            <Table className="min-w-[1180px]">
+              <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
+                <TableRow className="border-border/50 transition-colors hover:bg-transparent">
+                  <TableHead className="w-20 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Kode
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Rencana Penanganan
+                  </TableHead>
+                  <TableHead className="w-36 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Unit / PIC
+                  </TableHead>
+                  <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Jatuh Tempo
+                  </TableHead>
+                  <TableHead className="w-20 whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Hari
+                  </TableHead>
+                  <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Status
+                  </TableHead>
+                  <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Eskalasi
+                  </TableHead>
+                  <TableHead className="w-32 whitespace-nowrap px-2.5 text-right align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Aksi
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="size-4 animate-spin" /> Memuat data mitigasi...
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : mitigations.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="h-24">
-                  <div className="flex flex-col gap-1 text-left">
-                    <p className="text-sm font-medium text-muted-foreground">Tidak ada rencana mitigasi yang overdue</p>
-                    <p className="text-xs text-muted-foreground/70">Semua rencana mitigasi telah ditangani atau belum mendekati tenggat</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-                  mitigations.map((item) => {
-                const tier = tierConfig[item.tier];
-                const submissionCheck = isWithinMitigationSubmissionWindow(item.periodEnd, item.dueDate);
-                return (
-                  <TableRow
-                    key={item.id}
-                    className={cn(
-                      "cursor-pointer border-border/30 transition-colors hover:bg-muted/20",
-                      item.tier === "heavy" && "bg-risk-extreme/[0.02]"
-                    )}
-                    onClick={() => handleOpenDetail(item)}
-                  >
-                    <TableCell className="text-sm font-mono text-muted-foreground">
-                      {item.riskCode}
-                    </TableCell>
-                    <TableCell className="max-w-[320px]">
-                      <p className="truncate text-sm font-medium leading-relaxed text-primary">
-                        {item.mitigationAction}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <p className="truncate text-sm">{item.unit}</p>
-                        <p className="truncate text-[10px] text-muted-foreground">{item.pic}</p>
+                {loading ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={8}
+                      className="py-8 text-left text-xs text-muted-foreground"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="size-4 animate-spin" />
+                        Memuat data mitigasi...
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {item.dueDate ? new Date(item.dueDate).toLocaleDateString("id-ID") : "—"}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span
-                        className={cn(
-                          "text-sm font-bold",
-                          item.daysOverdue > 0 ? tier.color : "text-muted-foreground"
-                        )}
-                      >
-                        {item.daysOverdue > 0 ? `+${item.daysOverdue}` : item.daysOverdue}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={cn(
-                          "h-5 border px-1.5 text-[10px] font-semibold",
-                          levelBadgeVariant[item.level]
-                        )}
-                      >
-                        {item.level}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={cn(
-                          "h-5 border px-1.5 text-[10px] font-semibold",
-                          tier.bg,
-                          tier.color,
-                          tier.border
-                        )}
-                      >
-                        {tier.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.status === "done" ? (
-                        <span className="text-sm text-success">Selesai</span>
-                      ) : !submissionCheck.allowed ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-block cursor-not-allowed">
-                                <Button
-                                  size="sm"
-                                  variant={item.status === "overdue" ? "destructive" : "default"}
-                                  disabled
-                                  className="pointer-events-none text-sm opacity-50"
-                                  onClick={(event) => event.stopPropagation()}
-                                >
-                                  <Send className="size-3 mr-1" /> Lapor
-                                </Button>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="left" className="max-w-[220px] text-xs">
-                              {submissionCheck.message}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant={item.status === "overdue" ? "destructive" : "default"}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleOpenSubmit(item);
-                          }}
-                          className="text-sm"
-                        >
-                          <Send className="size-3 mr-1" /> Lapor
-                        </Button>
-                      )}
+                  </TableRow>
+                ) : mitigations.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={8}
+                      className="py-8 text-left text-xs text-muted-foreground"
+                    >
+                      Tidak ada rencana mitigasi yang overdue
                     </TableCell>
                   </TableRow>
-                );
-              })
-            )}
+                ) : (
+                  mitigations.map((item) => {
+                    const tier = tierConfig[item.tier];
+                    const submissionCheck = isWithinMitigationSubmissionWindow(
+                      item.periodEnd,
+                      item.dueDate,
+                    );
+
+                    return (
+                      <TableRow
+                        key={item.id}
+                        className={cn(
+                          "cursor-pointer border-border/30 transition-colors hover:bg-muted/30",
+                          item.tier === "heavy" && "bg-risk-extreme/[0.02]",
+                        )}
+                        onClick={() => handleOpenDetail(item)}
+                      >
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {item.riskCode}
+                        </TableCell>
+                        <TableCell className="max-w-[320px]">
+                          <p className="truncate text-sm font-semibold leading-relaxed text-primary">
+                            {item.mitigationAction}
+                          </p>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div className="space-y-0.5">
+                            <p className="truncate text-sm">{item.unit}</p>
+                            <p className="truncate text-[10px] text-muted-foreground">
+                              {item.pic}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {item.dueDate
+                            ? new Date(item.dueDate).toLocaleDateString("id-ID")
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span
+                            className={cn(
+                              "text-sm font-bold",
+                              item.daysOverdue > 0
+                                ? tier.color
+                                : "text-muted-foreground",
+                            )}
+                          >
+                            {item.daysOverdue > 0
+                              ? `+${item.daysOverdue}`
+                              : item.daysOverdue}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              "h-5 border px-1.5 text-[10px] font-semibold",
+                              levelBadgeVariant[item.level],
+                            )}
+                          >
+                            {item.level}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              "h-5 border px-1.5 text-[10px] font-semibold",
+                              tier.bg,
+                              tier.color,
+                              tier.border,
+                            )}
+                          >
+                            {tier.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {item.status === "done" ? (
+                            <span className="text-sm text-success">Selesai</span>
+                          ) : !submissionCheck.allowed ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-block cursor-not-allowed">
+                                    <Button
+                                      size="sm"
+                                      variant={
+                                        item.status === "overdue"
+                                          ? "destructive"
+                                          : "default"
+                                      }
+                                      disabled
+                                      className="pointer-events-none text-sm opacity-50"
+                                      onClick={(event) =>
+                                        event.stopPropagation()
+                                      }
+                                    >
+                                      <Send className="mr-1 size-3" /> Lapor
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                  side="left"
+                                  className="max-w-[220px] text-xs"
+                                >
+                                  {submissionCheck.message}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant={
+                                item.status === "overdue"
+                                  ? "destructive"
+                                  : "default"
+                              }
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleOpenSubmit(item);
+                              }}
+                              className="text-sm"
+                            >
+                              <Send className="mr-1 size-3" /> Lapor
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </div>
@@ -603,7 +648,7 @@ export function MitigationMonitoringPanel() {
           {detailTask && (
             <div className="space-y-4 py-2">
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Status
                   </p>
@@ -634,13 +679,13 @@ export function MitigationMonitoringPanel() {
                         : "Pending"}
                   </Badge>
                 </div>
-                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Periode
                   </p>
                   <p className="mt-2 text-sm font-medium">{detailTask.periodLabel || "-"}</p>
                 </div>
-                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Tenggat
                   </p>
@@ -659,7 +704,7 @@ export function MitigationMonitoringPanel() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+              <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 space-y-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -677,7 +722,7 @@ export function MitigationMonitoringPanel() {
                   />
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-lg bg-muted/20 p-3">
+                  <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                       Biaya Aktual
                     </p>
@@ -687,7 +732,7 @@ export function MitigationMonitoringPanel() {
                         : "-"}
                     </p>
                   </div>
-                  <div className="rounded-lg bg-muted/20 p-3">
+                  <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                       Evidence
                     </p>
@@ -706,7 +751,7 @@ export function MitigationMonitoringPanel() {
                     )}
                   </div>
                 </div>
-                <div className="rounded-lg bg-muted/20 p-3">
+                <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Catatan
                   </p>

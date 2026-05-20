@@ -40,6 +40,7 @@ import {
 import { FormPage, FormHeader, FormSection } from "@/components/shared/form-shell";
 
 import { cn } from "@/lib/utils";
+import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 import {
   AlertCircle,
   ArrowRight,
@@ -68,10 +69,10 @@ const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
 });
 
 const statusVariant: Record<WorkingPaperStatus, string> = {
-  draft: "bg-muted text-muted-foreground border-border",
-  signing: "bg-amber-500/15 text-amber-700 border-amber-500/20",
-  completed: "bg-success/15 text-success border-success/20",
-  cancelled: "bg-destructive/15 text-destructive border-destructive/20",
+  draft: getLinearStatusBadgeClass("draft"),
+  signing: getLinearStatusBadgeClass("signing"),
+  completed: getLinearStatusBadgeClass("completed"),
+  cancelled: getLinearStatusBadgeClass("cancelled"),
 };
 
 const statusLabel: Record<WorkingPaperStatus, string> = {
@@ -479,19 +480,19 @@ export default function WorkingPaperDetailPage(props: { params: Promise<{ id: st
                       let statusBadge = null;
                       switch ((risk.status || "").toLowerCase()) {
                         case "approved":
-                          statusBadge = <Badge className="text-[10px] font-semibold border px-1.5 h-5 bg-success/15 text-success border-success/20">Disetujui</Badge>;
+                          statusBadge = <Badge className={cn("px-1.5 h-5", getLinearStatusBadgeClass("approved"))}>Disetujui</Badge>;
                           break;
                         case "reviewed":
-                          statusBadge = <Badge className="text-[10px] font-semibold border px-1.5 h-5 bg-primary/15 text-primary border-primary/20">Ditinjau</Badge>;
+                          statusBadge = <Badge className={cn("px-1.5 h-5", getLinearStatusBadgeClass("reviewed"))}>Ditinjau</Badge>;
                           break;
                         case "pending_review":
-                          statusBadge = <Badge className="text-[10px] font-semibold border px-1.5 h-5 bg-amber-500/15 text-amber-700 border-amber-500/20">Menunggu Review</Badge>;
+                          statusBadge = <Badge className={cn("px-1.5 h-5", getLinearStatusBadgeClass("pending_review"))}>Menunggu Review</Badge>;
                           break;
                         case "draft":
-                          statusBadge = <Badge className="text-[10px] font-semibold border px-1.5 h-5 bg-muted text-muted-foreground border-border">Draft</Badge>;
+                          statusBadge = <Badge className={cn("px-1.5 h-5", getLinearStatusBadgeClass("draft"))}>Draft</Badge>;
                           break;
                         default:
-                          statusBadge = <Badge className="text-[10px] font-semibold border px-1.5 h-5 bg-muted text-muted-foreground border-border">{formatWorkingPaperRiskStatus(risk.status)}</Badge>;
+                          statusBadge = <Badge className={cn("px-1.5 h-5", getLinearStatusBadgeClass(risk.status))}>{formatWorkingPaperRiskStatus(risk.status)}</Badge>;
                       }
                        
                       return (
