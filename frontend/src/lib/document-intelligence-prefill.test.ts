@@ -1,13 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  consumeDocumentIntelligencePrefill,
-  consumeLatestMitigationReportPrefill,
-  createDocumentIntelligencePrefillToken,
-  saveLatestMitigationReportPrefill,
-  saveDocumentIntelligencePrefill,
-} from "./document-intelligence-prefill";
+const prefillModule = await import(
+  new URL("./document-intelligence-prefill.ts", import.meta.url).href
+);
 
 function withMockWindow<T>(fn: () => T): T {
   const originalWindow = (globalThis as typeof globalThis & { window?: unknown }).window;
@@ -38,6 +34,19 @@ function withMockWindow<T>(fn: () => T): T {
 
 test("document intelligence prefill saves and consumes once", () => {
   withMockWindow(() => {
+    const {
+      createDocumentIntelligencePrefillToken,
+      saveDocumentIntelligencePrefill,
+      consumeDocumentIntelligencePrefill,
+    } = prefillModule as {
+      createDocumentIntelligencePrefillToken: () => string;
+      saveDocumentIntelligencePrefill: (
+        token: string,
+        payload: unknown,
+      ) => void;
+      consumeDocumentIntelligencePrefill: (token: string) => unknown | null;
+    };
+
     const token = createDocumentIntelligencePrefillToken();
     saveDocumentIntelligencePrefill(token, {
       kind: "risk",
@@ -57,33 +66,17 @@ test("document intelligence prefill saves and consumes once", () => {
   });
 });
 
-test("document intelligence prefill supports objective payloads", () => {
-  withMockWindow(() => {
-    const token = "objective-token";
-    saveDocumentIntelligencePrefill(token, {
-      kind: "objective",
-      organizationId: "org-1",
-      period: "2026-H1",
-      tujuan: "Tujuan",
-      sasaran: "Sasaran",
-      indikatorKinerjaUtama: "IKU",
-      target: "90%",
-      program: "Program",
-      kegiatan: "Kegiatan",
-      processBusiness: "Proses bisnis",
-      quote: "Kutipan sasaran",
-    });
-
-    const value = consumeDocumentIntelligencePrefill(token);
-    assert.equal(value?.kind, "objective");
-    assert.equal(value?.organizationId, "org-1");
-    assert.equal(value?.indikatorKinerjaUtama, "IKU");
-    assert.equal(value?.quote, "Kutipan sasaran");
-  });
-});
-
 test("document intelligence prefill supports mitigation report payloads", () => {
   withMockWindow(() => {
+    const { saveDocumentIntelligencePrefill, consumeDocumentIntelligencePrefill } =
+      prefillModule as {
+        saveDocumentIntelligencePrefill: (
+          token: string,
+          payload: unknown,
+        ) => void;
+        consumeDocumentIntelligencePrefill: (token: string) => unknown | null;
+      };
+
     const token = "mitigation-token";
     saveDocumentIntelligencePrefill(token, {
       kind: "mitigation-report",
@@ -105,6 +98,14 @@ test("document intelligence prefill supports mitigation report payloads", () => 
 
 test("document intelligence latest mitigation prefill can be consumed once", () => {
   withMockWindow(() => {
+    const {
+      saveLatestMitigationReportPrefill,
+      consumeLatestMitigationReportPrefill,
+    } = prefillModule as {
+      saveLatestMitigationReportPrefill: (payload: unknown) => void;
+      consumeLatestMitigationReportPrefill: () => unknown | null;
+    };
+
     saveLatestMitigationReportPrefill({
       kind: "mitigation-report",
       taskId: "task-2",
@@ -127,6 +128,10 @@ test("document intelligence latest mitigation prefill can be consumed once", () 
 
 test("document intelligence prefill ignores blank stored payloads", () => {
   withMockWindow(() => {
+    const { consumeDocumentIntelligencePrefill } = prefillModule as {
+      consumeDocumentIntelligencePrefill: (token: string) => unknown | null;
+    };
+
     const token = "blank-token";
     window.localStorage.setItem(
       `manris:document-intelligence-prefill:${token}`,

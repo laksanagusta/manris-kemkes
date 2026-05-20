@@ -106,13 +106,9 @@ func main() {
 		container.RiskCascadeDeleteUC,
 		container.RiskCascadeListUC,
 	)
-
-	cleanRiskObjectiveHandler := httpHandler.NewRiskObjectiveHandler(
-		container.RiskObjectiveCreateUC,
-		container.RiskObjectiveGetUC,
-		container.RiskObjectiveUpdateUC,
-		container.RiskObjectiveDeleteUC,
-		container.RiskObjectiveListUC,
+	cleanPlanningHierarchyHandler := httpHandler.NewPlanningHierarchyHandler(
+		container.PlanningROOptionsUC,
+		container.PlanningObjectiveCompatUC,
 	)
 	cleanFormalReportHandler := httpHandler.NewFormalReportHandler(
 		container.FormalReportGenerateUC,
@@ -255,12 +251,8 @@ func main() {
 	protected.Post("/risk-cascades/bottom-up", cleanRiskCascadeHandler.CreateBottomUp)
 	protected.Post("/risk-cascades/:id/decision", cleanRiskCascadeHandler.Decide)
 	protected.Delete("/risk-cascades/:id", cleanRiskCascadeHandler.Delete)
-
-	protected.Get("/risk-objectives", cleanRiskObjectiveHandler.List)
-	protected.Post("/risk-objectives", cleanRiskObjectiveHandler.Create)
-	protected.Get("/risk-objectives/:id", cleanRiskObjectiveHandler.Get)
-	protected.Put("/risk-objectives/:id", cleanRiskObjectiveHandler.Update)
-	protected.Delete("/risk-objectives/:id", cleanRiskObjectiveHandler.Delete)
+	protected.Get("/planning/ros", cleanPlanningHierarchyHandler.ListROOptions)
+	protected.Get("/planning/objectives", cleanPlanningHierarchyHandler.ListObjectiveCompatibility)
 
 	protected.Post("/formal-reports/generate", cleanFormalReportHandler.Generate)
 	protected.Get("/formal-reports", cleanFormalReportHandler.List)

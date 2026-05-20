@@ -1066,7 +1066,7 @@ Kembalikan HANYA JSON valid dengan struktur:
 
 %s`, req.Filename, req.Period, req.ExistingRisksJSON, req.DocumentText, baseInstructions)
 	case entity.DocumentModeStrategicObjectiveRisk:
-		return fmt.Sprintf(`Tugas Anda adalah membaca dokumen strategis dan mengekstrak Sasaran dan IKU, lalu menyusun risiko yang terkait ke setiap IKU.
+		return fmt.Sprintf(`Tugas Anda adalah membaca dokumen strategis dan mengekstrak Sasaran, IKU, dan RO, lalu menyusun risiko yang terkait ke setiap IKU dan RO.
 
 Nama file: %s
 Periode konteks: %s
@@ -1096,6 +1096,7 @@ Kembalikan HANYA JSON valid dengan struktur:
           "target": "90%%",
           "program": "Program",
           "kegiatan": "Kegiatan",
+          "roTitle": "RO",
           "processBusiness": "Proses bisnis",
           "confidence": 0,
           "sourceRefs": [

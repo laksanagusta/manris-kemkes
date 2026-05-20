@@ -1,7 +1,7 @@
 # KMK Batch A — Rollout Notes
 
 **Date:** 2026-05-01  
-**Scope:** Batch A Foundation — KMK terminology alignment, Risk Charter module, Risk Objective module, Risk-Objective linkage
+**Scope:** Batch A Foundation — KMK terminology alignment, Risk Charter module, planning hierarchy cutover, RO-linked risk registration
 
 ---
 
@@ -15,7 +15,7 @@
 ### Frontend (`npm run build`)
 
 - **Status:** ✅ PASS
-- All 43 routes build successfully, including new `/management/charters`, `/management/charters/[id]`, `/management/objectives`, `/management/objectives/[id]` routes.
+- All 43 routes build successfully, including the new `/management/charters` and `/management/planning` routes.
 
 ### Database Migrations
 
@@ -25,18 +25,20 @@
 
 ---
 
-## Feature Flag
+## RO Requirement
 
-### `KMK_OBJECTIVE_REQUIRED`
+- Risk create/update now requires `roId` directly.
+- The legacy `objectiveId` path remains readable for compatibility, but new risk writes must anchor to `RO`.
+- Existing risks remain valid without backfill because `risks.ro_id` is nullable at the database layer.
 
-- **Default:** `false`
-- **Purpose:** When set to `true`, risk creation/update will **require** an `objectiveId` linking the risk to a KMK objective.
-- **Rollout guidance:**
-  - Keep `false` on first release.
-  - Enable to `true` **only after** all active organizations have at least one objective created.
-  - Existing risks remain valid without backfill — the column is nullable.
-  - New risks can start with **optional** objective linkage during the transition period.
-- **ENV var:** `KMK_OBJECTIVE_REQUIRED` in `backend/internal/config/config.go`
+## Planning Hierarchy Migration Notes
+
+The KMK Batch A rollout now shares the same risk-to-planning linkage model as the RO-scoped hierarchy work.
+
+- `000057_planning_hierarchy` creates the normalized `planning_*` tables used by the new structure.
+- `000058_risks_add_ro_id` adds `ro_id` to `risks` so new risks can anchor directly to RO.
+- `risk_objectives` is retired from the product surface. New editing happens only in `Struktur Kinerja & RO`.
+- Risk create/update flow requires `roId` and no longer relies on the legacy `objectiveId` path.
 
 ---
 
@@ -46,8 +48,8 @@
 |---|---|
 | UI labels use KMK wording (Jarang, Kemungkinan Kecil, Kemungkinan Sedang, Kemungkinan Besar, Hampir Pasti Terjadi, Tidak Signifikan, Katastropik, Sangat Tinggi) | ✅ |
 | `risk_charters` CRUD works (backend routes + frontend pages) | ✅ |
-| `risk_objectives` CRUD works (backend routes + frontend pages) | ✅ |
-| Risk form accepts `objectiveId` via objective picker | ✅ |
+| `Struktur Kinerja & RO` CRUD works | ✅ |
+| Risk form accepts `roId` via RO picker | ✅ |
 | Backend stores `objective_id` in `risks` table | ✅ |
 | Working paper/export includes objective metadata | ✅ |
 | `go test ./...` passes | ✅ |
@@ -65,11 +67,8 @@
 | POST | `/api/v1/risk-charters` | Create charter |
 | GET | `/api/v1/risk-charters/:id` | Get charter by ID |
 | PUT | `/api/v1/risk-charters/:id` | Update charter |
-| GET | `/api/v1/risk-objectives` | List objectives (paginated, filterable, searchable) |
-| POST | `/api/v1/risk-objectives` | Create objective |
-| GET | `/api/v1/risk-objectives/:id` | Get objective by ID |
-| PUT | `/api/v1/risk-objectives/:id` | Update objective |
-| DELETE | `/api/v1/risk-objectives/:id` | Delete objective |
+| GET | `/api/v1/planning/ros` | List RO options for risk registration |
+| GET | `/api/v1/planning/hierarchy` | Get the planning hierarchy |
 
 ### Frontend
 
@@ -77,8 +76,8 @@
 |---|---|
 | `/management/charters` | Charter list page |
 | `/management/charters/[id]` | Charter detail/edit page |
-| `/management/objectives` | Objective list page |
-| `/management/objectives/[id]` | Objective detail/edit page |
+| `/management/planning` | Planning hierarchy page |
+| `/management/planning/[id]` | Planning hierarchy detail page |
 
 ---
 
@@ -86,11 +85,11 @@
 
 1. Login as `superadmin`.
 2. Open `/management/charters` → create a charter for one organization.
-3. Open `/management/objectives` → create an objective linked to that organization.
-4. Open `/risk/register/new` → pick organization and objective.
+3. Open `/management/planning` → review the planning hierarchy and RO scope.
+4. Open `/risk/register/new` → pick organization and RO.
 5. Save draft risk.
-6. Open working paper export → verify objective metadata appears.
-7. Verify no 500 errors, risk saved with `objectiveId`, pages load in sidebar/breadcrumb.
+6. Open working paper export → verify RO metadata appears.
+7. Verify no 500 errors, risk saved with `roId`, pages load in sidebar/breadcrumb.
 
 ---
 
@@ -98,9 +97,7 @@
 
 ```env
 # .env
-KMK_OBJECTIVE_REQUIRED=false
 ```
 
-- Set `KMK_OBJECTIVE_REQUIRED=true` only after all active organizations have at least one objective.
 - Existing risks remain valid without backfill.
-- New risks start with optional linkage during transition.
+- New risks must always include `roId`.

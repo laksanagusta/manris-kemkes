@@ -4,11 +4,12 @@ import test from "node:test";
 import type { Risk } from "../types/risk";
 
 const riskHistoryLib = await import(
-  new URL("./risk-history", import.meta.url).href,
+  new URL("./risk-history.ts", import.meta.url).href,
 );
 
 const {
   buildApprovedRiskHistoryItem,
+  buildSequentialVersionHistory,
   buildVersionHistoryItem,
   getRiskVersionDetailHref,
 } = riskHistoryLib as typeof import("./risk-history");
@@ -140,4 +141,68 @@ test("getRiskVersionDetailHref routes version items to risk detail", () => {
     getRiskVersionDetailHref({ riskId: "risk-review" }),
     "/risk/register/risk-review",
   );
+});
+
+test("buildSequentialVersionHistory uses previous version as baseline for each step", () => {
+  const items = buildSequentialVersionHistory([
+    {
+      id: "v3",
+      code: "R-003",
+      title: "Risk C",
+      status: "approved",
+      isCurrent: true,
+      versionGroupId: "vg-3",
+      versionNumber: 3,
+      probability: 5,
+      impact: 4,
+      inherentScore: 20,
+      changeReason: "Naik lagi.",
+      createdAt: "2026-03-01T00:00:00.000Z",
+    },
+    {
+      id: "v1",
+      code: "R-003",
+      title: "Risk C",
+      status: "approved",
+      isCurrent: false,
+      versionGroupId: "vg-3",
+      versionNumber: 1,
+      probability: 3,
+      impact: 3,
+      inherentScore: 9,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    },
+    {
+      id: "v2",
+      code: "R-003",
+      title: "Risk C",
+      status: "approved",
+      isCurrent: false,
+      versionGroupId: "vg-3",
+      versionNumber: 2,
+      probability: 4,
+      impact: 3,
+      inherentScore: 12,
+      changeReason: "Naik satu tingkat.",
+      createdAt: "2026-02-01T00:00:00.000Z",
+    },
+  ]);
+
+  assert.equal(items.length, 3);
+
+  assert.equal(items[0].versionNumber, 3);
+  assert.equal(items[0].previousLevel, "Sedang");
+  assert.equal(items[0].currentLevel, "Tinggi");
+  assert.equal(items[0].trend, "up");
+
+  assert.equal(items[1].versionNumber, 2);
+  assert.equal(items[1].previousLevel, "Rendah");
+  assert.equal(items[1].currentLevel, "Sedang");
+  assert.equal(items[1].trend, "up");
+
+  assert.equal(items[2].versionNumber, 1);
+  assert.equal(items[2].isBaseline, true);
+  assert.equal(items[2].previousLevel, "Rendah");
+  assert.equal(items[2].currentLevel, "Rendah");
+  assert.equal(items[2].trend, "stable");
 });

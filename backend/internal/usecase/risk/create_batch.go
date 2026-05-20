@@ -25,6 +25,7 @@ type CreateRiskBatchItemInput struct {
 	Description          string              `json:"description"`
 	Category             string              `json:"category"`
 	OrganizationID       *uuid.UUID          `json:"organizationId,omitempty"`
+	ROID                 *uuid.UUID          `json:"roId,omitempty"`
 	Cause                []string            `json:"cause"`
 	RiskSource           string              `json:"riskSource"`
 	Controllability      string              `json:"controllability"`
@@ -115,6 +116,7 @@ func (uc *CreateRiskBatchUseCase) Execute(ctx context.Context, input CreateRiskB
 			Category:             normalized.Category,
 			OrganizationID:       normalized.OrganizationID,
 			CreatedBy:            input.CreatedBy,
+			ROID:                 normalized.ROID,
 			Cause:                normalized.Cause,
 			RiskSource:           normalized.RiskSource,
 			Controllability:      normalized.Controllability,

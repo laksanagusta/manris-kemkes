@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, ChevronsUpDown, Loader2, Search } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth-context";
-import { listRiskObjectives } from "@/lib/api/risk-objectives";
-import type { RiskObjective } from "@/types/risk-objective";
+import { listPlanningROOptions } from "@/lib/api/planning";
+import type { PlanningROOption } from "@/types/planning";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -14,61 +14,65 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-interface ObjectivePickerProps {
+export type ROSelectionSummary = PlanningROOption;
+
+interface ROPickerProps {
   organizationId?: string;
+  period?: string;
   value?: string;
-  onChange: (objectiveId: string, summary?: ObjectiveSummary) => void;
+  onChange: (roId: string, summary?: ROSelectionSummary) => void;
 }
 
-export type ObjectiveSummary = Pick<
-  RiskObjective,
-  "sasaran" | "indikatorKinerjaUtama" | "program" | "kegiatan" | "target" | "tujuan"
->;
-
-export function ObjectivePicker({
+export function ROPicker({
   organizationId,
+  period,
   value,
   onChange,
-}: ObjectivePickerProps) {
+}: ROPickerProps) {
   const { token } = useAuth();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [items, setItems] = useState<RiskObjective[]>([]);
+  const [items, setItems] = useState<PlanningROOption[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const loadObjectives = useCallback(async () => {
-    if (!token) return;
+  const loadROOptions = useCallback(async () => {
+    if (!token || !organizationId || !period) return;
     try {
       setLoading(true);
-      const res = await listRiskObjectives(token, {
+      const res = await listPlanningROOptions(token, {
         organization_id: organizationId,
-        limit: 100,
+        period,
+        q: query.trim() || undefined,
       });
       setItems(res.data ?? []);
     } catch {
-      // Silent fail — picker shows empty
+      setItems([]);
     } finally {
       setLoading(false);
     }
-  }, [token, organizationId]);
+  }, [organizationId, period, query, token]);
 
   useEffect(() => {
-    loadObjectives();
-  }, [loadObjectives]);
+    loadROOptions();
+  }, [loadROOptions]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return items;
-    return items.filter(
-      (o) =>
-        o.sasaran.toLowerCase().includes(q) ||
-        o.indikatorKinerjaUtama.toLowerCase().includes(q) ||
-        o.tujuan.toLowerCase().includes(q) ||
-        o.period.toLowerCase().includes(q),
+    return items.filter((item) =>
+      [
+        item.roTitle,
+        item.kegiatanTitle,
+        item.programTitle,
+        item.ikuTitle,
+        item.sasaranTitle,
+        item.tujuanTitle,
+        item.period,
+      ].some((field) => field.toLowerCase().includes(q)),
     );
   }, [items, query]);
 
-  const selected = items.find((o) => o.id === value);
+  const selected = items.find((item) => item.roId === value);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -81,11 +85,11 @@ export function ObjectivePicker({
         >
           {selected ? (
             <span className="min-w-0 flex-1 truncate text-left">
-              {selected.sasaran} — {selected.indikatorKinerjaUtama}
+              {selected.roTitle} — {selected.kegiatanTitle}
             </span>
           ) : (
             <span className="min-w-0 flex-1 truncate text-left text-muted-foreground">
-              Pilih sasaran & IKU...
+              Pilih RO...
             </span>
           )}
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
@@ -96,7 +100,7 @@ export function ObjectivePicker({
           <Search className="mr-2 size-4 shrink-0 opacity-50" />
           <input
             className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
-            placeholder="Cari sasaran, IKU, atau periode..."
+            placeholder="Cari RO, kegiatan, program, IKU, atau sasaran..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -109,40 +113,33 @@ export function ObjectivePicker({
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-6 text-center text-sm text-muted-foreground">
-              Tidak ada sasaran ditemukan.
+              Tidak ada RO ditemukan.
             </div>
           ) : (
             filtered.map((item) => (
               <button
-                key={item.id}
+                key={item.roId}
                 className={cn(
                   "relative flex w-full cursor-pointer select-none items-start rounded-sm px-2 py-2 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                  value === item.id && "bg-accent text-accent-foreground",
+                  value === item.roId && "bg-accent text-accent-foreground",
                 )}
                 onClick={() => {
-                  onChange(item.id, {
-                    sasaran: item.sasaran,
-                    indikatorKinerjaUtama: item.indikatorKinerjaUtama,
-                    program: item.program,
-                    kegiatan: item.kegiatan,
-                    target: item.target,
-                    tujuan: item.tujuan,
-                  });
+                  onChange(item.roId, item);
                   setOpen(false);
                 }}
               >
                 <Check
                   className={cn(
                     "mr-2 size-4",
-                    value === item.id ? "opacity-100" : "opacity-0",
+                    value === item.roId ? "opacity-100" : "opacity-0",
                   )}
                 />
                 <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
                   <span className="w-full break-words font-medium leading-snug">
-                    {item.sasaran}
+                    {item.roTitle}
                   </span>
                   <span className="w-full break-words text-xs leading-snug text-muted-foreground">
-                    {item.indikatorKinerjaUtama}
+                    {item.kegiatanTitle}
                     {item.period ? ` · ${item.period}` : ""}
                   </span>
                 </div>
