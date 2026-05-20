@@ -23,11 +23,12 @@ func NewCreateRiskUseCase(
 	userRepo repository.UserRepository,
 	orgRepo repository.OrganizationRepository,
 ) *CreateRiskUseCase {
-	return &CreateRiskUseCase{
+	uc := &CreateRiskUseCase{
 		riskRepo: riskRepo,
 		userRepo: userRepo,
 		orgRepo:  orgRepo,
 	}
+	return uc
 }
 
 type CreateRiskInput struct {
@@ -69,6 +70,7 @@ type CreateRiskInput struct {
 	ReviewSummary      string                      `json:"reviewSummary"`
 	DraftApprovalLine  []entity.ApprovalLineMember `json:"draftApprovalLine"`
 	ObjectiveID        *uuid.UUID                  `json:"objectiveId"`
+	ROID               *uuid.UUID                  `json:"roId"`
 }
 
 type CreateRiskOutput struct {
@@ -89,6 +91,9 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 	input.Category = strings.TrimSpace(input.Category)
 	if input.Category == "" || !entity.IsValidRiskCategory(input.Category) {
 		return nil, errors.ErrInvalidRiskCategory
+	}
+	if input.ROID == nil {
+		return nil, errors.Wrap(errors.ErrInvalidInput, "roId is required")
 	}
 
 	// 2. Validate user exists
@@ -172,6 +177,7 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		ReviewSummary:      input.ReviewSummary,
 		DraftApprovalLine:  input.DraftApprovalLine,
 		ObjectiveID:        input.ObjectiveID,
+		ROID:               input.ROID,
 	}
 	risk.CalculateAll()
 

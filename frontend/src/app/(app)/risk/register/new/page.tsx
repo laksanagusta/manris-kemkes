@@ -12,10 +12,7 @@ import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  ObjectivePicker,
-  type ObjectiveSummary,
-} from "@/components/risk/objective-picker";
+import { ROPicker, type ROSelectionSummary } from "@/components/risk/ro-picker";
 import { ImpactCriteriaTooltip } from "@/components/shared/impact-criteria-tooltip";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -79,6 +76,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   Loader2,
+  AlertCircle,
   Download,
   History,
   Save,
@@ -88,6 +86,7 @@ import {
   CircleDot,
   WandSparkles,
   Trash2,
+  RefreshCw,
   TrendingUp,
   TrendingDown,
   Minus,
@@ -157,7 +156,7 @@ import {
 } from "@/lib/risk-register-user-picker";
 import { getRiskApprovalCapabilityBehavior } from "@/lib/risk-approval-capability";
 import {
-  buildVersionHistoryItem,
+  buildSequentialVersionHistory,
   getRiskVersionDetailHref,
 } from "@/lib/risk-history";
 import {
@@ -168,6 +167,7 @@ import {
   currentAssessmentCycle,
   getSelectableAssessmentCycles,
 } from "@/lib/risk-cycle-options";
+import { buildRiskRegisterPayload } from "@/lib/risk-register-payload";
 import { downloadRiskDetailPDF } from "@/lib/api/risk-export-pdf";
 import { buildRiskDetailPDFFilename } from "@/lib/risk-export-pdf-utils";
 
@@ -206,6 +206,33 @@ const VERSION_LEVEL_BADGE: Record<string, string> = {
   Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
   "Sangat Tinggi":
     "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+};
+
+const versionTrendMeta: Record<
+  "up" | "down" | "stable",
+  {
+    summary: (item: {
+      previousScore?: number;
+      currentScore?: number;
+      changeReason: string;
+      isBaseline?: boolean;
+    }) => string;
+  }
+> = {
+  up: {
+    summary: (item) =>
+      `Skor naik dari ${item.previousScore ?? 0} ke ${item.currentScore ?? 0}`,
+  },
+  down: {
+    summary: (item) =>
+      `Skor turun dari ${item.previousScore ?? 0} ke ${item.currentScore ?? 0}`,
+  },
+  stable: {
+    summary: (item) =>
+      item.isBaseline
+        ? `Skor awal ditetapkan di ${item.currentScore ?? 0}`
+        : `Skor tetap di ${item.currentScore ?? 0}`,
+  },
 };
 
 const statusVariant: Record<string, string> = {
@@ -480,7 +507,7 @@ const formSchema = z
     targetImpact: z.number().min(1).max(5).default(1),
     targetWeight: z.number().min(0.1).default(1.0),
     targetNilai: z.number().min(0).default(0),
-    objectiveId: z.string().optional(),
+    roId: z.string().optional(),
   })
   .superRefine((values, ctx) => {
     values.mitigations.forEach((mitigation, index) => {
@@ -673,7 +700,7 @@ export default function RiskInputPage() {
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<RiskWorkflowState | null>(null);
   const [objectiveSummary, setObjectiveSummary] = useState<
-    ObjectiveSummary | undefined
+    ROSelectionSummary | undefined
   >(undefined);
   const [assessmentCycleDisplay, setAssessmentCycleDisplay] = useState(
     currentAssessmentCycle(),
@@ -691,6 +718,10 @@ export default function RiskInputPage() {
     }
     return options;
   }, [assessmentCycleDisplay]);
+  const planningPeriod = useMemo(() => {
+    const [year] = assessmentCycleDisplay.split("-");
+    return year || String(new Date().getFullYear());
+  }, [assessmentCycleDisplay]);
   const [selectedOrganizationUPRLevel, setSelectedOrganizationUPRLevel] =
     useState<string>("kementerian");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -704,6 +735,9 @@ export default function RiskInputPage() {
     [],
   );
   const [loadingVersions, setLoadingVersions] = useState(false);
+  const [versionHistoryError, setVersionHistoryError] = useState<string | null>(
+    null,
+  );
   const submitTarget = useRef<"draft" | "review">("draft");
 
   const form = useForm<FormInput, unknown, FormValues>({
@@ -713,7 +747,7 @@ export default function RiskInputPage() {
       description: "",
       category: undefined,
       organizationId: "",
-      objectiveId: undefined,
+      roId: undefined,
       riskCode: "",
       causes: [],
       impacts: [],
@@ -1725,89 +1759,15 @@ export default function RiskInputPage() {
     }
   }, [riskId, activeView]);
 
-  const buildPayload = (data: FormValues, status: string) => {
-    let orgId: string | null = null;
-    if (user?.role === "unit" && user.organizationId) {
-      orgId = user.organizationId;
-    } else if (data.organizationId && data.organizationId.trim() !== "") {
-      orgId = data.organizationId;
-    }
-
-    return {
-      title: data.title,
-      description: data.description,
-      category: data.category,
-      status,
-      organizationId: orgId,
-      draftApprovalLine: [
-        ...(reviewerId
-          ? [
-              {
-                id: reviewerId,
-                name: reviewerOption?.name || "Reviewer",
-                type: "review" as const,
-              },
-            ]
-          : []),
-        ...selectedApprovalLine
-          .filter((member) => member.id && member.id !== reviewerId)
-          .map((member) => ({
-            id: member.id,
-            name: member.name,
-            role: member.role,
-            type: "approval" as const,
-          })),
-      ],
-      cause: (data.causes || [])
-        .map((cause) => cause.text)
-        .filter((text) => text.trim()),
-      riskSource: data.riskSource,
-      controllability: data.controllability,
-      impactDesc: (data.impacts || [])
-        .map((impactItem) => impactItem.text)
-        .filter((text) => text.trim()),
-      existingControl: data.existingControl,
-      controlEffectiveness: data.controlEffectiveness,
-      probability: data.probability,
-      impact: data.impact,
-      weight: data.weight,
-      riskPriority: data.riskPriority,
-      riskAppetite: data.riskAppetite,
-      treatmentOption: data.treatmentOption,
-      nextReviewDate:
-        data.nextReviewDate && data.nextReviewDate.trim() !== ""
-          ? data.nextReviewDate
-          : null,
-      targetProbability: data.targetProbability,
-      targetImpact: data.targetImpact,
-      targetWeight: data.targetWeight,
+  const buildPayload = (data: FormValues, status: string) =>
+    buildRiskRegisterPayload(data, status, {
       assessmentCycle: assessmentCycleDisplay,
-      mitigations: (data.mitigations || []).map((mitigation) => ({
-        action: mitigation.action,
-        owner: mitigation.owner,
-        ...(mitigation.treatmentOwnerId
-          ? { ownerUserId: mitigation.treatmentOwnerId }
-          : {}),
-        dueDate:
-          mitigation.dueDate && mitigation.dueDate.trim() !== ""
-            ? mitigation.dueDate
-            : null,
-        targetCost: 0,
-        mitigationType: mitigation.mitigationType,
-        activityStage: mitigation.activityStage || "",
-        expectedOutput: mitigation.expectedOutput || "",
-        quantitativeTarget: mitigation.quantitativeTarget || "",
-        supportingUnit: mitigation.supportingUnit || "",
-        resourcesRequired: mitigation.resourcesRequired || "",
-        contingencyPlan: mitigation.contingencyPlan || "",
-        potentialObstacle: mitigation.potentialObstacle || "",
-        costBenefitNote: mitigation.costBenefitNote || "",
-        isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
-        isExistingControl: mitigation.isExistingControl ?? false,
-      })),
-      objectiveId: data.objectiveId || undefined,
-    };
-  };
+      userRole: user?.role,
+      userOrganizationId: user?.organizationId ?? null,
+      reviewerId,
+      reviewerOption,
+      selectedApprovalLine,
+    });
 
   const onSubmit = async (data: FormValues) => {
     if (isRiskLocked) {
@@ -2029,6 +1989,7 @@ export default function RiskInputPage() {
     async (id: string) => {
       if (!token) return;
       setLoadingVersions(true);
+      setVersionHistoryError(null);
       try {
         const items = await api.get<RiskVersionTimelineItem[]>(
           `/risks/${id}/versions`,
@@ -2037,7 +1998,9 @@ export default function RiskInputPage() {
         setRiskVersions(items || []);
       } catch {
         toast.error("Gagal memuat riwayat versi.");
-        setRiskVersions([]);
+        setVersionHistoryError(
+          "Riwayat versi belum berhasil dimuat. Coba lagi beberapa saat lagi.",
+        );
       } finally {
         setLoadingVersions(false);
       }
@@ -2060,13 +2023,9 @@ export default function RiskInputPage() {
       return [];
     }
 
-    const current =
-      riskVersions.find((version) => version.isCurrent) ?? riskVersions[0];
-
-    return riskVersions.map((version) =>
-      buildVersionHistoryItem(version, current),
-    );
+    return buildSequentialVersionHistory(riskVersions);
   }, [riskVersions]);
+  const activeHistoryVersion = versionHistory.find((item) => item.isCurrent);
 
   useEffect(() => {
     if (riskId && token) {
@@ -2333,16 +2292,33 @@ export default function RiskInputPage() {
               )}
 
               {riskId && (
-                <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+                <Sheet
+                  open={historyOpen}
+                  onOpenChange={(open) => {
+                    setHistoryOpen(open);
+                    if (open && riskId) {
+                      void loadRiskVersions(riskId);
+                    }
+                  }}
+                >
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <SheetTrigger asChild>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-muted-foreground hover:text-foreground"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-2 border-border/70 bg-background/90 px-3 text-xs font-medium text-foreground shadow-sm hover:bg-muted/40"
                         >
                           <History className="size-4" />
+                          <span>Riwayat versi</span>
+                          {versionHistory.length > 0 ? (
+                            <Badge
+                              variant="secondary"
+                              className="h-5 min-w-5 rounded-full px-1.5 text-[10px]"
+                            >
+                              {versionHistory.length}
+                            </Badge>
+                          ) : null}
                         </Button>
                       </SheetTrigger>
                     </TooltipTrigger>
@@ -2350,7 +2326,7 @@ export default function RiskInputPage() {
                   </Tooltip>
                   <SheetContent
                     side="right"
-                    className="sm:max-w-md overflow-y-auto"
+                    className="overflow-y-auto sm:max-w-lg"
                   >
                     <SheetHeader className="border-b border-border/50 pb-4">
                       <SheetTitle className="flex items-center gap-2 text-base font-bold">
@@ -2358,16 +2334,45 @@ export default function RiskInputPage() {
                         Riwayat Versi
                       </SheetTitle>
                       <SheetDescription>
-                        Perubahan skor risiko dari waktu ke waktu
+                        Lacak perubahan skor, level, dan alasan pembaruan sebelum
+                        Anda meninjau versi yang aktif.
                       </SheetDescription>
                     </SheetHeader>
-                    <div className="flex-1 px-4 pb-4">
+                    <div className="flex-1 px-4 pb-5 pt-4">
                       {loadingVersions ? (
                         <div className="flex items-center justify-center py-12">
                           <Loader2 className="size-5 animate-spin text-muted-foreground" />
                           <span className="ml-2 text-sm text-muted-foreground">
                             Memuat riwayat...
                           </span>
+                        </div>
+                      ) : versionHistoryError ? (
+                        <div className="rounded-xl border border-destructive/15 bg-destructive/5 p-4">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                            <div className="min-w-0 space-y-1">
+                              <p className="text-sm font-medium text-foreground">
+                                Riwayat versi belum tersedia
+                              </p>
+                              <p className="text-sm leading-6 text-muted-foreground">
+                                {versionHistoryError}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-4 gap-2"
+                            onClick={() => {
+                              if (riskId) {
+                                void loadRiskVersions(riskId);
+                              }
+                            }}
+                          >
+                            <RefreshCw className="size-3.5" />
+                            Coba lagi
+                          </Button>
                         </div>
                       ) : versionHistory.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -2376,20 +2381,49 @@ export default function RiskInputPage() {
                             Belum Ada Riwayat Versi
                           </p>
                           <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                            Riwayat versi akan tersedia setelah risiko ini
-                            mengalami perubahan skor.
-                          </p>
+                          Riwayat versi akan tersedia setelah risiko ini
+                          mengalami perubahan skor.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/[0.28] p-4 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                              Versi aktif
+                            </p>
+                            <p className="text-sm font-semibold text-foreground">
+                              {activeHistoryVersion?.versionNumber
+                                ? `Versi ${activeHistoryVersion.versionNumber}`
+                                : "Versi aktif tersedia"}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {activeHistoryVersion?.changedAtLabel ?? "-"}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                              Total jejak perubahan
+                            </p>
+                            <p className="text-sm font-semibold text-foreground">
+                              {versionHistory.length} versi tersimpan
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Gunakan ringkasan ini untuk melihat perubahan
+                              penting sebelum membuka detail lengkap.
+                            </p>
+                          </div>
                         </div>
-                      ) : (
+
                         <div className="relative pt-2">
                           <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border/50" />
                           <div className="flex flex-col gap-4">
                             {versionHistory.map((item, index) => (
                               <div
                                 key={item.id}
-                                className="flex gap-3 relative"
+                                className="relative flex gap-3 rounded-xl border border-transparent p-3 transition-colors hover:border-border/70 hover:bg-muted/30"
                               >
-                                <div className="shrink-0 size-6 rounded-full bg-background border border-border/50 flex items-center justify-center z-10">
+                                <div className="z-10 flex size-6 shrink-0 items-center justify-center rounded-full border border-border/50 bg-background">
                                   {item.trend === "up" ? (
                                     <TrendingUp className="size-3.5 text-risk-extreme" />
                                   ) : item.trend === "down" ? (
@@ -2398,55 +2432,114 @@ export default function RiskInputPage() {
                                     <Minus className="size-3.5 text-muted-foreground" />
                                   )}
                                 </div>
-                                <div className="flex-1 min-w-0 pb-2">
-                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                    <Link
-                                      href={getRiskVersionDetailHref(item)}
-                                      className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:no-underline"
-                                    >
-                                      v{versionHistory.length - index}
-                                    </Link>
-                                    <span className="text-sm font-semibold text-muted-foreground">
-                                      {item.cycle}
-                                    </span>
-                                    {item.isCurrent && (
-                                      <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
-                                        Current
+                                <div className="min-w-0 flex-1 space-y-3 pb-1">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 space-y-1">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <Link
+                                          href={getRiskVersionDetailHref(item)}
+                                          className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:no-underline"
+                                        >
+                                          {item.versionNumber
+                                            ? `Versi ${item.versionNumber}`
+                                            : `Versi ${versionHistory.length - index}`}
+                                        </Link>
+                                        {item.isCurrent && (
+                                          <Badge
+                                            variant="outline"
+                                            className="h-5 border-primary/20 bg-primary/10 px-2 text-[10px] font-semibold text-primary"
+                                          >
+                                            Versi aktif
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">
+                                        {item.cycle}
+                                        {item.changedAtLabel
+                                          ? ` • ${item.changedAtLabel}`
+                                          : ""}
+                                      </p>
+                                    </div>
+                                    <div className="shrink-0">
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          "h-6 border px-2 text-[10px] font-semibold",
+                                          VERSION_LEVEL_BADGE[item.currentLevel] ||
+                                            "",
+                                        )}
+                                      >
+                                        {item.currentLevel}
                                       </Badge>
-                                    )}
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-1.5 mb-1.5">
-                                    <Badge
-                                      variant="outline"
-                                      className={cn(
-                                        "text-[10px] font-semibold border h-5 px-1.5",
-                                        VERSION_LEVEL_BADGE[
-                                          item.previousLevel
-                                        ] || "",
-                                      )}
-                                    >
-                                      {item.previousLevel}
-                                    </Badge>
-                                    <span className="text-muted-foreground text-xs">
-                                      →
-                                    </span>
-                                    <Badge
-                                      variant="outline"
-                                      className={cn(
-                                        "text-[10px] font-semibold border h-5 px-1.5",
-                                        VERSION_LEVEL_BADGE[
-                                          item.currentLevel
-                                        ] || "",
-                                      )}
-                                    >
-                                      {item.currentLevel}
-                                    </Badge>
+
+                                  <div className="rounded-lg border border-border/60 bg-background/80 px-3 py-2">
+                                    <p className="text-sm font-medium text-foreground">
+                                      {
+                                        versionTrendMeta[item.trend].summary(
+                                          item,
+                                        )
+                                      }
+                                    </p>
+                                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                                      {item.changeReason}
+                                    </p>
+                                    {item.reviewSummary ? (
+                                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                                        Ringkasan review: {item.reviewSummary}
+                                      </p>
+                                    ) : null}
                                   </div>
+
+                                  {item.isBaseline ? (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <Badge
+                                        variant="outline"
+                                        className="h-5 border-border/70 bg-muted/40 px-2 text-[10px] font-semibold text-muted-foreground"
+                                      >
+                                        Baseline
+                                      </Badge>
+                                      <span className="text-xs text-muted-foreground">
+                                        Versi awal, belum ada pembanding.
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <span className="text-xs font-medium text-muted-foreground">
+                                        Perubahan level
+                                      </span>
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          "h-5 border px-1.5 text-[10px] font-semibold",
+                                          VERSION_LEVEL_BADGE[item.previousLevel] ||
+                                            "",
+                                        )}
+                                      >
+                                        {item.previousLevel}
+                                      </Badge>
+                                      <span className="text-xs text-muted-foreground">
+                                        ke
+                                      </span>
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          "h-5 border px-1.5 text-[10px] font-semibold",
+                                          VERSION_LEVEL_BADGE[item.currentLevel] ||
+                                            "",
+                                        )}
+                                      >
+                                        {item.currentLevel}
+                                      </Badge>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ))}
                           </div>
                         </div>
+                      </div>
                       )}
                     </div>
                   </SheetContent>
@@ -2808,58 +2901,75 @@ export default function RiskInputPage() {
 
                     <div className="space-y-1.5">
                       <Label className="text-sm font-medium">
-                        Sasaran & IKU
+                        RO
                       </Label>
-                      <ObjectivePicker
+                      <ROPicker
                         organizationId={currentOrganizationId}
-                        value={watch("objectiveId")}
+                        period={planningPeriod}
+                        value={watch("roId")}
                         onChange={(id, summary) => {
-                          setValue("objectiveId", id, { shouldDirty: true });
+                          setValue("roId", id, { shouldDirty: true });
                           setObjectiveSummary(summary);
                         }}
                       />
                       <p className="text-[11px] leading-[14px] text-muted-foreground">
-                        Pilih sasaran organisasi yang terdampak langsung oleh
-                        risiko ini sesuai KMK.
+                        Pilih RO yang terdampak langsung oleh risiko ini sesuai
+                        scope satker dan tahun perencanaan.
                       </p>
                     </div>
 
                     {objectiveSummary && (
                       <div className="min-w-0 space-y-2 rounded-lg border border-border/50 bg-background p-4">
                         <p className="text-xs font-semibold text-foreground">
-                          Ringkasan Sasaran
+                          Ringkasan Hirarki
                         </p>
                         <div className="grid min-w-0 gap-2 text-xs text-muted-foreground md:grid-cols-2">
-                          {objectiveSummary.tujuan && (
+                          {objectiveSummary.tujuanTitle && (
                             <div className="min-w-0 break-words">
                               <span className="font-medium text-foreground">
                                 Tujuan:
                               </span>{" "}
-                              {objectiveSummary.tujuan}
+                              {objectiveSummary.tujuanTitle}
                             </div>
                           )}
-                          {objectiveSummary.sasaran && (
+                          {objectiveSummary.sasaranTitle && (
                             <div className="min-w-0 break-words">
                               <span className="font-medium text-foreground">
                                 Sasaran:
                               </span>{" "}
-                              {objectiveSummary.sasaran}
+                              {objectiveSummary.sasaranTitle}
                             </div>
                           )}
-                          {objectiveSummary.indikatorKinerjaUtama && (
+                          {objectiveSummary.ikuTitle && (
                             <div className="min-w-0 break-words">
                               <span className="font-medium text-foreground">
                                 IKU:
                               </span>{" "}
-                              {objectiveSummary.indikatorKinerjaUtama}
+                              {objectiveSummary.ikuTitle}
                             </div>
                           )}
-                          {objectiveSummary.program && (
+                          {objectiveSummary.programTitle && (
                             <div className="min-w-0 break-words">
                               <span className="font-medium text-foreground">
                                 Program:
                               </span>{" "}
-                              {objectiveSummary.program}
+                              {objectiveSummary.programTitle}
+                            </div>
+                          )}
+                          {objectiveSummary.kegiatanTitle && (
+                            <div className="min-w-0 break-words">
+                              <span className="font-medium text-foreground">
+                                Kegiatan:
+                              </span>{" "}
+                              {objectiveSummary.kegiatanTitle}
+                            </div>
+                          )}
+                          {objectiveSummary.roTitle && (
+                            <div className="min-w-0 break-words">
+                              <span className="font-medium text-foreground">
+                                RO:
+                              </span>{" "}
+                              {objectiveSummary.roTitle}
                             </div>
                           )}
                         </div>

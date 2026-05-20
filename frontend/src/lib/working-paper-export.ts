@@ -290,15 +290,17 @@ function applyWorkingPaperMetadataBlock(
 
   const labelFont: Partial<ExcelJS.Font> = { name: BASE_FONT_NAME, size: 11 };
   const valueFont: Partial<ExcelJS.Font> = { name: BASE_FONT_NAME, size: 11 };
-  const labelAlign: Partial<ExcelJS.Alignment> = { vertical: "top", wrapText: true };
-  const centerValueAlign: Partial<ExcelJS.Alignment> = { horizontal: "center", vertical: "top", wrapText: true };
+  const labelAlign: Partial<ExcelJS.Alignment> = { horizontal: "left", vertical: "middle", wrapText: true };
+  const centerValueAlign: Partial<ExcelJS.Alignment> = { horizontal: "center", vertical: "middle", wrapText: true };
   const leftValueAlign: Partial<ExcelJS.Alignment> = { vertical: "top", wrapText: true };
 
   const leftLabelCol = firstCol;
+  const leftLabelEndCol = Math.min(lastCol, firstCol + 1);
   const leftValueStartCol = firstCol + 2;
   const leftValueEndCol = Math.min(lastCol, firstCol + 6);
   const rightLabelCol = Math.min(lastCol, firstCol + 7);
-  const rightValueStartCol = Math.min(lastCol, firstCol + 8);
+  const rightLabelEndCol = Math.min(lastCol, firstCol + 8);
+  const rightValueStartCol = Math.min(lastCol, firstCol + 9);
   const rightValueEndCol = lastCol;
 
   const rows: Array<{
@@ -369,6 +371,7 @@ function applyWorkingPaperMetadataBlock(
     const rowRef = ws.getRow(row);
     if (leftHeight) rowRef.height = leftHeight;
 
+    ws.mergeCells(row, leftLabelCol, row, leftLabelEndCol);
     const leftLabelCell = ws.getCell(row, leftLabelCol);
     leftLabelCell.value = leftLabel;
     leftLabelCell.font = labelFont;
@@ -380,6 +383,7 @@ function applyWorkingPaperMetadataBlock(
     leftValueCell.font = valueFont;
     leftValueCell.alignment = leftValueAlign;
 
+    ws.mergeCells(row, rightLabelCol, row, rightLabelEndCol);
     const rightLabelCell = ws.getCell(row, rightLabelCol);
     rightLabelCell.value = rightLabel;
     rightLabelCell.font = labelFont;

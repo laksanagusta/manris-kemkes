@@ -45,11 +45,15 @@ func (r *fakeDocumentRiskRepo) List(_ context.Context, orgIDs []uuid.UUID, statu
 
 type fakeDocumentObjectiveRepo struct {
 	objectives []*entity.RiskObjective
-	lastFilter repository.RiskObjectiveListFilter
+	lastFilter repository.PlanningCompatibilityFilter
 	err        error
 }
 
-func (r *fakeDocumentObjectiveRepo) List(_ context.Context, filter repository.RiskObjectiveListFilter) ([]*entity.RiskObjective, int, error) {
+func (r *fakeDocumentObjectiveRepo) ListROOptions(context.Context, repository.PlanningROOptionFilter) ([]entity.PlanningROOption, error) {
+	return nil, nil
+}
+
+func (r *fakeDocumentObjectiveRepo) ListObjectiveCompatibilityRows(_ context.Context, filter repository.PlanningCompatibilityFilter) ([]*entity.RiskObjective, int, error) {
 	r.lastFilter = filter
 	return r.objectives, len(r.objectives), r.err
 }
@@ -217,6 +221,60 @@ func TestAnalyzeDocumentIntelligenceFiltersOpenMitigationTasksAndNormalizesResul
 	}
 	if len(match.SourceRefs) != 1 || match.SourceRefs[0].Quote != "checklist sudah dipakai" || match.SourceRefs[0].Location != "Halaman 3" {
 		t.Fatalf("expected source refs trimmed and preserved, got %+v", match.SourceRefs)
+	}
+}
+
+func TestAnalyzeDocumentIntelligenceStrategicModeIncludesROContext(t *testing.T) {
+	orgID := uuid.New()
+	aiRepo := &fakeDocumentAIRepo{result: &entity.DocumentIntelligenceResult{Strategic: &entity.StrategicObjectiveRiskResult{}}}
+	objectiveRepo := &fakeDocumentObjectiveRepo{
+		objectives: []*entity.RiskObjective{
+			{
+				ID:                    uuid.New(),
+				OrganizationID:        orgID,
+				Period:                "2027",
+				Tujuan:                "Tujuan A",
+				Sasaran:               "Sasaran A",
+				IndikatorKinerjaUtama: "IKU A",
+				Target:                "90%",
+				Program:               "Program A",
+				Kegiatan:              "Kegiatan A",
+				ProcessBusiness:       "RO A",
+				Status:                "draft",
+			},
+		},
+	}
+
+	uc := NewAnalyzeDocumentIntelligenceUseCase(
+		aiRepo,
+		&fakeDocumentOrgRepo{ctx: "Konteks organisasi"},
+		&fakeDocumentRiskRepo{},
+		objectiveRepo,
+		&fakeDocumentTaskRepo{},
+	)
+
+	_, err := uc.Execute(context.Background(), AnalyzeDocumentIntelligenceInput{
+		Mode:           entity.DocumentModeStrategicObjectiveRisk,
+		DocumentText:   "Sasaran A dengan IKU A dan RO A",
+		Period:         "2027",
+		OrganizationID: &orgID,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	var objectives []map[string]any
+	if err := json.Unmarshal([]byte(aiRepo.lastReq.ObjectivesJSON), &objectives); err != nil {
+		t.Fatalf("unmarshal objectives json: %v", err)
+	}
+	if len(objectives) != 1 {
+		t.Fatalf("expected one objective context, got %d", len(objectives))
+	}
+	if objectives[0]["roTitle"] != "RO A" {
+		t.Fatalf("expected roTitle to be included, got %v", objectives[0]["roTitle"])
+	}
+	if objectives[0]["processBusiness"] != "RO A" {
+		t.Fatalf("expected processBusiness compatibility to stay, got %v", objectives[0]["processBusiness"])
 	}
 }
 

@@ -31,13 +31,14 @@ func NewUpdateRiskUseCase(
 	wpRepo WorkingPaperLockChecker,
 	taskRepo repository.MitigationTaskRepository,
 ) *UpdateRiskUseCase {
-	return &UpdateRiskUseCase{
+	uc := &UpdateRiskUseCase{
 		riskRepo: riskRepo,
 		userRepo: userRepo,
 		orgRepo:  orgRepo,
 		wpRepo:   wpRepo,
 		taskRepo: taskRepo,
 	}
+	return uc
 }
 
 type UpdateRiskInput struct {
@@ -84,6 +85,7 @@ type UpdateRiskInput struct {
 	ReviewSummary      string                      `json:"reviewSummary"`
 	DraftApprovalLine  []entity.ApprovalLineMember `json:"draftApprovalLine"`
 	ObjectiveID        *uuid.UUID                  `json:"objectiveId"`
+	ROID               *uuid.UUID                  `json:"roId"`
 }
 
 type UpdateRiskOutput struct {
@@ -110,6 +112,9 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		if blocked {
 			return nil, errors.Wrap(errors.ErrInvalidStatus, "risk version is locked by a signing or completed working paper")
 		}
+	}
+	if input.ROID == nil {
+		return nil, errors.Wrap(errors.ErrInvalidInput, "roId is required")
 	}
 
 	// 3. Validate status transitions
@@ -204,6 +209,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	existingRisk.ReviewSummary = input.ReviewSummary
 	existingRisk.DraftApprovalLine = input.DraftApprovalLine
 	existingRisk.ObjectiveID = input.ObjectiveID
+	existingRisk.ROID = input.ROID
 
 	// 7. Validate risk entity
 	if err := existingRisk.Validate(); err != nil {

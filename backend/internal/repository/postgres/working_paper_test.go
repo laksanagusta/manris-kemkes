@@ -71,3 +71,31 @@ func TestWorkingPaperRiskQueryCastsMitigationDueDatesToTextArray(t *testing.T) {
 		t.Fatalf("unexpected raw date aggregation for mitigation due dates")
 	}
 }
+
+func TestPreviousApprovedWorkingPaperRiskExprPrefersPreviousSemesterBeforeFallbackVersion(t *testing.T) {
+	expr := previousApprovedWorkingPaperRiskExpr()
+
+	expectedSnippets := []string{
+		"prev.version_number < risk.version_number",
+		"COALESCE(prev.assessment_cycle, '') = CASE",
+		"RIGHT(risk.assessment_cycle, 2) = 'H1'",
+		"THEN ((LEFT(risk.assessment_cycle, 4))::int - 1)::text",
+		"THEN 'H2'",
+		"ELSE 'H1'",
+		"prev.version_number DESC",
+	}
+
+	for _, snippet := range expectedSnippets {
+		if !strings.Contains(expr, snippet) {
+			t.Fatalf("expected previous risk expression to contain %q, got:\n%s", snippet, expr)
+		}
+	}
+
+	if strings.Contains(expr, "prev.version_number = risk.version_number - 1") {
+		t.Fatalf("expected previous risk expression to avoid direct version_number - 1 matching, got:\n%s", expr)
+	}
+
+	if strings.Contains(expr, "prev.archived_at IS NULL") {
+		t.Fatalf("expected previous risk expression to allow archived historical versions, got:\n%s", expr)
+	}
+}

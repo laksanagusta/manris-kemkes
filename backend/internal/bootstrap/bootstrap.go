@@ -31,11 +31,11 @@ import (
 	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
+	planninguc "github.com/manris/backend/internal/usecase/planning"
 	reportuc "github.com/manris/backend/internal/usecase/report"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 	riskcascadeuc "github.com/manris/backend/internal/usecase/riskcascade"
 	riskcharteruc "github.com/manris/backend/internal/usecase/riskcharter"
-	riskobjectiveuc "github.com/manris/backend/internal/usecase/riskobjective"
 	systemuc "github.com/manris/backend/internal/usecase/system"
 	systemsettinguc "github.com/manris/backend/internal/usecase/system_setting"
 	tmpmruc "github.com/manris/backend/internal/usecase/tmpmr"
@@ -70,7 +70,7 @@ type Container struct {
 	ExternalPICRepository          domainrepo.ExternalPICRepository
 	WPRepository                   domainrepo.WorkingPaperRepository
 	RiskCharterRepository          domainrepo.RiskCharterRepository
-	RiskObjectiveRepository        domainrepo.RiskObjectiveRepository
+	PlanningHierarchyRepository    domainrepo.PlanningHierarchyRepository
 	TMPMRRepository                domainrepo.TMPMRRepository
 	FormalReportRepository         domainrepo.FormalReportRepository
 	LikelihoodAssessmentRepository domainrepo.LikelihoodAssessmentRepository
@@ -222,13 +222,6 @@ type Container struct {
 	TMPMRReviewUC  *tmpmruc.ReviewUseCase
 	TMPMRApproveUC *tmpmruc.ApproveUseCase
 
-	// Risk Objective UseCases
-	RiskObjectiveCreateUC *riskobjectiveuc.CreateRiskObjectiveUseCase
-	RiskObjectiveGetUC    *riskobjectiveuc.GetRiskObjectiveUseCase
-	RiskObjectiveUpdateUC *riskobjectiveuc.UpdateRiskObjectiveUseCase
-	RiskObjectiveDeleteUC *riskobjectiveuc.DeleteRiskObjectiveUseCase
-	RiskObjectiveListUC   *riskobjectiveuc.ListRiskObjectivesUseCase
-
 	// Formal Report UseCases
 	FormalReportGenerateUC *formalreportuc.GenerateFormalReportUseCase
 	FormalReportGetUC      *formalreportuc.GetUseCase
@@ -241,6 +234,10 @@ type Container struct {
 
 	// Impact Criteria UseCases
 	ImpactCriteriaListUC impactcriteriauc.ListUseCase
+
+	// Planning UseCases
+	PlanningROOptionsUC       *planninguc.ListROOptionsUseCase
+	PlanningObjectiveCompatUC *planninguc.ListObjectiveCompatibilityUseCase
 
 	// External PIC UseCases
 	ExternalPICGetOrCreateUC *externalextPICuc.GetOrCreateByNameUseCase
@@ -335,7 +332,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.ExternalPICRepository = postgresrepo.NewExternalPICRepository(pool)
 	c.WPRepository = postgresrepo.NewWorkingPaperRepository(pool)
 	c.RiskCharterRepository = postgresrepo.NewRiskCharterRepository(pool)
-	c.RiskObjectiveRepository = postgresrepo.NewRiskObjectiveRepository(pool)
+	c.PlanningHierarchyRepository = postgresrepo.NewPlanningHierarchyRepository(pool)
 	c.TMPMRRepository = postgresrepo.NewTMPMRRepository(pool)
 	c.FormalReportRepository = postgresrepo.NewFormalReportRepository(pool)
 	c.LikelihoodAssessmentRepository = postgresrepo.NewLikelihoodAssessmentRepository(pool)
@@ -501,9 +498,12 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 		c.AIRepository,
 		c.OrgRepository,
 		c.RiskRepository,
-		c.RiskObjectiveRepository,
+		c.PlanningHierarchyRepository,
 		c.MitigationTaskRepository,
 	)
+
+	c.PlanningROOptionsUC = planninguc.NewListROOptionsUseCase(c.PlanningHierarchyRepository)
+	c.PlanningObjectiveCompatUC = planninguc.NewListObjectiveCompatibilityUseCase(c.PlanningHierarchyRepository)
 
 	// ============================================================================
 	// CBA UseCases
@@ -556,13 +556,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 		c.TMPMRRepository,
 		c.FormalReportPDFRenderer,
 	)
-
-	// Risk Objective UseCases
-	c.RiskObjectiveCreateUC = riskobjectiveuc.NewCreateRiskObjectiveUseCase(c.RiskObjectiveRepository)
-	c.RiskObjectiveGetUC = riskobjectiveuc.NewGetRiskObjectiveUseCase(c.RiskObjectiveRepository)
-	c.RiskObjectiveUpdateUC = riskobjectiveuc.NewUpdateRiskObjectiveUseCase(c.RiskObjectiveRepository)
-	c.RiskObjectiveDeleteUC = riskobjectiveuc.NewDeleteRiskObjectiveUseCase(c.RiskObjectiveRepository)
-	c.RiskObjectiveListUC = riskobjectiveuc.NewListRiskObjectivesUseCase(c.RiskObjectiveRepository)
 	c.LikelihoodAssessmentUpsertUC = likelihoodassessmentuc.NewUpsertUseCase(c.LikelihoodAssessmentRepository)
 	c.LikelihoodAssessmentGetUC = likelihoodassessmentuc.NewGetByRiskIDUseCase(c.LikelihoodAssessmentRepository)
 	c.ImpactCriteriaListUC = impactcriteriauc.NewListUseCase(c.ImpactCriteriaRepository)

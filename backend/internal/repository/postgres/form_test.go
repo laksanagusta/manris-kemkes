@@ -21,6 +21,9 @@ func setupPool(t *testing.T) *pgxpool.Pool {
 	if err != nil {
 		t.Fatalf("connect to db: %v", err)
 	}
+	if _, err := pool.Exec(context.Background(), `ALTER TABLE risks ADD COLUMN IF NOT EXISTS ro_id UUID`); err != nil {
+		t.Fatalf("ensure ro_id column: %v", err)
+	}
 	t.Cleanup(pool.Close)
 	return pool
 }

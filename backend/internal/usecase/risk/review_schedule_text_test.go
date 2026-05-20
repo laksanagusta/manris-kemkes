@@ -206,6 +206,7 @@ func TestCreateRiskUseCase_ExecutePersistsReviewScheduleText(t *testing.T) {
 	reviewScheduleText := "Setiap akhir semester"
 	nextReviewDate := "2026-06-30"
 	createdBy := uuid.New()
+	roID := uuid.New()
 	repo := &reviewScheduleRiskRepo{}
 	uc := NewCreateRiskUseCase(repo, &reviewScheduleUserRepo{}, &reviewScheduleOrgRepo{})
 
@@ -213,6 +214,7 @@ func TestCreateRiskUseCase_ExecutePersistsReviewScheduleText(t *testing.T) {
 		Title:              "Risk review cadence",
 		Category:           entity.RiskCategoryKebijakan,
 		CreatedBy:          &createdBy,
+		ROID:               &roID,
 		Probability:        3,
 		Impact:             4,
 		TargetProbability:  2,
@@ -237,6 +239,7 @@ func TestCreateRiskUseCase_ExecutePersistsReviewScheduleText(t *testing.T) {
 func TestUpdateRiskUseCase_ExecutePersistsReviewScheduleText(t *testing.T) {
 	riskID := uuid.New()
 	organizationID := uuid.New()
+	roID := uuid.New()
 	existingReviewDate := "2026-03-31"
 	updatedReviewDate := "2026-09-30"
 	repo := &reviewScheduleRiskRepo{
@@ -263,6 +266,7 @@ func TestUpdateRiskUseCase_ExecutePersistsReviewScheduleText(t *testing.T) {
 		Category:           entity.RiskCategoryOperasional,
 		Status:             entity.RiskStatusDraft,
 		OrganizationID:     &organizationID,
+		ROID:               &roID,
 		Probability:        4,
 		Impact:             3,
 		NextReviewDate:     &updatedReviewDate,
@@ -286,6 +290,7 @@ func TestUpdateRiskUseCase_ExecuteActivatesApprovedReassessmentVersion(t *testin
 	riskID := uuid.New()
 	previousRiskID := uuid.New()
 	organizationID := uuid.New()
+	roID := uuid.New()
 	repo := &reviewScheduleRiskRepo{
 		byID: &entity.Risk{
 			ID:             riskID,
@@ -309,6 +314,7 @@ func TestUpdateRiskUseCase_ExecuteActivatesApprovedReassessmentVersion(t *testin
 		Category:       entity.RiskCategoryOperasional,
 		Status:         entity.RiskStatusApproved,
 		OrganizationID: &organizationID,
+		ROID:           &roID,
 		Probability:    4,
 		Impact:         3,
 	}, nil)
@@ -330,6 +336,7 @@ func TestUpdateRiskUseCase_ExecuteApprovedRiskCreatesMitigationTask(t *testing.T
 	riskID := uuid.New()
 	organizationID := uuid.New()
 	dueDate := "2026-06-10"
+	roID := uuid.New()
 	repo := &reviewScheduleRiskRepo{
 		byID: &entity.Risk{
 			ID:             riskID,
@@ -356,6 +363,7 @@ func TestUpdateRiskUseCase_ExecuteApprovedRiskCreatesMitigationTask(t *testing.T
 		Category:       entity.RiskCategoryOperasional,
 		Status:         entity.RiskStatusApproved,
 		OrganizationID: &organizationID,
+		ROID:           &roID,
 		Probability:    4,
 		Impact:         3,
 		Mitigations: []entity.Mitigation{
