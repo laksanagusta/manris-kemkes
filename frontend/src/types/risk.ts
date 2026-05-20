@@ -313,6 +313,7 @@ export interface Risk {
   draftStatus?: RiskStatus | null;
   hasOngoing?: boolean;
   objectiveId?: string;
+  roId?: string;
 
 }
 

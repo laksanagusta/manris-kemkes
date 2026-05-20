@@ -146,7 +146,7 @@ type HistoryItem = {
   previousLevel: string;
   trend: "up" | "down" | "stable";
   changeReason: string;
-  isCurrent: boolean;
+  isCurrent?: boolean;
 };
 
 type VersionOption = {

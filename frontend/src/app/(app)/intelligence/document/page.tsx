@@ -69,8 +69,8 @@ const modeOptions: ModeOption[] = [
   {
     value: "strategic_objective_risk",
     label: "Strategic",
-    title: "Sasaran & IKU → Risiko",
-    description: "Tarik sasaran strategis, IKU, lalu risiko terkait.",
+    title: "Struktur Kinerja & RO → Risiko",
+    description: "Tarik struktur planning dan risiko terkait.",
     icon: Target,
   },
   {
@@ -99,7 +99,8 @@ function sourceQuote(sourceRefs?: Array<{ quote: string; location?: string }>) {
 }
 
 function confidenceBadgeClass(confidence: number) {
-  if (confidence >= 80) return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (confidence >= 80)
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (confidence >= 60) return "border-amber-200 bg-amber-50 text-amber-700";
   return "border-rose-200 bg-rose-50 text-rose-700";
 }
@@ -118,7 +119,9 @@ function buildRiskPrefill(suggestion: DocumentRiskSuggestion) {
     title: suggestion.title,
     description: [
       suggestion.description,
-      suggestion.relatedObjectiveText ? `Sasaran: ${suggestion.relatedObjectiveText}` : "",
+      suggestion.relatedObjectiveText
+        ? `Sasaran: ${suggestion.relatedObjectiveText}`
+        : "",
       suggestion.relatedIkuText ? `IKU: ${suggestion.relatedIkuText}` : "",
     ]
       .filter(Boolean)
@@ -137,28 +140,6 @@ function buildRiskPrefill(suggestion: DocumentRiskSuggestion) {
       | "transfer"
       | "accept"
       | undefined,
-  };
-}
-
-function buildObjectivePrefill(
-  objective: StrategicObjectiveSuggestion,
-  iku: StrategicIKUSuggestion,
-) {
-  return {
-    kind: "objective" as const,
-    organizationId: undefined,
-    period: objective.period || "",
-    tujuan: objective.tujuan,
-    sasaran: objective.sasaran,
-    indikatorKinerjaUtama: iku.name,
-    target: iku.target || "",
-    program: iku.program || "",
-    kegiatan: iku.kegiatan || "",
-    processBusiness: iku.processBusiness || "",
-    quote:
-      objective.sourceRefs?.[0]?.quote ||
-      iku.sourceRefs?.[0]?.quote ||
-      "",
   };
 }
 
@@ -233,7 +214,8 @@ export default function DocumentIntelligencePage() {
         file,
         mode,
         period: period.trim() || undefined,
-        organizationId: organizationId.trim() || user?.organizationId || undefined,
+        organizationId:
+          organizationId.trim() || user?.organizationId || undefined,
       };
       const result = await analyzeDocumentIntelligence(token, input);
       setResponse(result);
@@ -255,18 +237,8 @@ export default function DocumentIntelligencePage() {
     );
   }
 
-  function openObjectiveDraft(
-    objective: StrategicObjectiveSuggestion,
-    iku: StrategicIKUSuggestion,
-  ) {
-    const prefillToken = createDocumentIntelligencePrefillToken();
-    saveDocumentIntelligencePrefill(
-      prefillToken,
-      buildObjectivePrefill(objective, iku),
-    );
-    router.push(
-      `/management/objectives/new?${DOCUMENT_INTELLIGENCE_PREFILL_PARAM}=${prefillToken}`,
-    );
+  function openObjectiveDraft() {
+    router.push("/management/planning");
   }
 
   function openMitigationDraft(task: MitigationTaskReportSuggestion) {
@@ -307,7 +279,8 @@ export default function DocumentIntelligencePage() {
           </h1>
           <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
             Upload SOP, laporan audit, dokumen strategis, atau bukti mitigasi
-            untuk mengekstrak data terstruktur yang bisa langsung dijadikan draft.
+            untuk mengekstrak data terstruktur yang bisa langsung dijadikan
+            draft.
           </p>
         </div>
       </div>
@@ -329,9 +302,7 @@ export default function DocumentIntelligencePage() {
                   id="doc-file"
                   type="file"
                   accept=".pdf,.xlsx"
-                  onChange={(event) =>
-                    setFile(event.target.files?.[0] || null)
-                  }
+                  onChange={(event) => setFile(event.target.files?.[0] || null)}
                 />
               </div>
 
@@ -472,9 +443,7 @@ export default function DocumentIntelligencePage() {
                     Peringatan
                   </div>
                   <div className="mt-1 text-sm font-medium text-foreground">
-                    {warningCount
-                      ? `${warningCount} catatan`
-                      : "Tidak ada"}
+                    {warningCount ? `${warningCount} catatan` : "Tidak ada"}
                   </div>
                 </div>
               </div>
@@ -483,7 +452,10 @@ export default function DocumentIntelligencePage() {
             {documentMeta?.warnings?.length ? (
               <div className="mt-4 space-y-2 rounded-xl border border-amber-200 bg-amber-50/70 p-4">
                 {documentMeta.warnings.map((warning) => (
-                  <div key={warning} className="flex items-start gap-2 text-sm text-amber-800">
+                  <div
+                    key={warning}
+                    className="flex items-start gap-2 text-sm text-amber-800"
+                  >
                     <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                     <span>{warning}</span>
                   </div>
@@ -500,9 +472,9 @@ export default function DocumentIntelligencePage() {
                   Belum ada hasil
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Upload dokumen lalu jalankan analisis. Hasil akan muncul di sini
-                  sebagai proses, temuan, sasaran, IKU, atau task mitigasi yang
-                  masih open.
+                  Upload dokumen lalu jalankan analisis. Hasil akan muncul di
+                  sini sebagai proses, temuan, sasaran, IKU, atau task mitigasi
+                  yang masih open.
                 </p>
               </div>
             </div>
@@ -528,10 +500,7 @@ function DocumentResultPanel({
 }: {
   response: DocumentIntelligenceResponse;
   onUseRiskDraft: (suggestion: DocumentRiskSuggestion) => void;
-  onUseObjectiveDraft: (
-    objective: StrategicObjectiveSuggestion,
-    iku: StrategicIKUSuggestion,
-  ) => void;
+  onUseObjectiveDraft: () => void;
   onUseMitigationDraft: (task: MitigationTaskReportSuggestion) => void;
 }) {
   const result = response.result;
@@ -623,9 +592,7 @@ function DocumentResultPanel({
                         {risk.category}
                       </Badge>
                     </div>
-                    <div className="mt-3">
-                      {sourceQuote(risk.sourceRefs)}
-                    </div>
+                    <div className="mt-3">{sourceQuote(risk.sourceRefs)}</div>
                     <Button
                       variant="secondary"
                       size="sm"
@@ -814,6 +781,17 @@ function DocumentResultPanel({
                     </div>
                     <div>
                       <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                        RO
+                      </div>
+                      <div className="mt-1 text-sm text-foreground">
+                        {objective.roTitle ||
+                          objective.ikus[0]?.roTitle ||
+                          objective.ikus[0]?.processBusiness ||
+                          "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                         IKU
                       </div>
                       <div className="mt-1 text-sm text-foreground">
@@ -857,9 +835,9 @@ function DocumentResultPanel({
                         variant="secondary"
                         size="sm"
                         className="gap-2"
-                        onClick={() => onUseObjectiveDraft(objective, iku)}
+                        onClick={() => onUseObjectiveDraft()}
                       >
-                        Gunakan sebagai draft Sasaran & IKU
+                        Buka Struktur Kinerja
                         <ArrowRight className="size-4" />
                       </Button>
                     </div>
@@ -890,10 +868,16 @@ function DocumentResultPanel({
                               </Badge>
                             </div>
                             <div className="mt-2 flex flex-wrap gap-2">
-                              <Badge variant="secondary" className="text-[11px]">
+                              <Badge
+                                variant="secondary"
+                                className="text-[11px]"
+                              >
                                 P {risk.probability}
                               </Badge>
-                              <Badge variant="secondary" className="text-[11px]">
+                              <Badge
+                                variant="secondary"
+                                className="text-[11px]"
+                              >
                                 D {risk.impact}
                               </Badge>
                             </div>
@@ -978,7 +962,9 @@ function DocumentResultPanel({
                         Biaya Aktual
                       </div>
                       <div className="mt-1 text-sm text-foreground">
-                        {task.actualCost ? task.actualCost.toLocaleString("id-ID") : "-"}
+                        {task.actualCost
+                          ? task.actualCost.toLocaleString("id-ID")
+                          : "-"}
                       </div>
                     </div>
                     <div>
@@ -1008,10 +994,12 @@ function DocumentResultPanel({
                 </p>
                 <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
                   <CheckCircle2 className="size-4 text-emerald-600" />
-                  Bukti dibaca dari dokumen, lalu dipetakan ke task mitigasi open.
+                  Bukti dibaca dari dokumen, lalu dipetakan ke task mitigasi
+                  open.
                 </div>
                 <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                  Buka detail risiko terkait untuk menerapkan draft laporan mitigasi. Evidence URL tetap wajib diisi manual.
+                  Buka detail risiko terkait untuk menerapkan draft laporan
+                  mitigasi. Evidence URL tetap wajib diisi manual.
                 </p>
                 <Button
                   variant="secondary"

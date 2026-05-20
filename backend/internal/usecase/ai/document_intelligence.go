@@ -21,7 +21,7 @@ type documentIntelligenceRiskRepository interface {
 }
 
 type documentIntelligenceObjectiveRepository interface {
-	List(ctx context.Context, filter repository.RiskObjectiveListFilter) ([]*entity.RiskObjective, int, error)
+	ListObjectiveCompatibilityRows(ctx context.Context, filter repository.PlanningCompatibilityFilter) ([]*entity.RiskObjective, int, error)
 }
 
 type documentIntelligenceTaskRepository interface {
@@ -116,7 +116,7 @@ func (uc *AnalyzeDocumentIntelligenceUseCase) Execute(ctx context.Context, input
 			return nil, fmt.Errorf("failed to encode risks context: %w", err)
 		}
 	case entity.DocumentModeStrategicObjectiveRisk:
-		objectives, _, err := uc.objectiveRepo.List(ctx, repository.RiskObjectiveListFilter{
+		objectives, _, err := uc.objectiveRepo.ListObjectiveCompatibilityRows(ctx, repository.PlanningCompatibilityFilter{
 			OrganizationID: contextOrgID,
 			Period:         input.Period,
 			Page:           1,
@@ -188,6 +188,7 @@ type documentObjectiveContext struct {
 	Target                string `json:"target,omitempty"`
 	Program               string `json:"program,omitempty"`
 	Kegiatan              string `json:"kegiatan,omitempty"`
+	ROTitle               string `json:"roTitle,omitempty"`
 	ProcessBusiness       string `json:"processBusiness,omitempty"`
 	Status                string `json:"status,omitempty"`
 }
@@ -247,6 +248,7 @@ func buildDocumentObjectiveContexts(objectives []*entity.RiskObjective) []docume
 			Target:                objective.Target,
 			Program:               objective.Program,
 			Kegiatan:              objective.Kegiatan,
+			ROTitle:               objective.ProcessBusiness,
 			ProcessBusiness:       objective.ProcessBusiness,
 			Status:                objective.Status,
 		})

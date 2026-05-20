@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,11 +11,6 @@ import {
   Loader2,
   Save,
   Send,
-  History,
-  GitBranch,
-  TrendingUp,
-  TrendingDown,
-  Minus,
 } from "lucide-react";
 import {
   MitigationTable,
@@ -35,13 +29,8 @@ import {
   levelToColor,
   getRiskLevelFromNilai,
 } from "@/lib/risk";
-import type { Risk, RiskVersionTimelineItem } from "@/types/risk";
+import type { Risk } from "@/types/risk";
 import { listUsers } from "@/lib/api/users";
-import {
-  buildVersionHistoryItem,
-  getRiskVersionDetailHref,
-  type RiskRegisterHistoryItem,
-} from "@/lib/risk-history";
 
 import {
   Accordion,
@@ -73,14 +62,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import {
   ReviewSidePanel,
@@ -100,15 +81,6 @@ import { getRiskApprovalCapabilityBehavior } from "@/lib/risk-approval-capabilit
 import { ProfilRisikoCard } from "../components/profil-risiko-card";
 import { type AssessmentFormValues } from "../components/hasil-pemantauan-card";
 import { SimpulanCard } from "../components/simpulan-card";
-
-const VERSION_LEVEL_BADGE: Record<string, string> = {
-  "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
-  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
-  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi":
-    "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
-};
 
 function dedupeApproverIds(ids: Array<string | undefined>) {
   return [...new Set(ids.filter((id): id is string => Boolean(id)))];
@@ -201,11 +173,6 @@ export default function AssessmentFormPage() {
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<RiskWorkflowState | null>(null);
   const [showSubmitReviewConfirm, setShowSubmitReviewConfirm] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [versionHistory, setVersionHistory] = useState<
-    RiskRegisterHistoryItem[]
-  >([]);
-  const [loadingVersions, setLoadingVersions] = useState(false);
   const submitTarget = useRef<"draft" | "review">("draft");
 
   const form = useForm<AssessmentFormInput, unknown, AssessmentFormValues>({
@@ -351,35 +318,6 @@ export default function AssessmentFormPage() {
       });
     },
     [reviewerId],
-  );
-
-  const fetchVersionHistory = useCallback(
-    async (riskId: string) => {
-      if (!token) return;
-      setLoadingVersions(true);
-      try {
-        const items = await api.get<RiskVersionTimelineItem[]>(
-          `/risks/${riskId}/versions`,
-          token,
-        );
-        const current = items.find((v) => v.isCurrent) ?? items[0];
-        if (!current) {
-          setVersionHistory([]);
-          return;
-        }
-        setVersionHistory(
-          items
-            .filter((v) => v.status === "approved" || v.isCurrent)
-            .map((v) => buildVersionHistoryItem(v, current)),
-        );
-      } catch {
-        toast.error("Gagal memuat riwayat versi.");
-        setVersionHistory([]);
-      } finally {
-        setLoadingVersions(false);
-      }
-    },
-    [token],
   );
 
   const moveApprover = useCallback((fromIndex: number, toIndex: number) => {
@@ -777,131 +715,6 @@ export default function AssessmentFormPage() {
         onBack={() => router.push("/risk/assessment")}
         actions={
           <div className="flex items-center gap-2 sm:gap-3">
-            {id && (
-              <Sheet
-                open={historyOpen}
-                onOpenChange={(open) => {
-                  setHistoryOpen(open);
-                  if (open && id) fetchVersionHistory(id);
-                }}
-              >
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SheetTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-muted-foreground hover:text-foreground"
-                      >
-                        <History className="size-4" />
-                      </Button>
-                    </SheetTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>Riwayat versi</TooltipContent>
-                </Tooltip>
-                <SheetContent
-                  side="right"
-                  className="sm:max-w-md overflow-y-auto"
-                >
-                  <SheetHeader className="border-b border-border/50 pb-4">
-                    <SheetTitle className="flex items-center gap-2 text-base font-bold">
-                      <History className="size-4" />
-                      Riwayat Versi
-                    </SheetTitle>
-                    <SheetDescription>
-                      Perubahan skor risiko dari waktu ke waktu
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="flex-1 px-4 pb-4">
-                    {loadingVersions ? (
-                      <div className="flex items-center justify-center py-12">
-                        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                        <span className="ml-2 text-sm text-muted-foreground">
-                          Memuat riwayat...
-                        </span>
-                      </div>
-                    ) : versionHistory.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <GitBranch className="size-8 text-muted-foreground/50 mb-3" />
-                        <p className="text-sm font-medium">
-                          Belum Ada Riwayat Versi
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                          Riwayat versi akan tersedia setelah risiko ini
-                          mengalami perubahan skor.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="relative pt-2">
-                        <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border/50" />
-                        <div className="flex flex-col gap-4">
-                          {versionHistory.map((item, index) => (
-                            <div
-                              key={item.id}
-                              className="flex gap-3 relative rounded-md p-1 -m-1 transition-colors hover:bg-muted/30"
-                            >
-                              <div className="shrink-0 size-6 rounded-full bg-background border border-border/50 flex items-center justify-center z-10">
-                                {item.trend === "up" ? (
-                                  <TrendingUp className="size-3.5 text-risk-extreme" />
-                                ) : item.trend === "down" ? (
-                                  <TrendingDown className="size-3.5 text-success" />
-                                ) : (
-                                  <Minus className="size-3.5 text-muted-foreground" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0 pb-2">
-                                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                  <Link
-                                    href={getRiskVersionDetailHref(item)}
-                                    className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:no-underline"
-                                  >
-                                    v{versionHistory.length - index}
-                                  </Link>
-                                  <span className="text-sm font-semibold text-muted-foreground">
-                                    {item.cycle}
-                                  </span>
-                                  {item.isCurrent && (
-                                    <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5">
-                                      Current
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1.5 mb-1.5">
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "text-[10px] font-semibold border h-5 px-1.5",
-                                      VERSION_LEVEL_BADGE[item.previousLevel] ||
-                                        "",
-                                    )}
-                                  >
-                                    {item.previousLevel}
-                                  </Badge>
-                                  <span className="text-muted-foreground text-xs">
-                                    →
-                                  </span>
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "text-[10px] font-semibold border h-5 px-1.5",
-                                      VERSION_LEVEL_BADGE[item.currentLevel] ||
-                                        "",
-                                    )}
-                                  >
-                                    {item.currentLevel}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </SheetContent>
-              </Sheet>
-            )}
-
             <TooltipProvider>
               {(draftRisk.status === "assessment_draft" || !id) && (
                 <div className="flex items-center gap-2">

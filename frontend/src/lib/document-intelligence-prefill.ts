@@ -20,19 +20,6 @@ export type DocumentIntelligencePrefill =
       treatmentOption?: "menerima" | "mitigasi" | "avoid" | "mitigate" | "transfer" | "accept";
     }
   | {
-      kind: "objective";
-      organizationId?: string;
-      period?: string;
-      tujuan?: string;
-      sasaran?: string;
-      indikatorKinerjaUtama?: string;
-      target?: string;
-      program?: string;
-      kegiatan?: string;
-      processBusiness?: string;
-      quote?: string;
-    }
-  | {
       kind: "mitigation-report";
       taskId: string;
       progressPct?: number;

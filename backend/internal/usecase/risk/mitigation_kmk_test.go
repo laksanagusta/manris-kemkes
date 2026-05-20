@@ -13,11 +13,13 @@ func TestCreateRiskUseCase_AllowsDraftWithEmptyMitigationRow(t *testing.T) {
 	riskRepo := &categoryRiskRepo{}
 	uc := NewCreateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{})
 	createdBy := uuid.New()
+	roID := uuid.New()
 
 	_, err := uc.Execute(context.Background(), CreateRiskInput{
 		Title:             "Risk utama",
 		Category:          entity.RiskCategoryKebijakan,
 		CreatedBy:         &createdBy,
+		ROID:              &roID,
 		Probability:       4,
 		Impact:            3,
 		TreatmentOption:   "mitigate",
@@ -39,6 +41,7 @@ func TestCreateRiskUseCase_AllowsDraftWithEmptyMitigationRow(t *testing.T) {
 func TestUpdateRiskUseCase_RejectsApprovedRiskUtamaWithoutNewMitigation(t *testing.T) {
 	riskID := uuid.New()
 	orgID := uuid.New()
+	roID := uuid.New()
 	riskRepo := &categoryRiskRepo{byID: &entity.Risk{
 		ID:             riskID,
 		Code:           "R-001",
@@ -59,6 +62,7 @@ func TestUpdateRiskUseCase_RejectsApprovedRiskUtamaWithoutNewMitigation(t *testi
 		Category:          entity.RiskCategoryKebijakan,
 		Status:            entity.RiskStatusApproved,
 		OrganizationID:    &orgID,
+		ROID:              &roID,
 		Probability:       4,
 		Impact:            3,
 		TreatmentOption:   "mitigate",

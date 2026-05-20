@@ -22,6 +22,7 @@ func TestBuildDocumentIntelligencePromptStrategicIncludesHierarchy(t *testing.T)
 		`"objectives": [`,
 		`"ikus": [`,
 		`"suggestedRisks": [`,
+		`"roTitle": "RO"`,
 		`relatedObjectiveText`,
 		`relatedIkuText`,
 		`sourceRefs`,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Download, FileSpreadsheet, Loader2, Upload } from "lucide-react";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { ROPicker } from "@/components/risk/ro-picker";
 import type {
   MonitoringPreviewItem,
   MonitoringBatchResultItem,
@@ -45,6 +46,7 @@ type RiskBatchPayload = {
   title: string;
   description: string;
   organizationId?: string;
+  roId?: string;
   cause: string[];
   riskSource: string;
   controllability: "C" | "UC";
@@ -114,17 +116,26 @@ function getCycleOptions(): string[] {
   return opts;
 }
 
+function getPlanningPeriodOptions(): string[] {
+  const year = new Date().getFullYear();
+  return [String(year - 1), String(year), String(year + 1)];
+}
+
 export default function BulkRiskRegisterPage() {
   const router = useRouter();
   const { token, user } = useAuth();
   const [bulkMode, setBulkMode] = useState<"baru" | "pemantauan">("baru");
   const [selectedCycle, setSelectedCycle] = useState<string>("");
+  const [planningPeriod, setPlanningPeriod] = useState<string>(
+    String(new Date().getFullYear()),
+  );
   const [sourceName, setSourceName] = useState("");
   const [previews, setPreviews] = useState<BulkRiskPreview[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resultItems, setResultItems] = useState<RiskBatchResultItem[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
+  const [selectedRoId, setSelectedRoId] = useState<string>("");
   const [monitoringPreviews, setMonitoringPreviews] = useState<
     MonitoringPreviewItem[]
   >([]);
@@ -136,6 +147,10 @@ export default function BulkRiskRegisterPage() {
   const effectiveOrgId = isUnitRole
     ? (user?.organizationId ?? "")
     : selectedOrgId;
+
+  useEffect(() => {
+    setSelectedRoId("");
+  }, [effectiveOrgId, planningPeriod]);
 
   const validRows = useMemo(
     () =>
@@ -179,6 +194,10 @@ export default function BulkRiskRegisterPage() {
     }
     if (!isUnitRole && !selectedOrgId) {
       toast.error("Pilih unit kerja terlebih dahulu.");
+      return;
+    }
+    if (bulkMode === "baru" && !selectedRoId) {
+      toast.error("Pilih RO terlebih dahulu.");
       return;
     }
     if (bulkMode === "pemantauan" && !selectedCycle) {
@@ -338,6 +357,7 @@ export default function BulkRiskRegisterPage() {
                 {
                   ...row.payload,
                   organizationId: effectiveOrgId || row.payload.organizationId,
+                  roId: selectedRoId,
                 },
               ]
             : [],
@@ -503,6 +523,39 @@ export default function BulkRiskRegisterPage() {
                   </Select>
                 </div>
               )}
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Periode Planning
+                </label>
+                <Select
+                  value={planningPeriod}
+                  onValueChange={setPlanningPeriod}
+                >
+                  <SelectTrigger className="w-full md:w-64">
+                    <SelectValue placeholder="Pilih periode planning" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getPlanningPeriodOptions().map((period) => (
+                      <SelectItem key={period} value={period}>
+                        {period}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  RO Target
+                </label>
+                <ROPicker
+                  organizationId={effectiveOrgId || undefined}
+                  period={planningPeriod}
+                  value={selectedRoId}
+                  onChange={(roId) => setSelectedRoId(roId)}
+                />
+              </div>
 
               {previews.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border/60 bg-background px-5 py-10 text-center text-sm text-muted-foreground">

@@ -90,9 +90,11 @@ test("createWorkingPaperWorkbookBuffer adds attachment-style metadata to the fir
     assert.equal(sheet.getCell("I9").value, "Tgl Penilaian Risiko * :");
     assert.equal(sheet.getCell("I10").value, "Periode Risiko * :");
     assert.equal(sheet.getCell("I11").value, "Tgl Update Risiko * :");
-    assert.equal(sheet.getCell("J4").value, "Loka Kekarantinaan Kesehatan Entikong * :");
-    assert.equal(sheet.getCell("J9").value, "4 Maret 2026 * :");
-    assert.equal(sheet.getCell("J10").value, "Maret s/d Juni 2026 * :");
-    assert.equal(sheet.getCell("J11").value, "- * :");
+    assert.ok(sheet.getCell("B4").isMerged, "expected B4 to be merged with the adjacent label cell");
+    assert.ok(sheet.getCell("I4").isMerged, "expected I4 to be merged with the adjacent label cell");
+    assert.equal(sheet.getCell("K4").value, "Loka Kekarantinaan Kesehatan Entikong * :");
+    assert.equal(sheet.getCell("K9").value, "4 Maret 2026 * :");
+    assert.equal(sheet.getCell("K10").value, "Maret s/d Juni 2026 * :");
+    assert.equal(sheet.getCell("K11").value, "- * :");
   }
 });

@@ -43,21 +43,46 @@ func finalizedWorkingPaperRiskExpr(alias, baseField string) string {
 	return fmt.Sprintf(`%[1]s.%[2]s`, alias, baseField)
 }
 
+func previousApprovedWorkingPaperRiskExpr() string {
+	return `(
+		SELECT prev.id FROM risks prev
+		WHERE prev.version_group_id = risk.version_group_id
+		  AND prev.version_number < risk.version_number
+		  AND prev.status = 'approved'
+		ORDER BY
+		  CASE
+		    WHEN COALESCE(prev.assessment_cycle, '') = CASE
+		      WHEN risk.assessment_cycle ~ '^\d{4}-H[12]$' THEN
+		        CONCAT(
+		          CASE
+		            WHEN RIGHT(risk.assessment_cycle, 2) = 'H1'
+		              THEN ((LEFT(risk.assessment_cycle, 4))::int - 1)::text
+		            ELSE LEFT(risk.assessment_cycle, 4)
+		          END,
+		          '-',
+		          CASE
+		            WHEN RIGHT(risk.assessment_cycle, 2) = 'H1' THEN 'H2'
+		            ELSE 'H1'
+		          END
+		        )
+		      ELSE ''
+		    END THEN 0
+		    ELSE 1
+		  END,
+		  prev.version_number DESC
+		LIMIT 1
+	)`
+}
+
 func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q workingPaperReader, wpID uuid.UUID) ([]entity.WorkingPaperRiskLink, error) {
 	probabilityExpr := finalizedWorkingPaperRiskExpr("risk", "probability")
 	impactExpr := finalizedWorkingPaperRiskExpr("risk", "impact")
 	weightExpr := finalizedWorkingPaperRiskExpr("risk", "weight")
 	nilaiExpr := finalizedWorkingPaperRiskExpr("risk", "nilai")
 
-	// Previous version (version_number - 1) for sheets 1 & 2
-	prevRiskExpr := `(
-		SELECT prev.id FROM risks prev
-		WHERE prev.version_group_id = risk.version_group_id
-		  AND prev.version_number = risk.version_number - 1
-		  AND prev.status = 'approved'
-		  AND prev.archived_at IS NULL
-		ORDER BY prev.version_number DESC LIMIT 1
-	)`
+	// Prefer the latest approved risk from the previous semester.
+	// If none exists, fall back to the latest approved version below the active one.
+	prevRiskExpr := previousApprovedWorkingPaperRiskExpr()
 
 	// Subquery: latest monitoring version (periodic review with highest version number)
 	monitoringRiskExpr := `(

@@ -13,10 +13,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  ScrollArea,
-  ScrollBar,
-} from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -28,10 +25,7 @@ import {
 import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import {
-  getRiskLevelFromNilai,
-  getRiskLevelLabel,
-} from "@/lib/risk";
+import { getRiskLevelFromNilai, getRiskLevelLabel } from "@/lib/risk";
 import type { RiskVersionTimelineItem } from "@/types/risk";
 
 type AnalysisRow = {
@@ -91,7 +85,8 @@ export function RiskAnalysisTab({
     return [...versions]
       .sort(
         (left, right) =>
-          new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
+          new Date(left.createdAt).getTime() -
+          new Date(right.createdAt).getTime(),
       )
       .map((version, index, all) => {
         const inherentScore = getVersionInherentScore(version);
@@ -178,7 +173,7 @@ export function RiskAnalysisTab({
       <div className="grid gap-3 md:grid-cols-4">
         <div className="rounded-2xl border border-border/50 bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-            Skor inherent terakhir
+            Skor terakhir
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
             {latest?.inherentScore ?? 0}
@@ -189,7 +184,7 @@ export function RiskAnalysisTab({
         </div>
         <div className="rounded-2xl border border-border/50 bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-            Skor inherent sebelumnya
+            Skor sebelumnya
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
             {previous?.inherentScore ?? "—"}
@@ -329,12 +324,16 @@ export function RiskAnalysisTab({
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-72">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[140px]">Periode</TableHead>
-                      <TableHead className="w-[84px] text-right">Inherent</TableHead>
-                      <TableHead className="w-[84px] text-right">Target</TableHead>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[140px]">Periode</TableHead>
+                    <TableHead className="w-[84px] text-right">
+                      Inherent
+                    </TableHead>
+                    <TableHead className="w-[84px] text-right">
+                      Target
+                    </TableHead>
                     <TableHead className="w-[70px] text-right">Delta</TableHead>
                     <TableHead className="w-[120px]">Level</TableHead>
                     <TableHead>Catatan</TableHead>
@@ -342,7 +341,10 @@ export function RiskAnalysisTab({
                 </TableHeader>
                 <TableBody>
                   {rows.map((row) => (
-                    <TableRow key={row.id} className={row.isCurrent ? "bg-muted/25" : ""}>
+                    <TableRow
+                      key={row.id}
+                      className={row.isCurrent ? "bg-muted/25" : ""}
+                    >
                       <TableCell className="align-top">
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
@@ -350,7 +352,10 @@ export function RiskAnalysisTab({
                               {row.label}
                             </span>
                             {row.isCurrent && (
-                              <Badge variant="outline" className="h-5 px-1.5 text-[9px]">
+                              <Badge
+                                variant="outline"
+                                className="h-5 px-1.5 text-[9px]"
+                              >
                                 Current
                               </Badge>
                             )}
@@ -380,7 +385,10 @@ export function RiskAnalysisTab({
                         </span>
                       </TableCell>
                       <TableCell className="align-top">
-                        <Badge variant="outline" className="h-5 px-2 text-[10px]">
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-2 text-[10px]"
+                        >
                           {row.level}
                         </Badge>
                       </TableCell>

@@ -78,6 +78,7 @@ export interface StrategicIKUSuggestion {
   target?: string;
   program?: string;
   kegiatan?: string;
+  roTitle?: string;
   processBusiness?: string;
   confidence: number;
   sourceRefs: DocumentSourceRef[];
@@ -90,6 +91,7 @@ export interface StrategicObjectiveSuggestion {
   sasaran: string;
   period?: string;
   unit?: string;
+  roTitle?: string;
   confidence: number;
   sourceRefs: DocumentSourceRef[];
   ikus: StrategicIKUSuggestion[];

@@ -146,11 +146,13 @@ func TestCreateRiskUseCase_ExecutePersistsCategory(t *testing.T) {
 	riskRepo := &categoryRiskRepo{}
 	uc := NewCreateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{})
 	createdBy := uuid.New()
+	roID := uuid.New()
 
 	_, err := uc.Execute(context.Background(), CreateRiskInput{
 		Title:             "Risk title",
 		Category:          entity.RiskCategoryKebijakan,
 		CreatedBy:         &createdBy,
+		ROID:              &roID,
 		Probability:       3,
 		Impact:            3,
 		TargetProbability: 2,
@@ -171,11 +173,13 @@ func TestCreateRiskUseCase_ExecuteRejectsInvalidCategory(t *testing.T) {
 	riskRepo := &categoryRiskRepo{}
 	uc := NewCreateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{})
 	createdBy := uuid.New()
+	roID := uuid.New()
 
 	_, err := uc.Execute(context.Background(), CreateRiskInput{
 		Title:             "Risk title",
 		Category:          "unknown",
 		CreatedBy:         &createdBy,
+		ROID:              &roID,
 		Probability:       3,
 		Impact:            3,
 		TargetProbability: 2,
@@ -188,6 +192,7 @@ func TestCreateRiskUseCase_ExecuteRejectsInvalidCategory(t *testing.T) {
 
 func TestUpdateRiskUseCase_ExecutePersistsCategory(t *testing.T) {
 	riskID := uuid.New()
+	roID := uuid.New()
 	riskRepo := &categoryRiskRepo{byID: &entity.Risk{
 		ID:             riskID,
 		Code:           "R-001",
@@ -208,6 +213,7 @@ func TestUpdateRiskUseCase_ExecutePersistsCategory(t *testing.T) {
 		Category:       entity.RiskCategoryOperasional,
 		Status:         entity.RiskStatusDraft,
 		OrganizationID: riskRepo.byID.OrganizationID,
+		ROID:           &roID,
 		Probability:    3,
 		Impact:         3,
 	}, nil)
@@ -224,6 +230,7 @@ func TestUpdateRiskUseCase_ExecutePersistsCategory(t *testing.T) {
 
 func TestUpdateRiskUseCase_ExecuteRejectsInvalidCategory(t *testing.T) {
 	riskID := uuid.New()
+	roID := uuid.New()
 	riskRepo := &categoryRiskRepo{byID: &entity.Risk{
 		ID:             riskID,
 		Code:           "R-001",
@@ -244,6 +251,7 @@ func TestUpdateRiskUseCase_ExecuteRejectsInvalidCategory(t *testing.T) {
 		Category:       "invalid",
 		Status:         entity.RiskStatusDraft,
 		OrganizationID: riskRepo.byID.OrganizationID,
+		ROID:           &roID,
 		Probability:    3,
 		Impact:         3,
 	}, nil)
@@ -285,6 +293,7 @@ func (r *lockAwareWorkingPaperRepo) HasBlockingDocumentLink(_ context.Context, _
 
 func TestUpdateRiskUseCase_ExecuteRejectsRiskLinkedToSigningWorkingPaper(t *testing.T) {
 	riskID := uuid.New()
+	roID := uuid.New()
 	riskRepo := &categoryRiskRepo{byID: &entity.Risk{
 		ID:             riskID,
 		Code:           "R-001",
@@ -307,6 +316,7 @@ func TestUpdateRiskUseCase_ExecuteRejectsRiskLinkedToSigningWorkingPaper(t *test
 		Category:       entity.RiskCategoryKebijakan,
 		Status:         entity.RiskStatusDraft,
 		OrganizationID: riskRepo.byID.OrganizationID,
+		ROID:           &roID,
 		Probability:    3,
 		Impact:         3,
 	}, nil)

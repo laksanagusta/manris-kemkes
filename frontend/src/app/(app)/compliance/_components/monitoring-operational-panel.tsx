@@ -16,6 +16,7 @@ import type {
   TopRiskItem,
 } from "@/types/risk";
 import { buildMovementSnapshotData, type MovementSnapshotDatum } from "@/lib/dashboard-insights";
+import { buildMonitoringMitigationSummary } from "@/lib/monitoring-mitigation-summary";
 
 function currentGlobalCycle() {
   const now = new Date();
@@ -143,6 +144,10 @@ export function MonitoringOperationalPanel() {
   }, [token, cycle, previousCycle]);
 
   const hasActionPressureData = actionPressureData.length > 0;
+  const mitigationSummary = useMemo(
+    () => buildMonitoringMitigationSummary(actionPressureData),
+    [actionPressureData],
+  );
 
   return (
     <div className="space-y-6">
@@ -226,36 +231,65 @@ export function MonitoringOperationalPanel() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-                  <p className="text-[10px] text-muted-foreground">
-                    Total Penanganan
-                  </p>
-                  <p className="mt-1 font-semibold text-foreground">
-                    {actionPressureData.reduce(
-                      (sum, item) =>
-                        sum + item.mitigationsCompleted + item.overdueMitigations,
-                      0,
-                    )}
-                  </p>
+              <div className="mt-4 space-y-3">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      Total mitigasi aktif
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                      {mitigationSummary.totalActive}
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Total item mitigasi pada periode monitoring yang sedang dimuat.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-success/25 bg-success/10 px-4 py-3">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-success/80">
+                      Mitigasi selesai
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                      {mitigationSummary.completed}
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Item mitigasi yang sudah dituntaskan pada dataset saat ini.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-destructive/80">
+                      Mitigasi overdue
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                      {mitigationSummary.overdue}
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Item yang terlambat dan perlu tindak lanjut prioritas.
+                    </p>
+                  </div>
                 </div>
-                <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-                  <p className="text-[10px] text-muted-foreground">Selesai</p>
-                  <p className="mt-1 font-semibold text-foreground">
-                    {actionPressureData.reduce(
-                      (sum, item) => sum + item.mitigationsCompleted,
-                      0,
-                    )}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-                  <p className="text-[10px] text-muted-foreground">Overdue</p>
-                  <p className="mt-1 font-semibold text-foreground">
-                    {actionPressureData.reduce(
-                      (sum, item) => sum + item.overdueMitigations,
-                      0,
-                    )}
-                  </p>
+
+                <div className="rounded-xl border border-border/50 bg-background/70 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        Completion rate
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Persentase mitigasi selesai dari total mitigasi aktif pada periode yang dimuat.
+                      </p>
+                    </div>
+                    <p className="text-lg font-semibold tracking-tight text-foreground">
+                      {mitigationSummary.completionRate}%
+                    </p>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-[oklch(0.72_0.17_155)] transition-[width]"
+                      style={{ width: `${mitigationSummary.completionRate}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             </>

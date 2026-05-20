@@ -144,6 +144,7 @@ func TestCreateRiskBatchUseCase_Execute_PartialSuccess(t *testing.T) {
 	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
 	batchUC := NewCreateRiskBatchUseCase(createUC, &fakeBatchUserRepo{})
 	createdBy := uuid.New()
+	roID := uuid.New()
 
 	result, err := batchUC.Execute(context.Background(), CreateRiskBatchInput{
 		CreatedBy: &createdBy,
@@ -159,6 +160,7 @@ func TestCreateRiskBatchUseCase_Execute_PartialSuccess(t *testing.T) {
 				Probability:       4,
 				Impact:            4,
 				Weight:            1.8,
+				ROID:              &roID,
 				TreatmentOption:   "Mitigasi Risiko",
 				Mitigations:       []entity.Mitigation{{Action: "Perketat review", Owner: "SPI"}},
 				TargetProbability: 2,
@@ -169,6 +171,7 @@ func TestCreateRiskBatchUseCase_Execute_PartialSuccess(t *testing.T) {
 				ClientKey:         "row-2",
 				Title:             "",
 				Description:       "Baris invalid",
+				ROID:              &roID,
 				Probability:       3,
 				Impact:            3,
 				TargetProbability: 1,
@@ -203,6 +206,7 @@ func TestCreateRiskBatchUseCase_Execute_DefaultsMitigationOwnerToSubmitter(t *te
 	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
 	batchUC := NewCreateRiskBatchUseCase(createUC, &fakeBatchUserRepo{})
 	createdBy := uuid.New()
+	roID := uuid.New()
 
 	result, err := batchUC.Execute(context.Background(), CreateRiskBatchInput{
 		CreatedBy: &createdBy,
@@ -217,6 +221,7 @@ func TestCreateRiskBatchUseCase_Execute_DefaultsMitigationOwnerToSubmitter(t *te
 			Probability:       3,
 			Impact:            4,
 			Weight:            1.4,
+			ROID:              &roID,
 			Mitigations:       []entity.Mitigation{{Action: "Cek silang vendor"}},
 			TargetProbability: 2,
 			TargetImpact:      2,
@@ -246,6 +251,7 @@ func TestCreateRiskBatchUseCase_Execute_DefaultsMitigationOwnerFromOwnerUserID(t
 	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
 	batchUC := NewCreateRiskBatchUseCase(createUC, &fakeBatchUserRepo{})
 	ownerUserID := uuid.New()
+	roID := uuid.New()
 
 	result, err := batchUC.Execute(context.Background(), CreateRiskBatchInput{
 		CreatedBy: &ownerUserID,
@@ -260,6 +266,7 @@ func TestCreateRiskBatchUseCase_Execute_DefaultsMitigationOwnerFromOwnerUserID(t
 			Probability:     3,
 			Impact:          4,
 			Weight:          1.4,
+			ROID:            &roID,
 			Mitigations: []entity.Mitigation{{
 				Action:      "Cek silang vendor",
 				OwnerUserID: &ownerUserID,
@@ -290,6 +297,7 @@ func TestCreateRiskBatchUseCase_ExecutePersistsCategory(t *testing.T) {
 	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
 	batchUC := NewCreateRiskBatchUseCase(createUC, &fakeBatchUserRepo{})
 	createdBy := uuid.New()
+	roID := uuid.New()
 
 	result, err := batchUC.Execute(context.Background(), CreateRiskBatchInput{
 		CreatedBy: &createdBy,
@@ -299,6 +307,7 @@ func TestCreateRiskBatchUseCase_ExecutePersistsCategory(t *testing.T) {
 			Description:       "Layanan tidak tersedia",
 			Category:          entity.RiskCategoryLegal,
 			Controllability:   "C",
+			ROID:              &roID,
 			Probability:       3,
 			Impact:            4,
 			TargetProbability: 2,
@@ -329,6 +338,7 @@ func TestCreateRiskBatchUseCase_ExecuteTrimsCategory(t *testing.T) {
 	createUC := NewCreateRiskUseCase(riskRepo, &fakeBatchUserRepo{}, &fakeBatchOrgRepo{})
 	batchUC := NewCreateRiskBatchUseCase(createUC, &fakeBatchUserRepo{})
 	createdBy := uuid.New()
+	roID := uuid.New()
 
 	result, err := batchUC.Execute(context.Background(), CreateRiskBatchInput{
 		CreatedBy: &createdBy,
@@ -338,6 +348,7 @@ func TestCreateRiskBatchUseCase_ExecuteTrimsCategory(t *testing.T) {
 			Description:       "Layanan tidak tersedia",
 			Category:          "  legal  ",
 			Controllability:   "C",
+			ROID:              &roID,
 			Probability:       3,
 			Impact:            4,
 			TargetProbability: 2,
