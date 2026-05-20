@@ -1,15 +1,24 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
+import { cn } from "@/lib/utils";
 import type { UserPickerOption } from "@/lib/risk-register-user-picker";
 import type { MitigationType } from "@/types/risk";
 
@@ -134,255 +143,388 @@ export function MitigationTable({
 
   return (
     <div className="space-y-3">
-      {items.map((item, index) => {
-        const expanded = expandedRows[index] ?? false;
-        return (
-          <div key={index} className="rounded-xl border border-border/50 bg-muted/10 p-3 space-y-3">
-            <div className="flex items-start justify-between gap-2">
-              <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                {index + 1}
-              </span>
-              <div className="flex-1 space-y-2">
-                <Input
-                  value={item.action || ""}
-                  onChange={(e) => updateItem(index, "action", e.target.value)}
-                  placeholder="Uraian rencana penanganan..."
-                  className="text-sm bg-background border-border/50"
-                  disabled={disabled}
-                />
-                {actionErrors?.[index] ? (
-                  <p className="text-xs font-medium text-destructive">
-                    {actionErrors[index]}
-                  </p>
-                ) : null}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="shrink-0 h-8 w-8 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
-                onClick={() => removeItem(index)}
-                disabled={disabled}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
+      {items.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 px-4 py-8 text-left">
+          <p className="text-xs text-muted-foreground">
+            Belum ada rencana mitigasi.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-border/50 bg-card/80 shadow-sm">
+          <Table className="min-w-[1180px]">
+            <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
+              <TableRow className="border-border/50 transition-colors hover:bg-transparent">
+                <TableHead className="w-16 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  No
+                </TableHead>
+                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  Rencana Mitigasi
+                </TableHead>
+                <TableHead className="w-56 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  PIC
+                </TableHead>
+                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  Due Date
+                </TableHead>
+                <TableHead className="w-44 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  Tipe
+                </TableHead>
+                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  Detail
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  Aksi
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item, index) => {
+                const expanded = expandedRows[index] ?? false;
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-7">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">PIC</Label>
-                {loadPicOptions ? (
-                  <RemoteUserPicker
-                    title="Pilih PIC"
-                    description="Cari dan pilih PIC untuk rencana penanganan ini"
-                    placeholder="Pilih PIC"
-                    searchPlaceholder="Cari nama PIC..."
-                    emptyMessage="Tidak ada user ditemukan."
-                    disabled={disabled}
-                    value={picValues[index]}
-                    onSelect={(option) => handlePicSelect(index, option)}
-                    loadOptions={loadPicOptions}
-                  />
-                ) : (
-                  <Input
-                    value={item.owner || ""}
-                    onChange={(e) => updateItem(index, "owner", e.target.value)}
-                    placeholder="Nama PIC"
-                    className="h-8 text-sm bg-background border-border/50"
-                    disabled={disabled}
-                  />
-                )}
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Due Date Laporan</Label>
-                <Input
-                  type="date"
-                  value={item.dueDate || ""}
-                  onChange={(e) => updateItem(index, "dueDate", e.target.value)}
-                  className="h-8 text-sm bg-background border-border/50"
-                  disabled={disabled}
-                />
-              </div>
-            </div>
-
-            <div className="pl-7">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  setExpandedRows((prev) => ({ ...prev, [index]: !expanded }))
-                }
-                disabled={disabled}
-                className="h-7 gap-2 px-2 text-xs text-muted-foreground hover:text-foreground"
-              >
-                {expanded ? (
-                  <ChevronUp className="size-3.5" />
-                ) : (
-                  <ChevronDown className="size-3.5" />
-                )}
-                {expanded ? "Sembunyikan rincian" : "Rincian mitigasi"}
-              </Button>
-            </div>
-
-            {expanded ? (
-              <div className="pl-7 space-y-3">
-                {disabled ? (
-                  <p className="text-xs text-muted-foreground">
-                    Rincian ini hanya baca di halaman tinjauan. Untuk mengubah isi, buka mode edit risiko.
-                  </p>
-                ) : null}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Tipe mitigasi</Label>
-                    <Select
-                      value={item.mitigationType ?? "reduce_probability"}
-                      onValueChange={(value) =>
-                        updateItem(index, "mitigationType", value as MitigationType)
-                      }
-                      disabled={disabled}
+                return (
+                  <Fragment key={item.id ?? `mitigation-${index}`}>
+                    <TableRow
+                      className={cn(
+                        "border-border/30 transition-colors hover:bg-muted/30",
+                        expanded && "bg-muted/20",
+                      )}
                     >
-                      <SelectTrigger className="h-9 text-sm bg-background border-border/50">
-                        <SelectValue placeholder="Pilih tipe mitigasi" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mitigationTypeOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Tahap aktivitas</Label>
-                    <Input
-                      value={item.activityStage || ""}
-                      onChange={(e) => updateItem(index, "activityStage", e.target.value)}
-                      placeholder="Contoh: persiapan, pelaksanaan, monitoring"
-                      className="h-9 text-sm bg-background border-border/50"
-                      disabled={disabled}
-                    />
-                  </div>
-                </div>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted/60 text-[10px] font-semibold text-foreground">
+                          {index + 1}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-[360px]">
+                        <div className="space-y-1">
+                          <Input
+                            value={item.action || ""}
+                            onChange={(e) =>
+                              updateItem(index, "action", e.target.value)
+                            }
+                            placeholder="Uraian rencana penanganan..."
+                            className="h-8 bg-background/80 text-xs border-border/50"
+                            disabled={disabled}
+                          />
+                          {actionErrors?.[index] ? (
+                            <p className="text-[11px] font-medium text-destructive">
+                              {actionErrors[index]}
+                            </p>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <div className="space-y-1">
+                          {loadPicOptions ? (
+                            <RemoteUserPicker
+                              title="Pilih PIC"
+                              description="Cari dan pilih PIC untuk rencana penanganan ini"
+                              placeholder="Pilih PIC"
+                              searchPlaceholder="Cari nama PIC..."
+                              emptyMessage="Tidak ada user ditemukan."
+                              disabled={disabled}
+                              value={picValues[index]}
+                              onSelect={(option) => handlePicSelect(index, option)}
+                              loadOptions={loadPicOptions}
+                            />
+                          ) : (
+                            <Input
+                              value={item.owner || ""}
+                              onChange={(e) =>
+                                updateItem(index, "owner", e.target.value)
+                              }
+                              placeholder="Nama PIC"
+                              className="h-8 bg-background/80 text-xs border-border/50"
+                              disabled={disabled}
+                            />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Input
+                          type="date"
+                          value={item.dueDate || ""}
+                          onChange={(e) =>
+                            updateItem(index, "dueDate", e.target.value)
+                          }
+                          className="h-8 bg-background/80 text-xs border-border/50"
+                          disabled={disabled}
+                        />
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Select
+                          value={item.mitigationType ?? "reduce_probability"}
+                          onValueChange={(value) =>
+                            updateItem(
+                              index,
+                              "mitigationType",
+                              value as MitigationType,
+                            )
+                          }
+                          disabled={disabled}
+                        >
+                          <SelectTrigger className="h-8 bg-background/80 text-xs border-border/50">
+                            <SelectValue placeholder="Pilih tipe mitigasi" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mitigationTypeOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={() =>
+                            setExpandedRows((prev) => ({
+                              ...prev,
+                              [index]: !expanded,
+                            }))
+                          }
+                          disabled={disabled}
+                        >
+                          {expanded ? (
+                            <ChevronUp className="size-3.5" />
+                          ) : (
+                            <ChevronDown className="size-3.5" />
+                          )}
+                          {expanded ? "Sembunyikan" : "Rincian"}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => removeItem(index)}
+                          disabled={disabled}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Output yang diharapkan</Label>
-                    <Textarea
-                      value={item.expectedOutput || ""}
-                      onChange={(e) => updateItem(index, "expectedOutput", e.target.value)}
-                      placeholder="Tuliskan output yang ingin dicapai..."
-                      className="min-h-20 text-sm bg-background border-border/50"
-                      disabled={disabled}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Target kuantitatif</Label>
-                    <Textarea
-                      value={item.quantitativeTarget || ""}
-                      onChange={(e) => updateItem(index, "quantitativeTarget", e.target.value)}
-                      placeholder="Contoh: 100% unit terdokumentasi, SLA < 5 hari..."
-                      className="min-h-20 text-sm bg-background border-border/50"
-                      disabled={disabled}
-                    />
-                  </div>
-                </div>
+                    {expanded ? (
+                      <TableRow className="border-border/30 bg-muted/15">
+                        <TableCell colSpan={7} className="p-0">
+                          <div className="border-t border-border/50 px-4 py-4">
+                            {disabled ? (
+                              <p className="mb-3 text-xs text-muted-foreground">
+                                Rincian ini hanya baca di halaman tinjauan. Untuk mengubah isi, buka mode edit risiko.
+                              </p>
+                            ) : null}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Unit pendukung</Label>
-                    <Input
-                      value={item.supportingUnit || ""}
-                      onChange={(e) => updateItem(index, "supportingUnit", e.target.value)}
-                      placeholder="Contoh: Subdit Surveilans, Biro Umum"
-                      className="h-9 text-sm bg-background border-border/50"
-                      disabled={disabled}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Sumber daya dibutuhkan</Label>
-                    <Textarea
-                      value={item.resourcesRequired || ""}
-                      onChange={(e) => updateItem(index, "resourcesRequired", e.target.value)}
-                      placeholder="SDM, anggaran, sistem, atau alat bantu yang diperlukan"
-                      className="min-h-20 text-sm bg-background border-border/50"
-                      disabled={disabled}
-                    />
-                  </div>
-                </div>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">
+                                  Tahap aktivitas
+                                </Label>
+                                <Input
+                                  value={item.activityStage || ""}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      index,
+                                      "activityStage",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="Contoh: persiapan, pelaksanaan, monitoring"
+                                  className="h-8 bg-background/80 text-xs border-border/50"
+                                  disabled={disabled}
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">
+                                  Unit pendukung
+                                </Label>
+                                <Input
+                                  value={item.supportingUnit || ""}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      index,
+                                      "supportingUnit",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="Contoh: Subdit Surveilans, Biro Umum"
+                                  className="h-8 bg-background/80 text-xs border-border/50"
+                                  disabled={disabled}
+                                />
+                              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Rencana kontinjensi</Label>
-                    <Textarea
-                      value={item.contingencyPlan || ""}
-                      onChange={(e) => updateItem(index, "contingencyPlan", e.target.value)}
-                      placeholder="Langkah cadangan jika rencana utama tidak berjalan"
-                      className="min-h-20 text-sm bg-background border-border/50"
-                      disabled={disabled}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Hambatan potensial</Label>
-                    <Textarea
-                      value={item.potentialObstacle || ""}
-                      onChange={(e) => updateItem(index, "potentialObstacle", e.target.value)}
-                      placeholder="Risiko implementasi, penolakan, keterbatasan kapasitas"
-                      className="min-h-20 text-sm bg-background border-border/50"
-                      disabled={disabled}
-                    />
-                  </div>
-                </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">
+                                  Output yang diharapkan
+                                </Label>
+                                <Textarea
+                                  value={item.expectedOutput || ""}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      index,
+                                      "expectedOutput",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="Tuliskan output yang ingin dicapai..."
+                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  disabled={disabled}
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">
+                                  Target kuantitatif
+                                </Label>
+                                <Textarea
+                                  value={item.quantitativeTarget || ""}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      index,
+                                      "quantitativeTarget",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="Contoh: 100% unit terdokumentasi, SLA < 5 hari..."
+                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  disabled={disabled}
+                                />
+                              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Catatan cost-benefit</Label>
-                    <Textarea
-                      value={item.costBenefitNote || ""}
-                      onChange={(e) => updateItem(index, "costBenefitNote", e.target.value)}
-                      placeholder="Ringkasan sederhana manfaat dibanding biaya"
-                      className="min-h-20 text-sm bg-background border-border/50"
-                      disabled={disabled}
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-3">
-                      <Checkbox
-                        checked={Boolean(item.isBreakthroughActivity)}
-                        onCheckedChange={(checked) =>
-                          updateItem(index, "isBreakthroughActivity", checked === true)
-                        }
-                        disabled={disabled}
-                      />
-                      <div className="space-y-0.5">
-                        <Label className="text-sm font-medium">Breakthrough activity</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Tandai jika ini aktivitas inovatif/terobosan.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-3">
-                      <Checkbox
-                        checked={Boolean(item.isExistingControl)}
-                        onCheckedChange={(checked) =>
-                          updateItem(index, "isExistingControl", checked === true)
-                        }
-                        disabled={disabled}
-                      />
-                      <div className="space-y-0.5">
-                        <Label className="text-sm font-medium">Existing control</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Centang jika baris ini adalah kontrol yang sudah ada, bukan mitigasi baru.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        );
-      })}
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">
+                                  Sumber daya dibutuhkan
+                                </Label>
+                                <Textarea
+                                  value={item.resourcesRequired || ""}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      index,
+                                      "resourcesRequired",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="SDM, anggaran, sistem, atau alat bantu yang diperlukan"
+                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  disabled={disabled}
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">
+                                  Rencana kontinjensi
+                                </Label>
+                                <Textarea
+                                  value={item.contingencyPlan || ""}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      index,
+                                      "contingencyPlan",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="Langkah cadangan jika rencana utama tidak berjalan"
+                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  disabled={disabled}
+                                />
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">
+                                  Hambatan potensial
+                                </Label>
+                                <Textarea
+                                  value={item.potentialObstacle || ""}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      index,
+                                      "potentialObstacle",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="Risiko implementasi, penolakan, keterbatasan kapasitas"
+                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  disabled={disabled}
+                                />
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">
+                                  Catatan cost-benefit
+                                </Label>
+                                <Textarea
+                                  value={item.costBenefitNote || ""}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      index,
+                                      "costBenefitNote",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="Ringkasan sederhana manfaat dibanding biaya"
+                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  disabled={disabled}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                              <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-background/60 p-3">
+                                <Checkbox
+                                  checked={Boolean(item.isBreakthroughActivity)}
+                                  onCheckedChange={(checked) =>
+                                    updateItem(
+                                      index,
+                                      "isBreakthroughActivity",
+                                      checked === true,
+                                    )
+                                  }
+                                  disabled={disabled}
+                                />
+                                <div className="space-y-0.5">
+                                  <Label className="text-sm font-medium">
+                                    Breakthrough activity
+                                  </Label>
+                                  <p className="text-xs text-muted-foreground">
+                                    Tandai jika ini aktivitas inovatif/terobosan.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-background/60 p-3">
+                                <Checkbox
+                                  checked={Boolean(item.isExistingControl)}
+                                  onCheckedChange={(checked) =>
+                                    updateItem(
+                                      index,
+                                      "isExistingControl",
+                                      checked === true,
+                                    )
+                                  }
+                                  disabled={disabled}
+                                />
+                                <div className="space-y-0.5">
+                                  <Label className="text-sm font-medium">
+                                    Existing control
+                                  </Label>
+                                  <p className="text-xs text-muted-foreground">
+                                    Centang jika baris ini adalah kontrol yang sudah ada, bukan mitigasi baru.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </Fragment>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       <Button
         type="button"

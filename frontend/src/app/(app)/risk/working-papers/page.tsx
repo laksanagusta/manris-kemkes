@@ -2,21 +2,17 @@
 
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import {
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
-import { 
-  listWorkingPapers, 
-  deleteWorkingPaper, 
-  cancelWorkingPaper 
+import {
+  listWorkingPapers,
+  deleteWorkingPaper,
+  cancelWorkingPaper,
 } from "@/lib/api/working-papers";
 import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +53,7 @@ import {
   Calendar,
   Search,
 } from "lucide-react";
+import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 
 type WorkingPaperStatusFilter = "all" | WorkingPaperStatus;
 
@@ -86,10 +83,10 @@ function parsePositiveInt(value: string | null, fallback: number): number {
 }
 
 const statusVariant: Record<WorkingPaperStatus, string> = {
-  draft: "bg-muted text-muted-foreground border-border",
-  signing: "bg-amber-500/15 text-amber-600 border-amber-500/20",
-  completed: "bg-success/15 text-success border-success/20",
-  cancelled: "bg-destructive/15 text-destructive border-destructive/20",
+  draft: getLinearStatusBadgeClass("draft"),
+  signing: getLinearStatusBadgeClass("signing"),
+  completed: getLinearStatusBadgeClass("completed"),
+  cancelled: getLinearStatusBadgeClass("cancelled"),
 };
 
 const statusLabels: Record<WorkingPaperStatus, string> = {
@@ -105,19 +102,32 @@ type WorkingPaperSummaryCard = {
   tone: string;
 };
 
+function formatWorkingPaperDate(
+  value: string,
+  options: Intl.DateTimeFormatOptions,
+) {
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "-";
+  }
+
+  return parsed.toLocaleDateString("id-ID", options);
+}
+
 export default function WorkingPapersPage() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token } = useAuth();
   const [isPending, startTransition] = useTransition();
-  
+
   const [papers, setPapers] = useState<WorkingPaper[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  const [statusFilter, setStatusFilter] = useState<WorkingPaperStatusFilter>(() =>
-    getWorkingPaperStatusFilter(searchParams.get("status")),
+
+  const [statusFilter, setStatusFilter] = useState<WorkingPaperStatusFilter>(
+    () => getWorkingPaperStatusFilter(searchParams.get("status")),
   );
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [assessmentCycleFilter, setAssessmentCycleFilter] = useState(
@@ -147,8 +157,7 @@ export default function WorkingPapersPage() {
       const res = await listWorkingPapers(activeToken, {
         status: statusFilter === "all" ? undefined : statusFilter,
         q: deferredSearch.trim() || undefined,
-        assessment_cycle:
-          deferredAssessmentCycleFilter.trim() || undefined,
+        assessment_cycle: deferredAssessmentCycleFilter.trim() || undefined,
         created_at: createdAtFilter.trim() || undefined,
         page,
         limit,
@@ -159,7 +168,11 @@ export default function WorkingPapersPage() {
       setLimit(res.limit ?? limit);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Gagal memuat daftar kertas kerja. Silakan coba lagi.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Gagal memuat daftar kertas kerja. Silakan coba lagi.",
+      );
     } finally {
       setLoading(false);
     }
@@ -180,9 +193,12 @@ export default function WorkingPapersPage() {
   ]);
 
   useEffect(() => {
-    const nextStatusFilter = getWorkingPaperStatusFilter(searchParams.get("status"));
+    const nextStatusFilter = getWorkingPaperStatusFilter(
+      searchParams.get("status"),
+    );
     const nextSearch = searchParams.get("q") ?? "";
-    const nextAssessmentCycleFilter = searchParams.get("assessment_cycle") ?? "";
+    const nextAssessmentCycleFilter =
+      searchParams.get("assessment_cycle") ?? "";
     const nextCreatedAtFilter = searchParams.get("created_at") ?? "";
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
     const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
@@ -283,8 +299,9 @@ export default function WorkingPapersPage() {
       {
         loading: "Menghapus kertas kerja...",
         success: "Kertas kerja berhasil dihapus.",
-        error: (err) => err instanceof Error ? err.message : "Gagal menghapus kertas kerja.",
-      }
+        error: (err) =>
+          err instanceof Error ? err.message : "Gagal menghapus kertas kerja.",
+      },
     );
   };
 
@@ -299,8 +316,11 @@ export default function WorkingPapersPage() {
       {
         loading: "Membatalkan kertas kerja...",
         success: "Kertas kerja berhasil dibatalkan.",
-        error: (err) => err instanceof Error ? err.message : "Gagal membatalkan kertas kerja.",
-      }
+        error: (err) =>
+          err instanceof Error
+            ? err.message
+            : "Gagal membatalkan kertas kerja.",
+      },
     );
   };
 
@@ -332,7 +352,10 @@ export default function WorkingPapersPage() {
         <Card className="border-border/50 bg-card/80 overflow-hidden">
           <div className="p-1">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-border/20 last:border-0">
+              <div
+                key={i}
+                className="flex items-center gap-4 px-4 py-3 border-b border-border/20 last:border-0"
+              >
                 <div className="h-4 flex-1 rounded bg-muted animate-pulse" />
                 <div className="h-4 w-20 rounded bg-muted/60 animate-pulse" />
                 <div className="h-5 w-16 rounded-full bg-muted animate-pulse" />
@@ -356,7 +379,11 @@ export default function WorkingPapersPage() {
           </div>
           <h3 className="text-lg font-semibold mb-2">Gagal Memuat Data</h3>
           <p className="text-sm text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()} variant="outline" className="gap-2">
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
+            className="gap-2"
+          >
             <ArrowUpRight className="size-4" />
             Muat Ulang Halaman
           </Button>
@@ -397,6 +424,7 @@ export default function WorkingPapersPage() {
       tone: "border-destructive/20 text-destructive",
     },
   ];
+  const visiblePaperCount = papers.length;
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
@@ -442,230 +470,411 @@ export default function WorkingPapersPage() {
             setPage(1);
           }}
         >
-        <TabsList className="bg-muted/40 border border-border/50">
-          <TabsTrigger value="all" className="gap-2 text-xs">Semua</TabsTrigger>
-          <TabsTrigger value="draft" className="gap-2 text-xs">Draft</TabsTrigger>
-          <TabsTrigger value="signing" className="gap-2 text-xs">Proses TTE</TabsTrigger>
-          <TabsTrigger value="completed" className="gap-2 text-xs">Selesai</TabsTrigger>
-          <TabsTrigger value="cancelled" className="gap-2 text-xs">Dibatalkan</TabsTrigger>
-        </TabsList>
-      </Tabs>
+          <TabsList className="bg-muted/40 border border-border/50">
+            <TabsTrigger value="all" className="gap-2 text-xs">
+              Semua
+            </TabsTrigger>
+            <TabsTrigger value="draft" className="gap-2 text-xs">
+              Draft
+            </TabsTrigger>
+            <TabsTrigger value="signing" className="gap-2 text-xs">
+              Proses TTE
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="gap-2 text-xs">
+              Selesai
+            </TabsTrigger>
+            <TabsTrigger value="cancelled" className="gap-2 text-xs">
+              Dibatalkan
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
-                }}
-                placeholder="Cari judul kertas kerja..."
-                className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
-              />
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Cari judul kertas kerja..."
+                  className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
+                />
+              </div>
+              <div className="relative min-w-[200px] md:w-52">
+                <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={assessmentCycleFilter}
+                  onChange={(event) => {
+                    setAssessmentCycleFilter(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Filter siklus asesmen"
+                  className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
+                />
+              </div>
+              <div className="relative min-w-[160px] md:w-44">
+                <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={createdAtFilter}
+                  onChange={(event) => {
+                    setCreatedAtFilter(event.target.value);
+                    setPage(1);
+                  }}
+                  className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
+                />
+              </div>
             </div>
-            <div className="relative min-w-[200px] md:w-52">
-              <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={assessmentCycleFilter}
-                onChange={(event) => {
-                  setAssessmentCycleFilter(event.target.value);
-                  setPage(1);
-                }}
-                placeholder="Filter siklus asesmen"
-                className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
-              />
+          </CardContent>
+        </Card>
+
+        <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
+          <div className="flex flex-col gap-3 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:flex-row md:items-start md:justify-between md:px-6">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <div className="min-w-0">
+                <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900 text-balance">
+                  Daftar kertas kerja
+                </h2>
+                <p className="mt-1 text-xs text-zinc-500 text-pretty">
+                  Dokumen kertas kerja risiko beserta status dan progres
+                  penandatanganan untuk filter yang sedang aktif.
+                </p>
+              </div>
             </div>
-            <div className="relative min-w-[160px] md:w-44">
-              <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="date"
-                value={createdAtFilter}
-                onChange={(event) => {
-                  setCreatedAtFilter(event.target.value);
-                  setPage(1);
-                }}
-                className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
-              />
+            <div className="flex flex-wrap items-center gap-2 md:justify-end">
+              <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
+                {visiblePaperCount} kertas kerja
+              </span>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-[15px] font-semibold">Daftar Kertas Kerja</CardTitle>
-          <CardDescription className="text-xs text-muted-foreground">
-            Dokumen kertas kerja risiko beserta status dan progres penandatanganan.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-          <TableHeader>
-            <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="whitespace-nowrap">Judul</TableHead>
-              <TableHead className="w-28 whitespace-nowrap">Siklus Asesmen</TableHead>
-              <TableHead className="w-28 whitespace-nowrap">Status</TableHead>
-              <TableHead className="text-center w-28 whitespace-nowrap">Jumlah Risiko</TableHead>
-              <TableHead className="text-center w-32 whitespace-nowrap">Progres TTE</TableHead>
-              <TableHead className="w-32 whitespace-nowrap">Dibuat Pada</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {papers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24">
-                  <div className="flex flex-col gap-1 text-left">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Belum ada kertas kerja yang sesuai filter
-                    </p>
-                    <p className="text-xs text-muted-foreground/70">
-                      Ubah filter pencarian atau tab status untuk melihat data
-                      lain
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              papers.map((wp) => {
-                const signedCount = wp.signatories?.filter((s) => s.status === 'signed').length || 0;
-                const totalSignatories = wp.signatories?.length || 0;
-                const progressPercent = totalSignatories > 0 ? (signedCount / totalSignatories) * 100 : 0;
-                const progressText = totalSignatories > 0 ? `${signedCount}/${totalSignatories}` : "-";
-                const date = new Date(wp.created_at).toLocaleDateString("id-ID", {
-                  year: "numeric", month: "short", day: "numeric",
-                });
+          {papers.length === 0 ? (
+            <div className="p-4">
+              <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/70 px-4 py-8 text-left">
+                <p className="text-sm font-medium text-zinc-700">
+                  Belum ada kertas kerja yang sesuai filter
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Ubah filter pencarian atau tab status untuk melihat data lain.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3 p-4 md:hidden">
+                {papers.map((wp) => {
+                  const signedCount =
+                    wp.signatories?.filter((s) => s.status === "signed")
+                      .length || 0;
+                  const totalSignatories = wp.signatories?.length || 0;
+                  const progressPercent =
+                    totalSignatories > 0
+                      ? (signedCount / totalSignatories) * 100
+                      : 0;
+                  const progressText =
+                    totalSignatories > 0
+                      ? `${signedCount}/${totalSignatories}`
+                      : "-";
+                  const createdDate = formatWorkingPaperDate(wp.created_at, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  });
 
-                return (
-                  <TableRow key={wp.id} className="border-border/30 hover:bg-muted/30 transition-colors">
-                    <TableCell className="max-w-[320px]">
-                      <Link
-                        href={`/risk/working-papers/${wp.id}`}
-                        className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80"
-                        title={wp.title}
-                      >
-                        {wp.title || "Tanpa Judul"}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {wp.assessment_cycle || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={cn(
-                          "text-xs font-semibold border h-5 px-1.5",
-                          statusVariant[wp.status]
-                        )}
-                      >
-                        {statusLabels[wp.status] || wp.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center text-sm font-medium">
-                      {wp.risks?.length || 0}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {totalSignatories > 0 ? (
-                        <div className="flex flex-col items-center gap-1">
-                          <Progress value={progressPercent} className="w-16 h-1.5" />
-                          <span className="text-sm text-muted-foreground">{progressText}</span>
+                  return (
+                    <div
+                      key={wp.id}
+                      className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <Link
+                            href={`/risk/working-papers/${wp.id}`}
+                            className="line-clamp-2 text-sm font-semibold text-zinc-900 transition-colors hover:text-primary"
+                          >
+                            {wp.title || "Tanpa Judul"}
+                          </Link>
+                          <p className="mt-1 text-xs tabular-nums text-zinc-500">
+                            {wp.assessment_cycle || "Tanpa siklus asesmen"}
+                          </p>
                         </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {date}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+                        <span
+                          className={cn(
+                            "px-2.5",
+                            getLinearStatusBadgeClass(wp.status),
+                          )}
+                        >
+                          {statusLabels[wp.status] || wp.status}
+                        </span>
+                      </div>
 
-        <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Baris per halaman:</span>
-              <Select
-                value={limit.toString()}
-                onValueChange={(val) => {
-                  setLimit(Number(val));
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="h-7 w-[65px] text-xs bg-muted/30 border-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[10, 20, 50, 100].map((pageSize) => (
-                    <SelectItem key={pageSize} value={pageSize.toString()}>
-                      {pageSize}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      <div className="mt-3 grid gap-2">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div className="space-y-1 rounded-xl bg-zinc-50/80 px-3 py-2 ring-1 ring-inset ring-zinc-200/80">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500 text-pretty">
+                              Jumlah risiko
+                            </p>
+                            <div className="text-sm font-medium text-zinc-900 text-pretty">
+                              {wp.risks?.length || 0} risiko
+                            </div>
+                          </div>
+                          <div className="space-y-1 rounded-xl bg-zinc-50/80 px-3 py-2 ring-1 ring-inset ring-zinc-200/80">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500 text-pretty">
+                              Dibuat pada
+                            </p>
+                            <div className="text-sm text-zinc-900 text-pretty">
+                              {createdDate}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 rounded-xl bg-zinc-50/80 px-3 py-3 ring-1 ring-inset ring-zinc-200/80">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500 text-pretty">
+                              Progres TTE
+                            </p>
+                            <span className="text-sm font-medium text-zinc-900">
+                              {progressText}
+                            </span>
+                          </div>
+                          {totalSignatories > 0 ? (
+                            <Progress
+                              value={progressPercent}
+                              className="h-2 bg-zinc-200"
+                            />
+                          ) : (
+                            <p className="text-sm text-zinc-500">
+                              Belum ada penandatangan.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 w-full border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50"
+                      >
+                        <Link href={`/risk/working-papers/${wp.id}`}>
+                          Buka detail
+                        </Link>
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Table className="hidden min-w-[980px] md:table">
+                <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
+                  <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
+                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Judul
+                    </TableHead>
+                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Siklus
+                    </TableHead>
+                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Status
+                    </TableHead>
+                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Risiko
+                    </TableHead>
+                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Progres TTE
+                    </TableHead>
+                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Dibuat
+                    </TableHead>
+                </TableRow>
+              </TableHeader>
+                <TableBody>
+                  {papers.map((wp) => {
+                    const signedCount =
+                      wp.signatories?.filter((s) => s.status === "signed")
+                        .length || 0;
+                    const totalSignatories = wp.signatories?.length || 0;
+                    const progressPercent =
+                      totalSignatories > 0
+                        ? (signedCount / totalSignatories) * 100
+                        : 0;
+                    const progressText =
+                      totalSignatories > 0
+                        ? `${signedCount}/${totalSignatories}`
+                        : "-";
+                    const createdDate = formatWorkingPaperDate(wp.created_at, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    });
+
+                    return (
+                      <TableRow
+                        key={wp.id}
+                        className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
+                      >
+                        <TableCell className="min-w-[320px] p-2.5 align-middle">
+                          <Link
+                            href={`/risk/working-papers/${wp.id}`}
+                            className="block text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary"
+                            title={wp.title}
+                          >
+                            {wp.title || "Tanpa Judul"}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap p-2.5 align-middle text-sm text-zinc-600">
+                          {wp.assessment_cycle || "-"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap p-2.5 align-middle">
+                          <Badge
+                            className={cn(
+                              "h-6 border px-2 py-0 text-xs font-semibold",
+                              statusVariant[wp.status],
+                            )}
+                          >
+                            {statusLabels[wp.status] || wp.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap p-2.5 text-center align-middle text-sm font-medium tabular-nums text-zinc-900">
+                          {wp.risks?.length || 0}
+                        </TableCell>
+                        <TableCell className="min-w-[180px] p-2.5 align-middle">
+                          {totalSignatories > 0 ? (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm font-medium text-zinc-900">
+                                  {progressText}
+                                </span>
+                                <span className="text-xs text-zinc-500">
+                                  Penandatangan
+                                </span>
+                              </div>
+                              <Progress
+                                value={progressPercent}
+                                className="h-2 bg-zinc-200"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-sm text-zinc-500">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap p-2.5 align-middle text-sm text-zinc-600">
+                          {createdDate}
+                        </TableCell>
+                    </TableRow>
+                  );
+                })}
+                </TableBody>
+              </Table>
+            </>
+          )}
+
+          <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-500">
+                  Baris per halaman:
+                </span>
+                <Select
+                  value={limit.toString()}
+                  onValueChange={(val) => {
+                    setLimit(Number(val));
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-7 w-[65px] border-zinc-200 bg-white text-xs text-zinc-700">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50, 100].map((pageSize) => (
+                      <SelectItem key={pageSize} value={pageSize.toString()}>
+                        {pageSize}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-zinc-500">
+                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
+                {Math.min(page * limit, total)} dari {total} kertas kerja
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} kertas kerja
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 text-muted-foreground"
-              disabled={page === 1 || loading || isPending}
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-            >
-              <ChevronLeft className="size-3.5" />
-            </Button>
-            <span className="text-xs text-muted-foreground px-2">Halaman {page} dari {totalPages}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 text-muted-foreground"
-              disabled={page === totalPages || total === 0 || loading || isPending}
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            >
-              <ChevronRight className="size-3.5" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                disabled={page === 1 || loading || isPending}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <span className="px-2 text-xs text-zinc-500">
+                Halaman {page} dari {totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                disabled={
+                  page === totalPages || total === 0 || loading || isPending
+                }
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
-        </CardContent>
-      </Card>
       </div>
 
-      <AlertDialog open={!!paperToDelete} onOpenChange={(open) => !open && setPaperToDelete(null)}>
+      <AlertDialog
+        open={!!paperToDelete}
+        onOpenChange={(open) => !open && setPaperToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus Kertas Kerja?</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus draft kertas kerja "{paperToDelete?.title}"? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus draft kertas kerja &quot;
+              {paperToDelete?.title}&quot;? Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Kembali</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!paperToCancel} onOpenChange={(open) => !open && setPaperToCancel(null)}>
+      <AlertDialog
+        open={!!paperToCancel}
+        onOpenChange={(open) => !open && setPaperToCancel(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Batalkan Kertas Kerja?</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin membatalkan kertas kerja "{paperToCancel?.title}"? Kertas kerja yang dibatalkan tidak dapat dilanjutkan proses TTE-nya.
+              Apakah Anda yakin ingin membatalkan kertas kerja &quot;
+              {paperToCancel?.title}&quot;? Kertas kerja yang dibatalkan tidak
+              dapat dilanjutkan proses TTE-nya.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Kembali</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleCancel}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Batalkan
             </AlertDialogAction>
           </AlertDialogFooter>

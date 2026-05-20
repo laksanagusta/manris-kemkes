@@ -112,6 +112,7 @@ import {
   Archive,
   RotateCcw,
 } from "lucide-react";
+import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 
 const levelBadgeVariant: Record<string, string> = {
   "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
@@ -123,9 +124,9 @@ const levelBadgeVariant: Record<string, string> = {
 };
 
 const statusVariant: Record<string, string> = {
-  assessment_draft: "bg-muted text-muted-foreground border-border",
-  assessment_in_review: "bg-blue-500/15 text-blue-600 border-blue-500/20",
-  approved: "bg-success/15 text-success border-success/20",
+  assessment_draft: getLinearStatusBadgeClass("assessment_draft"),
+  assessment_in_review: getLinearStatusBadgeClass("assessment_in_review"),
+  approved: getLinearStatusBadgeClass("approved"),
 };
 
 const statusLabel: Record<string, string> = {
@@ -752,15 +753,8 @@ export default function RiskRegisterPage() {
       value: riskLevelCounts.sedang ?? 0,
       tone: "border-border/60 bg-background/60 text-foreground",
     },
-    {
-      label: "Rendah",
-      value: riskLevelCounts.rendah ?? 0,
-    },
-    {
-      label: "Sangat Rendah",
-      value: riskLevelCounts.sangat_rendah ?? 0,
-    },
   ];
+  const visibleRiskCount = risks.length;
 
   const monitoringDraftCount = useMemo(
     () => drafts.filter((risk) => risk.status === "assessment_draft").length,
@@ -1026,7 +1020,7 @@ export default function RiskRegisterPage() {
 
         {/* TAB 1: ALL RISKS */}
         <TabsContent value="all-risks" className="space-y-6 mt-6">
-          <div className="grid gap-3 grid-cols-6">
+          <div className="grid gap-3 grid-cols-4">
             {riskSummaryCards.map((card) => (
               <Card key={card.label} className={cn("", card.tone)}>
                 <CardContent className="flex items-end justify-between gap-3 p-3">
@@ -1155,261 +1149,288 @@ export default function RiskRegisterPage() {
           </Card>
 
           {/* Table */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-            <CardHeader className="border-b border-border/40 pb-4">
-              <CardTitle className="text-[15px] font-semibold">
-                Daftar Risiko
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {lifecycleFilter === "archived"
-                  ? "Lihat risiko yang sudah diarsipkan dan pulihkan bila perlu."
-                  : "Pantau risiko aktif, status penilaian terbaru, dan tindak lanjut pemantauan pada satu tabel kerja."}
-              </p>
-            </CardHeader>
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="w-20 whitespace-nowrap">Kode</TableHead>
-                  <TableHead className="w-16 whitespace-nowrap">
-                    Versi
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Judul Risiko
-                  </TableHead>
-                  <TableHead className="w-28 whitespace-nowrap">
-                    Kategori
-                  </TableHead>
-                  <TableHead
-                    className="text-center w-16 whitespace-nowrap cursor-pointer select-none"
-                    onClick={() => {
-                      if (sortBy === "nilai") {
-                        setSortOrder((prev) =>
-                          prev === "asc" ? "desc" : "asc",
-                        );
-                      } else {
-                        setSortBy("nilai");
-                        setSortOrder("desc");
-                      }
-                    }}
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      Nilai
-                      {sortBy === "nilai" &&
-                        (sortOrder === "desc" ? (
-                          <ChevronDown className="size-3" />
-                        ) : (
-                          <ChevronUp className="size-3" />
-                        ))}
-                    </div>
-                  </TableHead>
-                  <TableHead className="w-24 whitespace-nowrap">
-                    Tingkat Risiko
-                  </TableHead>
-                  <TableHead className="w-24 whitespace-nowrap">
-                    Status
-                  </TableHead>
-                  <TableHead className="w-24 whitespace-nowrap">
-                    Penanganan
-                  </TableHead>
-                  <TableHead
-                    className="w-28 cursor-pointer select-none whitespace-nowrap"
-                    onClick={() => {
-                      if (sortBy === "created_at") {
-                        setSortOrder((prev) =>
-                          prev === "asc" ? "desc" : "asc",
-                        );
-                      } else {
-                        setSortBy("created_at");
-                        setSortOrder("desc");
-                      }
-                    }}
-                  >
-                    <div className="flex items-center gap-1">
-                      Dibuat
-                      {sortBy === "created_at" &&
-                        (sortOrder === "desc" ? (
-                          <ChevronDown className="size-3" />
-                        ) : (
-                          <ChevronUp className="size-3" />
-                        ))}
-                    </div>
-                  </TableHead>
-                  <TableHead className="w-28 whitespace-nowrap">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {risks.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={10}
-                      className="py-8 text-left text-xs text-muted-foreground"
+          <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
+            <div className="flex flex-col gap-3 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:flex-row md:items-start md:justify-between md:px-6">
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900 text-balance">
+                    Daftar risiko
+                  </h2>
+                  <p className="mt-1 text-xs text-zinc-500 text-pretty">
+                    {lifecycleFilter === "archived"
+                      ? "Lihat risiko yang sudah diarsipkan dan pulihkan bila perlu."
+                      : "Pantau risiko aktif, status penilaian terbaru, dan tindak lanjut pemantauan pada satu tabel kerja."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
+                  {visibleRiskCount} risiko
+                </span>
+              </div>
+            </div>
+
+            <div className="relative w-full overflow-x-auto">
+              <Table className="min-w-[1180px]">
+                <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
+                  <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
+                    <TableHead className="w-20 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Kode
+                    </TableHead>
+                    <TableHead className="w-16 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Versi
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Judul Risiko
+                    </TableHead>
+                    <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Kategori
+                    </TableHead>
+                    <TableHead
+                      className="w-16 cursor-pointer select-none whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500"
+                      onClick={() => {
+                        if (sortBy === "nilai") {
+                          setSortOrder((prev) =>
+                            prev === "asc" ? "desc" : "asc",
+                          );
+                        } else {
+                          setSortBy("nilai");
+                          setSortOrder("desc");
+                        }
+                      }}
                     >
-                      Tidak ada risiko yang ditemukan
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  risks.map((risk) => {
-                    const scoreSemantics = resolveListItemScoreSemantics(risk);
-                    const levelLabel = getRiskLevelLabel(
-                      scoreSemantics.effective.level,
-                    );
-                    const isReadOnly = isReadOnlyForOrg(
-                      user,
-                      risk.organizationId || "",
-                    );
-                    const canReassess =
-                      risk.status === "approved" &&
-                      risk.isCurrent &&
-                      !risk.archivedAt &&
-                      !isReadOnly;
-                    const canArchive =
-                      lifecycleFilter !== "archived" &&
-                      risk.status === "approved" &&
-                      risk.isCurrent &&
-                      !risk.archivedAt &&
-                      !isReadOnly;
-                    const canRestore = !!risk.archivedAt && !isReadOnly;
-                    return (
-                      <TableRow
-                        key={risk.id}
-                        className="border-border/30 hover:bg-muted/30 transition-colors"
-                      >
-                        <TableCell className="font-mono text-muted-foreground">
-                          <span className="flex items-center gap-1.5">
-                            {risk.code || "-"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {risk.versionNumber != null ? (
-                            <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-border/50">
-                              v{risk.versionNumber}
-                            </span>
+                      <div className="flex items-center justify-center gap-1">
+                        Nilai
+                        {sortBy === "nilai" &&
+                          (sortOrder === "desc" ? (
+                            <ChevronDown className="size-3" />
                           ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="max-w-[250px]">
-                          <Link
-                            href={`/risk/register/${risk.id}`}
-                            className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80"
-                          >
-                            {risk.title || "-"}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {riskCategoryLabels[risk.category ?? ""]}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-bold">
-                            {scoreSemantics.effective.score}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={cn(
-                              "text-[10px] font-semibold border h-5 px-1.5",
-                              levelBadgeVariant[levelLabel],
+                            <ChevronUp className="size-3" />
+                          ))}
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Tingkat Risiko
+                    </TableHead>
+                    <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Status
+                    </TableHead>
+                    <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Penanganan
+                    </TableHead>
+                    <TableHead
+                      className="w-28 cursor-pointer select-none whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500"
+                      onClick={() => {
+                        if (sortBy === "created_at") {
+                          setSortOrder((prev) =>
+                            prev === "asc" ? "desc" : "asc",
+                          );
+                        } else {
+                          setSortBy("created_at");
+                          setSortOrder("desc");
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-1">
+                        Dibuat
+                        {sortBy === "created_at" &&
+                          (sortOrder === "desc" ? (
+                            <ChevronDown className="size-3" />
+                          ) : (
+                            <ChevronUp className="size-3" />
+                          ))}
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Aksi
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {risks.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={10}
+                        className="py-8 text-left text-xs text-zinc-500"
+                      >
+                        Tidak ada risiko yang ditemukan
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    risks.map((risk) => {
+                      const scoreSemantics =
+                        resolveListItemScoreSemantics(risk);
+                      const levelLabel = getRiskLevelLabel(
+                        scoreSemantics.effective.level,
+                      );
+                      const isReadOnly = isReadOnlyForOrg(
+                        user,
+                        risk.organizationId || "",
+                      );
+                      const canReassess =
+                        risk.status === "approved" &&
+                        risk.isCurrent &&
+                        !risk.archivedAt &&
+                        !isReadOnly;
+                      const canArchive =
+                        lifecycleFilter !== "archived" &&
+                        risk.status === "approved" &&
+                        risk.isCurrent &&
+                        !risk.archivedAt &&
+                        !isReadOnly;
+                      const canRestore = !!risk.archivedAt && !isReadOnly;
+                      return (
+                        <TableRow
+                          key={risk.id}
+                          className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
+                        >
+                          <TableCell className="font-mono text-zinc-600">
+                            <span className="flex items-center gap-1.5">
+                              {risk.code || "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {risk.versionNumber != null ? (
+                              <span className="inline-flex items-center rounded-md bg-zinc-50 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600 ring-1 ring-inset ring-zinc-200">
+                                v{risk.versionNumber}
+                              </span>
+                            ) : (
+                              <span className="text-zinc-500">-</span>
                             )}
-                          >
-                            {levelLabel}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1.5">
+                          </TableCell>
+                          <TableCell className="max-w-[250px]">
+                            <Link
+                              href={`/risk/register/${risk.id}`}
+                              className="block truncate text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary"
+                            >
+                              {risk.title || "-"}
+                            </Link>
+                          </TableCell>
+                          <TableCell className="text-zinc-600">
+                            {riskCategoryLabels[risk.category ?? ""]}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm font-bold text-zinc-900">
+                              {scoreSemantics.effective.score}
+                            </span>
+                          </TableCell>
+                          <TableCell>
                             <Badge
                               className={cn(
-                                "text-[10px] font-medium border h-5 px-1.5",
-                                risk.status
-                                  ? statusVariant[risk.status]
-                                  : undefined,
+                                "text-[10px] font-semibold border h-5 px-1.5",
+                                levelBadgeVariant[levelLabel],
                               )}
                             >
-                              {risk.status
-                                ? risk.versionNumber == 1 &&
-                                  risk.status == "assessment_draft"
-                                  ? "Draft"
-                                  : statusLabel[risk.status] || risk.status
-                                : "-"}
+                              {levelLabel}
                             </Badge>
-                            {risk.hasOngoing && risk.draftStatus && (
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1.5">
                               <Badge
-                                variant="outline"
-                                className="text-[10px] font-medium border h-5 px-1.5 bg-amber-50 text-amber-700 border-amber-200"
+                                className={cn(
+                                  "h-5 px-1.5",
+                                  risk.status
+                                    ? statusVariant[risk.status]
+                                    : undefined,
+                                )}
                               >
-                                📝{" "}
-                                {statusLabel[risk.draftStatus] ||
-                                  risk.draftStatus}
+                                {risk.status
+                                  ? risk.versionNumber == 1 &&
+                                    risk.status == "assessment_draft"
+                                    ? "Draft"
+                                    : statusLabel[risk.status] || risk.status
+                                  : "-"}
                               </Badge>
-                            )}
-                            {risk.archivedAt && (
-                              <Badge className="text-[10px] font-medium border h-5 px-1.5 bg-amber-500/15 text-amber-700 border-amber-500/20">
-                                Diarsipkan
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatTreatmentOption(risk.treatmentOption)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {formatLocalDateTime(risk.createdAt)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex">
-                            <RiskRowActions
-                              risk={risk}
-                              isReadOnly={isReadOnly}
-                              onContinueMonitoring={
-                                canReassess && risk.hasOngoing && risk.draftId
-                                  ? () =>
-                                      router.push(
-                                        `/risk/assessment/${risk.draftId}`,
-                                      )
-                                  : undefined
-                              }
-                              onStartMonitoring={
-                                canReassess && !risk.hasOngoing
-                                  ? () => handleOpenConfirmDialog(risk)
-                                  : undefined
-                              }
-                              onMandateCascade={() =>
-                                router.push(
-                                  `/risk/cascading?sourceRiskId=${risk.id}&mode=mandatory`,
-                                )
-                              }
-                              onEscalateCascade={() =>
-                                router.push(
-                                  `/risk/cascading?sourceRiskId=${risk.id}&mode=bottom-up`,
-                                )
-                              }
-                              onArchive={
-                                canArchive
-                                  ? () => setRiskToArchive(risk)
-                                  : undefined
-                              }
-                              onRestore={
-                                canRestore
-                                  ? () => setRiskToRestore(risk)
-                                  : undefined
-                              }
-                              onDeleteDraft={
-                                risk.status === "assessment_draft" &&
-                                !isReadOnly
-                                  ? () => setDraftToDelete(risk)
-                                  : undefined
-                              }
-                            />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+                              {risk.hasOngoing && risk.draftStatus && (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "h-5 px-1.5",
+                                    getLinearStatusBadgeClass(
+                                      risk.draftStatus,
+                                    ),
+                                  )}
+                                >
+                                  📝{" "}
+                                  {statusLabel[risk.draftStatus] ||
+                                    risk.draftStatus}
+                                </Badge>
+                              )}
+                              {risk.archivedAt && (
+                                <Badge
+                                  className={cn(
+                                    "h-5 px-1.5",
+                                    getLinearStatusBadgeClass("archived"),
+                                  )}
+                                >
+                                  Diarsipkan
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-zinc-600">
+                            {formatTreatmentOption(risk.treatmentOption)}
+                          </TableCell>
+                          <TableCell className="text-xs text-zinc-600">
+                            {formatLocalDateTime(risk.createdAt)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex">
+                              <RiskRowActions
+                                risk={risk}
+                                isReadOnly={isReadOnly}
+                                onContinueMonitoring={
+                                  canReassess && risk.hasOngoing && risk.draftId
+                                    ? () =>
+                                        router.push(
+                                          `/risk/assessment/${risk.draftId}`,
+                                        )
+                                    : undefined
+                                }
+                                onStartMonitoring={
+                                  canReassess && !risk.hasOngoing
+                                    ? () => handleOpenConfirmDialog(risk)
+                                    : undefined
+                                }
+                                onMandateCascade={() =>
+                                  router.push(
+                                    `/risk/cascading?sourceRiskId=${risk.id}&mode=mandatory`,
+                                  )
+                                }
+                                onEscalateCascade={() =>
+                                  router.push(
+                                    `/risk/cascading?sourceRiskId=${risk.id}&mode=bottom-up`,
+                                  )
+                                }
+                                onArchive={
+                                  canArchive
+                                    ? () => setRiskToArchive(risk)
+                                    : undefined
+                                }
+                                onRestore={
+                                  canRestore
+                                    ? () => setRiskToRestore(risk)
+                                    : undefined
+                                }
+                                onDeleteDraft={
+                                  risk.status === "assessment_draft" &&
+                                  !isReadOnly
+                                    ? () => setDraftToDelete(risk)
+                                    : undefined
+                                }
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+            <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">
@@ -1479,7 +1500,7 @@ export default function RiskRegisterPage() {
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </TabsContent>
 
         {/* TAB 2: MONITORING TRANSACTIONS */}
