@@ -112,21 +112,24 @@ import {
   Archive,
   RotateCcw,
 } from "lucide-react";
-import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
-
-const levelBadgeVariant: Record<string, string> = {
-  "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
-  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
-  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi":
-    "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
-};
+import {
+  getLinearRiskLevelBadgeClass,
+  getLinearStatusBadgeClass,
+  getLinearToneBadgeClass,
+} from "@/lib/linear-status-badge";
 
 const statusVariant: Record<string, string> = {
   assessment_draft: getLinearStatusBadgeClass("assessment_draft"),
   assessment_in_review: getLinearStatusBadgeClass("assessment_in_review"),
   approved: getLinearStatusBadgeClass("approved"),
+};
+
+const levelBadgeVariant: Record<string, string> = {
+  "Sangat Rendah": getLinearRiskLevelBadgeClass("Sangat Rendah"),
+  Rendah: getLinearRiskLevelBadgeClass("Rendah"),
+  Sedang: getLinearRiskLevelBadgeClass("Sedang"),
+  Tinggi: getLinearRiskLevelBadgeClass("Tinggi"),
+  "Sangat Tinggi": getLinearRiskLevelBadgeClass("Sangat Tinggi"),
 };
 
 const statusLabel: Record<string, string> = {
@@ -1291,9 +1294,9 @@ export default function RiskRegisterPage() {
                           </TableCell>
                           <TableCell>
                             {risk.versionNumber != null ? (
-                              <span className="inline-flex items-center rounded-md bg-zinc-50 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600 ring-1 ring-inset ring-zinc-200">
+                              <Badge className={getLinearToneBadgeClass("neutral")}>
                                 v{risk.versionNumber}
-                              </span>
+                              </Badge>
                             ) : (
                               <span className="text-zinc-500">-</span>
                             )}
@@ -1315,12 +1318,7 @@ export default function RiskRegisterPage() {
                             </span>
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              className={cn(
-                                "text-[10px] font-semibold border h-5 px-1.5",
-                                levelBadgeVariant[levelLabel],
-                              )}
-                            >
+                            <Badge className={getLinearRiskLevelBadgeClass(levelLabel)}>
                               {levelLabel}
                             </Badge>
                           </TableCell>
@@ -1328,10 +1326,9 @@ export default function RiskRegisterPage() {
                             <div className="flex gap-1.5">
                               <Badge
                                 className={cn(
-                                  "h-5 px-1.5",
                                   risk.status
                                     ? statusVariant[risk.status]
-                                    : undefined,
+                                    : getLinearToneBadgeClass("neutral"),
                                 )}
                               >
                                 {risk.status
@@ -1343,12 +1340,8 @@ export default function RiskRegisterPage() {
                               </Badge>
                               {risk.hasOngoing && risk.draftStatus && (
                                 <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "h-5 px-1.5",
-                                    getLinearStatusBadgeClass(
-                                      risk.draftStatus,
-                                    ),
+                                  className={getLinearStatusBadgeClass(
+                                    risk.draftStatus,
                                   )}
                                 >
                                   📝{" "}
@@ -1358,10 +1351,7 @@ export default function RiskRegisterPage() {
                               )}
                               {risk.archivedAt && (
                                 <Badge
-                                  className={cn(
-                                    "h-5 px-1.5",
-                                    getLinearStatusBadgeClass("archived"),
-                                  )}
+                                  className={getLinearStatusBadgeClass("archived")}
                                 >
                                   Diarsipkan
                                 </Badge>
@@ -1792,13 +1782,11 @@ export default function RiskRegisterPage() {
                         </TableCell>
                         <TableCell>
                           <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] h-5 px-1.5",
+                            className={
                               draft.status === "assessment_draft"
-                                ? "text-muted-foreground"
-                                : "text-risk-medium border-risk-medium/50 bg-risk-medium/10",
-                            )}
+                                ? getLinearToneBadgeClass("neutral")
+                                : getLinearStatusBadgeClass("reviewed")
+                            }
                           >
                             Draft (WIP)
                           </Badge>
@@ -1998,12 +1986,10 @@ export default function RiskRegisterPage() {
                           </TableCell>
                           <TableCell>
                             <Badge
-                              className={cn(
-                                "text-[10px] font-semibold border h-5 px-1.5",
-                                levelBadgeVariant[
-                                  selectedHistory.previousLevel
-                                ] || levelBadgeVariant.Rendah,
-                              )}
+                              className={
+                                levelBadgeVariant[selectedHistory.previousLevel] ||
+                                levelBadgeVariant.Rendah
+                              }
                             >
                               {selectedHistory.previousLevel || "Rendah"}
                             </Badge>
@@ -2013,12 +1999,10 @@ export default function RiskRegisterPage() {
                           </TableCell>
                           <TableCell>
                             <Badge
-                              className={cn(
-                                "text-[10px] font-semibold border h-5 px-1.5",
-                                levelBadgeVariant[
-                                  selectedHistory.currentLevel
-                                ] || levelBadgeVariant.Rendah,
-                              )}
+                              className={
+                                levelBadgeVariant[selectedHistory.currentLevel] ||
+                                levelBadgeVariant.Rendah
+                              }
                             >
                               {selectedHistory.currentLevel || "Rendah"}
                             </Badge>

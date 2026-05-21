@@ -41,6 +41,7 @@ import {
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
 import { isWithinMitigationSubmissionWindow } from "@/lib/kri-reporting";
+import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 
 export interface MitigationProgressDraft {
   taskId: string;
@@ -401,10 +402,7 @@ export function MitigationProgressTab({
                           {formatDate(task.dueDate)}
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] gap-1 ${statusCfg.color}`}
-                          >
+                          <Badge className={getLinearStatusBadgeClass(task.status)}>
                             {statusCfg.icon} {statusCfg.label}
                           </Badge>
                         </td>
@@ -509,8 +507,7 @@ export function MitigationProgressTab({
                     Status
                   </p>
                   <Badge
-                    variant="outline"
-                    className={`mt-2 text-[10px] gap-1 ${(STATUS_CONFIG[detailTask.status] || STATUS_CONFIG.pending).color}`}
+                    className={getLinearStatusBadgeClass(detailTask.status)}
                   >
                     {(STATUS_CONFIG[detailTask.status] || STATUS_CONFIG.pending).icon}
                     {(STATUS_CONFIG[detailTask.status] || STATUS_CONFIG.pending).label}

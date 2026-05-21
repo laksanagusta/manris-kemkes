@@ -26,10 +26,37 @@ const STATUS_TO_TONE: Record<string, keyof typeof TONES> = {
   ongoing: "progress",
   pending: "warning",
   done: "success",
+  overdue: "danger",
+  skipped: "neutral",
 };
 
 export function getLinearStatusBadgeClass(status?: string | null) {
   const normalized = (status ?? "").trim().toLowerCase();
   const tone = STATUS_TO_TONE[normalized] ?? "neutral";
   return cn(BASE_CLASS, TONES[tone]);
+}
+
+export function getLinearToneBadgeClass(
+  tone: keyof typeof TONES = "neutral",
+) {
+  return cn(BASE_CLASS, TONES[tone]);
+}
+
+export function getLinearRiskLevelBadgeClass(level?: string | null) {
+  const normalized = (level ?? "").trim().toLowerCase();
+
+  switch (normalized) {
+    case "sangat rendah":
+    case "sangat rendah ":
+      return getLinearToneBadgeClass("success");
+    case "rendah":
+      return getLinearToneBadgeClass("info");
+    case "sedang":
+      return getLinearToneBadgeClass("warning");
+    case "tinggi":
+    case "sangat tinggi":
+      return getLinearToneBadgeClass("danger");
+    default:
+      return getLinearToneBadgeClass("neutral");
+  }
 }

@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { getLinearRiskLevelBadgeClass } from "@/lib/linear-status-badge";
 import {
   History,
   GitBranch,
@@ -33,16 +34,6 @@ const versions = [
   { id: "v2", name: "Q3 2025 Snapshot", date: "2025-09-01", isCurrent: false },
   { id: "v1", name: "Q2 2025 Snapshot", date: "2025-06-01", isCurrent: false },
 ];
-
-
-const levelBadgeVariant: Record<string, string> = {
-  "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
-  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
-  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi": "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
-};
-
 export default function RiskHistoryPage() {
   const { token } = useAuth();
   const [selectedVersion, setSelectedVersion] = useState("v3");
@@ -156,13 +147,13 @@ export default function RiskHistoryPage() {
                         <p className="truncate text-[10px] text-muted-foreground mt-0.5 italic text-primary/70">{history.changeReason}</p>
                       </TableCell>
                       <TableCell>
-                        <Badge className={cn("text-[10px] font-semibold border h-5 px-1.5", levelBadgeVariant[history.previousLevel])}>
+                        <Badge className={getLinearRiskLevelBadgeClass(history.previousLevel)}>
                           {history.previousLevel}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center text-muted-foreground">→</TableCell>
                       <TableCell>
-                        <Badge className={cn("text-[10px] font-semibold border h-5 px-1.5", levelBadgeVariant[history.currentLevel])}>
+                        <Badge className={getLinearRiskLevelBadgeClass(history.currentLevel)}>
                           {history.currentLevel}
                         </Badge>
                       </TableCell>
