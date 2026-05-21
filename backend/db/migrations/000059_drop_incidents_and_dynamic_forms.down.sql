@@ -1,6 +1,37 @@
--- Dynamic Form Builder tables
+-- Recreate incidents module tables
+CREATE TABLE IF NOT EXISTS incidents (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code                TEXT,
+    title               TEXT NOT NULL,
+    what                TEXT DEFAULT '',
+    who                 TEXT DEFAULT '',
+    "when"              TIMESTAMPTZ,
+    "where"             TEXT DEFAULT '',
+    why_how             TEXT DEFAULT '',
+    severity            TEXT DEFAULT 'minor' CHECK (severity IN ('insignificant','minor','major','critical')),
+    status              TEXT DEFAULT 'open' CHECK (status IN ('draft','final','approved','rejected','open','investigating','resolved','closed')),
+    corrective_action   TEXT DEFAULT '',
+    preventive_action   TEXT DEFAULT '',
+    linked_risk_id      UUID REFERENCES risks(id),
+    reporter_id         UUID REFERENCES users(id),
+    organization_id     UUID REFERENCES organizations(id),
+    created_at          TIMESTAMPTZ DEFAULT now(),
+    updated_at          TIMESTAMPTZ DEFAULT now()
+);
 
--- Forms (top-level entity)
+CREATE INDEX IF NOT EXISTS idx_incidents_org ON incidents(organization_id);
+
+CREATE TABLE IF NOT EXISTS incident_risk_links (
+    incident_id UUID NOT NULL REFERENCES incidents(id) ON DELETE CASCADE,
+    risk_id     UUID NOT NULL REFERENCES risks(id) ON DELETE CASCADE,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (incident_id, risk_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_incident_risk_links_risk_id
+    ON incident_risk_links (risk_id);
+
+-- Recreate dynamic forms module tables
 CREATE TABLE IF NOT EXISTS forms (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title           VARCHAR(255) NOT NULL,
@@ -12,7 +43,6 @@ CREATE TABLE IF NOT EXISTS forms (
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Form Sections (grouping within a form)
 CREATE TABLE IF NOT EXISTS form_sections (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     form_id     UUID NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
@@ -22,7 +52,6 @@ CREATE TABLE IF NOT EXISTS form_sections (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Form Fields (individual questions / inputs)
 CREATE TABLE IF NOT EXISTS form_fields (
     id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     section_id               UUID NOT NULL REFERENCES form_sections(id) ON DELETE CASCADE,
@@ -39,7 +68,6 @@ CREATE TABLE IF NOT EXISTS form_fields (
     created_at               TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Form Responses (one per user per form)
 CREATE TABLE IF NOT EXISTS form_responses (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     form_id         UUID NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
@@ -49,7 +77,6 @@ CREATE TABLE IF NOT EXISTS form_responses (
     UNIQUE (form_id, respondent_id)
 );
 
--- Form Assignments (target specific organizations)
 CREATE TABLE IF NOT EXISTS form_assignments (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     form_id         UUID NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
@@ -58,11 +85,10 @@ CREATE TABLE IF NOT EXISTS form_assignments (
     UNIQUE (form_id, organization_id)
 );
 
--- Indexes
-CREATE INDEX idx_form_sections_form_id ON form_sections(form_id);
-CREATE INDEX idx_form_fields_section_id ON form_fields(section_id);
-CREATE INDEX idx_form_fields_form_id ON form_fields(form_id);
-CREATE INDEX idx_form_responses_form_id ON form_responses(form_id);
-CREATE INDEX idx_form_responses_answers ON form_responses USING GIN(answers jsonb_path_ops);
-CREATE INDEX idx_form_assignments_form_id ON form_assignments(form_id);
-CREATE INDEX idx_form_assignments_org_id ON form_assignments(organization_id);
+CREATE INDEX IF NOT EXISTS idx_form_sections_form_id ON form_sections(form_id);
+CREATE INDEX IF NOT EXISTS idx_form_fields_section_id ON form_fields(section_id);
+CREATE INDEX IF NOT EXISTS idx_form_fields_form_id ON form_fields(form_id);
+CREATE INDEX IF NOT EXISTS idx_form_responses_form_id ON form_responses(form_id);
+CREATE INDEX IF NOT EXISTS idx_form_responses_answers ON form_responses USING GIN(answers jsonb_path_ops);
+CREATE INDEX IF NOT EXISTS idx_form_assignments_form_id ON form_assignments(form_id);
+CREATE INDEX IF NOT EXISTS idx_form_assignments_org_id ON form_assignments(organization_id);

@@ -44,9 +44,6 @@ func main() {
 		container.RiskDashboardSummaryUC, container.RiskActionPressureUC, container.RiskExecutiveAlertsUC, container.RiskHeatmapDataUC, container.RiskHeatmapMultiUC, container.RiskTopRisksUC, container.RiskDashboardCategoriesUC, container.RiskListApprovedUC,
 		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskKRIBreachUC, container.RiskUnitResponseUC, container.RiskMonitoringSpreadsheetUC, container.RiskCreateMonitoringBatchUC, container.MMRepository,
 	)
-	cleanIncidentHandler := httpHandler.NewIncidentHandler(
-		container.IncidentCreateUC, container.IncidentCreateBatchUC, container.IncidentGetUC, container.IncidentUpdateUC, container.IncidentDeleteUC, container.IncidentListUC, container.IncidentSummaryUC,
-	)
 	cleanUserHandler := httpHandler.NewUserHandler(
 		container.UserCreateUC, container.UserGetUC, container.UserUpdateUC, container.UserDeleteUC, container.UserListUC, container.UserListFilterUC, container.UserApproveRegistrationUC, container.UserRejectRegistrationUC,
 	)
@@ -158,11 +155,6 @@ func main() {
 
 	// Report handler
 	cleanReportHandler := httpHandler.NewReportHandler(container.GenerateReportUC, container.PDFReportRenderer)
-
-	cleanFormHandler := httpHandler.NewFormHandler(
-		container.FormCreateUC, container.FormGetUC, container.FormListUC, container.FormUpdateUC, container.FormDeleteUC,
-		container.FormPublishUC, container.FormCloseUC, container.FormSubmitUC, container.FormListResponsesUC, container.FormAnalyticsUC,
-	)
 
 	// External PIC handler
 	cleanExternalPICHandler := httpHandler.NewExternalPICHandler(
@@ -318,15 +310,6 @@ func main() {
 	// Reports (Clean Architecture)
 	protected.Get("/reports/risk-pdf", cleanReportHandler.GenerateRiskPDF)
 
-	// Incidents (Clean Architecture)
-	protected.Get("/incidents", cleanIncidentHandler.ListIncidents)
-	protected.Get("/incidents/summary", cleanIncidentHandler.GetSummary)
-	protected.Post("/incidents", cleanIncidentHandler.CreateIncident)
-	protected.Post("/incidents/batch", cleanIncidentHandler.CreateIncidentBatch)
-	protected.Get("/incidents/:id", cleanIncidentHandler.GetIncident)
-	protected.Put("/incidents/:id", cleanIncidentHandler.UpdateIncident)
-	protected.Delete("/incidents/:id", cleanIncidentHandler.DeleteIncident)
-
 	// KRIs (Clean Architecture)
 	protected.Get("/kris", cleanKRIHandler.ListKRIs)
 	protected.Get("/kris/dashboard", cleanKRIHandler.KRIDashboard)
@@ -358,8 +341,6 @@ func main() {
 	protected.Post("/ai/predictive-analyses", cleanAIHandler.GeneratePredictive)
 	protected.Post("/ai/risk-suggestions", cleanAIHandler.GenerateRiskSuggestion)
 	protected.Post("/ai/kris", cleanAIHandler.GenerateKRI)
-	protected.Post("/ai/incidents/suggest-risks", cleanAIHandler.GenerateManualIncidentRiskSuggestions)
-	protected.Post("/ai/incidents/extract-batch", cleanAIHandler.GenerateIncidentBatch)
 	protected.Post("/ai/document-intelligence/analyze", cleanAIHandler.AnalyzeDocumentIntelligence)
 
 	// CBA Advocacy (Clean Architecture)
@@ -406,19 +387,6 @@ func main() {
 
 	// Risk Meeting Minutes
 	protected.Get("/risks/:riskId/meeting-minutes", cleanRiskHandler.GetMeetingMinutes)
-
-	// Dynamic Forms
-	protected.Get("/forms", cleanFormHandler.ListForms)
-	protected.Get("/forms/mine", cleanFormHandler.ListMyForms)
-	protected.Post("/forms", cleanFormHandler.CreateForm)
-	protected.Get("/forms/:id", cleanFormHandler.GetForm)
-	protected.Put("/forms/:id", cleanFormHandler.UpdateForm)
-	protected.Delete("/forms/:id", cleanFormHandler.DeleteForm)
-	protected.Post("/forms/:id/publish", cleanFormHandler.PublishForm)
-	protected.Post("/forms/:id/close", cleanFormHandler.CloseForm)
-	protected.Post("/forms/:id/responses", cleanFormHandler.SubmitResponse)
-	protected.Get("/forms/:id/responses", cleanFormHandler.ListResponses)
-	protected.Get("/forms/:id/analytics", cleanFormHandler.Analytics)
 
 	// Working Papers — static routes MUST come before /:id
 	protected.Get("/working-papers", wpHandler.List)

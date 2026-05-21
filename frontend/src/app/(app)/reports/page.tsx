@@ -88,15 +88,6 @@ const exportOptions = [
     format: "XLSX",
     isEnabled: true,
   },
-  {
-    key: "incident-xlsx",
-    title: "Laporan Insiden (Excel)",
-    description: "Ekspor insiden belum diaktifkan pada delivery ini",
-    icon: FileSpreadsheet,
-    format: "XLSX",
-    isEnabled: false,
-  },
-  // {
   //   key: "kri-xlsx",
   //   title: "KRI Summary (Excel)",
   //   description: "Export KRI belum termasuk ruang lingkup delivery ini",

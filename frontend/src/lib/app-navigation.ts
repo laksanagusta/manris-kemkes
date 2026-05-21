@@ -108,9 +108,6 @@ export const breadcrumbMap: Record<string, string> = {
   "/reports/compliance-monitoring": "Monitoring Kepatuhan",
   "/reports/cycle-detail": "Detail Siklus Risiko",
   "/account": "Account",
-  "/incident": "Insiden",
-  "/incident/new": "New Incident",
-  "/incidents": "Insiden",
   "/intelligence": "Inteligensi",
   "/intelligence/transcript": "Meeting",
   "/intelligence/minutes": "Meeting",
@@ -134,7 +131,4 @@ export const breadcrumbMap: Record<string, string> = {
   "/management/tmpmr": "TMPMR",
   "/management/tmpmr/new": "Buat TMPMR",
   "/management/criteria": "Scope & Criteria",
-  "/admin/forms": "Form Builder",
-  "/admin/forms/new": "New Form",
-  "/forms": "My Forms",
 };
