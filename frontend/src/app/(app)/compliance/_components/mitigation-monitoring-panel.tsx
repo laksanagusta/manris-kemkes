@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,19 +59,23 @@ import {
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
 import { isWithinMitigationSubmissionWindow } from "@/lib/kri-reporting";
+import {
+  getLinearStatusBadgeClass,
+  getLinearToneBadgeClass,
+} from "@/lib/linear-status-badge";
 import type { MitigationTask } from "@/types/risk";
 
 const levelBadgeVariant: Record<string, string> = {
-  Pending: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  Overdue: "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
-  Selesai: "bg-risk-low/15 text-risk-low border-risk-low/20",
+  Pending: getLinearStatusBadgeClass("pending"),
+  Overdue: getLinearStatusBadgeClass("overdue"),
+  Selesai: getLinearStatusBadgeClass("completed"),
 };
 
-const tierConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  upcoming: { label: "Akan Datang", color: "text-muted-foreground", bg: "bg-muted/50", border: "border-border/50" },
-  reminder: { label: "Reminder", color: "text-risk-medium", bg: "bg-risk-medium/10", border: "border-risk-medium/20" },
-  light: { label: "Overdue Ringan", color: "text-risk-high", bg: "bg-risk-high/10", border: "border-risk-high/20" },
-  heavy: { label: "Overdue Berat", color: "text-risk-extreme", bg: "bg-risk-extreme/10", border: "border-risk-extreme/20" },
+const tierConfig: Record<string, { label: string; color: string }> = {
+  upcoming: { label: "Akan Datang", color: "text-zinc-700" },
+  reminder: { label: "Reminder", color: "text-violet-700" },
+  light: { label: "Overdue Ringan", color: "text-amber-700" },
+  heavy: { label: "Overdue Berat", color: "text-rose-700" },
 };
 
 type MitigationTaskRow = MitigationTask & {
@@ -377,68 +381,189 @@ export function MitigationMonitoringPanel() {
         </Card>
       </div>
 
-      <Card className="overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="border-b border-border/40 pb-4">
-          <CardTitle className="text-[15px] font-semibold">Daftar mitigasi</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Tinjau rencana penanganan yang mendekati tenggat, lalu buka detail atau kirim progress langsung dari daftar ini.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="overflow-hidden rounded-xl border border-border/50 bg-card/80 shadow-sm">
-            <Table className="min-w-[1180px]">
-              <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
-                <TableRow className="border-border/50 transition-colors hover:bg-transparent">
-                  <TableHead className="w-20 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Kode
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Rencana Penanganan
-                  </TableHead>
-                  <TableHead className="w-36 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Unit / PIC
-                  </TableHead>
-                  <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Jatuh Tempo
-                  </TableHead>
-                  <TableHead className="w-20 whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Hari
-                  </TableHead>
-                  <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Status
-                  </TableHead>
-                  <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Eskalasi
-                  </TableHead>
-                  <TableHead className="w-32 whitespace-nowrap px-2.5 text-right align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Aksi
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="py-8 text-left text-xs text-muted-foreground"
+      <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
+        <div className="flex flex-col gap-3 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:flex-row md:items-start md:justify-between md:px-6">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <div className="min-w-0">
+              <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900 text-balance">
+                Daftar mitigasi
+              </h2>
+              <p className="mt-1 text-xs text-zinc-500 text-pretty">
+                Tinjau rencana penanganan yang mendekati tenggat, lalu buka detail atau kirim progress langsung dari daftar ini.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 md:justify-end">
+            <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
+              {mitigations.length} mitigasi
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          {loading ? (
+            <div className="p-4">
+              <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/70 px-4 py-8 text-left">
+                <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+                  <Loader2 className="size-4 animate-spin" />
+                  Memuat data mitigasi...
+                </div>
+              </div>
+            </div>
+          ) : mitigations.length === 0 ? (
+            <div className="p-4">
+              <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/70 px-4 py-8 text-left">
+                <p className="text-sm font-medium text-zinc-700">
+                  Tidak ada rencana mitigasi yang overdue
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Semua rencana mitigasi telah ditangani atau belum mendekati tenggat
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <div className="space-y-3 p-4 md:hidden">
+                {mitigations.map((item) => {
+                  const tier = tierConfig[item.tier];
+                  const submissionCheck = isWithinMitigationSubmissionWindow(
+                    item.periodEnd,
+                    item.dueDate,
+                  );
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={cn(
+                        "rounded-xl border border-zinc-200 bg-white p-4 shadow-sm",
+                        item.tier === "heavy" && "bg-rose-50/30",
+                      )}
+                      onClick={() => handleOpenDetail(item)}
                     >
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="size-4 animate-spin" />
-                        Memuat data mitigasi...
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-zinc-900">
+                              {item.riskCode}
+                            </span>
+                            <Badge className={levelBadgeVariant[item.level] || getLinearToneBadgeClass("neutral")}>
+                              {item.level}
+                            </Badge>
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-sm font-semibold text-zinc-900 transition-colors hover:text-primary">
+                            {item.mitigationAction}
+                          </p>
+                          <p className="mt-1 text-xs text-zinc-500">
+                            {item.unit} • {item.pic}
+                          </p>
+                        </div>
+                        <Badge className={cn(
+                          item.tier === "upcoming"
+                            ? getLinearToneBadgeClass("neutral")
+                            : item.tier === "reminder"
+                              ? getLinearToneBadgeClass("progress")
+                              : item.tier === "light"
+                                ? getLinearToneBadgeClass("warning")
+                                : getLinearToneBadgeClass("danger"),
+                        )}>
+                          {tier.label}
+                        </Badge>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ) : mitigations.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="py-8 text-left text-xs text-muted-foreground"
-                    >
-                      Tidak ada rencana mitigasi yang overdue
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  mitigations.map((item) => {
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <div className="space-y-1 rounded-xl bg-zinc-50/80 px-3 py-2 ring-1 ring-inset ring-zinc-200/80">
+                          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+                            Jatuh Tempo
+                          </p>
+                          <div className="text-sm text-zinc-900">
+                            {item.dueDate ? new Date(item.dueDate).toLocaleDateString("id-ID") : "—"}
+                          </div>
+                        </div>
+                        <div className="space-y-1 rounded-xl bg-zinc-50/80 px-3 py-2 ring-1 ring-inset ring-zinc-200/80">
+                          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+                            Hari
+                          </p>
+                          <div className={cn(
+                            "text-sm font-semibold",
+                            item.daysOverdue > 0 ? tier.color : "text-zinc-900",
+                          )}>
+                            {item.daysOverdue > 0 ? `+${item.daysOverdue}` : item.daysOverdue}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3 grid gap-2">
+                        <div className="space-y-1 rounded-xl bg-zinc-50/80 px-3 py-2 ring-1 ring-inset ring-zinc-200/80">
+                          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+                            Status
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Badge className={levelBadgeVariant[item.level] || getLinearToneBadgeClass("neutral")}>
+                              {item.level}
+                            </Badge>
+                            <span className="text-xs text-zinc-500">
+                              {item.status === "done"
+                                ? "Selesai"
+                                : item.status === "overdue"
+                                  ? "Terlambat"
+                                  : "Menunggu"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <div className="text-xs text-zinc-500">
+                          {submissionCheck.allowed
+                            ? "Siap lapor progres"
+                            : submissionCheck.message}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={item.status === "overdue" ? "destructive" : "default"}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleOpenSubmit(item);
+                          }}
+                          className="gap-1.5 text-xs"
+                        >
+                          <Send className="size-3" /> Lapor
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="relative w-full overflow-x-auto">
+                <Table className="min-w-[1180px]">
+                  <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
+                    <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
+                      <TableHead className="w-20 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                        Kode
+                      </TableHead>
+                      <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                        Rencana Penanganan
+                      </TableHead>
+                      <TableHead className="w-36 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                        Unit / PIC
+                      </TableHead>
+                      <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                        Jatuh Tempo
+                      </TableHead>
+                      <TableHead className="w-20 whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                        Hari
+                      </TableHead>
+                      <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                        Status
+                      </TableHead>
+                      <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                        Eskalasi
+                      </TableHead>
+                      <TableHead className="w-32 whitespace-nowrap px-2.5 text-right align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                        Aksi
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                  {mitigations.map((item) => {
                     const tier = tierConfig[item.tier];
                     const submissionCheck = isWithinMitigationSubmissionWindow(
                       item.periodEnd,
@@ -448,29 +573,28 @@ export function MitigationMonitoringPanel() {
                     return (
                       <TableRow
                         key={item.id}
-                        className={cn(
-                          "cursor-pointer border-border/30 transition-colors hover:bg-muted/30",
-                          item.tier === "heavy" && "bg-risk-extreme/[0.02]",
-                        )}
+                        className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
                         onClick={() => handleOpenDetail(item)}
                       >
-                        <TableCell className="font-mono text-xs text-muted-foreground">
+                        <TableCell className="font-mono text-zinc-600">
                           {item.riskCode}
                         </TableCell>
                         <TableCell className="max-w-[320px]">
-                          <p className="truncate text-sm font-semibold leading-relaxed text-primary">
+                          <p className="block truncate text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary">
                             {item.mitigationAction}
                           </p>
                         </TableCell>
-                        <TableCell className="align-top">
+                        <TableCell>
                           <div className="space-y-0.5">
-                            <p className="truncate text-sm">{item.unit}</p>
-                            <p className="truncate text-[10px] text-muted-foreground">
+                            <p className="truncate text-sm text-zinc-900">
+                              {item.unit}
+                            </p>
+                            <p className="truncate text-[10px] text-zinc-500">
                               {item.pic}
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="text-zinc-600">
                           {item.dueDate
                             ? new Date(item.dueDate).toLocaleDateString("id-ID")
                             : "—"}
@@ -478,10 +602,10 @@ export function MitigationMonitoringPanel() {
                         <TableCell className="text-center">
                           <span
                             className={cn(
-                              "text-sm font-bold",
+                              "text-sm font-medium tabular-nums",
                               item.daysOverdue > 0
                                 ? tier.color
-                                : "text-muted-foreground",
+                                : "text-zinc-900",
                             )}
                           >
                             {item.daysOverdue > 0
@@ -491,10 +615,10 @@ export function MitigationMonitoringPanel() {
                         </TableCell>
                         <TableCell>
                           <Badge
-                            className={cn(
-                              "h-5 border px-1.5 text-[10px] font-semibold",
-                              levelBadgeVariant[item.level],
-                            )}
+                            className={
+                              levelBadgeVariant[item.level] ||
+                              getLinearToneBadgeClass("neutral")
+                            }
                           >
                             {item.level}
                           </Badge>
@@ -502,10 +626,13 @@ export function MitigationMonitoringPanel() {
                         <TableCell>
                           <Badge
                             className={cn(
-                              "h-5 border px-1.5 text-[10px] font-semibold",
-                              tier.bg,
-                              tier.color,
-                              tier.border,
+                              item.tier === "upcoming"
+                                ? getLinearToneBadgeClass("neutral")
+                                : item.tier === "reminder"
+                                  ? getLinearToneBadgeClass("progress")
+                                  : item.tier === "light"
+                                    ? getLinearToneBadgeClass("warning")
+                                    : getLinearToneBadgeClass("danger"),
                             )}
                           >
                             {tier.label}
@@ -532,14 +659,11 @@ export function MitigationMonitoringPanel() {
                                         event.stopPropagation()
                                       }
                                     >
-                                      <Send className="mr-1 size-3" /> Lapor
+                                      <Send className="size-3" /> Lapor
                                     </Button>
                                   </span>
                                 </TooltipTrigger>
-                                <TooltipContent
-                                  side="left"
-                                  className="max-w-[220px] text-xs"
-                                >
+                                <TooltipContent side="left" className="max-w-[220px] text-xs">
                                   {submissionCheck.message}
                                 </TooltipContent>
                               </Tooltip>
@@ -552,28 +676,27 @@ export function MitigationMonitoringPanel() {
                                   ? "destructive"
                                   : "default"
                               }
+                              className="gap-1.5 text-xs h-8 shrink-0"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 handleOpenSubmit(item);
                               }}
-                              className="text-sm"
                             >
-                              <Send className="mr-1 size-3" /> Lapor
+                              <Send className="size-3" /> Lapor
                             </Button>
                           )}
                         </TableCell>
                       </TableRow>
                     );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  })}
+                </TableBody>
+              </Table>
+            </div>
 
-          <div className="flex flex-col gap-3 border-t border-border/30 pt-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 border-t border-zinc-200 px-4 py-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Baris per halaman:</span>
+                <span className="text-xs text-zinc-500">Baris per halaman:</span>
                 <Select
                   value={limit.toString()}
                   onValueChange={(val) => {
@@ -583,7 +706,7 @@ export function MitigationMonitoringPanel() {
                     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
                   }}
                 >
-                  <SelectTrigger className="h-7 w-[65px] border-none bg-muted/30 text-xs">
+                  <SelectTrigger className="h-7 w-[65px] border-zinc-200 bg-white text-xs text-zinc-700">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -595,7 +718,7 @@ export function MitigationMonitoringPanel() {
                   </SelectContent>
                 </Select>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-zinc-500">
                 Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} mitigasi
               </p>
             </div>
@@ -603,7 +726,7 @@ export function MitigationMonitoringPanel() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-muted-foreground"
+                className="h-7 w-7 p-0 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
                 disabled={page === 1 || loading}
                 onClick={() => handlePageChange(Math.max(1, page - 1))}
               >
@@ -617,13 +740,13 @@ export function MitigationMonitoringPanel() {
               >
                 {page}
               </Button>
-              <span className="px-1 text-xs text-muted-foreground">
+              <span className="px-2 text-xs text-zinc-500">
                 dari {totalPages}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-muted-foreground"
+                className="h-7 w-7 p-0 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
                 disabled={page === totalPages || total === 0 || loading}
                 onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
               >
@@ -631,8 +754,10 @@ export function MitigationMonitoringPanel() {
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+            </div>
+          )}
+        </div>
+      </div>
 
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="max-w-2xl">

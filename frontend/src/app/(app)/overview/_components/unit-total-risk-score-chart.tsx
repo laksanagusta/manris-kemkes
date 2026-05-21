@@ -29,7 +29,6 @@ function truncateLabel(value: string, max = 22) {
 
 export function UnitTotalRiskScoreChart({
   data,
-  cycle,
   loading,
 }: UnitTotalRiskScoreChartProps) {
   const [expanded, setExpanded] = useState(false);
@@ -41,12 +40,11 @@ export function UnitTotalRiskScoreChart({
   const chartData = useMemo(() => {
     return visibleData.map((item) => ({
       ...item,
-      displayName: truncateLabel(item.orgName, 16),
+      displayName: truncateLabel(item.orgName, 24),
     }));
   }, [visibleData]);
 
-  const containerHeight = 320;
-  const containerWidth = Math.max(720, chartData.length * 92);
+  const containerHeight = Math.max(320, chartData.length * 36 + 48);
   const hasOverflow = data.length > DEFAULT_VISIBLE_ITEMS;
 
   if (loading) {
@@ -101,31 +99,31 @@ export function UnitTotalRiskScoreChart({
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto pb-2">
-              <div style={{ height: containerHeight, width: containerWidth }}>
+            <div className="pb-2">
+              <div style={{ height: containerHeight, width: "100%" }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={chartData}
-                    margin={{ top: 4, right: 12, left: 0, bottom: 56 }}
-                    barCategoryGap="16%"
+                    layout="vertical"
+                    margin={{ top: 4, right: 12, left: 8, bottom: 4 }}
+                    barCategoryGap="22%"
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
                       stroke="oklch(0.5 0 0 / 8%)"
-                      vertical={false}
+                      horizontal={false}
                     />
                     <XAxis
-                      dataKey="displayName"
+                      type="number"
+                      allowDecimals={false}
                       axisLine={false}
                       tickLine={false}
-                      interval={0}
-                      angle={-32}
-                      textAnchor="end"
-                      height={56}
                       tick={{ fill: "oklch(0.6 0 0)", fontSize: 10 }}
                     />
                     <YAxis
-                      allowDecimals={false}
+                      dataKey="displayName"
+                      type="category"
+                      width={160}
                       axisLine={false}
                       tickLine={false}
                       tick={{ fill: "oklch(0.6 0 0)", fontSize: 10 }}
@@ -155,7 +153,7 @@ export function UnitTotalRiskScoreChart({
                     <Bar
                       dataKey="totalScore"
                       fill="oklch(0.68 0.17 35)"
-                      radius={[4, 4, 0, 0]}
+                      radius={[0, 6, 6, 0]}
                     />
                   </BarChart>
                 </ResponsiveContainer>
