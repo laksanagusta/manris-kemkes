@@ -47,10 +47,8 @@ export function ApprovalModal({
   const requestLabel =
     requestType === "assessment"
       ? "Pemantauan"
-      : requestType === "incident"
-        ? "Insiden"
-        : requestType === "working_paper"
-          ? "Kertas Kerja"
+      : requestType === "working_paper"
+        ? "Kertas Kerja"
           : requestType === "kri_report"
             ? "Laporan KRI"
             : "Risiko";

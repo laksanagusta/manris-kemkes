@@ -2578,15 +2578,15 @@ export default function RiskInputPage() {
                     Simpan draft
                   </Button>
                   <Button
-                    className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                    size="sm"
                     onClick={openSubmitReviewConfirm}
                     disabled={isSubmitting}
                   >
                     {isSubmitting && submitTarget.current === "review" ? (
-                      <Loader2 className="size-4 animate-spin" />
+                      <Loader2 className="size-3.5 animate-spin" />
                     ) : (
-                      <Send className="size-4" />
-                    )}{" "}
+                      <Send className="size-3.5" />
+                    )}
                     {submitActionLabel}
                   </Button>
                 </div>

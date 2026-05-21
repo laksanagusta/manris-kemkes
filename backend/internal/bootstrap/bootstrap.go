@@ -21,10 +21,8 @@ import (
 	commloguc "github.com/manris/backend/internal/usecase/communication_log"
 	controluc "github.com/manris/backend/internal/usecase/control"
 	externalextPICuc "github.com/manris/backend/internal/usecase/external_pic"
-	formusecase "github.com/manris/backend/internal/usecase/form"
 	formalreportuc "github.com/manris/backend/internal/usecase/formalreport"
 	impactcriteriauc "github.com/manris/backend/internal/usecase/impactcriteria"
-	incidentuc "github.com/manris/backend/internal/usecase/incident"
 	kriuc "github.com/manris/backend/internal/usecase/kri"
 	krireportuc "github.com/manris/backend/internal/usecase/kri_report"
 	likelihoodassessmentuc "github.com/manris/backend/internal/usecase/likelihoodassessment"
@@ -64,9 +62,6 @@ type Container struct {
 	KRIReportRepository            domainrepo.KRIReportRepository
 	CommLogRepository              domainrepo.CommunicationLogRepository
 	MMRepository                   domainrepo.MeetingMinuteRepository
-	FormRepository                 domainrepo.FormRepository
-	FormAssignmentRepository       domainrepo.FormAssignmentRepository
-	FormResponseRepository         domainrepo.FormResponseRepository
 	ExternalPICRepository          domainrepo.ExternalPICRepository
 	WPRepository                   domainrepo.WorkingPaperRepository
 	RiskCharterRepository          domainrepo.RiskCharterRepository
@@ -130,15 +125,6 @@ type Container struct {
 	RiskCascadeDecideUC          *riskcascadeuc.DecideUseCase
 	RiskCascadeDeleteUC          *riskcascadeuc.DeleteUseCase
 	RiskCascadeListUC            *riskcascadeuc.ListUseCase
-
-	// Incident UseCases
-	IncidentCreateUC      *incidentuc.CreateIncidentUseCase
-	IncidentCreateBatchUC *incidentuc.CreateIncidentBatchUseCase
-	IncidentGetUC         *incidentuc.GetIncidentUseCase
-	IncidentUpdateUC      *incidentuc.UpdateIncidentUseCase
-	IncidentDeleteUC      *incidentuc.DeleteIncidentUseCase
-	IncidentListUC        *incidentuc.ListIncidentsUseCase
-	IncidentSummaryUC     *incidentuc.GetIncidentSummaryUseCase
 
 	// User UseCases
 	UserCreateUC              *useruc.CreateUserUseCase
@@ -274,18 +260,6 @@ type Container struct {
 	MMDeleteUC    *mmuc.DeleteMeetingMinuteUseCase
 	MMLinkUseCase *mmuc.LinkRisksUseCase
 
-	// Form UseCases
-	FormCreateUC        *formusecase.CreateFormUseCase
-	FormGetUC           *formusecase.GetFormUseCase
-	FormListUC          *formusecase.ListFormsUseCase
-	FormUpdateUC        *formusecase.UpdateFormUseCase
-	FormDeleteUC        *formusecase.DeleteFormUseCase
-	FormPublishUC       *formusecase.PublishFormUseCase
-	FormCloseUC         *formusecase.CloseFormUseCase
-	FormSubmitUC        *formusecase.SubmitResponseUseCase
-	FormListResponsesUC *formusecase.ListResponsesUseCase
-	FormAnalyticsUC     *formusecase.FormAnalyticsUseCase
-
 	// Working Paper UseCase
 	WPUseCase *workingpaperusecase.UseCase
 
@@ -326,9 +300,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.KRIReportRepository = postgresrepo.NewKRIReportRepository(pool)
 	c.CommLogRepository = postgresrepo.NewCommunicationLogRepository(pool)
 	c.MMRepository = postgresrepo.NewMeetingMinuteRepository(pool)
-	c.FormRepository = postgresrepo.NewFormRepository(pool)
-	c.FormAssignmentRepository = postgresrepo.NewFormAssignmentRepository(pool)
-	c.FormResponseRepository = postgresrepo.NewFormResponseRepository(pool)
 	c.ExternalPICRepository = postgresrepo.NewExternalPICRepository(pool)
 	c.WPRepository = postgresrepo.NewWorkingPaperRepository(pool)
 	c.RiskCharterRepository = postgresrepo.NewRiskCharterRepository(pool)
@@ -410,18 +381,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskCascadeDecideUC = riskcascadeuc.NewDecideUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository, c.UserRepository, c.MitigationTaskRepository)
 	c.RiskCascadeDeleteUC = riskcascadeuc.NewDeleteUseCase(c.RiskCascadeRepository)
 	c.RiskCascadeListUC = riskcascadeuc.NewListUseCase(c.RiskCascadeRepository)
-
-	// ============================================================================
-	// Incident UseCases
-	// ============================================================================
-
-	c.IncidentCreateUC = incidentuc.NewCreateIncidentUseCase(c.IncidentRepository, c.UserRepository, c.OrgRepository, c.RiskRepository)
-	c.IncidentCreateBatchUC = incidentuc.NewCreateIncidentBatchUseCase(c.IncidentCreateUC)
-	c.IncidentGetUC = incidentuc.NewGetIncidentUseCase(c.IncidentRepository)
-	c.IncidentUpdateUC = incidentuc.NewUpdateIncidentUseCase(c.IncidentRepository, c.RiskRepository)
-	c.IncidentDeleteUC = incidentuc.NewDeleteIncidentUseCase(c.IncidentRepository)
-	c.IncidentListUC = incidentuc.NewListIncidentsUseCase(c.IncidentRepository, c.OrgHierarchySvc)
-	c.IncidentSummaryUC = incidentuc.NewGetIncidentSummaryUseCase(c.IncidentRepository)
 
 	// ============================================================================
 	// User UseCases
@@ -612,21 +571,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.MMListUC = mmuc.NewListMeetingMinutesUseCase(c.MMRepository)
 	c.MMDeleteUC = mmuc.NewDeleteMeetingMinuteUseCase(c.MMRepository)
 	c.MMLinkUseCase = mmuc.NewLinkRisksUseCase(c.MMRepository)
-
-	// ============================================================================
-	// Form UseCases
-	// ============================================================================
-
-	c.FormCreateUC = formusecase.NewCreateFormUseCase(c.FormRepository, c.FormAssignmentRepository)
-	c.FormGetUC = formusecase.NewGetFormUseCase(c.FormRepository, c.FormAssignmentRepository)
-	c.FormListUC = formusecase.NewListFormsUseCase(c.FormRepository, c.FormAssignmentRepository)
-	c.FormUpdateUC = formusecase.NewUpdateFormUseCase(c.FormRepository, c.FormAssignmentRepository)
-	c.FormDeleteUC = formusecase.NewDeleteFormUseCase(c.FormRepository)
-	c.FormPublishUC = formusecase.NewPublishFormUseCase(c.FormRepository, c.FormAssignmentRepository)
-	c.FormCloseUC = formusecase.NewCloseFormUseCase(c.FormRepository)
-	c.FormSubmitUC = formusecase.NewSubmitResponseUseCase(c.FormRepository, c.FormResponseRepository, c.FormAssignmentRepository)
-	c.FormListResponsesUC = formusecase.NewListResponsesUseCase(c.FormRepository, c.FormResponseRepository)
-	c.FormAnalyticsUC = formusecase.NewFormAnalyticsUseCase(c.FormRepository, c.FormResponseRepository)
 
 	// ============================================================================
 	// Working Paper UseCase

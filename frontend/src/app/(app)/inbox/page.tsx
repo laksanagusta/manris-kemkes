@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
-  AlertTriangle,
   BarChart3,
   Check,
   ChevronLeft,
@@ -139,11 +138,6 @@ const requestTypeConfig: Record<
     label: "Penilaian Risiko",
     href: (id) => `/risk/assessment/${id}`,
   },
-  incident: {
-    icon: AlertTriangle,
-    label: "Insiden",
-    href: (id) => `/incidents/${id}`,
-  },
   kri_report: {
     icon: BarChart3,
     label: "Laporan KRI",
@@ -274,11 +268,10 @@ export default function InboxPage() {
     return "all";
   });
   const [typeFilter, setTypeFilter] = useState<
-    "all" | "risk" | "incident" | "kri_report" | "working_paper"
+    "all" | "risk" | "kri_report" | "working_paper"
   >(() => {
     const value = searchParams.get("type");
     return value === "risk" ||
-      value === "incident" ||
       value === "kri_report" ||
       value === "working_paper"
       ? value
@@ -382,7 +375,6 @@ export default function InboxPage() {
     }
     setTypeFilter(
       queryType === "risk" ||
-        queryType === "incident" ||
         queryType === "kri_report" ||
         queryType === "working_paper"
         ? queryType
@@ -821,7 +813,6 @@ export default function InboxPage() {
               <SelectContent>
                 <SelectItem value="all">Semua Jenis</SelectItem>
                 <SelectItem value="risk">Risiko</SelectItem>
-                <SelectItem value="incident">Insiden</SelectItem>
                 <SelectItem value="kri_report">Laporan KRI</SelectItem>
                 <SelectItem value="working_paper">Kertas Kerja</SelectItem>
               </SelectContent>
