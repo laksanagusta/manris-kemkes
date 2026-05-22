@@ -43,6 +43,7 @@ function makeWorkingPaper(overrides: Partial<WorkingPaper> = {}): WorkingPaper {
     created_by: "creator-1",
     created_at: "2026-04-01T08:00:00.000Z",
     updated_at: "2026-04-03T09:00:00.000Z",
+    tte_skipped: false,
     signatories: [
       {
         id: "sig-1",
@@ -99,6 +100,7 @@ test("buildWorkingPaperDetailViewModel marks completed signatures and completed 
       status: "completed",
       current_signatory_sequence: 2,
       completed_at: "2026-04-04T10:00:00.000Z",
+      tte_skipped: false,
       signatories: [
         {
           id: "sig-1",
@@ -135,4 +137,23 @@ test("buildWorkingPaperDetailViewModel marks completed signatures and completed 
   assert.equal(result.currentAction?.title, "Seluruh tanda tangan selesai");
   assert.equal(result.timeline[0]?.label, "Sudah ditandatangani");
   assert.equal(result.timeline[1]?.label, "Sudah ditandatangani");
+});
+
+test("buildWorkingPaperDetailViewModel shows skipped state when tte_skipped is true", () => {
+  const result = buildWorkingPaperDetailViewModel(
+    makeWorkingPaper({
+      status: "completed",
+      tte_skipped: true,
+      completed_at: "2026-04-04T10:00:00.000Z",
+    }),
+    "user-1",
+  );
+
+  assert.equal(result.canSign, false);
+  assert.equal(result.canCancel, false);
+  assert.equal(result.tteSkipped, true);
+  assert.equal(result.currentAction?.title, "TTE dilewati");
+  assert.equal(result.timeline[0]?.state, "skipped");
+  assert.equal(result.timeline[0]?.label, "TTE dilewati");
+  assert.equal(result.timeline[1]?.state, "skipped");
 });

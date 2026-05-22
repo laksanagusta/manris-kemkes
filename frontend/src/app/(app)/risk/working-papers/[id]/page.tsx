@@ -108,6 +108,7 @@ const timelineStatusClassName = {
   signed: "border-success/20 bg-success/10 text-success",
   current: "border-primary/20 bg-primary/[0.06] text-primary",
   upcoming: "border-border bg-muted/40 text-muted-foreground",
+  skipped: "border-amber-200 bg-amber-50 text-amber-700",
 } as const;
 
 const workingPaperRiskStatusLabel: Record<string, string> = {
