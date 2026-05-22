@@ -33,6 +33,7 @@ type WorkingPaper struct {
 	UpdatedAt                time.Time              `json:"updated_at"`
 	CompletedAt              *time.Time             `json:"completed_at,omitempty"`
 	CancelledAt              *time.Time             `json:"cancelled_at,omitempty"`
+	TTESkipped               bool                   `json:"tte_skipped"`
 
 	// Joined data
 	Signatories []WorkingPaperSignatory `json:"signatories"`
@@ -332,6 +333,16 @@ func (wp *WorkingPaper) MarkSigned(signatoryID uuid.UUID, qrPNG string, qrData j
 
 	wp.UpdatedAt = time.Now()
 	return nil
+}
+
+// SkipTTE marks the working paper as completed without TTE.
+// All signatories remain pending (no QR codes, no signed_at).
+func (wp *WorkingPaper) SkipTTE() {
+	now := time.Now()
+	wp.TTESkipped = true
+	wp.Status = WorkingPaperStatusCompleted
+	wp.CompletedAt = &now
+	wp.UpdatedAt = now
 }
 
 func (wp *WorkingPaper) ComputeHash() string {
