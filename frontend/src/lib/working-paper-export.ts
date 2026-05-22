@@ -950,7 +950,7 @@ function buildTandaTanganSheet(
     row.getCell(3).value = safeStr(sig.signer_nip);
     row.getCell(4).value = safeStr(sig.signer_jabatan);
     row.getCell(5).value = sig.signer_pangkat;
-    row.getCell(6).value = sig.status === "signed" ? "Ditandatangani" : "Menunggu";
+    row.getCell(6).value = workingPaper.tte_skipped ? "(Dilewati)" : sig.status === "signed" ? "Ditandatangani" : "Menunggu";
     row.getCell(7).value = formatDate(sig.signed_at);
     row.getCell(8).value = "";
 
@@ -960,7 +960,7 @@ function buildTandaTanganSheet(
       cell.alignment = WRAP_ALIGNMENT;
     }
 
-    if (sig.status === "signed" && sig.qr_code_png) {
+    if (!workingPaper.tte_skipped && sig.status === "signed" && sig.qr_code_png) {
       row.height = 80;
       const imageId = workbook.addImage({
         base64: stripBase64Prefix(sig.qr_code_png),
@@ -981,7 +981,9 @@ function buildTandaTanganSheet(
   const footerRowNum = headerRowNum + 1 + signatories.length + 1;
   ws.mergeCells(`A${footerRowNum}:H${footerRowNum}`);
   const footerCell = ws.getCell(`A${footerRowNum}`);
-  footerCell.value = "Dokumen ini ditandatangani secara elektronik melalui Manris";
+  footerCell.value = workingPaper.tte_skipped
+    ? "Kertas kerja ini selesai tanpa tanda tangan elektronik (TTE dilewati)"
+    : "Dokumen ini ditandatangani secara elektronik melalui Manris";
   footerCell.font = { name: BASE_FONT_NAME, italic: true, size: 10, color: { argb: "FF666666" } };
   footerCell.alignment = { horizontal: "center", vertical: "middle" };
 }
