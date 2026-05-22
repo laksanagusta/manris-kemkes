@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
@@ -82,6 +82,7 @@ const formSchema = z.object({
       }),
     )
     .min(1, "Minimal 1 penandatangan harus ditambahkan"),
+  skip_tte: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -141,6 +142,7 @@ export default function CreateWorkingPaperPage() {
       assessment_cycle: assessmentCycle,
       risks: [],
       signatories: [createEmptyWorkingPaperSignatory()],
+      skip_tte: false,
     },
   });
 
@@ -155,6 +157,7 @@ export default function CreateWorkingPaperPage() {
   });
 
   const watchRisks = watch("risks");
+  const watchSkipTTE = watch("skip_tte");
   const watchedSignatories = watch("signatories") ?? [];
 
   useEffect(() => {
@@ -165,13 +168,11 @@ export default function CreateWorkingPaperPage() {
         setLoadingRisks(true);
 
         const risksRes = await api.get<RiskOption[]>(
-          "/risks?status=approved",
+          "/risks",
           token,
         );
 
-        const validRisks = (risksRes || []).filter(
-          (r) => r.status === "approved" && r.isCurrent,
-        );
+        const validRisks = (risksRes || []).filter((r) => r.isCurrent);
         setRisks(validRisks);
       } catch (error) {
         console.error("Failed to load initial data", error);
@@ -314,7 +315,7 @@ export default function CreateWorkingPaperPage() {
     pangkat: watchedSignatories[index]?.signer_pangkat ?? "",
   }));
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit: SubmitHandler<FormValues> = async (data: FormValues) => {
     if (!token) return;
     try {
       const payload = {
@@ -330,6 +331,7 @@ export default function CreateWorkingPaperPage() {
           signer_pangkat: sig.signer_pangkat,
           signer_nip: sig.signer_nip || undefined,
         })),
+        skip_tte: data.skip_tte,
       };
 
       const result = await createWorkingPaper(payload, token);
@@ -360,7 +362,6 @@ export default function CreateWorkingPaperPage() {
           <Button
             type="submit"
             disabled={isSubmitting}
-            onClick={handleSubmit(onSubmit)}
           >
             {isSubmitting ? (
               <>
@@ -411,7 +412,7 @@ export default function CreateWorkingPaperPage() {
         {/* ── Pilih Risiko ───────────────────────────────── */}
         <FormSection
           title="Pilih Risiko"
-          description="Pilih risiko yang telah disetujui (minimal 1)"
+          description={watchSkipTTE ? "Pilih risiko yang ingin dimasukkan (persetujuan risiko tidak diperlukan)" : "Pilih risiko yang telah disetujui (minimal 1)"}
           action={
             <Badge variant="secondary" className="px-2.5 py-0.5">
               {watchRisks.length} dipilih
@@ -666,6 +667,40 @@ export default function CreateWorkingPaperPage() {
             />
           </div>
         </FormSection>
+      {/* ── Opsi Tanda Tangan ────────────────────────── */}
+        <FormSection
+          title="Opsi Tanda Tangan"
+          description="Pilih metode penyelesaian kertas kerja"
+        >
+          <div className="flex items-start space-x-3 rounded-md border border-border p-4">
+            <Checkbox
+              id="skip_tte"
+              checked={watchSkipTTE ?? false}
+              onCheckedChange={(checked) =>
+                setValue("skip_tte", checked === true, { shouldValidate: true })
+              }
+            />
+            <div className="space-y-1 leading-none">
+              <label
+                htmlFor="skip_tte"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Lewati TTE (tanpa tanda tangan elektronik)
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Kertas kerja akan langsung berstatus selesai tanpa proses TTE. Semua penandatangan tetap tercantum
+                namun tidak melakukan tanda tangan elektronik.
+              </p>
+            </div>
+          </div>
+          {watchSkipTTE && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <strong>Perhatian:</strong> Kertas kerja akan langsung selesai tanpa proses tanda tangan elektronik.
+              Semua risiko terlink tidak perlu berstatus disetujui. Tindakan ini tidak dapat dibatalkan.
+            </div>
+          )}
+        </FormSection>
+
       </form>
     </FormPage>
   );
