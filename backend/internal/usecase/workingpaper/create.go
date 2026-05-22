@@ -32,6 +32,7 @@ type CreateWorkingPaperInput struct {
 	CreatedByUserID  uuid.UUID
 	Risks            []RiskInput
 	Signatories      []CreateSignatoryInput
+	SkipTTE          bool
 }
 
 func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*entity.WorkingPaper, error) {
@@ -110,6 +111,10 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 		})
 	}
 	wp.Signatories = signatories
+
+	if input.SkipTTE {
+		wp.SkipTTE()
+	}
 
 	if err := wp.Validate(); err != nil {
 		return nil, err
