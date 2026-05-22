@@ -15,8 +15,9 @@ import {
 } from "next/navigation";
 import { toast } from "sonner";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -360,27 +361,14 @@ export default function OrganizationsManagementPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Total Unit</p>
-              <p className="text-2xl font-bold mt-1">{total}</p>
-            </div>
-            <Building2 className="size-5 text-muted-foreground" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Unit Induk</p>
-            <p className="text-2xl font-bold mt-1">{rootUnits}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Sub Unit</p>
-            <p className="text-2xl font-bold mt-1">{subUnits}</p>
-          </CardContent>
-        </Card>
+        <KpiCard
+          label="Total Unit"
+          value={total}
+          tone="white"
+          icon={<Building2 className="size-5 text-muted-foreground" />}
+        />
+        <KpiCard label="Unit Induk" value={rootUnits} tone="zinc" />
+        <KpiCard label="Sub Unit" value={subUnits} tone="zinc" />
       </div>
 
       <div className="relative max-w-sm">

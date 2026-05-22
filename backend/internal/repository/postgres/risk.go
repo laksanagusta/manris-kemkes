@@ -770,19 +770,6 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 			return nil, fmt.Errorf("count overdue: %w", err)
 		}
 	}
-	if len(orgIDs) > 0 {
-		err := r.pool.QueryRow(ctx,
-			"SELECT COUNT(*) FROM incidents WHERE created_at >= date_trunc('month', CURRENT_DATE) AND organization_id = ANY($1)",
-			orgIDs).Scan(&s.IncidentsMonth)
-		if err != nil {
-			return nil, fmt.Errorf("count incidents: %w", err)
-		}
-	} else {
-		err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM incidents WHERE created_at >= date_trunc('month', CURRENT_DATE)").Scan(&s.IncidentsMonth)
-		if err != nil {
-			return nil, fmt.Errorf("count incidents: %w", err)
-		}
-	}
 	return s, nil
 }
 

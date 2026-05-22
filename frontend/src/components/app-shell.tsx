@@ -4,12 +4,10 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
   const { hasFullSession, token } = useAuth();
   const [inboxCount, setInboxCount] = useState(0);
 
@@ -41,21 +39,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-screen flex-col bg-background">
-        <AppHeader
-          collapsed={collapsed}
-          onToggleCollapse={() => setCollapsed(!collapsed)}
-        />
-        <div className="flex flex-1 pt-14">
-          <AppSidebar
-            collapsed={collapsed}
-            inboxBadge={hasFullSession ? inboxCount : 0}
-          />
-          <main
-            className={cn(
-              "flex-1 px-18 py-6 transition-all duration-300 animate-fade-in",
-              collapsed ? "ml-16" : "ml-64",
-            )}
-          >
+        <AppHeader />
+        <div className="flex flex-1 pt-[50px]">
+          <AppSidebar inboxBadge={hasFullSession ? inboxCount : 0} />
+          <main className="flex-1 animate-fade-in px-18 py-6 transition-all duration-300">
             {children}
           </main>
         </div>

@@ -1,0 +1,1 @@
+ALTER TABLE working_papers DROP COLUMN tte_skipped;

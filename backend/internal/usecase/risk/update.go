@@ -113,10 +113,6 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 			return nil, errors.Wrap(errors.ErrInvalidStatus, "risk version is locked by a signing or completed working paper")
 		}
 	}
-	if input.ROID == nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "roId is required")
-	}
-
 	// 3. Validate status transitions
 	if existingRisk.Status == entity.RiskStatusApproved && input.Status != entity.RiskStatusApproved && input.Status != entity.RiskStatusDraft {
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "cannot change status from approved except to draft")

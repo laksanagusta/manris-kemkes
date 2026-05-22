@@ -36,6 +36,7 @@ export interface WorkingPaperRiskData {
   target_impact?: number;
   target_bobot?: number;
   target_nilai?: number;
+  target_score?: number;
   target_tingkat_risiko?: string;
   target_tingkat_risiko_display?: string;
   assessment_cycle?: string;
@@ -49,6 +50,7 @@ export interface WorkingPaperRiskData {
   monitoring_d?: number;
   monitoring_bobot?: number;
   monitoring_nilai?: number;
+  monitoring_inherent_score?: number;
   monitoring_tingkat_risiko?: string;
   monitoring_tingkat_risiko_display?: string;
   monitoring_simpulan?: string;
@@ -62,6 +64,7 @@ export interface WorkingPaperRiskSnapshot {
   impact?: number;
   bobot?: number;
   nilai?: number;
+  inherentScore?: number;
   tingkat_risiko?: string;
   tingkat_risiko_display?: string;
   prioritas_risiko?: number;
@@ -80,6 +83,7 @@ export interface WorkingPaperRiskSnapshot {
   target_impact?: number;
   target_bobot?: number;
   target_nilai?: number;
+  target_score?: number;
   target_tingkat_risiko?: string;
   target_tingkat_risiko_display?: string;
   mitigations?: string[];
@@ -128,6 +132,7 @@ export interface WorkingPaper {
   updated_at: string;
   completed_at?: string;
   cancelled_at?: string;
+  tte_skipped: boolean;
   signatories: WorkingPaperSignatory[];
 }
 
@@ -151,6 +156,7 @@ export interface CreateWorkingPaperRequest {
   assessment_cycle?: string;
   risks: CreateWorkingPaperRiskInput[];
   signatories: CreateSignatoryInput[];
+  skip_tte?: boolean;
 }
 
 export interface WorkingPaperListResponse {

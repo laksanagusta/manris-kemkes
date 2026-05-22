@@ -150,10 +150,11 @@ export function MitigationTable({
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border/50 bg-card/80 shadow-sm">
-          <Table className="min-w-[1180px]">
-            <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
-              <TableRow className="border-border/50 transition-colors hover:bg-transparent">
+        <div className="rounded-xl border border-border/50 bg-card/80 shadow-sm">
+          <div className="w-full max-w-full min-w-0 overflow-x-auto">
+            <Table className="min-w-[1120px]">
+              <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
+                <TableRow className="border-border/50 transition-colors hover:bg-transparent">
                 <TableHead className="w-16 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   No
                 </TableHead>
@@ -522,7 +523,8 @@ export function MitigationTable({
                 );
               })}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         </div>
       )}
 

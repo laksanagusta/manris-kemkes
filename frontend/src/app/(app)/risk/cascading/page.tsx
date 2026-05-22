@@ -25,6 +25,7 @@ import type { RiskCascadeRecord, RiskCascadeType } from "@/types/risk-cascade";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -268,28 +269,18 @@ export default function RiskCascadingPage() {
 
       <div className="grid gap-3 md:grid-cols-4">
         {[
-          { label: "Total Eskalasi", value: summary.total },
-          { label: "Menunggu Tinjauan", value: summary.pending },
-          { label: "Sudah Disetujui", value: summary.approved },
-          { label: "Usulan Naik", value: summary.bottomUp },
-        ].map((card, index) => (
-          <Card
+          { label: "Total Eskalasi", value: summary.total, tone: "white" as const },
+          { label: "Menunggu Tinjauan", value: summary.pending, tone: "zinc" as const },
+          { label: "Sudah Disetujui", value: summary.approved, tone: "emerald" as const },
+          { label: "Usulan Naik", value: summary.bottomUp, tone: "zinc" as const },
+        ].map((card) => (
+          <KpiCard
             key={card.label}
-            className={cn(
-              "overflow-hidden backdrop-blur-sm border-border/50 bg-card/80",
-              index === 3 && "border-emerald-500/20 bg-emerald-500/5",
-            )}
-          >
-            <CardContent className="flex items-end justify-between gap-3 p-4">
-              <div className="space-y-1">
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
-                  {card.label}
-                </p>
-                <p className="text-2xl font-semibold">{card.value}</p>
-              </div>
-              <GitBranch className="size-5 text-muted-foreground" />
-            </CardContent>
-          </Card>
+            label={card.label}
+            value={card.value}
+            tone={card.tone}
+            icon={<GitBranch className="size-5 text-muted-foreground" />}
+          />
         ))}
       </div>
 

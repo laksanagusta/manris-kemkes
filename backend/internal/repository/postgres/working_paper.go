@@ -130,6 +130,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       risk.target_impact,
 		       risk.target_weight,
 		       risk.target_nilai,
+		       COALESCE(risk.target_score, 0),
 		       COALESCE(risk.assessment_cycle, ''),
 		       risk.version_number,
 		       COALESCE(risk.review_schedule_text, ''),
@@ -140,6 +141,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(prev_risk.impact, 0),
 		       COALESCE(prev_risk.weight, 0),
 		       COALESCE(prev_risk.nilai, 0),
+		       COALESCE(prev_risk.inherent_score, 0),
 		       COALESCE(prev_risk.risk_appetite, ''),
 		       COALESCE(prev_risk.treatment_option, ''),
 		       COALESCE(prev_risk.existing_control, ''),
@@ -148,6 +150,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(prev_risk.target_impact, 0),
 		       COALESCE(prev_risk.target_weight, 0),
 		       COALESCE(prev_risk.target_nilai, 0),
+		       COALESCE(prev_risk.target_score, 0),
 		       COALESCE(prev_risk.cause, ARRAY[]::text[]),
 		       COALESCE(prev_risk.risk_source, ''),
 		       COALESCE(prev_risk.controllability, ''),
@@ -173,7 +176,8 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(mon_risk.probability, 0),
 		       COALESCE(mon_risk.impact, 0),
 		       COALESCE(mon_risk.weight, 0),
-		       COALESCE(mon_risk.nilai, 0)
+		       COALESCE(mon_risk.nilai, 0),
+		       COALESCE(mon_risk.inherent_score, 0)
 		FROM working_paper_risks wpr
 		INNER JOIN risks risk ON risk.id = wpr.risk_id
 		LEFT JOIN organizations org ON org.id = risk.organization_id
@@ -196,14 +200,17 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		var prevID *uuid.UUID
 		var prevProbability, prevImpact int
 		var prevWeight, prevNilai float64
+		var prevInherentScore int
 		var prevRiskAppetite, prevTreatmentOption, prevExistingControl, prevControlEffectiveness string
 		var prevTargetProbability, prevTargetImpact int
 		var prevTargetWeight, prevTargetNilai float64
+		var prevTargetScore int
 		var prevCause, prevImpactDesc []string
 		var prevRiskSource, prevControllability string
 		var monID *uuid.UUID
 		var monProbability, monImpact int
 		var monWeight, monNilai float64
+		var monInherentScore int
 
 		// Nullable fields that may be empty arrays from COALESCE
 		var nullableCause, nullableImpactDesc, nullableMitigations, nullableMitigationDueDates []string
@@ -245,6 +252,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&link.Risk.TargetImpact,
 			&link.Risk.TargetBobot,
 			&link.Risk.TargetNilai,
+			&link.Risk.TargetScore,
 			&link.Risk.AssessmentCycle,
 			&versionNumber,
 			&jadwalPelaksanaan,
@@ -255,6 +263,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&prevImpact,
 			&prevWeight,
 			&prevNilai,
+			&prevInherentScore,
 			&prevRiskAppetite,
 			&prevTreatmentOption,
 			&prevExistingControl,
@@ -263,6 +272,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&prevTargetImpact,
 			&prevTargetWeight,
 			&prevTargetNilai,
+			&prevTargetScore,
 			&prevCause,
 			&prevRiskSource,
 			&prevControllability,
@@ -276,6 +286,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&monImpact,
 			&monWeight,
 			&monNilai,
+			&monInherentScore,
 		); err != nil {
 			return nil, fmt.Errorf("scan working paper risk: %w", err)
 		}
@@ -297,6 +308,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 				Impact:               prevImpact,
 				Bobot:                prevWeight,
 				Nilai:                prevNilai,
+				InherentScore:        prevInherentScore,
 				Cause:                prevCause,
 				RiskSource:           prevRiskSource,
 				Controllability:      prevControllability,
@@ -309,6 +321,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 				TargetImpact:         prevTargetImpact,
 				TargetBobot:          prevTargetWeight,
 				TargetNilai:          prevTargetNilai,
+				TargetScore:          prevTargetScore,
 				Mitigations:          nullablePrevMitigations,
 				MitigationDueDates:   nullablePrevMitigationDueDates,
 			}
@@ -323,25 +336,30 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			link.Risk.MonitoringD = monImpact
 			link.Risk.MonitoringBobot = monWeight
 			link.Risk.MonitoringNilai = monNilai
-			if monNilai > 0 {
-				tingkat := entity.GetRiskLevelFromNilai(monNilai)
+			link.Risk.MonitoringInherentScore = monInherentScore
+			monScore := monNilai
+			if monInherentScore > 0 {
+				monScore = float64(monInherentScore)
+			}
+			if monScore > 0 {
+				tingkat := entity.GetRiskLevelFromNilai(monScore)
 				link.Risk.MonitoringTingkatRisiko = tingkat
 				link.Risk.MonitoringTingkatRisikoDisplay = entity.GetRiskLevelDisplay(tingkat)
 
-				// Calculate simpulan and efektivitas
-				targetNilai := link.Risk.TargetNilai
-				if targetNilai > 0 {
-					if monNilai > targetNilai {
-						link.Risk.MonitoringSimpulan = "Meningkat"
-						link.Risk.MonitoringEfektivitas = "Tidak Efektif"
-					} else if monNilai == targetNilai {
-						link.Risk.MonitoringSimpulan = "Tetap"
-						link.Risk.MonitoringEfektivitas = "Efektif"
-					} else {
-						link.Risk.MonitoringSimpulan = "Menurun"
-						link.Risk.MonitoringEfektivitas = "Efektif"
-					}
+			// Calculate simpulan and efektivitas by comparing monitoring vs previous semester baseline
+			prevScore := link.Risk.PreviousNilai()
+			if prevScore > 0 {
+				if monScore > prevScore {
+					link.Risk.MonitoringSimpulan = "Meningkat"
+					link.Risk.MonitoringEfektivitas = "Tidak Efektif"
+				} else if monScore == prevScore {
+					link.Risk.MonitoringSimpulan = "Tetap"
+					link.Risk.MonitoringEfektivitas = "Efektif"
+				} else {
+					link.Risk.MonitoringSimpulan = "Menurun"
+					link.Risk.MonitoringEfektivitas = "Efektif"
 				}
+			}
 			}
 		}
 
@@ -402,7 +420,7 @@ func (r *workingPaperRepository) getSignatoriesByWorkingPaperID(ctx context.Cont
 
 func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q workingPaperReader, id uuid.UUID, forUpdate bool) (*entity.WorkingPaper, error) {
 	query := `SELECT id, title, description, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, created_by,
-	        created_at, updated_at, completed_at, cancelled_at
+	        created_at, updated_at, completed_at, cancelled_at, tte_skipped
 	 FROM working_papers
 	 WHERE id = $1`
 	if forUpdate {
@@ -413,7 +431,7 @@ func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q working
 	err := q.QueryRow(ctx, query, id).Scan(
 		&wp.ID, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 		&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
-		&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt,
+		&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get working paper by id: %w", err)
@@ -440,9 +458,9 @@ func (r *workingPaperRepository) updateWorkingPaper(ctx context.Context, execer 
 	_, err := execer.Exec(ctx,
 		`UPDATE working_papers
 		 SET status = $2, current_signatory_sequence = $3, completed_at = $4,
-		     cancelled_at = $5, updated_at = NOW()
+		     cancelled_at = $5, tte_skipped = $6, updated_at = NOW()
 		 WHERE id = $1`,
-		wp.ID, wp.Status, wp.CurrentSignatorySequence, wp.CompletedAt, wp.CancelledAt,
+		wp.ID, wp.Status, wp.CurrentSignatorySequence, wp.CompletedAt, wp.CancelledAt, wp.TTESkipped,
 	)
 	if err != nil {
 		return fmt.Errorf("update working paper: %w", err)
@@ -512,11 +530,11 @@ func (r *workingPaperRepository) Create(ctx context.Context, wp *entity.WorkingP
 
 	err = tx.QueryRow(ctx,
 		`INSERT INTO working_papers (title, description, org_id, status, assessment_cycle,
-		        document_hash, current_signatory_sequence, created_by)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		        document_hash, current_signatory_sequence, created_by, tte_skipped)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		 RETURNING id, created_at, updated_at`,
 		wp.Title, wp.Description, wp.OrgID, wp.Status, wp.AssessmentCycle,
-		wp.DocumentHash, wp.CurrentSignatorySequence, wp.CreatedBy,
+		wp.DocumentHash, wp.CurrentSignatorySequence, wp.CreatedBy, wp.TTESkipped,
 	).Scan(&wp.ID, &wp.CreatedAt, &wp.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create working paper insert: %w", err)
@@ -547,7 +565,7 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 	countQuery := `SELECT COUNT(*) FROM working_papers WHERE 1=1`
 	dataQuery := `SELECT id, title, description, org_id, status, assessment_cycle,
 	                     document_hash, current_signatory_sequence, created_by,
-	                     created_at, updated_at, completed_at, cancelled_at
+	                     created_at, updated_at, completed_at, cancelled_at, tte_skipped
 	              FROM working_papers WHERE 1=1`
 
 	args := []interface{}{}
@@ -616,7 +634,7 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 		if err := rows.Scan(
 			&wp.ID, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 			&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
-			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt,
+			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 		); err != nil {
 			return nil, 0, fmt.Errorf("list working papers scan: %w", err)
 		}
@@ -705,7 +723,7 @@ func (r *workingPaperRepository) UpdateSignatory(ctx context.Context, sig *entit
 func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, userID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.WorkingPaper, error) {
 	query := `SELECT wp.id, wp.title, wp.description, wp.org_id, wp.status, wp.assessment_cycle,
 		        wp.document_hash, wp.current_signatory_sequence, wp.created_by,
-		        wp.created_at, wp.updated_at, wp.completed_at, wp.cancelled_at
+		        wp.created_at, wp.updated_at, wp.completed_at, wp.cancelled_at, wp.tte_skipped
 		 FROM working_papers wp
 		 INNER JOIN working_paper_signatories wps ON wps.working_paper_id = wp.id
 		 WHERE wp.status IN ('draft', 'signing')
@@ -737,7 +755,7 @@ func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, 
 		if err := rows.Scan(
 			&wp.ID, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 			&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
-			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt,
+			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 		); err != nil {
 			return nil, fmt.Errorf("scan pending signing working paper: %w", err)
 		}

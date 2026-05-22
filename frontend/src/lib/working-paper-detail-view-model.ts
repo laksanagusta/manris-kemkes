@@ -11,7 +11,7 @@ export type WorkingPaperCurrentAction = {
 
 export type WorkingPaperTimelineItem = {
   signatory: WorkingPaperSignatory;
-  state: "signed" | "current" | "upcoming";
+  state: "signed" | "current" | "upcoming" | "skipped";
   isActionOwner: boolean;
   label: string;
   description: string;
@@ -22,6 +22,7 @@ export type WorkingPaperDetailViewModel = {
   canSign: boolean;
   canCancel: boolean;
   canDelete: boolean;
+  tteSkipped: boolean;
   currentAction: WorkingPaperCurrentAction | null;
   timeline: WorkingPaperTimelineItem[];
 };
@@ -41,18 +42,27 @@ function buildCurrentAction(
   nextSignatory: WorkingPaperSignatory | null,
   canSign: boolean,
   allRisksApproved: boolean,
+  tteSkipped: boolean,
 ): WorkingPaperCurrentAction | null {
   if (workingPaper.status === "cancelled") {
     return {
-      tone: "danger",
+      tone: "danger" as const,
       title: "Kertas kerja dibatalkan",
       description: "Proses tanda tangan dihentikan. Dokumen ini tidak dapat dilanjutkan ke tahap persetujuan berikutnya.",
     };
   }
 
+  if (workingPaper.status === "completed" && tteSkipped) {
+    return {
+      tone: "success" as const,
+      title: "TTE dilewati",
+      description: "Kertas kerja ini selesai tanpa proses tanda tangan elektronik. Nama penandatangan tercantum sebagai referensi.",
+    };
+  }
+
   if (workingPaper.status === "completed") {
     return {
-      tone: "success",
+      tone: "success" as const,
       title: "Seluruh tanda tangan selesai",
       description: "Dokumen ini sudah disahkan oleh seluruh penandatangan dan siap dipakai sebagai arsip kerja resmi.",
     };
@@ -60,7 +70,7 @@ function buildCurrentAction(
 
   if (canSign) {
     return {
-      tone: "attention",
+      tone: "attention" as const,
       title: "Tindakan Anda diperlukan",
       description: "Anda adalah penandatangan aktif. Periksa isi dokumen, lalu tandatangani ketika seluruh informasi sudah sesuai.",
       buttonLabel: "Tanda tangani sekarang",
@@ -69,7 +79,7 @@ function buildCurrentAction(
 
   if (!allRisksApproved && nextSignatory) {
     return {
-      tone: "neutral",
+      tone: "neutral" as const,
       title: "Menunggu persetujuan risiko",
       description: "Seluruh risiko dalam kertas kerja ini harus berstatus disetujui sebelum proses tanda tangan dapat dimulai. Pantau progres persetujuan di tabel risiko di bawah.",
     };
@@ -77,14 +87,14 @@ function buildCurrentAction(
 
   if (nextSignatory) {
     return {
-      tone: "neutral",
+      tone: "neutral" as const,
       title: "Menunggu penandatangan aktif",
       description: `Dokumen saat ini menunggu tanda tangan dari ${nextSignatory.signer_name} pada urutan ${nextSignatory.sequence_no}.`,
     };
   }
 
   return {
-    tone: "neutral",
+    tone: "neutral" as const,
     title: "Dokumen siap ditinjau",
     description: "Belum ada penandatangan aktif. Periksa ringkasan dokumen dan susunan penandatangan untuk melanjutkan proses.",
   };
@@ -95,7 +105,18 @@ function buildTimelineItem(
   workingPaper: WorkingPaper,
   nextSignatory: WorkingPaperSignatory | null,
   currentUserId?: string | null,
+  tteSkipped?: boolean,
 ): WorkingPaperTimelineItem {
+  if (tteSkipped) {
+    return {
+      signatory,
+      state: "skipped",
+      isActionOwner: false,
+      label: "TTE dilewati",
+      description: "Penandatangan ini tidak melakukan tanda tangan elektronik. Kertas kerja selesai tanpa TTE.",
+    };
+  }
+
   const isSigned = signatory.status === "signed";
   const isCurrent = !isSigned && nextSignatory?.id === signatory.id;
   const isActionOwner = Boolean(isCurrent && currentUserId && signatory.user_id === currentUserId);
@@ -148,6 +169,7 @@ export function buildWorkingPaperDetailViewModel(
   const nextSignatory = getNextSignatory(workingPaper);
   const risks = workingPaper.risks ?? [];
   const allRisksApproved = risks.length > 0 && risks.every((link) => link.risk.status === "approved");
+  const tteSkipped = workingPaper.tte_skipped;
   const canSign = Boolean(
     currentUserId &&
       nextSignatory &&
@@ -161,9 +183,10 @@ export function buildWorkingPaperDetailViewModel(
     canSign,
     canCancel: workingPaper.status === "draft" || workingPaper.status === "signing",
     canDelete: workingPaper.status === "draft",
-    currentAction: buildCurrentAction(workingPaper, nextSignatory, canSign, allRisksApproved),
+    tteSkipped,
+    currentAction: buildCurrentAction(workingPaper, nextSignatory, canSign, allRisksApproved, tteSkipped),
     timeline: workingPaper.signatories.map((signatory) =>
-      buildTimelineItem(signatory, workingPaper, nextSignatory, currentUserId),
+      buildTimelineItem(signatory, workingPaper, nextSignatory, currentUserId, tteSkipped),
     ),
   };
 }

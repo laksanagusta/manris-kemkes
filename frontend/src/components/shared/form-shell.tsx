@@ -120,7 +120,7 @@ export function FormSection({
   return (
     <Card
       className={cn(
-        "rounded-[24px] border border-border/20 bg-card transition-colors duration-200 focus-within:border-primary/30",
+        "rounded-2xl bg-card transition-colors duration-200 focus-within:ring-primary/20",
         className,
       )}
     >

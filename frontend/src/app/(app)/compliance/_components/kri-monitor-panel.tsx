@@ -9,6 +9,7 @@ import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -242,39 +243,25 @@ export function KRIMonitorPanel() {
 
       {!loading && !error && (
         <div className="grid gap-4 md:grid-cols-4">
-          <Card className="border-border/50 bg-card/80">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Total KRI</p>
-              <p className="mt-1 text-2xl font-bold">{summary.total || 0}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/50 bg-card/80">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Aman</p>
-                <p className="mt-1 text-2xl font-bold text-success">{summary.safe || 0}</p>
-              </div>
-              <CheckCircle className="size-5 text-success" />
-            </CardContent>
-          </Card>
-          <Card className="border-border/50 bg-card/80">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Peringatan</p>
-                <p className="mt-1 text-2xl font-bold text-risk-medium">{summary.warning || 0}</p>
-              </div>
-              <Clock className="size-5 text-risk-medium" />
-            </CardContent>
-          </Card>
-          <Card className="border-border/50 bg-card/80">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Dilanggar</p>
-                <p className="mt-1 text-2xl font-bold text-risk-extreme">{summary.breached || 0}</p>
-              </div>
-              <AlertCircle className="size-5 text-risk-extreme" />
-            </CardContent>
-          </Card>
+          <KpiCard label="Total KRI" value={summary.total || 0} tone="white" />
+          <KpiCard
+            label="Aman"
+            value={summary.safe || 0}
+            tone="emerald"
+            icon={<CheckCircle className="size-5 text-success" />}
+          />
+          <KpiCard
+            label="Peringatan"
+            value={summary.warning || 0}
+            tone="zinc"
+            icon={<Clock className="size-5 text-muted-foreground" />}
+          />
+          <KpiCard
+            label="Dilanggar"
+            value={summary.breached || 0}
+            tone="rose"
+            icon={<AlertCircle className="size-5 text-risk-extreme" />}
+          />
         </div>
       )}
 

@@ -13,10 +13,6 @@ import (
 	"github.com/manris/backend/internal/domain/repository"
 )
 
-type dashboardIncidentRepo interface {
-	List(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Incident, error)
-}
-
 type dashboardTaskRepo interface {
 	ListAll(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error)
 }
@@ -28,22 +24,19 @@ type dashboardRiskRepo interface {
 }
 
 var (
-	_ dashboardIncidentRepo = repository.IncidentRepository(nil)
-	_ dashboardTaskRepo     = repository.MitigationTaskRepository(nil)
-	_ dashboardRiskRepo     = repository.RiskRepository(nil)
+	_ dashboardTaskRepo = repository.MitigationTaskRepository(nil)
+	_ dashboardRiskRepo = repository.RiskRepository(nil)
 )
 
 type DashboardActionPressureUseCase struct {
-	incidentRepo dashboardIncidentRepo
-	taskRepo     dashboardTaskRepo
-	now          func() time.Time
+	taskRepo dashboardTaskRepo
+	now      func() time.Time
 }
 
-func NewDashboardActionPressureUseCase(incidentRepo dashboardIncidentRepo, taskRepo dashboardTaskRepo) *DashboardActionPressureUseCase {
+func NewDashboardActionPressureUseCase(taskRepo dashboardTaskRepo) *DashboardActionPressureUseCase {
 	return &DashboardActionPressureUseCase{
-		incidentRepo: incidentRepo,
-		taskRepo:     taskRepo,
-		now:          time.Now,
+		taskRepo: taskRepo,
+		now:      time.Now,
 	}
 }
 
@@ -68,20 +61,9 @@ func (uc *DashboardActionPressureUseCase) Execute(ctx context.Context, input Das
 	now := uc.now().UTC()
 	points, pointIndex := buildMonthlyPressureWindow(now, input.Window)
 
-	incidents, err := uc.incidentRepo.List(ctx, input.OrgIDs)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to list incidents for action pressure")
-	}
 	tasks, err := uc.taskRepo.ListAll(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list mitigation tasks for action pressure")
-	}
-
-	for _, incident := range incidents {
-		period := incident.CreatedAt.UTC().Format("2006-01")
-		if idx, ok := pointIndex[period]; ok {
-			points[idx].IncidentsCreated += 1
-		}
 	}
 
 	for _, task := range tasks {

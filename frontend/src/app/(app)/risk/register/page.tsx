@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -1025,19 +1026,18 @@ export default function RiskRegisterPage() {
         <TabsContent value="all-risks" className="space-y-6 mt-6">
           <div className="grid gap-3 grid-cols-4">
             {riskSummaryCards.map((card) => (
-              <Card key={card.label} className={cn("", card.tone)}>
-                <CardContent className="flex items-end justify-between gap-3 p-3">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
-                      {card.label}
-                    </p>
-                    <p className="text-2xl font-semibold text-foreground">
-                      {card.value}
-                    </p>
-                  </div>
-                  {/*<span className="text-xs text-muted-foreground">jumlah</span>*/}
-                </CardContent>
-              </Card>
+              <KpiCard
+                key={card.label}
+                label={card.label}
+                value={card.value}
+                tone={
+                  card.label === "Total Risiko"
+                    ? "white"
+                    : card.label === "Sedang"
+                      ? "zinc"
+                      : "rose"
+                }
+              />
             ))}
           </div>
 
@@ -1177,7 +1177,7 @@ export default function RiskRegisterPage() {
               <Table className="min-w-[1180px]">
                 <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
                   <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
-                    <TableHead className="w-20 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="w-20 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
                       Kode
                     </TableHead>
                     <TableHead className="w-16 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
@@ -1287,7 +1287,7 @@ export default function RiskRegisterPage() {
                           key={risk.id}
                           className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
                         >
-                          <TableCell className="font-mono text-zinc-600">
+                          <TableCell className="font-mono text-zinc-600 pl-4 pr-2 md:pl-6">
                             <span className="flex items-center gap-1.5">
                               {risk.code || "-"}
                             </span>

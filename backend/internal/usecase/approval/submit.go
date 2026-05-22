@@ -74,7 +74,7 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 	}
 
 	// Validate request type
-	if input.RequestType != "risk" && input.RequestType != "incident" && input.RequestType != "assessment" {
+	if input.RequestType != "risk" && input.RequestType != "assessment" {
 		return nil, domainerrors.ErrInvalidRequestType
 	}
 
@@ -83,14 +83,8 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 	}
 
 	// Check entity existence and permissions
-	if input.RequestType == "risk" || input.RequestType == "assessment" {
-		if err := uc.validateRisk(ctx, entityID, requestedBy, input.Role, input.OrgIDs); err != nil {
-			return nil, err
-		}
-	} else {
-		if err := uc.validateIncident(ctx, entityID, requestedBy, input.Role, input.OrgIDs); err != nil {
-			return nil, err
-		}
+	if err := uc.validateRisk(ctx, entityID, requestedBy, input.Role, input.OrgIDs); err != nil {
+		return nil, err
 	}
 
 	// Check if already submitted
@@ -236,21 +230,6 @@ func (uc *SubmitApprovalUseCase) validateRisk(ctx context.Context, riskID uuid.U
 	_, err := uc.riskRepo.GetByID(ctx, riskID, orgIDs)
 	if err != nil {
 		return domainerrors.ErrRiskNotFound
-	}
-
-	return nil
-}
-
-// validateIncident validates if incident can be submitted for approval
-func (uc *SubmitApprovalUseCase) validateIncident(ctx context.Context, incidentID uuid.UUID, userID uuid.UUID, userRole string, orgIDs []uuid.UUID) error {
-	incident, err := uc.incidentRepo.GetByID(ctx, incidentID.String(), orgIDs)
-	if err != nil {
-		return domainerrors.ErrIncidentNotFound
-	}
-
-	// Only owner or unit role can submit their own incidents
-	if userRole == "unit" && incident.ReporterID != nil && *incident.ReporterID != userID {
-		return domainerrors.ErrForbidden
 	}
 
 	return nil

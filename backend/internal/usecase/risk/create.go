@@ -92,10 +92,6 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 	if input.Category == "" || !entity.IsValidRiskCategory(input.Category) {
 		return nil, errors.ErrInvalidRiskCategory
 	}
-	if input.ROID == nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "roId is required")
-	}
-
 	// 2. Validate user exists
 	_, err := uc.userRepo.GetByID(ctx, *input.CreatedBy)
 	if err != nil {

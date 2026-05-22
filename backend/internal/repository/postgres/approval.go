@@ -29,8 +29,6 @@ func (r *approvalRepository) List(ctx context.Context, status string, approverRo
 		whereClause += fmt.Sprintf(` AND (
 			(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($1)))
 			OR 
-			(ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($1)))
-			OR 
 			(ar.request_type NOT IN ('risk', 'assessment', 'incident'))
 		)`)
 		args = append(args, uuidArrayToStrings(orgIDs))
@@ -69,12 +67,10 @@ func (r *approvalRepository) List(ctx context.Context, status string, approverRo
 		       COALESCE(cu.name, '') as current_approver_name,
 		       CASE
 			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT code FROM risks WHERE id = ar.entity_id)
-			       WHEN ar.request_type = 'incident' THEN (SELECT code FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_code,
 		       CASE
 			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT title FROM risks WHERE id = ar.entity_id)
-			       WHEN ar.request_type = 'incident' THEN (SELECT title FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_title
 		FROM approval_requests ar
@@ -119,12 +115,10 @@ func (r *approvalRepository) FindByID(ctx context.Context, id uuid.UUID, orgIDs 
 		       COALESCE(cu.name, '') as current_approver_name,
 		       CASE
 			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT code FROM risks WHERE id = ar.entity_id)
-			       WHEN ar.request_type = 'incident' THEN (SELECT code FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_code,
 		       CASE
 			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT title FROM risks WHERE id = ar.entity_id)
-			       WHEN ar.request_type = 'incident' THEN (SELECT title FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_title
 		FROM approval_requests ar
@@ -132,8 +126,6 @@ func (r *approvalRepository) FindByID(ctx context.Context, id uuid.UUID, orgIDs 
 		LEFT JOIN users cu ON ar.current_approver_user_id = cu.id
 		WHERE ar.id = $1 AND (cardinality($2::uuid[]) = 0 OR (
 			(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($2::uuid[])))
-			OR
-			(ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($2::uuid[])))
 			OR
 			(ar.request_type NOT IN ('risk', 'assessment', 'incident'))
 		))`, id, orgIDs,
@@ -170,12 +162,10 @@ func (r *approvalRepository) FindByEntity(ctx context.Context, requestType strin
 		       COALESCE(cu.name, '') as current_approver_name,
 		       CASE
 			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT code FROM risks WHERE id = ar.entity_id)
-			       WHEN ar.request_type = 'incident' THEN (SELECT code FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_code,
 		       CASE
 			       WHEN ar.request_type IN ('risk', 'assessment') THEN (SELECT title FROM risks WHERE id = ar.entity_id)
-			       WHEN ar.request_type = 'incident' THEN (SELECT title FROM incidents WHERE id = ar.entity_id)
 			       ELSE NULL
 		       END as entity_title
 		FROM approval_requests ar
@@ -184,8 +174,6 @@ func (r *approvalRepository) FindByEntity(ctx context.Context, requestType strin
 		WHERE ar.request_type = $1 AND ar.entity_id = $2
 		  AND (cardinality($3::uuid[]) = 0 OR (
 			(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($3::uuid[])))
-			OR
-			(ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($3::uuid[])))
 			OR
 			(ar.request_type NOT IN ('risk', 'assessment', 'incident'))
 		  ))
@@ -431,14 +419,13 @@ func (r *approvalRepository) GetPendingCount(ctx context.Context, approverRole s
 		query += fmt.Sprintf(" AND ar.current_approver_role=$%d", len(args)+1)
 		args = append(args, approverRole)
 	}
-	if len(orgIDs) > 0 {
-		query += fmt.Sprintf(" AND (\n"+
-			"(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($%d)))\n"+
-			"OR (ar.request_type = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE i.id = ar.entity_id AND i.organization_id = ANY($%d)))\n"+
-			"OR (ar.request_type NOT IN ('risk', 'assessment', 'incident'))\n"+
-			")", len(args)+1, len(args)+1)
-		args = append(args, uuidArrayToStrings(orgIDs))
-	}
+		if len(orgIDs) > 0 {
+			query += fmt.Sprintf(" AND (\n"+
+				"(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($%d)))\n"+
+				"OR (ar.request_type NOT IN ('risk', 'assessment', 'incident'))\n"+
+				")", len(args)+1)
+			args = append(args, uuidArrayToStrings(orgIDs))
+		}
 
 	if approverUserID != nil {
 		query += fmt.Sprintf(" AND ar.current_approver_user_id=$%d", len(args)+1)

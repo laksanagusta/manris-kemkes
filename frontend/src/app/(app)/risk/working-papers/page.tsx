@@ -15,6 +15,7 @@ import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { KpiCard, type KpiCardTone } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -99,7 +100,7 @@ const statusLabels: Record<WorkingPaperStatus, string> = {
 type WorkingPaperSummaryCard = {
   label: string;
   value: number;
-  tone: string;
+  tone: KpiCardTone;
 };
 
 function formatWorkingPaperDate(
@@ -401,27 +402,27 @@ export default function WorkingPapersPage() {
     {
       label: "Total",
       value: total,
-      tone: "border-border/60 bg-background/60 text-foreground",
+      tone: "white" as const,
     },
     {
       label: "Draft",
       value: draftCount,
-      tone: "border-primary/20 text-primary",
+      tone: "zinc" as const,
     },
     {
       label: "Proses TTE",
       value: signingCount,
-      tone: "border-amber-500/20 text-amber-600",
+      tone: "zinc" as const,
     },
     {
       label: "Selesai",
       value: completedCount,
-      tone: "border-success/20 text-success",
+      tone: "emerald" as const,
     },
     {
       label: "Dibatalkan",
       value: cancelledCount,
-      tone: "border-destructive/20 text-destructive",
+      tone: "rose" as const,
     },
   ];
   const visiblePaperCount = papers.length;
@@ -447,18 +448,7 @@ export default function WorkingPapersPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {summaryCards.map((card) => (
-          <Card key={card.label} className={cn(card.tone)}>
-            <CardContent className="flex items-end justify-between gap-3 p-4">
-              <div className="space-y-1">
-                <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
-                  {card.label}
-                </p>
-                <p className="text-2xl font-semibold text-foreground">
-                  {card.value}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <KpiCard key={card.label} label={card.label} value={card.value} tone={card.tone} />
         ))}
       </div>
 
@@ -609,6 +599,7 @@ export default function WorkingPapersPage() {
                           )}
                         >
                           {statusLabels[wp.status] || wp.status}
+                          {wp.status === "completed" && wp.tte_skipped ? " (tanpa TTE)" : ""}
                         </span>
                       </div>
 
@@ -672,7 +663,7 @@ export default function WorkingPapersPage() {
               <Table className="hidden min-w-[980px] md:table">
                 <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
                   <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
-                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="h-10 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
                       Judul
                     </TableHead>
                     <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
@@ -717,7 +708,7 @@ export default function WorkingPapersPage() {
                         key={wp.id}
                         className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
                       >
-                        <TableCell className="min-w-[320px] p-2.5 align-middle">
+                        <TableCell className="min-w-[320px] pl-4 pr-2.5 py-2.5 align-middle md:pl-6">
                           <Link
                             href={`/risk/working-papers/${wp.id}`}
                             className="block text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary"

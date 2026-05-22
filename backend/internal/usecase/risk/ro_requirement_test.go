@@ -2,23 +2,20 @@ package risk
 
 import (
 	"context"
-	stdErrors "errors"
-	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
-	domainerrors "github.com/manris/backend/internal/domain/errors"
 )
 
-func TestCreateRiskUseCase_RejectsMissingROWhenRequired(t *testing.T) {
+func TestCreateRiskUseCase_AcceptsMissingRO(t *testing.T) {
 	t.Parallel()
 
 	riskRepo := &categoryRiskRepo{}
 	uc := NewCreateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{})
 	createdBy := uuid.New()
 
-	_, err := uc.Execute(context.Background(), CreateRiskInput{
+	output, err := uc.Execute(context.Background(), CreateRiskInput{
 		Title:             "Risiko tanpa RO",
 		Category:          entity.RiskCategoryOperasional,
 		CreatedBy:         &createdBy,
@@ -27,21 +24,21 @@ func TestCreateRiskUseCase_RejectsMissingROWhenRequired(t *testing.T) {
 		TargetProbability: 1,
 		TargetImpact:      1,
 	})
-	if err == nil {
-		t.Fatal("expected validation error when roId missing")
+	if err != nil {
+		t.Fatalf("expected no error when roId is optional, got %v", err)
 	}
-	if !stdErrors.Is(err, domainerrors.ErrInvalidInput) {
-		t.Fatalf("expected invalid input error, got %v", err)
+	if output == nil {
+		t.Fatal("expected output, got nil")
 	}
-	if !strings.Contains(err.Error(), "roId is required") {
-		t.Fatalf("expected roId validation message, got %v", err)
+	if riskRepo.created == nil {
+		t.Fatal("expected create to proceed to repository write")
 	}
-	if riskRepo.created != nil {
-		t.Fatal("expected create to stop before repository write")
+	if riskRepo.created.ROID != nil {
+		t.Fatalf("expected ROID to be nil, got %v", *riskRepo.created.ROID)
 	}
 }
 
-func TestUpdateRiskUseCase_RejectsMissingRO(t *testing.T) {
+func TestUpdateRiskUseCase_AcceptsMissingRO(t *testing.T) {
 	t.Parallel()
 
 	riskID := uuid.New()
@@ -59,7 +56,7 @@ func TestUpdateRiskUseCase_RejectsMissingRO(t *testing.T) {
 	}}
 
 	uc := NewUpdateRiskUseCase(riskRepo, &categoryUserRepo{}, &categoryOrgRepo{}, nil, nil)
-	_, err := uc.Execute(context.Background(), UpdateRiskInput{
+	output, err := uc.Execute(context.Background(), UpdateRiskInput{
 		ID:             riskID,
 		Title:          "Updated risk",
 		Description:    "Updated desc",
@@ -69,16 +66,16 @@ func TestUpdateRiskUseCase_RejectsMissingRO(t *testing.T) {
 		Probability:    2,
 		Impact:         2,
 	}, nil)
-	if err == nil {
-		t.Fatal("expected validation error when roId missing")
+	if err != nil {
+		t.Fatalf("expected no error when roId is optional, got %v", err)
 	}
-	if !stdErrors.Is(err, domainerrors.ErrInvalidInput) {
-		t.Fatalf("expected invalid input error, got %v", err)
+	if output == nil {
+		t.Fatal("expected output, got nil")
 	}
-	if !strings.Contains(err.Error(), "roId is required") {
-		t.Fatalf("expected roId validation message, got %v", err)
+	if riskRepo.updated == nil {
+		t.Fatal("expected update to proceed to repository write")
 	}
-	if riskRepo.updated != nil {
-		t.Fatal("expected update to stop before repository write")
+	if riskRepo.updated.ROID != nil {
+		t.Fatalf("expected ROID to be nil, got %v", *riskRepo.updated.ROID)
 	}
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { RiskHeatmap } from "../../overview/_components/risk-heatmap";
@@ -233,41 +234,24 @@ export function MonitoringOperationalPanel() {
               </div>
               <div className="mt-4 space-y-3">
                 <div className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      Total mitigasi aktif
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-                      {mitigationSummary.totalActive}
-                    </p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Total item mitigasi pada periode monitoring yang sedang dimuat.
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-success/25 bg-success/10 px-4 py-3">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-success/80">
-                      Mitigasi selesai
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-                      {mitigationSummary.completed}
-                    </p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Item mitigasi yang sudah dituntaskan pada dataset saat ini.
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-destructive/80">
-                      Mitigasi overdue
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-                      {mitigationSummary.overdue}
-                    </p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Item yang terlambat dan perlu tindak lanjut prioritas.
-                    </p>
-                  </div>
+                  <KpiCard
+                    label="Total mitigasi aktif"
+                    value={mitigationSummary.totalActive}
+                    tone="white"
+                    description="Total item mitigasi pada periode monitoring yang sedang dimuat."
+                  />
+                  <KpiCard
+                    label="Mitigasi selesai"
+                    value={mitigationSummary.completed}
+                    tone="emerald"
+                    description="Item mitigasi yang sudah dituntaskan pada dataset saat ini."
+                  />
+                  <KpiCard
+                    label="Mitigasi overdue"
+                    value={mitigationSummary.overdue}
+                    tone="rose"
+                    description="Item yang terlambat dan perlu tindak lanjut prioritas."
+                  />
                 </div>
 
                 <div className="rounded-xl border border-border/50 bg-background/70 px-4 py-3">

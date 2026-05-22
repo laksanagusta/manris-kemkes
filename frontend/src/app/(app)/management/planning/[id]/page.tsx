@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowLeft, Building2, Layers3, ShieldCheck } from "lucide-react";
@@ -19,6 +19,7 @@ import type { PlanningObjectiveCompatibilityItem } from "@/types/planning";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Separator } from "@/components/ui/separator";
 
 function infoItem(label: string, value?: string | null) {
@@ -34,7 +35,6 @@ function infoItem(label: string, value?: string | null) {
 
 export default function PlanningDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const { token } = useAuth();
   const [items, setItems] = useState<PlanningObjectiveCompatibilityItem[]>([]);
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
@@ -157,48 +157,24 @@ export default function PlanningDetailPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="flex items-center gap-3 py-5">
-            <div className="rounded-full bg-blue-500/10 p-3 text-blue-600">
-              <Layers3 className="size-5" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                Periode
-              </p>
-              <p className="text-2xl font-semibold">{item.period}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="flex items-center gap-3 py-5">
-            <div className="rounded-full bg-emerald-500/10 p-3 text-emerald-600">
-              <Building2 className="size-5" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                Satker
-              </p>
-              <p className="text-2xl font-semibold">
-                {organizationMap.get(item.organizationId) ??
-                  item.organizationId}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="flex items-center gap-3 py-5">
-            <div className="rounded-full bg-amber-500/10 p-3 text-amber-600">
-              <ShieldCheck className="size-5" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                Status
-              </p>
-              <p className="text-2xl font-semibold">{item.status || "draft"}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <KpiCard
+          label="Periode"
+          value={item.period}
+          tone="white"
+          icon={<Layers3 className="size-5 text-muted-foreground" />}
+        />
+        <KpiCard
+          label="Satker"
+          value={organizationMap.get(item.organizationId) ?? item.organizationId}
+          tone="zinc"
+          icon={<Building2 className="size-5 text-muted-foreground" />}
+        />
+        <KpiCard
+          label="Status"
+          value={item.status || "draft"}
+          tone={item.status === "approved" ? "emerald" : item.status === "rejected" ? "rose" : "zinc"}
+          icon={<ShieldCheck className="size-5 text-muted-foreground" />}
+        />
       </div>
 
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">

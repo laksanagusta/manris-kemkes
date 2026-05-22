@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -1022,93 +1023,43 @@ function CBAPageContent() {
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Net Economic Benefit */}
-            <Card
-              className={cn(
-                "border-l-4 transition-all",
-                result.isPositive
-                  ? "border-l-green-500 bg-green-500/5"
-                  : "border-l-red-500 bg-red-500/5"
-              )}
-            >
-              <CardContent className="p-4">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                  Net Economic Benefit
-                </p>
-                <p
-                  className={cn(
-                    "text-2xl font-bold mt-1",
-                    result.isPositive ? "text-green-400" : "text-red-400"
-                  )}
-                >
-                  {formatRupiah(Math.abs(result.netBenefit))}
-                </p>
-                <Badge
-                  className={cn(
-                    "mt-2 text-[9px]",
-                    result.isPositive
-                      ? "bg-green-500/10 text-green-400 border-green-500/20"
-                      : "bg-red-500/10 text-red-400 border-red-500/20"
-                  )}
-                >
-                  {result.isPositive ? (
-                    <>
-                      <TrendingUp className="size-3 mr-1" />
-                      Layak Investasi
-                    </>
-                  ) : (
-                    <>
-                      <TrendingDown className="size-3 mr-1" />
-                      Belum Layak
-                    </>
-                  )}
-                </Badge>
-              </CardContent>
-            </Card>
+            <KpiCard
+              label="Net Economic Benefit"
+              value={formatRupiah(Math.abs(result.netBenefit))}
+              tone={result.isPositive ? "emerald" : "rose"}
+              description={result.isPositive ? "Layak Investasi" : "Belum Layak"}
+              icon={
+                result.isPositive ? (
+                  <TrendingUp className="size-3 mr-1 text-emerald-600" />
+                ) : (
+                  <TrendingDown className="size-3 mr-1 text-rose-600" />
+                )
+              }
+            />
 
             {/* ROI */}
-            <Card className="border-border/50 bg-card/80">
-              <CardContent className="p-4">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                  Return on Investment
-                </p>
-                <p className="text-2xl font-bold mt-1 text-primary">
-                  {result.roi.toFixed(1)}%
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-2">
-                  Setiap Rp 1 yang dikeluarkan menghasilkan Rp {result.benefitCostRatio.toFixed(2)} manfaat
-                </p>
-              </CardContent>
-            </Card>
+            <KpiCard
+              label="Return on Investment"
+              value={`${result.roi.toFixed(1)}%`}
+              tone="white"
+              description={`Setiap Rp 1 yang dikeluarkan menghasilkan Rp ${result.benefitCostRatio.toFixed(2)} manfaat`}
+            />
 
             {/* Cost of Inaction */}
-            <Card className="border-border/50 bg-card/80">
-              <CardContent className="p-4">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                  Cost of Inaction (Kerugian)
-                </p>
-                <p className="text-2xl font-bold mt-1 text-red-400">
-                  {formatRupiah(result.costOfInaction)}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-2">
-                  Total kerugian jika tidak ada intervensi
-                </p>
-              </CardContent>
-            </Card>
+            <KpiCard
+              label="Cost of Inaction (Kerugian)"
+              value={formatRupiah(result.costOfInaction)}
+              tone="rose"
+              description="Total kerugian jika tidak ada intervensi"
+            />
 
             {/* Cost of Action */}
-            <Card className="border-border/50 bg-card/80">
-              <CardContent className="p-4">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                  Cost of Action (Biaya Program)
-                </p>
-                <p className="text-2xl font-bold mt-1 text-blue-400">
-                  {formatRupiah(result.costOfAction)}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-2">
-                  Total biaya program pencegahan
-                </p>
-              </CardContent>
-            </Card>
+            <KpiCard
+              label="Cost of Action (Biaya Program)"
+              value={formatRupiah(result.costOfAction)}
+              tone="zinc"
+              description="Total biaya program pencegahan"
+            />
           </div>
 
           {/* Comparative Bar Chart */}

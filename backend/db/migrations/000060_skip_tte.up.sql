@@ -1,0 +1,1 @@
+ALTER TABLE working_papers ADD COLUMN tte_skipped BOOLEAN NOT NULL DEFAULT false;

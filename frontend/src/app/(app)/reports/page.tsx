@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -294,7 +295,6 @@ export default function ReportsPage() {
           console.error(comparisonResult.reason);
           setComparisons([]);
         }
-
       },
     );
   }, [token, exportCycle, previousCycle]);
@@ -561,29 +561,33 @@ export default function ReportsPage() {
                       key={item.key}
                       type="button"
                       onClick={() => toggleMovementFilter(item.key)}
-                      className={cn(
-                        "rounded-lg border px-3 py-2 text-left transition-colors",
-                        selectedMovement === item.key
-                          ? "border-primary/40 bg-primary/10"
-                          : "border-border/50 bg-muted/20 hover:bg-muted/30",
-                      )}
+                      className="text-left transition-colors"
                     >
-                      <p className="text-[10px] text-muted-foreground">
-                        {item.label}
-                      </p>
-                      <div className="mt-1 flex items-center justify-between gap-2">
-                        <p className="text-2xl font-semibold tracking-tight text-foreground">
-                          {item.value}
-                        </p>
-                        {selectedMovement === item.key ? (
-                          <Badge
-                            variant="outline"
-                            className="h-5 px-1.5 text-[9px]"
-                          >
-                            Aktif
-                          </Badge>
-                        ) : null}
-                      </div>
+                      <KpiCard
+                        label={item.label}
+                        value={item.value}
+                        tone={
+                          item.key === "up"
+                            ? "rose"
+                            : item.key === "down"
+                              ? "emerald"
+                              : item.key === "removed"
+                                ? "rose"
+                                : item.key === "new"
+                                  ? "white"
+                                  : "zinc"
+                        }
+                        description={
+                          selectedMovement === item.key ? (
+                            <Badge
+                              variant="outline"
+                              className="mt-2 h-5 px-1.5 text-[9px]"
+                            >
+                              Aktif
+                            </Badge>
+                          ) : undefined
+                        }
+                      />
                     </button>
                   ))}
                 </div>
@@ -633,7 +637,7 @@ export default function ReportsPage() {
               </>
             ) : (
               <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Perbandingan cycle belum tersedia
+                Perbandingan Semester belum tersedia
               </div>
             )}
           </CardContent>

@@ -33,6 +33,7 @@ type WorkingPaper struct {
 	UpdatedAt                time.Time              `json:"updated_at"`
 	CompletedAt              *time.Time             `json:"completed_at,omitempty"`
 	CancelledAt              *time.Time             `json:"cancelled_at,omitempty"`
+	TTESkipped               bool                   `json:"tte_skipped"`
 
 	// Joined data
 	Signatories []WorkingPaperSignatory `json:"signatories"`
@@ -78,6 +79,7 @@ type WorkingPaperRiskData struct {
 	TargetImpact         int       `json:"target_impact,omitempty"`
 	TargetBobot          float64   `json:"target_bobot,omitempty"`
 	TargetNilai          float64   `json:"target_nilai,omitempty"`
+	TargetScore          int       `json:"target_score,omitempty"`
 	TargetTingkatRisiko  string    `json:"target_tingkat_risiko,omitempty"`
 	AssessmentCycle      string    `json:"assessment_cycle,omitempty"`
 	VersionNumber        int       `json:"versionNumber,omitempty"`
@@ -97,6 +99,7 @@ type WorkingPaperRiskData struct {
 	MonitoringD                    int     `json:"monitoring_d,omitempty"`
 	MonitoringBobot                float64 `json:"monitoring_bobot,omitempty"`
 	MonitoringNilai                float64 `json:"monitoring_nilai,omitempty"`
+	MonitoringInherentScore        int     `json:"monitoring_inherent_score,omitempty"`
 	MonitoringTingkatRisiko        string  `json:"monitoring_tingkat_risiko,omitempty"`
 	MonitoringTingkatRisikoDisplay string  `json:"monitoring_tingkat_risiko_display,omitempty"`
 	MonitoringSimpulan             string  `json:"monitoring_simpulan,omitempty"`
@@ -111,6 +114,7 @@ type WorkingPaperRiskSnapshot struct {
 	Impact                      int      `json:"impact,omitempty"`
 	Bobot                       float64  `json:"bobot,omitempty"`
 	Nilai                       float64  `json:"nilai,omitempty"`
+	InherentScore               int      `json:"inherentScore,omitempty"`
 	TingkatRisiko               string   `json:"tingkat_risiko,omitempty"`
 	TingkatRisikoDisplay        string   `json:"tingkat_risiko_display,omitempty"`
 	PrioritasRisiko             int      `json:"prioritas_risiko,omitempty"`
@@ -129,6 +133,7 @@ type WorkingPaperRiskSnapshot struct {
 	TargetImpact                int      `json:"target_impact,omitempty"`
 	TargetBobot                 float64  `json:"target_bobot,omitempty"`
 	TargetNilai                 float64  `json:"target_nilai,omitempty"`
+	TargetScore                 int      `json:"target_score,omitempty"`
 	TargetTingkatRisiko         string   `json:"target_tingkat_risiko,omitempty"`
 	TargetTingkatRisikoDisplay  string   `json:"target_tingkat_risiko_display,omitempty"`
 	Mitigations                 []string `json:"mitigations,omitempty"`
@@ -156,8 +161,12 @@ func (r *WorkingPaperRiskData) NormalizeDerivedScores() {
 	if r.TargetNilai == 0 && r.TargetBobot > 0 && r.TargetProbability > 0 && r.TargetImpact > 0 {
 		r.TargetNilai = CalculateNilai(r.TargetProbability, r.TargetImpact, r.TargetBobot)
 	}
-	if r.TargetNilai > 0 {
-		r.TargetTingkatRisiko = GetRiskLevelFromNilai(r.TargetNilai)
+	targetScore := r.TargetNilai
+	if r.TargetScore > 0 {
+		targetScore = float64(r.TargetScore)
+	}
+	if targetScore > 0 {
+		r.TargetTingkatRisiko = GetRiskLevelFromNilai(targetScore)
 	}
 
 	// Set display labels
@@ -167,14 +176,29 @@ func (r *WorkingPaperRiskData) NormalizeDerivedScores() {
 	r.TreatmentOptionDisplay = GetTreatmentOptionDisplay(r.TreatmentOption)
 	r.ControlEffectivenessDisplay = GetControlEffectivenessDisplay(r.ControlEffectiveness)
 
-	if r.MonitoringNilai > 0 {
-		r.MonitoringTingkatRisiko = GetRiskLevelFromNilai(r.MonitoringNilai)
+	monScore := r.MonitoringNilai
+	if r.MonitoringInherentScore > 0 {
+		monScore = float64(r.MonitoringInherentScore)
+	}
+	if monScore > 0 {
+		r.MonitoringTingkatRisiko = GetRiskLevelFromNilai(monScore)
 		r.MonitoringTingkatRisikoDisplay = GetRiskLevelDisplay(r.MonitoringTingkatRisiko)
 	}
 
 	if r.Previous != nil {
 		r.Previous.Normalize()
 	}
+}
+
+// PreviousNilai returns the previous semester baseline score (nilai or inherent_score).
+func (r *WorkingPaperRiskData) PreviousNilai() float64 {
+	if r.Previous == nil {
+		return 0
+	}
+	if r.Previous.InherentScore > 0 {
+		return float64(r.Previous.InherentScore)
+	}
+	return r.Previous.Nilai
 }
 
 // Normalize computes derived scores and display labels for a snapshot.
@@ -185,8 +209,12 @@ func (s *WorkingPaperRiskSnapshot) Normalize() {
 	if s.Nilai == 0 && s.Bobot > 0 && s.Probability > 0 && s.Impact > 0 {
 		s.Nilai = CalculateNilai(s.Probability, s.Impact, s.Bobot)
 	}
-	if s.Nilai > 0 {
-		s.TingkatRisiko = GetRiskLevelFromNilai(s.Nilai)
+	score := s.Nilai
+	if s.InherentScore > 0 {
+		score = float64(s.InherentScore)
+	}
+	if score > 0 {
+		s.TingkatRisiko = GetRiskLevelFromNilai(score)
 		s.TingkatRisikoDisplay = GetRiskLevelDisplay(s.TingkatRisiko)
 	}
 	s.PrioritasRisiko = GetRiskPriorityFromLevel(s.TingkatRisiko)
@@ -197,8 +225,12 @@ func (s *WorkingPaperRiskSnapshot) Normalize() {
 	if s.TargetNilai == 0 && s.TargetBobot > 0 && s.TargetProbability > 0 && s.TargetImpact > 0 {
 		s.TargetNilai = CalculateNilai(s.TargetProbability, s.TargetImpact, s.TargetBobot)
 	}
-	if s.TargetNilai > 0 {
-		s.TargetTingkatRisiko = GetRiskLevelFromNilai(s.TargetNilai)
+	targetScore := s.TargetNilai
+	if s.TargetScore > 0 {
+		targetScore = float64(s.TargetScore)
+	}
+	if targetScore > 0 {
+		s.TargetTingkatRisiko = GetRiskLevelFromNilai(targetScore)
 		s.TargetTingkatRisikoDisplay = GetRiskLevelDisplay(s.TargetTingkatRisiko)
 	}
 
@@ -332,6 +364,16 @@ func (wp *WorkingPaper) MarkSigned(signatoryID uuid.UUID, qrPNG string, qrData j
 
 	wp.UpdatedAt = time.Now()
 	return nil
+}
+
+// SkipTTE marks the working paper as completed without TTE.
+// All signatories remain pending (no QR codes, no signed_at).
+func (wp *WorkingPaper) SkipTTE() {
+	now := time.Now()
+	wp.TTESkipped = true
+	wp.Status = WorkingPaperStatusCompleted
+	wp.CompletedAt = &now
+	wp.UpdatedAt = now
 }
 
 func (wp *WorkingPaper) ComputeHash() string {

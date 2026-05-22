@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
   ClipboardCheck,
   Clock,
   FileBarChart,
@@ -36,7 +35,6 @@ type DashboardSummary = {
   totalRisks: number;
   highExtreme: number;
   overdueMitigations: number;
-  incidentsThisMonth: number;
 };
 
 type KpiCard = {
@@ -180,18 +178,6 @@ export default function DashboardPage() {
           description: "melewati tenggat",
         },
         {
-          title: "Insiden Bulan Ini",
-          value: summary.incidentsThisMonth,
-          ...calculateTrend(
-            summary.incidentsThisMonth,
-            prevSummary?.incidentsThisMonth,
-          ),
-          icon: AlertTriangle,
-          color: "text-risk-high",
-          bgColor: "bg-risk-high/10",
-          description: "dilaporkan",
-        },
-        {
           title: "Risk Exposure",
           value: exposureScore,
           change: "--",
@@ -232,11 +218,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {kpiCards.map((kpi) => (
           <Card
             key={kpi.title}
-            className="group relative overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5"
+            className="group relative h-full overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5"
           >
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
             <CardContent className="p-5">
