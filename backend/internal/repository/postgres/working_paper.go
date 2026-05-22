@@ -402,7 +402,7 @@ func (r *workingPaperRepository) getSignatoriesByWorkingPaperID(ctx context.Cont
 
 func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q workingPaperReader, id uuid.UUID, forUpdate bool) (*entity.WorkingPaper, error) {
 	query := `SELECT id, title, description, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, created_by,
-	        created_at, updated_at, completed_at, cancelled_at
+	        created_at, updated_at, completed_at, cancelled_at, tte_skipped
 	 FROM working_papers
 	 WHERE id = $1`
 	if forUpdate {
@@ -413,7 +413,7 @@ func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q working
 	err := q.QueryRow(ctx, query, id).Scan(
 		&wp.ID, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 		&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
-		&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt,
+		&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get working paper by id: %w", err)
@@ -440,9 +440,9 @@ func (r *workingPaperRepository) updateWorkingPaper(ctx context.Context, execer 
 	_, err := execer.Exec(ctx,
 		`UPDATE working_papers
 		 SET status = $2, current_signatory_sequence = $3, completed_at = $4,
-		     cancelled_at = $5, updated_at = NOW()
+		     cancelled_at = $5, tte_skipped = $6, updated_at = NOW()
 		 WHERE id = $1`,
-		wp.ID, wp.Status, wp.CurrentSignatorySequence, wp.CompletedAt, wp.CancelledAt,
+		wp.ID, wp.Status, wp.CurrentSignatorySequence, wp.CompletedAt, wp.CancelledAt, wp.TTESkipped,
 	)
 	if err != nil {
 		return fmt.Errorf("update working paper: %w", err)
@@ -512,11 +512,11 @@ func (r *workingPaperRepository) Create(ctx context.Context, wp *entity.WorkingP
 
 	err = tx.QueryRow(ctx,
 		`INSERT INTO working_papers (title, description, org_id, status, assessment_cycle,
-		        document_hash, current_signatory_sequence, created_by)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		        document_hash, current_signatory_sequence, created_by, tte_skipped)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		 RETURNING id, created_at, updated_at`,
 		wp.Title, wp.Description, wp.OrgID, wp.Status, wp.AssessmentCycle,
-		wp.DocumentHash, wp.CurrentSignatorySequence, wp.CreatedBy,
+		wp.DocumentHash, wp.CurrentSignatorySequence, wp.CreatedBy, wp.TTESkipped,
 	).Scan(&wp.ID, &wp.CreatedAt, &wp.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create working paper insert: %w", err)
@@ -547,7 +547,7 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 	countQuery := `SELECT COUNT(*) FROM working_papers WHERE 1=1`
 	dataQuery := `SELECT id, title, description, org_id, status, assessment_cycle,
 	                     document_hash, current_signatory_sequence, created_by,
-	                     created_at, updated_at, completed_at, cancelled_at
+	                     created_at, updated_at, completed_at, cancelled_at, tte_skipped
 	              FROM working_papers WHERE 1=1`
 
 	args := []interface{}{}
@@ -616,7 +616,7 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 		if err := rows.Scan(
 			&wp.ID, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 			&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
-			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt,
+			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 		); err != nil {
 			return nil, 0, fmt.Errorf("list working papers scan: %w", err)
 		}
@@ -705,7 +705,7 @@ func (r *workingPaperRepository) UpdateSignatory(ctx context.Context, sig *entit
 func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, userID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.WorkingPaper, error) {
 	query := `SELECT wp.id, wp.title, wp.description, wp.org_id, wp.status, wp.assessment_cycle,
 		        wp.document_hash, wp.current_signatory_sequence, wp.created_by,
-		        wp.created_at, wp.updated_at, wp.completed_at, wp.cancelled_at
+		        wp.created_at, wp.updated_at, wp.completed_at, wp.cancelled_at, wp.tte_skipped
 		 FROM working_papers wp
 		 INNER JOIN working_paper_signatories wps ON wps.working_paper_id = wp.id
 		 WHERE wp.status IN ('draft', 'signing')
@@ -737,7 +737,7 @@ func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, 
 		if err := rows.Scan(
 			&wp.ID, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 			&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
-			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt,
+			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 		); err != nil {
 			return nil, fmt.Errorf("scan pending signing working paper: %w", err)
 		}
