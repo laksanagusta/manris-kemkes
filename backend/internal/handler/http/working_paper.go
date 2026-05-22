@@ -32,6 +32,7 @@ type createWorkingPaperRequest struct {
 	AssessmentCycle string                   `json:"assessment_cycle"`
 	Risks           []workingPaperRiskInput  `json:"risks"`
 	Signatories     []createSignatoryRequest `json:"signatories"`
+	SkipTTE         bool                     `json:"skip_tte"`
 }
 
 type workingPaperRiskInput struct {
@@ -101,6 +102,7 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 		CreatedByUserID:  userID,
 		Risks:            risks,
 		Signatories:      signatories,
+		SkipTTE:          req.SkipTTE,
 	}
 
 	wp, err := h.uc.Create(c.Context(), input)
