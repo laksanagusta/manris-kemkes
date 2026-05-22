@@ -128,6 +128,7 @@ export interface WorkingPaper {
   updated_at: string;
   completed_at?: string;
   cancelled_at?: string;
+  tte_skipped: boolean;
   signatories: WorkingPaperSignatory[];
 }
 
@@ -151,6 +152,7 @@ export interface CreateWorkingPaperRequest {
   assessment_cycle?: string;
   risks: CreateWorkingPaperRiskInput[];
   signatories: CreateSignatoryInput[];
+  skip_tte?: boolean;
 }
 
 export interface WorkingPaperListResponse {
