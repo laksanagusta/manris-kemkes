@@ -20,6 +20,7 @@ import type { TMPMRAssessment, TMPMRStatus } from "@/types/tmpmr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -200,22 +201,18 @@ export default function TMPMRListPage() {
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "Total Assessment", value: summary.total },
-          { label: "Draft", value: summary.draft },
-          { label: "Submitted", value: summary.submitted },
-          { label: "Approved", value: summary.approved },
+          { label: "Total Assessment", value: summary.total, tone: "white" as const },
+          { label: "Draft", value: summary.draft, tone: "zinc" as const },
+          { label: "Submitted", value: summary.submitted, tone: "zinc" as const },
+          { label: "Approved", value: summary.approved, tone: "emerald" as const },
         ].map((item) => (
-          <Card key={item.label} size="sm" className="border-border/40 bg-card/80">
-            <CardContent className="flex items-center justify-between gap-4 px-4 py-4">
-              <div className="space-y-1">
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  {item.label}
-                </p>
-                <p className="text-2xl font-semibold tracking-tight">{item.value}</p>
-              </div>
-              <ClipboardList className="size-5 text-muted-foreground" />
-            </CardContent>
-          </Card>
+          <KpiCard
+            key={item.label}
+            label={item.label}
+            value={item.value}
+            tone={item.tone}
+            icon={<ClipboardList className="size-5 text-muted-foreground" />}
+          />
         ))}
       </div>
 

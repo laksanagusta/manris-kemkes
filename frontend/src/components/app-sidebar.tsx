@@ -24,16 +24,10 @@ import {
   GitBranch,
 } from "lucide-react";
 import { adminMenuGroup, mainMenuItems } from "@/lib/app-navigation";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/contexts/auth-context";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
+import { useAuth } from "@/contexts/auth-context";
 
 interface NavItem {
   label: string;
@@ -99,20 +93,33 @@ const dashboardNavigation: NavItem = {
   icon: LayoutDashboard,
 };
 
-const navigation: NavGroup[] = [
-  ...mainMenuItems.map((group) => {
-    const items = group.items
-      .filter((item) => item.href !== "/overview" && item.href !== "/reports")
-      .map((item) => ({
-        ...item,
-        icon: iconMap[item.icon] ?? LayoutDashboard,
-      }));
+const managementRiskGroup = mainMenuItems.find(
+  (group) => group.title === "MANAJEMEN RISIKO",
+);
 
-    return {
-      ...group,
-      items,
-    };
-  }),
+const managementRiskNavigation: NavItem[] = (managementRiskGroup?.items ?? [])
+  .filter((item) => item.href !== "/overview" && item.href !== "/reports")
+  .map((item) => ({
+    ...item,
+    icon: iconMap[item.icon] ?? LayoutDashboard,
+  }));
+
+const navigation: NavGroup[] = [
+  ...mainMenuItems
+    .filter((group) => group.title !== "MANAJEMEN RISIKO")
+    .map((group) => {
+      const items = group.items
+        .filter((item) => item.href !== "/overview" && item.href !== "/reports")
+        .map((item) => ({
+          ...item,
+          icon: iconMap[item.icon] ?? LayoutDashboard,
+        }));
+
+      return {
+        ...group,
+        items,
+      };
+    }),
   reportsNavigation,
   {
     title: "AI & Automation",
@@ -153,6 +160,7 @@ const navigation: NavGroup[] = [
 
 const allNavHrefs = [
   dashboardNavigation.href,
+  ...managementRiskNavigation.flatMap((item) => item.matchHrefs ?? [item.href]),
   ...navigation.flatMap((group) => [
     ...(group.items ?? []).flatMap((item) => item.matchHrefs ?? [item.href]),
   ]),
@@ -216,12 +224,10 @@ function isNavItemActive(pathname: string, hash: string, item: NavItem) {
 
 function NavLink({
   item,
-  collapsed,
   currentHash,
   badgeOverride,
 }: {
   item: NavItem;
-  collapsed: boolean;
   currentHash: string;
   badgeOverride?: number;
 }) {
@@ -238,43 +244,28 @@ function NavLink({
     <Link
       href={item.href}
       className={cn(
-        "group flex min-h-10 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+        "group flex h-8 items-center gap-2 rounded-md px-2 text-sm font-normal transition-colors duration-200",
         isActive
-          ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
-          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+          ? "bg-sidebar-accent/70 text-sidebar-foreground"
+          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/45 hover:text-sidebar-foreground",
       )}
     >
       <item.icon
         className={cn(
-          "size-[18px] shrink-0 transition-colors",
+          "size-4 shrink-0 transition-colors",
           isActive
-            ? "text-sidebar-primary"
-            : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70",
+            ? "text-sidebar-foreground"
+            : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/80",
         )}
       />
-      {!collapsed && (
-        <>
-          <span className="truncate">{item.label}</span>
-          {displayBadge !== undefined && displayBadge > 0 && (
-            <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-sidebar-primary text-[10px] font-semibold text-sidebar-primary-foreground">
-              {displayBadge}
-            </span>
-          )}
-        </>
+      <span className="truncate">{item.label}</span>
+      {displayBadge !== undefined && displayBadge > 0 && (
+        <span className="ml-auto flex min-w-5 items-center justify-center rounded-full bg-sidebar-foreground px-1.5 text-[10px] font-semibold leading-5 text-sidebar">
+          {displayBadge}
+        </span>
       )}
     </Link>
   );
-
-  if (collapsed) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent side="right" sideOffset={8}>
-          <p>{item.label}</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
 
   return content;
 }
@@ -300,13 +291,7 @@ function useLocationHash() {
   return hash;
 }
 
-export function AppSidebar({
-  collapsed = false,
-  inboxBadge = 0,
-}: {
-  collapsed?: boolean;
-  inboxBadge?: number;
-}) {
+export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
   const { user } = useAuth();
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(
     () => new Set(defaultCollapsedNodes),
@@ -324,18 +309,7 @@ export function AppSidebar({
     }
 
     return baseNavigation.filter((group) => group.title !== "AI & Automation");
-  }, [aiFeaturesDisabled, user?.role]);
-
-  // Get initials from user name (e.g., "Dr. Farah Indah" -> "FI")
-  const getInitials = (name: string | undefined): string => {
-    if (!name) return "U";
-    return name
-      .split(" ")
-      .filter((part) => part.length > 0 && !part.endsWith("."))
-      .map((part) => part[0]?.toUpperCase())
-      .slice(0, 2)
-      .join("");
-  };
+  }, [aiFeaturesDisabled, user]);
 
   const toggleNode = (key: string) => {
     setCollapsedNodes((prev) => {
@@ -350,107 +324,62 @@ export function AppSidebar({
   };
 
   return (
-    <aside
+    <div
       className={cn(
-        "fixed left-0 top-14 z-40 flex h-[calc(100vh-3.5rem)] min-h-0 flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
-        collapsed ? "w-16" : "w-64",
+        "sticky top-[50px] z-40 hidden h-[calc(100vh-50px)] w-60 shrink-0 origin-left pr-0 transition-[width,padding] duration-300 ease-[cubic-bezier(0.31,0.1,0.08,0.96)] sm:block",
       )}
     >
-      {/* Navigation */}
-      <ScrollArea className="min-h-0 flex-1 px-3 py-4">
-        <nav className="space-y-5">
-          <div>
-            <NavLink
-              item={dashboardNavigation}
-              collapsed={collapsed}
-              currentHash={currentHash}
-            />
+      <aside className="z-20 flex h-full flex-col border-r border-sidebar-border/70 bg-sidebar/95">
+        <div className="flex min-h-0 flex-1 flex-col px-2 py-3">
+          <div className="mb-3 space-y-2">
+            <div className="space-y-0.5">
+              <NavLink
+                item={dashboardNavigation}
+                currentHash={currentHash}
+                badgeOverride={undefined}
+              />
+              {managementRiskNavigation.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  currentHash={currentHash}
+                  badgeOverride={
+                    item.href === "/inbox" ? inboxBadge : undefined
+                  }
+                />
+              ))}
+            </div>
           </div>
-          {visibleNavigation.map((group) => {
-            const groupKey = `group:${group.title}`;
-            const isGroupCollapsed = collapsedNodes.has(groupKey);
-            const isReportGroup = group.title === reportsNavigation.title;
-            return (
-              <div key={group.title}>
-                {isReportGroup ? (
-                  collapsed ? (
-                    <>
-                      <Separator className="mb-2 bg-sidebar-border" />
-                      <div className="space-y-0.5">
-                        {group.items?.map((item) => (
-                          <NavLink
-                            key={item.href}
-                            item={item}
-                            collapsed={collapsed}
-                            currentHash={currentHash}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => toggleNode(groupKey)}
-                        className="mb-2 flex min-h-9 w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-semibold tracking-widest uppercase text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/60"
-                        aria-expanded={!isGroupCollapsed}
-                      >
-                        <span className="flex items-center gap-2">
-                          {group.icon && <group.icon className="size-4" />}
-                          {group.title}
-                        </span>
-                        <ChevronDown
-                          className={cn(
-                            "size-3 transition-transform duration-200",
-                            isGroupCollapsed && "-rotate-90",
-                          )}
-                        />
-                      </button>
-                      {!isGroupCollapsed && (
-                        <div className="space-y-0.5">
-                          {group.items?.map((item) => (
-                            <NavLink
-                              key={item.href}
-                              item={item}
-                              collapsed={collapsed}
-                              currentHash={currentHash}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )
-                ) : (
-                  <>
-                    {!collapsed && (
-                      <button
-                        type="button"
-                        onClick={() => toggleNode(groupKey)}
-                        className="mb-2 flex min-h-9 w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-semibold tracking-widest text-sidebar-foreground/40 uppercase transition-colors hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/60"
-                        aria-expanded={!isGroupCollapsed}
-                      >
-                        <span className="flex items-center gap-2">
-                          {group.icon && <group.icon className="size-4" />}
-                          {group.title}
-                        </span>
-                        <ChevronDown
-                          className={cn(
-                            "size-3 transition-transform duration-200",
-                            isGroupCollapsed && "-rotate-90",
-                          )}
-                        />
-                      </button>
-                    )}
-                    {collapsed && (
-                      <Separator className="mb-2 bg-sidebar-border" />
-                    )}
+
+          <ScrollArea className="min-h-0 flex-1">
+            <nav className="space-y-4 pr-2">
+              {visibleNavigation.map((group) => {
+                const groupKey = `group:${group.title}`;
+                const isGroupCollapsed = collapsedNodes.has(groupKey);
+
+                return (
+                  <section key={group.title} className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleNode(groupKey)}
+                      className="flex h-7 w-full items-center justify-between rounded-md px-2 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45 transition-colors hover:text-sidebar-foreground/70"
+                      aria-expanded={!isGroupCollapsed}
+                    >
+                      <span>{group.title}</span>
+                      <ChevronDown
+                        className={cn(
+                          "size-3.5 transition-transform duration-200",
+                          isGroupCollapsed && "-rotate-90",
+                        )}
+                      />
+                    </button>
+
                     {!isGroupCollapsed && (
                       <div className="space-y-0.5">
                         {group.items?.map((item) => (
                           <NavLink
                             key={item.href}
                             item={item}
-                            collapsed={collapsed}
                             currentHash={currentHash}
                             badgeOverride={
                               item.href === "/inbox" ? inboxBadge : undefined
@@ -459,58 +388,28 @@ export function AppSidebar({
                         ))}
                       </div>
                     )}
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-      </ScrollArea>
+                  </section>
+                );
+              })}
+            </nav>
+          </ScrollArea>
 
-      {/* Footer */}
-      <div className="shrink-0 border-t border-sidebar-border p-3">
-        <div className="mb-3">
-          {!collapsed && (
-            <p className="mb-2 px-3 text-[10px] font-semibold tracking-widest text-sidebar-foreground/40 uppercase">
+          <div className="mt-4 border-t border-sidebar-border/70 pt-3">
+            <p className="mb-2 px-2 text-[11px] font-medium text-sidebar-foreground/45">
               Bantuan
             </p>
-          )}
-          <div className="space-y-0.5">
-            {utilityLinks.map((item) => (
-              <NavLink
-                key={item.href}
-                item={item}
-                collapsed={collapsed}
-                currentHash={currentHash}
-              />
-            ))}
+            <div className="space-y-0.5">
+              {utilityLinks.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  currentHash={currentHash}
+                />
+              ))}
+            </div>
           </div>
         </div>
-        {!collapsed ? (
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-            <div className="flex size-8 items-center justify-center rounded-full bg-sidebar-primary/20 text-xs font-bold text-sidebar-primary">
-              {getInitials(user?.name)}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-sidebar-foreground">
-                {user?.name || "User"}
-              </span>
-              <span className="text-[10px] text-sidebar-foreground/50">
-                {user?.role || "Unknown"}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="mx-auto flex size-8 items-center justify-center rounded-full bg-sidebar-primary/20 text-xs font-bold text-sidebar-primary cursor-pointer">
-                {getInitials(user?.name)}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="right">{user?.name || "User"}</TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-    </aside>
+      </aside>
+    </div>
   );
 }

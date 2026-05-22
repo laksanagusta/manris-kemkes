@@ -27,6 +27,7 @@ import {
 } from "@/lib/api/organizations";
 import { useAuth } from "@/contexts/auth-context";
 import { filterToAccessibleOrgs } from "@/lib/organization";
+import { KpiCard } from "@/components/ui/kpi-card";
 import type {
   RiskCycleComparisonItem,
   RiskReviewQueueItem,
@@ -63,10 +64,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
-import { getHeatmapCellClass } from "@/lib/heatmap-utils";
 import { getVisibleRiskReviewItems } from "@/lib/risk-review-panel";
-import { MultiPhaseHeatmapCompareCard } from "./multi-phase-heatmap-compare";
 
 type OrganizationOption = OrganizationListItem;
 
@@ -146,10 +144,6 @@ export function RiskReviewPanel() {
   const [summaryData, setSummaryData] = useState<RiskReviewSummary | null>(
     null,
   );
-  const [previousHeatmapData, setPreviousHeatmapData] = useState<number[][]>(
-    [],
-  );
-  const [currentHeatmapData, setCurrentHeatmapData] = useState<number[][]>([]);
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [comparisonLoading, setComparisonLoading] = useState(true);
@@ -167,7 +161,6 @@ export function RiskReviewPanel() {
   );
   const cycle = useMemo(() => currentGlobalCycle(), []);
   const previousCycle = useMemo(() => previousGlobalCycle(cycle), [cycle]);
-  const heatmapMode = "riskLevel" as const;
 
   useEffect(() => {
     if (user?.role === "unit" && user.organizationId) {
@@ -270,46 +263,12 @@ export function RiskReviewPanel() {
       try {
         const params = new URLSearchParams({ cycle });
         if (orgFilter !== "all") params.set("org_id", orgFilter);
-        const buildHeatmapPath = (heatmapCycle: string) => {
-          const heatmapParams = new URLSearchParams({ cycle: heatmapCycle });
-          if (orgFilter !== "all") heatmapParams.set("org_id", orgFilter);
-          return `/dashboard/heatmap?${heatmapParams.toString()}`;
-        };
+        const summaryResult = await api.get<RiskReviewSummary>(
+          `/dashboard/risk-review-summary?${params.toString()}`,
+          token,
+        );
 
-        const [summaryResult, previousHeatmapResult, currentHeatmapResult] =
-          await Promise.allSettled([
-            api.get<RiskReviewSummary>(
-              `/dashboard/risk-review-summary?${params.toString()}`,
-              token,
-            ),
-            api.get<number[][]>(buildHeatmapPath(previousCycle), token),
-            api.get<number[][]>(buildHeatmapPath(cycle), token),
-          ]);
-
-        if (summaryResult.status === "fulfilled") {
-          setSummaryData(summaryResult.value);
-        } else {
-          console.error(summaryResult.reason);
-          toast.error(
-            summaryResult.reason instanceof Error
-              ? summaryResult.reason.message
-              : "Ringkasan semester belum berhasil dimuat.",
-          );
-        }
-
-        if (previousHeatmapResult.status === "fulfilled") {
-          setPreviousHeatmapData(previousHeatmapResult.value);
-        } else {
-          console.error(previousHeatmapResult.reason);
-          setPreviousHeatmapData([]);
-        }
-
-        if (currentHeatmapResult.status === "fulfilled") {
-          setCurrentHeatmapData(currentHeatmapResult.value);
-        } else {
-          console.error(currentHeatmapResult.reason);
-          setCurrentHeatmapData([]);
-        }
+        setSummaryData(summaryResult);
       } catch (error) {
         console.error(error);
         toast.error(
@@ -392,35 +351,30 @@ export function RiskReviewPanel() {
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {[
-          { label: "Due", value: summary.due, icon: CalendarClock },
-          { label: "In Draft", value: summary.in_draft, icon: RefreshCcw },
+          { label: "Due", value: summary.due, icon: CalendarClock, tone: "white" as const },
+          { label: "In Draft", value: summary.in_draft, icon: RefreshCcw, tone: "zinc" as const },
           {
             label: "Pending (Legacy)",
             value: summary.pending_approval,
             icon: Send,
+            tone: "zinc" as const,
           },
-          { label: "Approved", value: summary.approved, icon: CheckCircle2 },
-          { label: "Overdue", value: summary.overdue, icon: AlertCircle },
+          { label: "Approved", value: summary.approved, icon: CheckCircle2, tone: "emerald" as const },
+          { label: "Overdue", value: summary.overdue, icon: AlertCircle, tone: "rose" as const },
         ].map((metric) => (
-          <Card key={metric.label} className="border-border/50 bg-card/80">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                  {metric.label}
-                </p>
-                <p className="mt-1 text-2xl font-semibold text-foreground">
-                  {metric.value}
-                </p>
-              </div>
-              <metric.icon className="size-5 text-muted-foreground" />
-            </CardContent>
-          </Card>
+          <KpiCard
+            key={metric.label}
+            label={metric.label}
+            value={metric.value}
+            tone={metric.tone}
+            icon={<metric.icon className="size-5 text-muted-foreground" />}
+          />
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="border-border/50 bg-card/80">
-          <CardHeader className="space-y-1">
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <CardHeader className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
+          <div className="space-y-1">
             <CardTitle className="text-base font-semibold text-foreground">
               Completion Rate per Unit
             </CardTitle>
@@ -428,150 +382,100 @@ export function RiskReviewPanel() {
               Persentase risiko yang sudah selesai dinilai ulang dan approved
               pada cycle {cycle}.
             </p>
-          </CardHeader>
-          <CardContent>
-            {summaryLoading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-                Memuat completion rate...
-              </div>
-            ) : (
-              <div className="h-[320px] overflow-y-auto rounded-md border border-border/50">
-                <Table>
-                  <TableHeader>
+          </div>
+          <Badge variant="outline" className="mt-0.5 shrink-0 text-[10px]">
+            {summaryData?.unitCompletion.length ?? 0} unit
+          </Badge>
+        </CardHeader>
+        <CardContent>
+          {summaryLoading ? (
+            <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+              Memuat completion rate...
+            </div>
+          ) : (
+            <div className="max-h-[300px] overflow-y-auto rounded-md border border-border/50">
+              <Table>
+                <TableHeader>
+                  <TableRow className="h-11">
+                    <TableHead className="h-11 whitespace-nowrap py-3 align-middle">
+                      Unit
+                    </TableHead>
+                    <TableHead className="h-11 w-24 whitespace-nowrap py-3 text-center align-middle">
+                      Assigned
+                    </TableHead>
+                    <TableHead className="h-11 w-24 whitespace-nowrap py-3 text-center align-middle">
+                      Done
+                    </TableHead>
+                    <TableHead className="h-11 w-24 whitespace-nowrap py-3 text-center align-middle">
+                      Pending
+                    </TableHead>
+                    <TableHead className="h-11 w-24 whitespace-nowrap py-3 text-center align-middle">
+                      Overdue
+                    </TableHead>
+                    <TableHead className="h-11 w-48 whitespace-nowrap py-3 text-right align-middle">
+                      Rate
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(summaryData?.unitCompletion.length ?? 0) === 0 ? (
                     <TableRow>
-                      <TableHead className="whitespace-nowrap">Unit</TableHead>
-                      <TableHead className="w-24 text-center whitespace-nowrap">
-                        Assigned
-                      </TableHead>
-                      <TableHead className="w-24 text-center whitespace-nowrap">
-                        Done
-                      </TableHead>
-                      <TableHead className="w-24 text-center whitespace-nowrap">
-                        Pending
-                      </TableHead>
-                      <TableHead className="w-24 text-center whitespace-nowrap">
-                        Overdue
-                      </TableHead>
-                      <TableHead className="w-48 text-right whitespace-nowrap">
-                        Rate
-                      </TableHead>
+                      <TableCell colSpan={6} className="h-24">
+                        <div className="flex flex-col gap-1 text-left">
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Belum ada data unit completion untuk cycle ini
+                          </p>
+                          <p className="text-xs text-muted-foreground/70">
+                            Tunggu sampai ada unit completion yang disubmit
+                          </p>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(summaryData?.unitCompletion.length ?? 0) === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-24">
-                          <div className="flex flex-col gap-1 text-left">
-                            <p className="text-sm font-medium text-muted-foreground">
-                              Belum ada data unit completion untuk cycle ini
-                            </p>
-                            <p className="text-xs text-muted-foreground/70">
-                              Tunggu sampai ada unit completion yang disubmit
-                            </p>
+                  ) : (
+                    summaryData?.unitCompletion.map((unit) => (
+                      <TableRow key={unit.orgName}>
+                        <TableCell className="max-w-[200px] text-sm font-medium text-foreground">
+                          <span className="block truncate">
+                            {unit.orgName || "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {unit.totalAssigned}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {unit.completed}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {unit.pending}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {unit.overdue}
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          <div className="flex items-center gap-2">
+                            <Progress
+                              value={unit.completionRate}
+                              className="h-2 flex-1"
+                            />
+                            <span className="w-12 text-right font-semibold">
+                              {unit.completionRate.toFixed(1)}%
+                            </span>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : (
-                      summaryData?.unitCompletion.map((unit) => (
-                        <TableRow key={unit.orgName}>
-                          <TableCell className="max-w-[200px] text-sm font-medium text-foreground">
-                            <span className="block truncate">
-                              {unit.orgName || "-"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-center text-sm">
-                            {unit.totalAssigned}
-                          </TableCell>
-                          <TableCell className="text-center text-sm">
-                            {unit.completed}
-                          </TableCell>
-                          <TableCell className="text-center text-sm">
-                            {unit.pending}
-                          </TableCell>
-                          <TableCell className="text-center text-sm">
-                            {unit.overdue}
-                          </TableCell>
-                          <TableCell className="text-right text-sm">
-                            <div className="flex items-center gap-2">
-                              <Progress
-                                value={unit.completionRate}
-                                className="h-2 flex-1"
-                              />
-                              <span className="w-12 text-right font-semibold">
-                                {unit.completionRate.toFixed(1)}%
-                              </span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-card/80">
-          <CardHeader className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
-            <div className="space-y-1">
-              <CardTitle className="text-base font-semibold text-foreground">
-                Heatmap Compare
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Distribusi risiko approved pada {previousCycle} dan {cycle}.
-              </p>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          </CardHeader>
-          <CardContent className="grid gap-6 md:grid-cols-2">
-            {summaryLoading ? (
-              <div className="md:col-span-2 flex h-40 items-center justify-center text-sm text-muted-foreground">
-                Memuat heatmap compare...
-              </div>
-            ) : (
-              <>
-                {[
-                  { label: previousCycle, grid: previousHeatmapData },
-                  { label: cycle, grid: currentHeatmapData },
-                ].map((heatmap) => (
-                  <div key={heatmap.label} className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {heatmap.label}
-                    </p>
-                    <div className="grid grid-cols-5 gap-1">
-                      {[...heatmap.grid].reverse().flatMap((row, rowIndex) =>
-                        row.map((count, colIndex) => (
-                          <div
-                            key={`${heatmap.label}-${rowIndex}-${colIndex}`}
-                            className={cn(
-                              "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
-                              getHeatmapCellClass(
-                                count,
-                                5 - rowIndex,
-                                colIndex + 1,
-                                heatmapMode,
-                              ),
-                            )}
-                          >
-                            {heatmapMode === "riskLevel" && count === 0
-                              ? ""
-                              : count}
-                          </div>
-                        )),
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="space-y-1">
           <CardTitle className="text-base font-semibold text-foreground">
-            Perbandingan Cycle {previousCycle} ke {cycle}
+            Perbandingan Semester {previousCycle} ke {cycle}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Fokus pada perubahan skor dan level antar semester untuk reviewer
@@ -580,39 +484,24 @@ export function RiskReviewPanel() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                Naik
-              </p>
-              <div className="mt-2 flex items-center gap-2 text-destructive">
-                <TrendingUp className="size-4" />
-                <span className="text-2xl font-semibold">
-                  {movementSummary.up}
-                </span>
-              </div>
-            </div>
-            <div className="rounded-lg border border-success/20 bg-success/5 p-4">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                Turun
-              </p>
-              <div className="mt-2 flex items-center gap-2 text-success">
-                <TrendingDown className="size-4" />
-                <span className="text-2xl font-semibold">
-                  {movementSummary.down}
-                </span>
-              </div>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/20 p-4">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                Tetap
-              </p>
-              <div className="mt-2 flex items-center gap-2 text-muted-foreground">
-                <Minus className="size-4" />
-                <span className="text-2xl font-semibold text-foreground">
-                  {movementSummary.stable}
-                </span>
-              </div>
-            </div>
+            <KpiCard
+              label="Naik"
+              value={movementSummary.up}
+              tone="rose"
+              icon={<TrendingUp className="size-4 text-destructive" />}
+            />
+            <KpiCard
+              label="Turun"
+              value={movementSummary.down}
+              tone="emerald"
+              icon={<TrendingDown className="size-4 text-success" />}
+            />
+            <KpiCard
+              label="Tetap"
+              value={movementSummary.stable}
+              tone="zinc"
+              icon={<Minus className="size-4 text-muted-foreground" />}
+            />
           </div>
 
           {comparisonLoading ? (

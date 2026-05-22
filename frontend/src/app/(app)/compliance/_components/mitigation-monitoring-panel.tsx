@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -265,12 +265,10 @@ export function MitigationMonitoringPanel() {
   const completedCount = mitigations.filter((m) => m.status === "done").length;
   const heavyCount = activeMitigations.filter((m) => m.tier === "heavy").length;
   const lightCount = activeMitigations.filter((m) => m.tier === "light").length;
-  const reminderCount = activeMitigations.filter(
-    (m) => m.tier === "reminder",
-  ).length;
   const upcomingCount = activeMitigations.filter(
     (m) => m.tier === "upcoming",
   ).length;
+  const overdueCount = heavyCount + lightCount;
 
   const totalPages = Math.ceil(total / limit) || 1;
 
@@ -319,66 +317,34 @@ export function MitigationMonitoringPanel() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-6">
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Total Penanganan</p>
-              <p className="mt-1 text-2xl font-bold">{mitigations.length}</p>
-            </div>
-            <ShieldAlert className="size-5 text-muted-foreground" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 border-risk-extreme/20 bg-card/80">
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Overdue Berat</p>
-              <p className="mt-1 text-2xl font-bold text-risk-extreme">{heavyCount}</p>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">H+7 ke atas</p>
-            </div>
-            <AlertTriangle className="size-5 text-risk-extreme" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 border-risk-high/20 bg-card/80">
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Overdue Ringan</p>
-              <p className="mt-1 text-2xl font-bold text-risk-high">{lightCount}</p>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">H+1 s.d. H+7</p>
-            </div>
-            <Clock className="size-5 text-risk-high" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 border-risk-medium/20 bg-card/80">
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Reminder</p>
-              <p className="mt-1 text-2xl font-bold text-risk-medium">{reminderCount}</p>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">H-7 s.d. Hari H</p>
-            </div>
-            <Bell className="size-5 text-risk-medium" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Akan Datang</p>
-              <p className="mt-1 text-2xl font-bold text-muted-foreground">{upcomingCount}</p>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">Lebih dari 7 hari</p>
-            </div>
-            <Clock className="size-5 text-muted-foreground" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 border-emerald-500/20 bg-card/80">
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Selesai</p>
-              <p className="mt-1 text-2xl font-bold text-emerald-600">{completedCount}</p>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">Laporan masuk</p>
-            </div>
-            <CheckCircle2 className="size-5 text-emerald-600" />
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-4">
+        <KpiCard
+          label="Total Penanganan"
+          value={mitigations.length}
+          tone="white"
+          icon={<ShieldAlert className="size-5 text-muted-foreground" />}
+        />
+        <KpiCard
+          label="Overdue"
+          value={overdueCount}
+          tone="rose"
+          description="Gabungan overdue ringan dan berat"
+          icon={<AlertTriangle className="size-5 text-risk-extreme" />}
+        />
+        <KpiCard
+          label="Akan Datang"
+          value={upcomingCount}
+          tone="zinc"
+          description="Lebih dari 7 hari"
+          icon={<Bell className="size-5 text-muted-foreground" />}
+        />
+        <KpiCard
+          label="Selesai"
+          value={completedCount}
+          tone="emerald"
+          description="Laporan masuk"
+          icon={<CheckCircle2 className="size-5 text-emerald-600" />}
+        />
       </div>
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
@@ -536,7 +502,7 @@ export function MitigationMonitoringPanel() {
                 <Table className="min-w-[1180px]">
                   <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
                     <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
-                      <TableHead className="w-20 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      <TableHead className="w-20 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
                         Kode
                       </TableHead>
                       <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
@@ -576,7 +542,7 @@ export function MitigationMonitoringPanel() {
                         className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
                         onClick={() => handleOpenDetail(item)}
                       >
-                        <TableCell className="font-mono text-zinc-600">
+                        <TableCell className="font-mono text-zinc-600 pl-4 pr-2 py-2 md:pl-6">
                           {item.riskCode}
                         </TableCell>
                         <TableCell className="max-w-[320px]">

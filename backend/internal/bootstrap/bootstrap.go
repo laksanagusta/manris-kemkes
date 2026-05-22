@@ -361,7 +361,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskCompareCycleDetailsUC = riskuc.NewCompareRiskCycleDetailsUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskReviewSummaryUC = riskuc.NewRiskReviewSummaryUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskDashboardSummaryUC = riskuc.NewDashboardSummaryUseCase(c.RiskRepository)
-	c.RiskActionPressureUC = riskuc.NewDashboardActionPressureUseCase(c.IncidentRepository, c.MitigationTaskRepository)
+	c.RiskActionPressureUC = riskuc.NewDashboardActionPressureUseCase(c.MitigationTaskRepository)
 	c.RiskExecutiveAlertsUC = riskuc.NewExecutiveAlertsUseCase(c.RiskRepository, c.MitigationTaskRepository)
 	c.RiskHeatmapDataUC = riskuc.NewHeatmapDataUseCase(c.RiskRepository)
 	c.RiskHeatmapMultiUC = riskuc.NewHeatmapMultiUseCase(c.RiskRepository)

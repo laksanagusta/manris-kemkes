@@ -38,6 +38,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -406,15 +407,21 @@ export default function UsersManagementPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.label} className="border-border/50 bg-card/80">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-                <p className="mt-1 text-2xl font-bold">{stat.value}</p>
-              </div>
-              <stat.icon className={cn("size-5", stat.iconClassName)} />
-            </CardContent>
-          </Card>
+          <KpiCard
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            tone={
+              stat.label.toLowerCase().includes("total")
+                ? "white"
+                : stat.label.toLowerCase().includes("active")
+                  ? "emerald"
+                  : stat.label.toLowerCase().includes("inactive")
+                    ? "rose"
+                    : "zinc"
+            }
+            icon={<stat.icon className={cn("size-5", stat.iconClassName)} />}
+          />
         ))}
       </div>
 

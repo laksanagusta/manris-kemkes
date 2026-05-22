@@ -42,17 +42,6 @@ func (r *fakeDashboardRiskRepo) CompareCycles(ctx context.Context, fromCycle str
 	return nil, errors.New("not implemented")
 }
 
-type fakeDashboardIncidentRepo struct {
-	list func(context.Context, []uuid.UUID) ([]*entity.Incident, error)
-}
-
-func (r *fakeDashboardIncidentRepo) List(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Incident, error) {
-	if r.list != nil {
-		return r.list(ctx, orgIDs)
-	}
-	return nil, errors.New("not implemented")
-}
-
 type fakeDashboardTaskRepo struct {
 	listAll func(context.Context, []uuid.UUID) ([]*entity.MitigationTask, error)
 }
@@ -66,16 +55,6 @@ func (r *fakeDashboardTaskRepo) ListAll(ctx context.Context, orgIDs []uuid.UUID)
 
 func TestDashboardActionPressureUseCase_ExecuteBuildsMonthlySeries(t *testing.T) {
 	now := time.Date(2026, time.April, 2, 0, 0, 0, 0, time.UTC)
-	repo := &fakeDashboardIncidentRepo{
-		list: func(_ context.Context, orgIDs []uuid.UUID) ([]*entity.Incident, error) {
-			if len(orgIDs) != 0 {
-				t.Fatalf("expected no org filters, got %d", len(orgIDs))
-			}
-			feb := time.Date(2026, time.February, 10, 0, 0, 0, 0, time.UTC)
-			mar := time.Date(2026, time.March, 15, 0, 0, 0, 0, time.UTC)
-			return []*entity.Incident{{CreatedAt: feb}, {CreatedAt: mar}, {CreatedAt: mar}}, nil
-		},
-	}
 	taskRepo := &fakeDashboardTaskRepo{
 		listAll: func(_ context.Context, _ []uuid.UUID) ([]*entity.MitigationTask, error) {
 			reportedAt := time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC)
@@ -87,7 +66,7 @@ func TestDashboardActionPressureUseCase_ExecuteBuildsMonthlySeries(t *testing.T)
 		},
 	}
 
-	uc := NewDashboardActionPressureUseCase(repo, taskRepo)
+	uc := NewDashboardActionPressureUseCase(taskRepo)
 	uc.now = func() time.Time { return now }
 
 	points, err := uc.Execute(context.Background(), DashboardActionPressureInput{Interval: "month", Window: 4})
@@ -102,11 +81,11 @@ func TestDashboardActionPressureUseCase_ExecuteBuildsMonthlySeries(t *testing.T)
 	if points[0].Period != "2026-01" || points[0].OverdueMitigations != 1 {
 		t.Fatalf("expected Jan overdue count 1, got %#v", points[0])
 	}
-	if points[1].Period != "2026-02" || points[1].IncidentsCreated != 1 || points[1].OverdueMitigations != 1 {
-		t.Fatalf("expected Feb incidents 1 and overdue 1, got %#v", points[1])
+	if points[1].Period != "2026-02" || points[1].OverdueMitigations != 1 {
+		t.Fatalf("expected Feb overdue 1, got %#v", points[1])
 	}
-	if points[2].Period != "2026-03" || points[2].IncidentsCreated != 2 || points[2].MitigationsCompleted != 1 {
-		t.Fatalf("expected Mar incidents 2 and completed 1, got %#v", points[2])
+	if points[2].Period != "2026-03" || points[2].MitigationsCompleted != 1 {
+		t.Fatalf("expected Mar completed 1, got %#v", points[2])
 	}
 	if points[3].Period != "2026-04" {
 		t.Fatalf("expected Apr point, got %#v", points[3])

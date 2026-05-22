@@ -680,7 +680,7 @@ export default function AssessmentFormPage() {
       : ["hasil-pemantauan"];
 
   return (
-    <FormPage className="max-w-6xl space-y-6 animate-fade-in">
+    <FormPage className="max-w-none space-y-6 animate-fade-in">
       <FormHeader
         title="Form Pemantauan Risiko"
         description={
@@ -750,7 +750,7 @@ export default function AssessmentFormPage() {
         }
       />
       {/* Form Content */} {/* Form Content */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.85fr)_340px] 2xl:grid-cols-[minmax(0,1.95fr)_360px] xl:items-start">
         {/* Left Column */}
         <div className="space-y-6">
           <ProfilRisikoCard
@@ -765,7 +765,7 @@ export default function AssessmentFormPage() {
           >
             <AccordionItem
               value="hasil-pemantauan"
-              className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+              className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 transition-all"
             >
               <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
                 <div className="flex flex-1 items-center justify-between pr-4">
@@ -800,7 +800,7 @@ export default function AssessmentFormPage() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
-                <div className="grid gap-6">
+                <div className="grid gap-6 min-w-0">
                   <div className="rounded-xl border border-border/50 bg-background px-4 py-3">
                     <p className="text-sm font-medium text-foreground">
                       {sourceRisk.title}
@@ -840,7 +840,7 @@ export default function AssessmentFormPage() {
                       }),
                     );
                     return mitigationItems.length > 0 ? (
-                      <div className="space-y-2">
+                      <div className="w-full min-w-0 space-y-2">
                         <Label className="text-sm font-medium text-foreground">
                           Rencana Penanganan (dari versi terakhir yang
                           disetujui)
@@ -864,14 +864,14 @@ export default function AssessmentFormPage() {
                   })()}
 
                   <TooltipProvider>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div className="flex flex-col gap-2">
+                    <div className="grid w-full min-w-0 grid-cols-1 gap-4">
+                      <div className="flex min-w-0 flex-col gap-2">
                         <ProbabilityCriteriaTooltip className="text-sm font-medium" />
                         <Controller
                           control={form.control}
                           name="probability"
                           render={({ field }) => (
-                            <div className="grid grid-cols-5 gap-2">
+                            <div className="grid min-w-0 grid-cols-[repeat(5,minmax(0,1fr))] gap-2">
                               {[1, 2, 3, 4, 5].map((val) => (
                                 <Tooltip key={val}>
                                   <TooltipTrigger asChild>
@@ -908,7 +908,7 @@ export default function AssessmentFormPage() {
                         )}
                       </div>
 
-                      <div className="flex flex-col gap-2">
+                      <div className="flex min-w-0 flex-col gap-2">
                         <Label className="flex h-6 items-center text-sm font-medium">
                           Dampak
                         </Label>
@@ -916,7 +916,7 @@ export default function AssessmentFormPage() {
                           control={form.control}
                           name="impact"
                           render={({ field }) => (
-                            <div className="grid grid-cols-5 gap-2">
+                            <div className="grid min-w-0 grid-cols-[repeat(5,minmax(0,1fr))] gap-2">
                               {[1, 2, 3, 4, 5].map((val) => (
                                 <Tooltip key={val}>
                                   <TooltipTrigger asChild>
@@ -1008,7 +1008,7 @@ export default function AssessmentFormPage() {
                 <AccordionItem
                   value="approval-line"
                   id="approval-line"
-                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 transition-all"
                 >
                   <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
                     <div className="flex flex-1 items-center justify-between pr-4">

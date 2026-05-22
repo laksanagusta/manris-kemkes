@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { KpiCard } from "@/components/ui/kpi-card";
 import {
   Table,
   TableBody,
@@ -173,33 +174,24 @@ function PredictivePageContent() {
 
       {/* Trend Summary */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Tren Naik</p>
-              <p className="text-2xl font-bold mt-1 text-risk-extreme">{upCount}</p>
-            </div>
-            <TrendingUp className="size-5 text-risk-extreme" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Tren Turun</p>
-              <p className="text-2xl font-bold mt-1 text-success">{downCount}</p>
-            </div>
-            <TrendingDown className="size-5 text-success" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Stabil</p>
-              <p className="text-2xl font-bold mt-1">{stableCount}</p>
-            </div>
-            <Minus className="size-5 text-muted-foreground" />
-          </CardContent>
-        </Card>
+        <KpiCard
+          label="Tren Naik"
+          value={upCount}
+          tone="rose"
+          icon={<TrendingUp className="size-5 text-risk-extreme" />}
+        />
+        <KpiCard
+          label="Tren Turun"
+          value={downCount}
+          tone="emerald"
+          icon={<TrendingDown className="size-5 text-success" />}
+        />
+        <KpiCard
+          label="Stabil"
+          value={stableCount}
+          tone="zinc"
+          icon={<Minus className="size-5 text-muted-foreground" />}
+        />
       </div>
 
       {/* Predictions Table */}

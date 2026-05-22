@@ -814,9 +814,22 @@ export default function RiskInputPage() {
       : "Ajukan review";
 
   // KMK Risk Appetite Advisory
-  const advisoryInherentScore = probability * impact;
+  const advisoryWeight = getBobot(probability, impact);
+  const advisoryNilai = calculateNilai(probability, impact, advisoryWeight);
+  const advisoryInherentScore = Math.round(advisoryNilai);
   const advisoryAppetite = resolveRiskAppetite(advisoryInherentScore);
   const advisoryIsRiskUtama = isRiskUtama(advisoryInherentScore);
+
+  // Auto-set selera risiko & pilihan penanganan berdasarkan KMK
+  useEffect(() => {
+    setValue("riskAppetite", advisoryAppetite);
+    // Auto-set pilihan penanganan: Dalam batas → terima, Di atas batas → mitigasi
+    if (advisoryAppetite === "dalam_batas") {
+      setValue("treatmentOption", "accept");
+    } else if (advisoryAppetite === "di_atas_batas") {
+      setValue("treatmentOption", "mitigate");
+    }
+  }, [advisoryAppetite, setValue]);
 
   const handleReviewerSelect = useCallback((option: UserPickerOption) => {
     setReviewerId(option.id);
@@ -3487,40 +3500,21 @@ export default function RiskInputPage() {
                           Selera Risiko
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
-                        <Controller
-                          name="riskAppetite"
-                          control={control}
-                          render={({ field }) => (
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              disabled={isRiskLocked}
-                            >
-                              <SelectTrigger
-                                className={cn(
-                                  "h-9 text-sm",
-                                  lockedControlClass,
-                                )}
-                              >
-                                <SelectValue placeholder="Pilih selera risiko" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem
-                                  value="dalam_batas"
-                                  className="text-sm"
-                                >
-                                  Dalam batas selera risiko
-                                </SelectItem>
-                                <SelectItem
-                                  value="di_atas_batas"
-                                  className="text-sm"
-                                >
-                                  Di atas batas selera risiko
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                        />
+                        <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3 text-sm">
+                          <span className={cn(
+                            "font-semibold",
+                            advisoryAppetite === "di_atas_batas"
+                              ? "text-red-600"
+                              : "text-emerald-600"
+                          )}>
+                            {advisoryAppetite === "di_atas_batas"
+                              ? "Di atas batas selera risiko"
+                              : "Dalam batas selera risiko"}
+                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (Otomatis dari skor risiko)
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-1.5">

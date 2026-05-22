@@ -131,7 +131,7 @@ func (r *planningHierarchyRepository) ListObjectiveCompatibilityRows(ctx context
 		countQuery += clause
 		dataQuery += clause
 		q := "%" + strings.TrimSpace(filter.Q) + "%"
-		args = append(args, q, q, q, q, q, q)
+		args = append(args, q)
 		argPos += 6
 	}
 

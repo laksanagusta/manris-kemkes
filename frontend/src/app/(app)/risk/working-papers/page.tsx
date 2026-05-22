@@ -15,7 +15,7 @@ import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { KpiCard } from "@/components/ui/kpi-card";
+import { KpiCard, type KpiCardTone } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -100,7 +100,7 @@ const statusLabels: Record<WorkingPaperStatus, string> = {
 type WorkingPaperSummaryCard = {
   label: string;
   value: number;
-  tone: string;
+  tone: KpiCardTone;
 };
 
 function formatWorkingPaperDate(
@@ -402,27 +402,27 @@ export default function WorkingPapersPage() {
     {
       label: "Total",
       value: total,
-      tone: "white",
+      tone: "white" as const,
     },
     {
       label: "Draft",
       value: draftCount,
-      tone: "zinc",
+      tone: "zinc" as const,
     },
     {
       label: "Proses TTE",
       value: signingCount,
-      tone: "zinc",
+      tone: "zinc" as const,
     },
     {
       label: "Selesai",
       value: completedCount,
-      tone: "emerald",
+      tone: "emerald" as const,
     },
     {
       label: "Dibatalkan",
       value: cancelledCount,
-      tone: "rose",
+      tone: "rose" as const,
     },
   ];
   const visiblePaperCount = papers.length;
@@ -663,7 +663,7 @@ export default function WorkingPapersPage() {
               <Table className="hidden min-w-[980px] md:table">
                 <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
                   <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
-                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="h-10 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
                       Judul
                     </TableHead>
                     <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
@@ -708,7 +708,7 @@ export default function WorkingPapersPage() {
                         key={wp.id}
                         className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
                       >
-                        <TableCell className="min-w-[320px] p-2.5 align-middle">
+                        <TableCell className="min-w-[320px] pl-4 pr-2.5 py-2.5 align-middle md:pl-6">
                           <Link
                             href={`/risk/working-papers/${wp.id}`}
                             className="block text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary"

@@ -167,10 +167,7 @@ export default function CreateWorkingPaperPage() {
       try {
         setLoadingRisks(true);
 
-        const risksRes = await api.get<RiskOption[]>(
-          "/risks",
-          token,
-        );
+        const risksRes = await api.get<RiskOption[]>("/risks", token);
 
         const validRisks = (risksRes || []).filter((r) => r.isCurrent);
         setRisks(validRisks);
@@ -358,11 +355,11 @@ export default function CreateWorkingPaperPage() {
         }
         backLabel="Kembali ke Kertas Kerja"
         onBack={() => router.push("/risk/working-papers")}
-        actions={
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-          >
+      />
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -375,10 +372,7 @@ export default function CreateWorkingPaperPage() {
               </>
             )}
           </Button>
-        }
-      />
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        </div>
         {/* ── Informasi Kertas Kerja ─────────────────────── */}
         <FormSection
           title="Informasi Kertas Kerja"
@@ -412,7 +406,11 @@ export default function CreateWorkingPaperPage() {
         {/* ── Pilih Risiko ───────────────────────────────── */}
         <FormSection
           title="Pilih Risiko"
-          description={watchSkipTTE ? "Pilih risiko yang ingin dimasukkan (persetujuan risiko tidak diperlukan)" : "Pilih risiko yang telah disetujui (minimal 1)"}
+          description={
+            watchSkipTTE
+              ? "Pilih risiko yang ingin dimasukkan (persetujuan risiko tidak diperlukan)"
+              : "Pilih risiko yang telah disetujui (minimal 1)"
+          }
           action={
             <Badge variant="secondary" className="px-2.5 py-0.5">
               {watchRisks.length} dipilih
@@ -587,10 +585,10 @@ export default function CreateWorkingPaperPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="latest_approved">
-                                        Versi Terakhir Disetujui
+                                        Versi Terakhir
                                       </SelectItem>
                                       <SelectItem value="review_periodic">
-                                        Tinjauan Periodik
+                                        Pemantauan Ulang
                                       </SelectItem>
                                     </SelectContent>
                                   </Select>
@@ -667,7 +665,7 @@ export default function CreateWorkingPaperPage() {
             />
           </div>
         </FormSection>
-      {/* ── Opsi Tanda Tangan ────────────────────────── */}
+        {/* ── Opsi Tanda Tangan ────────────────────────── */}
         <FormSection
           title="Opsi Tanda Tangan"
           description="Pilih metode penyelesaian kertas kerja"
@@ -688,19 +686,20 @@ export default function CreateWorkingPaperPage() {
                 Lewati TTE (tanpa tanda tangan elektronik)
               </label>
               <p className="text-xs text-muted-foreground">
-                Kertas kerja akan langsung berstatus selesai tanpa proses TTE. Semua penandatangan tetap tercantum
-                namun tidak melakukan tanda tangan elektronik.
+                Kertas kerja akan langsung berstatus selesai tanpa proses TTE.
+                Semua penandatangan tetap tercantum namun tidak melakukan tanda
+                tangan elektronik.
               </p>
             </div>
           </div>
           {watchSkipTTE && (
             <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              <strong>Perhatian:</strong> Kertas kerja akan langsung selesai tanpa proses tanda tangan elektronik.
-              Semua risiko terlink tidak perlu berstatus disetujui. Tindakan ini tidak dapat dibatalkan.
+              <strong>Perhatian:</strong> Kertas kerja akan langsung selesai
+              tanpa proses tanda tangan elektronik. Tindakan ini tidak dapat
+              dibatalkan.
             </div>
           )}
         </FormSection>
-
       </form>
     </FormPage>
   );

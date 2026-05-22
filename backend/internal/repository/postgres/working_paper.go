@@ -130,6 +130,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       risk.target_impact,
 		       risk.target_weight,
 		       risk.target_nilai,
+		       COALESCE(risk.target_score, 0),
 		       COALESCE(risk.assessment_cycle, ''),
 		       risk.version_number,
 		       COALESCE(risk.review_schedule_text, ''),
@@ -140,6 +141,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(prev_risk.impact, 0),
 		       COALESCE(prev_risk.weight, 0),
 		       COALESCE(prev_risk.nilai, 0),
+		       COALESCE(prev_risk.inherent_score, 0),
 		       COALESCE(prev_risk.risk_appetite, ''),
 		       COALESCE(prev_risk.treatment_option, ''),
 		       COALESCE(prev_risk.existing_control, ''),
@@ -148,6 +150,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(prev_risk.target_impact, 0),
 		       COALESCE(prev_risk.target_weight, 0),
 		       COALESCE(prev_risk.target_nilai, 0),
+		       COALESCE(prev_risk.target_score, 0),
 		       COALESCE(prev_risk.cause, ARRAY[]::text[]),
 		       COALESCE(prev_risk.risk_source, ''),
 		       COALESCE(prev_risk.controllability, ''),
@@ -173,7 +176,8 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(mon_risk.probability, 0),
 		       COALESCE(mon_risk.impact, 0),
 		       COALESCE(mon_risk.weight, 0),
-		       COALESCE(mon_risk.nilai, 0)
+		       COALESCE(mon_risk.nilai, 0),
+		       COALESCE(mon_risk.inherent_score, 0)
 		FROM working_paper_risks wpr
 		INNER JOIN risks risk ON risk.id = wpr.risk_id
 		LEFT JOIN organizations org ON org.id = risk.organization_id
@@ -196,14 +200,17 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		var prevID *uuid.UUID
 		var prevProbability, prevImpact int
 		var prevWeight, prevNilai float64
+		var prevInherentScore int
 		var prevRiskAppetite, prevTreatmentOption, prevExistingControl, prevControlEffectiveness string
 		var prevTargetProbability, prevTargetImpact int
 		var prevTargetWeight, prevTargetNilai float64
+		var prevTargetScore int
 		var prevCause, prevImpactDesc []string
 		var prevRiskSource, prevControllability string
 		var monID *uuid.UUID
 		var monProbability, monImpact int
 		var monWeight, monNilai float64
+		var monInherentScore int
 
 		// Nullable fields that may be empty arrays from COALESCE
 		var nullableCause, nullableImpactDesc, nullableMitigations, nullableMitigationDueDates []string
@@ -245,6 +252,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&link.Risk.TargetImpact,
 			&link.Risk.TargetBobot,
 			&link.Risk.TargetNilai,
+			&link.Risk.TargetScore,
 			&link.Risk.AssessmentCycle,
 			&versionNumber,
 			&jadwalPelaksanaan,
@@ -255,6 +263,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&prevImpact,
 			&prevWeight,
 			&prevNilai,
+			&prevInherentScore,
 			&prevRiskAppetite,
 			&prevTreatmentOption,
 			&prevExistingControl,
@@ -263,6 +272,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&prevTargetImpact,
 			&prevTargetWeight,
 			&prevTargetNilai,
+			&prevTargetScore,
 			&prevCause,
 			&prevRiskSource,
 			&prevControllability,
@@ -276,6 +286,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&monImpact,
 			&monWeight,
 			&monNilai,
+			&monInherentScore,
 		); err != nil {
 			return nil, fmt.Errorf("scan working paper risk: %w", err)
 		}
@@ -297,6 +308,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 				Impact:               prevImpact,
 				Bobot:                prevWeight,
 				Nilai:                prevNilai,
+				InherentScore:        prevInherentScore,
 				Cause:                prevCause,
 				RiskSource:           prevRiskSource,
 				Controllability:      prevControllability,
@@ -309,6 +321,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 				TargetImpact:         prevTargetImpact,
 				TargetBobot:          prevTargetWeight,
 				TargetNilai:          prevTargetNilai,
+				TargetScore:          prevTargetScore,
 				Mitigations:          nullablePrevMitigations,
 				MitigationDueDates:   nullablePrevMitigationDueDates,
 			}
@@ -323,25 +336,30 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			link.Risk.MonitoringD = monImpact
 			link.Risk.MonitoringBobot = monWeight
 			link.Risk.MonitoringNilai = monNilai
-			if monNilai > 0 {
-				tingkat := entity.GetRiskLevelFromNilai(monNilai)
+			link.Risk.MonitoringInherentScore = monInherentScore
+			monScore := monNilai
+			if monInherentScore > 0 {
+				monScore = float64(monInherentScore)
+			}
+			if monScore > 0 {
+				tingkat := entity.GetRiskLevelFromNilai(monScore)
 				link.Risk.MonitoringTingkatRisiko = tingkat
 				link.Risk.MonitoringTingkatRisikoDisplay = entity.GetRiskLevelDisplay(tingkat)
 
-				// Calculate simpulan and efektivitas
-				targetNilai := link.Risk.TargetNilai
-				if targetNilai > 0 {
-					if monNilai > targetNilai {
-						link.Risk.MonitoringSimpulan = "Meningkat"
-						link.Risk.MonitoringEfektivitas = "Tidak Efektif"
-					} else if monNilai == targetNilai {
-						link.Risk.MonitoringSimpulan = "Tetap"
-						link.Risk.MonitoringEfektivitas = "Efektif"
-					} else {
-						link.Risk.MonitoringSimpulan = "Menurun"
-						link.Risk.MonitoringEfektivitas = "Efektif"
-					}
+			// Calculate simpulan and efektivitas by comparing monitoring vs previous semester baseline
+			prevScore := link.Risk.PreviousNilai()
+			if prevScore > 0 {
+				if monScore > prevScore {
+					link.Risk.MonitoringSimpulan = "Meningkat"
+					link.Risk.MonitoringEfektivitas = "Tidak Efektif"
+				} else if monScore == prevScore {
+					link.Risk.MonitoringSimpulan = "Tetap"
+					link.Risk.MonitoringEfektivitas = "Efektif"
+				} else {
+					link.Risk.MonitoringSimpulan = "Menurun"
+					link.Risk.MonitoringEfektivitas = "Efektif"
 				}
+			}
 			}
 		}
 

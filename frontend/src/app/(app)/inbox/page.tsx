@@ -21,6 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -543,22 +544,22 @@ export default function InboxPage() {
     {
       label: "Total",
       value: counts.all,
-      tone: "border-border/60 bg-background/60 text-foreground",
+      tone: "white" as const,
     },
     {
       label: "Perlu Tindakan",
       value: counts.myApprovals,
-      tone: "border-primary/20 text-primary",
+      tone: "zinc" as const,
     },
     {
       label: "Disetujui",
       value: counts.approved,
-      tone: "border-success/20 text-success",
+      tone: "emerald" as const,
     },
     {
       label: "Ditolak",
       value: counts.rejected,
-      tone: "border-destructive/20 text-destructive",
+      tone: "rose" as const,
     },
   ];
 
@@ -771,19 +772,7 @@ export default function InboxPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (
-          <Card key={card.label} className={cn(card.tone)}>
-            <CardContent className="flex items-end justify-between gap-3 p-4">
-              <div className="space-y-1">
-                <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
-                  {card.label}
-                </p>
-                <p className="text-2xl font-semibold text-foreground">
-                  {card.value}
-                </p>
-              </div>
-              {/*<span className="text-xs text-muted-foreground">jumlah</span>*/}
-            </CardContent>
-          </Card>
+          <KpiCard key={card.label} label={card.label} value={card.value} tone={card.tone} />
         ))}
       </div>
 
