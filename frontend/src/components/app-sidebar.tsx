@@ -329,7 +329,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
         "sticky top-[50px] z-40 hidden h-[calc(100vh-50px)] w-60 shrink-0 origin-left pr-0 transition-[width,padding] duration-300 ease-[cubic-bezier(0.31,0.1,0.08,0.96)] sm:block",
       )}
     >
-      <aside className="z-20 flex h-full flex-col border-r border-sidebar-border/70 bg-sidebar/95">
+      <aside className="font-display z-20 flex h-full flex-col border-r border-sidebar-border/70 bg-sidebar/95">
         <div className="flex min-h-0 flex-1 flex-col px-2 py-3">
           <div className="mb-3 space-y-2">
             <div className="space-y-0.5">

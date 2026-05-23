@@ -732,7 +732,7 @@ export default function AssessmentFormPage() {
                     Simpan draft
                   </Button>
                   <Button
-                    className="gap-2 text-sm font-semibold px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="gap-2 text-xs font-medium shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={openSubmitReviewConfirm}
                     disabled={isSaving || isAssessmentLocked}
                   >

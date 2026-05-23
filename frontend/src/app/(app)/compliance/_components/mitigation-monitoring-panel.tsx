@@ -111,7 +111,6 @@ export function MitigationMonitoringPanel() {
   const [showDialog, setShowDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [progressPct, setProgressPct] = useState("");
-  const [actualCost, setActualCost] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [showValidationErrors, setShowValidationErrors] = useState(false);
@@ -120,11 +119,10 @@ export function MitigationMonitoringPanel() {
     () =>
       validateMitigationReportForm({
         progressPct,
-        actualCost,
         evidenceUrl,
         notes,
       }),
-    [actualCost, evidenceUrl, notes, progressPct]
+    [evidenceUrl, notes, progressPct]
   );
   const hasFormErrors = Object.keys(formErrors).length > 0;
 
@@ -216,7 +214,6 @@ export function MitigationMonitoringPanel() {
   const handleOpenSubmit = (task: MitigationTaskRow) => {
     setSelectedTask(task);
     setProgressPct(task.progressPct ? String(task.progressPct) : "");
-    setActualCost(task.actualCost ? String(task.actualCost) : "");
     setEvidenceUrl(task.evidenceUrl || "");
     setNotes(task.notes || "");
     setShowValidationErrors(false);
@@ -242,7 +239,6 @@ export function MitigationMonitoringPanel() {
         `/mitigation-tasks/${selectedTask.id}/submit`,
         normalizeMitigationReportPayload({
           progressPct,
-          actualCost,
           evidenceUrl,
           notes,
         }),
@@ -812,35 +808,23 @@ export function MitigationMonitoringPanel() {
                     className="h-2 flex-1 max-w-xs"
                   />
                 </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      Biaya Aktual
-                    </p>
-                    <p className="mt-1 text-sm font-medium">
-                      {detailTask.actualCost
-                        ? `Rp ${detailTask.actualCost.toLocaleString("id-ID")}`
-                        : "-"}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      Evidence
-                    </p>
-                    {detailTask.evidenceUrl ? (
-                      <a
-                        href={detailTask.evidenceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        Buka bukti <ExternalLink className="size-3.5" />
-                      </a>
-                    ) : (
-                      <p className="mt-1 text-sm font-medium">-</p>
-                    )}
-                  </div>
+                <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Evidence
+                  </p>
+                  {detailTask.evidenceUrl ? (
+                    <a
+                      href={detailTask.evidenceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      Buka bukti <ExternalLink className="size-3.5" />
+                    </a>
+                  ) : (
+                    <p className="mt-1 text-sm font-medium">-</p>
+                  )}
                 </div>
                 <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -909,26 +893,6 @@ export function MitigationMonitoringPanel() {
               {showValidationErrors && formErrors.progressPct && (
                 <p id="monitoring-progress-error" className="text-[11px] text-destructive">
                   {formErrors.progressPct}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                Biaya Aktual (Rp)<span className="text-destructive ml-0.5">*</span>
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                value={actualCost}
-                onChange={(e) => setActualCost(e.target.value)}
-                className="text-xs"
-                placeholder="0"
-                aria-invalid={Boolean(showValidationErrors && formErrors.actualCost)}
-                aria-describedby={showValidationErrors && formErrors.actualCost ? "monitoring-cost-error" : undefined}
-              />
-              {showValidationErrors && formErrors.actualCost && (
-                <p id="monitoring-cost-error" className="text-[11px] text-destructive">
-                  {formErrors.actualCost}
                 </p>
               )}
             </div>

@@ -106,7 +106,6 @@ func NewSubmitProgressUseCase(taskRepo repository.MitigationTaskRepository, risk
 type SubmitProgressInput struct {
 	TaskID      uuid.UUID `json:"taskId"`
 	ProgressPct int       `json:"progressPct"`
-	ActualCost  float64   `json:"actualCost"`
 	EvidenceURL string    `json:"evidenceUrl"`
 	Notes       string    `json:"notes"`
 	ReportedBy  uuid.UUID `json:"-"`
@@ -116,9 +115,6 @@ type SubmitProgressInput struct {
 func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgressInput) (*entity.MitigationTask, error) {
 	if input.ProgressPct < 0 || input.ProgressPct > 100 {
 		return nil, domainerrors.ErrInvalidProgress
-	}
-	if input.ActualCost < 0 {
-		return nil, domainerrors.ErrInvalidActualCost
 	}
 
 	evidenceURL := strings.TrimSpace(input.EvidenceURL)
@@ -170,7 +166,6 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 
 	now = time.Now().In(loc)
 	task.ProgressPct = input.ProgressPct
-	task.ActualCost = input.ActualCost
 	task.EvidenceURL = evidenceURL
 	task.Notes = notes
 	task.ReportedBy = &input.ReportedBy

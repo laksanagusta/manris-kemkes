@@ -40,9 +40,9 @@ func (h *MitigationTaskHandler) ListByRisk(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	var orgIDs []uuid.UUID
-	if scope != nil && !scope.IsGlobal {
-		orgIDs = scope.AccessibleOrgIDs
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
 	}
 
 	input := mtuc.ListTasksInput{RiskID: &riskID, OrgIDs: orgIDs}
@@ -60,9 +60,9 @@ func (h *MitigationTaskHandler) ListByRisk(c *fiber.Ctx) error {
 // ListAll handles GET /api/v1/mitigation-tasks/all (compliance monitoring dashboard)
 func (h *MitigationTaskHandler) ListAll(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	var orgIDs []uuid.UUID
-	if scope != nil && !scope.IsGlobal {
-		orgIDs = scope.AccessibleOrgIDs
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
 	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -98,9 +98,10 @@ func (h *MitigationTaskHandler) ListMyTasks(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
 	}
 
-	orgIDs, ok := c.Locals("orgIds").([]uuid.UUID)
-	if !ok || len(orgIDs) == 0 {
-		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "no accessible organizations")
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
 	}
 
 	status := c.Query("status", "all")
@@ -129,9 +130,9 @@ func (h *MitigationTaskHandler) SubmitProgress(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	var orgIDs []uuid.UUID
-	if scope != nil && !scope.IsGlobal {
-		orgIDs = scope.AccessibleOrgIDs
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
 	}
 
 	var input mtuc.SubmitProgressInput

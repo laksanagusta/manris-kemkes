@@ -25,15 +25,21 @@ const geistMono = Geist_Mono({
 });
 
 const fontVariables = {
-  "--font-sans": "var(--font-manrope), var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  "--font-display": "var(--font-dm-sans), var(--font-manrope), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  "--font-mono": "var(--font-geist-mono), ui-monospace, 'SFMono-Regular', 'SF Mono', Consolas, 'Liberation Mono', monospace",
+  "--font-sans":
+    "var(--font-manrope), var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "--font-display":
+    "var(--font-dm-sans), var(--font-manrope), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "--font-mono":
+    "var(--font-geist-mono), ui-monospace, 'SFMono-Regular', 'SF Mono', Consolas, 'Liberation Mono', monospace",
 } as CSSProperties;
 
 export const metadata: Metadata = {
   title: "Manris",
   description:
     "Platform SaaS untuk mendigitalisasi seluruh siklus manajemen risiko dan pelaporan insiden berbasis ISO 31000:2018 dengan integrasi kecerdasan buatan.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -42,7 +48,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" style={fontVariables} className={`${manrope.variable} ${dmSans.variable} ${geistMono.variable}`}>
+    <html
+      lang="id"
+      style={fontVariables}
+      className={`${manrope.variable} ${dmSans.variable} ${geistMono.variable}`}
+    >
       <body className="antialiased">
         <AuthProvider>
           {children}

@@ -10,11 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
-import { filterToAccessibleOrgs } from "@/lib/organization";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { classifyRiskCycleDetailMovement, exportRiskCycleDetailCSV, exportRiskCycleDetailXLSX } from "@/lib/risk-cycle-detail-export";
 import { cn } from "@/lib/utils";
+import {
+  buildSelectableReportOrganizations,
+  needsExplicitReportOrgSelection,
+  resolveDefaultReportOrgId,
+} from "@/lib/report-scope";
+import { OrganizationPicker } from "@/components/report/organization-picker";
 import type {
   RiskCycleDetailedComparisonItem,
   RiskCycleDetailedComparisonReport,
@@ -247,12 +252,15 @@ export function RiskCycleDetailReport({
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
   const [fromCycle, setFromCycle] = useState(defaultFromCycle);
   const [toCycle, setToCycle] = useState(defaultToCycle);
-  const [orgFilter, setOrgFilter] = useState<string>("all");
+  const [orgFilter, setOrgFilter] = useState<string>("");
   const [includeStable, setIncludeStable] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>("changed");
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState<RiskCycleDetailedComparisonReport | null>(null);
+  const requiresOrganizationSelection = needsExplicitReportOrgSelection(user);
+  const compactSelectTriggerClass =
+    "h-8 border border-border/50 bg-background/80 text-xs shadow-none";
 
   useEffect(() => {
     if (controlledFromCycle) setFromCycle(controlledFromCycle);
@@ -290,23 +298,51 @@ export function RiskCycleDetailReport({
       try {
         const data = await listAllOrganizations(token);
         const uniqueOrgs = dedupeOrganizations(data);
-        const filteredOrgs = user?.isGlobal 
-          ? uniqueOrgs 
-          : filterToAccessibleOrgs(uniqueOrgs, user?.accessibleOrgIds || []);
-        setOrganizations(filteredOrgs);
+        setOrganizations(buildSelectableReportOrganizations(user, uniqueOrgs));
       } catch (error) {
         console.error(error);
       }
     };
 
     loadOrganizations();
-  }, [token]);
+  }, [token, user]);
+
+  useEffect(() => {
+    if (organizations.length === 0) {
+      setOrgFilter("");
+      return;
+    }
+
+    if (user?.isGlobal) {
+      setOrgFilter((current) => current || "all");
+      return;
+    }
+
+    const defaultOrgId = resolveDefaultReportOrgId(user);
+    if (defaultOrgId) {
+      setOrgFilter((current) => current || defaultOrgId);
+      return;
+    }
+
+    if (requiresOrganizationSelection) {
+      setOrgFilter("");
+      return;
+    }
+
+    setOrgFilter((current) => current || organizations[0]?.id || "");
+  }, [organizations, requiresOrganizationSelection, user]);
 
   useEffect(() => {
     if (!token) return;
     if (fromCycle === toCycle) {
       setLoading(false);
       setReport(null);
+      return;
+    }
+    if (requiresOrganizationSelection && !orgFilter) {
+      setLoading(false);
+      setReport(null);
+      setExpandedRows({});
       return;
     }
 
@@ -320,7 +356,7 @@ export function RiskCycleDetailReport({
           to: toCycle,
           include_stable: includeStable ? "true" : "false",
         });
-        if (orgFilter !== "all") params.set("org_id", orgFilter);
+        if (orgFilter && orgFilter !== "all") params.set("org_id", orgFilter);
         const data = await api.get<RiskCycleDetailedComparisonReport>(`/risks/compare/detail?${params.toString()}`, token);
         setReport({
           ...data,
@@ -336,7 +372,7 @@ export function RiskCycleDetailReport({
     };
 
     loadReport();
-  }, [token, fromCycle, toCycle, orgFilter, includeStable]);
+  }, [token, fromCycle, toCycle, orgFilter, includeStable, requiresOrganizationSelection]);
 
   const filteredItems = useMemo(() => {
     const items = report?.items ?? [];
@@ -416,7 +452,7 @@ export function RiskCycleDetailReport({
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Select value={fromCycle} onValueChange={setFromCycle}>
-            <SelectTrigger>
+            <SelectTrigger className={compactSelectTriggerClass}>
               <SelectValue placeholder="Periode awal" />
             </SelectTrigger>
             <SelectContent>
@@ -426,7 +462,7 @@ export function RiskCycleDetailReport({
             </SelectContent>
           </Select>
           <Select value={toCycle} onValueChange={setToCycle}>
-            <SelectTrigger>
+            <SelectTrigger className={compactSelectTriggerClass}>
               <SelectValue placeholder="Periode akhir" />
             </SelectTrigger>
             <SelectContent>
@@ -435,19 +471,15 @@ export function RiskCycleDetailReport({
               ))}
             </SelectContent>
           </Select>
-          <Select value={orgFilter} onValueChange={setOrgFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Semua unit" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua unit</SelectItem>
-              {organizations.map((org) => (
-                <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <OrganizationPicker
+            value={orgFilter}
+            organizations={organizations}
+            onChange={setOrgFilter}
+            allowAllOption={Boolean(user?.isGlobal)}
+            allOptionLabel="Semua unit"
+          />
           <Select value={includeStable ? "show" : "hide"} onValueChange={(value) => setIncludeStable(value === "show")}>
-            <SelectTrigger>
+            <SelectTrigger className={compactSelectTriggerClass}>
               <SelectValue placeholder="Stable rows" />
             </SelectTrigger>
             <SelectContent>
@@ -465,6 +497,11 @@ export function RiskCycleDetailReport({
           </div>
         ) : null}
       </CardHeader>
+      {requiresOrganizationSelection && !orgFilter ? (
+        <div className="mx-6 mt-0 rounded-lg border border-dashed border-border/50 bg-muted/20 px-4 py-5 text-center text-sm text-muted-foreground">
+          Pilih unit untuk melihat laporan perubahan risiko.
+        </div>
+      ) : null}
       <CardContent className="space-y-4">
         {fromCycle === toCycle ? (
           <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">Periode awal dan akhir harus berbeda.</div>

@@ -29,14 +29,19 @@ export function ROPicker({
   value,
   onChange,
 }: ROPickerProps) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<PlanningROOption[]>([]);
   const [loading, setLoading] = useState(false);
+  const canQuerySelectedOrg =
+    Boolean(user?.isGlobal) || user?.organizationId === organizationId;
 
   const loadROOptions = useCallback(async () => {
-    if (!token || !organizationId || !period) return;
+    if (!token || !organizationId || !period || !canQuerySelectedOrg) {
+      setItems([]);
+      return;
+    }
     try {
       setLoading(true);
       const res = await listPlanningROOptions(token, {
@@ -50,7 +55,7 @@ export function ROPicker({
     } finally {
       setLoading(false);
     }
-  }, [organizationId, period, query, token]);
+  }, [canQuerySelectedOrg, organizationId, period, query, token]);
 
   useEffect(() => {
     loadROOptions();

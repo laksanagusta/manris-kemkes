@@ -82,7 +82,6 @@ const formSchema = z.object({
       }),
     )
     .min(1, "Minimal 1 penandatangan harus ditambahkan"),
-  skip_tte: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -142,7 +141,6 @@ export default function CreateWorkingPaperPage() {
       assessment_cycle: assessmentCycle,
       risks: [],
       signatories: [createEmptyWorkingPaperSignatory()],
-      skip_tte: false,
     },
   });
 
@@ -157,7 +155,6 @@ export default function CreateWorkingPaperPage() {
   });
 
   const watchRisks = watch("risks");
-  const watchSkipTTE = watch("skip_tte");
   const watchedSignatories = watch("signatories") ?? [];
 
   useEffect(() => {
@@ -328,7 +325,6 @@ export default function CreateWorkingPaperPage() {
           signer_pangkat: sig.signer_pangkat,
           signer_nip: sig.signer_nip || undefined,
         })),
-        skip_tte: data.skip_tte,
       };
 
       const result = await createWorkingPaper(payload, token);
@@ -353,13 +349,12 @@ export default function CreateWorkingPaperPage() {
             </Badge>
           </span>
         }
-        backLabel="Kembali ke Kertas Kerja"
-        onBack={() => router.push("/risk/working-papers")}
-      />
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
+        actions={
+          <Button
+            type="submit"
+            form="working-paper-create-form"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -372,7 +367,16 @@ export default function CreateWorkingPaperPage() {
               </>
             )}
           </Button>
-        </div>
+        }
+        backLabel="Kembali ke Kertas Kerja"
+        onBack={() => router.push("/risk/working-papers")}
+      />
+
+      <form
+        id="working-paper-create-form"
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-8"
+      >
         {/* ── Informasi Kertas Kerja ─────────────────────── */}
         <FormSection
           title="Informasi Kertas Kerja"
@@ -406,11 +410,7 @@ export default function CreateWorkingPaperPage() {
         {/* ── Pilih Risiko ───────────────────────────────── */}
         <FormSection
           title="Pilih Risiko"
-          description={
-            watchSkipTTE
-              ? "Pilih risiko yang ingin dimasukkan (persetujuan risiko tidak diperlukan)"
-              : "Pilih risiko yang telah disetujui (minimal 1)"
-          }
+          description="Pilih risiko yang telah disetujui (minimal 1)"
           action={
             <Badge variant="secondary" className="px-2.5 py-0.5">
               {watchRisks.length} dipilih
@@ -627,7 +627,7 @@ export default function CreateWorkingPaperPage() {
         {/* ── Konfigurasi Penandatangan ──────────────────── */}
         <FormSection
           title="Konfigurasi Penandatangan"
-          description="Tambah penandatangan, atur urutan dengan drag handle, dan tentukan sequence penandatanganan dokumen"
+          description="Tambah penandatangan dan atur urutan dengan drag handle."
           action={
             <Badge variant="secondary" className="px-2.5 py-0.5">
               {signatoryFields.length} penandatangan
@@ -664,41 +664,6 @@ export default function CreateWorkingPaperPage() {
               dndGroup="working-paper-signatories"
             />
           </div>
-        </FormSection>
-        {/* ── Opsi Tanda Tangan ────────────────────────── */}
-        <FormSection
-          title="Opsi Tanda Tangan"
-          description="Pilih metode penyelesaian kertas kerja"
-        >
-          <div className="flex items-start space-x-3 rounded-md border border-border p-4">
-            <Checkbox
-              id="skip_tte"
-              checked={watchSkipTTE ?? false}
-              onCheckedChange={(checked) =>
-                setValue("skip_tte", checked === true, { shouldValidate: true })
-              }
-            />
-            <div className="space-y-1 leading-none">
-              <label
-                htmlFor="skip_tte"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Lewati TTE (tanpa tanda tangan elektronik)
-              </label>
-              <p className="text-xs text-muted-foreground">
-                Kertas kerja akan langsung berstatus selesai tanpa proses TTE.
-                Semua penandatangan tetap tercantum namun tidak melakukan tanda
-                tangan elektronik.
-              </p>
-            </div>
-          </div>
-          {watchSkipTTE && (
-            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              <strong>Perhatian:</strong> Kertas kerja akan langsung selesai
-              tanpa proses tanda tangan elektronik. Tindakan ini tidak dapat
-              dibatalkan.
-            </div>
-          )}
         </FormSection>
       </form>
     </FormPage>

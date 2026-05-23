@@ -3,11 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RiskAssessmentSummaryStrip } from "@/components/shared/risk-assessment-summary-strip";
 import {
   getRiskLevelFromNilai,
-  getRiskLevelLabel,
   getBobot,
-  levelToColor,
   getSimpulanEfektifitasColor,
   getSimpulanEfektifitas,
 } from "@/lib/risk";
@@ -48,8 +47,7 @@ export function SimpulanCard({
   const levelBaru = getRiskLevelFromNilai(nilaiBaru);
   const bobot = getBobot(probability, impact);
   const prioritas = Math.round(nilaiBaru / 10) || 1;
-  const levelColorClass = levelToColor(levelBaru);
-  const { currentScore, newScore, delta, deltaPercent, isStable, isDecrease } =
+  const { currentScore, newScore, delta, isStable, isDecrease } =
     resolveAssessmentScoreComparison({
       currentInherentScore,
       currentNilai: nilaiCurrent,
@@ -87,28 +85,32 @@ export function SimpulanCard({
 
   const efektifitasColor = getSimpulanEfektifitasColor(currentScore, newScore);
   const efektifitasLabel = getSimpulanEfektifitas(currentScore, newScore);
+  const trendLabel = isStable ? "Stabil" : isDecrease ? "Turun" : "Naik";
+  const trendTone = isStable ? "neutral" : isDecrease ? "success" : "warning";
 
   return (
-    <div className="space-y-4">
-      <div
-        className={cn(
-          "flex items-center justify-between rounded-lg border p-4",
-          levelColorClass,
-        )}
-      >
-        <div className="text-left">
-          <p className="text-xs font-semibold">Hasil Pemantauan</p>
-          <p className="text-xs opacity-80 mt-1">
-            Bobot: {bobot.toFixed(2)} | Prioritas: {prioritas}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-lg font-bold">{getRiskLevelLabel(levelBaru)}</p>
-          <p className="text-xs font-mono opacity-80">
-            Skor Risiko: {newScore}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-3">
+      <RiskAssessmentSummaryStrip
+        title="Hasil Pemantauan"
+        score={newScore}
+        level={levelBaru}
+        scoreLabel="Skor risiko"
+        statusLabel={trendLabel}
+        statusTone={trendTone}
+        helperText="Ringkasan otomatis dari skor sebelumnya dan perhitungan ulang berdasarkan probabilitas serta dampak."
+        metrics={[
+          {
+            label: "Bobot",
+            value: (
+              <span className="font-mono tabular-nums">{bobot.toFixed(2)}</span>
+            ),
+          },
+          {
+            label: "Prioritas",
+            value: <span className="tabular-nums">{prioritas}</span>,
+          },
+        ]}
+      />
 
       <div className="rounded-xl border border-border/50 bg-background p-4">
         <div className="space-y-4">
@@ -156,18 +158,6 @@ export function SimpulanCard({
             </div>
           )}
 
-          <div className="flex items-center justify-between border-t border-border/50 pt-4">
-            <p className="text-xs font-medium text-muted-foreground">
-              Efektivitas Penanganan
-            </p>
-            <Badge
-              variant="outline"
-              className={cn("border-transparent font-medium", efektifitasColor)}
-            >
-              {efektifitasLabel}
-            </Badge>
-          </div>
-
           <div className="border-t border-border/50 pt-4">
             <p className="mb-1 text-xs font-medium text-muted-foreground">
               Status Tingkat Risiko
@@ -186,8 +176,22 @@ export function SimpulanCard({
                 ? "Tidak ada penurunan tingkat risiko"
                 : isDecrease
                   ? "Tingkat risiko mengalami penurunan"
-                  : "Tingkat risiko mengalami peningkatan"}
+                : "Tingkat risiko mengalami peningkatan"}
             </p>
+            <div className="mt-3 border-t border-border/50 pt-3">
+              <p className="mb-1 text-xs font-medium text-muted-foreground">
+                Efektivitas
+              </p>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "border-transparent font-medium",
+                  efektifitasColor,
+                )}
+              >
+                {efektifitasLabel}
+              </Badge>
+            </div>
           </div>
         </div>
       </div>

@@ -397,6 +397,7 @@ func main() {
 	protected.Delete("/working-papers/:id", wpHandler.Delete)
 	protected.Post("/working-papers/:id/sign", wpHandler.Sign)
 	protected.Post("/working-papers/:id/cancel", wpHandler.Cancel)
+	protected.Post("/working-papers/:id/skip-tte", wpHandler.SkipTTE)
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)

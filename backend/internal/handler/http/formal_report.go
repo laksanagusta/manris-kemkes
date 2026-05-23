@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/middleware"
 	formalreportuc "github.com/manris/backend/internal/usecase/formalreport"
 )
@@ -55,18 +57,15 @@ func (h *FormalReportHandler) List(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
 	var organizationID *uuid.UUID
 	if raw := c.Query("organization_id"); raw != "" {
-		parsed, err := uuid.Parse(raw)
+		orgIDs, err := resolveReportOrgIDs(scope, raw)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
-		}
-		if scope != nil && !scope.IsGlobal {
-			narrowed, err := scope.NarrowToOrg(parsed)
-			if err != nil {
+			if errors.Is(err, domainerrors.ErrForbidden) {
 				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
 			}
-			organizationID = &narrowed[0]
-		} else {
-			organizationID = &parsed
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		}
+		if len(orgIDs) > 0 {
+			organizationID = &orgIDs[0]
 		}
 	} else if scope != nil && !scope.IsGlobal && scope.OrganizationID != nil {
 		organizationID = scope.OrganizationID

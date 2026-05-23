@@ -10,6 +10,7 @@ import {
   getWorkingPaper,
   signWorkingPaper,
   cancelWorkingPaper,
+  skipTTEWorkingPaper,
   deleteWorkingPaper,
 } from "@/lib/api/working-papers";
 import { buildWorkingPaperDetailViewModel } from "@/lib/working-paper-detail-view-model";
@@ -50,6 +51,7 @@ import {
   Download,
   FileSignature,
   Loader2,
+  SkipForward,
   ShieldAlert,
   Trash2,
   XCircle,
@@ -93,17 +95,24 @@ const levelBadgeVariant: Record<string, string> = {
 };
 
 const actionToneClassName = {
-  attention: "border-primary/20 bg-primary/[0.05]",
-  neutral: "border-border/60 bg-muted/30",
-  success: "border-success/20 bg-success/10",
-  danger: "border-destructive/20 bg-destructive/10",
+  attention: "border-border/70 bg-zinc-50",
+  neutral: "border-border/70 bg-zinc-50",
+  success: "border-border/70 bg-zinc-50",
+  danger: "border-border/70 bg-zinc-50",
 } as const;
 
 const actionToneTitleClassName = {
-  attention: "text-primary",
+  attention: "text-zinc-900",
   neutral: "text-foreground",
-  success: "text-success",
-  danger: "text-destructive",
+  success: "text-zinc-900",
+  danger: "text-zinc-900",
+} as const;
+
+const actionToneDotClassName = {
+  attention: "bg-zinc-500",
+  neutral: "bg-zinc-500",
+  success: "bg-zinc-500",
+  danger: "bg-zinc-500",
 } as const;
 
 const timelineStatusClassName = {
@@ -153,6 +162,7 @@ export default function WorkingPaperDetailPage(props: {
   const [error, setError] = useState<string | null>(null);
 
   const [signDialogOpen, setSignDialogOpen] = useState(false);
+  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
@@ -206,6 +216,20 @@ export default function WorkingPaperDetailPage(props: {
         err instanceof Error
           ? err.message
           : "Gagal menandatangani Kertas Kerja.",
+      );
+    }
+  };
+
+  const handleSkipTTE = async () => {
+    if (!token || !data) return;
+    try {
+      await skipTTEWorkingPaper(id, token);
+      toast.success("TTE berhasil dilewati dan kertas kerja diselesaikan.");
+      setSkipDialogOpen(false);
+      loadData();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Gagal melewati TTE.",
       );
     }
   };
@@ -398,6 +422,17 @@ export default function WorkingPaperDetailPage(props: {
                 Batalkan
               </Button>
             )}
+            {viewModel.canSkipTTE && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-success hover:bg-success/10 hover:text-success"
+                onClick={() => setSkipDialogOpen(true)}
+              >
+                <SkipForward className="w-4 h-4 mr-2" />
+                Lewati TTE
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />
               Ekspor Excel
@@ -409,35 +444,50 @@ export default function WorkingPaperDetailPage(props: {
       {viewModel.currentAction ? (
         <section
           className={cn(
-            "rounded-xl border px-5 py-5",
+            "rounded-xl border px-4 py-3",
             actionToneClassName[viewModel.currentAction.tone],
           )}
         >
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0 space-y-1.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Langkah saat ini
-              </p>
-              <h2
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div
                 className={cn(
-                  "text-lg font-semibold tracking-tight",
-                  actionToneTitleClassName[viewModel.currentAction.tone],
+                  "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-border/70 bg-zinc-100",
                 )}
               >
-                {viewModel.currentAction.title}
-              </h2>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                {viewModel.currentAction.description}
-              </p>
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    actionToneDotClassName[viewModel.currentAction.tone],
+                  )}
+                />
+              </div>
+
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Status saat ini
+                </p>
+                <h2
+                  className={cn(
+                    "text-sm font-semibold leading-5",
+                    actionToneTitleClassName[viewModel.currentAction.tone],
+                  )}
+                >
+                  {viewModel.currentAction.title}
+                </h2>
+                <p className="max-w-2xl text-sm leading-5 text-muted-foreground line-clamp-2">
+                  {viewModel.currentAction.description}
+                </p>
+              </div>
             </div>
 
             {viewModel.canSign && viewModel.currentAction.buttonLabel ? (
               <Button
-                size="lg"
+                size="sm"
                 className="shadow-sm"
                 onClick={() => setSignDialogOpen(true)}
               >
-                <FileSignature className="mr-2 size-4" />
+                <FileSignature className="mr-2 size-3.5" />
                 {viewModel.currentAction.buttonLabel}
               </Button>
             ) : null}
@@ -449,19 +499,26 @@ export default function WorkingPaperDetailPage(props: {
         <div className="min-w-0 space-y-6">
           <FormSection
             title="Ringkasan dokumen"
+            className="border-zinc-200/80 bg-gradient-to-b from-zinc-50 to-zinc-100/60 shadow-sm"
             action={
-              <Badge variant="secondary" className="font-mono">
+              <Badge
+                variant="secondary"
+                className="border-zinc-200 bg-zinc-100 text-zinc-700 font-mono"
+              >
                 {signedCount}/{signatories.length || 0} TTE
               </Badge>
             }
           >
             <dl className="grid gap-4 sm:grid-cols-2">
               {summaryItems.map((item) => (
-                <div key={item.label} className="space-y-1">
-                  <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <div
+                  key={item.label}
+                  className="space-y-1 rounded-xl border border-zinc-200/80 bg-white/75 px-4 py-3 shadow-sm shadow-zinc-950/[0.03]"
+                >
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                     {item.label}
                   </dt>
-                  <dd className="text-sm font-medium text-foreground">
+                  <dd className="text-sm font-medium text-zinc-900">
                     {item.value}
                   </dd>
                 </div>
@@ -839,6 +896,25 @@ export default function WorkingPaperDetailPage(props: {
               className="bg-amber-600 hover:bg-amber-700 focus:ring-amber-600"
             >
               Batalkan Dokumen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={skipDialogOpen} onOpenChange={setSkipDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Lewati TTE</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini akan menyelesaikan Kertas Kerja tanpa tanda tangan
+              elektronik dan langsung mengunci versi risiko terkait. Pastikan
+              semua risiko di dalam dokumen sudah selesai diproses.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSkipTTE}>
+              Lewati TTE
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

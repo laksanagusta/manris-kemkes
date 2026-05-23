@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -50,6 +49,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import {
   Accordion,
@@ -64,38 +71,26 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 
 import { cn } from "@/lib/utils";
 import {
   Loader2,
-  AlertCircle,
+  Archive,
   Download,
-  History,
   Save,
+  MoreHorizontal,
   Send,
-  Activity,
+  Radar,
   CheckCircle2,
   CircleDot,
   WandSparkles,
   Trash2,
-  RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  Minus,
+  RotateCcw,
   GitBranch,
 } from "lucide-react";
 
 import {
   getRiskLevelFromNilai,
-  getRiskLevelLabel,
   levelToColor,
   riskCategoryLabels,
   getBobot,
@@ -117,6 +112,7 @@ import {
 import { EditableList } from "@/components/shared/editable-list";
 import { EditableItemsTable } from "@/components/shared/editable-items-table";
 import { FormHeader } from "@/components/shared/form-shell";
+import { RiskAssessmentSummaryStrip } from "@/components/shared/risk-assessment-summary-strip";
 import {
   MitigationTable,
   type MitigationItem,
@@ -156,10 +152,6 @@ import {
 } from "@/lib/risk-register-user-picker";
 import { getRiskApprovalCapabilityBehavior } from "@/lib/risk-approval-capability";
 import {
-  buildSequentialVersionHistory,
-  getRiskVersionDetailHref,
-} from "@/lib/risk-history";
-import {
   AiSuggestionModal,
   type SuggestionItem,
 } from "@/components/shared/ai-suggestion-modal";
@@ -197,42 +189,6 @@ const CATEGORY_TITLES: Record<string, string> = {
   mesin: "Mesin",
   material: "Material",
   lingkungan: "Lingkungan",
-};
-
-const VERSION_LEVEL_BADGE: Record<string, string> = {
-  "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
-  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
-  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi":
-    "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
-};
-
-const versionTrendMeta: Record<
-  "up" | "down" | "stable",
-  {
-    summary: (item: {
-      previousScore?: number;
-      currentScore?: number;
-      changeReason: string;
-      isBaseline?: boolean;
-    }) => string;
-  }
-> = {
-  up: {
-    summary: (item) =>
-      `Skor naik dari ${item.previousScore ?? 0} ke ${item.currentScore ?? 0}`,
-  },
-  down: {
-    summary: (item) =>
-      `Skor turun dari ${item.previousScore ?? 0} ke ${item.currentScore ?? 0}`,
-  },
-  stable: {
-    summary: (item) =>
-      item.isBaseline
-        ? `Skor awal ditetapkan di ${item.currentScore ?? 0}`
-        : `Skor tetap di ${item.currentScore ?? 0}`,
-  },
 };
 
 const statusVariant: Record<string, string> = {
@@ -730,14 +686,10 @@ export default function RiskInputPage() {
   const [archiveReasonInput, setArchiveReasonInput] = useState("");
   const [archiveNoteInput, setArchiveNoteInput] = useState("");
   const [showSubmitReviewConfirm, setShowSubmitReviewConfirm] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [riskVersions, setRiskVersions] = useState<RiskVersionTimelineItem[]>(
     [],
   );
   const [loadingVersions, setLoadingVersions] = useState(false);
-  const [versionHistoryError, setVersionHistoryError] = useState<string | null>(
-    null,
-  );
   const submitTarget = useRef<"draft" | "review">("draft");
 
   const form = useForm<FormInput, unknown, FormValues>({
@@ -1267,7 +1219,6 @@ export default function RiskInputPage() {
           setMitigationProgressDraft({
             taskId: documentPrefill.taskId,
             progressPct: documentPrefill.progressPct || 0,
-            actualCost: documentPrefill.actualCost || 0,
             notes: documentPrefill.notes || "",
           });
           if (existingRiskId) {
@@ -1347,7 +1298,6 @@ export default function RiskInputPage() {
           setMitigationProgressDraft({
             taskId: latestMitigationPrefill.taskId,
             progressPct: latestMitigationPrefill.progressPct || 0,
-            actualCost: latestMitigationPrefill.actualCost || 0,
             notes: latestMitigationPrefill.notes || "",
           });
           toast.success("Draft laporan mitigasi siap dipakai di tab Progress.");
@@ -1510,9 +1460,10 @@ export default function RiskInputPage() {
     [impact, nilai, probability, riskStatus, weight],
   );
   const currentPrimarySnapshot = currentScoreSemantics.effective;
-  const currentScoreLabel = "Skor Risiko";
   const canUseAiAssist =
-    !aiFeaturesDisabled && title.trim().length > 0 && description.trim().length > 0;
+    !aiFeaturesDisabled &&
+    title.trim().length > 0 &&
+    description.trim().length > 0;
 
   const sectionStatuses: SectionStatus[] = [
     {
@@ -1574,7 +1525,6 @@ export default function RiskInputPage() {
     (section) => section.done,
   ).length;
   const missingSections = sectionStatuses.filter((section) => !section.done);
-  const isFinalizeReady = missingSections.length === 0;
   const lockedControlClass =
     "disabled:!bg-background disabled:!text-foreground/90 disabled:!opacity-100 disabled:!cursor-not-allowed";
   const isRiskLocked =
@@ -2002,7 +1952,6 @@ export default function RiskInputPage() {
     async (id: string) => {
       if (!token) return;
       setLoadingVersions(true);
-      setVersionHistoryError(null);
       try {
         const items = await api.get<RiskVersionTimelineItem[]>(
           `/risks/${id}/versions`,
@@ -2011,9 +1960,6 @@ export default function RiskInputPage() {
         setRiskVersions(items || []);
       } catch {
         toast.error("Gagal memuat riwayat versi.");
-        setVersionHistoryError(
-          "Riwayat versi belum berhasil dimuat. Coba lagi beberapa saat lagi.",
-        );
       } finally {
         setLoadingVersions(false);
       }
@@ -2024,21 +1970,12 @@ export default function RiskInputPage() {
   const handleViewChange = (nextView: WorkspaceView) => {
     if (nextView !== "form" && !riskId) {
       toast.info(
-        "Simpan draft terlebih dahulu untuk membuka analisa detail, progress mitigasi, dan log komunikasi.",
+        "Simpan draft terlebih dahulu untuk membuka analisa detail, progress mitigasi, riwayat versi, dan log komunikasi.",
       );
       return;
     }
     setActiveView(nextView);
   };
-
-  const versionHistory = useMemo(() => {
-    if (riskVersions.length === 0) {
-      return [];
-    }
-
-    return buildSequentialVersionHistory(riskVersions);
-  }, [riskVersions]);
-  const activeHistoryVersion = versionHistory.find((item) => item.isCurrent);
 
   useEffect(() => {
     if (riskId && token) {
@@ -2228,24 +2165,13 @@ export default function RiskInputPage() {
               <Badge
                 className={cn(
                   "h-5 border px-1.5 text-[10px] font-medium",
-                  statusVariant[riskStatus] ?? "bg-muted text-muted-foreground border-border",
+                  statusVariant[riskStatus] ??
+                    "bg-muted text-muted-foreground border-border",
                 )}
               >
                 {riskStatus === "assessment_draft" && !riskId
                   ? "Draft"
                   : statusLabel[riskStatus] || riskStatus}
-              </Badge>
-              <Badge
-                className={cn(
-                  "h-5 border px-1.5 text-[10px] font-medium",
-                  isFinalizeReady
-                    ? "bg-success/10 text-success"
-                    : "bg-muted/40 text-muted-foreground",
-                )}
-              >
-                {isFinalizeReady
-                  ? "Lengkap diajukan"
-                  : `${missingSections.length} bagian belum siap`}
               </Badge>
             </>
           }
@@ -2275,19 +2201,6 @@ export default function RiskInputPage() {
                   Pulihkan
                 </Button>
               )}
-              {ongoingAssessmentId && (
-                <Button
-                  variant="outline"
-                  className="gap-2 border-primary/20 text-primary hover:bg-primary/5 hover:text-primary"
-                  onClick={() =>
-                    router.push(`/risk/assessment/${ongoingAssessmentId}`)
-                  }
-                >
-                  <Activity className="size-4" />
-                  Lihat pemantauan
-                </Button>
-              )}
-
               {riskId && riskStatus === "approved" && (
                 <Button
                   variant="outline"
@@ -2305,278 +2218,67 @@ export default function RiskInputPage() {
               )}
 
               {riskId && (
-                <Sheet
-                  open={historyOpen}
-                  onOpenChange={(open) => {
-                    setHistoryOpen(open);
-                    if (open && riskId) {
-                      void loadRiskVersions(riskId);
-                    }
-                  }}
-                >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SheetTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-2 border-border/70 bg-background/90 px-3 text-xs font-medium text-foreground shadow-sm hover:bg-muted/40"
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="gap-2 border-border/70 bg-background/90"
+                    >
+                      <MoreHorizontal className="size-4" />
+                      Aksi lainnya
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Aksi dokumen</DropdownMenuLabel>
+                    {ongoingAssessmentId && (
+                      <DropdownMenuItem
+                        className="gap-2"
+                        onClick={() =>
+                          router.push(`/risk/assessment/${ongoingAssessmentId}`)
+                        }
+                      >
+                        <Radar className="size-3.5" />
+                        Lihat pemantauan
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    {canManageArchive &&
+                      !riskArchivedAt &&
+                      riskStatus === "approved" && (
+                        <DropdownMenuItem
+                          className="gap-2"
+                          onClick={() => setShowArchiveDialog(true)}
                         >
-                          <History className="size-4" />
-                          <span>Riwayat versi</span>
-                          {versionHistory.length > 0 ? (
-                            <Badge
-                              variant="secondary"
-                              className="h-5 min-w-5 rounded-full px-1.5 text-[10px]"
-                            >
-                              {versionHistory.length}
-                            </Badge>
-                          ) : null}
-                        </Button>
-                      </SheetTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent>Riwayat versi</TooltipContent>
-                  </Tooltip>
-                  <SheetContent
-                    side="right"
-                    className="overflow-y-auto sm:max-w-lg"
-                  >
-                    <SheetHeader className="border-b border-border/50 pb-4">
-                      <SheetTitle className="flex items-center gap-2 text-base font-bold">
-                        <History className="size-4" />
-                        Riwayat Versi
-                      </SheetTitle>
-                      <SheetDescription>
-                        Lacak perubahan skor, level, dan alasan pembaruan sebelum
-                        Anda meninjau versi yang aktif.
-                      </SheetDescription>
-                    </SheetHeader>
-                    <div className="flex-1 px-4 pb-5 pt-4">
-                      {loadingVersions ? (
-                        <div className="flex items-center justify-center py-12">
-                          <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                          <span className="ml-2 text-sm text-muted-foreground">
-                            Memuat riwayat...
-                          </span>
-                        </div>
-                      ) : versionHistoryError ? (
-                        <div className="rounded-xl border border-destructive/15 bg-destructive/5 p-4">
-                          <div className="flex items-start gap-3">
-                            <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
-                            <div className="min-w-0 space-y-1">
-                              <p className="text-sm font-medium text-foreground">
-                                Riwayat versi belum tersedia
-                              </p>
-                              <p className="text-sm leading-6 text-muted-foreground">
-                                {versionHistoryError}
-                              </p>
-                            </div>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="mt-4 gap-2"
-                            onClick={() => {
-                              if (riskId) {
-                                void loadRiskVersions(riskId);
-                              }
-                            }}
-                          >
-                            <RefreshCw className="size-3.5" />
-                            Coba lagi
-                          </Button>
-                        </div>
-                      ) : versionHistory.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                          <GitBranch className="size-8 text-muted-foreground/50 mb-3" />
-                          <p className="text-sm font-medium">
-                            Belum Ada Riwayat Versi
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                          Riwayat versi akan tersedia setelah risiko ini
-                          mengalami perubahan skor.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/[0.28] p-4 sm:grid-cols-2">
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                              Versi aktif
-                            </p>
-                            <p className="text-sm font-semibold text-foreground">
-                              {activeHistoryVersion?.versionNumber
-                                ? `Versi ${activeHistoryVersion.versionNumber}`
-                                : "Versi aktif tersedia"}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {activeHistoryVersion?.changedAtLabel ?? "-"}
-                            </p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                              Total jejak perubahan
-                            </p>
-                            <p className="text-sm font-semibold text-foreground">
-                              {versionHistory.length} versi tersimpan
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Gunakan ringkasan ini untuk melihat perubahan
-                              penting sebelum membuka detail lengkap.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="relative pt-2">
-                          <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border/50" />
-                          <div className="flex flex-col gap-4">
-                            {versionHistory.map((item, index) => (
-                              <div
-                                key={item.id}
-                                className="relative flex gap-3 rounded-xl border border-transparent p-3 transition-colors hover:border-border/70 hover:bg-muted/30"
-                              >
-                                <div className="z-10 flex size-6 shrink-0 items-center justify-center rounded-full border border-border/50 bg-background">
-                                  {item.trend === "up" ? (
-                                    <TrendingUp className="size-3.5 text-risk-extreme" />
-                                  ) : item.trend === "down" ? (
-                                    <TrendingDown className="size-3.5 text-success" />
-                                  ) : (
-                                    <Minus className="size-3.5 text-muted-foreground" />
-                                  )}
-                                </div>
-                                <div className="min-w-0 flex-1 space-y-3 pb-1">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0 space-y-1">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <Link
-                                          href={getRiskVersionDetailHref(item)}
-                                          className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:no-underline"
-                                        >
-                                          {item.versionNumber
-                                            ? `Versi ${item.versionNumber}`
-                                            : `Versi ${versionHistory.length - index}`}
-                                        </Link>
-                                        {item.isCurrent && (
-                                          <Badge
-                                            variant="outline"
-                                            className="h-5 border-primary/20 bg-primary/10 px-2 text-[10px] font-semibold text-primary"
-                                          >
-                                            Versi aktif
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      <p className="text-xs text-muted-foreground">
-                                        {item.cycle}
-                                        {item.changedAtLabel
-                                          ? ` • ${item.changedAtLabel}`
-                                          : ""}
-                                      </p>
-                                    </div>
-                                    <div className="shrink-0">
-                                      <Badge
-                                        variant="outline"
-                                        className={cn(
-                                          "h-6 border px-2 text-[10px] font-semibold",
-                                          VERSION_LEVEL_BADGE[item.currentLevel] ||
-                                            "",
-                                        )}
-                                      >
-                                        {item.currentLevel}
-                                      </Badge>
-                                    </div>
-                                  </div>
-
-                                  <div className="rounded-lg border border-border/60 bg-background/80 px-3 py-2">
-                                    <p className="text-sm font-medium text-foreground">
-                                      {
-                                        versionTrendMeta[item.trend].summary(
-                                          item,
-                                        )
-                                      }
-                                    </p>
-                                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                                      {item.changeReason}
-                                    </p>
-                                    {item.reviewSummary ? (
-                                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                                        Ringkasan review: {item.reviewSummary}
-                                      </p>
-                                    ) : null}
-                                  </div>
-
-                                  {item.isBaseline ? (
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <Badge
-                                        variant="outline"
-                                        className="h-5 border-border/70 bg-muted/40 px-2 text-[10px] font-semibold text-muted-foreground"
-                                      >
-                                        Baseline
-                                      </Badge>
-                                      <span className="text-xs text-muted-foreground">
-                                        Versi awal, belum ada pembanding.
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex flex-wrap items-center gap-1.5">
-                                      <span className="text-xs font-medium text-muted-foreground">
-                                        Perubahan level
-                                      </span>
-                                      <Badge
-                                        variant="outline"
-                                        className={cn(
-                                          "h-5 border px-1.5 text-[10px] font-semibold",
-                                          VERSION_LEVEL_BADGE[item.previousLevel] ||
-                                            "",
-                                        )}
-                                      >
-                                        {item.previousLevel}
-                                      </Badge>
-                                      <span className="text-xs text-muted-foreground">
-                                        ke
-                                      </span>
-                                      <Badge
-                                        variant="outline"
-                                        className={cn(
-                                          "h-5 border px-1.5 text-[10px] font-semibold",
-                                          VERSION_LEVEL_BADGE[item.currentLevel] ||
-                                            "",
-                                        )}
-                                      >
-                                        {item.currentLevel}
-                                      </Badge>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                          <Archive className="size-3.5" />
+                          Arsipkan
+                        </DropdownMenuItem>
                       )}
-                    </div>
-                  </SheetContent>
-                </Sheet>
+                    {canManageArchive && !!riskArchivedAt && (
+                      <DropdownMenuItem
+                        className="gap-2"
+                        onClick={() => setShowRestoreDialog(true)}
+                      >
+                        <RotateCcw className="size-3.5" />
+                        Pulihkan
+                      </DropdownMenuItem>
+                    )}
+                    {riskId && riskStatus === "assessment_draft" && (
+                      <DropdownMenuItem
+                        variant="destructive"
+                        className="gap-2"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        disabled={isSubmitting}
+                      >
+                        <Trash2 className="size-3.5" />
+                        Hapus draft
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
 
               {(riskStatus === "assessment_draft" || !riskId) && (
                 <div className="flex items-center gap-2 border-l border-border/40 pl-2 sm:pl-3 ml-1 sm:ml-2">
-                  {riskId && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => setShowDeleteConfirm(true)}
-                          disabled={isSubmitting}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Hapus draft</TooltipContent>
-                    </Tooltip>
-                  )}
                   <Button
                     variant="outline"
                     className="gap-2 text-xs font-medium border-primary/20 hover:bg-primary/5 hover:text-primary"
@@ -2623,71 +2325,41 @@ export default function RiskInputPage() {
         )}
 
         <div className="mb-6 w-full xl:w-2/3 space-y-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                Ruang kerja
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {riskId ? (
-                <Badge
-                  variant="outline"
-                  className="border-primary/15 bg-primary/[0.06] text-primary"
-                >
-                  Dokumen tersimpan
-                </Badge>
-              ) : (
-                <Badge
-                  variant="outline"
-                  className="border-border/15 bg-muted/50 text-muted-foreground"
-                >
-                  Simpan draft untuk membuka tab lain
-                </Badge>
-              )}
-              <Badge
-                variant="outline"
-                className={cn(
-                  "border-border/15",
-                  isFinalizeReady
-                    ? "bg-success/10 text-success"
-                    : "bg-muted/40 text-muted-foreground",
-                )}
-              >
-                {completedSectionCount}/5 bagian lengkap
-              </Badge>
-            </div>
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+              Ruang kerja
+            </p>
           </div>
 
           <Tabs
             value={activeView}
             onValueChange={(value) => handleViewChange(value as WorkspaceView)}
           >
-            <TabsList className="flex w-fit h-auto flex-col gap-1 rounded-xl border border-border/50 bg-muted/40 p-1 sm:flex-row">
+            <TabsList className="flex h-auto w-fit flex-col gap-1 rounded-xl border border-border/50 bg-muted/40 p-1 sm:flex-row">
               <TabsTrigger
                 value="form"
-                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+                className="justify-start rounded-lg px-4 py-3 text-left text-sm font-medium data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
               >
                 Form aktif
               </TabsTrigger>
               <TabsTrigger
                 value="analysis"
                 disabled={!riskId}
-                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+                className="justify-start rounded-lg px-4 py-3 text-left text-sm font-medium data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
               >
                 Analisa detail
               </TabsTrigger>
               <TabsTrigger
                 value="progress"
                 disabled={!riskId}
-                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+                className="justify-start rounded-lg px-4 py-3 text-left text-sm font-medium data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
               >
                 Progress penanganan
               </TabsTrigger>
               <TabsTrigger
                 value="log"
                 disabled={!riskId}
-                className="rounded-lg px-4 py-3 text-left text-sm font-medium justify-start data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+                className="justify-start rounded-lg px-4 py-3 text-left text-sm font-medium data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
               >
                 Activity log
               </TabsTrigger>
@@ -2701,10 +2373,7 @@ export default function RiskInputPage() {
 
         {activeView === "form" && (
           <div className="space-y-6">
-            <form
-              onSubmit={(e) => e.preventDefault()}
-              className="w-full"
-            >
+            <form onSubmit={(e) => e.preventDefault()} className="w-full">
               <Accordion
                 type="multiple"
                 value={[
@@ -2913,9 +2582,7 @@ export default function RiskInputPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-sm font-medium">
-                        RO
-                      </Label>
+                      <Label className="text-sm font-medium">RO</Label>
                       <ROPicker
                         organizationId={currentOrganizationId}
                         period={planningPeriod}
@@ -3044,12 +2711,12 @@ export default function RiskInputPage() {
                               onValueChange={field.onChange}
                               disabled={true}
                             >
-                            <SelectTrigger
-                              className={cn(
-                                "h-9 text-sm",
-                                lockedControlClass,
-                              )}
-                            >
+                              <SelectTrigger
+                                className={cn(
+                                  "h-9 text-sm",
+                                  lockedControlClass,
+                                )}
+                              >
                                 <SelectValue placeholder="Pilih Unit Kerja" />
                               </SelectTrigger>
                               <SelectContent>
@@ -3271,7 +2938,9 @@ export default function RiskInputPage() {
                           />
                         )}
                       />
-                      <FormErrorMessage error={errors.existingControl?.message} />
+                      <FormErrorMessage
+                        error={errors.existingControl?.message}
+                      />
                     </div>
                     <div className="grid gap-5 md:grid-cols-2">
                       <div className="space-y-1.5">
@@ -3402,46 +3071,46 @@ export default function RiskInputPage() {
                       </div>
                     </div>
 
-                    <div
-                      className={cn(
-                        "flex items-center justify-between rounded-lg border p-4",
-                        levelToColor(currentPrimarySnapshot.level),
-                      )}
-                    >
-                      <div className="text-left">
-                        <p className="text-xs font-semibold">Hasil Asesmen</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Bobot: {currentPrimarySnapshot.weight.toFixed(2)} |
-                          Prioritas: {currentPrimarySnapshot.priority}
-                        </p>
-                        {advisoryIsRiskUtama && (
-                          <p className="mt-1.5 text-xs font-medium text-orange-600 dark:text-orange-400">
-                            ⚠️ Risk Utama (Score ≥ 10) — pertimbangkan mitigasi
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold">
-                          {getRiskLevelLabel(currentPrimarySnapshot.level)}
-                        </p>
-                        <p className="text-xs font-mono">
-                          {currentScoreLabel}: {currentPrimarySnapshot.score}
-                        </p>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "mt-1.5 text-xs font-medium",
-                            advisoryAppetite === "di_atas_batas"
-                              ? "border-orange-400 bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-700"
-                              : "border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-700",
-                          )}
-                        >
-                          {advisoryAppetite === "di_atas_batas"
-                            ? "⚠️ Di Atas Batas"
-                            : "✓ Dalam Batas"}
-                        </Badge>
-                      </div>
-                    </div>
+                    <RiskAssessmentSummaryStrip
+                      title="Hasil Penilaian"
+                      score={currentPrimarySnapshot.score}
+                      level={currentPrimarySnapshot.level}
+                      scoreLabel="Skor risiko"
+                      statusLabel={
+                        advisoryAppetite === "di_atas_batas"
+                          ? "Di Atas Batas"
+                          : "Dalam Batas"
+                      }
+                      statusTone={
+                        advisoryAppetite === "di_atas_batas"
+                          ? "warning"
+                          : "success"
+                      }
+                      metrics={[
+                        {
+                          label: "Bobot",
+                          value: (
+                            <span className="font-mono tabular-nums">
+                              {currentPrimarySnapshot.weight.toFixed(2)}
+                            </span>
+                          ),
+                        },
+                        {
+                          label: "Prioritas",
+                          value: (
+                            <span className="tabular-nums">
+                              {currentPrimarySnapshot.priority}
+                            </span>
+                          ),
+                        },
+                      ]}
+                      note={
+                        advisoryIsRiskUtama
+                          ? `Risiko utama. Pertimbangkan mitigasi.`
+                          : undefined
+                      }
+                      noteTone={advisoryIsRiskUtama ? "warning" : "neutral"}
+                    />
                   </AccordionContent>
                 </AccordionItem>
 
@@ -3501,12 +3170,14 @@ export default function RiskInputPage() {
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
                         <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3 text-sm">
-                          <span className={cn(
-                            "font-semibold",
-                            advisoryAppetite === "di_atas_batas"
-                              ? "text-red-600"
-                              : "text-emerald-600"
-                          )}>
+                          <span
+                            className={cn(
+                              "font-semibold",
+                              advisoryAppetite === "di_atas_batas"
+                                ? "text-red-600"
+                                : "text-emerald-600",
+                            )}
+                          >
                             {advisoryAppetite === "di_atas_batas"
                               ? "Di atas batas selera risiko"
                               : "Dalam batas selera risiko"}
@@ -3671,7 +3342,9 @@ export default function RiskInputPage() {
                         }}
                         existingActions={(mitigations || [])
                           .map((mitigation) => mitigation.action)
-                          .filter((action): action is string => Boolean(action))}
+                          .filter((action): action is string =>
+                            Boolean(action),
+                          )}
                         disabled={isRiskLocked}
                       />
                     ) : null}
@@ -3808,34 +3481,36 @@ export default function RiskInputPage() {
                             </Tooltip>
                           ))}
                         </div>
-                        <FormErrorMessage error={errors.targetImpact?.message} />
+                        <FormErrorMessage
+                          error={errors.targetImpact?.message}
+                        />
                       </div>
                     </div>
 
-                    <div
-                      className={cn(
-                        "flex items-center justify-between rounded-lg border p-4",
-                        levelToColor(targetLevel),
-                      )}
-                    >
-                      <div className="text-left">
-                        <p className="text-xs font-semibold">
-                          Target Residual Risk
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Bobot: {targetWeight.toFixed(2)} | Prioritas:{" "}
-                          {targetPriority}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold">
-                          {getRiskLevelLabel(targetLevel)}
-                        </p>
-                        <p className="text-xs font-mono">
-                          Skor Target: {Math.round(targetNilai)}
-                        </p>
-                      </div>
-                    </div>
+                    <RiskAssessmentSummaryStrip
+                      title="Target Penurunan"
+                      score={Math.round(targetNilai)}
+                      level={targetLevel}
+                      scoreLabel="Skor target"
+                      metrics={[
+                        {
+                          label: "Bobot",
+                          value: (
+                            <span className="font-mono tabular-nums">
+                              {targetWeight.toFixed(2)}
+                            </span>
+                          ),
+                        },
+                        {
+                          label: "Prioritas",
+                          value: (
+                            <span className="tabular-nums">
+                              {targetPriority}
+                            </span>
+                          ),
+                        },
+                      ]}
+                    />
                   </AccordionContent>
                 </AccordionItem>
 

@@ -32,7 +32,6 @@ type createWorkingPaperRequest struct {
 	AssessmentCycle string                   `json:"assessment_cycle"`
 	Risks           []workingPaperRiskInput  `json:"risks"`
 	Signatories     []createSignatoryRequest `json:"signatories"`
-	SkipTTE         bool                     `json:"skip_tte"`
 }
 
 type workingPaperRiskInput struct {
@@ -102,7 +101,6 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 		CreatedByUserID:  userID,
 		Risks:            risks,
 		Signatories:      signatories,
-		SkipTTE:          req.SkipTTE,
 	}
 
 	wp, err := h.uc.Create(c.Context(), input)
@@ -232,6 +230,26 @@ func (h *WorkingPaperHandler) Cancel(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "working paper cancelled"})
+}
+
+// SkipTTE handles POST /working-papers/:id/skip-tte.
+func (h *WorkingPaperHandler) SkipTTE(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid working paper ID")
+	}
+
+	userID, ok := c.Locals("userId").(uuid.UUID)
+	if !ok {
+		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+	}
+
+	wp, err := h.uc.SkipTTE(c.Context(), id, userID)
+	if err != nil {
+		return handleWPError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": wp})
 }
 
 // GetPendingSigningCount handles GET /working-papers/pending-count.
