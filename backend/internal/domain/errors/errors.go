@@ -45,7 +45,6 @@ var (
 	ErrInvalidMetric          = &AppError{Code: "INVALID_METRIC", Message: "invalid metric"}
 	ErrInvalidThreshold       = &AppError{Code: "INVALID_THRESHOLD", Message: "invalid threshold range"}
 	ErrInvalidProgress        = &AppError{Code: "INVALID_PROGRESS", Message: "progress percentage must be between 0-100"}
-	ErrInvalidActualCost      = &AppError{Code: "INVALID_ACTUAL_COST", Message: "actual cost must be zero or greater"}
 	ErrInvalidEvidenceURL     = &AppError{Code: "INVALID_EVIDENCE_URL", Message: "evidence URL must be a valid http(s) URL"}
 	ErrInvalidNotes           = &AppError{Code: "INVALID_NOTES", Message: "notes must be between 10 and 1000 characters"}
 	ErrInvalidKRIValue        = &AppError{Code: "INVALID_KRI_VALUE", Message: "KRI value must be zero or greater"}
@@ -145,7 +144,6 @@ func IsValidation(err error) bool {
 		errors.Is(err, ErrInvalidMetric) ||
 		errors.Is(err, ErrInvalidThreshold) ||
 		errors.Is(err, ErrInvalidProgress) ||
-		errors.Is(err, ErrInvalidActualCost) ||
 		errors.Is(err, ErrInvalidEvidenceURL) ||
 		errors.Is(err, ErrInvalidNotes) ||
 		errors.Is(err, ErrInvalidKRIValue) ||

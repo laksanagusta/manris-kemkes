@@ -1,0 +1,4 @@
+./approve_registration.go
+./basic.go
+./create.go
+./reject_registration.go

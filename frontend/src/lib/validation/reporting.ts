@@ -1,6 +1,5 @@
 export interface MitigationReportFormValues {
   progressPct: string;
-  actualCost: string;
   evidenceUrl: string;
   notes: string;
 }
@@ -52,13 +51,6 @@ export function validateMitigationReportForm(
     errors.progressPct = "Persentase penyelesaian harus antara 0 sampai 100.";
   }
 
-  const actualCost = parseNumberInput(values.actualCost);
-  if (actualCost === null) {
-    errors.actualCost = "Biaya aktual wajib diisi.";
-  } else if (actualCost < 0) {
-    errors.actualCost = "Biaya aktual tidak boleh negatif.";
-  }
-
   const evidenceUrl = values.evidenceUrl.trim();
   if (!evidenceUrl) {
     errors.evidenceUrl = "Link bukti wajib diisi.";
@@ -81,7 +73,6 @@ export function validateMitigationReportForm(
 export function normalizeMitigationReportPayload(values: MitigationReportFormValues) {
   return {
     progressPct: Number(values.progressPct.trim()),
-    actualCost: Number(values.actualCost.trim()),
     evidenceUrl: values.evidenceUrl.trim(),
     notes: values.notes.trim(),
   };

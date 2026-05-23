@@ -76,6 +76,7 @@ test("buildWorkingPaperDetailViewModel highlights the current signer action", ()
   const result = buildWorkingPaperDetailViewModel(makeWorkingPaper(), "user-1");
 
   assert.equal(result.canSign, true);
+  assert.equal(result.canSkipTTE, false);
   assert.equal(result.canCancel, true);
   assert.equal(result.canDelete, false);
   assert.equal(result.currentAction?.title, "Tindakan Anda diperlukan");
@@ -88,6 +89,7 @@ test("buildWorkingPaperDetailViewModel explains when another signer is active", 
   const result = buildWorkingPaperDetailViewModel(makeWorkingPaper(), "user-9");
 
   assert.equal(result.canSign, false);
+  assert.equal(result.canSkipTTE, false);
   assert.equal(result.currentAction?.title, "Menunggu penandatangan aktif");
   assert.match(result.currentAction?.description ?? "", /Rina Pratiwi/);
   assert.equal(result.timeline[0]?.label, "Sedang ditinjau");
@@ -139,6 +141,44 @@ test("buildWorkingPaperDetailViewModel marks completed signatures and completed 
   assert.equal(result.timeline[1]?.label, "Sudah ditandatangani");
 });
 
+test("buildWorkingPaperDetailViewModel allows creator to skip TTE when all risks are approved", () => {
+  const result = buildWorkingPaperDetailViewModel(
+    makeWorkingPaper({
+      status: "draft",
+      current_signatory_sequence: 0,
+      created_by: "creator-1",
+      risks: [
+        {
+          id: "link-1",
+          working_paper_id: "wp-1",
+          risk_id: "risk-1",
+          sort_order: 1,
+          source_mode: "latest_approved",
+          created_at: "2026-04-01T08:00:00.000Z",
+          risk: {
+            id: "risk-1",
+            code: "R-001",
+            title: "Keterlambatan distribusi vaksin",
+            category: "operasional",
+            status: "approved",
+            probability: 4,
+            impact: 4,
+            bobot: 1,
+            nilai: 16,
+            tingkat_risiko: "tinggi",
+            prioritas_risiko: 1,
+          },
+        },
+      ],
+    }),
+    "creator-1",
+  );
+
+  assert.equal(result.canSkipTTE, true);
+  assert.equal(result.currentAction?.title, "Dokumen siap diselesaikan");
+  assert.match(result.currentAction?.description ?? "", /melewati TTE/i);
+});
+
 test("buildWorkingPaperDetailViewModel shows skipped state when tte_skipped is true", () => {
   const result = buildWorkingPaperDetailViewModel(
     makeWorkingPaper({
@@ -151,6 +191,7 @@ test("buildWorkingPaperDetailViewModel shows skipped state when tte_skipped is t
 
   assert.equal(result.canSign, false);
   assert.equal(result.canCancel, false);
+  assert.equal(result.canSkipTTE, false);
   assert.equal(result.tteSkipped, true);
   assert.equal(result.currentAction?.title, "TTE dilewati");
   assert.equal(result.timeline[0]?.state, "skipped");

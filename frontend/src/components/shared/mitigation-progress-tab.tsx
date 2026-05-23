@@ -4,7 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +52,6 @@ import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 export interface MitigationProgressDraft {
   taskId: string;
   progressPct: number;
-  actualCost: number;
   notes: string;
 }
 
@@ -99,7 +104,6 @@ export function MitigationProgressTab({
 
   // Form state for progress submission
   const [progressPct, setProgressPct] = useState("");
-  const [actualCost, setActualCost] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [showValidationErrors, setShowValidationErrors] = useState(false);
@@ -109,11 +113,10 @@ export function MitigationProgressTab({
     () =>
       validateMitigationReportForm({
         progressPct,
-        actualCost,
         evidenceUrl,
         notes,
       }),
-    [actualCost, evidenceUrl, notes, progressPct],
+    [evidenceUrl, notes, progressPct],
   );
   const hasFormErrors = Object.keys(formErrors).length > 0;
 
@@ -147,13 +150,6 @@ export function MitigationProgressTab({
           ? String(draft.progressPct)
           : task.progressPct
             ? String(task.progressPct)
-            : "",
-      );
-      setActualCost(
-        draft
-          ? String(draft.actualCost)
-          : task.actualCost
-            ? String(task.actualCost)
             : "",
       );
       setEvidenceUrl(draft ? "" : task.evidenceUrl || "");
@@ -213,7 +209,6 @@ export function MitigationProgressTab({
         `/mitigation-tasks/${selectedTask.id}/submit`,
         normalizeMitigationReportPayload({
           progressPct,
-          actualCost,
           evidenceUrl,
           notes,
         }),
@@ -304,7 +299,7 @@ export function MitigationProgressTab({
           <div className="rounded-xl border bg-card p-3 text-center">
             <p className="text-2xl font-bold">{stats.total}</p>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              Total Task
+              Total
             </p>
           </div>
           <div className="rounded-xl border bg-emerald-500/5 border-emerald-500/20 p-3 text-center">
@@ -330,10 +325,14 @@ export function MitigationProgressTab({
 
       {/* Task List */}
       <Card className="border-border/50">
-        <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-border/50">
-          <CardTitle className="text-base font-bold flex items-center gap-2">
-            <Activity className="size-4" /> Progress Aktual Penanganan
+        <CardHeader className="border-b border-border/50">
+          <CardTitle className="text-base font-bold">
+            Progress Aktual Penanganan
           </CardTitle>
+          <CardDescription className="text-xs leading-5">
+            Pantau progres task penanganan yang sedang berjalan, termasuk
+            status, tenggat, dan laporan realisasi terbaru.
+          </CardDescription>
         </CardHeader>
         <CardContent className="pt-4 overflow-hidden">
           {tasks.length === 0 ? (
@@ -402,14 +401,18 @@ export function MitigationProgressTab({
                           {formatDate(task.dueDate)}
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <Badge className={getLinearStatusBadgeClass(task.status)}>
+                          <Badge
+                            className={getLinearStatusBadgeClass(task.status)}
+                          >
                             {statusCfg.icon} {statusCfg.label}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 align-top">
                           <div className="space-y-1">
                             <Progress
-                              value={task.status === "done" ? task.progressPct : 0}
+                              value={
+                                task.status === "done" ? task.progressPct : 0
+                              }
                               className="h-1.5"
                             />
                             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
@@ -418,11 +421,12 @@ export function MitigationProgressTab({
                                   ? `${task.progressPct}%`
                                   : "Belum dilaporkan"}
                               </span>
-                              {task.reportedByName && task.status === "done" && (
-                                <span className="truncate max-w-[150px]">
-                                  {task.reportedByName}
-                                </span>
-                              )}
+                              {task.reportedByName &&
+                                task.status === "done" && (
+                                  <span className="truncate max-w-[150px]">
+                                    {task.reportedByName}
+                                  </span>
+                                )}
                             </div>
                           </div>
                         </td>
@@ -452,7 +456,10 @@ export function MitigationProgressTab({
                                         </Button>
                                       </span>
                                     </TooltipTrigger>
-                                    <TooltipContent side="left" className="max-w-[220px] text-xs">
+                                    <TooltipContent
+                                      side="left"
+                                      className="max-w-[220px] text-xs"
+                                    >
                                       {submissionCheck.message}
                                     </TooltipContent>
                                   </Tooltip>
@@ -495,7 +502,8 @@ export function MitigationProgressTab({
               Detail Laporan Penanganan
             </DialogTitle>
             <DialogDescription className="text-xs">
-              {detailTask?.mitigationAction || "-"} - {detailTask?.periodLabel || "-"}
+              {detailTask?.mitigationAction || "-"} -{" "}
+              {detailTask?.periodLabel || "-"}
             </DialogDescription>
           </DialogHeader>
 
@@ -509,21 +517,35 @@ export function MitigationProgressTab({
                   <Badge
                     className={getLinearStatusBadgeClass(detailTask.status)}
                   >
-                    {(STATUS_CONFIG[detailTask.status] || STATUS_CONFIG.pending).icon}
-                    {(STATUS_CONFIG[detailTask.status] || STATUS_CONFIG.pending).label}
+                    {
+                      (
+                        STATUS_CONFIG[detailTask.status] ||
+                        STATUS_CONFIG.pending
+                      ).icon
+                    }
+                    {
+                      (
+                        STATUS_CONFIG[detailTask.status] ||
+                        STATUS_CONFIG.pending
+                      ).label
+                    }
                   </Badge>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Tenggat
                   </p>
-                  <p className="mt-2 text-sm font-medium">{formatDate(detailTask.dueDate)}</p>
+                  <p className="mt-2 text-sm font-medium">
+                    {formatDate(detailTask.dueDate)}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Periode
                   </p>
-                  <p className="mt-2 text-sm font-medium">{detailTask.periodLabel || "-"}</p>
+                  <p className="mt-2 text-sm font-medium">
+                    {detailTask.periodLabel || "-"}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -551,39 +573,29 @@ export function MitigationProgressTab({
                     </p>
                   </div>
                   <Progress
-                    value={detailTask.status === "done" ? detailTask.progressPct : 0}
+                    value={
+                      detailTask.status === "done" ? detailTask.progressPct : 0
+                    }
                     className="h-2 flex-1 max-w-xs"
                   />
                 </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-lg bg-muted/20 p-3">
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      Biaya Aktual
-                    </p>
-                    <p className="mt-1 text-sm font-medium">
-                      {detailTask.actualCost
-                        ? `Rp ${detailTask.actualCost.toLocaleString("id-ID")}`
-                        : "-"}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-muted/20 p-3">
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      Evidence
-                    </p>
-                    {detailTask.evidenceUrl ? (
-                      <a
-                        href={detailTask.evidenceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        Buka bukti <ExternalLink className="size-3.5" />
-                      </a>
-                    ) : (
-                      <p className="mt-1 text-sm font-medium">-</p>
-                    )}
-                  </div>
+                <div className="rounded-lg bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Evidence
+                  </p>
+                  {detailTask.evidenceUrl ? (
+                    <a
+                      href={detailTask.evidenceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      Buka bukti <ExternalLink className="size-3.5" />
+                    </a>
+                  ) : (
+                    <p className="mt-1 text-sm font-medium">-</p>
+                  )}
                 </div>
                 <div className="rounded-lg bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -599,10 +611,13 @@ export function MitigationProgressTab({
 
           <DialogFooter className="gap-2">
             {detailTask &&
-              (detailTask.status === "pending" || detailTask.status === "overdue") && (
+              (detailTask.status === "pending" ||
+                detailTask.status === "overdue") && (
                 <Button
                   size="sm"
-                  variant={detailTask.status === "overdue" ? "destructive" : "default"}
+                  variant={
+                    detailTask.status === "overdue" ? "destructive" : "default"
+                  }
                   onClick={() => {
                     setShowDetailDialog(false);
                     handleOpenSubmit(detailTask);
@@ -670,36 +685,6 @@ export function MitigationProgressTab({
                   className="text-[11px] text-destructive"
                 >
                   {formErrors.progressPct}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                Biaya Aktual (Rp)
-                <span className="text-destructive ml-0.5">*</span>
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                value={actualCost}
-                onChange={(e) => setActualCost(e.target.value)}
-                className="text-xs"
-                placeholder="0"
-                aria-invalid={Boolean(
-                  showValidationErrors && formErrors.actualCost,
-                )}
-                aria-describedby={
-                  showValidationErrors && formErrors.actualCost
-                    ? "mitigation-cost-error"
-                    : undefined
-                }
-              />
-              {showValidationErrors && formErrors.actualCost && (
-                <p
-                  id="mitigation-cost-error"
-                  className="text-[11px] text-destructive"
-                >
-                  {formErrors.actualCost}
                 </p>
               )}
             </div>

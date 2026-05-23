@@ -92,13 +92,16 @@ func TestRiskRegisterListSupportsFiltersScopeAndPaginationEnvelope(t *testing.T)
 
 	app := fiber.New()
 	app.Get("/risks/register", func(c *fiber.Ctx) error {
-		c.Locals("accessScope", &entity.AccessScope{AccessibleOrgIDs: []uuid.UUID{orgOne, orgTwo}})
+		c.Locals("accessScope", &entity.AccessScope{
+			OrganizationID:   &orgOne,
+			AccessibleOrgIDs: []uuid.UUID{orgOne, orgTwo},
+		})
 		return c.Next()
 	}, handler.ListRiskRegister)
 
 	req := httptest.NewRequest(
 		fiber.MethodGet,
-		"/risks/register?status=approved&category=kepatuhan&lifecycle=archived&org_id="+orgTwo.String()+"&assessment_cycle=2026-H1&q=server&page=0&limit=101",
+		"/risks/register?status=approved&category=kepatuhan&lifecycle=archived&org_id="+orgOne.String()+"&assessment_cycle=2026-H1&q=server&page=0&limit=101",
 		nil,
 	)
 	resp, err := app.Test(req)
@@ -112,8 +115,8 @@ func TestRiskRegisterListSupportsFiltersScopeAndPaginationEnvelope(t *testing.T)
 		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, body)
 	}
 
-	if len(repo.registerFilter.OrgIDs) != 1 || repo.registerFilter.OrgIDs[0] != orgTwo {
-		t.Fatalf("expected narrowed org scope [%s], got %v", orgTwo, repo.registerFilter.OrgIDs)
+	if len(repo.registerFilter.OrgIDs) != 1 || repo.registerFilter.OrgIDs[0] != orgOne {
+		t.Fatalf("expected narrowed org scope [%s], got %v", orgOne, repo.registerFilter.OrgIDs)
 	}
 	if repo.registerFilter.Status != entity.RiskStatusApproved {
 		t.Fatalf("expected status approved, got %q", repo.registerFilter.Status)
@@ -163,6 +166,65 @@ func TestRiskRegisterListSupportsFiltersScopeAndPaginationEnvelope(t *testing.T)
 	}
 }
 
+func TestRiskRegisterListDefaultsToOwnOrgInsteadOfDescendants(t *testing.T) {
+	own := uuid.New()
+	descendant := uuid.New()
+	repo := &riskRegisterRepoStub{}
+	handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repo)}
+
+	app := fiber.New()
+	app.Get("/risks/register", func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{
+			Role:             entity.RoleUnit,
+			OrganizationID:   &own,
+			AccessibleOrgIDs: []uuid.UUID{own, descendant},
+		})
+		return c.Next()
+	}, handler.ListRiskRegister)
+
+	req := httptest.NewRequest(fiber.MethodGet, "/risks/register", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+	if len(repo.registerFilter.OrgIDs) != 1 || repo.registerFilter.OrgIDs[0] != own {
+		t.Fatalf("expected own-org-only filter [%s], got %v", own, repo.registerFilter.OrgIDs)
+	}
+}
+
+func TestRiskRegisterListRejectsDescendantOrgFilterOnOperationalSurface(t *testing.T) {
+	own := uuid.New()
+	descendant := uuid.New()
+	repo := &riskRegisterRepoStub{}
+	handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repo)}
+
+	app := fiber.New()
+	app.Get("/risks/register", func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{
+			Role:             entity.RoleReviewer,
+			OrganizationID:   &own,
+			AccessibleOrgIDs: []uuid.UUID{own, descendant},
+		})
+		return c.Next()
+	}, handler.ListRiskRegister)
+
+	req := httptest.NewRequest(fiber.MethodGet, "/risks/register?org_id="+descendant.String(), nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", resp.StatusCode)
+	}
+}
+
 func TestRiskRegisterListSupportsMonitoringTransactionsView(t *testing.T) {
 	orgID := uuid.New()
 	repo := &riskRegisterRepoStub{
@@ -185,7 +247,10 @@ func TestRiskRegisterListSupportsMonitoringTransactionsView(t *testing.T) {
 
 	app := fiber.New()
 	app.Get("/risks/register", func(c *fiber.Ctx) error {
-		c.Locals("accessScope", &entity.AccessScope{AccessibleOrgIDs: []uuid.UUID{orgID}})
+		c.Locals("accessScope", &entity.AccessScope{
+			OrganizationID:   &orgID,
+			AccessibleOrgIDs: []uuid.UUID{orgID},
+		})
 		return c.Next()
 	}, handler.ListRiskRegister)
 

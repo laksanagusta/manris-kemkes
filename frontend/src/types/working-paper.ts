@@ -156,7 +156,6 @@ export interface CreateWorkingPaperRequest {
   assessment_cycle?: string;
   risks: CreateWorkingPaperRiskInput[];
   signatories: CreateSignatoryInput[];
-  skip_tte?: boolean;
 }
 
 export interface WorkingPaperListResponse {

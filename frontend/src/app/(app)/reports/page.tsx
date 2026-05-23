@@ -34,6 +34,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import {
+  listAllOrganizations,
+  type OrganizationListItem,
+} from "@/lib/api/organizations";
 import { InherentResidualTrend } from "./_components/inherent-residual-trend";
 import { CriticalRiskRateTrend } from "./_components/critical-risk-rate-trend";
 import { RiskMovementByOrg } from "./_components/risk-movement-by-org";
@@ -62,6 +66,12 @@ import {
   type RiskTrendSourceItem,
   type RiskTrendWindow,
 } from "@/lib/risk-report-trend";
+import {
+  buildSelectableReportOrganizations,
+  needsExplicitReportOrgSelection,
+  resolveDefaultReportOrgId,
+} from "@/lib/report-scope";
+import { OrganizationPicker } from "@/components/report/organization-picker";
 import type {
   DashboardRiskCategoryItem,
   Risk,
@@ -106,9 +116,8 @@ const exportOptions = [
   },
   {
     key: "movement-by-org-xlsx",
-    title: "Pergerakan per Unit (Excel)",
-    description:
-      "Tabel pergerakan risiko per organisasi dengan warna indikator",
+    title: "Perubahan per Unit (Excel)",
+    description: "Tabel perubahan risiko per unit",
     icon: FileSpreadsheet,
     format: "XLSX",
     isEnabled: true,
@@ -129,33 +138,18 @@ function previousGlobalCycle(cycle: string) {
   return `${year}-H1`;
 }
 
-function buildRecentCycleOptions(count = 6) {
-  const now = new Date();
-  let year = now.getFullYear();
-  let half = now.getMonth() < 6 ? 1 : 2;
-  const result: string[] = [];
-
-  for (let i = 0; i < count; i += 1) {
-    result.push(`${year}-H${half}`);
-    if (half === 1) {
-      half = 2;
-      year -= 1;
-    } else {
-      half = 1;
-    }
-  }
-
-  return result;
-}
-
 export default function ReportsPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const [reportOrganizations, setReportOrganizations] = useState<
+    OrganizationListItem[]
+  >([]);
+  const [reportOrgId, setReportOrgId] = useState("");
   const [trendRisks, setTrendRisks] = useState<RiskTrendSourceItem[]>([]);
   const [cycleRisks, setCycleRisks] = useState<Risk[]>([]);
   const [previousCycleRisks, setPreviousCycleRisks] = useState<Risk[]>([]);
   const [comparisons, setComparisons] = useState<RiskCycleComparisonItem[]>([]);
   const [trendWindow, setTrendWindow] = useState<RiskTrendWindow>("4s");
-  const [exportCycle, setExportCycle] = useState(currentGlobalCycle());
+  const [exportCycle] = useState(currentGlobalCycle());
   const [isExporting, setIsExporting] = useState<string | null>(null);
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
   const [selectedMovement, setSelectedMovement] = useState<
@@ -169,7 +163,6 @@ export default function ReportsPage() {
   const [movementByOrgSort, setMovementByOrgSort] =
     useState<MovementByOrgSortKey>("total");
 
-  const cycleOptions = useMemo(() => buildRecentCycleOptions(), []);
   const previousCycle = useMemo(
     () => previousGlobalCycle(exportCycle),
     [exportCycle],
@@ -210,7 +203,10 @@ export default function ReportsPage() {
   const hasTrendData = trendData.length > 0;
   const hasMovementData = movementData.some((item) => item.value > 0);
   const hasExposureData = unitExposureData.length > 0;
-
+  const requiresReportOrgSelection = needsExplicitReportOrgSelection(user);
+  const reportOrgQuery = reportOrgId
+    ? `&org_id=${encodeURIComponent(reportOrgId)}`
+    : "";
   const toggleUnitFilter = (orgName: string) => {
     setSelectedUnit((current) => (current === orgName ? null : orgName));
   };
@@ -222,7 +218,49 @@ export default function ReportsPage() {
   useEffect(() => {
     setSelectedUnit(null);
     setSelectedMovement(null);
-  }, [exportCycle]);
+  }, [exportCycle, reportOrgId]);
+
+  useEffect(() => {
+    if (!token) {
+      setReportOrganizations([]);
+      setReportOrgId("");
+      return;
+    }
+
+    listAllOrganizations(token)
+      .then((items) => {
+        const selectable = buildSelectableReportOrganizations(user, items);
+        setReportOrganizations(selectable);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }, [token, user]);
+
+  useEffect(() => {
+    if (reportOrganizations.length === 0) {
+      setReportOrgId("");
+      return;
+    }
+
+    if (user?.isGlobal) {
+      setReportOrgId("");
+      return;
+    }
+
+    const defaultOrgId = resolveDefaultReportOrgId(user);
+    if (defaultOrgId) {
+      setReportOrgId((current) => current || defaultOrgId);
+      return;
+    }
+
+    if (requiresReportOrgSelection) {
+      setReportOrgId("");
+      return;
+    }
+
+    setReportOrgId((current) => current || reportOrganizations[0]?.id || "");
+  }, [reportOrganizations, user, requiresReportOrgSelection]);
 
   useEffect(() => {
     if (!token) {
@@ -230,22 +268,35 @@ export default function ReportsPage() {
       return;
     }
 
+    if (requiresReportOrgSelection && !reportOrgId) {
+      setTrendRisks([]);
+      setCycleRisks([]);
+      setPreviousCycleRisks([]);
+      setComparisons([]);
+      setRiskCategoryData([]);
+      setRiskCategoryLoading(false);
+      return;
+    }
+
     Promise.allSettled([
-      api.get<RiskTrendSourceItem[]>("/risks/trend", token),
+      api.get<RiskTrendSourceItem[]>(
+        `/risks/trend${reportOrgId ? `?org_id=${encodeURIComponent(reportOrgId)}` : ""}`,
+        token,
+      ),
       api.get<DashboardRiskCategoryItem[]>(
-        `/dashboard/risk-categories?cycle=${exportCycle}`,
+        `/dashboard/risk-categories?cycle=${exportCycle}${reportOrgQuery}`,
         token,
       ),
       api.get<Risk[]>(
-        `/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}`,
+        `/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}${reportOrgQuery}`,
         token,
       ),
       api.get<Risk[]>(
-        `/risks/cycle-snapshot?cycle=${encodeURIComponent(previousCycle)}`,
+        `/risks/cycle-snapshot?cycle=${encodeURIComponent(previousCycle)}${reportOrgQuery}`,
         token,
       ),
       api.get<RiskCycleComparisonItem[]>(
-        `/risks/compare?from=${previousCycle}&to=${exportCycle}`,
+        `/risks/compare?from=${previousCycle}&to=${exportCycle}${reportOrgQuery}`,
         token,
       ),
     ]).then(
@@ -297,11 +348,23 @@ export default function ReportsPage() {
         }
       },
     );
-  }, [token, exportCycle, previousCycle]);
+  }, [
+    token,
+    exportCycle,
+    previousCycle,
+    reportOrgId,
+    requiresReportOrgSelection,
+    reportOrgQuery,
+  ]);
 
   const handleExport = async (key: string) => {
     if (!token) {
       toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+
+    if (requiresReportOrgSelection && !reportOrgId) {
+      toast.error("Pilih unit terlebih dahulu untuk membuka laporan.");
       return;
     }
 
@@ -311,7 +374,7 @@ export default function ReportsPage() {
         const API_BASE =
           process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
         const response = await fetch(
-          `${API_BASE}/reports/risk-pdf?cycle=${encodeURIComponent(exportCycle)}`,
+          `${API_BASE}/reports/risk-pdf?cycle=${encodeURIComponent(exportCycle)}${reportOrgQuery}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         if (!response.ok) {
@@ -370,7 +433,7 @@ export default function ReportsPage() {
       let risks: RiskExportItem[] = [];
       try {
         risks = await api.get<RiskExportItem[]>(
-          `/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}`,
+          `/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}${reportOrgQuery}`,
           token,
         );
       } catch (error) {
@@ -384,7 +447,7 @@ export default function ReportsPage() {
         }
 
         const approvedRisks = await api.get<RiskCycleSnapshotItem[]>(
-          "/risks?status=approved",
+          `/risks?status=approved${reportOrgId ? `&org_id=${encodeURIComponent(reportOrgId)}` : ""}`,
           token,
         );
         risks = approvedRisks.filter(
@@ -442,29 +505,51 @@ export default function ReportsPage() {
         </Link>
       </div>
 
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <CardContent className="p-4">
+          <div className="min-w-[220px] flex-1 md:max-w-sm">
+            <OrganizationPicker
+              value={reportOrgId}
+              organizations={reportOrganizations}
+              onChange={setReportOrgId}
+            />
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {requiresReportOrgSelection && !reportOrgId ? (
+              <span>Pilih organisasi terlebih dahulu untuk menampilkan laporan.</span>
+            ) : user?.isGlobal && !reportOrgId ? (
+              <span>Laporan menampilkan semua unit sampai Anda memilih unit tertentu.</span>
+            ) : (
+              <span>Laporan akan mengikuti unit yang dipilih.</span>
+            )}
+            {reportOrganizations.length === 0 ? (
+              <Badge
+                variant="outline"
+                className="h-5 px-2 text-[10px] text-muted-foreground"
+              >
+                Belum ada unit
+              </Badge>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Export Section */}
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Download className="size-4" />
-              Export Data
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground">Cycle</span>
-              <Select value={exportCycle} onValueChange={setExportCycle}>
-                <SelectTrigger className="h-8 w-28 text-[10px] bg-muted/30 border-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {cycleOptions.map((cycle) => (
-                    <SelectItem key={cycle} value={cycle}>
-                      {cycle}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                <Download className="size-4" />
+                Export Data
+              </CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Unduh ringkasan laporan sesuai organisasi yang dipilih.
+              </p>
             </div>
+            <Badge variant="outline" className="h-6 px-2 text-[10px] font-medium text-muted-foreground">
+              Periode {exportCycle}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col">

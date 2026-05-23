@@ -1,10 +1,11 @@
 package http
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/service"
 	"github.com/manris/backend/internal/middleware"
 	reportuc "github.com/manris/backend/internal/usecase/report"
@@ -30,25 +31,12 @@ func (h *ReportHandler) GenerateRiskPDF(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	var orgIDs []uuid.UUID
-	if scope != nil && !scope.IsGlobal {
-		orgIDs = scope.AccessibleOrgIDs
-	}
-
-	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
-		parsed, err := uuid.Parse(orgIDStr)
-		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrForbidden) {
+			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
 		}
-		if scope != nil && !scope.IsGlobal {
-			narrowed, err := scope.NarrowToOrg(parsed)
-			if err != nil {
-				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
-			}
-			orgIDs = narrowed
-		} else {
-			orgIDs = []uuid.UUID{parsed}
-		}
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 	}
 
 	input := reportuc.GenerateReportInput{

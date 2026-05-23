@@ -143,10 +143,10 @@ export default function BulkRiskRegisterPage() {
     MonitoringBatchResultItem[]
   >([]);
 
-  const isUnitRole = user?.role === "unit";
-  const effectiveOrgId = isUnitRole
-    ? (user?.organizationId ?? "")
-    : selectedOrgId;
+  const isGlobalUser = Boolean(user?.isGlobal);
+  const effectiveOrgId = isGlobalUser
+    ? selectedOrgId
+    : (user?.organizationId ?? "");
 
   useEffect(() => {
     setSelectedRoId("");
@@ -192,7 +192,7 @@ export default function BulkRiskRegisterPage() {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
-    if (!isUnitRole && !selectedOrgId) {
+    if (isGlobalUser && !selectedOrgId) {
       toast.error("Pilih unit kerja terlebih dahulu.");
       return;
     }
@@ -501,7 +501,7 @@ export default function BulkRiskRegisterPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 px-6 py-6">
-              {!isUnitRole && (
+              {isGlobalUser && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
                     Unit Kerja
@@ -523,6 +523,13 @@ export default function BulkRiskRegisterPage() {
                   </Select>
                 </div>
               )}
+
+              {!isGlobalUser ? (
+                <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+                  Unit kerja mengikuti akun Anda dan tidak bisa diubah pada
+                  alur operasional ini.
+                </div>
+              ) : null}
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">

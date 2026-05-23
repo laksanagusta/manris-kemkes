@@ -960,7 +960,7 @@ export default function RiskRegisterPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Risiko</h1>
           <p className="text-sm text-muted-foreground">
-            Kelola seluruh risiko organisasi sesuai ISO 31000:2018
+            Kelola seluruh risiko organisasi
           </p>
         </div>
         {(!token || user?.isGlobal || !!user?.organizationId) && (
@@ -1294,7 +1294,9 @@ export default function RiskRegisterPage() {
                           </TableCell>
                           <TableCell>
                             {risk.versionNumber != null ? (
-                              <Badge className={getLinearToneBadgeClass("neutral")}>
+                              <Badge
+                                className={getLinearToneBadgeClass("neutral")}
+                              >
                                 v{risk.versionNumber}
                               </Badge>
                             ) : (
@@ -1318,7 +1320,11 @@ export default function RiskRegisterPage() {
                             </span>
                           </TableCell>
                           <TableCell>
-                            <Badge className={getLinearRiskLevelBadgeClass(levelLabel)}>
+                            <Badge
+                              className={getLinearRiskLevelBadgeClass(
+                                levelLabel,
+                              )}
+                            >
                               {levelLabel}
                             </Badge>
                           </TableCell>
@@ -1351,7 +1357,9 @@ export default function RiskRegisterPage() {
                               )}
                               {risk.archivedAt && (
                                 <Badge
-                                  className={getLinearStatusBadgeClass("archived")}
+                                  className={getLinearStatusBadgeClass(
+                                    "archived",
+                                  )}
                                 >
                                   Diarsipkan
                                 </Badge>
@@ -1987,8 +1995,9 @@ export default function RiskRegisterPage() {
                           <TableCell>
                             <Badge
                               className={
-                                levelBadgeVariant[selectedHistory.previousLevel] ||
-                                levelBadgeVariant.Rendah
+                                levelBadgeVariant[
+                                  selectedHistory.previousLevel
+                                ] || levelBadgeVariant.Rendah
                               }
                             >
                               {selectedHistory.previousLevel || "Rendah"}
@@ -2000,8 +2009,9 @@ export default function RiskRegisterPage() {
                           <TableCell>
                             <Badge
                               className={
-                                levelBadgeVariant[selectedHistory.currentLevel] ||
-                                levelBadgeVariant.Rendah
+                                levelBadgeVariant[
+                                  selectedHistory.currentLevel
+                                ] || levelBadgeVariant.Rendah
                               }
                             >
                               {selectedHistory.currentLevel || "Rendah"}

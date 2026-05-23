@@ -1,0 +1,130 @@
+name: Auto label pull requests
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  label-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply migration and env labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labelDefinitions = [
+              {
+                name: "needs-migration",
+                color: "d73a4a",
+                description: "PR changes database schema or requires running migrations.",
+              },
+              {
+                name: "needs-env-update",
+                color: "fbca04",
+                description: "PR adds or changes environment variables.",
+              },
+            ];
+
+            const { owner, repo } = context.repo;
+            const pullNumber = context.payload.pull_request.number;
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number: pullNumber,
+              per_page: 100,
+            });
+
+            const changedPaths = files.map((file) => file.filename);
+
+            const needsMigration = changedPaths.some((path) =>
+              path.startsWith("backend/db/migrations/") && path.endsWith(".sql"),
+            );
+
+            const needsEnvUpdate = changedPaths.some((path) =>
+              path === ".env.example" ||
+              path === "backend/.env" ||
+              path === "backend/.env.example" ||
+              path === "frontend/.env" ||
+              path === "frontend/.env.example" ||
+              path === "frontend/.env.local.example" ||
+              path.endsWith("/.env.example") ||
+              path.endsWith("/.env.local.example"),
+            );
+
+            const desiredLabels = [];
+            if (needsMigration) {
+              desiredLabels.push("needs-migration");
+            }
+            if (needsEnvUpdate) {
+              desiredLabels.push("needs-env-update");
+            }
+
+            for (const definition of labelDefinitions) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner,
+                  repo,
+                  name: definition.name,
+                });
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name: definition.name,
+                  color: definition.color,
+                  description: definition.description,
+                });
+              }
+            }
+
+            const existingLabels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
+              owner,
+              repo,
+              issue_number: pullNumber,
+              per_page: 100,
+            });
+
+            const currentLabelNames = new Set(existingLabels.map((label) => label.name));
+            const desiredLabelNames = new Set(desiredLabels);
+            const managedLabels = new Set(labelDefinitions.map((label) => label.name));
+
+            const labelsToAdd = desiredLabels.filter((label) => !currentLabelNames.has(label));
+            const labelsToRemove = [...currentLabelNames].filter(
+              (label) => managedLabels.has(label) && !desiredLabelNames.has(label),
+            );
+
+            for (const label of labelsToRemove) {
+              await github.rest.issues.removeLabel({
+                owner,
+                repo,
+                issue_number: pullNumber,
+                name: label,
+              });
+            }
+
+            if (labelsToAdd.length > 0) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: pullNumber,
+                labels: labelsToAdd,
+              });
+            }
+
+            core.info(
+              `PR #${pullNumber} labels synced. Changed files: ${changedPaths.length}. Added: ${labelsToAdd.join(", ") || "none"}. Removed: ${labelsToRemove.join(", ") || "none"}.`,
+            );

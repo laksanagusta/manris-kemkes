@@ -1,0 +1,7 @@
+./change_password.go
+./login.go
+./me.go
+./payload.go
+./register.go
+./session.go
+./update_profile.go

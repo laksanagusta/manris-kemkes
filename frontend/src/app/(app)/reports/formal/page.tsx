@@ -14,16 +14,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { FormalReportCard } from "../_components/formal-report-card";
 import { FormalReportList } from "../_components/formal-report-list";
 import type { OrganizationListItem } from "@/lib/api/organizations";
+import {
+  buildSelectableReportOrganizations,
+  needsExplicitReportOrgSelection,
+  resolveDefaultReportOrgId,
+} from "@/lib/report-scope";
+import { OrganizationPicker } from "@/components/report/organization-picker";
 import { formalReportDefinitions } from "@/lib/formal-report-definitions";
 import type { FormalReport, FormalReportType } from "@/types/formal-report";
 
@@ -43,6 +42,7 @@ export default function FormalReportsPage() {
     useState<FormalReportType | null>(null);
   const [formalOrganizationId, setFormalOrganizationId] = useState("");
   const [formalPeriod, setFormalPeriod] = useState(currentGlobalCycle());
+  const requiresOrganizationSelection = needsExplicitReportOrgSelection(user);
 
   useEffect(() => {
     if (!token) {
@@ -53,7 +53,7 @@ export default function FormalReportsPage() {
     setFormalReportsLoading(true);
     Promise.all([listAllOrganizations(token), listFormalReports(token, { page: 1, limit: 100 })])
       .then(([orgs, reports]) => {
-        setOrganizations(orgs);
+        setOrganizations(buildSelectableReportOrganizations(user, orgs));
         setFormalReports(reports.data ?? []);
       })
       .catch((error) => {
@@ -63,19 +63,21 @@ export default function FormalReportsPage() {
       .finally(() => {
         setFormalReportsLoading(false);
       });
-  }, [token]);
+  }, [token, user]);
 
   useEffect(() => {
     if (organizations.length === 0) return;
     if (!formalOrganizationId) {
+      const defaultOrgId = resolveDefaultReportOrgId(user);
       setFormalOrganizationId(
-        user?.organizationId &&
-          organizations.some((org) => org.id === user.organizationId)
-          ? user.organizationId
-          : organizations[0].id,
+        defaultOrgId && organizations.some((org) => org.id === defaultOrgId)
+          ? defaultOrgId
+          : requiresOrganizationSelection
+            ? ""
+            : organizations[0].id,
       );
     }
-  }, [formalOrganizationId, organizations, user?.organizationId]);
+  }, [formalOrganizationId, organizations, requiresOrganizationSelection, user]);
 
   const organizationMap = useMemo(
     () =>
@@ -162,11 +164,26 @@ export default function FormalReportsPage() {
         <h1 className="text-3xl font-semibold tracking-tight text-balance">
           Laporan Formal
         </h1>
-        <p className="max-w-xl text-sm leading-6 text-muted-foreground">
+          <p className="max-w-xl text-sm leading-6 text-muted-foreground">
           Generate laporan resmi per organisasi dan periode, lalu lihat histori
           hasilnya di halaman ini.
         </p>
       </section>
+
+      {requiresOrganizationSelection && !formalOrganizationId ? (
+        <Card className="border-border/50 bg-card/90 shadow-sm">
+          <CardContent className="flex min-h-40 items-center justify-center px-6 py-8 text-center">
+            <div className="max-w-sm space-y-2">
+              <p className="text-sm font-medium text-foreground">
+                Pilih unit terlebih dahulu
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Laporan formal lintas-unit baru bisa dibuka setelah unit dipilih.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <section className="space-y-4">
         <div className="space-y-1">
@@ -184,22 +201,15 @@ export default function FormalReportsPage() {
           <CardContent className="space-y-4 pt-6">
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_auto] xl:items-end">
               <div className="space-y-2">
-                <Label htmlFor="formal-org">Organisasi tujuan</Label>
-                <Select
+                <Label>Organisasi tujuan</Label>
+                <OrganizationPicker
                   value={formalOrganizationId}
-                  onValueChange={setFormalOrganizationId}
-                >
-                  <SelectTrigger id="formal-org">
-                    <SelectValue placeholder="Pilih organisasi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {organizations.map((organization) => (
-                      <SelectItem key={organization.id} value={organization.id}>
-                        {organization.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  organizations={organizations}
+                  onChange={setFormalOrganizationId}
+                  placeholder="Pilih organisasi"
+                  searchPlaceholder="Cari organisasi..."
+                  emptyMessage="Tidak ada organisasi ditemukan."
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="formal-period">Periode laporan</Label>

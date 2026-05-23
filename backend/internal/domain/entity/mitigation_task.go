@@ -21,7 +21,6 @@ type MitigationTask struct {
 	// Progress (filled by PIC)
 	Status      string  `json:"status"` // pending, done, overdue, skipped
 	ProgressPct int     `json:"progressPct"`
-	ActualCost  float64 `json:"actualCost"`
 	EvidenceURL string  `json:"evidenceUrl"`
 	Notes       string  `json:"notes"`
 

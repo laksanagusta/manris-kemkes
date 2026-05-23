@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Risk } from "@/types/risk";
 import { getRiskLevelFromNilai, getRiskLevelLabel, levelToColor } from "@/lib/risk";
 import { cn } from "@/lib/utils";
@@ -71,18 +70,16 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
     risk.mitigations?.length ? risk.mitigations : risk.mitigation ? [risk.mitigation] : []
   ).filter((item) => item?.action).length;
 
-  const currentScoreLabel = level
-    ? getRiskLevelLabel(level)
-    : "Skor saat ini";
+  const currentScoreTitle = "Skor Saat Ini";
+  const currentLevelLabel = level ? getRiskLevelLabel(level) : null;
   const currentScoreTone = scoreCardTone(level);
   const targetLevel =
     targetScore && targetScore > 0
       ? getRiskLevelFromNilai(targetScore)
       : undefined;
   const targetScoreTone = scoreCardTone(targetLevel);
-  const targetScoreLabel = targetLevel
-    ? getRiskLevelLabel(targetLevel)
-    : "Target nilai";
+  const targetScoreTitle = "Target Penurunan";
+  const targetLevelLabel = targetLevel ? getRiskLevelLabel(targetLevel) : null;
 
   return (
     <Card
@@ -97,23 +94,21 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
               Ringkasan versi terakhir yang menjadi acuan pemantauan saat ini.
             </p>
           </div>
-          <Badge variant="outline" className="font-mono">
-            {code}
-          </Badge>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Badge variant="outline" className="font-mono">
+              {code}
+            </Badge>
+            {detailHref ? (
+              <Link
+                href={detailHref}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
+              >
+                <ArrowUpRight className="size-3.5" />
+                <span>Lihat detail risiko</span>
+              </Link>
+            ) : null}
+          </div>
         </div>
-        {detailHref ? (
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="ml-auto gap-1.5 border-primary/20 text-primary hover:bg-primary/5 hover:text-primary"
-          >
-            <Link href={detailHref}>
-              <ArrowUpRight className="size-3.5" />
-              Lihat detail risiko
-            </Link>
-          </Button>
-        ) : null}
       </CardHeader>
       <CardContent className="grid gap-6">
         <div>
@@ -134,9 +129,9 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
                 currentScoreTone.label,
               )}
             >
-              {currentScoreLabel}
+              {currentScoreTitle}
             </p>
-            <div className="mt-2 flex items-end gap-3">
+            <div className="mt-2 flex flex-wrap items-end gap-2">
               <p
                 className={cn(
                   "text-4xl font-semibold tabular-nums tracking-tight",
@@ -145,9 +140,17 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
               >
                 {inherentScore ?? "-"}
               </p>
-              <p className="pb-1 text-sm text-zinc-600">
-                skor aktual yang menjadi acuan pemantauan.
-              </p>
+              {currentLevelLabel ? (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
+                    levelToColor(level),
+                  )}
+                >
+                  {currentLevelLabel}
+                </Badge>
+              ) : null}
             </div>
             <div className="mt-3 grid gap-2 text-sm text-zinc-600 sm:grid-cols-2">
               <div
@@ -191,9 +194,9 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
                 targetScoreTone.label,
               )}
             >
-              {targetScoreLabel}
+              {targetScoreTitle}
             </p>
-            <div className="mt-2 flex items-end gap-3">
+            <div className="mt-2 flex flex-wrap items-end gap-2">
               <p
                 className={cn(
                   "text-4xl font-semibold tabular-nums tracking-tight",
@@ -202,9 +205,17 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
               >
                 {targetScore}
               </p>
-              <p className="pb-1 text-sm text-zinc-600">
-                target skor yang ingin dicapai setelah penanganan.
-              </p>
+              {targetLevelLabel ? (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
+                    levelToColor(targetLevel),
+                  )}
+                >
+                  {targetLevelLabel}
+                </Badge>
+              ) : null}
             </div>
             <div className="mt-3 grid gap-2 text-sm text-zinc-600 sm:grid-cols-2">
               <div
@@ -262,27 +273,6 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
-          <p className="mb-3 text-sm font-medium text-muted-foreground">Target Penurunan</p>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Bobot</p>
-              <p className="text-sm font-mono">{risk.targetWeight || "-"}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Skor Target</p>
-              <p className="text-sm font-mono">{targetScore}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Target Probabilitas</p>
-              <p className="text-sm font-mono">{risk.targetProbability || "-"}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Target Dampak</p>
-              <p className="text-sm font-mono">{risk.targetImpact || "-"}</p>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
