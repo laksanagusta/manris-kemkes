@@ -1,6 +1,0 @@
-./create_bottom_up.go
-./create_mandatory.go
-./decide.go
-./delete.go
-./helpers.go
-./list.go

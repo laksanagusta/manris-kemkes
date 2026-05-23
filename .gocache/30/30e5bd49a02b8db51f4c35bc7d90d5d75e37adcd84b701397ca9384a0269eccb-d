@@ -1,9 +1,0 @@
-./cancel.go
-./create.go
-./delete.go
-./get.go
-./list.go
-./risk_resolution.go
-./sign.go
-./skip_tte.go
-./usecase.go
