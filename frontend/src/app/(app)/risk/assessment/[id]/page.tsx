@@ -8,6 +8,10 @@ import { z } from "zod";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  ChevronDown,
+  CircleDot,
+  CheckCircle2,
+  PencilLine,
   Loader2,
   Save,
   Send,
@@ -17,6 +21,8 @@ import {
   type MitigationItem,
 } from "@/components/shared/mitigation-table";
 import { ProbabilityCriteriaTooltip } from "@/components/shared/probability-criteria-tooltip";
+import { RiskSubstanceFields } from "@/components/risk/risk-substance-fields";
+import { Switch } from "@/components/ui/switch";
 
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
@@ -28,6 +34,7 @@ import {
   IMPACT_LABELS,
   levelToColor,
   getRiskLevelFromNilai,
+  resolveRiskAssessmentClassification,
 } from "@/lib/risk";
 import type { Risk } from "@/types/risk";
 import { listUsers } from "@/lib/api/users";
@@ -38,7 +45,6 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
-import { CircleDot, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +84,14 @@ import {
   type ApprovalLineRow,
 } from "@/lib/risk-approval-line";
 import { getRiskApprovalCapabilityBehavior } from "@/lib/risk-approval-capability";
+import {
+  buildSubstanceDefaults,
+  buildSubstancePayload,
+  diffRiskSubstance,
+  formatSubstanceDiffSummary,
+  needsSubstanceChangeReason,
+  type RiskSubstanceValues,
+} from "@/lib/risk-assessment-substance";
 import { ProfilRisikoCard } from "../components/profil-risiko-card";
 import { type AssessmentFormValues } from "../components/hasil-pemantauan-card";
 import { SimpulanCard } from "../components/simpulan-card";
@@ -163,6 +177,10 @@ export default function AssessmentFormPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [draftRisk, setDraftRisk] = useState<Risk | null>(null);
   const [sourceRisk, setSourceRisk] = useState<Risk | null>(null);
+  const [substanceEditEnabled, setSubstanceEditEnabled] = useState(false);
+  const [substanceDraft, setSubstanceDraft] = useState<RiskSubstanceValues>(
+    () => buildSubstanceDefaults(null),
+  );
 
   const [reviewerId, setReviewerId] = useState<string>("");
   const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(
@@ -190,6 +208,23 @@ export default function AssessmentFormPage() {
 
   const computedBobot = getBobot(probability, impact);
   const computedNilai = calculateNilai(probability, impact, computedBobot);
+  const substanceDiffs = useMemo(
+    () => diffRiskSubstance(sourceRisk, substanceDraft),
+    [sourceRisk, substanceDraft],
+  );
+  const substanceChangeReasonNeeded = useMemo(
+    () =>
+      needsSubstanceChangeReason(
+        sourceRisk,
+        substanceDraft,
+        substanceEditEnabled,
+      ),
+    [sourceRisk, substanceDraft, substanceEditEnabled],
+  );
+  const substanceDiffSummary = useMemo(
+    () => formatSubstanceDiffSummary(sourceRisk, substanceDraft),
+    [sourceRisk, substanceDraft],
+  );
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
     selectedApprovalLine.length > 0 &&
@@ -284,6 +319,29 @@ export default function AssessmentFormPage() {
       };
     },
     [approvalLine, reviewerId, toUserPickerOption, token, riskOrganizationId],
+  );
+
+  const loadPicOptions = useCallback(
+    async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
+      if (!token) {
+        return { options: [], total: 0, page, limit };
+      }
+
+      const result = await listUsers(token, {
+        q: q || undefined,
+        page,
+        limit,
+        organizationId: riskOrganizationId || undefined,
+      });
+
+      return {
+        options: result.data.map(toUserPickerOption),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      };
+    },
+    [riskOrganizationId, token, toUserPickerOption],
   );
 
   const handleReviewerSelect = useCallback((option: UserPickerOption) => {
@@ -388,6 +446,8 @@ export default function AssessmentFormPage() {
       setIsLoading(true);
       const draft = await getRiskDetail(token, id);
       setDraftRisk(draft);
+      setSubstanceEditEnabled(false);
+      setSubstanceDraft(buildSubstanceDefaults(draft));
 
       form.reset({
         probability: draft.probability || 1,
@@ -531,6 +591,7 @@ export default function AssessmentFormPage() {
         values.impact,
         newWeight,
       );
+      const classification = resolveRiskAssessmentClassification(newNilai);
       const isDraftSubmission = submitTarget.current === "draft";
       const submissionStatus =
         isDraftSubmission || riskApprovalCapabilityBehavior.submitsForApproval
@@ -558,33 +619,42 @@ export default function AssessmentFormPage() {
             ]
           : [];
 
+      const mergedSubstance = buildSubstancePayload(draftRisk, {
+        enabled: substanceEditEnabled,
+        values: substanceDraft,
+      });
+
       // Merge assessment fields with existing risk data so backend validation passes
       const payload = {
-        title: draftRisk.title,
-        description: draftRisk.description,
-        category: draftRisk.category,
+        title: mergedSubstance.title ?? draftRisk.title,
+        description: mergedSubstance.description ?? draftRisk.description,
+        category: mergedSubstance.category ?? draftRisk.category,
         status: submissionStatus,
         unitId: draftRisk.unitId,
         organizationId: getRiskOrganizationId(draftRisk),
-        cause: draftRisk.cause || [],
-        riskSource: draftRisk.riskSource || "",
-        controllability: draftRisk.controllability || "",
-        impactDesc: draftRisk.impactDesc || [],
-        existingControl: draftRisk.existingControl || "",
-        controlEffectiveness: draftRisk.controlEffectiveness || "",
+        cause: mergedSubstance.cause ?? (draftRisk.cause || []),
+        riskSource: mergedSubstance.riskSource ?? (draftRisk.riskSource || ""),
+        controllability:
+          mergedSubstance.controllability ?? (draftRisk.controllability || ""),
+        impactDesc: mergedSubstance.impactDesc ?? (draftRisk.impactDesc || []),
+        existingControl:
+          mergedSubstance.existingControl ?? (draftRisk.existingControl || ""),
+        controlEffectiveness:
+          mergedSubstance.controlEffectiveness ??
+          (draftRisk.controlEffectiveness || ""),
         probability: values.probability,
         impact: values.impact,
         weight: newWeight,
         inherentScore: Math.round(newNilai),
         nilai: Math.round(newNilai),
-        riskPriority: draftRisk.riskPriority || 0,
-        riskAppetite: draftRisk.riskAppetite || "",
-        treatmentOption: draftRisk.treatmentOption || "",
-        mitigations: draftRisk.mitigations?.length
-          ? draftRisk.mitigations
-          : draftRisk.mitigation
-            ? [draftRisk.mitigation]
-            : [],
+        riskPriority: classification.priority,
+        riskAppetite: classification.appetite,
+        treatmentOption:
+          mergedSubstance.treatmentOption ?? (draftRisk.treatmentOption || ""),
+        mitigations:
+          mergedSubstance.mitigations ??
+          draftRisk.mitigations ??
+          (draftRisk.mitigation ? [draftRisk.mitigation] : []),
         targetProbability: draftRisk.targetProbability || 0,
         targetImpact: draftRisk.targetImpact || 0,
         targetWeight: draftRisk.targetWeight || 0,
@@ -767,12 +837,10 @@ export default function AssessmentFormPage() {
               value="hasil-pemantauan"
               className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 transition-all"
             >
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                <div className="flex flex-1 items-center justify-between pr-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                      1
-                    </div>
+              <AccordionTrigger className="group px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
+                <div className="flex flex-1 items-center justify-between gap-4 pr-2">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
                     <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
                       Hasil Pemantauan
                     </p>
@@ -821,7 +889,8 @@ export default function AssessmentFormPage() {
                         id: m.id,
                         action: m.action ?? "",
                         owner: m.owner ?? "",
-                        treatmentOwnerId: m.treatmentOwnerId,
+                        ownerUserId: m.ownerUserId,
+                        treatmentOwnerId: m.ownerUserId ?? m.treatmentOwnerId,
                         externalPicId: m.externalPicId,
                         dueDate: m.dueDate ?? "",
                         mitigationType:
@@ -1002,6 +1071,104 @@ export default function AssessmentFormPage() {
               </AccordionContent>
             </AccordionItem>
 
+            <AccordionItem
+              value="perubahan-substansi"
+              className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 transition-all"
+            >
+              <AccordionTrigger className="group px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
+                <div className="flex flex-1 items-center justify-between gap-4 pr-2">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <div className="min-w-0">
+                      <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
+                        Perubahan Substansi Risiko
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Opsional. Buka hanya jika ada perubahan isi risiko,
+                        kontrol, atau mitigasi.
+                      </p>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                      substanceEditEnabled
+                        ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                        : "bg-muted/40 text-muted-foreground",
+                    )}
+                  >
+                    <PencilLine className="size-3.5" />
+                    <span className="hidden sm:inline">
+                      {substanceEditEnabled
+                        ? substanceDiffs.length > 0
+                          ? `${substanceDiffs.length} perubahan`
+                          : "Siap diubah"
+                        : "Opsional"}
+                    </span>
+                  </Badge>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
+                <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-medium text-foreground">
+                        Aktifkan edit substansi risiko
+                      </Label>
+                      <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
+                        Section ini dipakai kalau ada perubahan data risiko
+                      </p>
+                    </div>
+                    <Switch
+                      checked={substanceEditEnabled}
+                      onCheckedChange={setSubstanceEditEnabled}
+                      disabled={isAssessmentLocked}
+                    />
+                  </div>
+
+                  {substanceEditEnabled ? (
+                    <div className="mt-3 space-y-2 rounded-lg border border-dashed border-border/60 bg-background/80 px-3 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant="secondary"
+                          className="bg-amber-500/10 text-amber-700"
+                        >
+                          {substanceDiffs.length > 0
+                            ? `${substanceDiffs.length} bidang berubah`
+                            : "Belum ada perubahan"}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="border-border/60 bg-background text-muted-foreground"
+                        >
+                          {substanceChangeReasonNeeded
+                            ? "Alasan perubahan wajib diisi"
+                            : "Alasan perubahan belum diperlukan"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        {substanceDiffSummary}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                      Aktifkan saat ada update data risiko versi terbaru.
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-border/50 bg-background px-4 py-4">
+                  <RiskSubstanceFields
+                    value={substanceDraft}
+                    onChange={setSubstanceDraft}
+                    disabled={isAssessmentLocked || !substanceEditEnabled}
+                    loadPicOptions={loadPicOptions}
+                  />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
             {/* Accordion Approval Line */}
             {riskApprovalCapabilityBehavior.showsApprovalLineEditor &&
               (!id || draftRisk.status === "assessment_draft") && (
@@ -1010,12 +1177,10 @@ export default function AssessmentFormPage() {
                   id="approval-line"
                   className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 transition-all"
                 >
-                  <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                    <div className="flex flex-1 items-center justify-between pr-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                          2
-                        </div>
+                  <AccordionTrigger className="group px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
+                    <div className="flex flex-1 items-center justify-between gap-4 pr-2">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
                         <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
                           Rantai Persetujuan
                         </p>
@@ -1044,7 +1209,7 @@ export default function AssessmentFormPage() {
                     <div className="rounded-xl border border-border/60 bg-white p-5 space-y-3">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
-                          1. Reviewer (Pemeriksa)
+                          Reviewer (Pemeriksa)
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
                         <p className="text-xs text-muted-foreground">
@@ -1069,7 +1234,7 @@ export default function AssessmentFormPage() {
                     <div className="rounded-xl border border-primary/10 bg-white p-5 space-y-4">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
-                          2. Rantai Persetujuan (Pimpinan)
+                          Rantai Persetujuan (Pimpinan)
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
                         <p className="text-xs text-muted-foreground">

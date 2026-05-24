@@ -26,6 +26,7 @@ export interface MitigationItem {
   id?: string;
   action: string;
   owner: string;
+  ownerUserId?: string;
   treatmentOwnerId?: string;
   externalPicId?: string;
   dueDate: string;
@@ -122,6 +123,7 @@ export function MitigationTable({
       const updated = [...items];
       updated[index] = {
         ...updated[index],
+        ownerUserId: option.id,
         treatmentOwnerId: option.id,
         externalPicId: undefined,
         owner: option.name,
@@ -134,9 +136,20 @@ export function MitigationTable({
   const picValues = useMemo(
     () =>
       items.map((item): UserPickerOption | null => {
-        const id = item.treatmentOwnerId ?? item.externalPicId;
-        if (!id || !item.owner) return null;
-        return { id, name: item.owner };
+        const selectedId =
+          item.ownerUserId ??
+          item.treatmentOwnerId ??
+          item.externalPicId ??
+          item.owner;
+
+        if (!selectedId) {
+          return null;
+        }
+
+        return {
+          id: selectedId,
+          name: item.owner || selectedId,
+        };
       }),
     [items],
   );

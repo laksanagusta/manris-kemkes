@@ -1,14 +1,61 @@
 import { api } from "@/lib/api";
-import type { Risk, RiskStatus } from "@/types/risk";
+import type {
+  Risk,
+  RiskMitigation,
+  RiskStatus,
+} from "@/types/risk";
 
 export interface RiskAssessmentUpdateData {
+  title?: string;
+  description?: string;
+  category?: string;
+  status?: RiskStatus | string;
+  unitId?: string;
+  organizationId?: string;
+  cause?: string[];
+  riskSource?: string;
+  controllability?: string;
+  impactDesc?: string[];
+  existingControl?: string;
+  controlEffectiveness?: string;
   probability?: number;
   impact?: number;
   weight?: number;
   nilai?: number;
+  inherentScore?: number;
   inherent_score?: number;
+  riskPriority?: number;
+  riskAppetite?: string;
+  treatmentOption?: string;
+  mitigations?: RiskMitigation[];
+  targetProbability?: number;
+  targetImpact?: number;
+  targetWeight?: number;
+  targetNilai?: number;
+  targetScore?: number;
+  nextReviewDate?: string | null;
+  reviewScheduleText?: string;
+  assessmentCycle?: string;
+  reviewType?: string;
   change_reason?: string;
+  changeReason?: string;
   review_summary?: string;
+  reviewSummary?: string;
+  draftApprovalLine?: Array<{
+    id: string;
+    name: string;
+    type?: string;
+  }>;
+  objectiveId?: string | null;
+  roId?: string | null;
+}
+
+export interface RiskAssessmentUpdateResponse {
+  id: string;
+  code: string;
+  message: string;
+  updatedAt: string;
+  warnings?: string[];
 }
 
 export interface ListApprovedRisksParams {
@@ -85,9 +132,9 @@ export async function getRiskDetail(
 export async function updateRiskAssessment(
   token: string,
   riskId: string,
-  data: RiskAssessmentUpdateData & Record<string, unknown>,
-): Promise<Risk> {
-  return api.put<Risk>(
+  data: RiskAssessmentUpdateData,
+): Promise<RiskAssessmentUpdateResponse> {
+  return api.put<RiskAssessmentUpdateResponse>(
     `/risks/${riskId}`,
     data,
     token,

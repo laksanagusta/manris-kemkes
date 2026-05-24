@@ -5,10 +5,10 @@ import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RiskAssessmentSummaryStrip } from "@/components/shared/risk-assessment-summary-strip";
 import {
-  getRiskLevelFromNilai,
   getBobot,
   getSimpulanEfektifitasColor,
   getSimpulanEfektifitas,
+  resolveRiskAssessmentClassification,
 } from "@/lib/risk";
 import { resolveAssessmentScoreComparison } from "@/lib/risk-assessment-summary";
 
@@ -44,9 +44,9 @@ export function SimpulanCard({
     );
   }
 
-  const levelBaru = getRiskLevelFromNilai(nilaiBaru);
+  const scoreClassification = resolveRiskAssessmentClassification(nilaiBaru);
+  const levelBaru = scoreClassification.level;
   const bobot = getBobot(probability, impact);
-  const prioritas = Math.round(nilaiBaru / 10) || 1;
   const { currentScore, newScore, delta, isStable, isDecrease } =
     resolveAssessmentScoreComparison({
       currentInherentScore,
@@ -98,18 +98,36 @@ export function SimpulanCard({
         statusLabel={trendLabel}
         statusTone={trendTone}
         helperText="Ringkasan otomatis dari skor sebelumnya dan perhitungan ulang berdasarkan probabilitas serta dampak."
-        metrics={[
-          {
-            label: "Bobot",
-            value: (
-              <span className="font-mono tabular-nums">{bobot.toFixed(2)}</span>
-            ),
-          },
-          {
-            label: "Prioritas",
-            value: <span className="tabular-nums">{prioritas}</span>,
-          },
-        ]}
+      metrics={[
+        {
+          label: "Bobot",
+          value: (
+            <span className="font-mono tabular-nums">{bobot.toFixed(2)}</span>
+          ),
+        },
+        {
+          label: "Prioritas",
+          value: <span className="tabular-nums">{scoreClassification.priority}</span>,
+        },
+        {
+          label: "Selera",
+          value: (
+            <Badge
+              variant="outline"
+              className={cn(
+                "h-5 rounded-full px-2 text-[10px] font-semibold tracking-[0.12em]",
+                scoreClassification.appetite === "di_atas_batas"
+                  ? "border-amber-200 bg-amber-50 text-amber-700"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-700",
+              )}
+            >
+              {scoreClassification.appetite === "di_atas_batas"
+                ? "Di Atas Batas"
+                : "Dalam Batas"}
+            </Badge>
+          ),
+        },
+      ]}
       />
 
       <div className="rounded-xl border border-border/50 bg-background p-4">
