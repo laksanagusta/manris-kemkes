@@ -326,7 +326,7 @@ func (r *aiRepository) GenerateManualIncidentRiskSuggestions(ctx context.Context
 
 func (r *aiRepository) callOpenAI(ctx context.Context, prompt string, systemMessage string, feature string, orgContext string) (string, error) {
 	if orgContext != "" {
-		systemMessage = "Konteks Organisasi:\n" + orgContext + "\n\n" + systemMessage
+		systemMessage = "Konteks Piagam MR:\n" + orgContext + "\n\n" + systemMessage
 	}
 
 	model := "gpt-4o-mini"
@@ -364,7 +364,7 @@ func (r *aiRepository) callOpenAI(ctx context.Context, prompt string, systemMess
 
 func (r *aiRepository) callOpenAIJSON(ctx context.Context, prompt string, systemMessage string, feature string, orgContext string, maxTokens int) (string, error) {
 	if orgContext != "" {
-		systemMessage = "Konteks Organisasi:\n" + orgContext + "\n\n" + systemMessage
+		systemMessage = "Konteks Piagam MR:\n" + orgContext + "\n\n" + systemMessage
 	}
 
 	model := "gpt-4o-mini"
@@ -629,16 +629,18 @@ Kembalikan HANYA array of JSON dengan struktur persis seperti ini:
 func (r *aiRepository) buildRiskSuggestionPrompt(existingTitlesJSON string) string {
 	return fmt.Sprintf(`Sebagai analis risiko profesional di Kementerian Kesehatan Indonesia, buatkan 5 contoh risiko yang BERBEDA dan UNIK untuk organisasi kesehatan pemerintah.
 
+Konteks utama untuk penyusunan risiko adalah Piagam MR aktif yang sudah diberikan pada pesan sistem. Gunakan istilah, mandat, ruang lingkup, proses, layanan, dan kondisi operasional yang muncul dari Piagam MR tersebut.
+
 Risiko yang SUDAH ADA di database (HINDARI risiko-risiko ini atau variasi yang mirip):
 %s
 
 Tugas:
 1. Buat 5 risiko baru yang BERBEDA dari daftar di atas
-2. Dalami isu-isu terkini di indonesia khususnya di bidang kesehatan
-3. Setiap risiko harus spesifik, realistis, dan relevan dengan konteks organisasi kesehatan/pemerintahan
-4. Berikan judul risiko yang jelas dan deskripsi kronologi kejadian yang detail
-5. Pastikan judul risiko unik dan tidak mirip dengan yang sudah ada
-	6. Variasi topik: SDM, infrastruktur, proses bisnis, keuangan, teknologi informasi, kepatuhan, dll.
+2. Jadikan sekitar 80%% isi risiko bersifat teknis dan spesifik terhadap konteks Piagam MR, dan sekitar 20%% menjelaskan dampak operasional atau non-teknis yang mudah dipahami
+3. Setiap risiko harus spesifik, realistis, dan relevan dengan mandat, layanan, atau proses yang tertulis atau tersirat dari Piagam MR
+4. Berikan judul risiko yang jelas, tajam, dan menggunakan istilah teknis yang sesuai konteks unit
+5. Hindari judul dan deskripsi yang terlalu generik seperti "kurang koordinasi" atau "keterlambatan proses" tanpa menyebut proses/layanan/mandat spesifik yang terdampak
+6. Pastikan judul risiko unik dan tidak mirip dengan yang sudah ada
 7. Untuk setiap risiko, tentukan "category" yang paling tepat. Gunakan salah satu nilai ini: "kebijakan", "reputasi", "fraud_korupsi", "legal", "kepatuhan", "operasional".
 
 Format respons JSON (hanya JSON, tanpa markdown):
@@ -658,7 +660,8 @@ PENTING:
 - utamakan risiko yang prioritas nasional pemerintah Indonesia
 - Judul harus berbeda dari daftar yang sudah ada
 - Jangan buat variasi kecil dari risiko yang sudah ada
-- Berikan konteks yang spesifik dan realistis`, existingTitlesJSON)
+- Berikan konteks yang spesifik dan realistis
+- Gunakan istilah teknis yang sesuai dengan konteks Piagam MR, bukan bahasa generik`, existingTitlesJSON)
 }
 
 func (r *aiRepository) buildIncidentBatchExtractionPrompt(documentText, riskCandidatesJSON string) string {

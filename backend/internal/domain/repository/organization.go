@@ -22,8 +22,8 @@ type OrganizationRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context) ([]*entity.Organization, error)
 	ListWithFilter(ctx context.Context, filter OrganizationListFilter) ([]*entity.Organization, int, error)
-	// GetContext returns the organization context string for AI prompt injection.
-	// Returns empty string if context is NULL or organization not found.
+	// GetContext returns the latest available Piagam MR context string for AI prompt injection.
+	// Returns empty string if no relevant charter context is available.
 	GetContext(ctx context.Context, orgID uuid.UUID) (string, error)
 	// GetDescendants returns all descendant organization IDs for a given organization (including itself)
 	// This uses recursive CTE to traverse the organization hierarchy

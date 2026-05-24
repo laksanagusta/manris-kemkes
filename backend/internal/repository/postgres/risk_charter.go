@@ -20,29 +20,47 @@ func NewRiskCharterRepository(pool *pgxpool.Pool) repository.RiskCharterReposito
 }
 
 func (r *riskCharterRepository) Create(ctx context.Context, charter *entity.RiskCharter) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin create risk charter transaction: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	if _, err := tx.Exec(ctx, `
+		UPDATE risk_charters
+		SET status = 'archived',
+			updated_at = now()
+		WHERE organization_id = $1
+		  AND upr_level = $2
+		  AND status = 'active'
+	`, charter.OrganizationID, charter.UPRLevel); err != nil {
+		return fmt.Errorf("archive previous active risk charter: %w", err)
+	}
+
+	charter.Status = "active"
 	query := `
 		INSERT INTO risk_charters (
-			organization_id, upr_level, period, risk_owner_name, risk_owner_user_id,
-			risk_team_name, scope, legal_basis, internal_context, external_context,
-			stakeholder_summary, created_by, approved_by, approved_at
+			organization_id, upr_level, period,
+			scope, legal_basis, internal_context, external_context,
+			stakeholder_summary, status, created_by, approved_by, approved_at
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
 		)
 		RETURNING id, status, created_at, updated_at
 	`
 
-	if err := r.pool.QueryRow(ctx, query,
+	if err := tx.QueryRow(ctx, query,
 		charter.OrganizationID,
 		charter.UPRLevel,
 		charter.Period,
-		charter.RiskOwnerName,
-		charter.RiskOwnerUserID,
-		charter.RiskTeamName,
 		charter.Scope,
 		charter.LegalBasis,
 		charter.InternalContext,
 		charter.ExternalContext,
 		charter.StakeholderSummary,
+		charter.Status,
 		charter.CreatedBy,
 		charter.ApprovedBy,
 		charter.ApprovedAt,
@@ -50,13 +68,17 @@ func (r *riskCharterRepository) Create(ctx context.Context, charter *entity.Risk
 		return fmt.Errorf("create risk charter: %w", err)
 	}
 
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit risk charter creation: %w", err)
+	}
+
 	return nil
 }
 
 func (r *riskCharterRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.RiskCharter, error) {
 	query := `
-		SELECT id, organization_id, upr_level, period, risk_owner_name, risk_owner_user_id,
-			risk_team_name, scope, legal_basis, internal_context, external_context,
+		SELECT id, organization_id, upr_level, period,
+			scope, legal_basis, internal_context, external_context,
 			stakeholder_summary, status, created_by, approved_by,
 			approved_at, created_at, updated_at
 		FROM risk_charters
@@ -69,9 +91,6 @@ func (r *riskCharterRepository) GetByID(ctx context.Context, id uuid.UUID) (*ent
 		&charter.OrganizationID,
 		&charter.UPRLevel,
 		&charter.Period,
-		&charter.RiskOwnerName,
-		&charter.RiskOwnerUserID,
-		&charter.RiskTeamName,
 		&charter.Scope,
 		&charter.LegalBasis,
 		&charter.InternalContext,
@@ -96,17 +115,14 @@ func (r *riskCharterRepository) Update(ctx context.Context, charter *entity.Risk
 		SET organization_id = $2,
 			upr_level = $3,
 			period = $4,
-			risk_owner_name = $5,
-			risk_owner_user_id = $6,
-			risk_team_name = $7,
-			scope = $8,
-			legal_basis = $9,
-			internal_context = $10,
-			external_context = $11,
-			stakeholder_summary = $12,
-			status = COALESCE(NULLIF($13, ''), status),
-			approved_by = $14,
-			approved_at = $15,
+			scope = $5,
+			legal_basis = $6,
+			internal_context = $7,
+			external_context = $8,
+			stakeholder_summary = $9,
+			status = COALESCE(NULLIF($10, ''), status),
+			approved_by = $11,
+			approved_at = $12,
 			updated_at = now()
 		WHERE id = $1
 		RETURNING status, updated_at
@@ -117,9 +133,6 @@ func (r *riskCharterRepository) Update(ctx context.Context, charter *entity.Risk
 		charter.OrganizationID,
 		charter.UPRLevel,
 		charter.Period,
-		charter.RiskOwnerName,
-		charter.RiskOwnerUserID,
-		charter.RiskTeamName,
 		charter.Scope,
 		charter.LegalBasis,
 		charter.InternalContext,
@@ -138,8 +151,8 @@ func (r *riskCharterRepository) Update(ctx context.Context, charter *entity.Risk
 func (r *riskCharterRepository) List(ctx context.Context, filter repository.RiskCharterListFilter) ([]*entity.RiskCharter, int, error) {
 	countQuery := `SELECT COUNT(*) FROM risk_charters WHERE 1=1`
 	dataQuery := `
-		SELECT id, organization_id, upr_level, period, risk_owner_name, risk_owner_user_id,
-			risk_team_name, scope, legal_basis, internal_context, external_context,
+		SELECT id, organization_id, upr_level, period,
+			scope, legal_basis, internal_context, external_context,
 			stakeholder_summary, status, created_by, approved_by,
 			approved_at, created_at, updated_at
 		FROM risk_charters
@@ -181,7 +194,15 @@ func (r *riskCharterRepository) List(ctx context.Context, filter repository.Risk
 	}
 	offset := (page - 1) * limit
 
-	dataQuery += fmt.Sprintf(" ORDER BY updated_at DESC LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	dataQuery += fmt.Sprintf(` ORDER BY
+		CASE status
+			WHEN 'active' THEN 4
+			WHEN 'in_review' THEN 3
+			WHEN 'draft' THEN 2
+			ELSE 1
+		END DESC,
+		updated_at DESC
+		LIMIT $%d OFFSET $%d`, argPos, argPos+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, dataQuery, args...)
@@ -198,9 +219,6 @@ func (r *riskCharterRepository) List(ctx context.Context, filter repository.Risk
 			&charter.OrganizationID,
 			&charter.UPRLevel,
 			&charter.Period,
-			&charter.RiskOwnerName,
-			&charter.RiskOwnerUserID,
-			&charter.RiskTeamName,
 			&charter.Scope,
 			&charter.LegalBasis,
 			&charter.InternalContext,

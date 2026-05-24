@@ -22,9 +22,6 @@ type CreateRiskCharterInput struct {
 	OrganizationID     uuid.UUID  `json:"organizationId"`
 	UPRLevel           string     `json:"uprLevel"`
 	Period             string     `json:"period"`
-	RiskOwnerName      string     `json:"riskOwnerName"`
-	RiskOwnerUserID    *uuid.UUID `json:"riskOwnerUserId"`
-	RiskTeamName       string     `json:"riskTeamName"`
 	Scope              string     `json:"scope"`
 	LegalBasis         string     `json:"legalBasis"`
 	InternalContext    string     `json:"internalContext"`
@@ -39,15 +36,12 @@ func (uc *CreateRiskCharterUseCase) Execute(ctx context.Context, input CreateRis
 		OrganizationID:     input.OrganizationID,
 		UPRLevel:           strings.TrimSpace(input.UPRLevel),
 		Period:             strings.TrimSpace(input.Period),
-		RiskOwnerName:      strings.TrimSpace(input.RiskOwnerName),
-		RiskOwnerUserID:    input.RiskOwnerUserID,
-		RiskTeamName:       strings.TrimSpace(input.RiskTeamName),
 		Scope:              strings.TrimSpace(input.Scope),
 		LegalBasis:         strings.TrimSpace(input.LegalBasis),
 		InternalContext:    strings.TrimSpace(input.InternalContext),
 		ExternalContext:    strings.TrimSpace(input.ExternalContext),
 		StakeholderSummary: strings.TrimSpace(input.StakeholderSummary),
-		Status:             strings.TrimSpace(input.Status),
+		Status:             "active",
 		CreatedBy:          input.CreatedBy,
 	}
 

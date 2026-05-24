@@ -87,7 +87,6 @@ func TestRiskCharterHandlerCreate(t *testing.T) {
 		"organizationId": "11111111-1111-1111-1111-111111111111",
 		"uprLevel":       "upr_t1",
 		"period":         "2026-H1",
-		"riskOwnerName":  "Direktur A",
 		"status":         "draft",
 	})
 	if err != nil {
@@ -111,5 +110,8 @@ func TestRiskCharterHandlerCreate(t *testing.T) {
 	}
 	if repo.created == nil {
 		t.Fatal("expected charter to be created")
+	}
+	if repo.created.Status != "active" {
+		t.Fatalf("expected created status active, got %q", repo.created.Status)
 	}
 }

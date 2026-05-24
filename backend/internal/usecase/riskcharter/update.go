@@ -19,19 +19,16 @@ func NewUpdateRiskCharterUseCase(repo repository.RiskCharterRepository) *UpdateR
 }
 
 type UpdateRiskCharterInput struct {
-	ID                 uuid.UUID  `json:"-"`
-	OrganizationID     uuid.UUID  `json:"organizationId"`
-	UPRLevel           string     `json:"uprLevel"`
-	Period             string     `json:"period"`
-	RiskOwnerName      string     `json:"riskOwnerName"`
-	RiskOwnerUserID    *uuid.UUID `json:"riskOwnerUserId"`
-	RiskTeamName       string     `json:"riskTeamName"`
-	Scope              string     `json:"scope"`
-	LegalBasis         string     `json:"legalBasis"`
-	InternalContext    string     `json:"internalContext"`
-	ExternalContext    string     `json:"externalContext"`
-	StakeholderSummary string     `json:"stakeholderSummary"`
-	Status             string     `json:"status"`
+	ID                 uuid.UUID `json:"-"`
+	OrganizationID     uuid.UUID `json:"organizationId"`
+	UPRLevel           string    `json:"uprLevel"`
+	Period             string    `json:"period"`
+	Scope              string    `json:"scope"`
+	LegalBasis         string    `json:"legalBasis"`
+	InternalContext    string    `json:"internalContext"`
+	ExternalContext    string    `json:"externalContext"`
+	StakeholderSummary string    `json:"stakeholderSummary"`
+	Status             string    `json:"status"`
 }
 
 func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRiskCharterInput) (*entity.RiskCharter, error) {
@@ -44,9 +41,6 @@ func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRis
 	updated.OrganizationID = input.OrganizationID
 	updated.UPRLevel = strings.TrimSpace(input.UPRLevel)
 	updated.Period = strings.TrimSpace(input.Period)
-	updated.RiskOwnerName = strings.TrimSpace(input.RiskOwnerName)
-	updated.RiskOwnerUserID = input.RiskOwnerUserID
-	updated.RiskTeamName = strings.TrimSpace(input.RiskTeamName)
 	updated.Scope = strings.TrimSpace(input.Scope)
 	updated.LegalBasis = strings.TrimSpace(input.LegalBasis)
 	updated.InternalContext = strings.TrimSpace(input.InternalContext)

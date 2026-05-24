@@ -20,7 +20,6 @@ func TestRiskCharterValidate(t *testing.T) {
 				OrganizationID: orgID,
 				UPRLevel:       "upr_t1",
 				Period:         "2026-H1",
-				RiskOwnerName:  "Direktur A",
 			},
 			wantErr: false,
 		},
@@ -30,7 +29,6 @@ func TestRiskCharterValidate(t *testing.T) {
 				OrganizationID: orgID,
 				UPRLevel:       "foo",
 				Period:         "2026-H1",
-				RiskOwnerName:  "Direktur A",
 			},
 			wantErr: true,
 		},
@@ -39,7 +37,6 @@ func TestRiskCharterValidate(t *testing.T) {
 			charter: RiskCharter{
 				OrganizationID: orgID,
 				UPRLevel:       "upr_t1",
-				RiskOwnerName:  "Direktur A",
 			},
 			wantErr: true,
 		},

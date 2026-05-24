@@ -9,13 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  ChevronsUpDown,
-  Building2,
-  LogOut,
-  Settings,
-  User,
-} from "lucide-react";
+import { ChevronsUpDown, Building2, LogOut, Settings, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -62,14 +56,6 @@ export function AppHeader() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() =>
-                router.push("/admin/settings/organization-context")
-              }
-            >
-              <Building2 className="mr-2 size-4" />
-              Konteks Organisasi
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push("/account")}>
               <User className="mr-2 size-4" />
               Profile

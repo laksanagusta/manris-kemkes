@@ -13,9 +13,6 @@ type RiskCharter struct {
 	OrganizationID     uuid.UUID  `json:"organizationId"`
 	UPRLevel           string     `json:"uprLevel"`
 	Period             string     `json:"period"`
-	RiskOwnerName      string     `json:"riskOwnerName"`
-	RiskOwnerUserID    *uuid.UUID `json:"riskOwnerUserId,omitempty"`
-	RiskTeamName       string     `json:"riskTeamName"`
 	Scope              string     `json:"scope"`
 	LegalBasis         string     `json:"legalBasis"`
 	InternalContext    string     `json:"internalContext"`
@@ -35,9 +32,6 @@ func (r RiskCharter) Validate() error {
 	}
 	if strings.TrimSpace(r.Period) == "" {
 		return fmt.Errorf("period is required")
-	}
-	if strings.TrimSpace(r.RiskOwnerName) == "" {
-		return fmt.Errorf("risk owner name is required")
 	}
 
 	switch r.UPRLevel {

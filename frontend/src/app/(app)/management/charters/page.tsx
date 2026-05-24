@@ -27,12 +27,7 @@ import { listAllOrganizations } from "@/lib/api/organizations";
 import { updateRiskCharter } from "@/lib/api/risk-charters";
 import type { OrganizationListItem } from "@/lib/api/organizations";
 import type { RiskCharter } from "@/types/risk-charter";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,13 +64,13 @@ const uprLevelLabel: Record<string, string> = {
 const charterStatusLabel: Record<string, string> = {
   draft: "Draft",
   in_review: "Diperiksa",
-  approved: "Disahkan",
+  active: "Aktif",
   archived: "Diarsipkan",
 };
 
 function getCharterStatusBadgeClass(status?: string) {
   switch (status) {
-    case "approved":
+    case "active":
       return "border-emerald-200 bg-emerald-50 text-emerald-700";
     case "in_review":
       return "border-amber-200 bg-amber-50 text-amber-700";
@@ -100,8 +95,7 @@ export default function RiskChartersPage() {
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
-  const hasActiveFilters =
-    search !== "" || periodFilter !== "all";
+  const hasActiveFilters = search !== "" || periodFilter !== "all";
 
   const resetFilters = useCallback(() => {
     setSearch("");
@@ -156,9 +150,6 @@ export default function RiskChartersPage() {
           organizationId: charter.organizationId,
           uprLevel: charter.uprLevel,
           period: charter.period,
-          riskOwnerName: charter.riskOwnerName,
-          riskOwnerUserId: charter.riskOwnerUserId || undefined,
-          riskTeamName: charter.riskTeamName,
           scope: charter.scope,
           legalBasis: charter.legalBasis,
           internalContext: charter.internalContext,
@@ -196,7 +187,6 @@ export default function RiskChartersPage() {
       return [
         orgName,
         item.period.toLowerCase(),
-        item.riskOwnerName.toLowerCase(),
         uprLevelLabel[item.uprLevel]?.toLowerCase() ??
           item.uprLevel.toLowerCase(),
       ].some((value) => value.includes(query));
@@ -229,16 +219,19 @@ export default function RiskChartersPage() {
             Risk Governance
           </p>
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Piagam MR</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Piagam Manris
+            </h2>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Kelola piagam manajemen risiko untuk menetapkan konteks, ruang lingkup, dan struktur UPR secara konsisten antar unit kerja.
+              Kelola piagam manajemen risiko untuk menetapkan konteks, ruang
+              lingkup, dan struktur UPR secara konsisten antar unit kerja.
             </p>
           </div>
         </div>
         <Button asChild className="gap-2">
           <Link href="/management/charters/new">
             <Plus className="size-4" />
-            Buat Piagam MR
+            Buat Piagam
           </Link>
         </Button>
       </div>
@@ -249,9 +242,8 @@ export default function RiskChartersPage() {
             Daftar Piagam
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Tinjau piagam berdasarkan periode, owner, dan status, lalu buka
-            detail untuk memperbarui isi charter dengan struktur yang
-            konsisten.
+            Tinjau piagam berdasarkan periode, UPR, dan status, lalu buka detail
+            untuk memperbarui isi charter dengan struktur yang konsisten.
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -264,7 +256,7 @@ export default function RiskChartersPage() {
                   id="charter-search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Cari organisasi, owner, atau periode"
+                  placeholder="Cari organisasi, UPR, atau periode"
                   className="pl-9"
                 />
               </div>
@@ -309,7 +301,6 @@ export default function RiskChartersPage() {
                   <TableHead>Organisasi</TableHead>
                   <TableHead>UPR</TableHead>
                   <TableHead>Periode</TableHead>
-                  <TableHead>Risk Owner</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Diperbarui</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
@@ -319,7 +310,7 @@ export default function RiskChartersPage() {
                 {loading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={6}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       Memuat data piagam...
@@ -327,7 +318,7 @@ export default function RiskChartersPage() {
                   </TableRow>
                 ) : error ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center">
+                    <TableCell colSpan={6} className="py-12 text-center">
                       <div className="space-y-3">
                         <p className="text-sm text-destructive">{error}</p>
                         <Button
@@ -344,8 +335,11 @@ export default function RiskChartersPage() {
                   </TableRow>
                 ) : filteredItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      Tidak ada piagam MR yang ditemukan
+                    <TableCell
+                      colSpan={6}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      Tidak ada piagam manris yang ditemukan
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -359,9 +353,6 @@ export default function RiskChartersPage() {
                         {uprLevelLabel[item.uprLevel] ?? item.uprLevel}
                       </TableCell>
                       <TableCell>{item.period}</TableCell>
-                      <TableCell className="max-w-[160px] truncate">
-                        {item.riskOwnerName}
-                      </TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
@@ -383,13 +374,20 @@ export default function RiskChartersPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon-xs" className="text-muted-foreground">
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              className="text-muted-foreground"
+                            >
                               <MoreHorizontal className="size-3.5" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44">
                             <DropdownMenuItem asChild>
-                              <Link href={`/management/charters/${item.id}`} className="gap-2">
+                              <Link
+                                href={`/management/charters/${item.id}`}
+                                className="gap-2"
+                              >
                                 <ArrowUpRight className="size-3.5" />
                                 Buka
                               </Link>
@@ -415,7 +413,9 @@ export default function RiskChartersPage() {
           {filteredItems.length >= pageSize && (
             <div className="flex items-center justify-between px-2">
               <p className="text-xs text-muted-foreground">
-                {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, filteredItems.length)} dari {filteredItems.length}
+                {(page - 1) * pageSize + 1}-
+                {Math.min(page * pageSize, filteredItems.length)} dari{" "}
+                {filteredItems.length}
               </p>
               <div className="flex items-center gap-1">
                 <Button
