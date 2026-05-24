@@ -140,6 +140,29 @@ export function getRiskPriority(level: RiskLevel): number {
   return priorities[level] || 5;
 }
 
+export interface RiskAssessmentClassification {
+  score: number;
+  level: RiskLevel;
+  priority: number;
+  appetite: "dalam_batas" | "di_atas_batas";
+  isRiskUtama: boolean;
+}
+
+export function resolveRiskAssessmentClassification(
+  nilai: number,
+): RiskAssessmentClassification {
+  const score = Math.round(nilai);
+  const level = getRiskLevelFromNilai(nilai);
+
+  return {
+    score,
+    level,
+    priority: getRiskPriority(level),
+    appetite: resolveRiskAppetite(score),
+    isRiskUtama: isRiskUtama(score),
+  };
+}
+
 export function getRiskLevelLabel(level: RiskLevel): string {
   const labels: Record<RiskLevel, string> = {
     sangat_rendah: "Sangat Rendah",

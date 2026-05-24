@@ -93,6 +93,7 @@ type UpdateRiskOutput struct {
 	Code      string       `json:"code"`
 	Message   string       `json:"message"`
 	UpdatedAt fmt.Stringer `json:"updatedAt"` // time.Time implements Stringer
+	Warnings  []string     `json:"warnings,omitempty"`
 }
 
 func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput, orgIDs []uuid.UUID) (*UpdateRiskOutput, error) {
@@ -187,6 +188,23 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		}
 	}
 
+	var warnings []string
+	if existingRisk.PreviousRiskID != nil {
+		previousRisk, err := uc.riskRepo.GetByID(ctx, *existingRisk.PreviousRiskID, orgIDs)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to load previous risk version")
+		}
+		if previousRisk == nil {
+			return nil, errors.Wrap(errors.ErrRiskNotFound, "previous risk version not found")
+		}
+
+		substanceChanges := DetectSubstanceChanges(previousRisk, existingRisk)
+		if len(substanceChanges) > 0 && strings.TrimSpace(input.ChangeReason) == "" {
+			return nil, errors.Wrap(errors.ErrInvalidInput, "changeReason is required when monitoring changes risk substance")
+		}
+		warnings = BuildSubstanceChangeWarnings(previousRisk, existingRisk)
+	}
+
 	// Section 5
 	existingRisk.TargetProbability = input.TargetProbability
 	existingRisk.TargetImpact = input.TargetImpact
@@ -233,5 +251,6 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		Code:      existingRisk.Code,
 		Message:   "Risk updated successfully",
 		UpdatedAt: existingRisk.UpdatedAt,
+		Warnings:  warnings,
 	}, nil
 }

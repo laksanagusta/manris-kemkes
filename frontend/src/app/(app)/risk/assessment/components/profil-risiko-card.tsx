@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Risk } from "@/types/risk";
@@ -66,9 +65,6 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
     inherentScore !== undefined && inherentScore !== null
       ? getRiskLevelFromNilai(inherentScore)
       : undefined;
-  const mitigationCount = (
-    risk.mitigations?.length ? risk.mitigations : risk.mitigation ? [risk.mitigation] : []
-  ).filter((item) => item?.action).length;
 
   const currentScoreTitle = "Skor Saat Ini";
   const currentLevelLabel = level ? getRiskLevelLabel(level) : null;
@@ -101,9 +97,8 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
             {detailHref ? (
               <Link
                 href={detailHref}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary/80"
               >
-                <ArrowUpRight className="size-3.5" />
                 <span>Lihat detail risiko</span>
               </Link>
             ) : null}
@@ -247,32 +242,6 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
             </div>
           </div>
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Level Risiko</p>
-            {level ? (
-              <Badge variant="outline" className={levelToColor(level)}>
-                {getRiskLevelLabel(level)}
-              </Badge>
-            ) : (
-              <span className="text-sm">-</span>
-            )}
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Prioritas Risiko</p>
-            <p className="text-sm">{risk.riskPriority || "-"}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Bobot</p>
-            <p className="text-sm font-mono">{risk.weight || "-"}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Aksi Penanganan</p>
-            <p className="text-sm">{mitigationCount > 0 ? `${mitigationCount} tindakan` : "Belum ada"}</p>
-          </div>
-        </div>
-
       </CardContent>
     </Card>
   );

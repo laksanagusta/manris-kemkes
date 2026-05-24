@@ -2,6 +2,7 @@ package risk
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ type reviewScheduleRiskRepo struct {
 	created         *entity.Risk
 	updated         *entity.Risk
 	byID            *entity.Risk
+	versions        []*entity.Risk
 	activatedRiskID uuid.UUID
 	activateCount   int
 }
@@ -61,8 +63,16 @@ func (r *reviewScheduleRiskRepo) Create(_ context.Context, risk *entity.Risk) er
 	return nil
 }
 
-func (r *reviewScheduleRiskRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (*entity.Risk, error) {
-	return cloneReviewScheduleRisk(r.byID), nil
+func (r *reviewScheduleRiskRepo) GetByID(_ context.Context, id uuid.UUID, _ []uuid.UUID) (*entity.Risk, error) {
+	if r.byID != nil && r.byID.ID == id {
+		return cloneReviewScheduleRisk(r.byID), nil
+	}
+	for _, version := range r.versions {
+		if version != nil && version.ID == id {
+			return cloneReviewScheduleRisk(version), nil
+		}
+	}
+	return nil, nil
 }
 
 func (r *reviewScheduleRiskRepo) Update(_ context.Context, risk *entity.Risk) error {
@@ -118,8 +128,14 @@ func (r *reviewScheduleRiskRepo) TopRisks(context.Context, string, int, []uuid.U
 	return nil, nil
 }
 
-func (r *reviewScheduleRiskRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.Risk, error) {
-	return nil, nil
+func (r *reviewScheduleRiskRepo) ListVersions(_ context.Context, versionGroupID uuid.UUID) ([]*entity.Risk, error) {
+	result := make([]*entity.Risk, 0, len(r.versions))
+	for _, version := range r.versions {
+		if version != nil && version.VersionGroupID == versionGroupID {
+			result = append(result, cloneReviewScheduleRisk(version))
+		}
+	}
+	return result, nil
 }
 
 func (r *reviewScheduleRiskRepo) ListCycleSnapshot(context.Context, string, []uuid.UUID) ([]*entity.Risk, error) {
@@ -286,6 +302,117 @@ func TestUpdateRiskUseCase_ExecutePersistsReviewScheduleText(t *testing.T) {
 	}
 }
 
+func TestUpdateRiskUseCase_ExecuteRequiresChangeReasonForSubstanceChangeInReassessment(t *testing.T) {
+	riskID := uuid.New()
+	previousRiskID := uuid.New()
+	versionGroupID := uuid.New()
+	organizationID := uuid.New()
+	repo := &reviewScheduleRiskRepo{
+		byID: &entity.Risk{
+			ID:             riskID,
+			PreviousRiskID: &previousRiskID,
+			Code:           "R-001",
+			Title:          "Existing reassessment",
+			Description:    "Old description",
+			Category:       entity.RiskCategoryOperasional,
+			Status:         entity.RiskStatusDraft,
+			VersionGroupID: versionGroupID,
+			OrganizationID: &organizationID,
+			Probability:    3,
+			Impact:         3,
+		},
+		versions: []*entity.Risk{
+			{
+				ID:             previousRiskID,
+				Code:           "R-001",
+				Title:          "Existing reassessment",
+				Description:    "Old description",
+				Category:       entity.RiskCategoryOperasional,
+				Status:         entity.RiskStatusApproved,
+				VersionGroupID: versionGroupID,
+				OrganizationID: &organizationID,
+				Probability:    3,
+				Impact:         3,
+			},
+		},
+	}
+	uc := NewUpdateRiskUseCase(repo, &reviewScheduleUserRepo{}, &reviewScheduleOrgRepo{}, nil, &reviewScheduleTaskRepo{})
+
+	_, err := uc.Execute(context.Background(), UpdateRiskInput{
+		ID:             riskID,
+		Title:          "Existing reassessment",
+		Description:    "New description",
+		Category:       entity.RiskCategoryOperasional,
+		Status:         entity.RiskStatusDraft,
+		OrganizationID: &organizationID,
+		Probability:    4,
+		Impact:         3,
+	}, nil)
+	if err == nil {
+		t.Fatal("expected error for missing change reason")
+	}
+	if !strings.Contains(err.Error(), "changeReason is required") {
+		t.Fatalf("expected changeReason validation error, got %v", err)
+	}
+	if repo.updated != nil {
+		t.Fatal("expected update to be blocked")
+	}
+}
+
+func TestUpdateRiskUseCase_ExecuteAllowsScoreOnlyReassessmentWithoutChangeReason(t *testing.T) {
+	riskID := uuid.New()
+	previousRiskID := uuid.New()
+	versionGroupID := uuid.New()
+	organizationID := uuid.New()
+	repo := &reviewScheduleRiskRepo{
+		byID: &entity.Risk{
+			ID:             riskID,
+			PreviousRiskID: &previousRiskID,
+			Code:           "R-001",
+			Title:          "Existing reassessment",
+			Description:    "Same description",
+			Category:       entity.RiskCategoryOperasional,
+			Status:         entity.RiskStatusDraft,
+			VersionGroupID: versionGroupID,
+			OrganizationID: &organizationID,
+			Probability:    3,
+			Impact:         3,
+		},
+		versions: []*entity.Risk{
+			{
+				ID:             previousRiskID,
+				Code:           "R-001",
+				Title:          "Existing reassessment",
+				Description:    "Same description",
+				Category:       entity.RiskCategoryOperasional,
+				Status:         entity.RiskStatusApproved,
+				VersionGroupID: versionGroupID,
+				OrganizationID: &organizationID,
+				Probability:    3,
+				Impact:         3,
+			},
+		},
+	}
+	uc := NewUpdateRiskUseCase(repo, &reviewScheduleUserRepo{}, &reviewScheduleOrgRepo{}, nil, &reviewScheduleTaskRepo{})
+
+	_, err := uc.Execute(context.Background(), UpdateRiskInput{
+		ID:             riskID,
+		Title:          "Existing reassessment",
+		Description:    "Same description",
+		Category:       entity.RiskCategoryOperasional,
+		Status:         entity.RiskStatusDraft,
+		OrganizationID: &organizationID,
+		Probability:    4,
+		Impact:         3,
+	}, nil)
+	if err != nil {
+		t.Fatalf("expected no error for score-only update, got %v", err)
+	}
+	if repo.updated == nil {
+		t.Fatal("expected risk to be updated")
+	}
+}
+
 func TestUpdateRiskUseCase_ExecuteActivatesApprovedReassessmentVersion(t *testing.T) {
 	riskID := uuid.New()
 	previousRiskID := uuid.New()
@@ -304,6 +431,19 @@ func TestUpdateRiskUseCase_ExecuteActivatesApprovedReassessmentVersion(t *testin
 			Probability:    3,
 			Impact:         3,
 		},
+		versions: []*entity.Risk{
+			{
+				ID:             previousRiskID,
+				Code:           "R-001",
+				Title:          "Existing reassessment",
+				Category:       entity.RiskCategoryKebijakan,
+				Status:         entity.RiskStatusApproved,
+				VersionGroupID: uuid.New(),
+				OrganizationID: &organizationID,
+				Probability:    3,
+				Impact:         3,
+			},
+		},
 	}
 	uc := NewUpdateRiskUseCase(repo, &reviewScheduleUserRepo{}, &reviewScheduleOrgRepo{}, nil, &reviewScheduleTaskRepo{})
 
@@ -317,6 +457,7 @@ func TestUpdateRiskUseCase_ExecuteActivatesApprovedReassessmentVersion(t *testin
 		ROID:           &roID,
 		Probability:    4,
 		Impact:         3,
+		ChangeReason:   "Finalisasi reassessment",
 	}, nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)

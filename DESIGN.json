@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-24T00:00:00+07:00",
+  "title": "Design System: Manris",
+  "extensions": {
+    "northStar": "The Operational Ledger",
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Paper Background",
+        "canonical": "oklch(0.985 0.003 170)",
+        "tonalRamp": [
+          "oklch(0.995 0.002 170)",
+          "oklch(0.985 0.003 170)",
+          "oklch(0.96 0.006 170)"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Operational Teal",
+        "canonical": "oklch(0.48 0.12 175)",
+        "tonalRamp": [
+          "oklch(0.62 0.12 175)",
+          "oklch(0.48 0.12 175)",
+          "oklch(0.30 0.06 175)"
+        ]
+      },
+      "destructive": {
+        "role": "semantic",
+        "displayName": "Risk Extreme Red",
+        "canonical": "oklch(0.58 0.22 27)",
+        "tonalRamp": [
+          "oklch(0.70 0.18 40)",
+          "oklch(0.58 0.22 27)",
+          "oklch(0.45 0.18 27)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "DM Sans",
+        "purpose": "Section titles, nav labels, and compact branded emphasis."
+      },
+      "body": {
+        "displayName": "Manrope",
+        "purpose": "Primary reading face for forms, helper copy, and operational text."
+      },
+      "mono": {
+        "displayName": "Geist Mono",
+        "purpose": "IDs, technical values, and audit-style data."
+      }
+    },
+    "elevation": {
+      "card": "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(24,24,27,0.05)",
+      "control": "0 1px 1px rgba(0,0,0,0.04)",
+      "popover": "0 4px 24px rgba(0,0,0,0.08)"
+    },
+    "motion": {
+      "default": "fade/translate only, no layout animation",
+      "timing": "150-250ms ease-out"
+    },
+    "breakpoints": {
+      "sm": "640px",
+      "md": "768px",
+      "lg": "1024px",
+      "xl": "1280px",
+      "2xl": "1536px"
+    }
+  }
+}

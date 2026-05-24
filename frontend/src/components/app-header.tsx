@@ -45,7 +45,7 @@ export function AppHeader() {
               <ChevronsUpDown className="hidden size-3.5 shrink-0 text-muted-foreground sm:block" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="font-display w-56">
+          <DropdownMenuContent align="end" className="font-display w-56 pl-2">
             <DropdownMenuLabel className="space-y-1 px-2 py-1.5">
               <div className="truncate text-sm font-medium text-foreground">
                 {user?.name || "User"}

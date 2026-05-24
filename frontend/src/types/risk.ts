@@ -24,6 +24,7 @@ export interface RiskMitigation {
   id?: string;
   action: string;
   owner: string;
+  ownerUserId?: string;
   treatmentOwnerId?: string;
   externalPicId?: string;
   dueDate: string;
