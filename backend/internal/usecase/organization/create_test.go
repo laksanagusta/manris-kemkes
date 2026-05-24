@@ -20,7 +20,6 @@ func (r *fakeOrgCreateRepo) Create(_ context.Context, org *entity.Organization) 
 		ID:        org.ID,
 		Name:      org.Name,
 		ParentID:  org.ParentID,
-		Context:   org.Context,
 		UPRLevel:  org.UPRLevel,
 		CreatedAt: org.CreatedAt,
 	}
@@ -61,7 +60,6 @@ func TestCreateOrganizationUseCase_ExecutePersistsUprLevel(t *testing.T) {
 		Name:     "Unit A",
 		ParentID: &parentID,
 		UPRLevel: "upr_t1",
-		Context:  "context",
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)

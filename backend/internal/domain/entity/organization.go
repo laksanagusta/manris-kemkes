@@ -25,7 +25,6 @@ type Organization struct {
 	ID        uuid.UUID  `json:"id"`
 	Name      string     `json:"name"`
 	ParentID  *uuid.UUID `json:"parentId,omitempty"`
-	Context   string     `json:"context,omitempty"`
 	UPRLevel  string     `json:"uprLevel,omitempty"` // "kementerian", "upr_t1", "upr_t2"
 	CreatedAt time.Time  `json:"createdAt"`
 }

@@ -26,7 +26,6 @@ type CreateOrganizationInput struct {
 	Name     string     `json:"name"`
 	ParentID *uuid.UUID `json:"parentId"`
 	UPRLevel string     `json:"uprLevel"`
-	Context  string     `json:"context"`
 }
 
 type CreateOrganizationOutput struct {
@@ -53,15 +52,10 @@ func (uc *CreateOrganizationUseCase) Execute(ctx context.Context, input CreateOr
 		return nil, errors.Wrap(errors.ErrInvalidInput, "upr level must be kementerian, upr_t1, or upr_t2")
 	}
 
-	if len(input.Context) > 2000 {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "context must not exceed 2000 characters")
-	}
-
 	org := &entity.Organization{
 		Name:     input.Name,
 		ParentID: input.ParentID,
 		UPRLevel: input.UPRLevel,
-		Context:  input.Context,
 	}
 
 	if err := org.Validate(); err != nil {

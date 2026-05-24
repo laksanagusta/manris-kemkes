@@ -15,7 +15,7 @@ export const mainMenuItems: MainMenuGroup[] = [
   //   title: "RISK GOVERNANCE",
   //   items: [
   //     {
-  //       label: "Piagam MR",
+  //       label: "Piagam Manris",
   //       href: "/management/charters",
   //       icon: "ClipboardPenLine",
   //       matchHrefs: ["/management/charters"],
@@ -77,11 +77,6 @@ export const adminMenuGroup: MainMenuGroup = {
       icon: "Building2",
     },
     // { label: "Settings", href: "/admin/settings", icon: "Settings2" },
-    {
-      label: "Context",
-      href: "/admin/settings/organization-context",
-      icon: "Settings2",
-    },
   ],
 };
 
@@ -122,10 +117,9 @@ export const breadcrumbMap: Record<string, string> = {
   "/admin/users/new": "Tambah Pengguna",
   "/admin/organizations": "Organisasi",
   "/admin/settings": "Pengaturan",
-  "/admin/settings/organization-context": "Konteks Organisasi",
   "/management": "Risk Governance",
-  "/management/charters": "Piagam MR",
-  "/management/charters/new": "Buat Piagam MR",
+  "/management/charters": "Piagam Manris",
+  "/management/charters/new": "Buat Piagam Manris",
   "/risk/cascading": "Eskalasi Risiko",
   "/management/planning": "Struktur Kinerja & RO",
   "/management/tmpmr": "TMPMR",

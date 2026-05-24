@@ -145,7 +145,7 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
                   variant="outline"
                   className={cn(
                     "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
-                    levelToColor(level),
+                    level ? levelToColor(level) : "",
                   )}
                 >
                   {currentLevelLabel}
@@ -210,7 +210,7 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
                   variant="outline"
                   className={cn(
                     "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
-                    levelToColor(targetLevel),
+                    targetLevel ? levelToColor(targetLevel) : "",
                   )}
                 >
                   {targetLevelLabel}

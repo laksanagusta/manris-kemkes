@@ -144,6 +144,7 @@ export default function BulkRiskRegisterPage() {
   >([]);
 
   const isGlobalUser = Boolean(user?.isGlobal);
+  const isUnitRole = user?.role === "unit";
   const effectiveOrgId = isGlobalUser
     ? selectedOrgId
     : (user?.organizationId ?? "");

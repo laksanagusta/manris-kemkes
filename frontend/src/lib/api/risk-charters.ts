@@ -21,9 +21,6 @@ export type UpsertRiskCharterRequest = {
   organizationId: string;
   uprLevel: RiskCharterUPRLevel;
   period: string;
-  riskOwnerName: string;
-  riskOwnerUserId?: string;
-  riskTeamName: string;
   scope: string;
   legalBasis: string;
   internalContext: string;
