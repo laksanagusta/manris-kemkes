@@ -36,6 +36,15 @@ jobs:
 
             const { owner, repo } = context.repo;
             const pullNumber = context.payload.pull_request.number;
+            const headRepoFullName = context.payload.pull_request.head.repo.full_name;
+            const baseRepoFullName = `${owner}/${repo}`;
+
+            if (headRepoFullName !== baseRepoFullName) {
+              core.warning(
+                `Skipping auto-label sync for forked PR #${pullNumber} (${headRepoFullName} -> ${baseRepoFullName}) because the workflow token cannot reliably mutate labels.`,
+              );
+              return;
+            }
 
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner,
@@ -81,13 +90,23 @@ jobs:
                   throw error;
                 }
 
-                await github.rest.issues.createLabel({
-                  owner,
-                  repo,
-                  name: definition.name,
-                  color: definition.color,
-                  description: definition.description,
-                });
+                try {
+                  await github.rest.issues.createLabel({
+                    owner,
+                    repo,
+                    name: definition.name,
+                    color: definition.color,
+                    description: definition.description,
+                  });
+                } catch (createError) {
+                  if (createError.status === 403) {
+                    core.warning(
+                      `Unable to create label "${definition.name}" because the workflow token lacks permission.`,
+                    );
+                    return;
+                  }
+                  throw createError;
+                }
               }
             }
 
@@ -108,21 +127,41 @@ jobs:
             );
 
             for (const label of labelsToRemove) {
-              await github.rest.issues.removeLabel({
-                owner,
-                repo,
-                issue_number: pullNumber,
-                name: label,
-              });
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number: pullNumber,
+                  name: label,
+                });
+              } catch (error) {
+                if (error.status === 403) {
+                  core.warning(
+                    `Unable to remove label "${label}" from PR #${pullNumber}: token lacks permission.`,
+                  );
+                  continue;
+                }
+                throw error;
+              }
             }
 
             if (labelsToAdd.length > 0) {
-              await github.rest.issues.addLabels({
-                owner,
-                repo,
-                issue_number: pullNumber,
-                labels: labelsToAdd,
-              });
+              try {
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: pullNumber,
+                  labels: labelsToAdd,
+                });
+              } catch (error) {
+                if (error.status === 403) {
+                  core.warning(
+                    `Unable to add labels ${labelsToAdd.join(", ")} to PR #${pullNumber}: token lacks permission.`,
+                  );
+                } else {
+                  throw error;
+                }
+              }
             }
 
             core.info(
