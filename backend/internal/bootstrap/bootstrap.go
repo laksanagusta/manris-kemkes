@@ -20,6 +20,7 @@ import (
 	cbauc "github.com/manris/backend/internal/usecase/cba"
 	commloguc "github.com/manris/backend/internal/usecase/communication_log"
 	controluc "github.com/manris/backend/internal/usecase/control"
+	evaluationuc "github.com/manris/backend/internal/usecase/evaluation"
 	externalextPICuc "github.com/manris/backend/internal/usecase/external_pic"
 	formalreportuc "github.com/manris/backend/internal/usecase/formalreport"
 	impactcriteriauc "github.com/manris/backend/internal/usecase/impactcriteria"
@@ -69,6 +70,7 @@ type Container struct {
 	RiskCharterRepository          domainrepo.RiskCharterRepository
 	PlanningHierarchyRepository    domainrepo.PlanningHierarchyRepository
 	TMPMRRepository                domainrepo.TMPMRRepository
+	EvaluationRepository           domainrepo.EvaluationRepository
 	FormalReportRepository         domainrepo.FormalReportRepository
 	LikelihoodAssessmentRepository domainrepo.LikelihoodAssessmentRepository
 	ImpactCriteriaRepository       domainrepo.ImpactCriteriaRepository
@@ -210,6 +212,15 @@ type Container struct {
 	TMPMRReviewUC  *tmpmruc.ReviewUseCase
 	TMPMRApproveUC *tmpmruc.ApproveUseCase
 
+	// Evaluation UseCases
+	EvaluationCreateUC    *evaluationuc.CreateUseCase
+	EvaluationGetUC       *evaluationuc.GetUseCase
+	EvaluationListUC      *evaluationuc.ListUseCase
+	EvaluationUpdateUC    *evaluationuc.UpdateUseCase
+	EvaluationFinalizeUC  *evaluationuc.FinalizeUseCase
+	EvaluationReopenUC    *evaluationuc.ReopenUseCase
+	EvaluationExportPDFUC *evaluationuc.ExportPDFUseCase
+
 	// Formal Report UseCases
 	FormalReportGenerateUC *formalreportuc.GenerateFormalReportUseCase
 	FormalReportGetUC      *formalreportuc.GetUseCase
@@ -312,6 +323,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskCharterRepository = postgresrepo.NewRiskCharterRepository(pool)
 	c.PlanningHierarchyRepository = postgresrepo.NewPlanningHierarchyRepository(pool)
 	c.TMPMRRepository = postgresrepo.NewTMPMRRepository(pool)
+	c.EvaluationRepository = postgresrepo.NewEvaluationRepository(pool)
 	c.FormalReportRepository = postgresrepo.NewFormalReportRepository(pool)
 	c.LikelihoodAssessmentRepository = postgresrepo.NewLikelihoodAssessmentRepository(pool)
 	c.ImpactCriteriaRepository = postgresrepo.NewImpactCriteriaRepository(pool)
@@ -505,6 +517,14 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.TMPMRSubmitUC = tmpmruc.NewSubmitUseCase(c.TMPMRRepository)
 	c.TMPMRReviewUC = tmpmruc.NewReviewUseCase(c.TMPMRRepository)
 	c.TMPMRApproveUC = tmpmruc.NewApproveUseCase(c.TMPMRRepository)
+
+	c.EvaluationCreateUC = evaluationuc.NewCreateUseCase(c.EvaluationRepository)
+	c.EvaluationGetUC = evaluationuc.NewGetUseCase(c.EvaluationRepository)
+	c.EvaluationListUC = evaluationuc.NewListUseCase(c.EvaluationRepository)
+	c.EvaluationUpdateUC = evaluationuc.NewUpdateUseCase(c.EvaluationRepository)
+	c.EvaluationFinalizeUC = evaluationuc.NewFinalizeUseCase(c.EvaluationRepository)
+	c.EvaluationReopenUC = evaluationuc.NewReopenUseCase(c.EvaluationRepository)
+	c.EvaluationExportPDFUC = evaluationuc.NewExportPDFUseCase(c.EvaluationRepository, c.OrgRepository, c.FormalReportPDFRenderer)
 
 	c.FormalReportGenerateUC = formalreportuc.NewGenerateFormalReportUseCase(
 		c.FormalReportRepository,
