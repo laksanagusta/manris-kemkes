@@ -524,7 +524,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.EvaluationUpdateUC = evaluationuc.NewUpdateUseCase(c.EvaluationRepository)
 	c.EvaluationFinalizeUC = evaluationuc.NewFinalizeUseCase(c.EvaluationRepository)
 	c.EvaluationReopenUC = evaluationuc.NewReopenUseCase(c.EvaluationRepository)
-	c.EvaluationExportPDFUC = evaluationuc.NewExportPDFUseCase(c.EvaluationRepository, c.OrgRepository, c.FormalReportPDFRenderer)
+	c.EvaluationExportPDFUC = evaluationuc.NewExportPDFUseCase(c.EvaluationRepository, c.OrgRepository, c.RiskRepository, c.FormalReportPDFRenderer)
 
 	c.FormalReportGenerateUC = formalreportuc.NewGenerateFormalReportUseCase(
 		c.FormalReportRepository,

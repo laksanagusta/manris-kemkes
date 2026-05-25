@@ -103,7 +103,12 @@ func (h *EvaluationHandler) List(c *fiber.Ctx) error {
 		OrganizationID: organizationID,
 		Period:         c.Query("period"),
 		Status:         c.Query("status"),
-		Query:          c.Query("q"),
+		Query: func() string {
+			if query := c.Query("query"); query != "" {
+				return query
+			}
+			return c.Query("q")
+		}(),
 		Page:           page,
 		Limit:          limit,
 		Scope:          scope,
