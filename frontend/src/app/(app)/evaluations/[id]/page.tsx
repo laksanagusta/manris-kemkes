@@ -54,9 +54,9 @@ function formatDateTime(value?: string | null) {
 function cloneEvaluation(evaluation: Evaluation): Evaluation {
   return {
     ...evaluation,
-    sections: evaluation.sections.map((section) => ({
+    sections: (evaluation.sections ?? []).map((section) => ({
       ...section,
-      items: section.items.map((item) => ({ ...item })),
+      items: (section.items ?? []).map((item) => ({ ...item })),
     })),
   };
 }
@@ -78,7 +78,7 @@ function toUpdateRequest(evaluation: Evaluation): UpdateEvaluationRequest {
     teamMembers: evaluation.teamMembers,
     problems: evaluation.problems,
     recommendations: evaluation.recommendations,
-    sections: evaluation.sections.map((section) => ({
+    sections: (evaluation.sections ?? []).map((section) => ({
       id: section.id,
       templateSectionId: section.templateSectionId ?? null,
       sectionKey: section.sectionKey,
@@ -86,7 +86,7 @@ function toUpdateRequest(evaluation: Evaluation): UpdateEvaluationRequest {
       description: section.description,
       conclusion: section.conclusion,
       sortOrder: section.sortOrder,
-      items: section.items.map((item) => ({
+      items: (section.items ?? []).map((item) => ({
         id: item.id,
         templateItemId: item.templateItemId ?? null,
         itemKey: item.itemKey,
@@ -526,7 +526,7 @@ export default function EvaluationDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
-              {evaluation.sections.map((section, sectionIndex) => (
+              {(evaluation.sections ?? []).map((section, sectionIndex) => (
                 <div key={section.id} className="space-y-4 rounded-xl border border-border/50 p-4">
                   <div className="space-y-1">
                     <h3 className="text-sm font-semibold">{section.title}</h3>
@@ -538,7 +538,7 @@ export default function EvaluationDetailPage() {
                   </div>
 
                   <div className="space-y-3">
-                    {section.items.map((item, itemIndex) => (
+                    {(section.items ?? []).map((item, itemIndex) => (
                       <div
                         key={item.id}
                         className="space-y-3 rounded-lg border border-border/40 bg-muted/20 p-3"

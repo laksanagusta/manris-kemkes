@@ -2,23 +2,39 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   Download,
   FilePlus2,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
+import {
+  createEvaluation,
+  downloadEvaluationPdf,
+  listEvaluations,
+} from "@/lib/api/evaluations";
 import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
-import { downloadEvaluationPdf, listEvaluations } from "@/lib/api/evaluations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -63,6 +79,7 @@ const statusStyles: Record<EvaluationStatus, string> = {
 
 export default function EvaluationsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { token, user } = useAuth();
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>([]);
   const [organizationId, setOrganizationId] = useState("all");
@@ -76,6 +93,10 @@ export default function EvaluationsPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit] = useState(20);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createOrganizationId, setCreateOrganizationId] = useState("");
+  const [createPeriod, setCreatePeriod] = useState(currentGlobalCycle());
+  const [creatingEvaluation, setCreatingEvaluation] = useState(false);
 
   const requiresOrganizationSelection = needsExplicitReportOrgSelection(user);
 
@@ -148,6 +169,24 @@ export default function EvaluationsPage() {
     setPage(1);
   }, [organizationId, period, status, debouncedQuery]);
 
+  useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setCreateDialogOpen(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!createDialogOpen || createOrganizationId) return;
+    const defaultOrgId = resolveDefaultReportOrgId(user);
+    setCreateOrganizationId(
+      defaultOrgId && organizations.some((org) => org.id === defaultOrgId)
+        ? defaultOrgId
+        : requiresOrganizationSelection
+          ? ""
+          : organizations[0]?.id ?? "",
+    );
+  }, [createDialogOpen, createOrganizationId, organizations, requiresOrganizationSelection, user]);
+
   const visibleEvaluations = useMemo(
     () =>
       filterEvaluations(evaluations, {
@@ -164,7 +203,36 @@ export default function EvaluationsPage() {
     [organizations],
   );
 
+  const evaluationSummaryCards = [
+    {
+      label: "Total Evaluasi",
+      value: visibleEvaluations.length,
+      tone: "zinc" as const,
+      description: "Data pada filter yang sedang aktif",
+    },
+    {
+      label: "Draft",
+      value: visibleEvaluations.filter((item) => item.status === "draft").length,
+      tone: "rose" as const,
+      description: "Masih bisa diedit",
+    },
+    {
+      label: "Final",
+      value: visibleEvaluations.filter((item) => item.status === "final").length,
+      tone: "emerald" as const,
+      description: "Sudah dikunci dan siap PDF",
+    },
+    {
+      label: "Periode",
+      value: period || "-",
+      tone: "white" as const,
+      description: "Filter periode aktif",
+    },
+  ];
+
   const totalPages = Math.max(1, Math.ceil(total / limit));
+  const pageStart = total === 0 ? 0 : (page - 1) * limit + 1;
+  const pageEnd = total === 0 ? 0 : Math.min(page * limit, total);
 
   const handleDownload = async (evaluation: Evaluation) => {
     if (!token) {
@@ -186,6 +254,42 @@ export default function EvaluationsPage() {
     }
   };
 
+  const handleCreateDialogOpenChange = (open: boolean) => {
+    setCreateDialogOpen(open);
+    router.replace(open ? "/evaluations?create=1" : "/evaluations");
+  };
+
+  const handleCreateEvaluation = async () => {
+    if (!token) {
+      toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+    if (!createOrganizationId) {
+      toast.error("Pilih organisasi terlebih dahulu.");
+      return;
+    }
+    if (!createPeriod.trim()) {
+      toast.error("Isi periode terlebih dahulu.");
+      return;
+    }
+
+    setCreatingEvaluation(true);
+    try {
+      const evaluation = await createEvaluation(token, {
+        organizationId: createOrganizationId,
+        period: createPeriod.trim(),
+      });
+      toast.success("Evaluasi berhasil dibuat.");
+      handleCreateDialogOpenChange(false);
+      router.push(`/evaluations/${evaluation.id}`);
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Gagal membuat evaluasi.");
+    } finally {
+      setCreatingEvaluation(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
       <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -203,19 +307,40 @@ export default function EvaluationsPage() {
             periode dari satu halaman kerja.
           </p>
         </div>
-        <Button asChild className="gap-2 self-start">
-          <Link href="/evaluations/new">
+        <Button type="button" className="gap-2 self-start" onClick={() => handleCreateDialogOpenChange(true)}>
             <FilePlus2 className="size-4" />
             Buat Evaluasi
-          </Link>
         </Button>
       </section>
 
-      <Card className="border-border/50 bg-card/90 shadow-sm">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {evaluationSummaryCards.map((card) => (
+          <KpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            tone={card.tone}
+            description={card.description}
+          />
+        ))}
+      </div>
+
+      <Card className="border-border/50 bg-card/80 overflow-hidden">
         <CardHeader className="border-b border-border/40 pb-4">
-          <CardTitle className="text-sm font-semibold">Filter Evaluasi</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-[15px] font-semibold">Daftar Evaluasi</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {loading ? "Memuat data evaluasi..." : `${total} evaluasi ditemukan`}
+              </p>
+            </div>
+            <Badge variant="outline" className="gap-1.5 border-primary/20 bg-primary/[0.06] text-[10px] text-primary">
+              <Download className="size-3.5" />
+              PDF
+            </Badge>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4 pt-6">
+        <CardContent className="space-y-4 p-4">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_180px_180px_240px]">
             <div className="space-y-2">
               <div className="text-xs font-medium text-muted-foreground">Organisasi</div>
@@ -231,11 +356,11 @@ export default function EvaluationsPage() {
               />
             </div>
             <div className="space-y-2">
-              <div className="text-xs font-medium text-muted-foreground">Periode</div>
+              <Label className="text-xs font-medium text-muted-foreground">Periode</Label>
               <Input value={period} onChange={(event) => setPeriod(event.target.value)} />
             </div>
             <div className="space-y-2">
-              <div className="text-xs font-medium text-muted-foreground">Status</div>
+              <Label className="text-xs font-medium text-muted-foreground">Status</Label>
               <Select value={status} onValueChange={(value) => setStatus(value as EvaluationStatus | "all")}>
                 <SelectTrigger className="h-8">
                   <SelectValue placeholder="Semua status" />
@@ -248,7 +373,7 @@ export default function EvaluationsPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <div className="text-xs font-medium text-muted-foreground">Pencarian</div>
+              <Label className="text-xs font-medium text-muted-foreground">Pencarian</Label>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -260,34 +385,28 @@ export default function EvaluationsPage() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card className="border-border/50 bg-card/90 shadow-sm">
-        <CardHeader className="border-b border-border/40 pb-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <CardTitle className="text-sm font-semibold">Daftar Evaluasi</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {loading ? "Memuat data evaluasi..." : `${total} evaluasi ditemukan`}
-              </p>
-            </div>
-            <Badge variant="outline" className="gap-1.5 border-primary/20 bg-primary/[0.06] text-[10px] text-primary">
-              <Download className="size-3.5" />
-              PDF
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/30">
-              <TableRow>
-                <TableHead className="whitespace-nowrap">Periode</TableHead>
-                <TableHead className="whitespace-nowrap">Organisasi</TableHead>
-                <TableHead className="whitespace-nowrap">Template</TableHead>
-                <TableHead className="whitespace-nowrap">Status</TableHead>
-                <TableHead className="whitespace-nowrap">Diperbarui</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Aksi</TableHead>
+          <Table className="min-w-[1120px]">
+            <TableHeader>
+              <TableRow className="border-border/50 hover:bg-transparent">
+                <TableHead className="w-28 whitespace-nowrap text-xs uppercase tracking-[0.12em] text-zinc-500">
+                  Periode
+                </TableHead>
+                <TableHead className="whitespace-nowrap text-xs uppercase tracking-[0.12em] text-zinc-500">
+                  Organisasi
+                </TableHead>
+                <TableHead className="whitespace-nowrap text-xs uppercase tracking-[0.12em] text-zinc-500">
+                  Template
+                </TableHead>
+                <TableHead className="w-28 whitespace-nowrap text-xs uppercase tracking-[0.12em] text-zinc-500">
+                  Status
+                </TableHead>
+                <TableHead className="w-32 whitespace-nowrap text-xs uppercase tracking-[0.12em] text-zinc-500">
+                  Diperbarui
+                </TableHead>
+                <TableHead className="w-32 whitespace-nowrap text-right text-xs uppercase tracking-[0.12em] text-zinc-500">
+                  Aksi
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -312,24 +431,29 @@ export default function EvaluationsPage() {
                   const isDownloading = downloadingId === evaluation.id;
 
                   return (
-                    <TableRow key={evaluation.id} className="transition-colors hover:bg-muted/25">
-                      <TableCell className="whitespace-nowrap font-medium">
+                    <TableRow key={evaluation.id} className="border-border/50 transition-colors hover:bg-muted/20">
+                      <TableCell className="whitespace-nowrap font-mono text-zinc-600">
                         {evaluation.period}
                       </TableCell>
-                      <TableCell className="max-w-[240px] truncate">{orgName}</TableCell>
-                      <TableCell className="max-w-[260px] truncate">
+                      <TableCell className="max-w-[300px]">
+                        <div className="truncate font-medium text-foreground">{orgName}</div>
+                      </TableCell>
+                      <TableCell className="max-w-[300px]">
                         {evaluation.templateName || evaluation.templateId}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={statusStyles[evaluation.status]}>
+                        <Badge
+                          variant="outline"
+                          className={statusStyles[evaluation.status]}
+                        >
                           {evaluationStatusLabel[evaluation.status]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                         {formatDateTime(evaluation.updatedAt)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="inline-flex items-center gap-1">
+                        <div className="inline-flex items-center gap-1.5">
                           <Button variant="ghost" size="sm" asChild className="gap-1.5">
                             <Link href={`/evaluations/${evaluation.id}`}>
                               Buka
@@ -365,33 +489,98 @@ export default function EvaluationsPage() {
             </TableBody>
           </Table>
         </CardContent>
+        <div className="border-t border-border/40 bg-muted/20 px-4 py-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <p className="text-xs text-muted-foreground">
+              Menampilkan {pageStart} - {pageEnd} dari {total} evaluasi
+            </p>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                className="text-muted-foreground"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={page <= 1 || loading}
+              >
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                className="bg-primary/10 text-xs font-medium text-primary"
+                disabled
+              >
+                {page}
+              </Button>
+              <span className="px-1 text-xs text-muted-foreground">dari {totalPages}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                className="text-muted-foreground"
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                disabled={page >= totalPages || loading || total === 0}
+              >
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
+          </div>
+        </div>
       </Card>
 
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
-          Halaman {page} dari {totalPages}
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-            disabled={page <= 1 || loading}
-          >
-            Sebelumnya
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-            disabled={page >= totalPages || loading}
-          >
-            Berikutnya
-          </Button>
-        </div>
-      </div>
+      <Dialog open={createDialogOpen} onOpenChange={handleCreateDialogOpenChange}>
+        <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:max-w-2xl">
+          <DialogHeader className="shrink-0 border-b border-border/60 bg-background px-6 py-4">
+            <DialogTitle className="text-lg leading-tight">Buat Evaluasi MR</DialogTitle>
+            <DialogDescription className="mt-1 text-sm text-muted-foreground">
+              Buat draft evaluasi untuk organisasi dan periode yang dipilih. Data
+              detail bisa diisi setelah draft dibuat.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 overflow-y-auto px-6 py-5">
+            <div className="space-y-2">
+              <Label>Organisasi</Label>
+              <OrganizationPicker
+                value={createOrganizationId}
+                organizations={organizations}
+                onChange={setCreateOrganizationId}
+                placeholder="Pilih organisasi"
+                searchPlaceholder="Cari organisasi..."
+                emptyMessage="Tidak ada organisasi ditemukan."
+                disabled={creatingEvaluation}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-period">Periode</Label>
+              <Input
+                id="create-period"
+                value={createPeriod}
+                onChange={(event) => setCreatePeriod(event.target.value)}
+                placeholder={currentGlobalCycle()}
+                disabled={creatingEvaluation}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="shrink-0 border-t border-border/60 bg-muted/[0.18] px-6 py-4">
+            <Button type="button" variant="outline" onClick={() => handleCreateDialogOpenChange(false)} disabled={creatingEvaluation}>
+              Batal
+            </Button>
+            <Button
+              type="button"
+              className="gap-2"
+              onClick={() => void handleCreateEvaluation()}
+              disabled={creatingEvaluation}
+            >
+              {creatingEvaluation ? <Loader2 className="size-4 animate-spin" /> : <FilePlus2 className="size-4" />}
+              {creatingEvaluation ? "Membuat..." : "Buat Draft"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
