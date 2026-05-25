@@ -29,6 +29,7 @@ import (
 	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
+	performanceriskuc "github.com/manris/backend/internal/usecase/performancerisk"
 	planninguc "github.com/manris/backend/internal/usecase/planning"
 	reportuc "github.com/manris/backend/internal/usecase/report"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
@@ -51,6 +52,7 @@ type Container struct {
 	UserRepository                 domainrepo.UserRepository
 	OrgRepository                  domainrepo.OrganizationRepository
 	RiskRepository                 domainrepo.RiskRepository
+	PerformanceRiskRepository      domainrepo.PerformanceRiskRepository
 	RiskCascadeRepository          domainrepo.RiskCascadeRepository
 	IncidentRepository             domainrepo.IncidentRepository
 	KRIRepository                  domainrepo.KRIRepository
@@ -264,9 +266,13 @@ type Container struct {
 	WPUseCase *workingpaperusecase.UseCase
 
 	// Report UseCases
-	GenerateReportUC        *reportuc.GenerateReportUseCase
-	PDFReportRenderer       domainsvc.ReportPDFRenderer
-	FormalReportPDFRenderer domainsvc.FormalReportPDFRenderer
+	GenerateReportUC          *reportuc.GenerateReportUseCase
+	PerformanceRiskSummaryUC  *performanceriskuc.SummaryUseCase
+	PerformanceRiskNodesUC    *performanceriskuc.PlanningMapUseCase
+	PerformanceRiskDetailUC   *performanceriskuc.DetailUseCase
+	PerformanceRiskUnlinkedUC *performanceriskuc.UnlinkedUseCase
+	PDFReportRenderer         domainsvc.ReportPDFRenderer
+	FormalReportPDFRenderer   domainsvc.FormalReportPDFRenderer
 }
 
 // Build initializes and wires all application dependencies.
@@ -289,6 +295,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.UserRepository = postgresrepo.NewUserRepository(pool)
 	c.OrgRepository = postgresrepo.NewOrganizationRepository(pool)
 	c.RiskRepository = postgresrepo.NewRiskRepository(pool)
+	c.PerformanceRiskRepository = postgresrepo.NewPerformanceRiskRepository(pool)
 	c.RiskCascadeRepository = postgresrepo.NewRiskCascadeRepository(pool)
 	c.IncidentRepository = postgresrepo.NewIncidentRepository(pool)
 	c.KRIRepository = postgresrepo.NewKRIRepository(pool)
@@ -583,6 +590,10 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.GenerateReportUC = reportuc.NewGenerateReportUseCase(c.RiskRepository, c.IncidentRepository, c.KRIRepository)
+	c.PerformanceRiskSummaryUC = performanceriskuc.NewSummaryUseCase(c.PerformanceRiskRepository)
+	c.PerformanceRiskNodesUC = performanceriskuc.NewPlanningMapUseCase(c.PerformanceRiskRepository)
+	c.PerformanceRiskDetailUC = performanceriskuc.NewDetailUseCase(c.PerformanceRiskRepository)
+	c.PerformanceRiskUnlinkedUC = performanceriskuc.NewUnlinkedUseCase(c.PerformanceRiskRepository)
 
 	return c, nil
 }

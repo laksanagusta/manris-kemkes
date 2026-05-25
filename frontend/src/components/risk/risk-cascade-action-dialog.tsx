@@ -26,7 +26,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -48,6 +47,20 @@ import { toast } from "sonner";
 type Mode = "create" | "decision";
 type OrgFlow = "downstream" | "upstream" | "any";
 
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => window.clearTimeout(handle);
+  }, [delay, value]);
+
+  return debouncedValue;
+}
+
 type DialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -61,10 +74,15 @@ type DialogProps = {
 };
 
 const cascadeTypeLabels: Record<RiskCascadeType, string> = {
-  mandatory_top_down: "Mandat dari Atasan",
-  recommended_top_down: "Rekomendasi dari Atasan",
-  bottom_up_escalation: "Usulan Naik",
+  mandatory_top_down: "Top-down",
+  recommended_top_down: "Top-down",
+  bottom_up_escalation: "Bottom-up",
 };
+
+const createCascadeOptions = [
+  { value: "mandatory_top_down", label: "Top-down" },
+  { value: "bottom_up_escalation", label: "Bottom-up" },
+] as const;
 
 const statusLabels: Record<string, string> = {
   proposed: "Menunggu Tinjauan",
@@ -89,14 +107,18 @@ function CascadeRiskSelect({
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<RiskRegisterListItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const debouncedQuery = useDebouncedValue(query, 500);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !open) return;
     let active = true;
     (async () => {
       try {
         setLoading(true);
-        const res = await listRiskRegister(token, { limit: 100, q: query || undefined });
+        const res = await listRiskRegister(token, {
+          limit: 100,
+          q: debouncedQuery || undefined,
+        });
         if (!active) return;
         setItems(res.data ?? []);
       } catch {
@@ -108,7 +130,7 @@ function CascadeRiskSelect({
     return () => {
       active = false;
     };
-  }, [query, token]);
+  }, [debouncedQuery, open, token]);
 
   useEffect(() => {
     if (initialRiskId && !value) {
@@ -122,7 +144,15 @@ function CascadeRiskSelect({
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) {
+          setQuery("");
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button variant="outline" className="w-full justify-between gap-2 font-normal">
           <span className="truncate">
@@ -199,6 +229,7 @@ function CascadeOrgSelect({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const debouncedQuery = useDebouncedValue(query, 500);
 
   useEffect(() => {
     if (!token || !open) return;
@@ -206,7 +237,11 @@ function CascadeOrgSelect({
     (async () => {
       try {
         setLoading(true);
-        const response = await listOrganizations(token, { q: query || undefined, page: 1, limit: 6 });
+        const response = await listOrganizations(token, {
+          q: debouncedQuery || undefined,
+          page: 1,
+          limit: 6,
+        });
         if (!active) return;
         const orgs = response.data ?? [];
         const filtered = orgs.filter((item) => {
@@ -224,12 +259,20 @@ function CascadeOrgSelect({
     return () => {
       active = false;
     };
-  }, [open, query, token]);
+  }, [debouncedQuery, flow, open, token]);
 
   const selected = useMemo(() => items.find((item) => item.id === value), [items, value]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) {
+          setQuery("");
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button variant="outline" className="w-full justify-between gap-2 font-normal">
           <span className="truncate">{selected?.name || triggerLabel}</span>
@@ -335,8 +378,8 @@ export function RiskCascadeActionDialog({
     (mode === "create"
       ? "Buat Eskalasi Risiko"
       : cascade?.cascadeType === "bottom_up_escalation"
-        ? "Tinjau Usulan Naik"
-        : "Tinjau Mandat Risiko");
+        ? "Tinjau Bottom-up"
+        : "Tinjau Top-down");
 
   const dialogDescription =
     description ??
@@ -410,7 +453,7 @@ export function RiskCascadeActionDialog({
                       <SelectValue placeholder="Pilih jenis eskalasi" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(cascadeTypeLabels).map(([value, label]) => (
+                      {createCascadeOptions.map(({ value, label }) => (
                         <SelectItem key={value} value={value}>
                           {label}
                         </SelectItem>

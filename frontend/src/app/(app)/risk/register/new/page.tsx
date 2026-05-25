@@ -242,6 +242,7 @@ type RiskApiResponse = {
   description?: string;
   category?: RiskCategory | "" | null;
   organizationId?: string;
+  roId?: string | null;
   code?: string;
   assessmentCycle?: string;
   draftApprovalLine?: DraftApprovalLineMember[];
@@ -560,6 +561,7 @@ function normalizeFormValues(values: FormInput): FormValues {
     targetImpact: values.targetImpact ?? 1,
     targetWeight: values.targetWeight ?? 1,
     targetNilai: values.targetNilai ?? 0,
+    roId: values.roId ?? "",
   };
 }
 
@@ -974,6 +976,7 @@ export default function RiskInputPage() {
             : "dalam_batas") as "dalam_batas" | "di_atas_batas",
           treatmentOption: normalizeTreatmentOption(risk.treatmentOption),
           nextReviewDate: risk.nextReviewDate || "",
+          roId: risk.roId || "",
           mitigations: Array.isArray(risk.mitigations)
             ? risk.mitigations.map((mitigation) => ({
                 ...mitigation,
@@ -1108,6 +1111,23 @@ export default function RiskInputPage() {
           setApprovalWorkflow(null);
         }
       } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          setRiskId(null);
+          setRiskStatus("assessment_draft");
+          setRiskArchivedAt(null);
+          setRiskArchivedReason("");
+          setOngoingAssessmentId(null);
+          setReviewerId("");
+          setReviewerOption(null);
+          setApprovalLine([]);
+          setApprovalId(null);
+          setApprovalWorkflow(null);
+          setAssessmentCycleDisplay(currentAssessmentCycle());
+          setRiskVersions([]);
+          reset();
+          toast.error("Risiko tidak ditemukan. Form baru dibuka.");
+          return;
+        }
         console.error("Failed to load risk data:", error);
         toast.error("Gagal memuat data risiko. Silakan coba lagi.");
       } finally {
@@ -2585,7 +2605,6 @@ export default function RiskInputPage() {
                       <Label className="text-sm font-medium">RO</Label>
                       <ROPicker
                         organizationId={currentOrganizationId}
-                        period={planningPeriod}
                         value={watch("roId")}
                         onChange={(id, summary) => {
                           setValue("roId", id, { shouldDirty: true });
@@ -2594,7 +2613,7 @@ export default function RiskInputPage() {
                       />
                       <p className="text-[11px] leading-[14px] text-muted-foreground">
                         Pilih RO yang terdampak langsung oleh risiko ini sesuai
-                        scope satker dan tahun perencanaan.
+                        scope satker dan perjanjian kinerja aktif.
                       </p>
                     </div>
 

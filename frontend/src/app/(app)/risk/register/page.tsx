@@ -10,7 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import {
   archiveRisk,
   listRiskRegister,
@@ -714,6 +714,12 @@ export default function RiskRegisterPage() {
           ),
         );
       } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          setVersions([]);
+          setSelectedVersion("");
+          setHistoryData([]);
+          return;
+        }
         console.error(err);
         setVersions([]);
         setSelectedVersion("");

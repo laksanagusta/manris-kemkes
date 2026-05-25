@@ -19,7 +19,7 @@ export function buildMonitoringMitigationSummary(
     0,
   );
   const overdue = items.reduce((sum, item) => sum + item.overdueMitigations, 0);
-  const totalActive = completed + overdue;
+  const totalActive = items.reduce((sum, item) => sum + item.totalMitigations, 0);
 
   return {
     totalActive,

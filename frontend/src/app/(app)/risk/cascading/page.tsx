@@ -1,17 +1,14 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
   Clock3,
   GitBranch,
   Plus,
   Search,
   ShieldAlert,
   Trash2,
-  WandSparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,9 +43,9 @@ import { cn } from "@/lib/utils";
 import { RiskCascadeActionDialog } from "@/components/risk/risk-cascade-action-dialog";
 
 const cascadeTypeLabels: Record<RiskCascadeType, string> = {
-  mandatory_top_down: "Mandat Top Down",
-  recommended_top_down: "Rekomendasi Top Down",
-  bottom_up_escalation: "Usulan Naik",
+  mandatory_top_down: "Top-down",
+  recommended_top_down: "Top-down",
+  bottom_up_escalation: "Bottom-up",
 };
 
 const statusLabels: Record<string, string> = {
@@ -122,7 +119,7 @@ function RiskCascadeRowActions({
 }
 
 export default function RiskCascadingPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const searchParams = useSearchParams();
   const [items, setItems] = useState<RiskCascadeRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,7 +145,7 @@ export default function RiskCascadingPage() {
     }
   }, [initialMode, searchParams]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!token) return;
     try {
       setLoading(true);
@@ -167,11 +164,11 @@ export default function RiskCascadingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     loadData();
-  }, [token]);
+  }, [loadData]);
 
   const filteredItems = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase();
@@ -191,6 +188,21 @@ export default function RiskCascadingPage() {
         .some((value) => String(value).toLowerCase().includes(query)),
     );
   }, [deferredSearch, items]);
+
+  const canReviewCascade = (item: RiskCascadeRecord) => {
+    if (!["proposed", "analyzed"].includes(item.status)) {
+      return false;
+    }
+
+    if (user?.isGlobal) {
+      return true;
+    }
+
+    return Boolean(
+      user?.accessibleOrgIds?.includes(item.targetOrgId) ||
+        user?.organizationId === item.targetOrgId,
+    );
+  };
 
   const summary = useMemo(() => {
     const total = items.length;
@@ -272,7 +284,7 @@ export default function RiskCascadingPage() {
           { label: "Total Eskalasi", value: summary.total, tone: "white" as const },
           { label: "Menunggu Tinjauan", value: summary.pending, tone: "zinc" as const },
           { label: "Sudah Disetujui", value: summary.approved, tone: "emerald" as const },
-          { label: "Usulan Naik", value: summary.bottomUp, tone: "zinc" as const },
+          { label: "Bottom-up", value: summary.bottomUp, tone: "zinc" as const },
         ].map((card) => (
           <KpiCard
             key={card.label}
@@ -290,7 +302,7 @@ export default function RiskCascadingPage() {
             Daftar Eskalasi
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Semua mandat top-down dan usulan naik tampil dalam satu tabel.
+            Semua top-down dan bottom-up tampil dalam satu tabel.
             Eskalasi yang masih draft bisa dihapus.
           </p>
         </CardHeader>
@@ -349,8 +361,7 @@ export default function RiskCascadingPage() {
                   </TableRow>
                 ) : (
                   filteredItems.map((item) => {
-                    const canReview =
-                      item.status === "proposed" || item.status === "analyzed";
+                    const canReview = canReviewCascade(item);
                     const canDelete = item.status === "proposed";
                     const statusLabel =
                       statusLabels[item.status] || item.status;

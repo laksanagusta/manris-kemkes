@@ -20,7 +20,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import {
   listAllOrganizations,
   type OrganizationListItem,
@@ -327,40 +327,62 @@ export function RiskReviewPanel() {
 
     setConfirmDialogOpen(false);
 
-    toast.promise(
-      (async () => {
-        const result = await api.post<{ id: string }>(
-          `/risks/${selectedRisk.riskId}/reassess`,
-          { cycle },
-          token,
-        );
-        router.push(`/risk/register/${result.id}`);
-      })(),
-      {
-        loading: `Membuat draft reassessment ${cycle}...`,
-        success: `Draft reassessment ${cycle} berhasil dibuat.`,
-        error: (error) =>
-          error instanceof Error
-            ? error.message
-            : "Draft reassessment belum berhasil dibuat.",
-      },
-    );
+    try {
+      const result = await api.post<{ id: string }>(
+        `/risks/${selectedRisk.riskId}/reassess`,
+        { cycle },
+        token,
+      );
+      toast.success(`Draft reassessment ${cycle} berhasil dibuat.`);
+      router.push(`/risk/register/${result.id}`);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        toast.error("Risiko tidak ditemukan atau sudah tidak dapat diakses.");
+        return;
+      }
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Draft reassessment belum berhasil dibuat.",
+      );
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {[
-          { label: "Due", value: summary.due, icon: CalendarClock, tone: "white" as const },
-          { label: "In Draft", value: summary.in_draft, icon: RefreshCcw, tone: "zinc" as const },
+          {
+            label: "Due",
+            value: summary.due,
+            icon: CalendarClock,
+            tone: "white" as const,
+          },
+          {
+            label: "In Draft",
+            value: summary.in_draft,
+            icon: RefreshCcw,
+            tone: "zinc" as const,
+          },
           {
             label: "Pending (Legacy)",
             value: summary.pending_approval,
             icon: Send,
             tone: "zinc" as const,
           },
-          { label: "Approved", value: summary.approved, icon: CheckCircle2, tone: "emerald" as const },
-          { label: "Overdue", value: summary.overdue, icon: AlertCircle, tone: "rose" as const },
+          {
+            label: "Approved",
+            value: summary.approved,
+            icon: CheckCircle2,
+            tone: "emerald" as const,
+          },
+          {
+            label: "Overdue",
+            value: summary.overdue,
+            icon: AlertCircle,
+            tone: "rose" as const,
+          },
         ].map((metric) => (
           <KpiCard
             key={metric.label}
@@ -478,8 +500,7 @@ export function RiskReviewPanel() {
             Perbandingan Semester {previousCycle} ke {cycle}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Fokus pada perubahan skor dan level antar semester untuk reviewer
-            dan pimpinan.
+            Fokus pada perubahan skor dan level antar semester.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -29,7 +29,7 @@ export function RiskCategoryDistributionCard({
 }: RiskCategoryDistributionCardProps) {
   if (loading) {
     return (
-      <Card className="border-border/50 bg-card/80">
+      <Card className="h-full border-border/50 bg-card/80">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">
             Distribusi Kategori Risiko
@@ -45,7 +45,7 @@ export function RiskCategoryDistributionCard({
   }
 
   return (
-    <Card className="border-border/50 bg-card/80">
+    <Card className="h-full border-border/50 bg-card/80">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>

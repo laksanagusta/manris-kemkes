@@ -21,15 +21,17 @@ func NewPlanningHierarchyRepository(pool *pgxpool.Pool) repository.PlanningHiera
 
 func (r *planningHierarchyRepository) ListROOptions(ctx context.Context, filter repository.PlanningROOptionFilter) ([]entity.PlanningROOption, error) {
 	query := `
-		SELECT ro.id, ro.title, act.title, prog.title, iku.title, obj.title, goal.title, ro.period
+		SELECT ro.id, ro.title, act.title, prog.title, iku.title, obj.title,
+		       plan.id, plan.title, plan.status, plan.period, goal.title
 		FROM planning_ros ro
 		JOIN planning_activities act ON act.id = ro.activity_id
 		JOIN planning_programs prog ON prog.id = act.program_id
 		JOIN planning_ikus iku ON iku.id = prog.iku_id
 		JOIN planning_objectives obj ON obj.id = iku.objective_id
 		JOIN planning_goals goal ON goal.id = obj.goal_id
-		LEFT JOIN organizations org ON org.id = $2
-		WHERE ro.period = $1
+		JOIN planning plan ON plan.id = goal.planning_id
+		LEFT JOIN organizations org ON org.id = $1
+		WHERE 1=1
 		  AND (
 		    ro.scope_mode = 'all_satker'
 		    OR EXISTS (
@@ -37,23 +39,34 @@ func (r *planningHierarchyRepository) ListROOptions(ctx context.Context, filter 
 		      FROM planning_ro_scopes scope
 		      WHERE scope.ro_id = ro.id
 		        AND (
-		          scope.organization_id = $2
+		          scope.organization_id = $1
 		          OR (scope.organization_category <> '' AND scope.organization_category = COALESCE(org.upr_level, ''))
 		        )
 		    )
 		  )
 	`
-	args := []any{strings.TrimSpace(filter.Period), filter.OrganizationID}
-
-	if q := strings.TrimSpace(filter.Q); q != "" {
-		query += `
-		  AND (
-		    goal.title ILIKE $3 OR obj.title ILIKE $3 OR iku.title ILIKE $3 OR prog.title ILIKE $3 OR act.title ILIKE $3 OR ro.title ILIKE $3
-		  )`
-		args = append(args, "%"+q+"%")
+	args := []any{filter.OrganizationID}
+	argPos := 2
+	if filter.PlanningID != nil {
+		query += fmt.Sprintf(" AND plan.id = $%d", argPos)
+		args = append(args, *filter.PlanningID)
+		argPos++
+	} else {
+		query += fmt.Sprintf(" AND plan.period = $%d", argPos)
+		args = append(args, strings.TrimSpace(filter.Period))
+		argPos++
 	}
 
-	query += ` ORDER BY goal.updated_at DESC, obj.sort_order, iku.sort_order, prog.sort_order, act.sort_order, ro.title`
+	if q := strings.TrimSpace(filter.Q); q != "" {
+		query += fmt.Sprintf(`
+		  AND (
+		    plan.title ILIKE $%d OR obj.title ILIKE $%d OR iku.title ILIKE $%d OR prog.title ILIKE $%d OR act.title ILIKE $%d OR ro.title ILIKE $%d
+		  )`, argPos, argPos, argPos, argPos, argPos, argPos)
+		args = append(args, "%"+q+"%")
+		argPos++
+	}
+
+	query += ` ORDER BY plan.updated_at DESC, obj.sort_order, iku.sort_order, prog.sort_order, act.sort_order, ro.title`
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -67,15 +80,20 @@ func (r *planningHierarchyRepository) ListROOptions(ctx context.Context, filter 
 		if err := rows.Scan(
 			&item.ROID,
 			&item.ROTitle,
-			&item.KegiatanTitle,
+			&item.ActivityTitle,
 			&item.ProgramTitle,
 			&item.IKUTitle,
-			&item.SasaranTitle,
+			&item.ObjectiveTitle,
+			&item.PlanningID,
+			&item.PlanningTitle,
+			&item.PlanningStatus,
+			&item.PlanningPeriod,
 			&item.TujuanTitle,
-			&item.Period,
 		); err != nil {
 			return nil, fmt.Errorf("scan ro option: %w", err)
 		}
+		item.KegiatanTitle = item.ActivityTitle
+		item.SasaranTitle = item.ObjectiveTitle
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
@@ -87,25 +105,28 @@ func (r *planningHierarchyRepository) ListROOptions(ctx context.Context, filter 
 
 func (r *planningHierarchyRepository) ListObjectiveCompatibilityRows(ctx context.Context, filter repository.PlanningCompatibilityFilter) ([]*entity.RiskObjective, int, error) {
 	countQuery := `
-		SELECT COUNT(*)
-		FROM planning_ros ro
-		JOIN planning_activities act ON act.id = ro.activity_id
-		JOIN planning_programs prog ON prog.id = act.program_id
-		JOIN planning_ikus iku ON iku.id = prog.iku_id
-		JOIN planning_objectives obj ON obj.id = iku.objective_id
-		JOIN planning_goals goal ON goal.id = obj.goal_id
+		SELECT COUNT(DISTINCT plan.id)
+		FROM planning plan
+		LEFT JOIN planning_goals goal ON goal.planning_id = plan.id
+		LEFT JOIN planning_objectives obj ON obj.goal_id = goal.id
+		LEFT JOIN planning_ikus iku ON iku.objective_id = obj.id
+		LEFT JOIN planning_programs prog ON prog.iku_id = iku.id
+		LEFT JOIN planning_activities act ON act.program_id = prog.id
+		LEFT JOIN planning_ros ro ON ro.activity_id = act.id
 		WHERE 1=1
 	`
 	dataQuery := `
-		SELECT goal.organization_id, ro.period, goal.title, obj.title, iku.title,
-		       COALESCE(iku.target, ''), prog.title, act.title, ro.title,
+		SELECT COALESCE(ro.id, act.id, prog.id, iku.id, obj.id, goal.id, plan.id),
+		       plan.id, plan.organization_id, plan.period, plan.title, plan.status, COALESCE(goal.title, ''),
+		       COALESCE(obj.title, ''), COALESCE(iku.title, ''), COALESCE(iku.target, ''), COALESCE(prog.title, ''), COALESCE(act.title, ''), COALESCE(ro.title, ''),
 		       'draft'::text
-		FROM planning_ros ro
-		JOIN planning_activities act ON act.id = ro.activity_id
-		JOIN planning_programs prog ON prog.id = act.program_id
-		JOIN planning_ikus iku ON iku.id = prog.iku_id
-		JOIN planning_objectives obj ON obj.id = iku.objective_id
-		JOIN planning_goals goal ON goal.id = obj.goal_id
+		FROM planning plan
+		LEFT JOIN planning_goals goal ON goal.planning_id = plan.id
+		LEFT JOIN planning_objectives obj ON obj.goal_id = goal.id
+		LEFT JOIN planning_ikus iku ON iku.objective_id = obj.id
+		LEFT JOIN planning_programs prog ON prog.iku_id = iku.id
+		LEFT JOIN planning_activities act ON act.program_id = prog.id
+		LEFT JOIN planning_ros ro ON ro.activity_id = act.id
 		WHERE 1=1
 	`
 
@@ -113,26 +134,26 @@ func (r *planningHierarchyRepository) ListObjectiveCompatibilityRows(ctx context
 	argPos := 1
 
 	if filter.OrganizationID != nil {
-		clause := fmt.Sprintf(" AND goal.organization_id = $%d", argPos)
+		clause := fmt.Sprintf(" AND plan.organization_id = $%d", argPos)
 		countQuery += clause
 		dataQuery += clause
 		args = append(args, *filter.OrganizationID)
 		argPos++
 	}
-	if strings.TrimSpace(filter.Period) != "" {
-		clause := fmt.Sprintf(" AND ro.period = $%d", argPos)
+	if filter.Period != "" {
+		clause := fmt.Sprintf(" AND plan.period = $%d", argPos)
 		countQuery += clause
 		dataQuery += clause
 		args = append(args, strings.TrimSpace(filter.Period))
 		argPos++
 	}
 	if strings.TrimSpace(filter.Q) != "" {
-		clause := fmt.Sprintf(" AND (goal.title ILIKE $%d OR obj.title ILIKE $%d OR iku.title ILIKE $%d OR prog.title ILIKE $%d OR act.title ILIKE $%d OR ro.title ILIKE $%d)", argPos, argPos, argPos, argPos, argPos, argPos)
+		clause := fmt.Sprintf(" AND (plan.title ILIKE $%d OR COALESCE(goal.title, '') ILIKE $%d OR COALESCE(obj.title, '') ILIKE $%d OR COALESCE(iku.title, '') ILIKE $%d OR COALESCE(prog.title, '') ILIKE $%d OR COALESCE(act.title, '') ILIKE $%d OR COALESCE(ro.title, '') ILIKE $%d)", argPos, argPos, argPos, argPos, argPos, argPos, argPos)
 		countQuery += clause
 		dataQuery += clause
 		q := "%" + strings.TrimSpace(filter.Q) + "%"
 		args = append(args, q)
-		argPos += 6
+		argPos += 7
 	}
 
 	var total int
@@ -150,7 +171,7 @@ func (r *planningHierarchyRepository) ListObjectiveCompatibilityRows(ctx context
 	}
 	offset := (page - 1) * limit
 
-	dataQuery += fmt.Sprintf(" ORDER BY goal.updated_at DESC, obj.sort_order, iku.sort_order, prog.sort_order, act.sort_order, ro.title LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	dataQuery += fmt.Sprintf(" ORDER BY plan.updated_at DESC, goal.updated_at DESC, obj.sort_order, iku.sort_order, prog.sort_order, act.sort_order, COALESCE(ro.title, '') LIMIT $%d OFFSET $%d", argPos, argPos+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, dataQuery, args...)
@@ -163,10 +184,13 @@ func (r *planningHierarchyRepository) ListObjectiveCompatibilityRows(ctx context
 	for rows.Next() {
 		obj := &entity.RiskObjective{}
 		var organizationID uuid.UUID
-		var status string
 		if err := rows.Scan(
+			&obj.ID,
+			&obj.PlanningID,
 			&organizationID,
-			&obj.Period,
+			&obj.PlanningPeriod,
+			&obj.PlanningTitle,
+			&obj.PlanningStatus,
 			&obj.Tujuan,
 			&obj.Sasaran,
 			&obj.IndikatorKinerjaUtama,
@@ -174,12 +198,12 @@ func (r *planningHierarchyRepository) ListObjectiveCompatibilityRows(ctx context
 			&obj.Program,
 			&obj.Kegiatan,
 			&obj.ProcessBusiness,
-			&status,
+			&obj.Status,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan objective compatibility row: %w", err)
 		}
 		obj.OrganizationID = organizationID
-		obj.Status = status
+		obj.Period = obj.PlanningPeriod
 		items = append(items, obj)
 	}
 	if err := rows.Err(); err != nil {

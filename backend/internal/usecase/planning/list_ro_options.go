@@ -19,6 +19,7 @@ func NewListROOptionsUseCase(repo repository.PlanningHierarchyRepository) *ListR
 
 type ListROOptionsInput struct {
 	OrganizationID uuid.UUID
+	PlanningID     *uuid.UUID
 	Period         string
 	Query          string
 }
@@ -30,6 +31,7 @@ type ListROOptionsOutput struct {
 func (uc *ListROOptionsUseCase) Execute(ctx context.Context, input ListROOptionsInput) (*ListROOptionsOutput, error) {
 	items, err := uc.repo.ListROOptions(ctx, repository.PlanningROOptionFilter{
 		OrganizationID: input.OrganizationID,
+		PlanningID:     input.PlanningID,
 		Period:         strings.TrimSpace(input.Period),
 		Q:              strings.TrimSpace(input.Query),
 		Page:           1,

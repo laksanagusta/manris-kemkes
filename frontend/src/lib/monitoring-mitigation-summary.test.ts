@@ -13,12 +13,14 @@ test("buildMonitoringMitigationSummary aggregates active, completed, overdue, an
   const result = buildMonitoringMitigationSummary([
     {
       period: "2026-01",
+      totalMitigations: 10,
       incidentsCreated: 1,
       mitigationsCompleted: 8,
       overdueMitigations: 2,
     },
     {
       period: "2026-02",
+      totalMitigations: 5,
       incidentsCreated: 0,
       mitigationsCompleted: 4,
       overdueMitigations: 1,
@@ -44,6 +46,7 @@ test("buildMonitoringMitigationSummary keeps overdue-heavy datasets stable", () 
   const result = buildMonitoringMitigationSummary([
     {
       period: "2026-03",
+      totalMitigations: 6,
       incidentsCreated: 2,
       mitigationsCompleted: 1,
       overdueMitigations: 5,

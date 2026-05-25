@@ -67,6 +67,13 @@ func (uc *DashboardActionPressureUseCase) Execute(ctx context.Context, input Das
 	}
 
 	for _, task := range tasks {
+		if dueDate, ok := parseDateOnly(task.DueDate); ok {
+			period := dueDate.Format("2006-01")
+			if idx, ok := pointIndex[period]; ok {
+				points[idx].TotalMitigations += 1
+			}
+		}
+
 		if task.Status == "done" && task.ReportedAt != nil {
 			period := task.ReportedAt.UTC().Format("2006-01")
 			if idx, ok := pointIndex[period]; ok {

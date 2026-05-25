@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { CheckCircle2, ChevronDown, CircleDot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -111,37 +111,41 @@ export function MonitoringLatestProgressChart({
   const sortedData = [...resolvedData].sort(
     (a, b) => b.progressPercent - a.progressPercent,
   );
+  const progressBadgeClass = hasData
+    ? "bg-success/10 text-success border-success/20"
+    : "bg-muted/40 text-muted-foreground";
 
   return (
     <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader className="space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <CollapsibleTrigger className="flex flex-1 items-start gap-2 text-left transition-opacity hover:opacity-70">
-              <ChevronDown
-                className={cn(
-                  "mt-0.5 h-4 w-4 shrink-0 transition-transform",
-                  isOpen && "rotate-180",
-                )}
-              />
-              <div className="space-y-1">
-                <CardTitle className="text-base font-semibold">
-                  Progress Kertas Kerja Terakhir
-                </CardTitle>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Persentase risiko approved pada kertas kerja terbaru tiap organisasi.
-                </p>
+        <CardHeader className="p-0">
+          <CollapsibleTrigger className="group w-full text-left transition-colors hover:no-underline hover:bg-muted/30">
+            <div className="flex items-center justify-between gap-4 px-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-600 shadow-inner ring-1 ring-inset ring-zinc-200/80 transition-colors duration-150 ease-out group-hover:bg-white">
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200 ease-out",
+                      isOpen && "rotate-180",
+                    )}
+                    aria-hidden="true"
+                  />
+                </span>
+                <div className="min-w-0">
+                  <CardTitle className="text-sm font-semibold text-foreground transition-colors md:text-base group-data-[state=open]:text-primary">
+                    Progress Kertas Kerja
+                  </CardTitle>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Persentase risiko approved pada kertas kerja terbaru tiap
+                    organisasi.
+                  </p>
+                </div>
               </div>
-            </CollapsibleTrigger>
-            {hasData ? (
-              <Badge variant="outline" className="mt-0.5 shrink-0 text-[10px]">
-                {resolvedData.length} organisasi
-              </Badge>
-            ) : null}
-          </div>
+            </div>
+          </CollapsibleTrigger>
         </CardHeader>
         <CollapsibleContent>
-          <CardContent>
+          <CardContent className="space-y-4">
             {loading ? (
               <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
                 Memuat progress kertas kerja terbaru...
@@ -155,9 +159,15 @@ export function MonitoringLatestProgressChart({
                 <Table>
                   <TableHeader>
                     <TableRow className="h-11">
-                      <TableHead className="h-11 whitespace-nowrap py-3 align-middle">Organisasi</TableHead>
-                      <TableHead className="h-11 whitespace-nowrap py-3 align-middle">Periode</TableHead>
-                      <TableHead className="h-11 w-[40%] whitespace-nowrap py-3 align-middle">Progress</TableHead>
+                      <TableHead className="h-11 whitespace-nowrap py-3 align-middle">
+                        Organisasi
+                      </TableHead>
+                      <TableHead className="h-11 whitespace-nowrap py-3 align-middle">
+                        Periode
+                      </TableHead>
+                      <TableHead className="h-11 w-[40%] whitespace-nowrap py-3 align-middle">
+                        Progress
+                      </TableHead>
                       <TableHead className="h-11 whitespace-nowrap py-3 text-right align-middle">
                         Approved
                       </TableHead>

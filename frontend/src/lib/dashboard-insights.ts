@@ -1,12 +1,15 @@
 // @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
 import type { DashboardRiskCategoryItem } from "../types/risk";
 // @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
-import { dashboardCategoryLabels, getBobot, resolveRiskScoreSemantics } from "./risk";
+import { dashboardCategoryLabels, getBobot, resolveRiskScoreSemantics } from "./risk.js";
 
 type Severity = "Sangat Rendah" | "Rendah" | "Sedang" | "Tinggi" | "Sangat Tinggi";
 
 type RiskLike = {
+  id?: string;
   code?: string;
+  versionGroupId?: string;
+  versionNumber?: number;
   orgName?: string;
   assessmentCycle?: string;
   nextReviewDate?: string | null;
@@ -18,6 +21,7 @@ type RiskLike = {
   inherentScore?: number;
   status?: "assessment_draft" | "assessment_in_review" | "approved";
   targetScore?: number;
+  targetNilai?: number | null;
   targetProbability?: number;
   targetImpact?: number;
 };
@@ -75,6 +79,15 @@ export type MovementSnapshotDatum = {
   key: "new" | "up" | "down" | "stable" | "removed";
   label: "Baru" | "Naik" | "Turun" | "Stabil" | "Keluar";
   value: number;
+};
+
+export type SemesterScoreTargetDatum = {
+  period: string;
+  actualScore: number;
+  targetScore: number | null;
+  gap: number | null;
+  riskCount: number;
+  targetCount: number;
 };
 
 function normalizeSemesterKey(value?: string) {
@@ -500,6 +513,106 @@ export function buildInherentResidualTrendData(risks: RiskLike[]): InherentResid
         avgResidual,
         gap: Math.round((avgInherent - avgResidual) * 10) / 10,
         riskCount: bucket.riskCount,
+      };
+    });
+}
+
+function compareRiskVersion(left: RiskLike, right: RiskLike) {
+  const leftTime = new Date(left.createdAt ?? "").getTime();
+  const rightTime = new Date(right.createdAt ?? "").getTime();
+
+  const leftHasTime = !Number.isNaN(leftTime);
+  const rightHasTime = !Number.isNaN(rightTime);
+  if (leftHasTime && rightHasTime && leftTime !== rightTime) {
+    return leftTime - rightTime;
+  }
+  if (leftHasTime !== rightHasTime) {
+    return leftHasTime ? 1 : -1;
+  }
+
+  const leftVersion = left.versionNumber ?? 0;
+  const rightVersion = right.versionNumber ?? 0;
+  if (leftVersion !== rightVersion) return leftVersion - rightVersion;
+
+  const leftId = left.id ?? left.code ?? left.versionGroupId ?? "";
+  const rightId = right.id ?? right.code ?? right.versionGroupId ?? "";
+  return leftId.localeCompare(rightId);
+}
+
+function riskGroupingKey(risk: RiskLike) {
+  return (
+    risk.versionGroupId?.trim() ||
+    risk.code?.trim() ||
+    risk.id?.trim() ||
+    ""
+  );
+}
+
+function readActualScore(risk: RiskLike) {
+  if (typeof risk.inherentScore === "number") return risk.inherentScore;
+  if (typeof risk.nilai === "number") return Math.round(risk.nilai);
+  return 0;
+}
+
+function readTargetScore(risk: RiskLike) {
+  if (typeof risk.targetScore === "number" && risk.targetScore > 0) {
+    return risk.targetScore;
+  }
+  if (typeof risk.targetNilai === "number" && risk.targetNilai > 0) {
+    return Math.round(risk.targetNilai);
+  }
+  return null;
+}
+
+export function buildSemesterScoreTargetTrendData(
+  risks: RiskLike[],
+): SemesterScoreTargetDatum[] {
+  const groupedByPeriod = new Map<string, Map<string, RiskLike>>();
+
+  for (const risk of risks) {
+    const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+    if (!period) continue;
+
+    const key = riskGroupingKey(risk);
+    if (!key) continue;
+
+    const periodBucket = groupedByPeriod.get(period) ?? new Map<string, RiskLike>();
+    const existing = periodBucket.get(key);
+    if (!existing || compareRiskVersion(existing, risk) < 0) {
+      periodBucket.set(key, risk);
+    }
+    groupedByPeriod.set(period, periodBucket);
+  }
+
+  return [...groupedByPeriod.entries()]
+    .sort(([left], [right]) => semesterSortValue(left) - semesterSortValue(right))
+    .map(([period, bucket]) => {
+      let actualTotal = 0;
+      let targetTotal = 0;
+      let riskCount = 0;
+      let targetCount = 0;
+
+      for (const risk of bucket.values()) {
+        riskCount += 1;
+        actualTotal += readActualScore(risk);
+
+        const targetScore = readTargetScore(risk);
+        if (targetScore !== null) {
+          targetTotal += targetScore;
+          targetCount += 1;
+        }
+      }
+
+      const actualScore = riskCount === 0 ? 0 : Math.round((actualTotal / riskCount) * 10) / 10;
+      const targetScore = targetCount === 0 ? null : Math.round((targetTotal / targetCount) * 10) / 10;
+
+      return {
+        period,
+        actualScore,
+        targetScore,
+        gap: targetScore === null ? null : Math.round((actualScore - targetScore) * 10) / 10,
+        riskCount,
+        targetCount,
       };
     });
 }

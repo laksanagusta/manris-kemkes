@@ -10,7 +10,7 @@ import (
 )
 
 type PlanningHierarchyHandler struct {
-	listROOptionsUC      *planninguc.ListROOptionsUseCase
+	listROOptionsUC     *planninguc.ListROOptionsUseCase
 	listCompatibilityUC *planninguc.ListObjectiveCompatibilityUseCase
 }
 
@@ -19,7 +19,7 @@ func NewPlanningHierarchyHandler(
 	listCompatibilityUC *planninguc.ListObjectiveCompatibilityUseCase,
 ) *PlanningHierarchyHandler {
 	return &PlanningHierarchyHandler{
-		listROOptionsUC:      listROOptionsUC,
+		listROOptionsUC:     listROOptionsUC,
 		listCompatibilityUC: listCompatibilityUC,
 	}
 }
@@ -29,9 +29,18 @@ func (h *PlanningHierarchyHandler) ListROOptions(c *fiber.Ctx) error {
 	if err != nil {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 	}
+	var planningID *uuid.UUID
+	if raw := c.Query("planning_id"); raw != "" {
+		parsed, err := uuid.Parse(raw)
+		if err != nil {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid planning ID")
+		}
+		planningID = &parsed
+	}
 
 	result, err := h.listROOptionsUC.Execute(c.Context(), planninguc.ListROOptionsInput{
 		OrganizationID: orgID,
+		PlanningID:     planningID,
 		Period:         strings.TrimSpace(c.Query("period")),
 		Query:          strings.TrimSpace(c.Query("q")),
 	})
