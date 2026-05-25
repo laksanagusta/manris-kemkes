@@ -56,6 +56,7 @@ const iconMap: Record<string, React.ElementType> = {
   ClipboardPenLine,
   Goal,
   GitBranch,
+  FileText,
   Users,
   Building2,
   Settings2,
