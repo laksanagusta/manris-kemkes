@@ -81,14 +81,53 @@ func TestDashboardActionPressureUseCase_ExecuteBuildsMonthlySeries(t *testing.T)
 	if points[0].Period != "2026-01" || points[0].OverdueMitigations != 1 {
 		t.Fatalf("expected Jan overdue count 1, got %#v", points[0])
 	}
+	if points[0].TotalMitigations != 1 {
+		t.Fatalf("expected Jan total mitigations 1, got %#v", points[0])
+	}
 	if points[1].Period != "2026-02" || points[1].OverdueMitigations != 1 {
 		t.Fatalf("expected Feb overdue 1, got %#v", points[1])
+	}
+	if points[1].TotalMitigations != 1 {
+		t.Fatalf("expected Feb total mitigations 1, got %#v", points[1])
 	}
 	if points[2].Period != "2026-03" || points[2].MitigationsCompleted != 1 {
 		t.Fatalf("expected Mar completed 1, got %#v", points[2])
 	}
+	if points[2].TotalMitigations != 1 {
+		t.Fatalf("expected Mar total mitigations 1, got %#v", points[2])
+	}
 	if points[3].Period != "2026-04" {
 		t.Fatalf("expected Apr point, got %#v", points[3])
+	}
+}
+
+func TestDashboardActionPressureUseCase_ExecuteCountsPendingTasksAsActive(t *testing.T) {
+	now := time.Date(2026, time.April, 2, 0, 0, 0, 0, time.UTC)
+	taskRepo := &fakeDashboardTaskRepo{
+		listAll: func(_ context.Context, _ []uuid.UUID) ([]*entity.MitigationTask, error) {
+			return []*entity.MitigationTask{
+				{Status: "pending", DueDate: "2026-04-10"},
+				{Status: "pending", DueDate: "2026-04-18"},
+			}, nil
+		},
+	}
+
+	uc := NewDashboardActionPressureUseCase(taskRepo)
+	uc.now = func() time.Time { return now }
+
+	points, err := uc.Execute(context.Background(), DashboardActionPressureInput{Interval: "month", Window: 1})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(points) != 1 {
+		t.Fatalf("expected 1 point, got %d", len(points))
+	}
+	if points[0].TotalMitigations != 2 {
+		t.Fatalf("expected 2 active mitigations, got %#v", points[0])
+	}
+	if points[0].MitigationsCompleted != 0 || points[0].OverdueMitigations != 0 {
+		t.Fatalf("expected no completed/overdue counts, got %#v", points[0])
 	}
 }
 

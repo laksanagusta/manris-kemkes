@@ -18,6 +18,20 @@ test("buildPlanningROOptionsQuery serializes required params", () => {
   );
 });
 
+test("buildPlanningROOptionsQuery serializes planning id", () => {
+  const { buildPlanningROOptionsQuery } = planningApi as {
+    buildPlanningROOptionsQuery: (params?: Record<string, string | number | undefined>) => string;
+  };
+
+  assert.equal(
+    buildPlanningROOptionsQuery({
+      organization_id: "org-1",
+      planning_id: "planning-1",
+    }),
+    "organization_id=org-1&planning_id=planning-1",
+  );
+});
+
 test("buildPlanningObjectiveCompatibilityQuery handles empty params", () => {
   const { buildPlanningObjectiveCompatibilityQuery } = planningApi as {
     buildPlanningObjectiveCompatibilityQuery: (params?: Record<string, string | number | undefined>) => string;

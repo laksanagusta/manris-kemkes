@@ -11,7 +11,10 @@ import (
 type RiskObjective struct {
 	ID                    uuid.UUID  `json:"id"`
 	OrganizationID        uuid.UUID  `json:"organizationId"`
-	CharterID             *uuid.UUID `json:"charterId,omitempty"`
+	PlanningID            uuid.UUID  `json:"planningId"`
+	PlanningTitle         string     `json:"planningTitle"`
+	PlanningStatus        string     `json:"planningStatus"`
+	PlanningPeriod        string     `json:"planningPeriod"`
 	Period                string     `json:"period"`
 	Tujuan                string     `json:"tujuan"`
 	Sasaran               string     `json:"sasaran"`

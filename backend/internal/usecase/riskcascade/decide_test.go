@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -427,4 +428,83 @@ func TestDecideUseCaseAcceptAllowsTargetOrgOnlyScope(t *testing.T) {
 	if riskRepo.risk.Mitigations[0].Owner != "Budi Mataram" {
 		t.Fatalf("expected mitigation owner name to follow approver, got %q", riskRepo.risk.Mitigations[0].Owner)
 	}
+}
+
+func TestCreateMandatoryRejectsInactiveOrDraftMonitoringRisk(t *testing.T) {
+	sourceOrgID := uuid.New()
+	targetOrgID := uuid.New()
+	sourceRiskID := uuid.New()
+
+	t.Run("rejects non-approved risk", func(t *testing.T) {
+		cascadeRepo := &fakeRiskCascadeRepo{}
+		riskRepo := &fakeRiskRepo{
+			source: &entity.Risk{
+				ID:             sourceRiskID,
+				Code:           "R-001",
+				Title:          "Risiko sumber",
+				Description:    "Deskripsi",
+				Category:       entity.RiskCategoryOperasional,
+				Status:         entity.RiskStatusDraft,
+				VersionGroupID: uuid.New(),
+				IsCurrent:      false,
+				IsCycleCurrent: false,
+				VersionNumber:  1,
+				OrganizationID: &sourceOrgID,
+				Probability:    3,
+				Impact:         3,
+				Weight:         1,
+			},
+		}
+		uc := NewCreateMandatoryUseCase(cascadeRepo, riskRepo, &fakeOrgRepo{})
+
+		_, err := uc.Execute(context.Background(), CreateMandatoryInput{
+			SourceRiskID: sourceRiskID,
+			TargetOrgID:  targetOrgID,
+			AnalysisNote: "uji",
+			OrgIDs:       []uuid.UUID{sourceOrgID, targetOrgID},
+		})
+		if err == nil {
+			t.Fatal("expected validation error")
+		}
+		if !errors.IsValidation(err) {
+			t.Fatalf("expected validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects ongoing monitoring draft", func(t *testing.T) {
+		cascadeRepo := &fakeRiskCascadeRepo{}
+		riskRepo := &fakeRiskRepo{
+			source: &entity.Risk{
+				ID:             sourceRiskID,
+				Code:           "R-001",
+				Title:          "Risiko sumber",
+				Description:    "Deskripsi",
+				Category:       entity.RiskCategoryOperasional,
+				Status:         entity.RiskStatusApproved,
+				VersionGroupID: uuid.New(),
+				IsCurrent:      true,
+				IsCycleCurrent: true,
+				VersionNumber:  1,
+				OrganizationID: &sourceOrgID,
+				Probability:    3,
+				Impact:         3,
+				Weight:         1,
+				HasOngoing:     true,
+			},
+		}
+		uc := NewCreateMandatoryUseCase(cascadeRepo, riskRepo, &fakeOrgRepo{})
+
+		_, err := uc.Execute(context.Background(), CreateMandatoryInput{
+			SourceRiskID: sourceRiskID,
+			TargetOrgID:  targetOrgID,
+			AnalysisNote: "uji",
+			OrgIDs:       []uuid.UUID{sourceOrgID, targetOrgID},
+		})
+		if err == nil {
+			t.Fatal("expected validation error")
+		}
+		if !errors.IsValidation(err) {
+			t.Fatalf("expected validation error, got %v", err)
+		}
+	})
 }

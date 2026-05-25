@@ -11,35 +11,35 @@ export type MainMenuGroup = {
 };
 
 export const mainMenuItems: MainMenuGroup[] = [
-  // {
-  //   title: "RISK GOVERNANCE",
-  //   items: [
-  //     {
-  //       label: "Piagam Manris",
-  //       href: "/management/charters",
-  //       icon: "ClipboardPenLine",
-  //       matchHrefs: ["/management/charters"],
-  //     },
-  //     {
-  //       label: "Eskalasi Risiko",
-  //       href: "/risk/cascading",
-  //       icon: "GitBranch",
-  //       matchHrefs: ["/risk/cascading"],
-  //     },
-  //     {
-  //       label: "Struktur Kinerja",
-  //       href: "/management/planning",
-  //       icon: "Goal",
-  //       matchHrefs: ["/management/planning"],
-  //     },
-  //     {
-  //       label: "TMPMR",
-  //       href: "/management/tmpmr",
-  //       icon: "ClipboardList",
-  //       matchHrefs: ["/management/tmpmr"],
-  //     },
-  //   ],
-  // },
+  {
+    title: "RISK GOVERNANCE",
+    items: [
+      {
+        label: "Piagam Manris",
+        href: "/management/charters",
+        icon: "ClipboardPenLine",
+        matchHrefs: ["/management/charters"],
+      },
+      // {
+      //   label: "Eskalasi Risiko",
+      //   href: "/risk/cascading",
+      //   icon: "GitBranch",
+      //   matchHrefs: ["/risk/cascading"],
+      // },
+      {
+        label: "Struktur Kinerja",
+        href: "/management/planning",
+        icon: "Goal",
+        matchHrefs: ["/management/planning"],
+      },
+      // {
+      //   label: "TMPMR",
+      //   href: "/management/tmpmr",
+      //   icon: "ClipboardList",
+      //   matchHrefs: ["/management/tmpmr"],
+      // },
+    ],
+  },
   {
     title: "MANAJEMEN RISIKO",
     items: [
@@ -99,6 +99,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/controls": "Control Library",
   "/monitoring/overdue": "Overdue",
   "/reports": "Analisis Risiko",
+  "/reports/performance-risk": "Analisis Kinerja & Risiko",
   "/reports/formal": "Laporan Formal",
   "/reports/compliance-monitoring": "Monitoring Kepatuhan",
   "/reports/cycle-detail": "Detail Siklus Risiko",

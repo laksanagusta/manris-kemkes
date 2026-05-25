@@ -9,6 +9,7 @@ import (
 
 type PlanningROOptionFilter struct {
 	OrganizationID uuid.UUID
+	PlanningID     *uuid.UUID
 	Period         string
 	Q              string
 	Page           int

@@ -559,7 +559,6 @@ export default function BulkRiskRegisterPage() {
                 </label>
                 <ROPicker
                   organizationId={effectiveOrgId || undefined}
-                  period={planningPeriod}
                   value={selectedRoId}
                   onChange={(roId) => setSelectedRoId(roId)}
                 />

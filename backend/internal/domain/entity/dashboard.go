@@ -9,6 +9,7 @@ type DashboardSummary struct {
 
 type DashboardActionPressurePoint struct {
 	Period               string `json:"period"`
+	TotalMitigations     int    `json:"totalMitigations"`
 	MitigationsCompleted int    `json:"mitigationsCompleted"`
 	OverdueMitigations   int    `json:"overdueMitigations"`
 }

@@ -38,7 +38,7 @@ import {
   listAllOrganizations,
   type OrganizationListItem,
 } from "@/lib/api/organizations";
-import { InherentResidualTrend } from "./_components/inherent-residual-trend";
+import { SemesterTargetTrend } from "./_components/inherent-residual-trend";
 import { CriticalRiskRateTrend } from "./_components/critical-risk-rate-trend";
 import { RiskMovementByOrg } from "./_components/risk-movement-by-org";
 import { RiskCategoryDistributionCard } from "./_components/risk-category-distribution-card";
@@ -55,7 +55,7 @@ import {
   buildMovementSnapshotData,
   buildUnitExposureData,
   buildDashboardRiskCategoryData,
-  buildInherentResidualTrendData,
+  buildSemesterScoreTargetTrendData,
   buildCriticalRiskRateTrendData,
   buildMovementByOrgData,
   type MovementSnapshotDatum,
@@ -188,8 +188,8 @@ export default function ReportsPage() {
       }),
     [cycleRisks, previousCycleRisks, comparisons],
   );
-  const inherentResidualData = useMemo(
-    () => buildInherentResidualTrendData(trendRisks),
+  const semesterTargetTrendData = useMemo(
+    () => buildSemesterScoreTargetTrendData(trendRisks),
     [trendRisks],
   );
   const criticalRiskRateData = useMemo(
@@ -487,24 +487,6 @@ export default function ReportsPage() {
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-primary/25 bg-primary/5 px-4 py-3">
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-foreground">
-            Untuk analisis & unduhan
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Halaman ini dipakai untuk analisis dan unduhan data. Untuk
-            memperbarui mitigasi atau KRI, gunakan Monitoring.
-          </p>
-        </div>
-        <Link
-          href="/compliance/monitoring"
-          className="inline-flex h-8 items-center rounded-md border border-border/60 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted/50"
-        >
-          Buka Monitoring
-        </Link>
-      </div>
-
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardContent className="p-4">
           <div className="min-w-[220px] flex-1 md:max-w-sm">
@@ -516,9 +498,14 @@ export default function ReportsPage() {
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {requiresReportOrgSelection && !reportOrgId ? (
-              <span>Pilih organisasi terlebih dahulu untuk menampilkan laporan.</span>
+              <span>
+                Pilih organisasi terlebih dahulu untuk menampilkan laporan.
+              </span>
             ) : user?.isGlobal && !reportOrgId ? (
-              <span>Laporan menampilkan semua unit sampai Anda memilih unit tertentu.</span>
+              <span>
+                Laporan menampilkan semua unit sampai Anda memilih unit
+                tertentu.
+              </span>
             ) : (
               <span>Laporan akan mengikuti unit yang dipilih.</span>
             )}
@@ -547,7 +534,10 @@ export default function ReportsPage() {
                 Unduh ringkasan laporan sesuai organisasi yang dipilih.
               </p>
             </div>
-            <Badge variant="outline" className="h-6 px-2 text-[10px] font-medium text-muted-foreground">
+            <Badge
+              variant="outline"
+              className="h-6 px-2 text-[10px] font-medium text-muted-foreground"
+            >
               Periode {exportCycle}
             </Badge>
           </div>
@@ -614,130 +604,136 @@ export default function ReportsPage() {
       </Card>
 
       <section id="risk-analytics" className="space-y-4 scroll-mt-24">
-        <RiskCategoryDistributionCard
-          data={riskCategoryData}
-          loading={riskCategoryLoading}
-          error={riskCategoryError}
-          cycle={exportCycle}
-        />
+        <div className="grid gap-6 xl:grid-cols-12">
+          <div className="xl:col-span-12">
+            <RiskCategoryDistributionCard
+              data={riskCategoryData}
+              loading={riskCategoryLoading}
+              error={riskCategoryError}
+              cycle={exportCycle}
+            />
+          </div>
 
-        <Card className="border-border/50 bg-card/80">
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle className="text-sm font-semibold">
-                  Laporan Pergerakan Risiko
-                </CardTitle>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Perbandingan pergerakan dari {previousCycle} ke {exportCycle}.
-                </p>
-              </div>
-              <Badge variant="outline" className="h-5 px-2 text-[10px]">
-                {`${previousCycle} ke ${exportCycle}`}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {hasMovementData ? (
-              <>
-                <div className="grid gap-3 pb-4 md:grid-cols-5">
-                  {movementSnapshotData.map((item) => (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => toggleMovementFilter(item.key)}
-                      className="text-left transition-colors"
-                    >
-                      <KpiCard
-                        label={item.label}
-                        value={item.value}
-                        tone={
-                          item.key === "up"
-                            ? "rose"
-                            : item.key === "down"
-                              ? "emerald"
-                              : item.key === "removed"
-                                ? "rose"
-                                : item.key === "new"
-                                  ? "white"
-                                  : "zinc"
-                        }
-                        description={
-                          selectedMovement === item.key ? (
-                            <Badge
-                              variant="outline"
-                              className="mt-2 h-5 px-1.5 text-[9px]"
-                            >
-                              Aktif
-                            </Badge>
-                          ) : undefined
-                        }
-                      />
-                    </button>
-                  ))}
+          <Card className="h-full border-border/50 bg-card/80 xl:col-span-7">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-sm font-semibold">
+                    Laporan Pergerakan Risiko
+                  </CardTitle>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Perbandingan pergerakan dari {previousCycle} ke {exportCycle}.
+                  </p>
                 </div>
-                <div className="h-56">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={movementData}
-                      margin={{ top: 4, right: 12, left: -24, bottom: 0 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="oklch(0.5 0 0 / 8%)"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="label"
-                        tick={{ fontSize: 10 }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        allowDecimals={false}
-                        tick={{ fontSize: 10 }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <RechartsTooltip
-                        formatter={(value) => [
-                          `${value ?? 0} risiko`,
-                          "Jumlah",
-                        ]}
-                        contentStyle={{
-                          background: "oklch(0.98 0.003 170 / 95%)",
-                          border: "1px solid oklch(0.91 0.008 170)",
-                          borderRadius: "8px",
-                          fontSize: "11px",
-                        }}
-                      />
-                      <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                        {movementData.map((item) => (
-                          <Cell key={item.label} fill={item.fill} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </>
-            ) : (
-              <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                Perbandingan Semester belum tersedia
+                <Badge variant="outline" className="h-5 px-2 text-[10px]">
+                  {`${previousCycle} ke ${exportCycle}`}
+                </Badge>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {hasMovementData ? (
+                <>
+                  <div className="grid gap-3 pb-4 md:grid-cols-5">
+                    {movementSnapshotData.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => toggleMovementFilter(item.key)}
+                        className="text-left transition-colors"
+                      >
+                        <KpiCard
+                          label={item.label}
+                          value={item.value}
+                          tone={
+                            item.key === "up"
+                              ? "rose"
+                              : item.key === "down"
+                                ? "emerald"
+                                : item.key === "removed"
+                                  ? "rose"
+                                  : item.key === "new"
+                                    ? "white"
+                                    : "zinc"
+                          }
+                          description={
+                            selectedMovement === item.key ? (
+                              <Badge
+                                variant="outline"
+                                className="mt-2 h-5 px-1.5 text-[9px]"
+                              >
+                                Aktif
+                              </Badge>
+                            ) : undefined
+                          }
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={movementData}
+                        margin={{ top: 4, right: 12, left: -24, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="oklch(0.5 0 0 / 8%)"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          allowDecimals={false}
+                          tick={{ fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <RechartsTooltip
+                          formatter={(value) => [
+                            `${value ?? 0} risiko`,
+                            "Jumlah",
+                          ]}
+                          contentStyle={{
+                            background: "oklch(0.98 0.003 170 / 95%)",
+                            border: "1px solid oklch(0.91 0.008 170)",
+                            borderRadius: "8px",
+                            fontSize: "11px",
+                          }}
+                        />
+                        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                          {movementData.map((item) => (
+                            <Cell key={item.label} fill={item.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              ) : (
+                <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+                  Perbandingan Semester belum tersedia
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <RiskMovementByOrg
-          data={movementByOrgData}
-          currentSort={movementByOrgSort}
-          onSortChange={setMovementByOrgSort}
-        />
+          <div className="xl:col-span-5">
+            <RiskMovementByOrg
+              data={movementByOrgData}
+              currentSort={movementByOrgSort}
+              onSortChange={setMovementByOrgSort}
+            />
+          </div>
+        </div>
       </section>
 
       <section id="risk-exposure-trend" className="space-y-6 scroll-mt-24">
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="border-border/50 bg-card/80">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-12">
+          <Card className="h-full border-border/50 bg-card/80 xl:col-span-4">
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -840,7 +836,7 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-card/80">
+          <Card className="h-full border-border/50 bg-card/80 xl:col-span-4">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -935,11 +931,13 @@ export default function ReportsPage() {
               )}
             </CardContent>
           </Card>
-          <CriticalRiskRateTrend data={criticalRiskRateData} />
+          <div className="xl:col-span-4">
+            <CriticalRiskRateTrend data={criticalRiskRateData} />
+          </div>
         </div>
 
         <div className="grid gap-6">
-          <InherentResidualTrend data={inherentResidualData} />
+          <SemesterTargetTrend data={semesterTargetTrendData} />
         </div>
       </section>
 
@@ -975,6 +973,23 @@ export default function ReportsPage() {
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             Buka overdue mitigasi, breach KRI, dan waktu respons unit.
+          </p>
+          <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary">
+            Buka halaman
+            <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </span>
+        </Link>
+
+        <Link
+          href="/reports/performance-risk"
+          className="group rounded-2xl border border-border/60 bg-card/70 p-5 transition-colors hover:border-primary/30 hover:bg-primary/5"
+        >
+          <p className="text-sm font-semibold text-foreground">
+            Analisis Kinerja & Risiko
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Lihat ranking RO, detail inherent exposure, dan data kualitas risiko
+            tanpa RO.
           </p>
           <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary">
             Buka halaman

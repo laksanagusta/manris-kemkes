@@ -27,14 +27,14 @@ func TestListROOptionsUseCaseExecute(t *testing.T) {
 	repo := fakePlanningHierarchyRepo{
 		roOptions: []entity.PlanningROOption{
 			{
-				ROID:         uuid.New(),
-				ROTitle:      "RO A",
-				KegiatanTitle: "Kegiatan A",
-				ProgramTitle: "Program A",
-				IKUTitle:     "IKU A",
-				SasaranTitle: "Sasaran A",
-				TujuanTitle:  "Tujuan A",
-				Period:       "2027",
+				ROID:           uuid.New(),
+				ROTitle:        "RO A",
+				KegiatanTitle:  "Kegiatan A",
+				ProgramTitle:   "Program A",
+				IKUTitle:       "IKU A",
+				SasaranTitle:   "Sasaran A",
+				TujuanTitle:    "Tujuan A",
+				PlanningPeriod: "2027",
 			},
 		},
 	}

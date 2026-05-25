@@ -400,7 +400,6 @@ export function MitigationMonitoringPanel() {
                         "rounded-xl border border-zinc-200 bg-white p-4 shadow-sm",
                         item.tier === "heavy" && "bg-rose-50/30",
                       )}
-                      onClick={() => handleOpenDetail(item)}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -412,9 +411,15 @@ export function MitigationMonitoringPanel() {
                               {item.level}
                             </Badge>
                           </div>
-                          <p className="mt-1 line-clamp-2 text-sm font-semibold text-zinc-900 transition-colors hover:text-primary">
-                            {item.mitigationAction}
-                          </p>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDetail(item)}
+                            className="mt-1 block max-w-full cursor-pointer text-left text-sm font-semibold text-zinc-900 transition-colors hover:text-primary"
+                          >
+                            <span className="line-clamp-2">
+                              {item.mitigationAction}
+                            </span>
+                          </button>
                           <p className="mt-1 text-xs text-zinc-500">
                             {item.unit} • {item.pic}
                           </p>
@@ -536,15 +541,20 @@ export function MitigationMonitoringPanel() {
                       <TableRow
                         key={item.id}
                         className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
-                        onClick={() => handleOpenDetail(item)}
                       >
                         <TableCell className="font-mono text-zinc-600 pl-4 pr-2 py-2 md:pl-6">
                           {item.riskCode}
                         </TableCell>
                         <TableCell className="max-w-[320px]">
-                          <p className="block truncate text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary">
-                            {item.mitigationAction}
-                          </p>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDetail(item)}
+                            className="block max-w-full cursor-pointer text-left"
+                          >
+                            <span className="block truncate text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary">
+                              {item.mitigationAction}
+                            </span>
+                          </button>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-0.5">

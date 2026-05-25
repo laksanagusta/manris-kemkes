@@ -25,7 +25,7 @@ import { RiskSubstanceFields } from "@/components/risk/risk-substance-fields";
 import { Switch } from "@/components/ui/switch";
 
 import { useAuth } from "@/contexts/auth-context";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { getRiskDetail, updateRiskAssessment } from "@/lib/api/risk-assessment";
 import {
   getBobot,
@@ -457,8 +457,18 @@ export default function AssessmentFormPage() {
       });
 
       if (draft.previousRiskId) {
-        const source = await getRiskDetail(token, draft.previousRiskId);
-        setSourceRisk(source);
+        try {
+          const source = await getRiskDetail(token, draft.previousRiskId);
+          setSourceRisk(source);
+        } catch (sourceError) {
+          if (sourceError instanceof ApiError && sourceError.status === 404) {
+            setSourceRisk(null);
+          } else {
+            throw sourceError;
+          }
+        }
+      } else {
+        setSourceRisk(null);
       }
 
       if (
@@ -561,6 +571,21 @@ export default function AssessmentFormPage() {
         }
       }
     } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        setDraftRisk(null);
+        setSourceRisk(null);
+        setSubstanceDraft(buildSubstanceDefaults(null));
+        form.reset({
+          probability: 1,
+          impact: 1,
+          changeReason: "",
+          reviewSummary: "",
+        });
+        setApprovalId(null);
+        setApprovalWorkflow(null);
+        toast.error("Data risiko tidak ditemukan.");
+        return;
+      }
       toast.error("Gagal memuat data risiko", {
         description:
           (error as Error).message || "Terjadi kesalahan yang tidak diketahui",
@@ -840,7 +865,12 @@ export default function AssessmentFormPage() {
               <AccordionTrigger className="group px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
                 <div className="flex flex-1 items-center justify-between gap-4 pr-2">
                   <div className="flex min-w-0 items-center gap-3">
-                    <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-600 shadow-inner ring-1 ring-inset ring-zinc-200/80 transition-colors duration-150 ease-out group-hover:bg-white">
+                      <ChevronDown
+                        className="h-4 w-4 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180"
+                        aria-hidden="true"
+                      />
+                    </span>
                     <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
                       Hasil Pemantauan
                     </p>
@@ -1078,7 +1108,12 @@ export default function AssessmentFormPage() {
               <AccordionTrigger className="group px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
                 <div className="flex flex-1 items-center justify-between gap-4 pr-2">
                   <div className="flex min-w-0 items-center gap-3">
-                    <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-600 shadow-inner ring-1 ring-inset ring-zinc-200/80 transition-colors duration-150 ease-out group-hover:bg-white">
+                      <ChevronDown
+                        className="h-4 w-4 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180"
+                        aria-hidden="true"
+                      />
+                    </span>
                     <div className="min-w-0">
                       <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
                         Perubahan Substansi Risiko

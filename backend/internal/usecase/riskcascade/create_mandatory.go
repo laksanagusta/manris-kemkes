@@ -49,6 +49,12 @@ func (uc *CreateMandatoryUseCase) create(ctx context.Context, input CreateMandat
 	if sourceRisk.OrganizationID == nil {
 		return nil, errors.Wrap(errors.ErrInvalidInput, "source risk must belong to an organization")
 	}
+	if sourceRisk.Status != entity.RiskStatusApproved || !sourceRisk.IsCurrent {
+		return nil, errors.Wrap(errors.ErrInvalidInput, "only active approved risks can be escalated")
+	}
+	if sourceRisk.HasOngoing {
+		return nil, errors.Wrap(errors.ErrInvalidInput, "risk with ongoing monitoring draft cannot be escalated")
+	}
 
 	if _, err := uc.orgRepo.GetByID(ctx, input.TargetOrgID); err != nil {
 		return nil, errors.Wrap(err, "target organization not found")

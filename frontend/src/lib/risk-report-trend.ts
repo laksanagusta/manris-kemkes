@@ -5,6 +5,10 @@ type RiskTrendLevel = "Rendah" | "Sedang" | "Tinggi" | "Sangat Tinggi";
 type RiskScoreSemanticInput = Parameters<typeof resolveRiskScoreSemantics>[0];
 
 export type RiskTrendSourceItem = {
+  id?: string;
+  code?: string;
+  versionGroupId?: string;
+  versionNumber?: number;
   assessmentCycle?: string;
   createdAt?: string;
   probability: number;
@@ -14,6 +18,7 @@ export type RiskTrendSourceItem = {
   targetProbability?: number;
   targetImpact?: number;
   targetScore?: number;
+  targetNilai?: number;
 };
 
 export type RiskTrendPoint = { period: string } & Record<RiskTrendLevel, number>;

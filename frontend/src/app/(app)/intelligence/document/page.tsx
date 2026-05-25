@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import type {
+  DragEvent,
+  FormEvent,
+  KeyboardEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -14,6 +19,10 @@ import {
   Sparkles,
   Target,
   AlertTriangle,
+  UploadCloud,
+  RotateCcw,
+  ClipboardCheck,
+  PanelTop,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -39,8 +48,6 @@ import type {
   DocumentIntelligenceResponse,
   DocumentRiskSuggestion,
   MitigationTaskReportSuggestion,
-  StrategicIKUSuggestion,
-  StrategicObjectiveSuggestion,
 } from "@/types/document-intelligence";
 
 type ModeOption = {
@@ -49,6 +56,8 @@ type ModeOption = {
   title: string;
   description: string;
   icon: typeof FileSearch;
+  useWhen: string;
+  output: string;
 };
 
 const modeOptions: ModeOption[] = [
@@ -58,6 +67,8 @@ const modeOptions: ModeOption[] = [
     title: "SOP → Risk Universe",
     description: "Ekstrak tahapan proses dan usulkan risiko per tahap.",
     icon: ClipboardList,
+    useWhen: "Ketika dokumen menjelaskan alur kerja atau SOP operasional.",
+    output: "Tahapan proses, kontrol yang ada, dan risiko per tahap.",
   },
   {
     value: "audit_finding_mapper",
@@ -65,6 +76,8 @@ const modeOptions: ModeOption[] = [
     title: "Audit Finding → Risk",
     description: "Map temuan audit ke risiko yang sudah ada atau draft baru.",
     icon: ShieldAlert,
+    useWhen: "Ketika input utama berupa temuan audit, catatan pemeriksaan, atau gap kontrol.",
+    output: "Temuan, root cause, risiko terkait, dan draft risiko baru.",
   },
   {
     value: "strategic_objective_risk",
@@ -72,6 +85,8 @@ const modeOptions: ModeOption[] = [
     title: "Struktur Kinerja & RO → Risiko",
     description: "Tarik struktur planning dan risiko terkait.",
     icon: Target,
+    useWhen: "Ketika dokumen memuat sasaran, RO, IKU, atau struktur kinerja.",
+    output: "Sasaran, IKU, target, dan risiko turunan yang relevan.",
   },
   {
     value: "mitigation_report_mapper",
@@ -79,6 +94,26 @@ const modeOptions: ModeOption[] = [
     title: "Mitigation Report Draft",
     description: "Cocokkan dokumen bukti dengan mitigasi yang masih open.",
     icon: Sparkles,
+    useWhen: "Ketika Anda punya bukti pelaksanaan mitigasi atau laporan progres.",
+    output: "Task mitigasi terbuka, progres, blocker, dan draft laporan.",
+  },
+];
+
+const workflowSteps = [
+  {
+    title: "1. Pilih dokumen",
+    description: "Unggah PDF atau XLSX yang sudah siap dibaca mesin.",
+    icon: UploadCloud,
+  },
+  {
+    title: "2. Tentukan mode",
+    description: "Pilih keluaran yang paling cocok untuk jenis dokumen.",
+    icon: ClipboardCheck,
+  },
+  {
+    title: "3. Review hasil",
+    description: "Tinjau draft, kutipan sumber, lalu lanjutkan ke form resmi.",
+    icon: PanelTop,
   },
 ];
 
@@ -86,7 +121,7 @@ function sourceQuote(sourceRefs?: Array<{ quote: string; location?: string }>) {
   if (!sourceRefs?.length) return null;
   const first = sourceRefs[0];
   return (
-    <div className="space-y-1 rounded-xl border border-dashed border-border/70 bg-muted/20 p-3">
+    <div className="space-y-1 rounded-2xl bg-muted/30 p-3 ring-1 ring-inset ring-border/70">
       <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
         Kutipan Sumber
       </div>
@@ -103,6 +138,12 @@ function confidenceBadgeClass(confidence: number) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (confidence >= 60) return "border-amber-200 bg-amber-50 text-amber-700";
   return "border-rose-200 bg-rose-50 text-rose-700";
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function mapRiskDraftSource(source: string) {
@@ -174,12 +215,14 @@ export default function DocumentIntelligencePage() {
   const aiFeaturesDisabled = isAIFeaturesDisabled();
   const { token, user } = useAuth();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [mode, setMode] = useState<DocumentAnalysisMode>("sop_risk_universe");
   const [file, setFile] = useState<File | null>(null);
   const [period, setPeriod] = useState("");
   const [organizationId, setOrganizationId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const [response, setResponse] = useState<DocumentIntelligenceResponse | null>(
     null,
   );
@@ -198,7 +241,37 @@ export default function DocumentIntelligencePage() {
     );
   }
 
-  async function handleAnalyze() {
+  function clearWorkspace() {
+    setMode("sop_risk_universe");
+    setFile(null);
+    setPeriod("");
+    setOrganizationId("");
+    setResponse(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function handleFileSelection(nextFile: File | null) {
+    setFile(nextFile);
+    setResponse(null);
+  }
+
+  function openFilePicker() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setDragActive(false);
+    const droppedFile = event.dataTransfer.files?.[0] || null;
+    if (droppedFile) {
+      handleFileSelection(droppedFile);
+    }
+  }
+
+  async function handleAnalyze(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (!token) {
       toast.error("Sesi login tidak ditemukan.");
       return;
@@ -257,88 +330,223 @@ export default function DocumentIntelligencePage() {
 
   const documentMeta = response?.document;
   const warningCount = documentMeta?.warnings?.length ?? 0;
-  const result = response?.result;
+  const stepLabels = workflowSteps.map((step) => step.title);
+  const fileLabel = file ? file.name : "Belum ada file";
 
   return (
-    <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">
+    <main className="mx-auto flex w-full max-w-[1680px] flex-col gap-8 px-4 py-6 md:px-6 lg:px-8">
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <Badge className="gap-2 border-primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
             <FileSearch className="size-3.5" />
             AI & Automation
           </Badge>
-          {file ? (
-            <Badge variant="outline" className="text-[11px]">
-              {file.name}
-            </Badge>
-          ) : null}
+          <Badge variant="outline" className="text-[11px]">
+            {fileLabel}
+          </Badge>
+          <Badge variant="outline" className="text-[11px]">
+            {activeMode.label}
+          </Badge>
         </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Document Intelligence
-          </h1>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            Upload SOP, laporan audit, dokumen strategis, atau bukti mitigasi
-            untuk mengekstrak data terstruktur yang bisa langsung dijadikan
-            draft.
-          </p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Document Intelligence
+            </h1>
+            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+              Unggah dokumen kerja, pilih mode yang tepat, lalu review draft
+              terstruktur yang bisa langsung diteruskan ke form risiko,
+              planning, atau laporan mitigasi.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 md:justify-end">
+            <Badge variant="secondary" className="text-[11px]">
+              {stepLabels[0]}
+            </Badge>
+            <Badge variant="secondary" className="text-[11px]">
+              {stepLabels[1]}
+            </Badge>
+            <Badge variant="secondary" className="text-[11px]">
+              {stepLabels[2]}
+            </Badge>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-border/60 bg-background p-4">
+      <div className="grid gap-6 xl:grid-cols-[390px_minmax(0,1fr)] xl:items-start">
+        <aside className="space-y-4 xl:sticky xl:top-6">
+          <form
+            onSubmit={handleAnalyze}
+            className="space-y-4 rounded-[28px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60"
+          >
             <div className="space-y-1">
-              <h2 className="text-sm font-semibold text-foreground">Input</h2>
+              <h2 className="text-sm font-semibold text-foreground">
+                Prepare analysis
+              </h2>
               <p className="text-xs leading-5 text-muted-foreground">
-                Pilih dokumen dan mode analisis. PDF dan XLSX didukung.
+                Pilih dokumen, tentukan mode, lalu jalankan analisis ketika
+                semua konteks siap.
               </p>
             </div>
 
-            <div className="mt-4 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="doc-file">File dokumen</Label>
-                <Input
-                  id="doc-file"
-                  type="file"
-                  accept=".pdf,.xlsx"
-                  onChange={(event) => setFile(event.target.files?.[0] || null)}
-                />
-              </div>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={openFilePicker}
+              onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openFilePicker();
+                }
+              }}
+              onDragEnter={(event: DragEvent<HTMLDivElement>) => {
+                event.preventDefault();
+                setDragActive(true);
+              }}
+              onDragOver={(event: DragEvent<HTMLDivElement>) => {
+                event.preventDefault();
+                setDragActive(true);
+              }}
+              onDragLeave={(event: DragEvent<HTMLDivElement>) => {
+                event.preventDefault();
+                setDragActive(false);
+              }}
+              onDrop={handleFileDrop}
+              className={cn(
+                "group space-y-3 rounded-[24px] border border-dashed p-4 outline-none transition-colors",
+                dragActive
+                  ? "border-primary/30 bg-primary/[0.06]"
+                  : file
+                    ? "border-primary/20 bg-primary/[0.04]"
+                    : "border-border/70 bg-muted/20 hover:bg-muted/30",
+              )}
+            >
+              <input
+                ref={fileInputRef}
+                id="doc-file"
+                type="file"
+                accept=".pdf,.xlsx"
+                className="sr-only"
+                onChange={(event) =>
+                  handleFileSelection(event.target.files?.[0] || null)
+                }
+              />
 
-              <div className="space-y-2">
-                <Label>Mode analisis</Label>
-                <div className="space-y-2">
-                  {modeOptions.map((option) => {
-                    const Icon = option.icon;
-                    const active = option.value === mode;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setMode(option.value)}
-                        className={cn(
-                          "flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
-                          active
-                            ? "border-primary/30 bg-primary/[0.05] text-foreground"
-                            : "border-border/60 bg-background hover:bg-muted/30",
-                        )}
-                      >
-                        <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium">
-                            {option.label}
-                          </span>
-                          <span className="block text-xs leading-5 text-muted-foreground">
-                            {option.description}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
+              <div className="flex items-start gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-background text-primary ring-1 ring-inset ring-border/70">
+                  <UploadCloud className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-foreground">
+                    {file ? file.name : "Tarik file ke sini atau pilih dari perangkat"}
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    PDF atau XLSX, maksimal mengikuti kapasitas browser.
+                  </p>
                 </div>
               </div>
 
+              {file ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" className="text-[11px]">
+                    {formatFileSize(file.size)}
+                  </Badge>
+                  <Badge variant="outline" className="text-[11px]">
+                    Siap dianalisis
+                  </Badge>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="text-[11px]">
+                    PDF
+                  </Badge>
+                  <Badge variant="outline" className="text-[11px]">
+                    XLSX
+                  </Badge>
+                  <Badge variant="outline" className="text-[11px]">
+                    Drag & drop
+                  </Badge>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openFilePicker();
+                  }}
+                >
+                  Pilih file
+                </Button>
+                {file ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleFileSelection(null);
+                    }}
+                  >
+                    Hapus file
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Mode analisis</Label>
+              <div className="space-y-2">
+                {modeOptions.map((option) => {
+                  const Icon = option.icon;
+                  const active = option.value === mode;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => {
+                        setMode(option.value);
+                        setResponse(null);
+                      }}
+                      className={cn(
+                        "flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition-colors",
+                        active
+                          ? "border-primary/25 bg-primary/[0.06] text-foreground"
+                          : "border-border/70 bg-background hover:bg-muted/25",
+                      )}
+                    >
+                      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 space-y-1">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="block text-sm font-medium">
+                            {option.title}
+                          </span>
+                          {active ? (
+                            <Badge variant="secondary" className="text-[10px]">
+                              Aktif
+                            </Badge>
+                          ) : null}
+                        </span>
+                        <span className="block text-xs leading-5 text-muted-foreground">
+                          {option.description}
+                        </span>
+                        <span className="block text-[11px] leading-5 text-muted-foreground">
+                          {option.useWhen}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="period">Periode</Label>
                 <Input
@@ -357,48 +565,89 @@ export default function DocumentIntelligencePage() {
                   onChange={(event) => setOrganizationId(event.target.value)}
                   placeholder={user?.organizationId || "Opsional"}
                 />
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Kosongkan untuk memakai organisasi aktif dari sesi login.
-                </p>
               </div>
+            </div>
 
+            <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
+              <p className="text-xs leading-5 text-muted-foreground">
+                Kosongkan organization ID untuk memakai organisasi aktif dari
+                sesi login.
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Output aktif akan mengikuti mode yang dipilih sekarang:{" "}
+                <span className="font-medium text-foreground">
+                  {activeMode.output}
+                </span>
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
               <Button
-                onClick={handleAnalyze}
+                type="submit"
                 disabled={loading || !token || !file}
-                className="w-full gap-2"
+                className="flex-1 gap-2"
               >
                 {loading ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
                   <Sparkles className="size-4" />
                 )}
-                {loading ? "Menganalisis..." : "Analisis Dokumen"}
+                {loading ? "Menganalisis..." : "Analisis dokumen"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={clearWorkspace}
+              >
+                <RotateCcw className="size-4" />
+                Reset
               </Button>
             </div>
-          </div>
+          </form>
 
-          <div className="rounded-2xl border border-border/60 bg-background p-4">
-            <h2 className="text-sm font-semibold text-foreground">
-              Mode aktif
-            </h2>
-            <div className="mt-3 space-y-2">
-              <div className="text-sm font-medium text-foreground">
-                {activeMode.title}
+          <div className="rounded-[28px] border border-border/70 bg-card p-5 ring-1 ring-inset ring-white/60">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Mode aktif
+                </h2>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Ringkasan output yang akan dihasilkan.
+                </p>
               </div>
-              <p className="text-xs leading-5 text-muted-foreground">
-                {activeMode.description}
-              </p>
+              <Badge variant="outline" className="text-[11px]">
+                {activeMode.label}
+              </Badge>
+            </div>
+            <div className="mt-4 space-y-3">
+              <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
+                <div className="text-sm font-medium text-foreground">
+                  {activeMode.title}
+                </div>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {activeMode.description}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
+                <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                  Output akan berisi
+                </div>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {activeMode.output}
+                </p>
+              </div>
             </div>
           </div>
         </aside>
 
         <section className="space-y-4">
-          <div className="rounded-2xl border border-border/60 bg-background p-5">
+          <div className="rounded-[28px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-semibold text-foreground">
-                    Hasil Analisis
+                    Review hasil
                   </h2>
                   {documentMeta ? (
                     <Badge variant="outline" className="text-[11px]">
@@ -407,22 +656,31 @@ export default function DocumentIntelligencePage() {
                   ) : null}
                 </div>
                 <p className="max-w-3xl text-xs leading-5 text-muted-foreground">
-                  Hasil di bawah ini adalah draft terstruktur. Kita tetap review
-                  manual sebelum dipindahkan ke form resmi.
+                  Hasil di bawah ini adalah draft terstruktur. Review manual
+                  tetap diperlukan sebelum dipindahkan ke form resmi.
                 </p>
               </div>
 
-              {documentMeta?.warnings?.length ? (
-                <Badge className="gap-2 border-amber-200 bg-amber-50 text-amber-700">
-                  <AlertTriangle className="size-3.5" />
-                  Ada peringatan ekstraksi
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="text-[11px]">
+                  {fileLabel}
                 </Badge>
-              ) : null}
+                {documentMeta?.warnings?.length ? (
+                  <Badge className="gap-2 border-amber-200 bg-amber-50 text-amber-700">
+                    <AlertTriangle className="size-3.5" />
+                    {documentMeta.warnings.length} peringatan
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-[11px]">
+                    Siap untuk review
+                  </Badge>
+                )}
+              </div>
             </div>
 
             {documentMeta ? (
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                     File
                   </div>
@@ -430,7 +688,7 @@ export default function DocumentIntelligencePage() {
                     {documentMeta.filename}
                   </div>
                 </div>
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                     Mode
                   </div>
@@ -438,7 +696,7 @@ export default function DocumentIntelligencePage() {
                     {activeMode.title}
                   </div>
                 </div>
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                     Peringatan
                   </div>
@@ -446,11 +704,48 @@ export default function DocumentIntelligencePage() {
                     {warningCount ? `${warningCount} catatan` : "Tidak ada"}
                   </div>
                 </div>
+                <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
+                  <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                    Context
+                  </div>
+                  <div className="mt-1 text-sm font-medium text-foreground">
+                    {organizationId.trim() || user?.organizationId || "aktif"}
+                  </div>
+                </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                  <div className="text-sm font-medium text-foreground">
+                    1. Upload dokumen
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Gunakan PDF atau XLSX yang berisi SOP, audit, strategi,
+                    atau bukti mitigasi.
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                  <div className="text-sm font-medium text-foreground">
+                    2. Pilih mode
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Sesuaikan mode dengan jenis dokumen agar keluaran lebih
+                    relevan.
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                  <div className="text-sm font-medium text-foreground">
+                    3. Jalankan analisis
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Hasil akan menampilkan kutipan sumber dan draft siap review.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {documentMeta?.warnings?.length ? (
-              <div className="mt-4 space-y-2 rounded-xl border border-amber-200 bg-amber-50/70 p-4">
+              <div className="mt-4 space-y-2 rounded-2xl bg-amber-50/70 p-4 ring-1 ring-inset ring-amber-200">
                 {documentMeta.warnings.map((warning) => (
                   <div
                     key={warning}
@@ -465,17 +760,44 @@ export default function DocumentIntelligencePage() {
           </div>
 
           {!response ? (
-            <div className="rounded-2xl border border-dashed border-border/60 bg-background p-8">
-              <div className="max-w-2xl space-y-3">
+            <div className="rounded-[28px] border border-dashed border-border/70 bg-card p-8 ring-1 ring-inset ring-white/60">
+              <div className="max-w-3xl space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <CheckCircle2 className="size-4 text-muted-foreground" />
-                  Belum ada hasil
+                  Workspace siap
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Upload dokumen lalu jalankan analisis. Hasil akan muncul di
-                  sini sebagai proses, temuan, sasaran, IKU, atau task mitigasi
-                  yang masih open.
+                  Setelah file dipilih dan mode disesuaikan, hasil akan tampil
+                  sebagai struktur yang bisa langsung diteruskan ke risiko,
+                  planning, atau laporan mitigasi.
                 </p>
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                    <div className="text-sm font-medium text-foreground">
+                      Evidence first
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Kutipan sumber muncul dekat dengan hasil yang diusulkan.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                    <div className="text-sm font-medium text-foreground">
+                      Manual review
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Draft selalu perlu divalidasi sebelum dipindahkan.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                    <div className="text-sm font-medium text-foreground">
+                      Next action
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Risk, planning, atau mitigation report tinggal dibuka dari
+                      hasil analisis.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
@@ -511,7 +833,7 @@ function DocumentResultPanel({
         {result.sop.processStages.map((stage) => (
           <section
             key={stage.clientKey}
-            className="rounded-2xl border border-border/60 bg-background p-5"
+            className="rounded-[26px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -538,7 +860,7 @@ function DocumentResultPanel({
             <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_420px]">
               <div className="space-y-4">
                 {sourceQuote(stage.sourceRefs)}
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                     Kontrol / Gap
                   </div>
@@ -560,7 +882,7 @@ function DocumentResultPanel({
                 {stage.suggestedRisks.map((risk) => (
                   <div
                     key={risk.clientKey}
-                    className="rounded-xl border border-border/60 bg-background p-4"
+                    className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-2">
@@ -618,7 +940,7 @@ function DocumentResultPanel({
         {result.audit.findings.map((finding) => (
           <section
             key={finding.clientKey}
-            className="rounded-2xl border border-border/60 bg-background p-5"
+            className="rounded-[26px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -650,7 +972,7 @@ function DocumentResultPanel({
 
             <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_380px]">
               <div className="space-y-3">
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
                   <div className="grid gap-3 md:grid-cols-3">
                     <div>
                       <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
@@ -683,7 +1005,7 @@ function DocumentResultPanel({
 
               <div className="space-y-3">
                 {finding.existingRiskCode || finding.existingRiskTitle ? (
-                  <div className="rounded-xl border border-border/60 bg-background p-4">
+                  <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
                     <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                       Risiko Terkait
                     </div>
@@ -697,7 +1019,7 @@ function DocumentResultPanel({
                 ) : null}
 
                 {finding.suggestedRisk ? (
-                  <div className="rounded-xl border border-border/60 bg-background p-4">
+                  <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
                     <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                       Draft Risiko Baru
                     </div>
@@ -735,7 +1057,7 @@ function DocumentResultPanel({
         {result.strategic.objectives.map((objective) => (
           <section
             key={objective.clientKey}
-            className="rounded-2xl border border-border/60 bg-background p-5"
+            className="rounded-[26px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -761,7 +1083,7 @@ function DocumentResultPanel({
 
             <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_380px]">
               <div className="space-y-3">
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
                   <div className="grid gap-3 md:grid-cols-3">
                     <div>
                       <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
@@ -807,7 +1129,7 @@ function DocumentResultPanel({
                 {objective.ikus.map((iku) => (
                   <div
                     key={iku.clientKey}
-                    className="rounded-xl border border-border/60 bg-background p-4"
+                    className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
@@ -846,7 +1168,7 @@ function DocumentResultPanel({
                         {iku.suggestedRisks.map((risk) => (
                           <div
                             key={risk.clientKey}
-                            className="rounded-lg border border-border/60 bg-muted/20 p-3"
+                            className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="space-y-1">
@@ -913,7 +1235,7 @@ function DocumentResultPanel({
         {result.mitigation.taskMatches.map((task) => (
           <section
             key={task.clientKey}
-            className="rounded-2xl border border-border/60 bg-background p-5"
+            className="rounded-[26px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -947,7 +1269,7 @@ function DocumentResultPanel({
 
             <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_360px]">
               <div className="space-y-3">
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
                   <div className="grid gap-3 md:grid-cols-3">
                     <div>
                       <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
@@ -977,7 +1299,7 @@ function DocumentResultPanel({
                     </div>
                   </div>
                   {task.blocker ? (
-                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    <div className="mt-3 rounded-2xl bg-amber-50/80 p-3 text-sm text-amber-800 ring-1 ring-inset ring-amber-200">
                       {task.blocker}
                     </div>
                   ) : null}
@@ -985,7 +1307,7 @@ function DocumentResultPanel({
                 {sourceQuote(task.sourceRefs)}
               </div>
 
-              <div className="rounded-xl border border-border/60 bg-background p-4">
+              <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
                 <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                   Ringkasan Pelaporan
                 </div>
@@ -1019,7 +1341,7 @@ function DocumentResultPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-dashed border-border/60 bg-background p-8">
+    <div className="rounded-[26px] border border-dashed border-border/70 bg-card p-8 ring-1 ring-inset ring-white/60">
       <div className="max-w-2xl space-y-3">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           <CheckCircle2 className="size-4 text-muted-foreground" />

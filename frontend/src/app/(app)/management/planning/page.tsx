@@ -43,6 +43,7 @@ import {
 import { cn } from "@/lib/utils";
 
 type PlanningHierarchyLevel =
+  | "agreement"
   | "tujuan"
   | "sasaran"
   | "iku"
@@ -61,6 +62,7 @@ type PlanningHierarchyNode = {
 };
 
 const hierarchyLevelLabel: Record<PlanningHierarchyLevel, string> = {
+  agreement: "Perjanjian Kinerja",
   tujuan: "Tujuan",
   sasaran: "Sasaran",
   iku: "IKU",
@@ -69,6 +71,7 @@ const hierarchyLevelLabel: Record<PlanningHierarchyLevel, string> = {
 };
 
 const hierarchyBadgeClass: Record<PlanningHierarchyLevel, string> = {
+  agreement: "border-zinc-200 bg-zinc-50 text-zinc-700",
   tujuan: "border-zinc-200 bg-zinc-50 text-zinc-700",
   sasaran: "border-zinc-200 bg-zinc-50 text-zinc-700",
   iku: "border-zinc-200 bg-zinc-50 text-zinc-700",
@@ -119,55 +122,115 @@ function buildPlanningHierarchyTree(
   const root: PlanningHierarchyNode[] = [];
 
   for (const item of items) {
-    const tujuanTitle = item.tujuan.trim() || "(Tanpa Tujuan)";
-    const sasaranTitle = item.sasaran.trim() || "(Tanpa Sasaran)";
-    const ikuTitle = item.indikatorKinerjaUtama.trim() || "(Tanpa IKU)";
-    const programTitle = item.program.trim() || "(Tanpa Program)";
-    const kegiatanTitle = item.kegiatan.trim() || "(Tanpa Kegiatan)";
+    const planningTitle =
+      item.planningTitle?.trim() || "(Tanpa Perjanjian Kinerja)";
+    const tujuanText = item.tujuan?.trim() || "";
+    const sasaranText = item.sasaran?.trim() || "";
+    const indicatorText =
+      item.indikatorKinerjaUtama?.trim() || item.indicatorTitle?.trim() || "";
+    const programText = item.program?.trim() || "";
+    const activityText = item.kegiatan?.trim() || item.activityTitle?.trim() || "";
+    const roText = item.processBusiness?.trim() || item.target?.trim() || "";
 
-    const tujuanKey = `tujuan:${tujuanTitle}`;
-    const sasaranKey = `${tujuanKey}::sasaran:${sasaranTitle}`;
-    const ikuKey = `${sasaranKey}::iku:${ikuTitle}`;
-    const programKey = `${ikuKey}::program:${programTitle}`;
-    const kegiatanKey = `${programKey}::kegiatan:${kegiatanTitle}`;
+    const agreementKey = `agreement:${planningTitle}`;
+    const agreementNode = findOrCreateChild(
+      root,
+      agreementKey,
+      planningTitle,
+      "agreement",
+    );
+    const hasHierarchyDetail =
+      Boolean(tujuanText || sasaranText || indicatorText || programText || activityText || roText);
+    if (!hasHierarchyDetail) {
+      pushUnique(agreementNode.periods, item.period);
+      pushUnique(agreementNode.organizationIds, item.organizationId);
+      continue;
+    }
 
-    const tujuanNode = findOrCreateChild(root, tujuanKey, tujuanTitle, "tujuan");
+    const tujuanKey = `${agreementKey}::tujuan:${tujuanText || "(Tanpa Tujuan)"}`;
+    const tujuanNode = findOrCreateChild(
+      agreementNode.children,
+      tujuanKey,
+      tujuanText || "(Tanpa Tujuan)",
+      "tujuan",
+    );
+    const hasSasaranBranch = Boolean(sasaranText || indicatorText || programText || activityText || roText);
+    if (!hasSasaranBranch) {
+      pushUnique(agreementNode.periods, item.period);
+      pushUnique(agreementNode.organizationIds, item.organizationId);
+      pushUnique(tujuanNode.periods, item.period);
+      pushUnique(tujuanNode.organizationIds, item.organizationId);
+      continue;
+    }
+
+    const sasaranKey = `${tujuanKey}::sasaran:${sasaranText || "(Tanpa Sasaran)"}`;
     const sasaranNode = findOrCreateChild(
       tujuanNode.children,
       sasaranKey,
-      sasaranTitle,
+      sasaranText || "(Tanpa Sasaran)",
       "sasaran",
     );
-    const ikuNode = findOrCreateChild(
+    const hasIkuBranch = Boolean(indicatorText || programText || activityText || roText);
+    if (!hasIkuBranch) {
+      [agreementNode, tujuanNode, sasaranNode].forEach((node) => {
+        pushUnique(node.periods, item.period);
+        pushUnique(node.organizationIds, item.organizationId);
+      });
+      continue;
+    }
+
+    const indicatorKey = `${sasaranKey}::iku:${indicatorText || "(Tanpa IKU)"}`;
+    const indicatorNode = findOrCreateChild(
       sasaranNode.children,
-      ikuKey,
-      ikuTitle,
+      indicatorKey,
+      indicatorText || "(Tanpa IKU)",
       "iku",
     );
+    const hasProgramBranch = Boolean(programText || activityText || roText);
+    if (!hasProgramBranch) {
+      [agreementNode, tujuanNode, sasaranNode, indicatorNode].forEach((node) => {
+        pushUnique(node.periods, item.period);
+        pushUnique(node.organizationIds, item.organizationId);
+      });
+      continue;
+    }
+
     const programNode = findOrCreateChild(
-      ikuNode.children,
-      programKey,
-      programTitle,
+      indicatorNode.children,
+      `${indicatorKey}::program:${programText || "(Tanpa Program)"}`,
+      programText || "(Tanpa Program)",
       "program",
     );
+    const hasActivityBranch = Boolean(activityText || roText);
+    if (!hasActivityBranch) {
+      [agreementNode, tujuanNode, sasaranNode, indicatorNode, programNode].forEach((node) => {
+        pushUnique(node.periods, item.period);
+        pushUnique(node.organizationIds, item.organizationId);
+      });
+      continue;
+    }
+
     const kegiatanNode = findOrCreateChild(
       programNode.children,
-      kegiatanKey,
-      kegiatanTitle,
+      `${indicatorKey}::program:${programText || "(Tanpa Program)"}::kegiatan:${activityText || "(Tanpa Kegiatan)"}`,
+      activityText || "(Tanpa Kegiatan)",
       "kegiatan",
     );
 
     [
+      agreementNode,
       tujuanNode,
       sasaranNode,
-      ikuNode,
+      indicatorNode,
       programNode,
       kegiatanNode,
     ].forEach((node) => {
       pushUnique(node.periods, item.period);
       pushUnique(node.organizationIds, item.organizationId);
     });
-    kegiatanNode.items.push(item);
+    if (roText) {
+      kegiatanNode.items.push(item);
+    }
   }
 
   const assignCounts = (node: PlanningHierarchyNode): number => {
@@ -175,7 +238,7 @@ function buildPlanningHierarchyTree(
       (sum, child) => sum + assignCounts(child),
       0,
     );
-    node.count = node.items.length + childCount;
+    node.count = node.items.length + childCount || 1;
     return node.count;
   };
 
@@ -401,7 +464,7 @@ function PlanningHierarchyRows({
                       <div className="flex h-full min-w-0 items-center">
                         <div
                           className="flex min-w-0 items-center gap-2.5"
-                          style={{ paddingLeft: `${(depth + 1) * 18}px` }}
+                          style={{ paddingLeft: `${(depth + 2) * 18}px` }}
                         >
                           <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-500 shadow-sm">
                             <span className="size-1 rounded-full bg-zinc-400" />
@@ -562,7 +625,7 @@ export default function PlanningManagementPage() {
             Struktur Kinerja
           </h1>
           <p className="text-sm text-muted-foreground">
-            Kelola jalur tujuan, sasaran, IKU, program, kegiatan, dan RO dalam
+            Kelola jalur perjanjian kinerja, tujuan, sasaran, IKU, program, kegiatan, dan RO dalam
             satu tampilan kerja yang konsisten dengan risk register.
           </p>
         </div>
@@ -577,7 +640,7 @@ export default function PlanningManagementPage() {
                 id="planning-search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari tujuan, sasaran, IKU, program, kegiatan, atau RO"
+                placeholder="Cari perjanjian kinerja, tujuan, sasaran, IKU, program, kegiatan, atau RO"
                 className="h-8 pl-8 text-xs bg-background/80 border border-border/50"
               />
             </div>
@@ -631,7 +694,7 @@ export default function PlanningManagementPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2 md:justify-end">
             <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
-              {formatCountLabel(planningHierarchyTree.length, "tujuan")}
+              {formatCountLabel(planningHierarchyTree.length, "perjanjian kinerja")}
             </span>
           </div>
         </div>

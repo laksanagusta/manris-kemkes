@@ -46,7 +46,7 @@ export function RiskMovementByOrg({
   const containerHeight = Math.max(300, chartData.length * 28);
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="risk-movement-by-org">
+    <Card className="h-full border-border/50 bg-card/80 backdrop-blur-sm" data-testid="risk-movement-by-org">
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div>

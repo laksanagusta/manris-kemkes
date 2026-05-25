@@ -1,1 +1,1 @@
-export * from "./risk-export";
+export * from "./risk-export.ts";

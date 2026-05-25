@@ -248,6 +248,7 @@ export interface RiskReviewSummary {
 
 export interface DashboardActionPressurePoint {
   period: string;
+  totalMitigations: number;
   incidentsCreated: number;
   mitigationsCompleted: number;
   overdueMitigations: number;

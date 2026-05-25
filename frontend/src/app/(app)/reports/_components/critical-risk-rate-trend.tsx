@@ -31,7 +31,7 @@ export function CriticalRiskRateTrend({
   if (loading) {
     return (
       <Card
-        className="border-border/50 bg-card/80 backdrop-blur-sm"
+        className="h-full border-border/50 bg-card/80 backdrop-blur-sm"
         data-testid="critical-risk-rate-trend"
       >
         <CardHeader>
@@ -50,7 +50,7 @@ export function CriticalRiskRateTrend({
 
   return (
     <Card
-      className="border-border/50 bg-card/80 backdrop-blur-sm"
+      className="h-full border-border/50 bg-card/80 backdrop-blur-sm"
       data-testid="critical-risk-rate-trend"
     >
       <CardHeader>

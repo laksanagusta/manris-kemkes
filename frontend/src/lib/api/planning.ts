@@ -7,7 +7,8 @@ import type {
 
 export type ListPlanningROOptionsParams = {
   organization_id: string;
-  period: string;
+  planning_id?: string;
+  period?: string;
   q?: string;
 };
 
@@ -23,7 +24,8 @@ export function buildPlanningROOptionsQuery(params?: ListPlanningROOptionsParams
   const search = new URLSearchParams();
   if (!params) return "";
   search.set("organization_id", params.organization_id);
-  search.set("period", params.period);
+  if (params.planning_id) search.set("planning_id", params.planning_id);
+  if (params.period) search.set("period", params.period);
   if (params.q) search.set("q", params.q);
   return search.toString();
 }

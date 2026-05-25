@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const dashboardInsightsLib = await import(
-  new URL("./dashboard-insights", import.meta.url).href,
+  new URL("./dashboard-insights.ts", import.meta.url).href,
 );
 
 const {
@@ -12,15 +12,20 @@ const {
   buildLatestOrganizationProgressData,
   buildMovementChartData,
   buildMovementSnapshotData,
+  buildSemesterScoreTargetTrendData,
   buildTopRiskBadgeMap,
   buildUnitTotalRiskScoreData,
   buildUnitExposureData,
 } = dashboardInsightsLib as typeof import("./dashboard-insights");
 
 type DashboardRiskInput = Parameters<typeof buildUnitExposureData>[0][number] & {
+  id?: string;
+  versionGroupId?: string;
+  versionNumber?: number;
   status?: string;
   weight?: number;
   nilai?: number | null;
+  targetNilai?: number | null;
 };
 
 type LatestOrganizationProgressInput = {
@@ -467,6 +472,70 @@ test("buildInherentResidualTrendData uses base values for all approved risks", (
 
   assert.deepEqual(result, [
     { period: "2026-H1", avgInherent: 20, avgResidual: 20, gap: 0, riskCount: 1 },
+  ]);
+});
+
+test("buildSemesterScoreTargetTrendData uses latest version per risk within each semester", () => {
+  const result = buildSemesterScoreTargetTrendData([
+    makeDashboardRisk({
+      id: "risk-a-old",
+      code: "R-001",
+      versionGroupId: "vg-1",
+      versionNumber: 1,
+      assessmentCycle: "2026-H1",
+      createdAt: "2026-01-10T00:00:00.000Z",
+      inherentScore: 10,
+      targetScore: 9,
+    }),
+    makeDashboardRisk({
+      id: "risk-a-new",
+      code: "R-001",
+      versionGroupId: "vg-1",
+      versionNumber: 2,
+      assessmentCycle: "2026-H1",
+      createdAt: "2026-02-10T00:00:00.000Z",
+      inherentScore: 16,
+      targetScore: 15,
+    }),
+    makeDashboardRisk({
+      id: "risk-b",
+      code: "R-002",
+      versionGroupId: "vg-2",
+      versionNumber: 1,
+      assessmentCycle: "2026-H1",
+      createdAt: "2026-02-05T00:00:00.000Z",
+      inherentScore: 20,
+      targetScore: 19,
+    }),
+    makeDashboardRisk({
+      id: "risk-c",
+      code: "R-003",
+      versionGroupId: "vg-3",
+      versionNumber: 1,
+      assessmentCycle: "2026-H2",
+      createdAt: "2026-08-01T00:00:00.000Z",
+      inherentScore: 12,
+      targetScore: 10,
+    }),
+  ]);
+
+  assert.deepEqual(result, [
+    {
+      period: "2026-H1",
+      actualScore: 18,
+      targetScore: 17,
+      gap: 1,
+      riskCount: 2,
+      targetCount: 2,
+    },
+    {
+      period: "2026-H2",
+      actualScore: 12,
+      targetScore: 10,
+      gap: 2,
+      riskCount: 1,
+      targetCount: 1,
+    },
   ]);
 });
 

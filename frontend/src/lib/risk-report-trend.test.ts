@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 // @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
-import { buildRiskTrendData, type RiskTrendSourceItem } from "./risk-report-trend";
+import { buildRiskTrendData, type RiskTrendSourceItem } from "./risk-report-trend.ts";
 
 test("buildRiskTrendData groups risks by semester assessment cycle instead of createdAt quarter", () => {
   const risks: RiskTrendSourceItem[] = [
