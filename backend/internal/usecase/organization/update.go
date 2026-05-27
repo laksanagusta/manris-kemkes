@@ -2,6 +2,7 @@ package organization
 
 import (
 	"context"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/errors"
@@ -24,6 +25,8 @@ type UpdateOrganizationInput struct {
 	ID       uuid.UUID  `json:"-"`
 	Name     string     `json:"name"`
 	ParentID *uuid.UUID `json:"parentId"`
+	Location string     `json:"location"`
+	Address  string     `json:"address"`
 }
 
 type UpdateOrganizationOutput struct {
@@ -63,6 +66,8 @@ func (uc *UpdateOrganizationUseCase) Execute(ctx context.Context, input UpdateOr
 
 	existingOrg.Name = input.Name
 	existingOrg.ParentID = input.ParentID
+	existingOrg.Location = strings.TrimSpace(input.Location)
+	existingOrg.Address = strings.TrimSpace(input.Address)
 
 	if err := existingOrg.Validate(); err != nil {
 		return nil, err

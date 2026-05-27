@@ -419,7 +419,7 @@ func (r *workingPaperRepository) getSignatoriesByWorkingPaperID(ctx context.Cont
 }
 
 func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q workingPaperReader, id uuid.UUID, forUpdate bool) (*entity.WorkingPaper, error) {
-	query := `SELECT id, title, description, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, created_by,
+	query := `SELECT id, sequence_no, code, title, description, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, created_by,
 	        created_at, updated_at, completed_at, cancelled_at, tte_skipped
 	 FROM working_papers
 	 WHERE id = $1`
@@ -429,7 +429,7 @@ func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q working
 
 	wp := &entity.WorkingPaper{}
 	err := q.QueryRow(ctx, query, id).Scan(
-		&wp.ID, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
+		&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 		&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
 		&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 	)
@@ -520,6 +520,38 @@ func insertWorkingPaperSignatories(ctx context.Context, tx workingPaperTx, wp *e
 	return nil
 }
 
+func lockOrganizationForWorkingPaperSequence(ctx context.Context, q workingPaperTx, orgID uuid.UUID) error {
+	var lockedID uuid.UUID
+	if err := q.QueryRow(ctx, `
+		SELECT id
+		FROM organizations
+		WHERE id = $1
+		FOR UPDATE
+	`, orgID).Scan(&lockedID); err != nil {
+		return fmt.Errorf("lock organization for working paper sequence: %w", err)
+	}
+	return nil
+}
+
+func assignNextWorkingPaperSequence(ctx context.Context, q workingPaperTx, wp *entity.WorkingPaper) error {
+	var nextSequence int
+	if err := q.QueryRow(ctx, `
+		SELECT COALESCE(MAX(sequence_no), 0) + 1
+		FROM working_papers
+		WHERE org_id = $1
+	`, wp.OrgID).Scan(&nextSequence); err != nil {
+		return fmt.Errorf("get next working paper sequence: %w", err)
+	}
+
+	wp.SequenceNo = nextSequence
+	wp.Code = formatWorkingPaperCode(nextSequence)
+	return nil
+}
+
+func formatWorkingPaperCode(sequenceNo int) string {
+	return fmt.Sprintf("WP-%04d", sequenceNo)
+}
+
 // Create inserts a new working paper and its signatories in a transaction
 func (r *workingPaperRepository) Create(ctx context.Context, wp *entity.WorkingPaper) error {
 	tx, err := r.pool.Begin(ctx)
@@ -528,12 +560,19 @@ func (r *workingPaperRepository) Create(ctx context.Context, wp *entity.WorkingP
 	}
 	defer tx.Rollback(ctx)
 
+	if err := lockOrganizationForWorkingPaperSequence(ctx, tx, wp.OrgID); err != nil {
+		return err
+	}
+	if err := assignNextWorkingPaperSequence(ctx, tx, wp); err != nil {
+		return err
+	}
+
 	err = tx.QueryRow(ctx,
-		`INSERT INTO working_papers (title, description, org_id, status, assessment_cycle,
+		`INSERT INTO working_papers (sequence_no, code, title, description, org_id, status, assessment_cycle,
 		        document_hash, current_signatory_sequence, created_by, tte_skipped)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		 RETURNING id, created_at, updated_at`,
-		wp.Title, wp.Description, wp.OrgID, wp.Status, wp.AssessmentCycle,
+		wp.SequenceNo, wp.Code, wp.Title, wp.Description, wp.OrgID, wp.Status, wp.AssessmentCycle,
 		wp.DocumentHash, wp.CurrentSignatorySequence, wp.CreatedBy, wp.TTESkipped,
 	).Scan(&wp.ID, &wp.CreatedAt, &wp.UpdatedAt)
 	if err != nil {
@@ -563,7 +602,7 @@ func (r *workingPaperRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 // List retrieves working papers with optional filters and pagination
 func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle, createdAt string, page, limit int) ([]*entity.WorkingPaper, int, error) {
 	countQuery := `SELECT COUNT(*) FROM working_papers WHERE 1=1`
-	dataQuery := `SELECT id, title, description, org_id, status, assessment_cycle,
+	dataQuery := `SELECT id, sequence_no, code, title, description, org_id, status, assessment_cycle,
 	                     document_hash, current_signatory_sequence, created_by,
 	                     created_at, updated_at, completed_at, cancelled_at, tte_skipped
 	              FROM working_papers WHERE 1=1`
@@ -588,7 +627,7 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 	}
 
 	if query != "" {
-		filter := fmt.Sprintf(" AND (COALESCE(title, '') ILIKE $%d OR COALESCE(description, '') ILIKE $%d)", argIdx, argIdx)
+		filter := fmt.Sprintf(" AND (COALESCE(code, '') ILIKE $%d OR COALESCE(title, '') ILIKE $%d OR COALESCE(description, '') ILIKE $%d)", argIdx, argIdx, argIdx)
 		countQuery += filter
 		dataQuery += filter
 		args = append(args, "%"+query+"%")
@@ -632,7 +671,7 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 		wp := &entity.WorkingPaper{}
 
 		if err := rows.Scan(
-			&wp.ID, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
+			&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 			&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
 			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 		); err != nil {
@@ -721,7 +760,7 @@ func (r *workingPaperRepository) UpdateSignatory(ctx context.Context, sig *entit
 
 // GetPendingSigningByUserID retrieves working papers pending the given user's signature
 func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, userID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.WorkingPaper, error) {
-	query := `SELECT wp.id, wp.title, wp.description, wp.org_id, wp.status, wp.assessment_cycle,
+	query := `SELECT wp.id, wp.sequence_no, wp.code, wp.title, wp.description, wp.org_id, wp.status, wp.assessment_cycle,
 		        wp.document_hash, wp.current_signatory_sequence, wp.created_by,
 		        wp.created_at, wp.updated_at, wp.completed_at, wp.cancelled_at, wp.tte_skipped
 		 FROM working_papers wp
@@ -753,7 +792,7 @@ func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, 
 		wp := &entity.WorkingPaper{}
 
 		if err := rows.Scan(
-			&wp.ID, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
+			&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 			&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
 			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 		); err != nil {

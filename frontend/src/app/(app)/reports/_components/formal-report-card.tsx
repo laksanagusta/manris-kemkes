@@ -90,7 +90,7 @@ export function FormalReportCard({
       </CardContent>
       <CardFooter className="mt-auto justify-between gap-2 border-t border-border/50 bg-muted/30">
         <p className="text-xs text-muted-foreground">
-          {reportType.replaceAll("_", " ")}
+          {title}
         </p>
         <Button
           size="sm"

@@ -65,6 +65,10 @@ func (uc *GenerateFormalReportUseCase) Execute(ctx context.Context, input Genera
 	}
 
 	reportType := normalizeFormalReportType(input.ReportType)
+	if reportType != "" && reportType != entity.FormalReportTypeMonitoringEvaluation {
+		return nil, errors.Wrap(errors.ErrInvalidInput, "invalid formal report type")
+	}
+	reportType = entity.FormalReportTypeMonitoringEvaluation
 	report := &entity.FormalReport{
 		OrganizationID:   input.OrganizationID,
 		Period:           strings.TrimSpace(input.Period),
@@ -135,11 +139,6 @@ func (uc *GenerateFormalReportUseCase) Execute(ctx context.Context, input Genera
 
 	if err := uc.reportRepo.UpsertGenerated(ctx, report); err != nil {
 		return nil, errors.Wrap(err, "failed to generate formal report")
-	}
-
-	report.GeneratedFileURL = buildFormalReportDownloadURL(report.ID)
-	if err := uc.reportRepo.UpsertGenerated(ctx, report); err != nil {
-		return nil, errors.Wrap(err, "failed to finalize formal report download url")
 	}
 	return report, nil
 }

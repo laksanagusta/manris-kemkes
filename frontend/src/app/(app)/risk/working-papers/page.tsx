@@ -582,6 +582,9 @@ export default function WorkingPapersPage() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
+                          <p className="mb-1 text-[11px] font-mono uppercase tracking-[0.16em] text-zinc-500">
+                            {wp.code}
+                          </p>
                           <Link
                             href={`/risk/working-papers/${wp.id}`}
                             className="line-clamp-2 text-sm font-semibold text-zinc-900 transition-colors hover:text-primary"
@@ -709,6 +712,9 @@ export default function WorkingPapersPage() {
                         className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
                       >
                         <TableCell className="min-w-[320px] pl-4 pr-2.5 py-2.5 align-middle md:pl-6">
+                          <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+                            {wp.code}
+                          </div>
                           <Link
                             href={`/risk/working-papers/${wp.id}`}
                             className="block text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary"

@@ -55,10 +55,15 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 		orgID = input.Scope.OrganizationID
 	}
 
+	reportType := strings.TrimSpace(input.ReportType)
+	if reportType != "" && reportType != entity.FormalReportTypeMonitoringEvaluation {
+		return nil, errors.ErrInvalidInput
+	}
+
 	items, total, err := uc.repo.List(ctx, repository.FormalReportListFilter{
 		OrganizationID: orgID,
 		Period:         strings.TrimSpace(input.Period),
-		ReportType:     strings.TrimSpace(input.ReportType),
+		ReportType:     entity.FormalReportTypeMonitoringEvaluation,
 		Status:         strings.TrimSpace(input.Status),
 		Page:           page,
 		Limit:          limit,

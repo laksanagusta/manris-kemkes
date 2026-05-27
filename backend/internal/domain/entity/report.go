@@ -96,26 +96,31 @@ type TMPMRReportData struct {
 }
 
 type MonitoringEvaluationReportData struct {
-	Report                  *FormalReport
-	Organization            *Organization
-	Summary                 ReportSummary
-	OrganizationName        string
-	Year                    string
-	SemesterLabel           string
-	ReportNumber            string
-	ReportDate              string
-	AssignmentLetterNumber  string
-	AssignmentLetterDate    string
-	MonitoringDateRange     string
-	UnitCode                string
-	UnitLocation            string
-	UnitAddress             string
-	UnitEselonI             string
-	UnitLeaderName          string
-	DocumentChecklist       []MonitoringEvaluationChecklistRow
-	InfrastructureChecklist []MonitoringEvaluationChecklistRow
-	ResultChecklist         []MonitoringEvaluationChecklistRow
-	MitigationSummary       []MonitoringEvaluationMitigationSummaryRow
+	Report                   *FormalReport
+	Organization             *Organization
+	Summary                  ReportSummary
+	EvaluationStatus         string
+	OrganizationName         string
+	Year                     string
+	SemesterLabel            string
+	ReportNumber             string
+	ReportDate               string
+	AssignmentLetterNumber   string
+	AssignmentLetterDate     string
+	MonitoringDateRange      string
+	UnitCode                 string
+	UnitLocation             string
+	UnitAddress              string
+	UnitEselonI              string
+	UnitLeaderName           string
+	DocumentChecklist        []MonitoringEvaluationChecklistRow
+	DocumentConclusion       string
+	InfrastructureChecklist  []MonitoringEvaluationChecklistRow
+	InfrastructureConclusion string
+	ResultChecklist          []MonitoringEvaluationChecklistRow
+	ResultConclusion         string
+	MitigationSummary        []MonitoringEvaluationMitigationSummaryRow
+	MitigationConclusion     string
 }
 
 type MonitoringEvaluationChecklistRow struct {

@@ -5,6 +5,8 @@ export interface Organization {
   name: string;
   parentId?: string;
   uprLevel?: string; // "kementerian" | "upr_t1" | "upr_t2"
+  location?: string;
+  address?: string;
   createdAt: string;
 }
 
@@ -12,6 +14,8 @@ export interface OrganizationPayloadInput {
   name: string;
   parentId: string | "__ROOT__";
   uprLevel?: string;
+  location?: string;
+  address?: string;
 }
 
 export interface OrganizationTreeNode extends Organization {
@@ -145,12 +149,22 @@ export function toOrganizationRequestBody({
   name,
   parentId,
   uprLevel,
-}: OrganizationPayloadInput): { name: string; parentId: string | null; uprLevel: string } {
+  location,
+  address,
+}: OrganizationPayloadInput): {
+  name: string;
+  parentId: string | null;
+  uprLevel: string;
+  location: string;
+  address: string;
+} {
   return {
     name,
     parentId:
       parentId === "__ROOT__" || parentId.trim() === "" ? null : parentId,
     uprLevel: uprLevel ?? "",
+    location: location ?? "",
+    address: address ?? "",
   };
 }
 

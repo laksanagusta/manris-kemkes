@@ -96,6 +96,15 @@ func main() {
 		container.TMPMRReviewUC,
 		container.TMPMRApproveUC,
 	)
+	cleanEvaluationHandler := httpHandler.NewEvaluationHandler(
+		container.EvaluationCreateUC,
+		container.EvaluationGetUC,
+		container.EvaluationListUC,
+		container.EvaluationUpdateUC,
+		container.EvaluationFinalizeUC,
+		container.EvaluationReopenUC,
+		container.EvaluationExportPDFUC,
+	)
 	cleanRiskCascadeHandler := httpHandler.NewRiskCascadeHandler(
 		container.RiskCascadeCreateMandatoryUC,
 		container.RiskCascadeCreateBottomUpUC,
@@ -256,6 +265,14 @@ func main() {
 	protected.Get("/formal-reports", cleanFormalReportHandler.List)
 	protected.Get("/formal-reports/:id/download", cleanFormalReportHandler.Download)
 	protected.Get("/formal-reports/:id", cleanFormalReportHandler.Get)
+
+	protected.Get("/evaluations", cleanEvaluationHandler.List)
+	protected.Post("/evaluations", cleanEvaluationHandler.Create)
+	protected.Get("/evaluations/:id/export/pdf", cleanEvaluationHandler.ExportPDF)
+	protected.Get("/evaluations/:id", cleanEvaluationHandler.Get)
+	protected.Put("/evaluations/:id", cleanEvaluationHandler.Update)
+	protected.Post("/evaluations/:id/finalize", cleanEvaluationHandler.Finalize)
+	protected.Post("/evaluations/:id/reopen", cleanEvaluationHandler.Reopen)
 
 	// Likelihood Assessment routes
 	protected.Post("/likelihood-assessments", cleanLikelihoodAssessmentHandler.Upsert)

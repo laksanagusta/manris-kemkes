@@ -1,0 +1,22 @@
+ALTER TABLE organizations
+    ADD COLUMN IF NOT EXISTS location TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS address TEXT NOT NULL DEFAULT '';
+
+UPDATE organizations
+SET location = CASE id
+    WHEN '00000000-0000-0000-0000-000000000001' THEN 'Jakarta Selatan'
+    WHEN '00000000-0000-0000-0000-000000000002' THEN 'Jakarta Pusat'
+    WHEN '00000000-0000-0000-0000-000000000003' THEN 'Jakarta Pusat'
+    WHEN '00000000-0000-0000-0000-000000000004' THEN 'Jakarta Pusat'
+    WHEN '00000000-0000-0000-0000-000000000005' THEN 'Jakarta Pusat'
+    ELSE location
+END,
+address = CASE id
+    WHEN '00000000-0000-0000-0000-000000000001' THEN 'Jl. H.R. Rasuna Said Blok X-5 Kav. 4-9, Jakarta Selatan'
+    WHEN '00000000-0000-0000-0000-000000000002' THEN 'Gedung Ditjen P2P Lantai 5, Jakarta Pusat'
+    WHEN '00000000-0000-0000-0000-000000000003' THEN 'Gedung Ditjen P2P Lantai 6, Jakarta Pusat'
+    WHEN '00000000-0000-0000-0000-000000000004' THEN 'Gedung Ditjen P2P Lantai 7, Jakarta Pusat'
+    WHEN '00000000-0000-0000-0000-000000000005' THEN 'Gedung Ditjen P2P Lantai 3, Jakarta Pusat'
+    ELSE address
+END
+WHERE location = '' OR address = '';

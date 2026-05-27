@@ -19,20 +19,8 @@ func buildFormalReportDownloadURL(id uuid.UUID) string {
 }
 
 func formalReportHeadline(reportType string) string {
-	switch reportType {
-	case entity.FormalReportTypeAnnualRiskProfile:
-		return "Profil risiko tahunan"
-	case entity.FormalReportTypeSemiannualImplementation:
-		return "Laporan penerapan manajemen risiko semesteran"
-	case entity.FormalReportTypeSemiannualSupervision:
-		return "Laporan pengawasan manajemen risiko semesteran"
-	case entity.FormalReportTypeTMPMR:
-		return "Laporan TMPMR"
-	case entity.FormalReportTypeMonitoringEvaluation:
-		return "Laporan hasil pemantauan dan evaluasi manajemen risiko"
-	default:
-		return "Laporan formal"
-	}
+	_ = reportType
+	return "Laporan hasil pemantauan dan evaluasi manajemen risiko"
 }
 
 func formalReportMetadata(orgID uuid.UUID, period, reportType string, generatedAt time.Time, summary map[string]any) map[string]any {

@@ -57,6 +57,7 @@ func (r *pdfReportRenderer) addMonitoringCover(m core.Maroto, data *entity.Monit
 	m.AddRows(row.New(52))
 	addMonitoringPair(m, "Nomor", defaultIfEmpty(data.ReportNumber, ""))
 	addMonitoringPair(m, "Tanggal", defaultIfEmpty(data.ReportDate, ""))
+	addMonitoringPair(m, "Status", defaultIfEmpty(data.EvaluationStatus, ""))
 
 	m.AddRows(row.New(38))
 	addMonitoringIdentityBox(m, data)
@@ -117,19 +118,19 @@ func (r *pdfReportRenderer) addMonitoringDocumentSection(m core.Maroto, data *en
 	addMonitoringParagraph(m, "8. Hasil Pemantauan dan Evaluasi")
 	addMonitoringParagraph(m, "a. Kelengkapan dokumen pendukung pemantauan dan evaluasi penerapan manajemen risiko")
 	addMonitoringChecklistTable(m, []string{"No", "Dokumen", "Ya", "Tidak", "Uraian Kondisi", "Keterangan"}, data.DocumentChecklist)
-	addMonitoringParagraph(m, "Kesimpulan : Infrastruktur pendukung penerapan manajemen risiko telah lengkap.")
+	addMonitoringParagraph(m, "Kesimpulan : "+defaultIfEmpty(data.DocumentConclusion, "Infrastruktur pendukung penerapan manajemen risiko telah lengkap."))
 }
 
 func (r *pdfReportRenderer) addMonitoringInfrastructureSection(m core.Maroto, data *entity.MonitoringEvaluationReportData) {
 	addMonitoringParagraph(m, "b. Pengujian atas kecukupan infrastruktur / rancangan proses MR")
 	addMonitoringChecklistTable(m, []string{"No", "Infrastruktur", "Ya", "Tidak", "Uraian Kondisi", "Hasil Analisa"}, data.InfrastructureChecklist)
-	addMonitoringParagraph(m, "Kesimpulan : Infrastruktur pendukung penerapan manajemen risiko telah mendukung kerangka kerja manajemen risiko organisasi secara komprehensif.")
+	addMonitoringParagraph(m, "Kesimpulan : "+defaultIfEmpty(data.InfrastructureConclusion, "Infrastruktur pendukung penerapan manajemen risiko telah mendukung kerangka kerja manajemen risiko organisasi secara komprehensif."))
 }
 
 func (r *pdfReportRenderer) addMonitoringResultSection(m core.Maroto, data *entity.MonitoringEvaluationReportData) {
 	addMonitoringParagraph(m, "c. Pengujian atas hasil pelaksanaan manajemen risiko")
 	addMonitoringChecklistTable(m, []string{"No", "Infrastruktur", "Ya", "Tidak", "Uraian Kondisi", "Keterangan"}, data.ResultChecklist)
-	addMonitoringParagraph(m, "Kesimpulan : Pelaksanaan manajemen risiko telah efektif.")
+	addMonitoringParagraph(m, "Kesimpulan : "+defaultIfEmpty(data.ResultConclusion, "Pelaksanaan manajemen risiko telah efektif."))
 }
 
 func (r *pdfReportRenderer) addMonitoringMitigationSection(m core.Maroto, data *entity.MonitoringEvaluationReportData) {
@@ -168,7 +169,7 @@ func (r *pdfReportRenderer) addMonitoringClosing(m core.Maroto, data *entity.Mon
 	addMonitoringParagraph(m, "9. Permasalahan")
 	addMonitoringParagraph(m, "-")
 	addMonitoringParagraph(m, "10. Saran Perbaikan")
-	addMonitoringParagraph(m, "Berdasarkan hasil pemantauan diatas, diharapkan tim kerja dapat memonitoring kembali risiko yang masih menetap dengan memperhatikan kembali pengendalian yang harus dilakukan.")
+	addMonitoringParagraph(m, defaultIfEmpty(data.MitigationConclusion, "Berdasarkan hasil pemantauan diatas, diharapkan tim kerja dapat memonitoring kembali risiko yang masih menetap dengan memperhatikan kembali pengendalian yang harus dilakukan."))
 	addMonitoringParagraph(m, fmt.Sprintf("Kami menyampaikan terima kasih atas bantuan dan kerja sama dari seluruh pejabat/pegawai pada satuan kerja %s atas kesediannya memberikan data/dokumen yang diperlukan, sehingga kegiatan pemantauan dan evaluasi penerapan manajemen risiko ini dapat terlaksana.", defaultIfEmpty(data.OrganizationName, "")))
 	addMonitoringParagraph(m, "Demikian laporan hasil pemantauan dan evaluasi penerapan manajemen risiko ini disampaikan, atas perhatian dan kerjasamanya diucapkan terima kasih.")
 	m.AddRows(row.New(8))
