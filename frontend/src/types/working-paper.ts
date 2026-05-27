@@ -119,6 +119,8 @@ export interface WorkingPaperSignatory {
 
 export interface WorkingPaper {
   id: string;
+  sequence_no: number;
+  code: string;
   title: string;
   description?: string;
   org_id: string;

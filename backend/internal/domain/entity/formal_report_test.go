@@ -19,7 +19,7 @@ func TestFormalReportValidate(t *testing.T) {
 			report: FormalReport{
 				OrganizationID: orgID,
 				Period:         "2026-H1",
-				ReportType:     FormalReportTypeTMPMR,
+				ReportType:     FormalReportTypeMonitoringEvaluation,
 				Status:         FormalReportStatusGenerated,
 			},
 			wantErr: false,
@@ -39,7 +39,7 @@ func TestFormalReportValidate(t *testing.T) {
 			report: FormalReport{
 				OrganizationID: orgID,
 				Period:         "2026-H1",
-				ReportType:     FormalReportTypeTMPMR,
+				ReportType:     FormalReportTypeMonitoringEvaluation,
 				Status:         "bad",
 			},
 			wantErr: true,
@@ -48,7 +48,7 @@ func TestFormalReportValidate(t *testing.T) {
 			name: "missing period",
 			report: FormalReport{
 				OrganizationID: orgID,
-				ReportType:     FormalReportTypeTMPMR,
+				ReportType:     FormalReportTypeMonitoringEvaluation,
 				Status:         FormalReportStatusGenerated,
 			},
 			wantErr: true,
@@ -67,10 +67,6 @@ func TestFormalReportValidate(t *testing.T) {
 
 func TestFormalReportTypeHelpers(t *testing.T) {
 	for _, typ := range []string{
-		FormalReportTypeAnnualRiskProfile,
-		FormalReportTypeSemiannualImplementation,
-		FormalReportTypeSemiannualSupervision,
-		FormalReportTypeTMPMR,
 		FormalReportTypeMonitoringEvaluation,
 	} {
 		if !IsValidFormalReportType(typ) {

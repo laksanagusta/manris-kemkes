@@ -1,8 +1,4 @@
 export type FormalReportType =
-  | "annual_risk_profile"
-  | "semiannual_mr_implementation"
-  | "semiannual_mr_supervision"
-  | "tmpmr_report"
   | "monitoring_evaluation_report";
 
 export type FormalReportStatus = "draft" | "generated" | "submitted" | "approved";

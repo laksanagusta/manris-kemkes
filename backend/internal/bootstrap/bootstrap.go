@@ -518,7 +518,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.TMPMRReviewUC = tmpmruc.NewReviewUseCase(c.TMPMRRepository)
 	c.TMPMRApproveUC = tmpmruc.NewApproveUseCase(c.TMPMRRepository)
 
-	c.EvaluationCreateUC = evaluationuc.NewCreateUseCase(c.EvaluationRepository)
+	c.EvaluationCreateUC = evaluationuc.NewCreateUseCase(c.EvaluationRepository, c.OrgRepository)
 	c.EvaluationGetUC = evaluationuc.NewGetUseCase(c.EvaluationRepository)
 	c.EvaluationListUC = evaluationuc.NewListUseCase(c.EvaluationRepository)
 	c.EvaluationUpdateUC = evaluationuc.NewUpdateUseCase(c.EvaluationRepository)

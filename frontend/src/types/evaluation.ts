@@ -34,6 +34,8 @@ export type EvaluationSection = {
 export type Evaluation = {
   id: string;
   organizationId: string;
+  sequenceNo: number;
+  code: string;
   period: string;
   templateId: string;
   templateName?: string;
@@ -124,4 +126,3 @@ export type UpdateEvaluationRequest = {
   recommendations: string;
   sections: EvaluationSectionInput[];
 };
-

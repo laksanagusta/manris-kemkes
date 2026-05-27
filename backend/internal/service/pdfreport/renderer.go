@@ -71,33 +71,14 @@ func (r *pdfReportRenderer) RenderFormal(ctx context.Context, data *entity.KMKFo
 		return nil, fmt.Errorf("formal report data is required")
 	}
 
-	reportType := ""
-	if data.Report != nil {
-		reportType = data.Report.ReportType
-	}
-
-	pageWidth, pageHeight := formalReportDimensions(reportType)
-	bottomMargin := Margin + 8
-	if reportType == entity.FormalReportTypeMonitoringEvaluation {
-		bottomMargin = 8
-	}
+	pageWidth, pageHeight := formalReportDimensions()
 	builder := config.NewBuilder().
 		WithDimensions(pageWidth, pageHeight).
 		WithOrientation(orientation.Vertical).
 		WithLeftMargin(Margin).
 		WithRightMargin(Margin).
 		WithTopMargin(Margin).
-		WithBottomMargin(bottomMargin)
-	if reportType != entity.FormalReportTypeMonitoringEvaluation {
-		builder = builder.WithPageNumber(props.PageNumber{
-			Pattern: "Halaman {current} dari {total}",
-			Place:   props.Bottom,
-			Family:  fontfamily.Arial,
-			Style:   fontstyle.Normal,
-			Size:    FontSizeLabel,
-			Color:   MutedText,
-		})
-	}
+		WithBottomMargin(8)
 	cfg := builder.WithDefaultFont(&props.Font{
 		Family: fontfamily.Arial,
 		Size:   FontSizeBody,
@@ -106,24 +87,8 @@ func (r *pdfReportRenderer) RenderFormal(ctx context.Context, data *entity.KMKFo
 	}).Build()
 
 	m := maroto.New(cfg)
-	if reportType == entity.FormalReportTypeMonitoringEvaluation {
-		_ = m.RegisterFooter(monitoringFooterRows()...)
-	}
-
-	switch reportType {
-	case entity.FormalReportTypeAnnualRiskProfile:
-		r.renderFormalAnnualRiskProfile(m, data)
-	case entity.FormalReportTypeSemiannualImplementation:
-		r.renderFormalSemiannualImplementation(m, data)
-	case entity.FormalReportTypeSemiannualSupervision:
-		r.renderFormalSemiannualSupervision(m, data)
-	case entity.FormalReportTypeTMPMR:
-		r.renderFormalTMPMRReport(m, data)
-	case entity.FormalReportTypeMonitoringEvaluation:
-		r.renderFormalMonitoringEvaluation(m, data)
-	default:
-		r.renderFormalLegacy(m, data)
-	}
+	_ = m.RegisterFooter(monitoringFooterRows()...)
+	r.renderFormalMonitoringEvaluation(m, data)
 
 	doc, err := m.Generate()
 	if err != nil {
@@ -132,11 +97,8 @@ func (r *pdfReportRenderer) RenderFormal(ctx context.Context, data *entity.KMKFo
 	return doc.GetBytes(), nil
 }
 
-func formalReportDimensions(reportType string) (float64, float64) {
-	if reportType == entity.FormalReportTypeMonitoringEvaluation {
-		return 215.9, 279.4
-	}
-	return PageWidth, PageHeight
+func formalReportDimensions() (float64, float64) {
+	return 215.9, 279.4
 }
 
 func (r *pdfReportRenderer) renderFormalLegacy(m core.Maroto, data *entity.KMKFormalReportData) {
@@ -2245,17 +2207,8 @@ func formatFormalReportType(report *entity.FormalReport) string {
 		return "Jenis laporan / Report type: tidak tersedia"
 	}
 
-	var label string
-	switch report.ReportType {
-	case entity.FormalReportTypeAnnualRiskProfile:
-		label = "Profil Risiko Tahunan"
-	case entity.FormalReportTypeSemiannualImplementation:
-		label = "Laporan Penerapan Manajemen Risiko Semesteran"
-	case entity.FormalReportTypeSemiannualSupervision:
-		label = "Laporan Pengawasan Manajemen Risiko Semesteran"
-	case entity.FormalReportTypeTMPMR:
-		label = "Laporan TMPMR"
-	default:
+	label := "Laporan Monitoring & Evaluasi MR"
+	if strings.TrimSpace(report.ReportType) != "" && report.ReportType != entity.FormalReportTypeMonitoringEvaluation {
 		label = report.ReportType
 	}
 

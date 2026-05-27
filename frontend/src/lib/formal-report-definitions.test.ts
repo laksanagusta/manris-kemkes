@@ -12,9 +12,9 @@ test("formal report definitions include monitoring evaluation", () => {
   );
 
   assert.ok(item, "expected monitoring evaluation definition to exist");
-  assert.equal(item?.title, "Laporan Monitoring & Evaluasi MR");
+  assert.equal(item?.title, "Laporan Monitoring & Evaluasi");
   assert.equal(
     formalReportTypeLabels.monitoring_evaluation_report,
-    "Laporan Monitoring & Evaluasi MR",
+    "Laporan Monitoring & Evaluasi",
   );
 });

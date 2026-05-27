@@ -71,6 +71,8 @@ type EvaluationTemplateItem struct {
 type Evaluation struct {
 	ID                     uuid.UUID           `json:"id"`
 	OrganizationID         uuid.UUID           `json:"organizationId"`
+	SequenceNo             int                 `json:"sequenceNo"`
+	Code                   string              `json:"code"`
 	Period                 string              `json:"period"`
 	TemplateID             uuid.UUID           `json:"templateId"`
 	TemplateName           string              `json:"templateName,omitempty"`

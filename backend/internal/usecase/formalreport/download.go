@@ -75,6 +75,9 @@ func (uc *DownloadUseCase) Execute(ctx context.Context, input DownloadInput) (*D
 	if err := validateFormalReportAccess(input.Scope, report.OrganizationID, false); err != nil {
 		return nil, err
 	}
+	if report.ReportType != entity.FormalReportTypeMonitoringEvaluation {
+		return nil, errors.ErrNotFound
+	}
 
 	org, err := uc.orgRepo.GetByID(ctx, report.OrganizationID)
 	if err != nil || org == nil {
@@ -112,42 +115,11 @@ func (uc *DownloadUseCase) Execute(ctx context.Context, input DownloadInput) (*D
 		return nil, errors.Wrap(errors.ErrInternal, "failed to build formal report data")
 	}
 
-	switch report.ReportType {
-	case entity.FormalReportTypeAnnualRiskProfile:
-		annualProfile, err := uc.buildAnnualProfileData(ctx, report, org, summary, input.Scope)
-		if err != nil {
-			return nil, err
-		}
-		data.AnnualProfile = annualProfile
-	case entity.FormalReportTypeSemiannualImplementation:
-		// payload built after data shell via buildImplementationReportData below
-	case entity.FormalReportTypeSemiannualSupervision:
-		// payload built after data shell via buildSupervisionReportData below
-	case entity.FormalReportTypeTMPMR:
-		data.TMPMRReport = reportgen.BuildTMPMRReportData(report, org, summary, tmpmr)
-	case entity.FormalReportTypeMonitoringEvaluation:
-		// payload built after data shell via buildMonitoringEvaluationData below
-	default:
-		return nil, errors.Wrap(errors.ErrInvalidInput, "unsupported formal report type")
+	monitoringReport, err := uc.buildMonitoringEvaluationData(ctx, report, org, summary, input.Scope)
+	if err != nil {
+		return nil, err
 	}
-
-	// Build implementation-specific section status from available evidence
-	if report.ReportType == entity.FormalReportTypeSemiannualImplementation {
-		data.ImplementationReport = uc.buildImplementationReportData(ctx, report, org, summary, input.Scope)
-	}
-
-	// Build supervision-specific section status
-	if report.ReportType == entity.FormalReportTypeSemiannualSupervision {
-		data.SupervisionReport = uc.buildSupervisionReportData(ctx, report, org, summary, input.Scope)
-	}
-
-	if report.ReportType == entity.FormalReportTypeMonitoringEvaluation {
-		monitoringReport, err := uc.buildMonitoringEvaluationData(ctx, report, org, summary, input.Scope)
-		if err != nil {
-			return nil, err
-		}
-		data.MonitoringEvaluationReport = monitoringReport
-	}
+	data.MonitoringEvaluationReport = monitoringReport
 
 	pdfBytes, err := uc.pdfRenderer.RenderFormal(ctx, data)
 	if err != nil {
@@ -158,7 +130,7 @@ func (uc *DownloadUseCase) Execute(ctx context.Context, input DownloadInput) (*D
 	}
 
 	return &DownloadOutput{
-		Filename: fmt.Sprintf("formal-report-%s-%s.pdf", sanitizeFilename(report.ReportType), sanitizeFilename(report.Period)),
+		Filename: fmt.Sprintf("formal-report-%s-%s.pdf", sanitizeFilename(entity.FormalReportTypeMonitoringEvaluation), sanitizeFilename(report.Period)),
 		Bytes:    pdfBytes,
 	}, nil
 }

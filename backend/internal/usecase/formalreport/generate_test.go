@@ -91,7 +91,7 @@ func TestGenerateFormalReportUseCase(t *testing.T) {
 	report, err := uc.Execute(context.Background(), GenerateFormalReportInput{
 		OrganizationID: orgID,
 		Period:         "2026-H1",
-		ReportType:     entity.FormalReportTypeTMPMR,
+		ReportType:     entity.FormalReportTypeMonitoringEvaluation,
 		GeneratedBy:    &userID,
 		Scope:          scope,
 	})
@@ -108,8 +108,8 @@ func TestGenerateFormalReportUseCase(t *testing.T) {
 	if report.GeneratedFileURL != "/api/v1/formal-reports/"+report.ID.String()+"/download" {
 		t.Fatalf("unexpected generated file url: %s", report.GeneratedFileURL)
 	}
-	if report.Metadata["reportType"] != entity.FormalReportTypeTMPMR {
-		t.Fatalf("metadata reportType = %v, want %v", report.Metadata["reportType"], entity.FormalReportTypeTMPMR)
+	if report.Metadata["reportType"] != entity.FormalReportTypeMonitoringEvaluation {
+		t.Fatalf("metadata reportType = %v, want %v", report.Metadata["reportType"], entity.FormalReportTypeMonitoringEvaluation)
 	}
 
 	summary, ok := report.Metadata["summary"].(map[string]any)
@@ -145,57 +145,27 @@ func TestGenerateFormalReportUseCase_StoresTypeAwareSummaryMetadata(t *testing.T
 		tmpmrRepo:    fakeTMPMRRepo{},
 	}
 
-	tests := []struct {
-		name         string
-		reportType   string
-		wantHeadline string
-		wantFocus    string
-	}{
-		{
-			name:         "annual risk profile",
-			reportType:   entity.FormalReportTypeAnnualRiskProfile,
-			wantHeadline: "Profil risiko tahunan",
-			wantFocus:    entity.FormalReportTypeAnnualRiskProfile,
-		},
-		{
-			name:         "tmpmr report",
-			reportType:   entity.FormalReportTypeTMPMR,
-			wantHeadline: "Laporan TMPMR",
-			wantFocus:    entity.FormalReportTypeTMPMR,
-		},
-		{
-			name:         "monitoring evaluation report",
-			reportType:   entity.FormalReportTypeMonitoringEvaluation,
-			wantHeadline: "Laporan hasil pemantauan dan evaluasi manajemen risiko",
-			wantFocus:    entity.FormalReportTypeMonitoringEvaluation,
-		},
+	report, err := uc.Execute(context.Background(), GenerateFormalReportInput{
+		OrganizationID: orgID,
+		Period:         "2026-H1",
+		ReportType:     entity.FormalReportTypeMonitoringEvaluation,
+		Scope:          scope,
+	})
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			report, err := uc.Execute(context.Background(), GenerateFormalReportInput{
-				OrganizationID: orgID,
-				Period:         "2026-H1",
-				ReportType:     tt.reportType,
-				Scope:          scope,
-			})
-			if err != nil {
-				t.Fatalf("Execute() error = %v", err)
-			}
-
-			summary, ok := report.Metadata["summary"].(map[string]any)
-			if !ok {
-				t.Fatalf("summary metadata has unexpected type %T", report.Metadata["summary"])
-			}
-			headline, _ := summary["headline"].(string)
-			if headline != tt.wantHeadline {
-				t.Fatalf("summary headline = %q, want %q", headline, tt.wantHeadline)
-			}
-			focus, _ := summary["focus"].(string)
-			if focus != tt.wantFocus {
-				t.Fatalf("summary focus = %q, want %q", focus, tt.wantFocus)
-			}
-		})
+	summary, ok := report.Metadata["summary"].(map[string]any)
+	if !ok {
+		t.Fatalf("summary metadata has unexpected type %T", report.Metadata["summary"])
+	}
+	headline, _ := summary["headline"].(string)
+	if headline != "Laporan hasil pemantauan dan evaluasi manajemen risiko" {
+		t.Fatalf("summary headline = %q, want %q", headline, "Laporan hasil pemantauan dan evaluasi manajemen risiko")
+	}
+	focus, _ := summary["focus"].(string)
+	if focus != entity.FormalReportTypeMonitoringEvaluation {
+		t.Fatalf("summary focus = %q, want %q", focus, entity.FormalReportTypeMonitoringEvaluation)
 	}
 }
 

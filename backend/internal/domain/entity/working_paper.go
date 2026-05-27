@@ -20,6 +20,8 @@ const (
 
 type WorkingPaper struct {
 	ID                       uuid.UUID              `json:"id"`
+	SequenceNo               int                    `json:"sequence_no"`
+	Code                     string                 `json:"code"`
 	Title                    string                 `json:"title"`
 	Description              string                 `json:"description"`
 	OrgID                    uuid.UUID              `json:"org_id"`

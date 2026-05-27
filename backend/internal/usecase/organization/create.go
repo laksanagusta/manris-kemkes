@@ -2,6 +2,7 @@ package organization
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,6 +27,8 @@ type CreateOrganizationInput struct {
 	Name     string     `json:"name"`
 	ParentID *uuid.UUID `json:"parentId"`
 	UPRLevel string     `json:"uprLevel"`
+	Location string     `json:"location"`
+	Address  string     `json:"address"`
 }
 
 type CreateOrganizationOutput struct {
@@ -56,6 +59,8 @@ func (uc *CreateOrganizationUseCase) Execute(ctx context.Context, input CreateOr
 		Name:     input.Name,
 		ParentID: input.ParentID,
 		UPRLevel: input.UPRLevel,
+		Location: strings.TrimSpace(input.Location),
+		Address:  strings.TrimSpace(input.Address),
 	}
 
 	if err := org.Validate(); err != nil {

@@ -16,19 +16,11 @@ const (
 )
 
 const (
-	FormalReportTypeAnnualRiskProfile        = "annual_risk_profile"
-	FormalReportTypeSemiannualImplementation = "semiannual_mr_implementation"
-	FormalReportTypeSemiannualSupervision    = "semiannual_mr_supervision"
-	FormalReportTypeTMPMR                    = "tmpmr_report"
-	FormalReportTypeMonitoringEvaluation     = "monitoring_evaluation_report"
+	FormalReportTypeMonitoringEvaluation = "monitoring_evaluation_report"
 )
 
 var validFormalReportTypes = map[string]struct{}{
-	FormalReportTypeAnnualRiskProfile:        {},
-	FormalReportTypeSemiannualImplementation: {},
-	FormalReportTypeSemiannualSupervision:    {},
-	FormalReportTypeTMPMR:                    {},
-	FormalReportTypeMonitoringEvaluation:     {},
+	FormalReportTypeMonitoringEvaluation: {},
 }
 
 var validFormalReportStatuses = map[string]struct{}{

@@ -5,6 +5,7 @@ import {
   filterKRIReviewQueueByState,
   formatKRIValue,
   formatSemesterSummary,
+  getMitigationSubmissionActionState,
   getKRIStatus,
   getKRIStatusFromReport,
   isKRIReviewAttentionOverdue,
@@ -127,6 +128,37 @@ test("isKRIReviewAttentionOverdue maps overdue attention for submitted/revision 
   assert.equal(isKRIReviewAttentionOverdue("2026-04-02", "revision_requested", now), true);
   assert.equal(isKRIReviewAttentionOverdue("2026-04-02", "accepted", now), false);
   assert.equal(isKRIReviewAttentionOverdue("2026-04-04", "submitted", now), false);
+});
+
+test("getMitigationSubmissionActionState keeps overdue mitigation reports actionable", () => {
+  const lateNow = new Date("2026-04-05T08:00:00.000Z");
+  const openNow = new Date("2026-04-04T08:00:00.000Z");
+  const earlyNow = new Date("2026-04-02T08:00:00.000Z");
+
+  assert.deepEqual(
+    getMitigationSubmissionActionState("2026-04-03", "2026-04-04", openNow),
+    {
+      allowed: true,
+      message: "Siap lapor progres",
+      isOverdue: false,
+    }
+  );
+  assert.deepEqual(
+    getMitigationSubmissionActionState("2026-04-03", "2026-04-02", lateNow),
+    {
+      allowed: true,
+      message: "Terlambat, tetap bisa lapor progres",
+      isOverdue: true,
+    }
+  );
+  assert.deepEqual(
+    getMitigationSubmissionActionState("2026-04-03", "2026-04-04", earlyNow),
+    {
+      allowed: false,
+      message: "Laporan dapat dikirim mulai 4 Apr 2026 (H+1 setelah periode berakhir)",
+      isOverdue: false,
+    }
+  );
 });
 
 test("filterKRIReviewQueueByState separates submitted, revision_requested, and overdue", () => {

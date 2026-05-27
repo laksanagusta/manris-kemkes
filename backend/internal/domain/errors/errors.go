@@ -49,6 +49,7 @@ var (
 	ErrInvalidNotes           = &AppError{Code: "INVALID_NOTES", Message: "notes must be between 10 and 1000 characters"}
 	ErrInvalidKRIValue        = &AppError{Code: "INVALID_KRI_VALUE", Message: "KRI value must be zero or greater"}
 	ErrSubmissionWindowClosed = &AppError{Code: "SUBMISSION_WINDOW_CLOSED", Message: "KRI reports can only be submitted between H+1 and H+3 after the period ends"}
+	ErrMitigationSubmissionTooEarly = &AppError{Code: "MITIGATION_SUBMISSION_TOO_EARLY", Message: "Laporan progress hanya dapat dikirim mulai H+1 setelah periode berakhir"}
 	ErrInvalidSourceType      = &AppError{Code: "INVALID_SOURCE_TYPE", Message: "invalid source type"}
 	ErrInvalidSeverity        = &AppError{Code: "INVALID_SEVERITY", Message: "invalid severity"}
 	ErrInvalidProbability     = &AppError{Code: "INVALID_PROBABILITY", Message: "probability must be between 1-5"}
@@ -148,6 +149,7 @@ func IsValidation(err error) bool {
 		errors.Is(err, ErrInvalidNotes) ||
 		errors.Is(err, ErrInvalidKRIValue) ||
 		errors.Is(err, ErrSubmissionWindowClosed) ||
+		errors.Is(err, ErrMitigationSubmissionTooEarly) ||
 		errors.Is(err, ErrInvalidSourceType) ||
 		errors.Is(err, ErrInvalidSeverity) ||
 		errors.Is(err, ErrInvalidProbability) ||

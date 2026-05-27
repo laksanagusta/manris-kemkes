@@ -21,12 +21,45 @@ type fakeEvaluationRepo struct {
 	getErr    error
 }
 
+type fakeOrganizationRepo struct {
+	org *entity.Organization
+	err error
+}
+
 func newFakeEvaluationRepo() *fakeEvaluationRepo {
 	return &fakeEvaluationRepo{
 		templates: map[string]*entity.EvaluationTemplate{},
 		evals:     map[uuid.UUID]*entity.Evaluation{},
 	}
 }
+
+func (r fakeOrganizationRepo) GetByID(_ context.Context, id uuid.UUID) (*entity.Organization, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
+	if r.org == nil {
+		return nil, fmt.Errorf("not found")
+	}
+	copy := *r.org
+	if copy.ID == uuid.Nil {
+		copy.ID = id
+	}
+	return &copy, nil
+}
+
+func (r fakeOrganizationRepo) Create(context.Context, *entity.Organization) error   { return nil }
+func (r fakeOrganizationRepo) Update(context.Context, *entity.Organization) error   { return nil }
+func (r fakeOrganizationRepo) Delete(context.Context, uuid.UUID) error              { return nil }
+func (r fakeOrganizationRepo) List(context.Context) ([]*entity.Organization, error) { return nil, nil }
+func (r fakeOrganizationRepo) ListWithFilter(context.Context, repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
+	return nil, 0, nil
+}
+func (r fakeOrganizationRepo) GetContext(context.Context, uuid.UUID) (string, error) { return "", nil }
+func (r fakeOrganizationRepo) GetDescendants(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+var _ repository.OrganizationRepository = fakeOrganizationRepo{}
 
 func (r *fakeEvaluationRepo) GetActiveTemplate(_ context.Context, templateKey string) (*entity.EvaluationTemplate, error) {
 	template, ok := r.templates[templateKey]
@@ -207,12 +240,20 @@ func buildEvaluationTemplate() *entity.EvaluationTemplate {
 func TestCreateUseCaseCopiesActiveTemplateSnapshot(t *testing.T) {
 	repo := newFakeEvaluationRepo()
 	repo.templates[DefaultTemplateKey] = buildEvaluationTemplate()
-	scope := &entity.AccessScope{OrganizationID: ptrUUID(uuid.New())}
+	orgRepo := fakeOrganizationRepo{
+		org: &entity.Organization{
+			ID:       uuid.New(),
+			Name:     "Balai Contoh",
+			Location: "Jakarta",
+			Address:  "Jl. Contoh No. 1",
+		},
+	}
+	scope := &entity.AccessScope{OrganizationID: ptrUUID(orgRepo.org.ID)}
 	createdBy := uuid.New()
 
-	uc := NewCreateUseCase(repo)
+	uc := NewCreateUseCase(repo, orgRepo)
 	result, err := uc.Execute(context.Background(), CreateInput{
-		OrganizationID: *scope.OrganizationID,
+		OrganizationID: orgRepo.org.ID,
 		Period:         "2026-H1",
 		CreatedBy:      &createdBy,
 		Scope:          scope,
@@ -229,6 +270,12 @@ func TestCreateUseCaseCopiesActiveTemplateSnapshot(t *testing.T) {
 	if result.TemplateName == "" || result.Status != entity.EvaluationStatusDraft {
 		t.Fatalf("unexpected evaluation fields: %#v", result)
 	}
+	if result.MonitoringDateRange != "Semester I Tahun 2026" {
+		t.Fatalf("monitoring range = %q, want Semester I Tahun 2026", result.MonitoringDateRange)
+	}
+	if result.UnitLocation != "Jakarta" || result.UnitAddress != "Jl. Contoh No. 1" {
+		t.Fatalf("unexpected org defaults: %#v", result)
+	}
 }
 
 func TestCreateUseCaseRejectsDuplicateEvaluation(t *testing.T) {
@@ -236,6 +283,7 @@ func TestCreateUseCaseRejectsDuplicateEvaluation(t *testing.T) {
 	template := buildEvaluationTemplate()
 	repo.templates[DefaultTemplateKey] = template
 	orgID := uuid.New()
+	orgRepo := fakeOrganizationRepo{org: &entity.Organization{ID: orgID, Name: "Org"}}
 	existing := &entity.Evaluation{
 		ID:             uuid.New(),
 		OrganizationID: orgID,
@@ -246,7 +294,7 @@ func TestCreateUseCaseRejectsDuplicateEvaluation(t *testing.T) {
 	repo.evals[existing.ID] = existing
 	createdBy := uuid.New()
 
-	uc := NewCreateUseCase(repo)
+	uc := NewCreateUseCase(repo, orgRepo)
 	_, err := uc.Execute(context.Background(), CreateInput{
 		OrganizationID: orgID,
 		Period:         "2026-H1",

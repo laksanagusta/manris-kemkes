@@ -27,6 +27,9 @@ func (uc *GetUseCase) Execute(ctx context.Context, input GetInput) (*entity.Form
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
+	if report.ReportType != entity.FormalReportTypeMonitoringEvaluation {
+		return nil, errors.ErrNotFound
+	}
 	if err := validateFormalReportAccess(input.Scope, report.OrganizationID, false); err != nil {
 		return nil, errors.ErrForbidden
 	}

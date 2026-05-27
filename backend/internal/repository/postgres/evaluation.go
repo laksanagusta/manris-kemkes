@@ -68,6 +68,12 @@ func (r *evaluationRepository) Create(ctx context.Context, evaluation *entity.Ev
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	if err := lockOrganizationForEvaluationSequence(ctx, tx, evaluation.OrganizationID); err != nil {
+		return err
+	}
+	if err := assignNextEvaluationSequence(ctx, tx, evaluation); err != nil {
+		return err
+	}
 	if err := insertEvaluation(ctx, tx, evaluation); err != nil {
 		return err
 	}
@@ -91,7 +97,7 @@ func (r *evaluationRepository) GetByID(ctx context.Context, id uuid.UUID) (*enti
 		templateName         string
 	)
 	if err := r.pool.QueryRow(ctx, `
-		SELECT e.id, e.organization_id, e.period, e.template_id, COALESCE(et.name, ''), e.status,
+		SELECT e.id, e.organization_id, e.sequence_no, e.code, e.period, e.template_id, COALESCE(et.name, ''), e.status,
 		       e.report_number, e.report_date, e.assignment_letter_number, e.assignment_letter_date,
 		       e.monitoring_date_range, e.unit_code, e.unit_location, e.unit_address, e.unit_eselon_i,
 		       e.unit_leader_name, e.team_coordinator, e.team_lead, e.team_members, e.problems,
@@ -102,6 +108,8 @@ func (r *evaluationRepository) GetByID(ctx context.Context, id uuid.UUID) (*enti
 	`, id).Scan(
 		&evaluation.ID,
 		&evaluation.OrganizationID,
+		&evaluation.SequenceNo,
+		&evaluation.Code,
 		&evaluation.Period,
 		&evaluation.TemplateID,
 		&templateName,
@@ -196,7 +204,7 @@ func (r *evaluationRepository) List(ctx context.Context, filter repository.Evalu
 		WHERE 1=1
 	`
 	dataQuery := `
-		SELECT e.id, e.organization_id, e.period, e.template_id, COALESCE(et.name, ''), e.status,
+		SELECT e.id, e.organization_id, e.sequence_no, e.code, e.period, e.template_id, COALESCE(et.name, ''), e.status,
 		       e.report_number, e.report_date, e.assignment_letter_number, e.assignment_letter_date,
 		       e.monitoring_date_range, e.unit_code, e.unit_location, e.unit_address, e.unit_eselon_i,
 		       e.unit_leader_name, e.team_coordinator, e.team_lead, e.team_members, e.problems,
@@ -234,7 +242,7 @@ func (r *evaluationRepository) List(ctx context.Context, filter repository.Evalu
 		argPos++
 	}
 	if strings.TrimSpace(filter.Query) != "" {
-		clause := fmt.Sprintf(" AND (e.period ILIKE $%d OR o.name ILIKE $%d OR et.name ILIKE $%d)", argPos, argPos, argPos)
+		clause := fmt.Sprintf(" AND (e.code ILIKE $%d OR e.period ILIKE $%d OR o.name ILIKE $%d OR et.name ILIKE $%d)", argPos, argPos, argPos, argPos)
 		countQuery += clause
 		dataQuery += clause
 		args = append(args, "%"+strings.TrimSpace(filter.Query)+"%")
@@ -487,15 +495,15 @@ func insertEvaluation(ctx context.Context, q evaluationExecer, evaluation *entit
 
 	if err := q.QueryRow(ctx, `
 		INSERT INTO evaluations (
-			id, organization_id, period, template_id, status, report_number, report_date,
+			id, organization_id, sequence_no, code, period, template_id, status, report_number, report_date,
 			assignment_letter_number, assignment_letter_date, monitoring_date_range, unit_code,
 			unit_location, unit_address, unit_eselon_i, unit_leader_name, team_coordinator,
 			team_lead, team_members, problems, recommendations, created_by, finalized_at
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24
 		)
 		RETURNING created_at, updated_at
-	`, evaluation.ID, evaluation.OrganizationID, evaluation.Period, evaluation.TemplateID, evaluation.Status,
+	`, evaluation.ID, evaluation.OrganizationID, evaluation.SequenceNo, evaluation.Code, evaluation.Period, evaluation.TemplateID, evaluation.Status,
 		evaluation.ReportNumber, reportDate, evaluation.AssignmentLetterNumber, assignmentLetterDate,
 		evaluation.MonitoringDateRange, evaluation.UnitCode, evaluation.UnitLocation, evaluation.UnitAddress,
 		evaluation.UnitEselonI, evaluation.UnitLeaderName, evaluation.TeamCoordinator, evaluation.TeamLead,
@@ -504,6 +512,38 @@ func insertEvaluation(ctx context.Context, q evaluationExecer, evaluation *entit
 		return fmt.Errorf("create evaluation: %w", err)
 	}
 	return nil
+}
+
+func lockOrganizationForEvaluationSequence(ctx context.Context, q evaluationExecer, organizationID uuid.UUID) error {
+	var lockedID uuid.UUID
+	if err := q.QueryRow(ctx, `
+		SELECT id
+		FROM organizations
+		WHERE id = $1
+		FOR UPDATE
+	`, organizationID).Scan(&lockedID); err != nil {
+		return fmt.Errorf("lock organization for evaluation sequence: %w", err)
+	}
+	return nil
+}
+
+func assignNextEvaluationSequence(ctx context.Context, q evaluationExecer, evaluation *entity.Evaluation) error {
+	var nextSequence int
+	if err := q.QueryRow(ctx, `
+		SELECT COALESCE(MAX(sequence_no), 0) + 1
+		FROM evaluations
+		WHERE organization_id = $1
+	`, evaluation.OrganizationID).Scan(&nextSequence); err != nil {
+		return fmt.Errorf("get next evaluation sequence: %w", err)
+	}
+
+	evaluation.SequenceNo = nextSequence
+	evaluation.Code = formatEvaluationCode(nextSequence)
+	return nil
+}
+
+func formatEvaluationCode(sequenceNo int) string {
+	return fmt.Sprintf("EV-%04d", sequenceNo)
 }
 
 func upsertEvaluationSections(ctx context.Context, q evaluationExecer, evaluation *entity.Evaluation) error {
@@ -617,6 +657,8 @@ func scanEvaluationRow(row pgx.Row) (*entity.Evaluation, error) {
 	if err := row.Scan(
 		&evaluation.ID,
 		&evaluation.OrganizationID,
+		&evaluation.SequenceNo,
+		&evaluation.Code,
 		&evaluation.Period,
 		&evaluation.TemplateID,
 		&templateName,

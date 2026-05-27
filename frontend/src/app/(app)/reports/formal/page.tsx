@@ -16,12 +16,12 @@ export default function FormalReportsPage() {
           <span>Handoff</span>
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-balance">
-          Laporan Monitoring & Evaluasi MR dipindahkan ke Evaluasi MR
+          Laporan Monitoring & Evaluasi dipindahkan ke Evaluasi
         </h1>
         <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          Mulai sekarang, proses isi, finalisasi, dan ekspor PDF dilakukan dari modul
-          Evaluasi MR. Halaman ini dipertahankan sebagai pengarah agar alur lama tidak
-          dipakai lagi sebagai titik input utama.
+          Mulai sekarang, proses isi, finalisasi, dan ekspor PDF dilakukan dari
+          modul Evaluasi. Halaman ini dipertahankan sebagai pengarah agar alur
+          lama tidak dipakai lagi sebagai titik input utama.
         </p>
       </section>
 
@@ -30,17 +30,17 @@ export default function FormalReportsPage() {
           <CardHeader className="border-b border-border/40 pb-4">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <ClipboardList className="size-4" />
-              Buka Evaluasi MR
+              Buka Evaluasi
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
             <p className="text-sm leading-6 text-muted-foreground">
-              Masuk ke daftar evaluasi untuk melihat draft, final, dan PDF yang sudah
-              diekspor.
+              Masuk ke daftar evaluasi untuk melihat draft, final, dan PDF yang
+              sudah diekspor.
             </p>
             <Button asChild className="gap-2">
               <Link href="/evaluations">
-                Ke Evaluasi MR
+                Ke Evaluasi
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -56,8 +56,8 @@ export default function FormalReportsPage() {
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
             <p className="text-sm leading-6 text-muted-foreground">
-              Langsung buat draft evaluasi untuk organisasi dan periode yang dipilih,
-              lalu isi section dan finalisasi dari detail evaluasi.
+              Langsung buat draft evaluasi untuk organisasi dan periode yang
+              dipilih, lalu isi section dan finalisasi dari detail evaluasi.
             </p>
             <Button asChild variant="outline" className="gap-2">
               <Link href="/evaluations/new">

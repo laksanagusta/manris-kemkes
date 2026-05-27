@@ -143,7 +143,7 @@ func TestPDFReportRenderer_RenderFormalProducesPDFBytes(t *testing.T) {
 	}
 }
 
-func TestPDFReportRenderer_RenderFormalAnnualProfileWithMinimalData(t *testing.T) {
+func TestPDFReportRenderer_RenderFormalMonitoringEvaluationWithMinimalData(t *testing.T) {
 	renderer := &pdfReportRenderer{}
 	orgID := uuid.New()
 	reportID := uuid.New()
@@ -152,7 +152,7 @@ func TestPDFReportRenderer_RenderFormalAnnualProfileWithMinimalData(t *testing.T
 			ID:             reportID,
 			OrganizationID: orgID,
 			Period:         "2025",
-			ReportType:     entity.FormalReportTypeAnnualRiskProfile,
+			ReportType:     entity.FormalReportTypeMonitoringEvaluation,
 			Status:         entity.FormalReportStatusGenerated,
 		},
 		GeneratedAt: time.Date(2026, 5, 3, 10, 0, 0, 0, time.UTC),
@@ -161,121 +161,46 @@ func TestPDFReportRenderer_RenderFormalAnnualProfileWithMinimalData(t *testing.T
 			Name: "Direktorat Tahunan",
 		},
 		Period: "2025",
-		RiskSummary: entity.ReportSummary{
-			Cycle:              "2025",
-			GeneratedAt:        time.Date(2026, 5, 3, 10, 0, 0, 0, time.UTC),
-			TotalRisks:         0,
-			HighExtremeCount:   0,
-			OverdueMitigations: 0,
-			AvgExposureScore:   0,
-			CategoryBreakdown:  map[string]int{},
+		MonitoringEvaluationReport: &entity.MonitoringEvaluationReportData{
+			Report:           nil,
+			Organization:     nil,
+			OrganizationName: "Direktorat Tahunan",
+			Year:             "2025",
+			SemesterLabel:    "SEMESTER I",
 		},
-		TMPMR:         nil,
-		SectionStatus: nil,
 	}
 
 	bytesOut, err := renderer.RenderFormal(nil, data)
 	if err != nil {
-		t.Fatalf("RenderFormal minimal annual profile failed: %v", err)
+		t.Fatalf("RenderFormal minimal monitoring evaluation failed: %v", err)
 	}
 	if len(bytesOut) == 0 {
-		t.Fatal("RenderFormal minimal annual profile returned empty bytes")
+		t.Fatal("RenderFormal minimal monitoring evaluation returned empty bytes")
 	}
 	if !bytes.HasPrefix(bytesOut, []byte("%PDF")) {
-		t.Fatalf("RenderFormal minimal annual profile returned non-PDF bytes: %q", bytesOut[:4])
+		t.Fatalf("RenderFormal minimal monitoring evaluation returned non-PDF bytes: %q", bytesOut[:4])
 	}
 }
 
-func TestPDFReportRenderer_RenderFormalUsesDistinctSectionsPerReportType(t *testing.T) {
+func TestPDFReportRenderer_RenderFormalMonitoringEvaluationUsesSections(t *testing.T) {
 	renderer := &pdfReportRenderer{}
+	data := testKMKFormalReportData()
 
-	tests := []struct {
-		name           string
-		reportType     string
-		wantContain    []string
-		wantNotContain []string
-	}{
-		{
-			name:       "annual risk profile",
-			reportType: entity.FormalReportTypeAnnualRiskProfile,
-			wantContain: []string{
-				"Ringkasan Profil Risiko Tahunan",
-				"Top Risiko Prioritas Tahunan",
-				"Lampiran Heatmap Tahunan",
-			},
-			wantNotContain: []string{
-				"TMPMR / Tingkat Kematangan Manajemen Risiko",
-				"Status Evidence Pendukung Lintas Modul",
-			},
-		},
-		{
-			name:       "semiannual implementation",
-			reportType: entity.FormalReportTypeSemiannualImplementation,
-			wantContain: []string{
-				"Laporan Penerapan Manajemen Risiko Semesteran",
-				"Tahapan Proses Penerapan MR",
-				"Matriks Evidence per Tahapan",
-				"Progres Penanganan Risiko",
-				"Ringkasan Gap Implementasi",
-			},
-			wantNotContain: []string{
-				"Daftar Risiko / Risk Register",
-				"TMPMR / Tingkat Kematangan Manajemen Risiko",
-				"Peta Risiko / Risk Heatmap",
-				"Top Risiko Prioritas Tahunan",
-			},
-		},
-		{
-			name:       "semiannual supervision",
-			reportType: entity.FormalReportTypeSemiannualSupervision,
-			wantContain: []string{
-				"Laporan Pengawasan Manajemen Risiko Semesteran",
-				"Ringkasan Eksekutif Pengawasan",
-				"Daftar Temuan Pengawasan",
-				"Saran Perbaikan",
-				"Status Tindak Lanjut",
-			},
-			wantNotContain: []string{
-				"Daftar Risiko / Risk Register",
-				"TMPMR / Tingkat Kematangan Manajemen Risiko",
-				"Peta Risiko / Risk Heatmap",
-				"Tahapan Proses Penerapan MR",
-			},
-		},
-		{
-			name:       "tmpmr report",
-			reportType: entity.FormalReportTypeTMPMR,
-			wantContain: []string{
-				"Ringkasan Skor TMPMR",
-				"Dimensi TMPMR",
-				"Prioritas Perbaikan TMPMR",
-			},
-			wantNotContain: []string{
-				"Daftar Risiko / Risk Register",
-				"Peta Risiko / Risk Heatmap",
-				"Ringkasan Profil Risiko Tahunan",
-			},
-		},
+	bytesOut, err := renderer.RenderFormal(nil, data)
+	if err != nil {
+		t.Fatalf("RenderFormal failed: %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			data := testKMKFormalReportDataForType(tt.reportType)
-			bytesOut, err := renderer.RenderFormal(nil, data)
-			if err != nil {
-				t.Fatalf("RenderFormal(%s) failed: %v", tt.reportType, err)
-			}
-			for _, want := range tt.wantContain {
-				if !bytes.Contains(bytesOut, []byte(want)) {
-					t.Fatalf("RenderFormal(%s) output missing %q", tt.reportType, want)
-				}
-			}
-			for _, unwanted := range tt.wantNotContain {
-				if bytes.Contains(bytesOut, []byte(unwanted)) {
-					t.Fatalf("RenderFormal(%s) output unexpectedly contained %q", tt.reportType, unwanted)
-				}
-			}
-		})
+	for _, want := range []string{
+		"LAPORAN HASIL PEMANTAUAN DAN EVALUASI",
+		"PENERAPAN MANAJEMEN RISIKO",
+		"Dasar Pelaksanaan Pemantauan dan Evaluasi",
+		"Hasil Pemantauan dan Evaluasi",
+		"Format pemantauan pelaksanaan mitigasi risiko",
+	} {
+		if !bytes.Contains(bytesOut, []byte(want)) {
+			t.Fatalf("RenderFormal output missing %q", want)
+		}
 	}
 }
 
@@ -306,7 +231,7 @@ func approvedPDFRiskWithPartialReviewedBundle(code string, title string, status 
 }
 
 func testKMKFormalReportData() *entity.KMKFormalReportData {
-	return testKMKFormalReportDataForType(entity.FormalReportTypeTMPMR)
+	return testKMKFormalReportDataForType("monitoring_evaluation_report")
 }
 
 func testKMKFormalReportDataForType(reportType string) *entity.KMKFormalReportData {
@@ -319,7 +244,7 @@ func testKMKFormalReportDataForType(reportType string) *entity.KMKFormalReportDa
 			ID:             reportID,
 			OrganizationID: orgID,
 			Period:         "2025",
-			ReportType:     reportType,
+			ReportType:     entity.FormalReportTypeMonitoringEvaluation,
 			Status:         entity.FormalReportStatusGenerated,
 		},
 		GeneratedAt: generatedAt,
@@ -381,78 +306,53 @@ func testKMKFormalReportDataForType(reportType string) *entity.KMKFormalReportDa
 			},
 		},
 	}
-
-	switch reportType {
-	case entity.FormalReportTypeAnnualRiskProfile:
-		data.AnnualProfile = &entity.AnnualRiskProfileData{
-			Report:       data.Report,
-			Organization: data.Organization,
-			Summary:      data.RiskSummary,
-			Risks: []*entity.Risk{
-				{
-					Code:          "R-AR-1",
-					Title:         "Gangguan Layanan",
-					Category:      entity.RiskCategoryOperasional,
-					Probability:   5,
-					Impact:        4,
-					Weight:        1,
-					Nilai:         20,
-					InherentScore: 20,
-				},
-			},
-			TopRisks: []*entity.Risk{
-				{
-					Code:          "R-AR-1",
-					Title:         "Gangguan Layanan",
-					Category:      entity.RiskCategoryOperasional,
-					Probability:   5,
-					Impact:        4,
-					Weight:        1,
-					Nilai:         20,
-					InherentScore: 20,
-				},
-			},
-			Heatmap:       [5][5]int{{0, 0, 0, 0, 1}},
-			PreviousCycle: "2024",
-		}
-	case entity.FormalReportTypeSemiannualImplementation:
-		data.ImplementationReport = &entity.SemiannualImplementationData{
-			Report:        data.Report,
-			Organization:  data.Organization,
-			Summary:       data.RiskSummary,
-			SectionStatus: []entity.KMKReportSectionStatus{
-				{Key: "communication_consultation", Label: "Komunikasi dan Konsultasi (4.1)", Available: false, Count: 0, Note: "Belum tersedia di sistem"},
-				{Key: "context_criteria", Label: "Lingkup, Konteks, dan Kriteria (5.1)", Available: true, Count: 3, Note: "3 piagam tersedia"},
-				{Key: "risk_identification", Label: "Identifikasi Risiko (5.2)", Available: true, Count: 18, Note: "18 risiko teridentifikasi"},
-				{Key: "risk_analysis_evaluation", Label: "Analisis dan Evaluasi Risiko (5.3/5.4)", Available: true, Count: 7, Note: "7 risiko dengan penilaian lengkap"},
-				{Key: "risk_treatment", Label: "Perlakuan Risiko (5.5)", Available: true, Count: 12, Note: "12 rencana penanganan terdefinisi"},
-				{Key: "monitoring_review", Label: "Pemantauan dan Reviu (5.6/8.2)", Available: true, Count: 25, Note: "25 aktivitas pemantauan tercatat"},
-				{Key: "recording_reporting", Label: "Pencatatan dan Pelaporan (5.7/7.5)", Available: false, Count: 0, Note: "Belum tersedia di sistem"},
-			},
-		}
-	case entity.FormalReportTypeSemiannualSupervision:
-		data.SupervisionReport = &entity.SemiannualSupervisionData{
-			Report:        data.Report,
-			Organization:  data.Organization,
-			Summary:       data.RiskSummary,
-			SectionStatus: []entity.KMKReportSectionStatus{
-				{Key: "findings", Label: "Temuan Risiko Tinggi dan Ekstrem", Available: true, Count: 7, Note: "7 temuan risiko kritis"},
-				{Key: "overdue_mitigations", Label: "Mitigasi Terlambat", Available: true, Count: 3, Note: "3 mitigasi melewati tenggat"},
-				{Key: "approval_bottlenecks", Label: "Kendala Persetujuan", Available: false, Count: 0, Note: "Belum tersedia di sistem"},
-				{Key: "evidence_completeness", Label: "Kelengkapan Evidence", Available: true, Count: 12, Note: "12 risiko dengan kontrol terdokumentasi"},
-				{Key: "follow_up_status", Label: "Status Tindak Lanjut", Available: true, Count: 10, Note: "10 aktivitas tindak lanjut tercatat"},
-			},
-		}
-	case entity.FormalReportTypeTMPMR:
-		data.TMPMRReport = &entity.TMPMRReportData{
-			Report:       data.Report,
-			Organization: data.Organization,
-			Summary:      data.RiskSummary,
-			TMPMR:        data.TMPMR,
-		}
+	data.MonitoringEvaluationReport = &entity.MonitoringEvaluationReportData{
+		Report:                  data.Report,
+		Organization:            data.Organization,
+		Summary:                 data.RiskSummary,
+		OrganizationName:        data.Organization.Name,
+		Year:                    "2025",
+		SemesterLabel:           "SEMESTER I",
+		ReportNumber:            "123/ME/2025",
+		ReportDate:              "3 Mei 2026",
+		AssignmentLetterNumber:  "321/TGS/2026",
+		AssignmentLetterDate:    "1 Mei 2026",
+		MonitoringDateRange:     "1-3 Mei 2026",
+		UnitCode:                "UPR-01",
+		UnitLocation:            "Jakarta",
+		UnitAddress:             "Jl. Contoh No. 1",
+		UnitEselonI:             "Sekretariat",
+		UnitLeaderName:          "Dr. Contoh",
+		DocumentChecklist:       buildMonitoringChecklistFixture(),
+		InfrastructureChecklist: buildMonitoringChecklistFixture(),
+		ResultChecklist:         buildMonitoringChecklistFixture(),
+		MitigationSummary:       buildMonitoringMitigationFixture(),
 	}
 
 	return data
+}
+
+func buildMonitoringChecklistFixture() []entity.MonitoringEvaluationChecklistRow {
+	return []entity.MonitoringEvaluationChecklistRow{
+		{No: "1", Item: "Dokumen A", Yes: true},
+	}
+}
+
+func buildMonitoringMitigationFixture() []entity.MonitoringEvaluationMitigationSummaryRow {
+	return []entity.MonitoringEvaluationMitigationSummaryRow{
+		{
+			No:                         "1",
+			LevelKey:                   entity.RiskLevelTinggi,
+			LevelLabel:                 "Risiko Tinggi",
+			RiskCount:                  2,
+			MitigationPlanCount:        1,
+			MitigationRealizationCount: 1,
+			DownCount:                  0,
+			SameCount:                  1,
+			UpCount:                    0,
+			NewCount:                   1,
+		},
+	}
 }
 
 func findRowTextsContaining(t *testing.T, rows []core.Row, needles ...string) []string {

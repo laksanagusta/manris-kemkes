@@ -361,6 +361,10 @@ export default function WorkingPaperDetailPage(props: {
 
   const summaryItems = [
     {
+      label: "Kode",
+      value: data.code || "-",
+    },
+    {
       label: "Siklus asesmen",
       value: data.assessment_cycle || "Belum ditetapkan",
     },

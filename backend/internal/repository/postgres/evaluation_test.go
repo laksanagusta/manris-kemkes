@@ -113,6 +113,12 @@ func TestEvaluationRepositoryCreateCopiesAndReadsSections(t *testing.T) {
 	if got.OrganizationID != orgID {
 		t.Fatalf("OrganizationID = %s, want %s", got.OrganizationID, orgID)
 	}
+	if got.SequenceNo != 1 {
+		t.Fatalf("SequenceNo = %d, want 1", got.SequenceNo)
+	}
+	if got.Code != "EV-0001" {
+		t.Fatalf("Code = %q, want EV-0001", got.Code)
+	}
 	if got.TemplateName != "Laporan Monitoring & Evaluasi MR - KMK" {
 		t.Fatalf("TemplateName = %q, want KMK template label", got.TemplateName)
 	}
@@ -124,6 +130,53 @@ func TestEvaluationRepositoryCreateCopiesAndReadsSections(t *testing.T) {
 	}
 	if got.Sections[0].Items[0].Answer != entity.EvaluationAnswerUnset {
 		t.Fatalf("Answer = %q, want unset", got.Sections[0].Items[0].Answer)
+	}
+}
+
+func TestEvaluationRepositoryCreateSequencesPerOrganization(t *testing.T) {
+	pool := setupPool(t)
+	repo := postgres.NewEvaluationRepository(pool)
+	ctx := context.Background()
+
+	orgA := insertTestOrganization(t, pool, "Evaluation Repo Seq Org A")
+	orgB := insertTestOrganization(t, pool, "Evaluation Repo Seq Org B")
+	template, err := repo.GetActiveTemplate(ctx, "monitoring_evaluation_kmk")
+	if err != nil {
+		t.Fatalf("GetActiveTemplate: %v", err)
+	}
+
+	firstA := cloneTemplateForEvaluation(t, template, orgA, "2026-H1")
+	if err := repo.Create(ctx, firstA); err != nil {
+		t.Fatalf("Create firstA: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM evaluations WHERE id = $1`, firstA.ID)
+	})
+
+	secondA := cloneTemplateForEvaluation(t, template, orgA, "2026-H2")
+	if err := repo.Create(ctx, secondA); err != nil {
+		t.Fatalf("Create secondA: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM evaluations WHERE id = $1`, secondA.ID)
+	})
+
+	firstB := cloneTemplateForEvaluation(t, template, orgB, "2026-H1")
+	if err := repo.Create(ctx, firstB); err != nil {
+		t.Fatalf("Create firstB: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM evaluations WHERE id = $1`, firstB.ID)
+	})
+
+	if firstA.SequenceNo != 1 || firstA.Code != "EV-0001" {
+		t.Fatalf("firstA sequence/code = %d/%q, want 1/EV-0001", firstA.SequenceNo, firstA.Code)
+	}
+	if secondA.SequenceNo != 2 || secondA.Code != "EV-0002" {
+		t.Fatalf("secondA sequence/code = %d/%q, want 2/EV-0002", secondA.SequenceNo, secondA.Code)
+	}
+	if firstB.SequenceNo != 1 || firstB.Code != "EV-0001" {
+		t.Fatalf("firstB sequence/code = %d/%q, want 1/EV-0001", firstB.SequenceNo, firstB.Code)
 	}
 }
 

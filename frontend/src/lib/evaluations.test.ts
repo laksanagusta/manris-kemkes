@@ -11,9 +11,11 @@ import {
 const base: Evaluation = {
   id: "eval-1",
   organizationId: "org-1",
+  sequenceNo: 1,
+  code: "EV-0001",
   period: "2026-H1",
   templateId: "template-1",
-  templateName: "Laporan Monitoring & Evaluasi MR - KMK",
+  templateName: "Laporan Monitoring & Evaluasi - KMK",
   status: "draft",
   reportNumber: "",
   assignmentLetterNumber: "",
@@ -53,4 +55,3 @@ test("evaluation helpers filter by search, status, and period", () => {
     ["eval-1"],
   );
 });
-

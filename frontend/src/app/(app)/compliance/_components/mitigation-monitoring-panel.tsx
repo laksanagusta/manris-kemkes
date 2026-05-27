@@ -58,7 +58,7 @@ import {
   normalizeMitigationReportPayload,
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
-import { isWithinMitigationSubmissionWindow } from "@/lib/kri-reporting";
+import { getMitigationSubmissionActionState } from "@/lib/kri-reporting";
 import {
   getLinearStatusBadgeClass,
   getLinearToneBadgeClass,
@@ -77,6 +77,10 @@ const tierConfig: Record<string, { label: string; color: string }> = {
   light: { label: "Overdue Ringan", color: "text-amber-700" },
   heavy: { label: "Overdue Berat", color: "text-rose-700" },
 };
+
+const doneBadgeClass = cn(
+  "border-success/20 bg-success/10 text-success hover:bg-success/10",
+);
 
 type MitigationTaskRow = MitigationTask & {
   tier: keyof typeof tierConfig;
@@ -388,7 +392,7 @@ export function MitigationMonitoringPanel() {
               <div className="space-y-3 p-4 md:hidden">
                 {mitigations.map((item) => {
                   const tier = tierConfig[item.tier];
-                  const submissionCheck = isWithinMitigationSubmissionWindow(
+                  const submissionState = getMitigationSubmissionActionState(
                     item.periodEnd,
                     item.dueDate,
                   );
@@ -441,20 +445,39 @@ export function MitigationMonitoringPanel() {
                           <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
                             Jatuh Tempo
                           </p>
-                          <div className="text-sm text-zinc-900">
+                          <Badge
+                            className={cn(
+                              "text-[11px]",
+                              item.status === "done"
+                                ? doneBadgeClass
+                                : "border-zinc-200 bg-white text-zinc-700 hover:bg-white",
+                            )}
+                          >
                             {item.dueDate ? new Date(item.dueDate).toLocaleDateString("id-ID") : "—"}
-                          </div>
+                          </Badge>
                         </div>
                         <div className="space-y-1 rounded-xl bg-zinc-50/80 px-3 py-2 ring-1 ring-inset ring-zinc-200/80">
                           <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
                             Hari
                           </p>
-                          <div className={cn(
-                            "text-sm font-semibold",
-                            item.daysOverdue > 0 ? tier.color : "text-zinc-900",
-                          )}>
-                            {item.daysOverdue > 0 ? `+${item.daysOverdue}` : item.daysOverdue}
-                          </div>
+                          <Badge
+                            className={cn(
+                              "text-[11px]",
+                              item.status === "done"
+                                ? doneBadgeClass
+                                : item.daysOverdue > 0
+                                  ? item.tier === "light"
+                                    ? "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50"
+                                    : "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-50"
+                                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-white",
+                            )}
+                          >
+                            {item.status === "done"
+                              ? "Selesai"
+                              : item.daysOverdue > 0
+                                ? `+${item.daysOverdue}`
+                                : item.daysOverdue}
+                          </Badge>
                         </div>
                       </div>
                       <div className="mt-3 grid gap-2">
@@ -463,8 +486,8 @@ export function MitigationMonitoringPanel() {
                             Status
                           </p>
                           <div className="flex items-center gap-2">
-                            <Badge className={levelBadgeVariant[item.level] || getLinearToneBadgeClass("neutral")}>
-                              {item.level}
+                            <Badge className={item.status === "done" ? doneBadgeClass : levelBadgeVariant[item.level] || getLinearToneBadgeClass("neutral")}>
+                              {item.status === "done" ? "Selesai" : item.level}
                             </Badge>
                             <span className="text-xs text-zinc-500">
                               {item.status === "done"
@@ -478,18 +501,20 @@ export function MitigationMonitoringPanel() {
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-2">
                         <div className="text-xs text-zinc-500">
-                          {submissionCheck.allowed
-                            ? "Siap lapor progres"
-                            : submissionCheck.message}
+                          {submissionState.message}
                         </div>
                         <Button
                           size="sm"
-                          variant={item.status === "overdue" ? "destructive" : "default"}
+                          variant={submissionState.isOverdue ? "destructive" : "default"}
                           onClick={(event) => {
                             event.stopPropagation();
                             handleOpenSubmit(item);
                           }}
-                          className="gap-1.5 text-xs"
+                          disabled={!submissionState.allowed}
+                          className={cn(
+                            "gap-1.5 text-xs",
+                            !submissionState.allowed && "opacity-50",
+                          )}
                         >
                           <Send className="size-3" /> Lapor
                         </Button>
@@ -529,10 +554,10 @@ export function MitigationMonitoringPanel() {
                       </TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                <TableBody>
                   {mitigations.map((item) => {
                     const tier = tierConfig[item.tier];
-                    const submissionCheck = isWithinMitigationSubmissionWindow(
+                    const submissionState = getMitigationSubmissionActionState(
                       item.periodEnd,
                       item.dueDate,
                     );
@@ -572,59 +597,54 @@ export function MitigationMonitoringPanel() {
                             : "—"}
                         </TableCell>
                         <TableCell className="text-center">
-                          <span
+                          <Badge
                             className={cn(
-                              "text-sm font-medium tabular-nums",
-                              item.daysOverdue > 0
-                                ? tier.color
-                                : "text-zinc-900",
+                              "text-[11px] tabular-nums",
+                              item.status === "done"
+                                ? doneBadgeClass
+                                : item.daysOverdue > 0
+                                  ? item.tier === "light"
+                                    ? "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50"
+                                    : "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-50"
+                                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-white",
                             )}
                           >
-                            {item.daysOverdue > 0
-                              ? `+${item.daysOverdue}`
-                              : item.daysOverdue}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              levelBadgeVariant[item.level] ||
-                              getLinearToneBadgeClass("neutral")
-                            }
-                          >
-                            {item.level}
+                            {item.status === "done"
+                              ? "Selesai"
+                              : item.daysOverdue > 0
+                                ? `+${item.daysOverdue}`
+                                : item.daysOverdue}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            className={cn(
-                              item.tier === "upcoming"
-                                ? getLinearToneBadgeClass("neutral")
-                                : item.tier === "reminder"
-                                  ? getLinearToneBadgeClass("progress")
-                                  : item.tier === "light"
-                                    ? getLinearToneBadgeClass("warning")
-                                    : getLinearToneBadgeClass("danger"),
-                            )}
-                          >
-                            {tier.label}
+                          <Badge className={item.status === "done" ? doneBadgeClass : levelBadgeVariant[item.level] || getLinearToneBadgeClass("neutral")}>
+                            {item.status === "done" ? "Selesai" : item.level}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={item.status === "done" ? doneBadgeClass : cn(
+                            item.tier === "upcoming"
+                              ? getLinearToneBadgeClass("neutral")
+                              : item.tier === "reminder"
+                                ? getLinearToneBadgeClass("progress")
+                                : item.tier === "light"
+                                  ? getLinearToneBadgeClass("warning")
+                                  : getLinearToneBadgeClass("danger"),
+                          )}>
+                            {item.status === "done" ? "Selesai" : tier.label}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           {item.status === "done" ? (
                             <span className="text-sm text-success">Selesai</span>
-                          ) : !submissionCheck.allowed ? (
+                          ) : !submissionState.allowed ? (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <span className="inline-block cursor-not-allowed">
                                     <Button
                                       size="sm"
-                                      variant={
-                                        item.status === "overdue"
-                                          ? "destructive"
-                                          : "default"
-                                      }
+                                      variant={submissionState.isOverdue ? "destructive" : "default"}
                                       disabled
                                       className="pointer-events-none text-sm opacity-50"
                                       onClick={(event) =>
@@ -636,18 +656,14 @@ export function MitigationMonitoringPanel() {
                                   </span>
                                 </TooltipTrigger>
                                 <TooltipContent side="left" className="max-w-[220px] text-xs">
-                                  {submissionCheck.message}
+                                  {submissionState.message}
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           ) : (
                             <Button
                               size="sm"
-                              variant={
-                                item.status === "overdue"
-                                  ? "destructive"
-                                  : "default"
-                              }
+                              variant={submissionState.isOverdue ? "destructive" : "default"}
                               className="gap-1.5 text-xs h-8 shrink-0"
                               onClick={(event) => {
                                 event.stopPropagation();

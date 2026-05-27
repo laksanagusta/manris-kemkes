@@ -11,11 +11,12 @@ import (
 )
 
 type CreateUseCase struct {
-	repo repository.EvaluationRepository
+	repo    repository.EvaluationRepository
+	orgRepo repository.OrganizationRepository
 }
 
-func NewCreateUseCase(repo repository.EvaluationRepository) *CreateUseCase {
-	return &CreateUseCase{repo: repo}
+func NewCreateUseCase(repo repository.EvaluationRepository, orgRepo repository.OrganizationRepository) *CreateUseCase {
+	return &CreateUseCase{repo: repo, orgRepo: orgRepo}
 }
 
 type CreateInput struct {
@@ -47,14 +48,22 @@ func (uc *CreateUseCase) Execute(ctx context.Context, input CreateInput) (*entit
 		return nil, errors.ErrNotFound
 	}
 
+	org, err := uc.orgRepo.GetByID(ctx, input.OrganizationID)
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrNotFound, "organization not found")
+	}
+
 	evaluation := &entity.Evaluation{
-		OrganizationID: input.OrganizationID,
-		Period:         strings.TrimSpace(input.Period),
-		TemplateID:     template.ID,
-		TemplateName:   template.Name,
-		Status:         entity.EvaluationStatusDraft,
-		CreatedBy:      input.CreatedBy,
-		Sections:       snapshotFromTemplate(template),
+		OrganizationID:      input.OrganizationID,
+		Period:              strings.TrimSpace(input.Period),
+		TemplateID:          template.ID,
+		TemplateName:        template.Name,
+		Status:              entity.EvaluationStatusDraft,
+		CreatedBy:           input.CreatedBy,
+		MonitoringDateRange: formatMonitoringDateRange(input.Period),
+		UnitLocation:        strings.TrimSpace(org.Location),
+		UnitAddress:         strings.TrimSpace(org.Address),
+		Sections:            snapshotFromTemplate(template),
 	}
 
 	if err := evaluation.Validate(); err != nil {
@@ -74,4 +83,28 @@ func (uc *CreateUseCase) Execute(ctx context.Context, input CreateInput) (*entit
 	}
 
 	return evaluation, nil
+}
+
+func formatMonitoringDateRange(period string) string {
+	trimmed := strings.TrimSpace(period)
+	if trimmed == "" {
+		return ""
+	}
+
+	parts := strings.Split(trimmed, "-")
+	if len(parts) != 2 {
+		return trimmed
+	}
+
+	year := strings.TrimSpace(parts[0])
+	half := strings.ToUpper(strings.TrimSpace(parts[1]))
+
+	switch half {
+	case "H1":
+		return "Semester I Tahun " + year
+	case "H2":
+		return "Semester II Tahun " + year
+	default:
+		return trimmed
+	}
 }

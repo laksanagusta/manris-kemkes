@@ -64,6 +64,12 @@ export interface SemesterSummaryDisplay {
   items: SemesterSummaryDisplayItem[];
 }
 
+export interface MitigationSubmissionActionState {
+  allowed: boolean;
+  message?: string;
+  isOverdue: boolean;
+}
+
 function formatDecimal(value: number): string {
   const rounded = Number(value.toFixed(2));
   return Number.isInteger(rounded) ? String(rounded) : String(rounded);
@@ -265,6 +271,43 @@ export function isWithinMitigationSubmissionWindow(
   }
 
   return { allowed: true };
+}
+
+export function getMitigationSubmissionActionState(
+  periodEnd: string,
+  dueDate: string,
+  now: Date = new Date(),
+): MitigationSubmissionActionState {
+  const submissionWindow = isWithinMitigationSubmissionWindow(periodEnd, dueDate, now);
+  if (submissionWindow.allowed) {
+    return {
+      allowed: true,
+      message: "Siap lapor progres",
+      isOverdue: false,
+    };
+  }
+
+  const dueDateMs = normalizeDateOnly(dueDate);
+  if (dueDateMs !== null) {
+    const currentMs = Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+    );
+    if (currentMs > dueDateMs) {
+      return {
+        allowed: true,
+        message: "Terlambat, tetap bisa lapor progres",
+        isOverdue: true,
+      };
+    }
+  }
+
+  return {
+    allowed: false,
+    message: submissionWindow.message,
+    isOverdue: false,
+  };
 }
 
 export function isKRIReviewAttentionOverdue(

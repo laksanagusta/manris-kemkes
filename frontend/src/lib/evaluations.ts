@@ -22,6 +22,7 @@ function matchesSearch(evaluation: Evaluation, search: string) {
   const haystack = [
     evaluation.id,
     evaluation.organizationId,
+    evaluation.code,
     evaluation.period,
     evaluation.templateName || "",
     evaluation.reportNumber,
@@ -64,4 +65,3 @@ export function filterEvaluations(
     return matchesSearch(evaluation, search);
   });
 }
-

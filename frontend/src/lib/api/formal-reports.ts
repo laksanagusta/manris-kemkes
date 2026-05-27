@@ -96,7 +96,9 @@ export async function downloadFormalReport(
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     throw new ApiError(
-      detail || response.statusText || "Gagal mengunduh laporan formal.",
+      detail ||
+        response.statusText ||
+        "Gagal mengunduh laporan Monitoring & Evaluasi.",
       response.status,
     );
   }
