@@ -296,7 +296,7 @@ func TestSubmitProgressUseCase_ExecuteAllowsOverdueSubmission(t *testing.T) {
 	}
 }
 
-func TestSubmitProgressUseCase_ExecuteRejectsTooEarlySubmission(t *testing.T) {
+func TestSubmitProgressUseCase_ExecuteAllowsEarlySubmission(t *testing.T) {
 	taskID := uuid.New()
 	riskID := uuid.New()
 	taskRepo := &fakeSubmitMitigationTaskRepo{
@@ -313,18 +313,24 @@ func TestSubmitProgressUseCase_ExecuteRejectsTooEarlySubmission(t *testing.T) {
 	}
 
 	uc := NewSubmitProgressUseCase(taskRepo, riskRepo)
-	_, err := uc.Execute(context.Background(), SubmitProgressInput{
+	got, err := uc.Execute(context.Background(), SubmitProgressInput{
 		TaskID:      taskID,
 		ProgressPct: 25,
 		EvidenceURL: "https://example.com/evidence",
 		Notes:       "Catatan valid untuk progress",
 		ReportedBy:  uuid.New(),
 	})
-	if !errors.Is(err, domainerrors.ErrMitigationSubmissionTooEarly) {
-		t.Fatalf("expected too-early validation error, got %v", err)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
 	}
-	if taskRepo.updated != nil {
-		t.Fatalf("expected no persisted update for early submission")
+	if got == nil {
+		t.Fatal("expected updated task, got nil")
+	}
+	if got.Status != "done" {
+		t.Fatalf("expected task to be marked done, got %q", got.Status)
+	}
+	if taskRepo.updated == nil {
+		t.Fatal("expected persisted update for early submission")
 	}
 }
 

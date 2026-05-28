@@ -140,24 +140,12 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 		return nil, domainerrors.ErrForbidden
 	}
 
-	periodEnd, err := time.Parse("2006-01-02", task.PeriodEnd)
-	if err != nil {
-		return nil, fmt.Errorf("invalid period end date: %w", err)
-	}
-
 	if _, err := time.Parse("2006-01-02", task.DueDate); err != nil {
 		return nil, fmt.Errorf("invalid due date: %w", err)
 	}
 
 	loc, _ := time.LoadLocation("Asia/Jakarta")
 	now := time.Now().In(loc)
-
-	hPlus1Start := time.Date(periodEnd.Year(), periodEnd.Month(), periodEnd.Day()+1, 0, 0, 0, 0, loc)
-	if now.Before(hPlus1Start) {
-		return nil, domainerrors.ErrMitigationSubmissionTooEarly
-	}
-
-	now = time.Now().In(loc)
 	task.ProgressPct = input.ProgressPct
 	task.EvidenceURL = evidenceURL
 	task.Notes = notes

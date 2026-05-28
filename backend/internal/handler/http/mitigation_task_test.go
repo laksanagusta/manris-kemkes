@@ -191,8 +191,8 @@ func TestSubmitProgressUsesOwnOrgOnlyScope(t *testing.T) {
 		task: &entity.MitigationTask{
 			ID:        taskID,
 			RiskID:    riskID,
-			DueDate:   "2026-06-10",
-			PeriodEnd: "2026-06-10",
+			DueDate:   "2000-01-02",
+			PeriodEnd: "2000-01-01",
 		},
 	}
 	riskRepo := &mitigationRiskRepoStub{
