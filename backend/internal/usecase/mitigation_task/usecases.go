@@ -11,6 +11,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 )
 
 const singleMitigationTaskPeriodLabel = "Laporan tunggal"
@@ -144,8 +145,7 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 		return nil, fmt.Errorf("invalid due date: %w", err)
 	}
 
-	loc, _ := time.LoadLocation("Asia/Jakarta")
-	now := time.Now().In(loc)
+	now := time.Now().In(timeutil.JakartaLocation())
 	task.ProgressPct = input.ProgressPct
 	task.EvidenceURL = evidenceURL
 	task.Notes = notes

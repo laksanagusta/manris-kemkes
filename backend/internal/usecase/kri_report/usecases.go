@@ -11,6 +11,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 )
 
 // ============================================================================
@@ -129,9 +130,8 @@ func (uc *SubmitReportUseCase) Execute(ctx context.Context, input SubmitReportIn
 		return nil, fmt.Errorf("invalid period end date: %w", err)
 	}
 
-	loc, _ := time.LoadLocation("Asia/Jakarta")
+	loc := timeutil.JakartaLocation()
 	now := time.Now().In(loc)
-
 	hPlus1Start := time.Date(periodEnd.Year(), periodEnd.Month(), periodEnd.Day()+1, 0, 0, 0, 0, loc)
 	hPlus3End := time.Date(periodEnd.Year(), periodEnd.Month(), periodEnd.Day()+3, 23, 59, 59, 0, loc)
 
