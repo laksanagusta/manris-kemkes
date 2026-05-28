@@ -149,7 +149,6 @@ func IsValidation(err error) bool {
 		errors.Is(err, ErrInvalidNotes) ||
 		errors.Is(err, ErrInvalidKRIValue) ||
 		errors.Is(err, ErrSubmissionWindowClosed) ||
-		errors.Is(err, ErrMitigationSubmissionTooEarly) ||
 		errors.Is(err, ErrInvalidSourceType) ||
 		errors.Is(err, ErrInvalidSeverity) ||
 		errors.Is(err, ErrInvalidProbability) ||

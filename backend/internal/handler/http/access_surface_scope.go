@@ -19,7 +19,7 @@ func resolveOwnOrgID(scope *entity.AccessScope) (uuid.UUID, error) {
 func resolveOperationalOrgIDs(scope *entity.AccessScope, rawOrgID string) ([]uuid.UUID, error) {
 	if scope == nil || scope.IsGlobal {
 		if rawOrgID == "" {
-			return nil, nil
+			return []uuid.UUID{}, nil
 		}
 		parsed, err := uuid.Parse(rawOrgID)
 		if err != nil {
@@ -50,7 +50,7 @@ func resolveOperationalOrgIDs(scope *entity.AccessScope, rawOrgID string) ([]uui
 func resolveReportOrgIDs(scope *entity.AccessScope, rawOrgID string) ([]uuid.UUID, error) {
 	if scope == nil || scope.IsGlobal {
 		if rawOrgID == "" {
-			return nil, nil
+			return []uuid.UUID{}, nil
 		}
 		parsed, err := uuid.Parse(rawOrgID)
 		if err != nil {
