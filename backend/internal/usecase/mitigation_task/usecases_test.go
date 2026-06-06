@@ -56,7 +56,7 @@ func (r *fakeGenerateTaskRepo) ListAll(context.Context, []uuid.UUID) ([]*entity.
 	return nil, nil
 }
 
-func (r *fakeGenerateTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, int, int) ([]*entity.MitigationTask, int, error) {
+func (r *fakeGenerateTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, string, int, int) ([]*entity.MitigationTask, int, error) {
 	return nil, 0, nil
 }
 
@@ -103,7 +103,7 @@ func (r *fakeSubmitMitigationTaskRepo) GetRecurringMitigations(context.Context) 
 func (r *fakeSubmitMitigationTaskRepo) ListAll(context.Context, []uuid.UUID) ([]*entity.MitigationTask, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitMitigationTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, int, int) ([]*entity.MitigationTask, int, error) {
+func (r *fakeSubmitMitigationTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, string, int, int) ([]*entity.MitigationTask, int, error) {
 	return nil, 0, errors.New("not implemented")
 }
 func (r *fakeSubmitMitigationTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID, string, string) (bool, error) {
@@ -116,7 +116,9 @@ type fakeSubmitRiskRepo struct {
 	risk *entity.Risk
 }
 
-func (r *fakeSubmitRiskRepo) Create(context.Context, *entity.Risk) error { return errors.New("not implemented") }
+func (r *fakeSubmitRiskRepo) Create(context.Context, *entity.Risk) error {
+	return errors.New("not implemented")
+}
 func (r *fakeSubmitRiskRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (*entity.Risk, error) {
 	if r.risk == nil {
 		return nil, domainerrors.ErrRiskNotFound
@@ -124,8 +126,12 @@ func (r *fakeSubmitRiskRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UU
 	clone := *r.risk
 	return &clone, nil
 }
-func (r *fakeSubmitRiskRepo) Update(context.Context, *entity.Risk) error { return errors.New("not implemented") }
-func (r *fakeSubmitRiskRepo) Delete(context.Context, uuid.UUID) error { return errors.New("not implemented") }
+func (r *fakeSubmitRiskRepo) Update(context.Context, *entity.Risk) error {
+	return errors.New("not implemented")
+}
+func (r *fakeSubmitRiskRepo) Delete(context.Context, uuid.UUID) error {
+	return errors.New("not implemented")
+}
 func (r *fakeSubmitRiskRepo) List(context.Context, []uuid.UUID, string, string) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }
@@ -135,7 +141,9 @@ func (r *fakeSubmitRiskRepo) ListRegister(context.Context, repo.RiskRegisterFilt
 func (r *fakeSubmitRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitRiskRepo) NextRiskCode(context.Context) (string, error) { return "", errors.New("not implemented") }
+func (r *fakeSubmitRiskRepo) NextRiskCode(context.Context) (string, error) {
+	return "", errors.New("not implemented")
+}
 func (r *fakeSubmitRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, errors.New("not implemented")
 }

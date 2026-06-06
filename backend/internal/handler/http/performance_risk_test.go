@@ -36,6 +36,7 @@ func TestPerformanceRiskHandlerRejectsMissingPeriod(t *testing.T) {
 		performanceriskuc.NewPlanningMapUseCase(performanceRiskHandlerRepo{}),
 		performanceriskuc.NewDetailUseCase(performanceRiskHandlerRepo{}),
 		performanceriskuc.NewUnlinkedUseCase(performanceRiskHandlerRepo{}),
+		nil,
 	)
 
 	app := fiber.New()
@@ -59,6 +60,7 @@ func TestPerformanceRiskHandlerRejectsForbiddenOrg(t *testing.T) {
 		performanceriskuc.NewPlanningMapUseCase(performanceRiskHandlerRepo{}),
 		performanceriskuc.NewDetailUseCase(performanceRiskHandlerRepo{}),
 		performanceriskuc.NewUnlinkedUseCase(performanceRiskHandlerRepo{}),
+		nil,
 	)
 
 	app := fiber.New()

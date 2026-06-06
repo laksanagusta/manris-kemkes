@@ -103,7 +103,7 @@ func (r *fakeApprovalMitigationTaskRepo) GetRecurringMitigations(context.Context
 func (r *fakeApprovalMitigationTaskRepo) ListAll(context.Context, []uuid.UUID) ([]*entity.MitigationTask, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeApprovalMitigationTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, int, int) ([]*entity.MitigationTask, int, error) {
+func (r *fakeApprovalMitigationTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, string, int, int) ([]*entity.MitigationTask, int, error) {
 	return nil, 0, errors.New("not implemented")
 }
 func (r *fakeApprovalMitigationTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID, string, string) (bool, error) {

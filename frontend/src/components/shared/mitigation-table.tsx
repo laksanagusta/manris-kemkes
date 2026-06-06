@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, useCallback, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, Plus, Search, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,6 +21,7 @@ import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import { cn } from "@/lib/utils";
 import type { UserPickerOption } from "@/lib/risk-register-user-picker";
 import type { MitigationType } from "@/types/risk";
+import { filterMitigationItems } from "@/components/shared/mitigation-table-search";
 
 export interface MitigationItem {
   id?: string;
@@ -99,6 +100,21 @@ export function MitigationTable({
   loadPicOptions,
 }: MitigationTableProps) {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+
+    return () => window.clearTimeout(handle);
+  }, [search]);
+
+  const filteredItems = useMemo(
+    () => filterMitigationItems(items, debouncedSearch),
+    [debouncedSearch, items],
+  );
 
   const addItem = () => {
     onChange([...items, emptyMitigation()]);
@@ -156,10 +172,58 @@ export function MitigationTable({
 
   return (
     <div className="space-y-3">
+      {items.length > 0 ? (
+        <div className="rounded-xl border border-border/50 bg-card/80 p-3 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="mitigation-search" className="text-xs font-medium text-muted-foreground">
+                Cari mitigasi
+              </Label>
+              <div className="relative w-full md:w-[360px]">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="mitigation-search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Cari aksi, PIC, due date, atau detail..."
+                  className="h-9 bg-background/80 pl-9 pr-9 text-xs border-border/50"
+                  disabled={disabled}
+                />
+                {search ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      setSearch("");
+                      setDebouncedSearch("");
+                    }}
+                    disabled={disabled}
+                    aria-label="Hapus pencarian mitigasi"
+                  >
+                    <X className="size-3.5" />
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {filteredItems.length} dari {items.length} rencana penanganan
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       {items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 px-4 py-8 text-left">
           <p className="text-xs text-muted-foreground">
             Belum ada rencana mitigasi.
+          </p>
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 px-4 py-8 text-left">
+          <p className="text-xs text-muted-foreground">
+            Tidak ada rencana mitigasi yang cocok dengan pencarian ini.
           </p>
         </div>
       ) : (
@@ -192,7 +256,7 @@ export function MitigationTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item, index) => {
+              {filteredItems.map(({ item, index }) => {
                 const expanded = expandedRows[index] ?? false;
 
                 return (

@@ -81,6 +81,14 @@ func main() {
 
 	// Organization handlers (Clean Architecture)
 	cleanOrgHandler := httpHandler.NewOrganizationHandler(container.OrgCreateUC, container.OrgGetUC, container.OrgUpdateUC, container.OrgDeleteUC, container.OrgListUC, container.OrgListFilterUC)
+	cleanOrgGroupHandler := httpHandler.NewOrganizationGroupHandler(
+		container.OrgGroupCreateUC,
+		container.OrgGroupUpdateUC,
+		container.OrgGroupListUC,
+		container.OrgGroupGetUC,
+		container.OrgGroupDeleteUC,
+		container.OrgGroupResolveUC,
+	)
 	cleanRiskCharterHandler := httpHandler.NewRiskCharterHandler(
 		container.RiskCharterCreateUC,
 		container.RiskCharterGetUC,
@@ -104,6 +112,7 @@ func main() {
 		container.EvaluationFinalizeUC,
 		container.EvaluationReopenUC,
 		container.EvaluationExportPDFUC,
+		container.OrgGroupResolveUC,
 	)
 	cleanRiskCascadeHandler := httpHandler.NewRiskCascadeHandler(
 		container.RiskCascadeCreateMandatoryUC,
@@ -121,6 +130,7 @@ func main() {
 		container.FormalReportGetUC,
 		container.FormalReportListUC,
 		container.FormalReportDownloadUC,
+		container.OrgGroupResolveUC,
 	)
 
 	// Likelihood Assessment handler (Clean Architecture)
@@ -163,12 +173,13 @@ func main() {
 	)
 
 	// Report handler
-	cleanReportHandler := httpHandler.NewReportHandler(container.GenerateReportUC, container.PDFReportRenderer)
+	cleanReportHandler := httpHandler.NewReportHandler(container.GenerateReportUC, container.PDFReportRenderer, container.OrgGroupResolveUC)
 	cleanPerformanceRiskHandler := httpHandler.NewPerformanceRiskHandler(
 		container.PerformanceRiskSummaryUC,
 		container.PerformanceRiskNodesUC,
 		container.PerformanceRiskDetailUC,
 		container.PerformanceRiskUnlinkedUC,
+		container.OrgGroupResolveUC,
 	)
 
 	// External PIC handler
@@ -236,6 +247,11 @@ func main() {
 	protected.Get("/organizations/:id", cleanOrgHandler.Get)
 	protected.Put("/organizations/:id", cleanOrgHandler.Update)
 	protected.Delete("/organizations/:id", cleanOrgHandler.Delete)
+	protected.Get("/organization-groups", cleanOrgGroupHandler.List)
+	protected.Post("/organization-groups", cleanOrgGroupHandler.Create)
+	protected.Get("/organization-groups/:id", cleanOrgGroupHandler.Get)
+	protected.Put("/organization-groups/:id", cleanOrgGroupHandler.Update)
+	protected.Delete("/organization-groups/:id", cleanOrgGroupHandler.Delete)
 
 	// Risk Charters (Clean Architecture)
 	protected.Get("/risk-charters", cleanRiskCharterHandler.List)

@@ -33,33 +33,33 @@ var (
 	ErrInvalidAction       = &AppError{Code: "INVALID_ACTION", Message: "action must be 'approve' or 'reject'"}
 
 	// Entity validation errors
-	ErrInvalidName            = &AppError{Code: "INVALID_NAME", Message: "name cannot be empty"}
-	ErrInvalidEmail           = &AppError{Code: "INVALID_EMAIL", Message: "invalid email format"}
-	ErrInvalidUsername        = &AppError{Code: "INVALID_USERNAME", Message: "username cannot be empty"}
-	ErrInvalidPassword        = &AppError{Code: "INVALID_PASSWORD", Message: "password cannot be empty"}
-	ErrInvalidRole            = &AppError{Code: "INVALID_ROLE", Message: "invalid role"}
-	ErrInvalidTitle           = &AppError{Code: "INVALID_TITLE", Message: "title cannot be empty"}
-	ErrInvalidDescription     = &AppError{Code: "INVALID_DESCRIPTION", Message: "description cannot be empty"}
-	ErrInvalidCode            = &AppError{Code: "INVALID_CODE", Message: "code cannot be empty"}
-	ErrInvalidControlType     = &AppError{Code: "INVALID_CONTROL_TYPE", Message: "invalid control type"}
-	ErrInvalidMetric          = &AppError{Code: "INVALID_METRIC", Message: "invalid metric"}
-	ErrInvalidThreshold       = &AppError{Code: "INVALID_THRESHOLD", Message: "invalid threshold range"}
-	ErrInvalidProgress        = &AppError{Code: "INVALID_PROGRESS", Message: "progress percentage must be between 0-100"}
-	ErrInvalidEvidenceURL     = &AppError{Code: "INVALID_EVIDENCE_URL", Message: "evidence URL must be a valid http(s) URL"}
-	ErrInvalidNotes           = &AppError{Code: "INVALID_NOTES", Message: "notes must be between 10 and 1000 characters"}
-	ErrInvalidKRIValue        = &AppError{Code: "INVALID_KRI_VALUE", Message: "KRI value must be zero or greater"}
-	ErrSubmissionWindowClosed = &AppError{Code: "SUBMISSION_WINDOW_CLOSED", Message: "KRI reports can only be submitted between H+1 and H+3 after the period ends"}
+	ErrInvalidName                  = &AppError{Code: "INVALID_NAME", Message: "name cannot be empty"}
+	ErrInvalidEmail                 = &AppError{Code: "INVALID_EMAIL", Message: "invalid email format"}
+	ErrInvalidUsername              = &AppError{Code: "INVALID_USERNAME", Message: "username cannot be empty"}
+	ErrInvalidPassword              = &AppError{Code: "INVALID_PASSWORD", Message: "password cannot be empty"}
+	ErrInvalidRole                  = &AppError{Code: "INVALID_ROLE", Message: "invalid role"}
+	ErrInvalidTitle                 = &AppError{Code: "INVALID_TITLE", Message: "title cannot be empty"}
+	ErrInvalidDescription           = &AppError{Code: "INVALID_DESCRIPTION", Message: "description cannot be empty"}
+	ErrInvalidCode                  = &AppError{Code: "INVALID_CODE", Message: "code cannot be empty"}
+	ErrInvalidControlType           = &AppError{Code: "INVALID_CONTROL_TYPE", Message: "invalid control type"}
+	ErrInvalidMetric                = &AppError{Code: "INVALID_METRIC", Message: "invalid metric"}
+	ErrInvalidThreshold             = &AppError{Code: "INVALID_THRESHOLD", Message: "invalid threshold range"}
+	ErrInvalidProgress              = &AppError{Code: "INVALID_PROGRESS", Message: "progress percentage must be between 0-100"}
+	ErrInvalidEvidenceURL           = &AppError{Code: "INVALID_EVIDENCE_URL", Message: "evidence URL must be a valid http(s) URL"}
+	ErrInvalidNotes                 = &AppError{Code: "INVALID_NOTES", Message: "notes must be between 10 and 1000 characters"}
+	ErrInvalidKRIValue              = &AppError{Code: "INVALID_KRI_VALUE", Message: "KRI value must be zero or greater"}
+	ErrSubmissionWindowClosed       = &AppError{Code: "SUBMISSION_WINDOW_CLOSED", Message: "KRI reports can only be submitted between H+1 and H+3 after the period ends"}
 	ErrMitigationSubmissionTooEarly = &AppError{Code: "MITIGATION_SUBMISSION_TOO_EARLY", Message: "Laporan progress hanya dapat dikirim mulai H+1 setelah periode berakhir"}
-	ErrInvalidSourceType      = &AppError{Code: "INVALID_SOURCE_TYPE", Message: "invalid source type"}
-	ErrInvalidSeverity        = &AppError{Code: "INVALID_SEVERITY", Message: "invalid severity"}
-	ErrInvalidProbability     = &AppError{Code: "INVALID_PROBABILITY", Message: "probability must be between 1-5"}
-	ErrInvalidImpact          = &AppError{Code: "INVALID_IMPACT", Message: "impact must be between 1-5"}
-	ErrInvalidRiskCategory    = &AppError{Code: "INVALID_RISK_CATEGORY", Message: "invalid risk category"}
-	ErrInvalidMitigationType  = &AppError{Code: "INVALID_MITIGATION_TYPE", Message: "invalid mitigation type"}
-	ErrInvalidOwner           = &AppError{Code: "INVALID_OWNER", Message: "owner cannot be empty"}
-	ErrInvalidFileType        = &AppError{Code: "INVALID_FILE_TYPE", Message: "only PDF files are supported"}
-	ErrFileTooLarge           = &AppError{Code: "FILE_TOO_LARGE", Message: "file exceeds the maximum allowed size"}
-	ErrDocumentUnreadable     = &AppError{Code: "DOCUMENT_UNREADABLE", Message: "document could not be read as text"}
+	ErrInvalidSourceType            = &AppError{Code: "INVALID_SOURCE_TYPE", Message: "invalid source type"}
+	ErrInvalidSeverity              = &AppError{Code: "INVALID_SEVERITY", Message: "invalid severity"}
+	ErrInvalidProbability           = &AppError{Code: "INVALID_PROBABILITY", Message: "probability must be between 1-5"}
+	ErrInvalidImpact                = &AppError{Code: "INVALID_IMPACT", Message: "impact must be between 1-5"}
+	ErrInvalidRiskCategory          = &AppError{Code: "INVALID_RISK_CATEGORY", Message: "invalid risk category"}
+	ErrInvalidMitigationType        = &AppError{Code: "INVALID_MITIGATION_TYPE", Message: "invalid mitigation type"}
+	ErrInvalidOwner                 = &AppError{Code: "INVALID_OWNER", Message: "owner cannot be empty"}
+	ErrInvalidFileType              = &AppError{Code: "INVALID_FILE_TYPE", Message: "only PDF files are supported"}
+	ErrFileTooLarge                 = &AppError{Code: "FILE_TOO_LARGE", Message: "file exceeds the maximum allowed size"}
+	ErrDocumentUnreadable           = &AppError{Code: "DOCUMENT_UNREADABLE", Message: "document could not be read as text"}
 
 	// Not found errors
 	ErrNotFound         = &AppError{Code: "NOT_FOUND", Message: "resource not found"}
@@ -68,14 +68,15 @@ var (
 	ErrIncidentNotFound = &AppError{Code: "INCIDENT_NOT_FOUND", Message: "incident not found"}
 
 	// Business logic errors
-	ErrAlreadyPending     = &AppError{Code: "ALREADY_PENDING", Message: "already pending approval"}
-	ErrNotPending         = &AppError{Code: "NOT_PENDING", Message: "approval request is not pending"}
-	ErrUnauthorized       = &AppError{Code: "UNAUTHORIZED", Message: "unauthorized access"}
-	ErrForbidden          = &AppError{Code: "FORBIDDEN", Message: "insufficient permissions"}
-	ErrInvalidCredentials = &AppError{Code: "INVALID_CREDENTIALS", Message: "invalid username or password"}
-	ErrAccountInactive    = &AppError{Code: "ACCOUNT_INACTIVE", Message: "account is inactive"}
+	ErrAlreadyPending         = &AppError{Code: "ALREADY_PENDING", Message: "already pending approval"}
+	ErrNotPending             = &AppError{Code: "NOT_PENDING", Message: "approval request is not pending"}
+	ErrUnauthorized           = &AppError{Code: "UNAUTHORIZED", Message: "unauthorized access"}
+	ErrForbidden              = &AppError{Code: "FORBIDDEN", Message: "insufficient permissions"}
+	ErrConflict               = &AppError{Code: "CONFLICT", Message: "resource conflict"}
+	ErrInvalidCredentials     = &AppError{Code: "INVALID_CREDENTIALS", Message: "invalid username or password"}
+	ErrAccountInactive        = &AppError{Code: "ACCOUNT_INACTIVE", Message: "account is inactive"}
 	ErrAccountPendingApproval = &AppError{Code: "ACCOUNT_PENDING_APPROVAL", Message: "account is waiting for superadmin approval"}
-	ErrTokenGeneration    = &AppError{Code: "TOKEN_GENERATION", Message: "failed to generate token"}
+	ErrTokenGeneration        = &AppError{Code: "TOKEN_GENERATION", Message: "failed to generate token"}
 
 	// System errors
 	ErrDatabase = &AppError{Code: "DATABASE_ERROR", Message: "database error"}
@@ -109,6 +110,11 @@ func IsUnauthorized(err error) bool {
 // IsForbidden checks if error is a forbidden error
 func IsForbidden(err error) bool {
 	return errors.Is(err, ErrForbidden)
+}
+
+// IsConflict checks if error is a conflict error.
+func IsConflict(err error) bool {
+	return errors.Is(err, ErrConflict)
 }
 
 // IsAccountPendingApproval checks if error is a pending-approval error

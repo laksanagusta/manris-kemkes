@@ -8,12 +8,13 @@ import (
 )
 
 type EvaluationListFilter struct {
-	OrganizationID *uuid.UUID
-	Period         string
-	Status         string
-	Query          string
-	Page           int
-	Limit          int
+	OrganizationID  *uuid.UUID
+	OrganizationIDs []uuid.UUID
+	Period          string
+	Status          string
+	Query           string
+	Page            int
+	Limit           int
 }
 
 type EvaluationRepository interface {

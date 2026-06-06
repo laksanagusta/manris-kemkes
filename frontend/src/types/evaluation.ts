@@ -71,6 +71,7 @@ export type PaginatedEvaluationResponse = {
 
 export type ListEvaluationsParams = {
   organizationId?: string;
+  organizationGroupId?: string;
   period?: string;
   status?: EvaluationStatus;
   query?: string;

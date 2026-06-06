@@ -1,20 +1,40 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 
 import type { OrganizationListItem } from "@/lib/api/organizations";
 import { Button } from "@/components/ui/button";
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  useComboboxAnchor,
+} from "@/components/ui/combobox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-type PickerOption = OrganizationListItem | { id: string; name: string };
+type PickerOption = {
+  id: string;
+  name: string;
+  location?: string;
+  uprLevel?: string;
+};
 
 interface OrganizationPickerProps {
   value: string;
   organizations: OrganizationListItem[];
   onChange: (organizationId: string) => void;
+  selectedValues?: string[];
+  onSelectedValuesChange?: (organizationIds: string[]) => void;
+  multiSelect?: boolean;
   placeholder?: string;
   searchPlaceholder?: string;
   emptyMessage?: string;
@@ -43,6 +63,9 @@ export function OrganizationPicker({
   value,
   organizations,
   onChange,
+  selectedValues,
+  onSelectedValuesChange,
+  multiSelect = false,
   placeholder = "Pilih unit laporan",
   searchPlaceholder = "Cari unit...",
   emptyMessage = "Tidak ada unit ditemukan.",
@@ -53,6 +76,7 @@ export function OrganizationPicker({
   allOptionValue = "all",
 }: OrganizationPickerProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const comboboxAnchor = useComboboxAnchor();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 500);
@@ -67,14 +91,23 @@ export function OrganizationPicker({
 
   const filteredOptions = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
-    if (!query) return options;
+    if (!query) return [];
 
-    return options.filter((option) =>
-      option.name.toLowerCase().includes(query),
-    );
+    return options
+      .filter((option) =>
+        `${option.name} ${option.location ?? ""} ${option.uprLevel ?? ""}`
+          .toLowerCase()
+          .includes(query),
+      )
+      .slice(0, 5);
   }, [debouncedSearch, options]);
 
   const selectedOption = options.find((option) => option.id === value);
+  const allowedSelectedValues = filterAllowedValues(
+    options,
+    selectedValues ?? [],
+  );
+  const optionNameById = new Map(options.map((option) => [option.id, option.name]));
 
   useEffect(() => {
     if (!open) return;
@@ -85,6 +118,63 @@ export function OrganizationPicker({
 
     return () => window.cancelAnimationFrame(frame);
   }, [open]);
+
+  if (multiSelect) {
+    return (
+      <Combobox
+        multiple
+        autoHighlight
+        highlightItemOnHover
+        openOnInputClick
+        items={options.map((option) => option.id)}
+        filteredItems={filteredOptions.map((option) => option.id)}
+        filter={null}
+        value={allowedSelectedValues}
+        onValueChange={(nextValues) => onSelectedValuesChange?.(nextValues)}
+        inputValue={search}
+        onInputValueChange={setSearch}
+        disabled={disabled}
+      >
+        <ComboboxChips
+          ref={comboboxAnchor}
+          className={cn(
+            "w-full min-w-0 border-border/50 bg-background/80 text-xs shadow-none",
+            className,
+          )}
+        >
+          <ComboboxValue>
+            {(values) => (
+              <Fragment>
+                {values.map((selectedId: string) => (
+                  <ComboboxChip key={selectedId}>
+                    {optionNameById.get(selectedId) ?? selectedId}
+                  </ComboboxChip>
+                ))}
+                <ComboboxChipsInput
+                  placeholder={values.length === 0 ? placeholder : searchPlaceholder}
+                  className="min-w-32 text-xs"
+                />
+              </Fragment>
+            )}
+          </ComboboxValue>
+        </ComboboxChips>
+        <ComboboxContent anchor={comboboxAnchor} className="min-w-[420px]">
+          <ComboboxEmpty>
+            {search.trim() ? emptyMessage : "Ketik untuk mencari unit."}
+          </ComboboxEmpty>
+          <ComboboxList>
+            {(optionId: string) => (
+              <ComboboxItem key={optionId} value={optionId} className="text-xs">
+                <span className="min-w-0 flex-1 truncate">
+                  {optionNameById.get(optionId) ?? optionId}
+                </span>
+              </ComboboxItem>
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
+    );
+  }
 
   return (
     <Popover
@@ -114,7 +204,7 @@ export function OrganizationPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[min(var(--radix-popover-trigger-width),520px)] gap-0 overflow-hidden rounded-md p-0"
+        className="w-[min(var(--radix-popover-trigger-width),680px)] gap-0 overflow-hidden rounded-md p-0"
         align="start"
       >
         <div className="flex items-center border-b px-3">
@@ -168,4 +258,13 @@ export function OrganizationPicker({
       </PopoverContent>
     </Popover>
   );
+}
+
+function filterAllowedValues(
+  options: PickerOption[],
+  values?: string[],
+) {
+  if (!values?.length) return [];
+  const allowed = new Set(options.map((option) => option.id));
+  return values.filter((value) => allowed.has(value));
 }

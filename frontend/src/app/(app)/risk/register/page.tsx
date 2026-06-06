@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -55,6 +56,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -112,6 +123,7 @@ import {
   RefreshCcw,
   Archive,
   RotateCcw,
+  Filter,
 } from "lucide-react";
 import {
   getLinearRiskLevelBadgeClass,
@@ -167,6 +179,256 @@ type RiskRegisterTab =
   | "my-drafts"
   | "history"
   | "monitoring-transactions";
+
+type RiskRegisterFilterToolbarProps = {
+  search: string;
+  onSearchChange: (value: string) => void;
+  searchPlaceholder: string;
+  searchAriaLabel: string;
+  filterOpen: boolean;
+  onFilterOpenChange: (open: boolean) => void;
+  assessmentCycleFilter: string;
+  onAssessmentCycleFilterChange: (value: string) => void;
+  createdAtFilter: string;
+  onCreatedAtFilterChange: (value: string) => void;
+  lifecycleFilter: RiskRegisterLifecycleFilter;
+  onLifecycleFilterChange: (value: RiskRegisterLifecycleFilter) => void;
+  statusFilter: RiskRegisterStatusFilter;
+  onStatusFilterChange: (value: RiskRegisterStatusFilter) => void;
+  categoryFilter: RiskRegisterCategoryFilter;
+  onCategoryFilterChange: (value: RiskRegisterCategoryFilter) => void;
+  onReset: () => void;
+};
+
+function RiskRegisterFilterToolbar({
+  search,
+  onSearchChange,
+  searchPlaceholder,
+  searchAriaLabel,
+  filterOpen,
+  onFilterOpenChange,
+  assessmentCycleFilter,
+  onAssessmentCycleFilterChange,
+  createdAtFilter,
+  onCreatedAtFilterChange,
+  lifecycleFilter,
+  onLifecycleFilterChange,
+  statusFilter,
+  onStatusFilterChange,
+  categoryFilter,
+  onCategoryFilterChange,
+  onReset,
+}: RiskRegisterFilterToolbarProps) {
+  return (
+    <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div className="min-w-0 flex-1 md:max-w-md">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder={searchPlaceholder}
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            aria-label={searchAriaLabel}
+            className="h-8 pl-9 text-xs bg-background/80 border border-border/50"
+          />
+        </div>
+      </div>
+
+      <RiskRegisterFiltersSidebar
+        open={filterOpen}
+        onOpenChange={onFilterOpenChange}
+        assessmentCycleFilter={assessmentCycleFilter}
+        onAssessmentCycleFilterChange={onAssessmentCycleFilterChange}
+        createdAtFilter={createdAtFilter}
+        onCreatedAtFilterChange={onCreatedAtFilterChange}
+        lifecycleFilter={lifecycleFilter}
+        onLifecycleFilterChange={onLifecycleFilterChange}
+        statusFilter={statusFilter}
+        onStatusFilterChange={onStatusFilterChange}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={onCategoryFilterChange}
+        onReset={onReset}
+      />
+    </div>
+  );
+}
+
+type RiskRegisterFiltersSidebarProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  assessmentCycleFilter: string;
+  onAssessmentCycleFilterChange: (value: string) => void;
+  createdAtFilter: string;
+  onCreatedAtFilterChange: (value: string) => void;
+  lifecycleFilter: RiskRegisterLifecycleFilter;
+  onLifecycleFilterChange: (value: RiskRegisterLifecycleFilter) => void;
+  statusFilter: RiskRegisterStatusFilter;
+  onStatusFilterChange: (value: RiskRegisterStatusFilter) => void;
+  categoryFilter: RiskRegisterCategoryFilter;
+  onCategoryFilterChange: (value: RiskRegisterCategoryFilter) => void;
+  onReset: () => void;
+};
+
+function RiskRegisterFiltersSidebar({
+  open,
+  onOpenChange,
+  assessmentCycleFilter,
+  onAssessmentCycleFilterChange,
+  createdAtFilter,
+  onCreatedAtFilterChange,
+  lifecycleFilter,
+  onLifecycleFilterChange,
+  statusFilter,
+  onStatusFilterChange,
+  categoryFilter,
+  onCategoryFilterChange,
+  onReset,
+}: RiskRegisterFiltersSidebarProps) {
+  return (
+    <Sheet modal={false} open={open} onOpenChange={onOpenChange}>
+      <SheetTrigger asChild>
+        <Button variant="outline" className="h-8 gap-2">
+          <Filter className="size-3.5" />
+          Filter
+        </Button>
+      </SheetTrigger>
+
+      <SheetContent
+        side="right"
+        className="data-[side=right]:w-full data-[side=right]:sm:max-w-[22rem]"
+      >
+        <SheetHeader>
+          <SheetTitle>Filter Daftar Risiko</SheetTitle>
+          <SheetDescription>
+            Atur filter untuk daftar risiko dan transaksi pemantauan. Search
+            tetap tersedia di luar sidebar.
+          </SheetDescription>
+        </SheetHeader>
+
+        <Separator />
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Semester
+            </Label>
+            <Input
+              placeholder="Semester"
+              value={assessmentCycleFilter}
+              onChange={(event) =>
+                onAssessmentCycleFilterChange(event.target.value)
+              }
+              className="h-8 border border-border/50 bg-background/80 text-xs"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Tanggal Dibuat
+            </Label>
+            <Input
+              type="date"
+              value={createdAtFilter}
+              onChange={(event) => onCreatedAtFilterChange(event.target.value)}
+              className="h-8 border border-border/50 bg-background/80 text-xs"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Lifecycle
+            </Label>
+            <Select
+              value={lifecycleFilter}
+              onValueChange={(value) =>
+                onLifecycleFilterChange(value as RiskRegisterLifecycleFilter)
+              }
+            >
+              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
+                <SelectValue placeholder="Lifecycle" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Aktif</SelectItem>
+                <SelectItem value="archived">Arsip</SelectItem>
+                <SelectItem value="all">Semua</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Status
+            </Label>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                onStatusFilterChange(value as RiskRegisterStatusFilter)
+              }
+            >
+              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="assessment_draft">Draf Pemantauan</SelectItem>
+                <SelectItem value="assessment_in_review">
+                  Dalam Review
+                </SelectItem>
+                <SelectItem value="approved">Disetujui</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Kategori
+            </Label>
+            <Select
+              value={categoryFilter}
+              onValueChange={(value) =>
+                onCategoryFilterChange(value as RiskRegisterCategoryFilter)
+              }
+            >
+              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
+                <SelectValue placeholder="Kategori" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kategori</SelectItem>
+                <SelectItem value="kebijakan">
+                  {riskCategoryLabels.kebijakan}
+                </SelectItem>
+                <SelectItem value="reputasi">
+                  {riskCategoryLabels.reputasi}
+                </SelectItem>
+                <SelectItem value="fraud_korupsi">
+                  {riskCategoryLabels.fraud_korupsi}
+                </SelectItem>
+                <SelectItem value="legal">{riskCategoryLabels.legal}</SelectItem>
+                <SelectItem value="kepatuhan">
+                  {riskCategoryLabels.kepatuhan}
+                </SelectItem>
+                <SelectItem value="operasional">
+                  {riskCategoryLabels.operasional}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Separator />
+
+        <SheetFooter className="sm:flex-row sm:justify-between">
+          <Button type="button" variant="ghost" onClick={onReset}>
+            Reset
+          </Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Tutup
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 function getRiskLevel(nilai: number | undefined): string {
   if (nilai === undefined || isNaN(nilai)) return "Sangat Rendah";
@@ -418,6 +680,48 @@ export default function RiskRegisterPage() {
   const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
   const [riskToArchive, setRiskToArchive] = useState<RiskListItem | null>(null);
   const [archiveReason, setArchiveReason] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const handleRegisterSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const handleRegisterAssessmentCycleChange = (value: string) => {
+    setAssessmentCycleFilter(value);
+    setPage(1);
+  };
+
+  const handleRegisterCreatedAtChange = (value: string) => {
+    setCreatedAtFilter(value);
+    setPage(1);
+  };
+
+  const handleRegisterLifecycleChange = (
+    value: RiskRegisterLifecycleFilter,
+  ) => {
+    setLifecycleFilter(value);
+    setPage(1);
+  };
+
+  const handleRegisterStatusChange = (value: RiskRegisterStatusFilter) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleRegisterCategoryChange = (value: RiskRegisterCategoryFilter) => {
+    setCategoryFilter(value);
+    setPage(1);
+  };
+  const handleResetRegisterFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setLifecycleFilter("active");
+    setCategoryFilter("all");
+    setAssessmentCycleFilter("");
+    setCreatedAtFilter("");
+    setPage(1);
+  };
   const [archiveNote, setArchiveNote] = useState("");
   const [riskToRestore, setRiskToRestore] = useState<RiskListItem | null>(null);
   const [sortBy, setSortBy] = useState<string>(
@@ -1047,115 +1351,25 @@ export default function RiskRegisterPage() {
             ))}
           </div>
 
-          {/* Filters */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative flex-1 min-w-[200px] max-w-sm">
-                  <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Cari risiko..."
-                    value={search}
-                    onChange={(event) => {
-                      setSearch(event.target.value);
-                      setPage(1);
-                    }}
-                    className="h-8 pl-8 text-xs bg-background/80 border border-border/50"
-                  />
-                </div>
-                <div className="relative min-w-[180px] md:w-40">
-                  <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Semester"
-                    value={assessmentCycleFilter}
-                    onChange={(event) => {
-                      setAssessmentCycleFilter(event.target.value);
-                      setPage(1);
-                    }}
-                    className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
-                  />
-                </div>
-                <div className="relative min-w-[160px] md:w-44">
-                  <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="date"
-                    value={createdAtFilter}
-                    onChange={(event) => {
-                      setCreatedAtFilter(event.target.value);
-                      setPage(1);
-                    }}
-                    className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
-                  />
-                </div>
-                <Select
-                  value={lifecycleFilter}
-                  onValueChange={(value) => {
-                    setLifecycleFilter(value as RiskRegisterLifecycleFilter);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-32 text-xs bg-background/80 border border-border/50">
-                    <SelectValue placeholder="Lifecycle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Aktif</SelectItem>
-                    <SelectItem value="archived">Arsip</SelectItem>
-                    <SelectItem value="all">Semua</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={statusFilter}
-                  onValueChange={(value) => {
-                    setStatusFilter(value as RiskRegisterStatusFilter);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-32 text-xs bg-background/80 border border-border/50">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="assessment_in_review">
-                      Dalam Review
-                    </SelectItem>
-                    <SelectItem value="approved">Disetujui</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={categoryFilter}
-                  onValueChange={(value) => {
-                    setCategoryFilter(value as RiskRegisterCategoryFilter);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-44 text-xs bg-background/80 border border-border/50">
-                    <SelectValue placeholder="Kategori" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Kategori</SelectItem>
-                    <SelectItem value="kebijakan">
-                      {riskCategoryLabels.kebijakan}
-                    </SelectItem>
-                    <SelectItem value="reputasi">
-                      {riskCategoryLabels.reputasi}
-                    </SelectItem>
-                    <SelectItem value="fraud_korupsi">
-                      {riskCategoryLabels.fraud_korupsi}
-                    </SelectItem>
-                    <SelectItem value="legal">
-                      {riskCategoryLabels.legal}
-                    </SelectItem>
-                    <SelectItem value="kepatuhan">
-                      {riskCategoryLabels.kepatuhan}
-                    </SelectItem>
-                    <SelectItem value="operasional">
-                      {riskCategoryLabels.operasional}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+          <RiskRegisterFilterToolbar
+            search={search}
+            onSearchChange={handleRegisterSearchChange}
+            searchPlaceholder="Cari risiko..."
+            searchAriaLabel="Cari risiko"
+            filterOpen={filterOpen}
+            onFilterOpenChange={setFilterOpen}
+            assessmentCycleFilter={assessmentCycleFilter}
+            onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
+            createdAtFilter={createdAtFilter}
+            onCreatedAtFilterChange={handleRegisterCreatedAtChange}
+            lifecycleFilter={lifecycleFilter}
+            onLifecycleFilterChange={handleRegisterLifecycleChange}
+            statusFilter={statusFilter}
+            onStatusFilterChange={handleRegisterStatusChange}
+            categoryFilter={categoryFilter}
+            onCategoryFilterChange={handleRegisterCategoryChange}
+            onReset={handleResetRegisterFilters}
+          />
 
           {/* Table */}
           <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
@@ -1509,118 +1723,6 @@ export default function RiskRegisterPage() {
 
         {/* TAB 2: MONITORING TRANSACTIONS */}
         <TabsContent value="monitoring-transactions" className="space-y-6 mt-6">
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative flex-1 min-w-[200px] max-w-sm">
-                  <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Cari transaksi pemantauan..."
-                    value={search}
-                    onChange={(event) => {
-                      setSearch(event.target.value);
-                      setPage(1);
-                    }}
-                    className="h-8 pl-8 text-xs bg-background/80 border border-border/50"
-                  />
-                </div>
-                <div className="relative min-w-[180px] md:w-40">
-                  <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Semester"
-                    value={assessmentCycleFilter}
-                    onChange={(event) => {
-                      setAssessmentCycleFilter(event.target.value);
-                      setPage(1);
-                    }}
-                    className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
-                  />
-                </div>
-                <div className="relative min-w-[160px] md:w-44">
-                  <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="date"
-                    value={createdAtFilter}
-                    onChange={(event) => {
-                      setCreatedAtFilter(event.target.value);
-                      setPage(1);
-                    }}
-                    className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
-                  />
-                </div>
-                <Select
-                  value={lifecycleFilter}
-                  onValueChange={(value) => {
-                    setLifecycleFilter(value as RiskRegisterLifecycleFilter);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-32 text-xs bg-background/80 border border-border/50">
-                    <SelectValue placeholder="Lifecycle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Aktif</SelectItem>
-                    <SelectItem value="archived">Arsip</SelectItem>
-                    <SelectItem value="all">Semua</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={statusFilter}
-                  onValueChange={(value) => {
-                    setStatusFilter(value as RiskRegisterStatusFilter);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-32 text-xs bg-background/80 border border-border/50">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="assessment_draft">
-                      Draf Pemantauan
-                    </SelectItem>
-                    <SelectItem value="assessment_in_review">
-                      Dalam Review
-                    </SelectItem>
-                    <SelectItem value="approved">Disetujui</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={categoryFilter}
-                  onValueChange={(value) => {
-                    setCategoryFilter(value as RiskRegisterCategoryFilter);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-44 text-xs bg-background/80 border border-border/50">
-                    <SelectValue placeholder="Kategori" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Kategori</SelectItem>
-                    <SelectItem value="kebijakan">
-                      {riskCategoryLabels.kebijakan}
-                    </SelectItem>
-                    <SelectItem value="reputasi">
-                      {riskCategoryLabels.reputasi}
-                    </SelectItem>
-                    <SelectItem value="fraud_korupsi">
-                      {riskCategoryLabels.fraud_korupsi}
-                    </SelectItem>
-                    <SelectItem value="legal">
-                      {riskCategoryLabels.legal}
-                    </SelectItem>
-                    <SelectItem value="kepatuhan">
-                      {riskCategoryLabels.kepatuhan}
-                    </SelectItem>
-                    <SelectItem value="operasional">
-                      {riskCategoryLabels.operasional}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
             <CardHeader className="border-b border-border/40 pb-4">
               <CardTitle className="text-[15px] font-semibold">

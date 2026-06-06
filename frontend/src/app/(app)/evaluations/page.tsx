@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ArrowRight,
   Download,
   FilePlus2,
   Loader2,
@@ -12,10 +11,15 @@ import {
   ChevronRight,
   MoreHorizontal,
   Search,
+  Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
+import {
+  listOrganizationGroups,
+  type OrganizationGroupListItem,
+} from "@/lib/api/organization-groups";
 import {
   createEvaluation,
   downloadEvaluationPdf,
@@ -30,6 +34,16 @@ import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,8 +74,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { OrganizationPicker } from "@/components/report/organization-picker";
+import { ReportScopePicker } from "@/components/report/report-scope-picker";
 import {
   buildSelectableReportOrganizations,
+  buildSelectableReportOrganizationGroups,
   needsExplicitReportOrgSelection,
   resolveDefaultReportOrgId,
 } from "@/lib/report-scope";
@@ -88,6 +104,215 @@ const statusStyles: Record<EvaluationStatus, string> = {
     "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
 };
 
+type EvaluationFiltersSidebarProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  organizationId: string;
+  onOrganizationIdChange: (value: string) => void;
+  organizationGroupId: string;
+  onOrganizationGroupIdChange: (value: string) => void;
+  organizations: OrganizationListItem[];
+  organizationGroups: OrganizationGroupListItem[];
+  periodOptions: { value: string; label: string }[];
+  periodFilter: string;
+  onPeriodFilterChange: (value: string) => void;
+  status: EvaluationStatus | "all";
+  onStatusChange: (value: EvaluationStatus | "all") => void;
+  onReset: () => void;
+};
+
+function EvaluationFiltersSidebar({
+  open,
+  onOpenChange,
+  organizationId,
+  onOrganizationIdChange,
+  organizationGroupId,
+  onOrganizationGroupIdChange,
+  organizations,
+  organizationGroups,
+  periodOptions,
+  periodFilter,
+  onPeriodFilterChange,
+  status,
+  onStatusChange,
+  onReset,
+}: EvaluationFiltersSidebarProps) {
+  return (
+    <Sheet modal={false} open={open} onOpenChange={onOpenChange}>
+      <SheetTrigger asChild>
+        <Button variant="outline" className="h-8 gap-2">
+          <Filter className="size-3.5" />
+          Filter
+        </Button>
+      </SheetTrigger>
+
+      <SheetContent
+        side="right"
+        className="data-[side=right]:w-full data-[side=right]:sm:max-w-[22rem]"
+      >
+        <SheetHeader>
+          <SheetTitle>Filter Evaluasi</SheetTitle>
+          <SheetDescription>
+            Atur organisasi, periode, dan status. Search tetap tersedia di
+            bawah KPI cards.
+          </SheetDescription>
+        </SheetHeader>
+
+        <Separator />
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Organisasi
+            </Label>
+            <ReportScopePicker
+              organizationId={organizationId}
+              onOrganizationChange={onOrganizationIdChange}
+              organizations={organizations}
+              organizationGroupId={organizationGroupId}
+              onOrganizationGroupChange={onOrganizationGroupIdChange}
+              organizationGroups={organizationGroups}
+              organizationPlaceholder="Semua organisasi"
+              organizationGroupPlaceholder="Semua group"
+              allowAllOrganizations
+              allOrganizationLabel="Semua organisasi"
+              allOrganizationValue="all"
+              allowAllOrganizationGroups
+              allOrganizationGroupLabel="Semua group"
+              allOrganizationGroupValue="all"
+              orientation="vertical"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Periode
+            </Label>
+            <Select value={periodFilter} onValueChange={onPeriodFilterChange}>
+              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
+                <SelectValue placeholder="Periode" />
+              </SelectTrigger>
+              <SelectContent>
+                {periodOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Status
+            </Label>
+            <Select
+              value={status}
+              onValueChange={(value) => onStatusChange(value as EvaluationStatus | "all")}
+            >
+              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua status</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="final">Final</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Separator />
+
+        <SheetFooter className="sm:flex-row sm:justify-between">
+          <Button type="button" variant="ghost" onClick={onReset}>
+            Reset
+          </Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Tutup
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+type EvaluationFiltersToolbarProps = {
+  query: string;
+  onQueryChange: (value: string) => void;
+  queryPlaceholder: string;
+  queryAriaLabel: string;
+  filterOpen: boolean;
+  onFilterOpenChange: (open: boolean) => void;
+  organizationId: string;
+  onOrganizationIdChange: (value: string) => void;
+  organizationGroupId: string;
+  onOrganizationGroupIdChange: (value: string) => void;
+  organizations: OrganizationListItem[];
+  organizationGroups: OrganizationGroupListItem[];
+  periodOptions: { value: string; label: string }[];
+  periodFilter: string;
+  onPeriodFilterChange: (value: string) => void;
+  status: EvaluationStatus | "all";
+  onStatusChange: (value: EvaluationStatus | "all") => void;
+  onReset: () => void;
+};
+
+function EvaluationFiltersToolbar({
+  query,
+  onQueryChange,
+  queryPlaceholder,
+  queryAriaLabel,
+  filterOpen,
+  onFilterOpenChange,
+  organizationId,
+  onOrganizationIdChange,
+  organizationGroupId,
+  onOrganizationGroupIdChange,
+  organizations,
+  organizationGroups,
+  periodOptions,
+  periodFilter,
+  onPeriodFilterChange,
+  status,
+  onStatusChange,
+  onReset,
+}: EvaluationFiltersToolbarProps) {
+  return (
+    <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div className="min-w-0 flex-1 md:max-w-md">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder={queryPlaceholder}
+            aria-label={queryAriaLabel}
+            className="h-8 border border-zinc-200 bg-white pl-9 text-sm shadow-none"
+          />
+        </div>
+      </div>
+
+      <EvaluationFiltersSidebar
+        open={filterOpen}
+        onOpenChange={onFilterOpenChange}
+        organizationId={organizationId}
+        onOrganizationIdChange={onOrganizationIdChange}
+        organizationGroupId={organizationGroupId}
+        onOrganizationGroupIdChange={onOrganizationGroupIdChange}
+        organizations={organizations}
+        organizationGroups={organizationGroups}
+        periodOptions={periodOptions}
+        periodFilter={periodFilter}
+        onPeriodFilterChange={onPeriodFilterChange}
+        status={status}
+        onStatusChange={onStatusChange}
+        onReset={onReset}
+      />
+    </div>
+  );
+}
+
 export default function EvaluationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -95,9 +320,14 @@ export default function EvaluationsPage() {
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
     [],
   );
+  const [organizationGroups, setOrganizationGroups] = useState<
+    OrganizationGroupListItem[]
+  >([]);
   const [organizationId, setOrganizationId] = useState("all");
+  const [organizationGroupId, setOrganizationGroupId] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
   const [status, setStatus] = useState<EvaluationStatus | "all">("all");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
@@ -112,7 +342,19 @@ export default function EvaluationsPage() {
   const [creatingEvaluation, setCreatingEvaluation] = useState(false);
   const organizationFilterInitialized = useRef(false);
 
+  const handleResetFilters = () => {
+    setOrganizationId("all");
+    setOrganizationGroupId("all");
+    setPeriodFilter("all");
+    setStatus("all");
+    setPage(1);
+  };
+
   const requiresOrganizationSelection = needsExplicitReportOrgSelection(user);
+  const requiresScopeSelection =
+    requiresOrganizationSelection &&
+    organizationGroupId === "all" &&
+    organizationId === "all";
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedQuery(query), 350);
@@ -122,12 +364,29 @@ export default function EvaluationsPage() {
   useEffect(() => {
     if (!token) {
       setOrganizations([]);
+      setOrganizationGroups([]);
       return;
     }
 
-    listAllOrganizations(token)
-      .then((items) => {
+    Promise.all([
+      listAllOrganizations(token),
+      listOrganizationGroups(token, {
+        ownerOrganizationId: user?.isGlobal
+          ? undefined
+          : user?.organizationId ?? undefined,
+        includeMembers: true,
+        limit: 100,
+        page: 1,
+      }),
+    ])
+      .then(([items, groupsResponse]) => {
         setOrganizations(buildSelectableReportOrganizations(user, items));
+        setOrganizationGroups(
+          buildSelectableReportOrganizationGroups(
+            user,
+            groupsResponse.data ?? [],
+          ),
+        );
       })
       .catch((error) => {
         console.error(error);
@@ -136,6 +395,7 @@ export default function EvaluationsPage() {
   }, [token, user]);
 
   useEffect(() => {
+    if (organizationGroupId !== "all") return;
     if (!organizations.length) return;
     if (organizationFilterInitialized.current) return;
 
@@ -149,7 +409,7 @@ export default function EvaluationsPage() {
 
     setOrganizationId(nextOrganizationId);
     organizationFilterInitialized.current = true;
-  }, [organizations, requiresOrganizationSelection, user]);
+  }, [organizationGroupId, organizations, requiresOrganizationSelection, user]);
 
   useEffect(() => {
     if (!token) {
@@ -158,9 +418,22 @@ export default function EvaluationsPage() {
       return;
     }
 
+    if (requiresScopeSelection) {
+      setEvaluations([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     listEvaluations(token, {
-      organizationId: organizationId !== "all" ? organizationId : undefined,
+      organizationId:
+        organizationGroupId === "all" && organizationId !== "all"
+          ? organizationId
+          : undefined,
+      organizationGroupId:
+        organizationGroupId !== "all"
+          ? organizationGroupId
+          : undefined,
       period: periodFilter !== "all" ? periodFilter : undefined,
       status: status !== "all" ? status : undefined,
       query: debouncedQuery.trim() || undefined,
@@ -182,16 +455,25 @@ export default function EvaluationsPage() {
   }, [
     token,
     organizationId,
+    organizationGroupId,
     periodFilter,
     status,
     debouncedQuery,
     page,
     limit,
+    requiresScopeSelection,
   ]);
 
   useEffect(() => {
     setPage(1);
-  }, [organizationId, periodFilter, status, debouncedQuery, limit]);
+  }, [
+    organizationId,
+    organizationGroupId,
+    periodFilter,
+    status,
+    debouncedQuery,
+    limit,
+  ]);
 
   useEffect(() => {
     if (searchParams.get("create") === "1") {
@@ -223,9 +505,19 @@ export default function EvaluationsPage() {
         search: debouncedQuery,
         status,
         period: periodFilter !== "all" ? periodFilter : undefined,
-        organizationId: organizationId === "all" ? undefined : organizationId,
-      }),
-    [evaluations, debouncedQuery, status, periodFilter, organizationId],
+      organizationId:
+          organizationGroupId === "all" && organizationId !== "all"
+            ? organizationId
+            : undefined,
+    }),
+    [
+      evaluations,
+      debouncedQuery,
+      status,
+      periodFilter,
+      organizationId,
+      organizationGroupId,
+    ],
   );
 
   const organizationNameById = useMemo(
@@ -378,6 +670,48 @@ export default function EvaluationsPage() {
         ))}
       </div>
 
+      <EvaluationFiltersToolbar
+        query={query}
+        onQueryChange={(value) => {
+          setQuery(value);
+          setPage(1);
+        }}
+        queryPlaceholder="Cari evaluasi..."
+        queryAriaLabel="Cari evaluasi"
+        filterOpen={filterOpen}
+        onFilterOpenChange={setFilterOpen}
+        organizationId={organizationId}
+        onOrganizationIdChange={(value) => {
+          setOrganizationId(value);
+          if (value !== "all") {
+            setOrganizationGroupId("all");
+          }
+          setPage(1);
+        }}
+        organizationGroupId={organizationGroupId}
+        onOrganizationGroupIdChange={(value) => {
+          setOrganizationGroupId(value);
+          if (value !== "all") {
+            setOrganizationId("all");
+          }
+          setPage(1);
+        }}
+        organizations={organizations}
+        organizationGroups={organizationGroups}
+        periodOptions={periodOptions}
+        periodFilter={periodFilter}
+        onPeriodFilterChange={(value) => {
+          setPeriodFilter(value);
+          setPage(1);
+        }}
+        status={status}
+        onStatusChange={(value) => {
+          setStatus(value);
+          setPage(1);
+        }}
+        onReset={handleResetFilters}
+      />
+
       <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
         <div className="flex flex-col gap-3 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:flex-row md:items-start md:justify-between md:px-6">
           <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -397,59 +731,6 @@ export default function EvaluationsPage() {
               <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
                 {total} evaluasi
               </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 md:justify-end">
-              <div className="min-w-[220px] flex-1 md:max-w-[260px]">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
-                  <Input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Cari evaluasi..."
-                    className="h-8 border-zinc-200 bg-white pl-9 text-sm shadow-none"
-                  />
-                </div>
-              </div>
-              <div className="min-w-[220px] md:w-[220px]">
-                <OrganizationPicker
-                  value={organizationId}
-                  organizations={organizations}
-                  onChange={setOrganizationId}
-                  allowAllOption
-                  allOptionLabel="Semua organisasi"
-                  allOptionValue="all"
-                  placeholder="Organisasi"
-                  searchPlaceholder="Cari organisasi..."
-                  className="h-8"
-                />
-              </div>
-              <Select value={periodFilter} onValueChange={setPeriodFilter}>
-                <SelectTrigger className="h-8 w-[160px] border-zinc-200 bg-white text-sm shadow-none">
-                  <SelectValue placeholder="Periode" />
-                </SelectTrigger>
-                <SelectContent>
-                  {periodOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={status}
-                onValueChange={(value) =>
-                  setStatus(value as EvaluationStatus | "all")
-                }
-              >
-                <SelectTrigger className="h-8 w-[130px] border-zinc-200 bg-white text-sm shadow-none">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="final">Final</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </div>

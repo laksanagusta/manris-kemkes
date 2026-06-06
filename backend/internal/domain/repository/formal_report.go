@@ -8,12 +8,13 @@ import (
 )
 
 type FormalReportListFilter struct {
-	OrganizationID *uuid.UUID
-	Period         string
-	ReportType     string
-	Status         string
-	Page           int
-	Limit          int
+	OrganizationID  *uuid.UUID
+	OrganizationIDs []uuid.UUID
+	Period          string
+	ReportType      string
+	Status          string
+	Page            int
+	Limit           int
 }
 
 type FormalReportRepository interface {

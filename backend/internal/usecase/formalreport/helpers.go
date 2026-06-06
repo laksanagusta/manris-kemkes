@@ -48,3 +48,15 @@ func validateFormalReportAccess(scope *entity.AccessScope, orgID uuid.UUID, writ
 	}
 	return domainerrors.ErrForbidden
 }
+
+func canReadAll(scope *entity.AccessScope, orgIDs []uuid.UUID) bool {
+	if scope == nil || scope.IsGlobal {
+		return true
+	}
+	for _, orgID := range orgIDs {
+		if !scope.CanRead(orgID) {
+			return false
+		}
+	}
+	return true
+}

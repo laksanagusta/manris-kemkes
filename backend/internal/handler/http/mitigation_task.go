@@ -2,6 +2,7 @@ package http
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -77,7 +78,12 @@ func (h *MitigationTaskHandler) ListAll(c *fiber.Ctx) error {
 		limit = 100
 	}
 
-	input := mtuc.ListTasksInput{OrgIDs: orgIDs, Page: page, Limit: limit}
+	input := mtuc.ListTasksInput{
+		OrgIDs: orgIDs,
+		Query:  strings.TrimSpace(c.Query("q")),
+		Page:   page,
+		Limit:  limit,
+	}
 	result, err := h.listUC.ExecutePaginated(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)

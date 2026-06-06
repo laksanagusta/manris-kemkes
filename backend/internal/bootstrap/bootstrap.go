@@ -30,6 +30,7 @@ import (
 	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
+	organizationgroupuc "github.com/manris/backend/internal/usecase/organizationgroup"
 	performanceriskuc "github.com/manris/backend/internal/usecase/performancerisk"
 	planninguc "github.com/manris/backend/internal/usecase/planning"
 	reportuc "github.com/manris/backend/internal/usecase/report"
@@ -52,6 +53,7 @@ type Container struct {
 	// Repositories
 	UserRepository                 domainrepo.UserRepository
 	OrgRepository                  domainrepo.OrganizationRepository
+	OrgGroupRepository             domainrepo.OrganizationGroupRepository
 	RiskRepository                 domainrepo.RiskRepository
 	PerformanceRiskRepository      domainrepo.PerformanceRiskRepository
 	RiskCascadeRepository          domainrepo.RiskCascadeRepository
@@ -190,12 +192,18 @@ type Container struct {
 	CBACalculateUC *cbauc.CalculateUseCase
 
 	// Organization UseCases
-	OrgCreateUC     *organizationuc.CreateOrganizationUseCase
-	OrgGetUC        *organizationuc.GetOrganizationUseCase
-	OrgUpdateUC     *organizationuc.UpdateOrganizationUseCase
-	OrgDeleteUC     *organizationuc.DeleteOrganizationUseCase
-	OrgListUC       *organizationuc.ListOrganizationsUseCase
-	OrgListFilterUC *organizationuc.ListOrganizationsWithFilterUseCase
+	OrgCreateUC       *organizationuc.CreateOrganizationUseCase
+	OrgGetUC          *organizationuc.GetOrganizationUseCase
+	OrgUpdateUC       *organizationuc.UpdateOrganizationUseCase
+	OrgDeleteUC       *organizationuc.DeleteOrganizationUseCase
+	OrgListUC         *organizationuc.ListOrganizationsUseCase
+	OrgListFilterUC   *organizationuc.ListOrganizationsWithFilterUseCase
+	OrgGroupCreateUC  *organizationgroupuc.CreateUseCase
+	OrgGroupUpdateUC  *organizationgroupuc.UpdateUseCase
+	OrgGroupListUC    *organizationgroupuc.ListUseCase
+	OrgGroupGetUC     *organizationgroupuc.GetUseCase
+	OrgGroupDeleteUC  *organizationgroupuc.DeleteUseCase
+	OrgGroupResolveUC *organizationgroupuc.ResolveUseCase
 
 	// Risk Charter UseCases
 	RiskCharterCreateUC *riskcharteruc.CreateRiskCharterUseCase
@@ -305,6 +313,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 
 	c.UserRepository = postgresrepo.NewUserRepository(pool)
 	c.OrgRepository = postgresrepo.NewOrganizationRepository(pool)
+	c.OrgGroupRepository = postgresrepo.NewOrganizationGroupRepository(pool)
 	c.RiskRepository = postgresrepo.NewRiskRepository(pool)
 	c.PerformanceRiskRepository = postgresrepo.NewPerformanceRiskRepository(pool)
 	c.RiskCascadeRepository = postgresrepo.NewRiskCascadeRepository(pool)
@@ -500,6 +509,12 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.OrgDeleteUC = organizationuc.NewDeleteOrganizationUseCase(c.OrgRepository)
 	c.OrgListUC = organizationuc.NewListOrganizationsUseCase(c.OrgRepository)
 	c.OrgListFilterUC = organizationuc.NewListOrganizationsWithFilterUseCase(c.OrgRepository)
+	c.OrgGroupCreateUC = organizationgroupuc.NewCreateUseCase(c.OrgGroupRepository, c.OrgRepository)
+	c.OrgGroupUpdateUC = organizationgroupuc.NewUpdateUseCase(c.OrgGroupRepository, c.OrgRepository)
+	c.OrgGroupListUC = organizationgroupuc.NewListUseCase(c.OrgGroupRepository)
+	c.OrgGroupGetUC = organizationgroupuc.NewGetUseCase(c.OrgGroupRepository)
+	c.OrgGroupDeleteUC = organizationgroupuc.NewDeleteUseCase(c.OrgGroupRepository)
+	c.OrgGroupResolveUC = organizationgroupuc.NewResolveUseCase(c.OrgGroupRepository)
 
 	// ============================================================================
 	// Risk Charter UseCases

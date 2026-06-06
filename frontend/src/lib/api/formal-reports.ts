@@ -13,6 +13,9 @@ function buildFormalReportsQuery(params?: ListFormalReportsParams) {
   if (params?.organizationId) {
     searchParams.set("organization_id", params.organizationId);
   }
+  if (params?.organizationGroupId) {
+    searchParams.set("organization_group_id", params.organizationGroupId);
+  }
   if (params?.period) {
     searchParams.set("period", params.period);
   }

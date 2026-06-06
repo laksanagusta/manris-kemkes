@@ -15,10 +15,11 @@ import (
 )
 
 type mitigationTaskRepoStub struct {
-	task            *entity.MitigationTask
-	lastAllOrgIDs   []uuid.UUID
+	task             *entity.MitigationTask
+	lastAllOrgIDs    []uuid.UUID
+	lastAllQuery     string
 	lastByRiskOrgIDs []uuid.UUID
-	lastGetOrgIDs   []uuid.UUID
+	lastGetOrgIDs    []uuid.UUID
 }
 
 func (r *mitigationTaskRepoStub) Create(context.Context, *entity.MitigationTask) error { return nil }
@@ -60,8 +61,9 @@ func (r *mitigationTaskRepoStub) ListAll(_ context.Context, orgIDs []uuid.UUID) 
 	return []*entity.MitigationTask{}, nil
 }
 
-func (r *mitigationTaskRepoStub) ListAllPaginated(_ context.Context, orgIDs []uuid.UUID, _, _ int) ([]*entity.MitigationTask, int, error) {
+func (r *mitigationTaskRepoStub) ListAllPaginated(_ context.Context, orgIDs []uuid.UUID, query string, _, _ int) ([]*entity.MitigationTask, int, error) {
 	r.lastAllOrgIDs = append([]uuid.UUID(nil), orgIDs...)
+	r.lastAllQuery = query
 	return []*entity.MitigationTask{}, 0, nil
 }
 
@@ -72,8 +74,8 @@ func (r *mitigationTaskRepoStub) TaskExistsForPeriod(context.Context, uuid.UUID,
 var _ repository.MitigationTaskRepository = (*mitigationTaskRepoStub)(nil)
 
 type mitigationRiskRepoStub struct {
-	risk          *entity.Risk
-	lastOrgIDs    []uuid.UUID
+	risk       *entity.Risk
+	lastOrgIDs []uuid.UUID
 }
 
 func (r *mitigationRiskRepoStub) Create(context.Context, *entity.Risk) error { return nil }
@@ -123,7 +125,9 @@ func (r *mitigationRiskRepoStub) ListVersions(context.Context, uuid.UUID) ([]*en
 func (r *mitigationRiskRepoStub) ListCycleSnapshot(context.Context, string, []uuid.UUID) ([]*entity.Risk, error) {
 	return []*entity.Risk{}, nil
 }
-func (r *mitigationRiskRepoStub) ActivateApprovedVersion(context.Context, uuid.UUID) error { return nil }
+func (r *mitigationRiskRepoStub) ActivateApprovedVersion(context.Context, uuid.UUID) error {
+	return nil
+}
 func (r *mitigationRiskRepoStub) ListReviewQueue(context.Context, string, []uuid.UUID, string, string, int, int) ([]*entity.RiskReviewQueueItem, int, error) {
 	return []*entity.RiskReviewQueueItem{}, 0, nil
 }
@@ -179,6 +183,39 @@ func TestListAllMitigationTasksUsesOwnOrgOnlyScope(t *testing.T) {
 	}
 	if len(taskRepo.lastAllOrgIDs) != 1 || taskRepo.lastAllOrgIDs[0] != own {
 		t.Fatalf("expected own-org-only scope [%s], got %v", own, taskRepo.lastAllOrgIDs)
+	}
+}
+
+func TestListAllMitigationTasksPassesSearchQuery(t *testing.T) {
+	own := uuid.New()
+	taskRepo := &mitigationTaskRepoStub{}
+	riskRepo := &mitigationRiskRepoStub{}
+	handler := &MitigationTaskHandler{
+		listUC: mtuc.NewListTasksUseCase(taskRepo, riskRepo),
+	}
+
+	app := fiber.New()
+	app.Get("/mitigation-tasks/all", func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{
+			Role:             entity.RoleReviewer,
+			OrganizationID:   &own,
+			AccessibleOrgIDs: []uuid.UUID{own},
+		})
+		return c.Next()
+	}, handler.ListAll)
+
+	req := httptest.NewRequest(fiber.MethodGet, "/mitigation-tasks/all?page=1&limit=10&q=banjir", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+	if taskRepo.lastAllQuery != "banjir" {
+		t.Fatalf("expected search query %q, got %q", "banjir", taskRepo.lastAllQuery)
 	}
 }
 

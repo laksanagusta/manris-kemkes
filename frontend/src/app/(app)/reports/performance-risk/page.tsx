@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/auth-context";
+import {
+  listOrganizationGroups,
+  type OrganizationGroupListItem,
+} from "@/lib/api/organization-groups";
 import {
   listAllOrganizations,
   type OrganizationListItem,
@@ -31,9 +35,15 @@ import {
 import { riskCategoryLabels } from "@/lib/risk";
 import {
   buildSelectableReportOrganizations,
+  buildSelectableReportOrganizationGroups,
   needsExplicitReportOrgSelection,
-  resolveDefaultReportOrgId,
 } from "@/lib/report-scope";
+import {
+  copyReportsFilterScope,
+  resolveDefaultReportsFilterScope,
+  resolveReportsFilterScopeOrgIds,
+  type ReportsFilterScope,
+} from "@/lib/reports-filter-sheet";
 import type { PlanningObjectiveCompatibilityItem } from "@/types/planning";
 import type {
   PerformanceRiskDetail,
@@ -44,19 +54,22 @@ import type {
 import { PerformanceRiskDetailPanel } from "./_components/detail-panel";
 import {
   PerformanceRiskFilterBar,
-  type PerformanceRiskPlanningOption,
-  type PerformanceRiskLevelFilter,
-  type PerformanceRiskMitigationFilter,
 } from "./_components/filter-bar";
 import { PerformanceRiskNodeRankingTable } from "./_components/node-ranking-table";
 import { PerformanceRiskSummaryCards } from "./_components/summary-cards";
 
-function currentGlobalCycle() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const half = now.getMonth() < 6 ? "H1" : "H2";
-  return `${year}-${half}`;
-}
+const EMPTY_REPORT_SCOPE: ReportsFilterScope = {
+  organizationId: "",
+  organizationGroupId: "",
+  organizationIds: [],
+};
+
+type PerformanceRiskPlanningOption = {
+  id: string;
+  title: string;
+  status: string;
+  period: string;
+};
 
 function buildPlanningOptions(items: PlanningObjectiveCompatibilityItem[]) {
   const options = new Map<string, PerformanceRiskPlanningOption>();
@@ -93,22 +106,6 @@ function matchesSearch(node: PerformanceRiskNode, query: string) {
   ].some((value) => (value ?? "").toLowerCase().includes(needle));
 }
 
-function matchesMitigationFilter(
-  node: PerformanceRiskNode,
-  filter: PerformanceRiskMitigationFilter,
-) {
-  switch (filter) {
-    case "overdue":
-      return node.mitigationOverdue > 0;
-    case "pending":
-      return node.mitigationPending > 0 && node.mitigationOverdue === 0;
-    case "clear":
-      return node.mitigationPending === 0 && node.mitigationOverdue === 0;
-    default:
-      return true;
-  }
-}
-
 export default function PerformanceRiskPage() {
   const { token, user } = useAuth();
   const [planningId, setPlanningId] = useState("");
@@ -118,7 +115,17 @@ export default function PerformanceRiskPage() {
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
     [],
   );
-  const [organizationId, setOrganizationId] = useState("");
+  const [organizationGroups, setOrganizationGroups] = useState<
+    OrganizationGroupListItem[]
+  >([]);
+  const [appliedScope, setAppliedScope] = useState<ReportsFilterScope>(() =>
+    copyReportsFilterScope(EMPTY_REPORT_SCOPE),
+  );
+  const [draftScope, setDraftScope] = useState<ReportsFilterScope>(() =>
+    copyReportsFilterScope(EMPTY_REPORT_SCOPE),
+  );
+  const [filterOpen, setFilterOpen] = useState(false);
+  const scopeInitializedForTokenRef = useRef<string | null>(null);
   const [summary, setSummary] = useState<PerformanceRiskSummary | null>(null);
   const [nodes, setNodes] = useState<PerformanceRiskNode[]>([]);
   const [unlinkedRisks, setUnlinkedRisks] = useState<PerformanceRiskRiskRow[]>(
@@ -131,20 +138,65 @@ export default function PerformanceRiskPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
-  const [riskLevelFilter, setRiskLevelFilter] =
-    useState<PerformanceRiskLevelFilter>("all");
-  const [mitigationFilter, setMitigationFilter] =
-    useState<PerformanceRiskMitigationFilter>("all");
   const [showNoRisk, setShowNoRisk] = useState(false);
+
   const requiresOrganizationSelection = needsExplicitReportOrgSelection(user);
+  const appliedScopeOrgIds = useMemo(
+    () => resolveReportsFilterScopeOrgIds(appliedScope, organizationGroups),
+    [appliedScope, organizationGroups],
+  );
+  const hasAppliedScope =
+    appliedScopeOrgIds.length > 0 || Boolean(appliedScope.organizationGroupId);
+  const requiresScopeSelection =
+    requiresOrganizationSelection && !hasAppliedScope;
+  const planningOrganizationId = useMemo(() => {
+    if (appliedScopeOrgIds.length === 1) {
+      return appliedScopeOrgIds[0];
+    }
+    return "";
+  }, [appliedScopeOrgIds]);
+  const performanceRiskQuery = useMemo(
+    () => ({
+      planningId: planningId || undefined,
+      orgId:
+        appliedScopeOrgIds.length > 0
+          ? appliedScopeOrgIds.join(",")
+          : undefined,
+    }),
+    [appliedScopeOrgIds, planningId],
+  );
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setOrganizations([]);
+      setOrganizationGroups([]);
+      setAppliedScope(copyReportsFilterScope(EMPTY_REPORT_SCOPE));
+      setDraftScope(copyReportsFilterScope(EMPTY_REPORT_SCOPE));
+      setFilterOpen(false);
+      scopeInitializedForTokenRef.current = null;
+      return;
+    }
 
-    listAllOrganizations(token)
-      .then((items) =>
-        setOrganizations(buildSelectableReportOrganizations(user, items)),
-      )
+    Promise.all([
+      listAllOrganizations(token),
+      listOrganizationGroups(token, {
+        ownerOrganizationId: user?.isGlobal
+          ? undefined
+          : user?.organizationId ?? undefined,
+        includeMembers: true,
+        limit: 100,
+        page: 1,
+      }),
+    ])
+      .then(([items, groupsResponse]) => {
+        setOrganizations(buildSelectableReportOrganizations(user, items));
+        setOrganizationGroups(
+          buildSelectableReportOrganizationGroups(
+            user,
+            groupsResponse.data ?? [],
+          ),
+        );
+      })
       .catch((error) => {
         console.error(error);
         toast.error("Gagal memuat daftar unit.");
@@ -152,58 +204,56 @@ export default function PerformanceRiskPage() {
   }, [token, user]);
 
   useEffect(() => {
-    if (!token) return;
+    const scopeInitKey = token
+      ? `${token}:${user?.isGlobal ? "1" : "0"}:${user?.organizationId ?? ""}`
+      : null;
 
-    listPlanningObjectiveCompatibility(token, {
-      organization_id: organizationId || undefined,
-      page: 1,
-      limit: 100,
-    })
-      .then((response) => {
-        const options = buildPlanningOptions(response.data ?? []);
-        setPlanningOptions(options);
-        setPlanningId((current) => {
-          if (current && options.some((option) => option.id === current)) {
-            return current;
-          }
-          return options.find((option) => option.status === "active")?.id ?? options[0]?.id ?? "";
-        });
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error("Gagal memuat daftar perjanjian kinerja.");
-      });
-  }, [organizationId, token, user]);
-
-  useEffect(() => {
-    if (organizations.length === 0) return;
-
-    if (user?.isGlobal) {
-      setOrganizationId("");
-      return;
-    }
-
-    const defaultOrgId = resolveDefaultReportOrgId(user);
-    if (defaultOrgId) {
-      setOrganizationId((current) => current || defaultOrgId);
-      return;
-    }
-
-    if (requiresOrganizationSelection) {
-      setOrganizationId("");
-      return;
-    }
-
-    setOrganizationId((current) => current || organizations[0]?.id || "");
-  }, [organizations, requiresOrganizationSelection, user]);
-
-  useEffect(() => {
     if (
-      !token ||
-      !planningId ||
-      (requiresOrganizationSelection && !organizationId)
+      !scopeInitKey ||
+      organizations.length === 0 ||
+      scopeInitializedForTokenRef.current === scopeInitKey
     ) {
+      return;
+    }
+
+    const defaultScope = resolveDefaultReportsFilterScope(user, organizations);
+    setAppliedScope(defaultScope);
+    setDraftScope(copyReportsFilterScope(defaultScope));
+    scopeInitializedForTokenRef.current = scopeInitKey;
+  }, [organizations, token, user]);
+
+  const handleFilterOpenChange = (open: boolean) => {
+    setFilterOpen(open);
+    if (open) {
+      setDraftScope(copyReportsFilterScope(appliedScope));
+    }
+  };
+
+  const handleCancelFilter = () => {
+    setDraftScope(copyReportsFilterScope(appliedScope));
+    setFilterOpen(false);
+  };
+
+  const handleResetFilter = () => {
+    setDraftScope(resolveDefaultReportsFilterScope(user, organizations));
+  };
+
+  const handleApplyFilter = () => {
+    setAppliedScope(copyReportsFilterScope(draftScope));
+    setFilterOpen(false);
+  };
+
+  useEffect(() => {
+    if (!token || !planningId) {
       setLoading(false);
+      return;
+    }
+
+    if (requiresScopeSelection) {
+      setLoading(false);
+      setSummary(null);
+      setNodes([]);
+      setUnlinkedRisks([]);
       return;
     }
 
@@ -211,14 +261,10 @@ export default function PerformanceRiskPage() {
     setSelectedNode(null);
     setDetail(null);
 
-    const query = {
-      planningId: planningId || undefined,
-      orgId: organizationId || undefined,
-    };
     Promise.all([
-      getPerformanceRiskSummary(token, query),
-      listPerformanceRiskNodes(token, query),
-      listPerformanceRiskUnlinkedRisks(token, query),
+      getPerformanceRiskSummary(token, performanceRiskQuery),
+      listPerformanceRiskNodes(token, performanceRiskQuery),
+      listPerformanceRiskUnlinkedRisks(token, performanceRiskQuery),
     ])
       .then(([summaryResponse, nodesResponse, unlinkedResponse]) => {
         setSummary(summaryResponse);
@@ -231,28 +277,48 @@ export default function PerformanceRiskPage() {
       })
       .finally(() => setLoading(false));
   }, [
+    performanceRiskQuery,
     planningId,
-    organizationId,
-    requiresOrganizationSelection,
+    requiresScopeSelection,
     token,
   ]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    listPlanningObjectiveCompatibility(token, {
+      organization_id:
+        planningOrganizationId || undefined,
+      page: 1,
+      limit: 100,
+    })
+      .then((response) => {
+        const options = buildPlanningOptions(response.data ?? []);
+        setPlanningOptions(options);
+        setPlanningId((current) => {
+          if (current && options.some((option) => option.id === current)) {
+            return current;
+          }
+          return (
+            options.find((option) => option.status === "active")?.id ??
+            options[0]?.id ??
+            ""
+          );
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("Gagal memuat daftar perjanjian kinerja.");
+      });
+  }, [planningOrganizationId, token]);
 
   const filteredNodes = useMemo(() => {
     return nodes.filter((node) => {
       if (!showNoRisk && node.riskCount === 0) return false;
       if (!matchesSearch(node, searchText.trim())) return false;
-
-      if (riskLevelFilter !== "all" && node.highestLevel !== riskLevelFilter) {
-        return false;
-      }
-
-      if (!matchesMitigationFilter(node, mitigationFilter)) {
-        return false;
-      }
-
       return true;
     });
-  }, [mitigationFilter, nodes, riskLevelFilter, searchText, showNoRisk]);
+  }, [nodes, searchText, showNoRisk]);
 
   const emptyState = summary
     ? classifyPerformanceRiskEmptyState(summary)
@@ -264,10 +330,11 @@ export default function PerformanceRiskPage() {
     setSelectedNode(node);
     setDetailLoading(true);
     try {
-      const response = await getPerformanceRiskDetail(token, node.roId, {
-        planningId: planningId || undefined,
-        orgId: organizationId || undefined,
-      });
+      const response = await getPerformanceRiskDetail(
+        token,
+        node.roId,
+        performanceRiskQuery,
+      );
       setDetail(response);
     } catch (error) {
       console.error(error);
@@ -289,40 +356,43 @@ export default function PerformanceRiskPage() {
         </p>
       </section>
 
-      {requiresOrganizationSelection && !organizationId ? (
+      {requiresScopeSelection ? (
         <Card className="border-border/50 bg-card/90 shadow-sm">
           <CardContent className="flex min-h-40 items-center justify-center px-6 py-8 text-center">
             <div className="max-w-sm space-y-2">
               <p className="text-sm font-medium text-foreground">
-                Pilih unit terlebih dahulu
+                Pilih grup atau unit terlebih dahulu.
               </p>
               <p className="text-sm text-muted-foreground">
-                Analisis kinerja dan risiko lintas-unit baru bisa dibuka setelah
-                unit dipilih.
+                Analisis kinerja dan risiko lintas-scope baru bisa dibuka setelah
+                scope dipilih.
               </p>
             </div>
           </CardContent>
         </Card>
       ) : null}
 
+      <PerformanceRiskSummaryCards summary={summary} />
+
       <PerformanceRiskFilterBar
         planningId={planningId}
         planningOptions={planningOptions}
         onPlanningChange={setPlanningId}
-        organizationId={organizationId}
+        filterOpen={filterOpen}
+        onFilterOpenChange={handleFilterOpenChange}
         organizations={organizations}
-        onOrganizationChange={setOrganizationId}
+        organizationGroups={organizationGroups}
+        draftScope={draftScope}
+        onDraftScopeChange={setDraftScope}
+        onResetFilter={handleResetFilter}
+        onCancelFilter={handleCancelFilter}
+        onApplyFilter={handleApplyFilter}
+        activeUnitCount={appliedScopeOrgIds.length}
         searchText={searchText}
         onSearchTextChange={setSearchText}
-        riskLevelFilter={riskLevelFilter}
-        onRiskLevelFilterChange={setRiskLevelFilter}
-        mitigationFilter={mitigationFilter}
-        onMitigationFilterChange={setMitigationFilter}
         showNoRisk={showNoRisk}
         onShowNoRiskChange={setShowNoRisk}
       />
-
-      <PerformanceRiskSummaryCards summary={summary} />
 
       {emptyState === "no_planning" ? (
         <Card className="border-border/50 bg-card/90 shadow-sm">

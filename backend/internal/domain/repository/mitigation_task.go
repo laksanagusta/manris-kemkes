@@ -38,7 +38,7 @@ type MitigationTaskRepository interface {
 	ListAll(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error)
 
 	// ListAllPaginated returns a page of mitigation tasks with total count
-	ListAllPaginated(ctx context.Context, orgIDs []uuid.UUID, page, limit int) ([]*entity.MitigationTask, int, error)
+	ListAllPaginated(ctx context.Context, orgIDs []uuid.UUID, query string, page, limit int) ([]*entity.MitigationTask, int, error)
 
 	// TaskExistsForPeriod checks if a task already exists for a mitigation in a given period
 	TaskExistsForPeriod(ctx context.Context, mitigationID uuid.UUID, periodStart, periodEnd string) (bool, error)

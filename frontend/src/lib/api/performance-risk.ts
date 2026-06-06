@@ -11,6 +11,9 @@ export function buildPerformanceRiskQuery(params: PerformanceRiskQuery) {
   const searchParams = new URLSearchParams();
   if (params.period) searchParams.set("period", params.period);
   if (params.planningId) searchParams.set("planning_id", params.planningId);
+  if (params.organizationGroupId) {
+    searchParams.set("organization_group_id", params.organizationGroupId);
+  }
   if (params.orgId) {
     searchParams.set("org_id", params.orgId);
   }

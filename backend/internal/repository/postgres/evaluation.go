@@ -220,7 +220,22 @@ func (r *evaluationRepository) List(ctx context.Context, filter repository.Evalu
 		argPos = 1
 	)
 
-	if filter.OrganizationID != nil {
+	if filter.OrganizationIDs != nil {
+		if len(filter.OrganizationIDs) == 0 {
+			countQuery += " AND 1=0"
+			dataQuery += " AND 1=0"
+		} else {
+			placeholders := make([]string, 0, len(filter.OrganizationIDs))
+			for _, orgID := range filter.OrganizationIDs {
+				placeholders = append(placeholders, fmt.Sprintf("$%d", argPos))
+				args = append(args, orgID)
+				argPos++
+			}
+			clause := fmt.Sprintf(" AND e.organization_id IN (%s)", strings.Join(placeholders, ","))
+			countQuery += clause
+			dataQuery += clause
+		}
+	} else if filter.OrganizationID != nil {
 		clause := fmt.Sprintf(" AND e.organization_id = $%d", argPos)
 		countQuery += clause
 		dataQuery += clause

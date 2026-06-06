@@ -84,6 +84,33 @@ func TestResolveReportOrgIDsAllowsExplicitDescendantSelection(t *testing.T) {
 	}
 }
 
+func TestResolveReportOrgIDsAllowsMultipleExplicitSelections(t *testing.T) {
+	own := uuid.New()
+	firstDescendant := uuid.New()
+	secondDescendant := uuid.New()
+	scope := &entity.AccessScope{
+		Role:             entity.RolePimpinan,
+		OrganizationID:   &own,
+		AccessibleOrgIDs: []uuid.UUID{own, firstDescendant, secondDescendant},
+	}
+
+	got, err := resolveReportOrgIDs(
+		scope,
+		firstDescendant.String()+","+secondDescendant.String(),
+	)
+	if err != nil {
+		t.Fatalf("resolveReportOrgIDs returned error: %v", err)
+	}
+	if len(got) != 2 || got[0] != firstDescendant || got[1] != secondDescendant {
+		t.Fatalf(
+			"expected explicit multi-org scope [%s %s], got %v",
+			firstDescendant,
+			secondDescendant,
+			got,
+		)
+	}
+}
+
 func TestResolveReportOrgIDsDefaultsToOwnOrgWhenFilterMissing(t *testing.T) {
 	own := uuid.New()
 	descendant := uuid.New()

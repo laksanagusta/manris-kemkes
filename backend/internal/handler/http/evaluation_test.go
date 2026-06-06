@@ -84,6 +84,15 @@ func (s *stubEvaluationExportUC) Execute(_ context.Context, input evaluationuc.E
 	return s.result, nil
 }
 
+type stubEvaluationGroupResolver struct {
+	orgIDs []uuid.UUID
+	err    error
+}
+
+func (s stubEvaluationGroupResolver) ResolveReportGroup(context.Context, uuid.UUID, *entity.AccessScope) ([]uuid.UUID, error) {
+	return append([]uuid.UUID(nil), s.orgIDs...), s.err
+}
+
 func newEvaluationHandlerForTest() (*EvaluationHandler, *stubEvaluationCreateUC, *stubEvaluationListUC, *stubEvaluationGetUC, *stubEvaluationUpdateUC, *stubEvaluationFinalizeUC, *stubEvaluationReopenUC, *stubEvaluationExportUC) {
 	createUC := &stubEvaluationCreateUC{result: &entity.Evaluation{ID: uuid.New(), Status: entity.EvaluationStatusDraft}}
 	listUC := &stubEvaluationListUC{result: &evaluationuc.ListOutput{Data: []*entity.Evaluation{}, Total: 0, Page: 1, Limit: 10}}
@@ -93,7 +102,7 @@ func newEvaluationHandlerForTest() (*EvaluationHandler, *stubEvaluationCreateUC,
 	reopenUC := &stubEvaluationReopenUC{result: &entity.Evaluation{ID: uuid.New(), Status: entity.EvaluationStatusDraft}}
 	exportUC := &stubEvaluationExportUC{result: &evaluationuc.ExportPDFOutput{Filename: "evaluation.pdf", Bytes: []byte("%PDF-1.4 fake")}}
 
-	handler := NewEvaluationHandler(createUC, getUC, listUC, updateUC, finalizeUC, reopenUC, exportUC)
+	handler := NewEvaluationHandler(createUC, getUC, listUC, updateUC, finalizeUC, reopenUC, exportUC, nil)
 	return handler, createUC, listUC, getUC, updateUC, finalizeUC, reopenUC, exportUC
 }
 
@@ -207,8 +216,37 @@ func TestEvaluationHandlerListParsesFilters(t *testing.T) {
 	if listUC.input.OrganizationID == nil || *listUC.input.OrganizationID != orgID {
 		t.Fatalf("List input organization not parsed correctly")
 	}
+	if len(listUC.input.OrganizationIDs) != 1 || listUC.input.OrganizationIDs[0] != orgID {
+		t.Fatalf("List input organization IDs not parsed correctly")
+	}
 	if listUC.input.Page != 3 || listUC.input.Limit != 25 || listUC.input.Period != "2026-H1" || listUC.input.Status != "draft" || listUC.input.Query != "monitor" {
 		t.Fatalf("unexpected list input: %#v", listUC.input)
+	}
+}
+
+func TestEvaluationHandlerListAcceptsOrganizationGroup(t *testing.T) {
+	handler, _, listUC, _, _, _, _, _ := newEvaluationHandlerForTest()
+	ownID := uuid.New()
+	memberID := uuid.New()
+
+	handler.groupResolver = stubEvaluationGroupResolver{orgIDs: []uuid.UUID{memberID}}
+
+	app := fiber.New()
+	app.Get("/evaluations", func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{OrganizationID: &ownID, AccessibleOrgIDs: []uuid.UUID{ownID, memberID}})
+		return c.Next()
+	}, handler.List)
+
+	req := httptest.NewRequest(fiber.MethodGet, "/evaluations?organization_group_id="+uuid.New().String()+"&period=2026-H1", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test() error = %v", err)
+	}
+	if resp.StatusCode != fiber.StatusOK {
+		t.Fatalf("StatusCode = %d, want %d", resp.StatusCode, fiber.StatusOK)
+	}
+	if len(listUC.input.OrganizationIDs) != 1 || listUC.input.OrganizationIDs[0] != memberID {
+		t.Fatalf("List input organization group not resolved correctly: %#v", listUC.input.OrganizationIDs)
 	}
 }
 
