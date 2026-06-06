@@ -23,7 +23,7 @@ import {
   Goal,
   GitBranch,
 } from "lucide-react";
-import { adminMenuGroup, mainMenuItems } from "@/lib/app-navigation";
+import { adminMenuGroup, mainMenuItems, settingsMenuGroup } from "@/lib/app-navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useMemo, useState } from "react";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -153,6 +153,13 @@ const navigation: NavGroup[] = [
     ...adminMenuGroup,
     icon: Settings2,
     items: adminMenuGroup.items.map((item) => ({
+      ...item,
+      icon: iconMap[item.icon] ?? Settings2,
+    })),
+  },
+  {
+    ...settingsMenuGroup,
+    items: settingsMenuGroup.items.map((item) => ({
       ...item,
       icon: iconMap[item.icon] ?? Settings2,
     })),
@@ -300,10 +307,11 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
   const currentHash = useLocationHash();
   const aiFeaturesDisabled = isAIFeaturesDisabled();
   const visibleNavigation = useMemo(() => {
-    const baseNavigation =
-      user?.role === "superadmin"
-        ? navigation
-        : navigation.filter((group) => group.title !== adminMenuGroup.title);
+    const baseNavigation = navigation.filter((group) => {
+      if (group.title !== adminMenuGroup.title) return true;
+      if (user?.role === "superadmin") return true;
+      return false;
+    });
 
     if (!aiFeaturesDisabled) {
       return baseNavigation;

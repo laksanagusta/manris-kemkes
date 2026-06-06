@@ -1,6 +1,11 @@
 "use client";
 
-import { useDeferredValue, useEffect, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -12,11 +17,11 @@ import {
 } from "@/lib/api/working-papers";
 import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { KpiCard, type KpiCardTone } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
   Select,
@@ -25,6 +30,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -43,15 +58,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
+  Filter,
   Plus,
   ChevronLeft,
   ChevronRight,
   AlertCircle,
   ArrowUpRight,
-  Calendar,
   Search,
 } from "lucide-react";
 import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
@@ -103,6 +117,179 @@ type WorkingPaperSummaryCard = {
   tone: KpiCardTone;
 };
 
+type WorkingPaperFiltersSidebarProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  statusFilter: WorkingPaperStatusFilter;
+  onStatusFilterChange: (value: WorkingPaperStatusFilter) => void;
+  assessmentCycleFilter: string;
+  onAssessmentCycleFilterChange: (value: string) => void;
+  createdAtFilter: string;
+  onCreatedAtFilterChange: (value: string) => void;
+  onReset: () => void;
+};
+
+function WorkingPaperFiltersSidebar({
+  open,
+  onOpenChange,
+  statusFilter,
+  onStatusFilterChange,
+  assessmentCycleFilter,
+  onAssessmentCycleFilterChange,
+  createdAtFilter,
+  onCreatedAtFilterChange,
+  onReset,
+}: WorkingPaperFiltersSidebarProps) {
+  return (
+    <Sheet modal={false} open={open} onOpenChange={onOpenChange}>
+      <SheetTrigger asChild>
+        <Button variant="outline" className="h-8 gap-2">
+          <Filter className="size-3.5" />
+          Filter
+        </Button>
+      </SheetTrigger>
+
+      <SheetContent
+        side="right"
+        className="data-[side=right]:w-full data-[side=right]:sm:max-w-[22rem]"
+      >
+        <SheetHeader>
+          <SheetTitle>Filter Kertas Kerja</SheetTitle>
+          <SheetDescription>
+            Atur status, siklus asesmen, dan tanggal dibuat. Search tetap
+            tersedia di bawah KPI cards.
+          </SheetDescription>
+        </SheetHeader>
+
+        <Separator />
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Status
+            </Label>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                onStatusFilterChange(value as WorkingPaperStatusFilter)
+              }
+            >
+              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
+                <SelectValue placeholder="Semua status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua status</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="signing">Proses TTE</SelectItem>
+                <SelectItem value="completed">Selesai</SelectItem>
+                <SelectItem value="cancelled">Dibatalkan</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Siklus Asesmen
+            </Label>
+            <Input
+              value={assessmentCycleFilter}
+              onChange={(event) =>
+                onAssessmentCycleFilterChange(event.target.value)
+              }
+              placeholder="Filter siklus asesmen"
+              className="h-8 border border-border/50 bg-background/80 text-xs"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Tanggal Dibuat
+            </Label>
+            <Input
+              type="date"
+              value={createdAtFilter}
+              onChange={(event) => onCreatedAtFilterChange(event.target.value)}
+              className="h-8 border border-border/50 bg-background/80 text-xs"
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        <SheetFooter className="sm:flex-row sm:justify-between">
+          <Button type="button" variant="ghost" onClick={onReset}>
+            Reset
+          </Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Tutup
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+type WorkingPaperFiltersToolbarProps = {
+  search: string;
+  onSearchChange: (value: string) => void;
+  searchPlaceholder: string;
+  searchAriaLabel: string;
+  filterOpen: boolean;
+  onFilterOpenChange: (open: boolean) => void;
+  statusFilter: WorkingPaperStatusFilter;
+  onStatusFilterChange: (value: WorkingPaperStatusFilter) => void;
+  assessmentCycleFilter: string;
+  onAssessmentCycleFilterChange: (value: string) => void;
+  createdAtFilter: string;
+  onCreatedAtFilterChange: (value: string) => void;
+  onReset: () => void;
+};
+
+function WorkingPaperFiltersToolbar({
+  search,
+  onSearchChange,
+  searchPlaceholder,
+  searchAriaLabel,
+  filterOpen,
+  onFilterOpenChange,
+  statusFilter,
+  onStatusFilterChange,
+  assessmentCycleFilter,
+  onAssessmentCycleFilterChange,
+  createdAtFilter,
+  onCreatedAtFilterChange,
+  onReset,
+}: WorkingPaperFiltersToolbarProps) {
+  return (
+    <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div className="min-w-0 flex-1 md:max-w-md">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder={searchPlaceholder}
+            aria-label={searchAriaLabel}
+            className="h-8 border border-border/50 bg-background/80 pl-9 text-xs"
+          />
+        </div>
+      </div>
+
+      <WorkingPaperFiltersSidebar
+        open={filterOpen}
+        onOpenChange={onFilterOpenChange}
+        statusFilter={statusFilter}
+        onStatusFilterChange={onStatusFilterChange}
+        assessmentCycleFilter={assessmentCycleFilter}
+        onAssessmentCycleFilterChange={onAssessmentCycleFilterChange}
+        createdAtFilter={createdAtFilter}
+        onCreatedAtFilterChange={onCreatedAtFilterChange}
+        onReset={onReset}
+      />
+    </div>
+  );
+}
+
 function formatWorkingPaperDate(
   value: string,
   options: Intl.DateTimeFormatOptions,
@@ -114,6 +301,20 @@ function formatWorkingPaperDate(
   }
 
   return parsed.toLocaleDateString("id-ID", options);
+}
+
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => window.clearTimeout(handle);
+  }, [delay, value]);
+
+  return debouncedValue;
 }
 
 export default function WorkingPapersPage() {
@@ -130,6 +331,7 @@ export default function WorkingPapersPage() {
   const [statusFilter, setStatusFilter] = useState<WorkingPaperStatusFilter>(
     () => getWorkingPaperStatusFilter(searchParams.get("status")),
   );
+  const [filterOpen, setFilterOpen] = useState(false);
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [assessmentCycleFilter, setAssessmentCycleFilter] = useState(
     () => searchParams.get("assessment_cycle") ?? "",
@@ -145,48 +347,66 @@ export default function WorkingPapersPage() {
   );
   const [total, setTotal] = useState(0);
 
-  const deferredSearch = useDeferredValue(search);
-  const deferredAssessmentCycleFilter = useDeferredValue(assessmentCycleFilter);
+  const debouncedSearch = useDebouncedValue(search, 500);
+  const deferredAssessmentCycleFilter = useDebouncedValue(assessmentCycleFilter, 500);
 
   const [paperToDelete, setPaperToDelete] = useState<WorkingPaper | null>(null);
   const [paperToCancel, setPaperToCancel] = useState<WorkingPaper | null>(null);
 
-  const fetchWorkingPapers = async (activeToken: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await listWorkingPapers(activeToken, {
-        status: statusFilter === "all" ? undefined : statusFilter,
-        q: deferredSearch.trim() || undefined,
-        assessment_cycle: deferredAssessmentCycleFilter.trim() || undefined,
-        created_at: createdAtFilter.trim() || undefined,
-        page,
-        limit,
-      });
-      setPapers(res.data ?? []);
-      setTotal(res.total ?? 0);
-      setPage(res.page ?? page);
-      setLimit(res.limit ?? limit);
-    } catch (err) {
-      console.error(err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Gagal memuat daftar kertas kerja. Silakan coba lagi.",
-      );
-    } finally {
-      setLoading(false);
-    }
+  const handleResetFilters = () => {
+    setStatusFilter("all");
+    setAssessmentCycleFilter("");
+    setCreatedAtFilter("");
+    setPage(1);
   };
+
+  const fetchWorkingPapers = useCallback(
+    async (activeToken: string) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await listWorkingPapers(activeToken, {
+          status: statusFilter === "all" ? undefined : statusFilter,
+          q: debouncedSearch.trim() || undefined,
+          assessment_cycle: deferredAssessmentCycleFilter.trim() || undefined,
+          created_at: createdAtFilter.trim() || undefined,
+          page,
+          limit,
+        });
+        setPapers(res.data ?? []);
+        setTotal(res.total ?? 0);
+        setPage(res.page ?? page);
+        setLimit(res.limit ?? limit);
+      } catch (err) {
+        console.error(err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Gagal memuat daftar kertas kerja. Silakan coba lagi.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      createdAtFilter,
+      deferredAssessmentCycleFilter,
+      debouncedSearch,
+      limit,
+      page,
+      statusFilter,
+    ],
+  );
 
   useEffect(() => {
     if (token) {
       fetchWorkingPapers(token);
     }
   }, [
+    fetchWorkingPapers,
     token,
     statusFilter,
-    deferredSearch,
+    debouncedSearch,
     deferredAssessmentCycleFilter,
     createdAtFilter,
     page,
@@ -197,7 +417,6 @@ export default function WorkingPapersPage() {
     const nextStatusFilter = getWorkingPaperStatusFilter(
       searchParams.get("status"),
     );
-    const nextSearch = searchParams.get("q") ?? "";
     const nextAssessmentCycleFilter =
       searchParams.get("assessment_cycle") ?? "";
     const nextCreatedAtFilter = searchParams.get("created_at") ?? "";
@@ -207,7 +426,6 @@ export default function WorkingPapersPage() {
     setStatusFilter((current) =>
       current === nextStatusFilter ? current : nextStatusFilter,
     );
-    setSearch((current) => (current === nextSearch ? current : nextSearch));
     setAssessmentCycleFilter((current) =>
       current === nextAssessmentCycleFilter
         ? current
@@ -222,7 +440,6 @@ export default function WorkingPapersPage() {
 
   useEffect(() => {
     const nextParams = new URLSearchParams(searchParams.toString());
-    const normalizedSearch = search.trim();
     const normalizedAssessmentCycle = assessmentCycleFilter.trim();
     const normalizedCreatedAt = createdAtFilter.trim();
 
@@ -230,12 +447,6 @@ export default function WorkingPapersPage() {
       nextParams.delete("status");
     } else {
       nextParams.set("status", statusFilter);
-    }
-
-    if (normalizedSearch) {
-      nextParams.set("q", normalizedSearch);
-    } else {
-      nextParams.delete("q");
     }
 
     if (normalizedAssessmentCycle) {
@@ -283,7 +494,6 @@ export default function WorkingPapersPage() {
     page,
     pathname,
     router,
-    search,
     searchParams,
     startTransition,
     statusFilter,
@@ -326,72 +536,7 @@ export default function WorkingPapersPage() {
   };
 
   const totalPages = Math.ceil(total / limit) || 1;
-
-  if (loading && papers.length === 0) {
-    return (
-      <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
-        {/* Header skeleton */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="h-7 w-48 rounded-md bg-muted animate-pulse" />
-            <div className="h-4 w-72 rounded-md bg-muted/60 animate-pulse" />
-          </div>
-          <div className="h-9 w-36 rounded-md bg-muted animate-pulse" />
-        </div>
-        {/* Stats skeleton */}
-        <div className="grid gap-4 md:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i} className="border-border/50 bg-card/80">
-              <CardContent className="p-4 space-y-2">
-                <div className="h-3 w-16 rounded bg-muted animate-pulse" />
-                <div className="h-7 w-10 rounded bg-muted animate-pulse" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        {/* Table skeleton */}
-        <Card className="border-border/50 bg-card/80 overflow-hidden">
-          <div className="p-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-4 px-4 py-3 border-b border-border/20 last:border-0"
-              >
-                <div className="h-4 flex-1 rounded bg-muted animate-pulse" />
-                <div className="h-4 w-20 rounded bg-muted/60 animate-pulse" />
-                <div className="h-5 w-16 rounded-full bg-muted animate-pulse" />
-                <div className="h-4 w-8 rounded bg-muted/60 animate-pulse" />
-                <div className="h-1.5 w-16 rounded bg-muted animate-pulse" />
-                <div className="h-4 w-20 rounded bg-muted/60 animate-pulse" />
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-8 flex flex-col items-center justify-center gap-4 animate-fade-in">
-        <div className="text-center max-w-md">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-destructive/10 mb-4">
-            <AlertCircle className="w-6 h-6 text-destructive" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">Gagal Memuat Data</h3>
-          <p className="text-sm text-muted-foreground mb-4">{error}</p>
-          <Button
-            onClick={() => window.location.reload()}
-            variant="outline"
-            className="gap-2"
-          >
-            <ArrowUpRight className="size-4" />
-            Muat Ulang Halaman
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const showInitialLoading = loading && papers.length === 0;
 
   const draftCount = papers.filter((p) => p.status === "draft").length;
   const signingCount = papers.filter((p) => p.status === "signing").length;
@@ -453,74 +598,53 @@ export default function WorkingPapersPage() {
       </div>
 
       <div className="space-y-3">
-        <Tabs
-          value={statusFilter}
-          onValueChange={(val) => {
-            setStatusFilter(val as WorkingPaperStatusFilter);
+          <WorkingPaperFiltersToolbar
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
             setPage(1);
           }}
-        >
-          <TabsList className="bg-muted/40 border border-border/50">
-            <TabsTrigger value="all" className="gap-2 text-xs">
-              Semua
-            </TabsTrigger>
-            <TabsTrigger value="draft" className="gap-2 text-xs">
-              Draft
-            </TabsTrigger>
-            <TabsTrigger value="signing" className="gap-2 text-xs">
-              Proses TTE
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="gap-2 text-xs">
-              Selesai
-            </TabsTrigger>
-            <TabsTrigger value="cancelled" className="gap-2 text-xs">
-              Dibatalkan
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+          searchPlaceholder="Cari judul kertas kerja..."
+          searchAriaLabel="Cari judul kertas kerja"
+          filterOpen={filterOpen}
+          onFilterOpenChange={setFilterOpen}
+          statusFilter={statusFilter}
+          onStatusFilterChange={(value) => {
+            setStatusFilter(value);
+            setPage(1);
+          }}
+          assessmentCycleFilter={assessmentCycleFilter}
+          onAssessmentCycleFilterChange={(value) => {
+            setAssessmentCycleFilter(value);
+            setPage(1);
+          }}
+          createdAtFilter={createdAtFilter}
+          onCreatedAtFilterChange={(value) => {
+            setCreatedAtFilter(value);
+            setPage(1);
+          }}
+          onReset={handleResetFilters}
+        />
 
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardContent className="p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center">
-              <div className="relative flex-1 min-w-[220px]">
-                <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(event) => {
-                    setSearch(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Cari judul kertas kerja..."
-                  className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
-                />
-              </div>
-              <div className="relative min-w-[200px] md:w-52">
-                <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={assessmentCycleFilter}
-                  onChange={(event) => {
-                    setAssessmentCycleFilter(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Filter siklus asesmen"
-                  className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
-                />
-              </div>
-              <div className="relative min-w-[160px] md:w-44">
-                <Calendar className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="date"
-                  value={createdAtFilter}
-                  onChange={(event) => {
-                    setCreatedAtFilter(event.target.value);
-                    setPage(1);
-                  }}
-                  className="h-8 border border-border/50 bg-background/80 pl-8 text-xs"
-                />
+        {error ? (
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-4 text-sm text-destructive">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <div className="space-y-1">
+                <p className="font-semibold">Gagal Memuat Data</p>
+                <p className="text-sm text-destructive/80">{error}</p>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  className="mt-2 gap-2 border-destructive/20 bg-white text-destructive hover:bg-destructive/5"
+                >
+                  <ArrowUpRight className="size-4" />
+                  Muat Ulang Halaman
+                </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        ) : null}
 
         <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
           <div className="flex flex-col gap-3 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:flex-row md:items-start md:justify-between md:px-6">
@@ -542,7 +666,16 @@ export default function WorkingPapersPage() {
             </div>
           </div>
 
-          {papers.length === 0 ? (
+          {showInitialLoading ? (
+            <div className="p-4">
+              <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/70 px-4 py-8 text-left">
+                <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+                  <Search className="size-4 animate-pulse" />
+                  Memuat daftar kertas kerja...
+                </div>
+              </div>
+            </div>
+          ) : papers.length === 0 ? (
             <div className="p-4">
               <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/70 px-4 py-8 text-left">
                 <p className="text-sm font-medium text-zinc-700">

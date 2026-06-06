@@ -19,13 +19,14 @@ func NewListUseCase(repo repository.EvaluationRepository) *ListUseCase {
 }
 
 type ListInput struct {
-	OrganizationID *uuid.UUID
-	Period         string
-	Status         string
-	Query          string
-	Page           int
-	Limit          int
-	Scope          *entity.AccessScope
+	OrganizationID  *uuid.UUID
+	OrganizationIDs []uuid.UUID
+	Period          string
+	Status          string
+	Query           string
+	Page            int
+	Limit           int
+	Scope           *entity.AccessScope
 }
 
 type ListOutput struct {
@@ -45,23 +46,28 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 		limit = 10
 	}
 
-	var orgID *uuid.UUID
-	if input.OrganizationID != nil {
+	var orgIDs []uuid.UUID
+	if input.OrganizationIDs != nil {
+		if !canReadAll(input.Scope, input.OrganizationIDs) {
+			return nil, errors.ErrForbidden
+		}
+		orgIDs = input.OrganizationIDs
+	} else if input.OrganizationID != nil {
 		if !canRead(input.Scope, *input.OrganizationID) {
 			return nil, errors.ErrForbidden
 		}
-		orgID = input.OrganizationID
+		orgIDs = []uuid.UUID{*input.OrganizationID}
 	} else if input.Scope != nil && !input.Scope.IsGlobal && input.Scope.OrganizationID != nil {
-		orgID = input.Scope.OrganizationID
+		orgIDs = []uuid.UUID{*input.Scope.OrganizationID}
 	}
 
 	items, total, err := uc.repo.List(ctx, repository.EvaluationListFilter{
-		OrganizationID: orgID,
-		Period:         strings.TrimSpace(input.Period),
-		Status:         strings.TrimSpace(input.Status),
-		Query:          strings.TrimSpace(input.Query),
-		Page:           page,
-		Limit:          limit,
+		OrganizationIDs: orgIDs,
+		Period:          strings.TrimSpace(input.Period),
+		Status:          strings.TrimSpace(input.Status),
+		Query:           strings.TrimSpace(input.Query),
+		Page:            page,
+		Limit:           limit,
 	})
 	if err != nil {
 		return nil, err

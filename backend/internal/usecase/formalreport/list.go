@@ -19,13 +19,14 @@ func NewListUseCase(repo repository.FormalReportRepository) *ListUseCase {
 }
 
 type ListInput struct {
-	OrganizationID *uuid.UUID
-	Period         string
-	ReportType     string
-	Status         string
-	Page           int
-	Limit          int
-	Scope          *entity.AccessScope
+	OrganizationID  *uuid.UUID
+	OrganizationIDs []uuid.UUID
+	Period          string
+	ReportType      string
+	Status          string
+	Page            int
+	Limit           int
+	Scope           *entity.AccessScope
 }
 
 type ListOutput struct {
@@ -45,14 +46,19 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 		limit = 10
 	}
 
-	var orgID *uuid.UUID
-	if input.OrganizationID != nil {
+	var orgIDs []uuid.UUID
+	if input.OrganizationIDs != nil {
+		if !canReadAll(input.Scope, input.OrganizationIDs) {
+			return nil, errors.ErrForbidden
+		}
+		orgIDs = input.OrganizationIDs
+	} else if input.OrganizationID != nil {
 		if err := validateFormalReportAccess(input.Scope, *input.OrganizationID, false); err != nil {
 			return nil, errors.ErrForbidden
 		}
-		orgID = input.OrganizationID
+		orgIDs = []uuid.UUID{*input.OrganizationID}
 	} else if input.Scope != nil && !input.Scope.IsGlobal && input.Scope.OrganizationID != nil {
-		orgID = input.Scope.OrganizationID
+		orgIDs = []uuid.UUID{*input.Scope.OrganizationID}
 	}
 
 	reportType := strings.TrimSpace(input.ReportType)
@@ -61,12 +67,12 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 	}
 
 	items, total, err := uc.repo.List(ctx, repository.FormalReportListFilter{
-		OrganizationID: orgID,
-		Period:         strings.TrimSpace(input.Period),
-		ReportType:     entity.FormalReportTypeMonitoringEvaluation,
-		Status:         strings.TrimSpace(input.Status),
-		Page:           page,
-		Limit:          limit,
+		OrganizationIDs: orgIDs,
+		Period:          strings.TrimSpace(input.Period),
+		ReportType:      entity.FormalReportTypeMonitoringEvaluation,
+		Status:          strings.TrimSpace(input.Status),
+		Page:            page,
+		Limit:           limit,
 	})
 	if err != nil {
 		return nil, err

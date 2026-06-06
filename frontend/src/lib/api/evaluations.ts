@@ -12,6 +12,9 @@ function buildEvaluationQuery(params?: ListEvaluationsParams) {
   const searchParams = new URLSearchParams();
 
   if (params?.organizationId) searchParams.set("organization_id", params.organizationId);
+  if (params?.organizationGroupId) {
+    searchParams.set("organization_group_id", params.organizationGroupId);
+  }
   if (params?.period) searchParams.set("period", params.period);
   if (params?.status) searchParams.set("status", params.status);
   if (params?.query) searchParams.set("query", params.query);
@@ -106,4 +109,3 @@ export async function downloadEvaluationPdf(
 
   downloadBlob(blob, filename);
 }
-

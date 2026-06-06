@@ -12,14 +12,16 @@ import (
 )
 
 type ReportHandler struct {
-	generateUC  *reportuc.GenerateReportUseCase
-	pdfRenderer service.ReportPDFRenderer
+	generateUC    *reportuc.GenerateReportUseCase
+	pdfRenderer   service.ReportPDFRenderer
+	groupResolver organizationGroupReportResolver
 }
 
-func NewReportHandler(generateUC *reportuc.GenerateReportUseCase, pdfRenderer service.ReportPDFRenderer) *ReportHandler {
+func NewReportHandler(generateUC *reportuc.GenerateReportUseCase, pdfRenderer service.ReportPDFRenderer, groupResolver organizationGroupReportResolver) *ReportHandler {
 	return &ReportHandler{
-		generateUC:  generateUC,
-		pdfRenderer: pdfRenderer,
+		generateUC:    generateUC,
+		pdfRenderer:   pdfRenderer,
+		groupResolver: groupResolver,
 	}
 }
 
@@ -31,10 +33,13 @@ func (h *ReportHandler) GenerateRiskPDF(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReportOrgIDsFromQuery(c.Context(), scope, c.Query("org_id"), c.Query("organization_group_id"), h.groupResolver)
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+		}
+		if errors.Is(err, domainerrors.ErrInvalidInput) {
+			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id and organization_group_id are mutually exclusive")
 		}
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 	}

@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -10,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/middleware"
 	evaluationuc "github.com/manris/backend/internal/usecase/evaluation"
 )
@@ -42,14 +44,19 @@ type evaluationExportPDFUseCase interface {
 	Execute(context.Context, evaluationuc.ExportPDFInput) (*evaluationuc.ExportPDFOutput, error)
 }
 
+type evaluationGroupResolver interface {
+	ResolveReportGroup(ctx context.Context, groupID uuid.UUID, scope *entity.AccessScope) ([]uuid.UUID, error)
+}
+
 type EvaluationHandler struct {
-	createUC   evaluationCreateUseCase
-	listUC     evaluationListUseCase
-	getUC      evaluationGetUseCase
-	updateUC   evaluationUpdateUseCase
-	finalizeUC evaluationFinalizeUseCase
-	reopenUC   evaluationReopenUseCase
-	exportUC   evaluationExportPDFUseCase
+	createUC      evaluationCreateUseCase
+	listUC        evaluationListUseCase
+	getUC         evaluationGetUseCase
+	updateUC      evaluationUpdateUseCase
+	finalizeUC    evaluationFinalizeUseCase
+	reopenUC      evaluationReopenUseCase
+	exportUC      evaluationExportPDFUseCase
+	groupResolver evaluationGroupResolver
 }
 
 func NewEvaluationHandler(
@@ -60,15 +67,17 @@ func NewEvaluationHandler(
 	finalizeUC evaluationFinalizeUseCase,
 	reopenUC evaluationReopenUseCase,
 	exportUC evaluationExportPDFUseCase,
+	groupResolver evaluationGroupResolver,
 ) *EvaluationHandler {
 	return &EvaluationHandler{
-		createUC:   createUC,
-		listUC:     listUC,
-		getUC:      getUC,
-		updateUC:   updateUC,
-		finalizeUC: finalizeUC,
-		reopenUC:   reopenUC,
-		exportUC:   exportUC,
+		createUC:      createUC,
+		listUC:        listUC,
+		getUC:         getUC,
+		updateUC:      updateUC,
+		finalizeUC:    finalizeUC,
+		reopenUC:      reopenUC,
+		exportUC:      exportUC,
+		groupResolver: groupResolver,
 	}
 }
 
@@ -82,8 +91,14 @@ func (h *EvaluationHandler) List(c *fiber.Ctx) error {
 	}
 
 	var organizationID *uuid.UUID
-	if raw := c.Query("organization_id"); raw != "" {
-		orgID, err := uuid.Parse(raw)
+	var organizationIDs []uuid.UUID
+	rawOrgID := c.Query("organization_id")
+	rawGroupID := c.Query("organization_group_id")
+	if rawOrgID != "" && rawGroupID != "" {
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id and organization_group_id are mutually exclusive")
+	}
+	if rawOrgID != "" {
+		orgID, err := uuid.Parse(rawOrgID)
 		if err != nil {
 			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
@@ -95,23 +110,38 @@ func (h *EvaluationHandler) List(c *fiber.Ctx) error {
 			orgID = narrowed[0]
 		}
 		organizationID = &orgID
+		organizationIDs = []uuid.UUID{orgID}
+	} else if rawGroupID != "" {
+		orgIDs, err := resolveReportOrgIDsFromQuery(c.Context(), scope, "", rawGroupID, h.groupResolver)
+		if err != nil {
+			if errors.Is(err, domainerrors.ErrForbidden) {
+				return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			}
+			if errors.Is(err, domainerrors.ErrInvalidInput) {
+				return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id and organization_group_id are mutually exclusive")
+			}
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization group ID")
+		}
+		organizationIDs = orgIDs
 	} else if !scope.IsGlobal && scope.OrganizationID != nil {
 		organizationID = scope.OrganizationID
+		organizationIDs = []uuid.UUID{*scope.OrganizationID}
 	}
 
 	result, err := h.listUC.Execute(c.Context(), evaluationuc.ListInput{
-		OrganizationID: organizationID,
-		Period:         c.Query("period"),
-		Status:         c.Query("status"),
+		OrganizationID:  organizationID,
+		OrganizationIDs: organizationIDs,
+		Period:          c.Query("period"),
+		Status:          c.Query("status"),
 		Query: func() string {
 			if query := c.Query("query"); query != "" {
 				return query
 			}
 			return c.Query("q")
 		}(),
-		Page:           page,
-		Limit:          limit,
-		Scope:          scope,
+		Page:  page,
+		Limit: limit,
+		Scope: scope,
 	})
 	if err != nil {
 		return handleError(c, err)

@@ -341,173 +341,175 @@ export default function OrganizationsManagementPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Organization Management
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola struktur organisasi dan unit kerja
-          </p>
-        </div>
-        <Button
-          className="gap-2 shadow-lg shadow-primary/20"
-          onClick={handleCreateClick}
-          aria-label="Tambah Organisasi"
-        >
-          <Plus className="size-4" />
-          Tambah Organisasi
-        </Button>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <KpiCard
-          label="Total Unit"
-          value={total}
-          tone="white"
-          icon={<Building2 className="size-5 text-muted-foreground" />}
-        />
-        <KpiCard label="Unit Induk" value={rootUnits} tone="zinc" />
-        <KpiCard label="Sub Unit" value={subUnits} tone="zinc" />
-      </div>
-
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Cari organisasi..."
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-          className="h-8 pl-8 text-xs bg-card border-border/50"
-        />
-      </div>
-
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="text-xs w-[220px] whitespace-nowrap">Nama Organisasi</TableHead>
-              <TableHead className="text-xs w-40 whitespace-nowrap">Parent Unit</TableHead>
-              <TableHead className="text-xs w-28 whitespace-nowrap">UPR Level</TableHead>
-              <TableHead className="text-xs w-32 whitespace-nowrap">Dibuat</TableHead>
-              <TableHead className="text-xs w-10 whitespace-nowrap">
-                <span className="sr-only">Aksi</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
-                </TableCell>
-              </TableRow>
-            ) : organizations.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24">
-                  <div className="flex flex-col gap-1 text-left">
-                    <p className="text-sm font-medium text-muted-foreground">Belum ada data organisasi</p>
-                    <p className="text-xs text-muted-foreground/70">Tambahkan organisasi baru untuk memulai</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              organizations.map((org) => (
-                <OrgRow
-                  key={getOrganizationKey(org)}
-                  org={org}
-                  parentNameMap={parentNameMap}
-                  onEdit={handleEditClick}
-                  onDelete={handleDeleteClick}
-                />
-              ))
-            )}
-          </TableBody>
-        </Table>
-
-        <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Baris per halaman:</span>
-              <Select
-                value={limit.toString()}
-                onValueChange={(val) => {
-                  setLimit(Number(val));
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="h-7 w-[65px] text-xs bg-muted/30 border-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[10, 20, 50, 100].map((pageSize) => (
-                    <SelectItem key={pageSize} value={pageSize.toString()}>
-                      {pageSize}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
-              {Math.min(page * limit, total)} dari {total} organisasi
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Organization Management
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Kelola struktur organisasi dan unit kerja
             </p>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="text-muted-foreground"
-              disabled={page === 1 || isPending}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              <ChevronLeft className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="xs"
-              className="text-xs font-medium bg-primary/10 text-primary"
-              disabled
-            >
-              {page}
-            </Button>
-            <span className="px-1 text-xs text-muted-foreground">
-              dari {totalPages}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="text-muted-foreground"
-              disabled={page === totalPages || total === 0 || isPending}
-              onClick={() =>
-                setPage((current) => Math.min(totalPages, current + 1))
-              }
-            >
-              <ChevronRight className="size-3.5" />
-            </Button>
-          </div>
+          <Button
+            className="gap-2 shadow-lg shadow-primary/20"
+            onClick={handleCreateClick}
+            aria-label="Tambah Organisasi"
+          >
+            <Plus className="size-4" />
+            Tambah Organisasi
+          </Button>
         </div>
-      </Card>
 
-      <OrganizationFormDialog
-        mode={dialogMode}
-        open={isFormDialogOpen}
-        onOpenChange={setIsFormDialogOpen}
-        token={token ?? undefined}
-        organizations={allOrganizations}
-        initialOrganization={selectedOrg}
-        onSuccess={handleRefetch}
-      />
+        <div className="grid gap-4 md:grid-cols-3">
+          <KpiCard
+            label="Total Unit"
+            value={total}
+            tone="white"
+            icon={<Building2 className="size-5 text-muted-foreground" />}
+          />
+          <KpiCard label="Unit Induk" value={rootUnits} tone="zinc" />
+          <KpiCard label="Sub Unit" value={subUnits} tone="zinc" />
+        </div>
 
-      <OrganizationDeleteDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        organization={selectedOrg}
-        token={token ?? undefined}
-        onSuccess={handleRefetch}
-      />
+        <div className="relative max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Cari organisasi..."
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            className="h-8 pl-8 text-xs bg-card border-border/50"
+          />
+        </div>
+
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border/50 hover:bg-transparent">
+                <TableHead className="text-xs w-[220px] whitespace-nowrap">Nama Organisasi</TableHead>
+                <TableHead className="text-xs w-40 whitespace-nowrap">Parent Unit</TableHead>
+                <TableHead className="text-xs w-28 whitespace-nowrap">UPR Level</TableHead>
+                <TableHead className="text-xs w-32 whitespace-nowrap">Dibuat</TableHead>
+                <TableHead className="text-xs w-10 whitespace-nowrap">
+                  <span className="sr-only">Aksi</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
+                  </TableCell>
+                </TableRow>
+              ) : organizations.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24">
+                    <div className="flex flex-col gap-1 text-left">
+                      <p className="text-sm font-medium text-muted-foreground">Belum ada data organisasi</p>
+                      <p className="text-xs text-muted-foreground/70">Tambahkan organisasi baru untuk memulai</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                organizations.map((org) => (
+                  <OrgRow
+                    key={getOrganizationKey(org)}
+                    org={org}
+                    parentNameMap={parentNameMap}
+                    onEdit={handleEditClick}
+                    onDelete={handleDeleteClick}
+                  />
+                ))
+              )}
+            </TableBody>
+          </Table>
+
+          <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Baris per halaman:</span>
+                <Select
+                  value={limit.toString()}
+                  onValueChange={(val) => {
+                    setLimit(Number(val));
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-7 w-[65px] text-xs bg-muted/30 border-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50, 100].map((pageSize) => (
+                      <SelectItem key={pageSize} value={pageSize.toString()}>
+                        {pageSize}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
+                {Math.min(page * limit, total)} dari {total} organisasi
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="text-muted-foreground"
+                disabled={page === 1 || isPending}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="xs"
+                className="text-xs font-medium bg-primary/10 text-primary"
+                disabled
+              >
+                {page}
+              </Button>
+              <span className="px-1 text-xs text-muted-foreground">
+                dari {totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="text-muted-foreground"
+                disabled={page === totalPages || total === 0 || isPending}
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
+              >
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        <OrganizationFormDialog
+          mode={dialogMode}
+          open={isFormDialogOpen}
+          onOpenChange={setIsFormDialogOpen}
+          token={token ?? undefined}
+          organizations={allOrganizations}
+          initialOrganization={selectedOrg}
+          onSuccess={handleRefetch}
+        />
+
+        <OrganizationDeleteDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          organization={selectedOrg}
+          token={token ?? undefined}
+          onSuccess={handleRefetch}
+        />
+      </div>
     </div>
   );
 }

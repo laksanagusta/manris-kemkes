@@ -38,6 +38,7 @@ type ListTasksInput struct {
 	RiskID       *uuid.UUID
 	MitigationID *uuid.UUID
 	UserID       *uuid.UUID
+	Query        string
 	Status       string
 	OrgIDs       []uuid.UUID
 	Page         int
@@ -79,7 +80,7 @@ func (uc *ListTasksUseCase) ExecutePaginated(ctx context.Context, input ListTask
 		input.Limit = 100
 	}
 
-	tasks, total, err := uc.taskRepo.ListAllPaginated(ctx, input.OrgIDs, input.Page, input.Limit)
+	tasks, total, err := uc.taskRepo.ListAllPaginated(ctx, input.OrgIDs, input.Query, input.Page, input.Limit)
 	if err != nil {
 		return nil, fmt.Errorf("list mitigation tasks: %w", err)
 	}

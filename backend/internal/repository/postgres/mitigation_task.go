@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -207,45 +208,58 @@ func (r *mitigationTaskRepository) ListAll(ctx context.Context, orgIDs []uuid.UU
 	return r.queryTasks(ctx, baseQuery+" ORDER BY t.due_date DESC")
 }
 
-func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs []uuid.UUID, page, limit int) ([]*entity.MitigationTask, int, error) {
+func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs []uuid.UUID, query string, page, limit int) ([]*entity.MitigationTask, int, error) {
 	baseFrom := ` FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
 		 LEFT JOIN users u ON t.reported_by = u.id`
 
-	var countQuery, dataQuery string
-	var countArgs, dataArgs []interface{}
+	whereClauses := make([]string, 0, 2)
+	args := make([]interface{}, 0, 2)
 
 	if len(orgIDs) > 0 {
-		countQuery = `SELECT COUNT(*)` + baseFrom + ` WHERE r.organization_id = ANY($1)`
-		countArgs = []interface{}{orgIDs}
-
-		offset := (page - 1) * limit
-		dataQuery = `SELECT t.id, t.mitigation_id, t.risk_id,
-		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
-		        t.status, t.progress_pct, t.evidence_url, t.notes,
-		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
-		        m.action, m.owner,
-		        COALESCE(r.code, ''), COALESCE(r.title, ''),
-		        COALESCE(u.name, '')` + baseFrom + ` WHERE r.organization_id = ANY($1) ORDER BY t.due_date DESC LIMIT $2 OFFSET $3`
-		dataArgs = []interface{}{orgIDs, limit, offset}
-	} else {
-		countQuery = `SELECT COUNT(*)` + baseFrom
-		countArgs = nil
-
-		offset := (page - 1) * limit
-		dataQuery = `SELECT t.id, t.mitigation_id, t.risk_id,
-		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
-		        t.status, t.progress_pct, t.evidence_url, t.notes,
-		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
-		        m.action, m.owner,
-		        COALESCE(r.code, ''), COALESCE(r.title, ''),
-		        COALESCE(u.name, '')` + baseFrom + ` ORDER BY t.due_date DESC LIMIT $1 OFFSET $2`
-		dataArgs = []interface{}{limit, offset}
+		args = append(args, orgIDs)
+		whereClauses = append(whereClauses, fmt.Sprintf("r.organization_id = ANY($%d)", len(args)))
 	}
 
+	normalizedQuery := strings.TrimSpace(query)
+	if normalizedQuery != "" {
+		searchValue := "%" + normalizedQuery + "%"
+		args = append(args, searchValue)
+		queryArg := len(args)
+		whereClauses = append(whereClauses, fmt.Sprintf(`(
+			COALESCE(t.period_label, '') ILIKE $%d OR
+			COALESCE(t.status, '') ILIKE $%d OR
+			COALESCE(t.notes, '') ILIKE $%d OR
+			COALESCE(t.evidence_url, '') ILIKE $%d OR
+			COALESCE(m.action, '') ILIKE $%d OR
+			COALESCE(m.owner, '') ILIKE $%d OR
+			COALESCE(r.code, '') ILIKE $%d OR
+			COALESCE(r.title, '') ILIKE $%d OR
+			COALESCE(u.name, '') ILIKE $%d
+		)`,
+			queryArg, queryArg, queryArg, queryArg, queryArg, queryArg, queryArg, queryArg, queryArg,
+		))
+	}
+
+	whereClause := ""
+	if len(whereClauses) > 0 {
+		whereClause = " WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	offset := (page - 1) * limit
+	countQuery := `SELECT COUNT(*)` + baseFrom + whereClause
+	dataQuery := `SELECT t.id, t.mitigation_id, t.risk_id,
+		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
+		        t.status, t.progress_pct, t.evidence_url, t.notes,
+		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
+		        m.action, m.owner,
+		        COALESCE(r.code, ''), COALESCE(r.title, ''),
+		        COALESCE(u.name, '')` + baseFrom + whereClause + ` ORDER BY t.due_date DESC LIMIT $` + fmt.Sprint(len(args)+1) + ` OFFSET $` + fmt.Sprint(len(args)+2)
+	dataArgs := append(append([]interface{}{}, args...), limit, offset)
+
 	var total int
-	if err := r.pool.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count mitigation tasks: %w", err)
 	}
 

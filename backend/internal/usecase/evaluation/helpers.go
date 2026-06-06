@@ -42,6 +42,18 @@ func canWrite(scope *entity.AccessScope, orgID uuid.UUID) bool {
 	return scope != nil && scope.CanWrite(orgID)
 }
 
+func canReadAll(scope *entity.AccessScope, orgIDs []uuid.UUID) bool {
+	if scope == nil || scope.IsGlobal {
+		return true
+	}
+	for _, orgID := range orgIDs {
+		if !scope.CanRead(orgID) {
+			return false
+		}
+	}
+	return true
+}
+
 func normalizeText(value string) string {
 	return strings.TrimSpace(value)
 }

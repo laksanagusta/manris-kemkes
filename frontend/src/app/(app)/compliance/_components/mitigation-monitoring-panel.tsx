@@ -47,10 +47,12 @@ import {
   ShieldAlert,
   CheckCircle2,
   Loader2,
+  Search,
   Send,
   ExternalLink,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -63,6 +65,10 @@ import {
   getLinearStatusBadgeClass,
   getLinearToneBadgeClass,
 } from "@/lib/linear-status-badge";
+import {
+  buildMitigationMonitoringQueryString,
+  parseMitigationMonitoringQueryState,
+} from "@/lib/mitigation-monitoring-query";
 import type { MitigationTask } from "@/types/risk";
 
 const levelBadgeVariant: Record<string, string> = {
@@ -92,19 +98,31 @@ type MitigationTaskRow = MitigationTask & {
   title: string;
 };
 
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => window.clearTimeout(handle);
+  }, [delay, value]);
+
+  return debouncedValue;
+}
+
 export function MitigationMonitoringPanel() {
   const { token } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-
-  const parsePositiveInt = (val: string | null, fallback: number) => {
-    const num = parseInt(val || "", 10);
-    return isNaN(num) || num <= 0 ? fallback : num;
-  };
-
-  const page = parsePositiveInt(searchParams.get("page"), 1);
-  const limit = parsePositiveInt(searchParams.get("limit"), 10);
+  const searchParamsString = searchParams.toString();
+  const queryState = useMemo(
+    () => parseMitigationMonitoringQueryState(new URLSearchParams(searchParamsString)),
+    [searchParamsString],
+  );
+  const { page, limit } = queryState;
 
   const [mitigations, setMitigations] = useState<MitigationTaskRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -118,6 +136,13 @@ export function MitigationMonitoringPanel() {
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [search, setSearch] = useState(queryState.search);
+
+  useEffect(() => {
+    setSearch(queryState.search);
+  }, [queryState.search]);
+
+  const debouncedSearch = useDebouncedValue(search, 500);
 
   const formErrors = useMemo(
     () =>
@@ -130,14 +155,46 @@ export function MitigationMonitoringPanel() {
   );
   const hasFormErrors = Object.keys(formErrors).length > 0;
 
+  const pushQueryState = useCallback(
+    (nextState: Partial<{
+      search: string;
+      page: number;
+      limit: number;
+    }>) => {
+      const mergedState = {
+        search: nextState.search ?? queryState.search,
+        page: nextState.page ?? queryState.page,
+        limit: nextState.limit ?? queryState.limit,
+      };
+      const query = buildMitigationMonitoringQueryString(mergedState);
+      const nextUrl = query ? `${pathname}?${query}` : pathname;
+      router.replace(nextUrl, { scroll: false });
+    },
+    [pathname, queryState.limit, queryState.page, queryState.search, router],
+  );
+
+  useEffect(() => {
+    const nextSearch = debouncedSearch.trim();
+    if (nextSearch === queryState.search) {
+      return;
+    }
+
+    pushQueryState({ search: nextSearch, page: 1 });
+  }, [debouncedSearch, pushQueryState, queryState.search]);
+
   const fetchMitigations = useCallback(async () => {
     if (!token) return;
 
-    setLoading(true);
+      setLoading(true);
     try {
+      const query = buildMitigationMonitoringQueryString({
+          search: queryState.search,
+          page,
+          limit,
+      });
       const response = await api.get<{ data: MitigationTask[]; total: number }>(
-        `/mitigation-tasks/all?page=${page}&limit=${limit}`,
-        token
+        query ? `/mitigation-tasks/all?${query}` : "/mitigation-tasks/all",
+        token,
       );
       
       const rawData = response.data || [];
@@ -209,7 +266,7 @@ export function MitigationMonitoringPanel() {
     } finally {
       setLoading(false);
     }
-  }, [token, page, limit]);
+  }, [token, page, limit, queryState.search]);
 
   useEffect(() => {
     fetchMitigations();
@@ -297,9 +354,11 @@ export function MitigationMonitoringPanel() {
   };
 
   const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", newPage.toString());
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    pushQueryState({ page: newPage });
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    pushQueryState({ limit: newLimit, page: 1 });
   };
 
   return (
@@ -360,6 +419,30 @@ export function MitigationMonitoringPanel() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:justify-end">
+            <div className="relative w-full md:w-[320px]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari mitigasi..."
+                className="h-8 border-zinc-200 bg-white pl-9 pr-9 text-xs text-zinc-700"
+              />
+              {search ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-8 w-8 text-zinc-400 hover:text-zinc-700"
+                  onClick={() => {
+                    setSearch("");
+                    pushQueryState({ search: "", page: 1 });
+                  }}
+                  aria-label="Hapus pencarian"
+                >
+                  <X className="size-3.5" />
+                </Button>
+              ) : null}
+            </div>
             <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
               {mitigations.length} mitigasi
             </span>
@@ -688,10 +771,7 @@ export function MitigationMonitoringPanel() {
                 <Select
                   value={limit.toString()}
                   onValueChange={(val) => {
-                    const params = new URLSearchParams(searchParams.toString());
-                    params.set("limit", val);
-                    params.set("page", "1");
-                    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+                    handleLimitChange(Number.parseInt(val, 10));
                   }}
                 >
                   <SelectTrigger className="h-7 w-[65px] border-zinc-200 bg-white text-xs text-zinc-700">

@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"io"
 	"net/http/httptest"
 	"testing"
 
@@ -90,12 +91,21 @@ func (reportPDFRendererStub) Render(context.Context, *entity.ReportData) ([]byte
 	return []byte("%PDF-1.4 test"), nil
 }
 
+type reportOrgGroupResolverStub struct {
+	orgIDs []uuid.UUID
+	err    error
+}
+
+func (s reportOrgGroupResolverStub) ResolveReportGroup(context.Context, uuid.UUID, *entity.AccessScope) ([]uuid.UUID, error) {
+	return append([]uuid.UUID(nil), s.orgIDs...), s.err
+}
+
 func TestGenerateRiskPDFDefaultsToOwnOrgWhenOrgFilterMissing(t *testing.T) {
 	own := uuid.New()
 	descendant := uuid.New()
 	riskRepo := &reportRiskRepoStub{riskRegisterRepoStub: &riskRegisterRepoStub{}}
 	uc := reportuc.NewGenerateReportUseCase(riskRepo, reportIncidentRepoStub{}, reportKRIRepoStub{})
-	handler := NewReportHandler(uc, reportPDFRendererStub{})
+	handler := NewReportHandler(uc, reportPDFRendererStub{}, nil)
 
 	app := fiber.New()
 	app.Get("/reports/risk-pdf", func(c *fiber.Ctx) error {
@@ -127,7 +137,7 @@ func TestGenerateRiskPDFAllowsExplicitDescendantSelection(t *testing.T) {
 	descendant := uuid.New()
 	riskRepo := &reportRiskRepoStub{riskRegisterRepoStub: &riskRegisterRepoStub{}}
 	uc := reportuc.NewGenerateReportUseCase(riskRepo, reportIncidentRepoStub{}, reportKRIRepoStub{})
-	handler := NewReportHandler(uc, reportPDFRendererStub{})
+	handler := NewReportHandler(uc, reportPDFRendererStub{}, nil)
 
 	app := fiber.New()
 	app.Get("/reports/risk-pdf", func(c *fiber.Ctx) error {
@@ -213,5 +223,38 @@ func TestListApprovedRisksAllowsExplicitDescendantSelectionOnReportSurface(t *te
 	}
 	if len(riskRepo.lastOrgIDs) != 1 || riskRepo.lastOrgIDs[0] != descendant {
 		t.Fatalf("expected descendant trend scope [%s], got %v", descendant, riskRepo.lastOrgIDs)
+	}
+}
+
+func TestGenerateRiskPDFAllowsOrganizationGroupSelection(t *testing.T) {
+	own := uuid.New()
+	member := uuid.New()
+	riskRepo := &reportRiskRepoStub{riskRegisterRepoStub: &riskRegisterRepoStub{}}
+	uc := reportuc.NewGenerateReportUseCase(riskRepo, reportIncidentRepoStub{}, reportKRIRepoStub{})
+	handler := NewReportHandler(uc, reportPDFRendererStub{}, reportOrgGroupResolverStub{orgIDs: []uuid.UUID{member}})
+
+	app := fiber.New()
+	app.Get("/reports/risk-pdf", func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{
+			Role:             entity.RoleReviewer,
+			OrganizationID:   &own,
+			AccessibleOrgIDs: []uuid.UUID{own, member},
+		})
+		return c.Next()
+	}, handler.GenerateRiskPDF)
+
+	req := httptest.NewRequest(fiber.MethodGet, "/reports/risk-pdf?cycle=2026-H1&organization_group_id="+uuid.New().String(), nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusOK {
+		payload, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, payload)
+	}
+	if len(riskRepo.lastOrgIDs) != 1 || riskRepo.lastOrgIDs[0] != member {
+		t.Fatalf("expected group member scope [%s], got %v", member, riskRepo.lastOrgIDs)
 	}
 }

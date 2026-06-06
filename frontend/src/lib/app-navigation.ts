@@ -86,6 +86,17 @@ export const adminMenuGroup: MainMenuGroup = {
   ],
 };
 
+export const settingsMenuGroup: MainMenuGroup = {
+  title: "PENGATURAN",
+  items: [
+    {
+      label: "Grup",
+      href: "/settings/groups",
+      icon: "Settings2",
+    },
+  ],
+};
+
 export const breadcrumbMap: Record<string, string> = {
   "/overview": "Dashboard",
   "/inbox": "Persetujuan",
@@ -126,6 +137,8 @@ export const breadcrumbMap: Record<string, string> = {
   "/admin/users/new": "Tambah Pengguna",
   "/admin/organizations": "Organisasi",
   "/admin/settings": "Pengaturan",
+  "/settings": "Pengaturan",
+  "/settings/groups": "Grup",
   "/management": "Risk Governance",
   "/management/charters": "Piagam Manris",
   "/management/charters/new": "Buat Piagam Manris",

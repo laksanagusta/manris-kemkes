@@ -95,4 +95,5 @@ export interface PerformanceRiskQuery {
   period?: string;
   planningId?: string;
   orgId?: string;
+  organizationGroupId?: string;
 }

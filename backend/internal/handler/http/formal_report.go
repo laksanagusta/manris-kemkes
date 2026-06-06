@@ -15,10 +15,11 @@ import (
 )
 
 type FormalReportHandler struct {
-	generateUC *formalreportuc.GenerateFormalReportUseCase
-	getUC      *formalreportuc.GetUseCase
-	listUC     *formalreportuc.ListUseCase
-	downloadUC *formalreportuc.DownloadUseCase
+	generateUC    *formalreportuc.GenerateFormalReportUseCase
+	getUC         *formalreportuc.GetUseCase
+	listUC        *formalreportuc.ListUseCase
+	downloadUC    *formalreportuc.DownloadUseCase
+	groupResolver organizationGroupReportResolver
 }
 
 func NewFormalReportHandler(
@@ -26,12 +27,14 @@ func NewFormalReportHandler(
 	getUC *formalreportuc.GetUseCase,
 	listUC *formalreportuc.ListUseCase,
 	downloadUC *formalreportuc.DownloadUseCase,
+	groupResolver organizationGroupReportResolver,
 ) *FormalReportHandler {
 	return &FormalReportHandler{
-		generateUC: generateUC,
-		getUC:      getUC,
-		listUC:     listUC,
-		downloadUC: downloadUC,
+		generateUC:    generateUC,
+		getUC:         getUC,
+		listUC:        listUC,
+		downloadUC:    downloadUC,
+		groupResolver: groupResolver,
 	}
 }
 
@@ -56,29 +59,36 @@ func (h *FormalReportHandler) List(c *fiber.Ctx) error {
 
 	scope := middleware.GetAccessScope(c)
 	var organizationID *uuid.UUID
-	if raw := c.Query("organization_id"); raw != "" {
-		orgIDs, err := resolveReportOrgIDs(scope, raw)
+	var organizationIDs []uuid.UUID
+	if raw := c.Query("organization_id"); raw != "" || c.Query("organization_group_id") != "" {
+		orgIDs, err := resolveReportOrgIDsFromQuery(c.Context(), scope, raw, c.Query("organization_group_id"), h.groupResolver)
 		if err != nil {
 			if errors.Is(err, domainerrors.ErrForbidden) {
 				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
 			}
+			if errors.Is(err, domainerrors.ErrInvalidInput) {
+				return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id and organization_group_id are mutually exclusive")
+			}
 			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
 		}
-		if len(orgIDs) > 0 {
+		organizationIDs = orgIDs
+		if len(orgIDs) == 1 {
 			organizationID = &orgIDs[0]
 		}
 	} else if scope != nil && !scope.IsGlobal && scope.OrganizationID != nil {
 		organizationID = scope.OrganizationID
+		organizationIDs = []uuid.UUID{*scope.OrganizationID}
 	}
 
 	result, err := h.listUC.Execute(c.Context(), formalreportuc.ListInput{
-		OrganizationID: organizationID,
-		Period:         c.Query("period"),
-		ReportType:     c.Query("report_type"),
-		Status:         c.Query("status"),
-		Page:           page,
-		Limit:          limit,
-		Scope:          scope,
+		OrganizationID:  organizationID,
+		OrganizationIDs: organizationIDs,
+		Period:          c.Query("period"),
+		ReportType:      c.Query("report_type"),
+		Status:          c.Query("status"),
+		Page:            page,
+		Limit:           limit,
+		Scope:           scope,
 	})
 	if err != nil {
 		return handleError(c, err)

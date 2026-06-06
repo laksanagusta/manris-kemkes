@@ -34,6 +34,10 @@ import {
   listAllOrganizations,
   type OrganizationListItem,
 } from "@/lib/api/organizations";
+import {
+  listOrganizationGroups,
+  type OrganizationGroupListItem,
+} from "@/lib/api/organization-groups";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import {
@@ -44,10 +48,13 @@ import {
 import { cn } from "@/lib/utils";
 import {
   buildSelectableReportOrganizations,
+  buildSelectableReportOrganizationGroups,
   needsExplicitReportOrgSelection,
   resolveDefaultReportOrgId,
 } from "@/lib/report-scope";
-import { OrganizationPicker } from "@/components/report/organization-picker";
+import {
+  ReportScopePicker,
+} from "@/components/report/report-scope-picker";
 import type {
   RiskCycleDetailedComparisonItem,
   RiskCycleDetailedComparisonReport,
@@ -353,9 +360,13 @@ export function RiskCycleDetailReport({
     [defaultToCycle],
   );
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
+  const [organizationGroups, setOrganizationGroups] = useState<
+    OrganizationGroupListItem[]
+  >([]);
   const [fromCycle, setFromCycle] = useState(defaultFromCycle);
   const [toCycle, setToCycle] = useState(defaultToCycle);
   const [orgFilter, setOrgFilter] = useState<string>("");
+  const [organizationGroupId, setOrganizationGroupId] = useState("");
   const [includeStable, setIncludeStable] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>("changed");
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -363,6 +374,8 @@ export function RiskCycleDetailReport({
   const [report, setReport] =
     useState<RiskCycleDetailedComparisonReport | null>(null);
   const requiresOrganizationSelection = needsExplicitReportOrgSelection(user);
+  const requiresScopeSelection =
+    requiresOrganizationSelection && !organizationGroupId && !orgFilter;
   const compactSelectTriggerClass =
     "h-8 border border-border/50 bg-background/80 text-xs shadow-none";
 
@@ -409,9 +422,28 @@ export function RiskCycleDetailReport({
     };
 
     loadOrganizations();
+
+    listOrganizationGroups(token, {
+      ownerOrganizationId: user?.isGlobal ? undefined : user?.organizationId ?? undefined,
+      includeMembers: true,
+      limit: 100,
+      page: 1,
+    })
+      .then((response) => {
+        setOrganizationGroups(
+          buildSelectableReportOrganizationGroups(user, response.data ?? []),
+        );
+      })
+      .catch((error) => {
+        console.error(error);
+      });
   }, [token, user]);
 
   useEffect(() => {
+    if (organizationGroupId) {
+      return;
+    }
+
     if (organizations.length === 0) {
       setOrgFilter("");
       return;
@@ -434,7 +466,7 @@ export function RiskCycleDetailReport({
     }
 
     setOrgFilter((current) => current || organizations[0]?.id || "");
-  }, [organizations, requiresOrganizationSelection, user]);
+  }, [organizationGroupId, organizations, requiresOrganizationSelection, user]);
 
   useEffect(() => {
     if (!token) return;
@@ -443,7 +475,7 @@ export function RiskCycleDetailReport({
       setReport(null);
       return;
     }
-    if (requiresOrganizationSelection && !orgFilter) {
+    if (requiresScopeSelection) {
       setLoading(false);
       setReport(null);
       setExpandedRows({});
@@ -460,7 +492,11 @@ export function RiskCycleDetailReport({
           to: toCycle,
           include_stable: includeStable ? "true" : "false",
         });
-        if (orgFilter && orgFilter !== "all") params.set("org_id", orgFilter);
+        if (organizationGroupId) {
+          params.set("organization_group_id", organizationGroupId);
+        } else if (orgFilter && orgFilter !== "all") {
+          params.set("org_id", orgFilter);
+        }
         const data = await api.get<RiskCycleDetailedComparisonReport>(
           `/risks/compare/detail?${params.toString()}`,
           token,
@@ -490,8 +526,9 @@ export function RiskCycleDetailReport({
     fromCycle,
     toCycle,
     orgFilter,
+    organizationGroupId,
     includeStable,
-    requiresOrganizationSelection,
+    requiresScopeSelection,
   ]);
 
   const filteredItems = useMemo(() => {
@@ -616,12 +653,31 @@ export function RiskCycleDetailReport({
               ))}
             </SelectContent>
           </Select>
-          <OrganizationPicker
-            value={orgFilter}
+          <ReportScopePicker
+            organizationId={orgFilter}
+            onOrganizationChange={(value) => {
+              setOrgFilter(value);
+              if (value) {
+                setOrganizationGroupId("");
+              }
+            }}
             organizations={organizations}
-            onChange={setOrgFilter}
-            allowAllOption={Boolean(user?.isGlobal)}
-            allOptionLabel="Semua unit"
+            organizationGroupId={organizationGroupId}
+            onOrganizationGroupChange={(value) => {
+              setOrganizationGroupId(value);
+              if (value) {
+                setOrgFilter("");
+              }
+            }}
+            organizationGroups={organizationGroups}
+            organizationPlaceholder="Semua unit"
+            organizationGroupPlaceholder="Semua group"
+            allowAllOrganizations={Boolean(user?.isGlobal)}
+            allOrganizationLabel="Semua unit"
+            allOrganizationValue="all"
+            allowAllOrganizationGroups={Boolean(user?.isGlobal)}
+            allOrganizationGroupLabel="Semua group"
+            allOrganizationGroupValue="all"
           />
           <Select
             value={includeStable ? "show" : "hide"}
@@ -651,9 +707,9 @@ export function RiskCycleDetailReport({
           </div>
         ) : null}
       </CardHeader>
-      {requiresOrganizationSelection && !orgFilter ? (
+      {requiresScopeSelection ? (
         <div className="mx-6 mt-0 rounded-lg border border-dashed border-border/50 bg-muted/20 px-4 py-5 text-center text-sm text-muted-foreground">
-          Pilih unit untuk melihat laporan perubahan risiko.
+          Pilih grup atau unit untuk melihat laporan perubahan risiko.
         </div>
       ) : null}
       <CardContent className="space-y-4">

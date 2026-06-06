@@ -11,10 +11,11 @@ import (
 )
 
 type PerformanceRiskHandler struct {
-	summaryUC  *performanceriskuc.SummaryUseCase
-	nodesUC    *performanceriskuc.PlanningMapUseCase
-	detailUC   *performanceriskuc.DetailUseCase
-	unlinkedUC *performanceriskuc.UnlinkedUseCase
+	summaryUC     *performanceriskuc.SummaryUseCase
+	nodesUC       *performanceriskuc.PlanningMapUseCase
+	detailUC      *performanceriskuc.DetailUseCase
+	unlinkedUC    *performanceriskuc.UnlinkedUseCase
+	groupResolver organizationGroupReportResolver
 }
 
 func NewPerformanceRiskHandler(
@@ -22,12 +23,14 @@ func NewPerformanceRiskHandler(
 	nodesUC *performanceriskuc.PlanningMapUseCase,
 	detailUC *performanceriskuc.DetailUseCase,
 	unlinkedUC *performanceriskuc.UnlinkedUseCase,
+	groupResolver organizationGroupReportResolver,
 ) *PerformanceRiskHandler {
 	return &PerformanceRiskHandler{
-		summaryUC:  summaryUC,
-		nodesUC:    nodesUC,
-		detailUC:   detailUC,
-		unlinkedUC: unlinkedUC,
+		summaryUC:     summaryUC,
+		nodesUC:       nodesUC,
+		detailUC:      detailUC,
+		unlinkedUC:    unlinkedUC,
+		groupResolver: groupResolver,
 	}
 }
 
@@ -105,10 +108,14 @@ func (h *PerformanceRiskHandler) parseInput(c *fiber.Ctx) (performanceriskuc.Inp
 	}
 
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReportOrgIDsFromQuery(c.Context(), scope, c.Query("org_id"), c.Query("organization_group_id"), h.groupResolver)
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			_ = sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return performanceriskuc.Input{}, false
+		}
+		if errors.Is(err, domainerrors.ErrInvalidInput) {
+			_ = sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id and organization_group_id are mutually exclusive")
 			return performanceriskuc.Input{}, false
 		}
 		_ = sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")

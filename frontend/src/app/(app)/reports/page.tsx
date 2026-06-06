@@ -30,7 +30,7 @@ import {
   Cell,
 } from "recharts";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -38,6 +38,10 @@ import {
   listAllOrganizations,
   type OrganizationListItem,
 } from "@/lib/api/organizations";
+import {
+  listOrganizationGroups,
+  type OrganizationGroupListItem,
+} from "@/lib/api/organization-groups";
 import { SemesterTargetTrend } from "./_components/inherent-residual-trend";
 import { CriticalRiskRateTrend } from "./_components/critical-risk-rate-trend";
 import { RiskMovementByOrg } from "./_components/risk-movement-by-org";
@@ -68,10 +72,15 @@ import {
 } from "@/lib/risk-report-trend";
 import {
   buildSelectableReportOrganizations,
+  buildSelectableReportOrganizationGroups,
   needsExplicitReportOrgSelection,
-  resolveDefaultReportOrgId,
 } from "@/lib/report-scope";
-import { OrganizationPicker } from "@/components/report/organization-picker";
+import { ReportsFilterSheet } from "./_components/report-filter-sheet";
+import {
+  copyReportsFilterScope,
+  resolveDefaultReportsFilterScope,
+  type ReportsFilterScope,
+} from "@/lib/reports-filter-sheet";
 import type {
   DashboardRiskCategoryItem,
   Risk,
@@ -88,6 +97,12 @@ const trendColors: Record<string, string> = {
   Sedang: "oklch(0.78 0.16 85)",
   Tinggi: "oklch(0.70 0.18 40)",
   "Sangat Tinggi": "oklch(0.62 0.22 27)",
+};
+
+const EMPTY_REPORT_SCOPE: ReportsFilterScope = {
+  organizationId: "",
+  organizationGroupId: "",
+  organizationIds: [],
 };
 
 const exportOptions = [
@@ -143,7 +158,15 @@ export default function ReportsPage() {
   const [reportOrganizations, setReportOrganizations] = useState<
     OrganizationListItem[]
   >([]);
-  const [reportOrgId, setReportOrgId] = useState("");
+  const [reportOrganizationGroups, setReportOrganizationGroups] = useState<
+    OrganizationGroupListItem[]
+  >([]);
+  const [appliedReportScope, setAppliedReportScope] =
+    useState<ReportsFilterScope>(() => copyReportsFilterScope(EMPTY_REPORT_SCOPE));
+  const [reportFilterOpen, setReportFilterOpen] = useState(false);
+  const [draftReportScope, setDraftReportScope] =
+    useState<ReportsFilterScope>(() => copyReportsFilterScope(EMPTY_REPORT_SCOPE));
+  const reportScopeInitializedForTokenRef = useRef<string | null>(null);
   const [trendRisks, setTrendRisks] = useState<RiskTrendSourceItem[]>([]);
   const [cycleRisks, setCycleRisks] = useState<Risk[]>([]);
   const [previousCycleRisks, setPreviousCycleRisks] = useState<Risk[]>([]);
@@ -200,13 +223,18 @@ export default function ReportsPage() {
     () => buildMovementByOrgData(comparisons, movementByOrgSort),
     [comparisons, movementByOrgSort],
   );
+  const reportOrgId = appliedReportScope.organizationId;
+  const reportGroupId = appliedReportScope.organizationGroupId;
+  const reportOrgIds = appliedReportScope.organizationIds;
   const hasTrendData = trendData.length > 0;
   const hasMovementData = movementData.some((item) => item.value > 0);
   const hasExposureData = unitExposureData.length > 0;
   const requiresReportOrgSelection = needsExplicitReportOrgSelection(user);
-  const reportOrgQuery = reportOrgId
-    ? `&org_id=${encodeURIComponent(reportOrgId)}`
+  const reportScopeQuery = reportOrgIds.length
+    ? `&org_id=${encodeURIComponent(reportOrgIds.join(","))}`
     : "";
+  const requiresReportScopeSelection =
+    requiresReportOrgSelection && reportOrgIds.length === 0;
   const toggleUnitFilter = (orgName: string) => {
     setSelectedUnit((current) => (current === orgName ? null : orgName));
   };
@@ -218,19 +246,36 @@ export default function ReportsPage() {
   useEffect(() => {
     setSelectedUnit(null);
     setSelectedMovement(null);
-  }, [exportCycle, reportOrgId]);
+  }, [exportCycle, reportOrgId, reportGroupId]);
 
   useEffect(() => {
     if (!token) {
       setReportOrganizations([]);
-      setReportOrgId("");
+      setReportOrganizationGroups([]);
+      setReportFilterOpen(false);
+      setAppliedReportScope(copyReportsFilterScope(EMPTY_REPORT_SCOPE));
+      setDraftReportScope(copyReportsFilterScope(EMPTY_REPORT_SCOPE));
+      reportScopeInitializedForTokenRef.current = null;
       return;
     }
 
-    listAllOrganizations(token)
-      .then((items) => {
+    Promise.all([
+      listAllOrganizations(token),
+      listOrganizationGroups(token, {
+        ownerOrganizationId: user?.isGlobal ? undefined : user?.organizationId ?? undefined,
+        includeMembers: true,
+        limit: 100,
+        page: 1,
+      }),
+    ])
+      .then(([items, groupsResponse]) => {
         const selectable = buildSelectableReportOrganizations(user, items);
+        const selectableGroups = buildSelectableReportOrganizationGroups(
+          user,
+          groupsResponse.data ?? [],
+        );
         setReportOrganizations(selectable);
+        setReportOrganizationGroups(selectableGroups);
       })
       .catch((error) => {
         console.error(error);
@@ -238,29 +283,49 @@ export default function ReportsPage() {
   }, [token, user]);
 
   useEffect(() => {
-    if (reportOrganizations.length === 0) {
-      setReportOrgId("");
+    const reportScopeInitKey = token
+      ? `${token}:${user?.isGlobal ? "1" : "0"}:${user?.organizationId ?? ""}`
+      : null;
+
+    if (
+      !reportScopeInitKey ||
+      reportOrganizations.length === 0 ||
+      reportScopeInitializedForTokenRef.current === reportScopeInitKey
+    ) {
       return;
     }
 
-    if (user?.isGlobal) {
-      setReportOrgId("");
-      return;
-    }
+    const defaultScope = resolveDefaultReportsFilterScope(
+      user,
+      reportOrganizations,
+    );
+    setAppliedReportScope(defaultScope);
+    setDraftReportScope(copyReportsFilterScope(defaultScope));
+    reportScopeInitializedForTokenRef.current = reportScopeInitKey;
+  }, [reportOrganizations, token, user]);
 
-    const defaultOrgId = resolveDefaultReportOrgId(user);
-    if (defaultOrgId) {
-      setReportOrgId((current) => current || defaultOrgId);
-      return;
+  const handleReportFilterOpenChange = (open: boolean) => {
+    setReportFilterOpen(open);
+    if (open) {
+      setDraftReportScope(copyReportsFilterScope(appliedReportScope));
     }
+  };
 
-    if (requiresReportOrgSelection) {
-      setReportOrgId("");
-      return;
-    }
+  const handleCancelReportFilter = () => {
+    setDraftReportScope(copyReportsFilterScope(appliedReportScope));
+    setReportFilterOpen(false);
+  };
 
-    setReportOrgId((current) => current || reportOrganizations[0]?.id || "");
-  }, [reportOrganizations, user, requiresReportOrgSelection]);
+  const handleResetReportFilter = () => {
+    setDraftReportScope(
+      resolveDefaultReportsFilterScope(user, reportOrganizations),
+    );
+  };
+
+  const handleApplyReportFilter = () => {
+    setAppliedReportScope(copyReportsFilterScope(draftReportScope));
+    setReportFilterOpen(false);
+  };
 
   useEffect(() => {
     if (!token) {
@@ -268,7 +333,7 @@ export default function ReportsPage() {
       return;
     }
 
-    if (requiresReportOrgSelection && !reportOrgId) {
+    if (requiresReportScopeSelection) {
       setTrendRisks([]);
       setCycleRisks([]);
       setPreviousCycleRisks([]);
@@ -280,23 +345,23 @@ export default function ReportsPage() {
 
     Promise.allSettled([
       api.get<RiskTrendSourceItem[]>(
-        `/risks/trend${reportOrgId ? `?org_id=${encodeURIComponent(reportOrgId)}` : ""}`,
+        `/risks/trend${reportScopeQuery ? `?${reportScopeQuery.slice(1)}` : ""}`,
         token,
       ),
       api.get<DashboardRiskCategoryItem[]>(
-        `/dashboard/risk-categories?cycle=${exportCycle}${reportOrgQuery}`,
+        `/dashboard/risk-categories?cycle=${exportCycle}${reportScopeQuery}`,
         token,
       ),
       api.get<Risk[]>(
-        `/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}${reportOrgQuery}`,
+        `/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}${reportScopeQuery}`,
         token,
       ),
       api.get<Risk[]>(
-        `/risks/cycle-snapshot?cycle=${encodeURIComponent(previousCycle)}${reportOrgQuery}`,
+        `/risks/cycle-snapshot?cycle=${encodeURIComponent(previousCycle)}${reportScopeQuery}`,
         token,
       ),
       api.get<RiskCycleComparisonItem[]>(
-        `/risks/compare?from=${previousCycle}&to=${exportCycle}${reportOrgQuery}`,
+        `/risks/compare?from=${previousCycle}&to=${exportCycle}${reportScopeQuery}`,
         token,
       ),
     ]).then(
@@ -353,8 +418,9 @@ export default function ReportsPage() {
     exportCycle,
     previousCycle,
     reportOrgId,
-    requiresReportOrgSelection,
-    reportOrgQuery,
+    reportGroupId,
+    requiresReportScopeSelection,
+    reportScopeQuery,
   ]);
 
   const handleExport = async (key: string) => {
@@ -363,7 +429,7 @@ export default function ReportsPage() {
       return;
     }
 
-    if (requiresReportOrgSelection && !reportOrgId) {
+    if (requiresReportScopeSelection) {
       toast.error("Pilih unit terlebih dahulu untuk membuka laporan.");
       return;
     }
@@ -374,7 +440,7 @@ export default function ReportsPage() {
         const API_BASE =
           process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
         const response = await fetch(
-          `${API_BASE}/reports/risk-pdf?cycle=${encodeURIComponent(exportCycle)}${reportOrgQuery}`,
+          `${API_BASE}/reports/risk-pdf?cycle=${encodeURIComponent(exportCycle)}${reportScopeQuery}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         if (!response.ok) {
@@ -433,7 +499,7 @@ export default function ReportsPage() {
       let risks: RiskExportItem[] = [];
       try {
         risks = await api.get<RiskExportItem[]>(
-          `/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}${reportOrgQuery}`,
+          `/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}${reportScopeQuery}`,
           token,
         );
       } catch (error) {
@@ -447,7 +513,7 @@ export default function ReportsPage() {
         }
 
         const approvedRisks = await api.get<RiskCycleSnapshotItem[]>(
-          `/risks?status=approved${reportOrgId ? `&org_id=${encodeURIComponent(reportOrgId)}` : ""}`,
+          `/risks?status=approved${reportScopeQuery}`,
           token,
         );
         risks = approvedRisks.filter(
@@ -487,39 +553,21 @@ export default function ReportsPage() {
         </p>
       </div>
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardContent className="p-4">
-          <div className="min-w-[220px] flex-1 md:max-w-sm">
-            <OrganizationPicker
-              value={reportOrgId}
-              organizations={reportOrganizations}
-              onChange={setReportOrgId}
-            />
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            {requiresReportOrgSelection && !reportOrgId ? (
-              <span>
-                Pilih organisasi terlebih dahulu untuk menampilkan laporan.
-              </span>
-            ) : user?.isGlobal && !reportOrgId ? (
-              <span>
-                Laporan menampilkan semua unit sampai Anda memilih unit
-                tertentu.
-              </span>
-            ) : (
-              <span>Laporan akan mengikuti unit yang dipilih.</span>
-            )}
-            {reportOrganizations.length === 0 ? (
-              <Badge
-                variant="outline"
-                className="h-5 px-2 text-[10px] text-muted-foreground"
-              >
-                Belum ada unit
-              </Badge>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
+      <ReportsFilterSheet
+        open={reportFilterOpen}
+        onOpenChange={handleReportFilterOpenChange}
+        activeUnitCount={reportOrgIds.length}
+        disabled={
+          reportOrganizations.length === 0 && reportOrganizationGroups.length === 0
+        }
+        draftScope={draftReportScope}
+        onDraftScopeChange={setDraftReportScope}
+        organizations={reportOrganizations}
+        organizationGroups={reportOrganizationGroups}
+        onReset={handleResetReportFilter}
+        onCancel={handleCancelReportFilter}
+        onApply={handleApplyReportFilter}
+      />
 
       {/* Export Section */}
       <Card className="border-border/50 bg-card/80">
@@ -531,7 +579,7 @@ export default function ReportsPage() {
                 Export Data
               </CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">
-                Unduh ringkasan laporan sesuai organisasi yang dipilih.
+                Unduh ringkasan laporan sesuai organisasi atau group yang dipilih.
               </p>
             </div>
             <Badge

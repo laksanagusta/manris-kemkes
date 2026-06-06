@@ -51,7 +51,7 @@ func (r *reviewScheduleTaskRepo) GetRecurringMitigations(context.Context) ([]*en
 func (r *reviewScheduleTaskRepo) ListAll(context.Context, []uuid.UUID) ([]*entity.MitigationTask, error) {
 	return nil, nil
 }
-func (r *reviewScheduleTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, int, int) ([]*entity.MitigationTask, int, error) {
+func (r *reviewScheduleTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, string, int, int) ([]*entity.MitigationTask, int, error) {
 	return nil, 0, nil
 }
 func (r *reviewScheduleTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID, string, string) (bool, error) {

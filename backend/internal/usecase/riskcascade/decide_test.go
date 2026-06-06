@@ -42,7 +42,7 @@ func (f *fakeMitigationTaskRepo) GetRecurringMitigations(context.Context) ([]*en
 func (f *fakeMitigationTaskRepo) ListAll(context.Context, []uuid.UUID) ([]*entity.MitigationTask, error) {
 	return nil, nil
 }
-func (f *fakeMitigationTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, int, int) ([]*entity.MitigationTask, int, error) {
+func (f *fakeMitigationTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, string, int, int) ([]*entity.MitigationTask, int, error) {
 	return nil, 0, nil
 }
 func (f *fakeMitigationTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID, string, string) (bool, error) {

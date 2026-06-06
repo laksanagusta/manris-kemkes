@@ -26,6 +26,7 @@ export type PaginatedFormalReportResponse = {
 
 export type ListFormalReportsParams = {
   organizationId?: string;
+  organizationGroupId?: string;
   period?: string;
   reportType?: FormalReportType;
   status?: FormalReportStatus;
