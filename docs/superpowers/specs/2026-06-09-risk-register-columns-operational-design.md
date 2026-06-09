@@ -35,8 +35,9 @@ priority.
 
 ## Design Decision
 
-Use operational-first layouts with one primary text column and compact secondary
-metadata inside it.
+Use operational-first, flat table layouts. Each row should visually stay one
+line high in normal desktop use. Cells may contain short inline badges, but they
+should not stack metadata under the title.
 
 The main risk register table should answer:
 
@@ -54,7 +55,7 @@ The monitoring transactions table should answer:
 
 Recommended column order:
 
-`Kode | Risiko | Skor/Level | Status Kerja | Tindak Lanjut | Review Berikutnya | Update Terakhir | Aksi`
+`Kode | Risiko | Kategori | Skor/Level | Status Kerja | Tindak Lanjut | Review Berikutnya | Update Terakhir | Aksi`
 
 ## Main Risk Register Column Rules
 
@@ -68,18 +69,23 @@ Recommended column order:
 
 - Replace the current separate `Judul Risiko` column with a broader primary
   text column.
-- The main line remains the risk title.
-- Secondary metadata may live under the title in muted text, in this order:
-  - category,
-  - version badge when relevant,
-  - owning unit or organization if available in the row payload.
+- The cell contains only one visible line.
+- The title remains the main content and should truncate when long.
 - The title remains the click target to open risk detail.
+- A short `vN` badge may appear inline after the title when version information
+  is useful, but it must not create a second line.
+- Do not place category, unit, owner, or other metadata under the title.
+
+### `Kategori`
+
+- Keep category as a standalone compact column for flat-row scanning.
+- Use the existing human-readable category label.
+- If the category is missing, render `-`.
 
 ### `Skor/Level`
 
 - Show the numeric score and risk level together as one scan target.
-- If space is tight, the numeric score may remain primary and the level may be a
-  compact badge in the same cell.
+- The cell should stay one line: score plus compact level badge.
 - This column should stay near the front because it is the main priority signal
   for daily triage.
 
@@ -95,7 +101,9 @@ Recommended column order:
   - `Pemantauan Berjalan`
   - `Diarsipkan`
 - If a row has both a main status and an ongoing draft status, show the ongoing
-  state as the dominant badge and the main status as secondary only when needed.
+  state as the dominant badge.
+- If a secondary status is still needed, render it inline as a second compact
+  badge, not as a stacked label.
 
 ### `Tindak Lanjut`
 
@@ -143,7 +151,7 @@ Current monitoring table order:
 
 Recommended column order:
 
-`Kode | Risiko | Periode | Perubahan Skor | Status Pemantauan | Efektivitas | Update Terakhir | Aksi`
+`Kode | Risiko | Kategori | Periode | Perubahan Skor | Status Pemantauan | Efektivitas | Update Terakhir | Aksi`
 
 This keeps the user's scan path focused on the transaction lifecycle rather than
 static risk metadata.
@@ -162,10 +170,16 @@ static risk metadata.
 - Fall back to the monitoring draft title when source risk title is unavailable.
 - Keep the link target pointed to the monitoring transaction detail, not the
   source risk detail.
-- Secondary metadata may live under the title in muted text, in this order:
-  - source version,
-  - category,
-  - monitoring mode when useful.
+- The cell contains only one visible line.
+- The title should truncate when long.
+- A short source version badge may appear inline after the title when useful.
+- Do not place source version, category, or monitoring mode under the title.
+
+### `Kategori`
+
+- Keep category as a standalone compact column for flat-row scanning.
+- Use source risk category first, then draft category as fallback.
+- If both are missing, render `-`.
 
 ### `Periode`
 
@@ -183,6 +197,7 @@ static risk metadata.
   draft placeholder rather than implying a completed comparison.
 - The resulting level may appear as a small badge in the same cell when useful,
   but it should not be a standalone primary column.
+- The full cell must remain one line.
 
 ### `Status Pemantauan`
 
@@ -220,25 +235,24 @@ static risk metadata.
 
 ## Secondary Metadata Rules
 
-The table should avoid widening the visual footprint just to preserve metadata
-that is less important for scanning.
+The table should not use stacked secondary metadata inside a cell.
 
-Allowed secondary metadata inside `Risiko` for the main register:
+Allowed inline metadata:
 
-- `Versi` as a small badge when present.
-- `Kategori` as muted secondary text when useful.
-- `Unit` or owner label when the row payload already exposes it cleanly.
+- `Versi` as a short `vN` badge on the same line as the risk title.
+- one compact status badge beside another status badge when needed.
+- one compact level badge beside a score.
 
-Allowed secondary metadata inside `Risiko` for monitoring transactions:
+Not allowed inside the flat operational tables:
 
-- source version,
-- category,
-- monitoring mode.
+- muted subtext below the title,
+- category below the title,
+- unit or owner below the title,
+- monitoring mode below the title.
 
 Not recommended as standalone columns in either operational table:
 
 - `Versi`
-- `Kategori`
 - `Dibuat`
 
 Those values can still appear in the row, but they should no longer consume
@@ -249,10 +263,14 @@ prime column slots in the main register or monitoring transactions table.
 - Keep horizontal scrolling available.
 - Keep header labels short and work-focused.
 - Preserve row density.
+- Keep normal desktop rows one line high.
+- Apply truncation to long text fields instead of wrapping.
+- Use tooltips or native `title` attributes for truncated long values when
+  practical.
 - Keep the table usable on smaller screens without reintroducing a wide,
   metadata-heavy layout.
-- If a value does not fit, prioritize truncation in the title cell rather than
-  stretching the table.
+- If a value does not fit, prioritize truncation in the title and effectiveness
+  cells rather than stretching the table.
 
 ## Data Flow
 
@@ -308,14 +326,14 @@ Verify the following after implementation:
 
 - The main register table renders with the new column order.
 - `Risiko` remains the primary clickable text column.
+- Normal desktop rows stay one visible line high.
 - `Skor/Level` is visible without requiring horizontal scanning past the
   metadata columns.
 - `Dibuat` is no longer a standalone column in the main register table.
-- `Versi` remains available only as secondary metadata, not as a primary
-  column.
+- `Versi` remains available only as inline metadata, not as a primary column.
 - The monitoring transactions table renders with the new column order.
 - Monitoring rows show `Periode` as a primary column.
 - Monitoring rows combine source and observed score in `Perubahan Skor`.
-- Monitoring rows no longer expose standalone `Versi`, `Kategori`,
-  `Tingkat Risiko`, `Penanganan`, or `Dibuat` columns.
+- Monitoring rows no longer expose standalone `Versi`, `Tingkat Risiko`,
+  `Penanganan`, or `Dibuat` columns.
 - Empty or partial records still render safely with fallbacks.
