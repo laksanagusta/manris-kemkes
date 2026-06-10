@@ -97,7 +97,10 @@ import {
   riskCategoryLabels,
 } from "@/lib/risk";
 import { buildVersionHistoryItem } from "@/lib/risk-history";
-import { formatMonitoringReviewNext } from "@/lib/risk-register-monitoring";
+import {
+  getRiskRegisterMonitoringStatusLabel,
+  getRiskRegisterMonitoringStatusTone,
+} from "@/lib/risk-register-monitoring";
 import {
   buildRiskRegisterQueryString,
   parseRiskRegisterQueryState,
@@ -152,7 +155,7 @@ const levelBadgeVariant: Record<string, string> = {
 };
 
 const statusLabel: Record<string, string> = {
-  assessment_draft: "Draf Pemantauan",
+  assessment_draft: "Draf Risiko",
   assessment_in_review: "Dalam Review",
   approved: "Disetujui",
   draft: "Draft",
@@ -376,7 +379,7 @@ function RiskRegisterFiltersSidebar({
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
                 <SelectItem value="assessment_draft">
-                  Draf Pemantauan
+                  Draf Risiko
                 </SelectItem>
                 <SelectItem value="assessment_in_review">
                   Dalam Review
@@ -483,33 +486,6 @@ function formatCycleLabel(cycle?: string, createdAt?: string) {
   if (cycle) return cycle;
   if (!createdAt) return "Baseline";
   return `Baseline ${new Date(createdAt).toLocaleDateString("id-ID", { year: "numeric", month: "short" })}`;
-}
-
-function formatTreatmentOption(value?: string | null) {
-  if (!value) return "-";
-
-  switch (value.trim().toLowerCase()) {
-    case "avoid":
-    case "menghindari":
-    case "menghindari risiko":
-      return "Menghindari Risiko";
-    case "transfer":
-    case "berbagi":
-    case "berbagi risiko":
-      return "Berbagi Risiko";
-    case "mitigate":
-    case "mitigasi":
-    case "mitigasi risiko":
-    case "mitigasi / penanganan":
-      return "Mitigasi";
-    case "accept":
-    case "terima":
-    case "menerima":
-    case "menerima risiko":
-      return "Menerima Risiko";
-    default:
-      return value;
-  }
 }
 
 function formatLocalDateTime(value?: string | null) {
@@ -1430,13 +1406,13 @@ export default function RiskRegisterPage() {
                       </div>
                     </TableHead>
                     <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Status Kerja
+                      Status Risiko
                     </TableHead>
                     <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Tindak Lanjut
+                      Status Pemantauan
                     </TableHead>
-                    <TableHead className="w-40 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Review Berikutnya
+                    <TableHead className="w-36 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Terakhir Dipantau
                     </TableHead>
                     <TableHead
                       className="w-32 cursor-pointer select-none whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500"
@@ -1500,17 +1476,38 @@ export default function RiskRegisterPage() {
                         !isReadOnly;
                       const canRestore = !!risk.archivedAt && !isReadOnly;
                       const statusText =
-                        risk.status === "assessment_draft" &&
-                        risk.versionNumber == 1
-                          ? "Draft"
-                          : statusLabel[risk.status || ""] || risk.status || "-";
-                      const ongoingStatusText =
-                        risk.hasOngoing && risk.draftStatus
-                          ? statusLabel[risk.draftStatus] || risk.draftStatus
-                          : "";
-                      const reviewNextText = formatMonitoringReviewNext(
-                        risk.reviewScheduleText,
-                        risk.nextReviewDate,
+                        risk.archivedAt
+                          ? "Diarsipkan"
+                          : risk.status === "assessment_draft" &&
+                              risk.versionNumber == 1
+                            ? "Draft"
+                            : statusLabel[risk.status || ""] ||
+                              risk.status ||
+                              "-";
+                      const monitoringEligible =
+                        risk.status === "approved" &&
+                        !risk.archivedAt &&
+                        !!risk.assessmentCycle;
+                      const monitoringStatusText =
+                        getRiskRegisterMonitoringStatusLabel(
+                          risk.monitoringStatus,
+                          monitoringEligible,
+                        );
+                      const monitoringTone =
+                        getRiskRegisterMonitoringStatusTone(
+                          risk.monitoringStatus,
+                          monitoringEligible,
+                        );
+                      const monitoringStatusClass =
+                        monitoringTone === "neutral"
+                          ? getLinearToneBadgeClass("neutral")
+                          : monitoringTone === "warning"
+                            ? getLinearToneBadgeClass("warning")
+                            : monitoringTone === "success"
+                              ? getLinearToneBadgeClass("success")
+                              : getLinearToneBadgeClass("danger");
+                      const monitoringLastText = formatLocalDateTime(
+                        risk.lastMonitoredAt,
                       );
                       const updateText = formatLocalDateTime(
                         risk.updatedAt || risk.createdAt,
@@ -1562,44 +1559,27 @@ export default function RiskRegisterPage() {
                             <div className="flex items-center gap-1.5 whitespace-nowrap">
                               <Badge
                                 className={cn(
-                                  risk.status
-                                    ? statusVariant[risk.status]
+                                  risk.archivedAt
+                                    ? getLinearStatusBadgeClass("archived")
+                                    : risk.status
+                                      ? statusVariant[risk.status]
                                     : getLinearToneBadgeClass("neutral"),
                                 )}
                               >
                                 {statusText}
                               </Badge>
-                              {ongoingStatusText ? (
-                                <Badge
-                                  className={getLinearStatusBadgeClass(
-                                    risk.draftStatus,
-                                  )}
-                                >
-                                  {ongoingStatusText}
-                                </Badge>
-                              ) : null}
-                              {risk.archivedAt ? (
-                                <Badge
-                                  className={getLinearStatusBadgeClass(
-                                    "archived",
-                                  )}
-                                >
-                                  Diarsipkan
-                                </Badge>
-                              ) : null}
                             </div>
                           </TableCell>
                           <TableCell className="px-2.5 whitespace-nowrap text-zinc-600">
-                            <span
-                              className="block truncate"
-                              title={formatTreatmentOption(risk.treatmentOption)}
-                            >
-                              {formatTreatmentOption(risk.treatmentOption)}
-                            </span>
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                              <Badge className={monitoringStatusClass}>
+                                {monitoringStatusText}
+                              </Badge>
+                            </div>
                           </TableCell>
-                          <TableCell className="px-2.5 whitespace-nowrap text-zinc-600">
-                            <span className="block truncate" title={reviewNextText}>
-                              {reviewNextText}
+                          <TableCell className="px-2.5 whitespace-nowrap text-xs text-zinc-600">
+                            <span className="block truncate" title={monitoringLastText}>
+                              {monitoringLastText}
                             </span>
                           </TableCell>
                           <TableCell className="px-2.5 whitespace-nowrap text-xs text-zinc-600">

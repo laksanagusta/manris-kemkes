@@ -11,20 +11,32 @@ import (
 	"github.com/manris/backend/internal/domain/repository"
 )
 
-// CreateMonitoringBatchUseCase creates reassessment drafts for multiple risks
+// CreateMonitoringBatchUseCase creates monitoring transactions for multiple risks
 // as part of bulk monitoring (periodic review) submission.
 type CreateMonitoringBatchUseCase struct {
-	riskRepo repository.RiskRepository
-	userRepo repository.UserRepository
+	riskRepo       repository.RiskRepository
+	monitoringRepo repository.RiskMonitoringRepository
+	userRepo       repository.UserRepository
 }
 
 func NewCreateMonitoringBatchUseCase(
 	riskRepo repository.RiskRepository,
-	userRepo repository.UserRepository,
+	args ...any,
 ) *CreateMonitoringBatchUseCase {
+	var monitoringRepo repository.RiskMonitoringRepository
+	var userRepo repository.UserRepository
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case repository.RiskMonitoringRepository:
+			monitoringRepo = v
+		case repository.UserRepository:
+			userRepo = v
+		}
+	}
 	return &CreateMonitoringBatchUseCase{
-		riskRepo: riskRepo,
-		userRepo: userRepo,
+		riskRepo:       riskRepo,
+		monitoringRepo: monitoringRepo,
+		userRepo:       userRepo,
 	}
 }
 
@@ -36,17 +48,7 @@ type CreateMonitoringBatchInput struct {
 	CreatedBy      *uuid.UUID
 }
 
-// Execute processes all items and creates reassessment drafts.
-// For each valid item it:
-//  1. Looks up the approved+current risk by Kode Risiko within the org scope
-//  2. Re-validates it can be reassessed (approved + isCurrent)
-//  3. Checks no existing draft for the cycle (FindInProgressReassessmentForCycle)
-//  4. Calls BuildPeriodicReassessmentDraft to create a new draft
-//  5. Updates draft Probability/Impact with RealisasiP/D values
-//  6. Recomputes Weight using GetBobot
-//  7. Persists the draft via riskRepo.Create
-//
-// Returns per-item results with created/failed status.
+// Execute processes all items and creates monitoring transactions.
 func (uc *CreateMonitoringBatchUseCase) Execute(ctx context.Context, input CreateMonitoringBatchInput) (*BulkMonitoringBatchOutput, error) {
 	if !IsValidCycleFormat(input.Cycle) {
 		return nil, apperrors.Wrap(apperrors.ErrInvalidInput, "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)")
@@ -80,8 +82,118 @@ func (uc *CreateMonitoringBatchUseCase) Execute(ctx context.Context, input Creat
 	return output, nil
 }
 
-// processItem handles a single batch item: lookup, validate, create draft, persist.
 func (uc *CreateMonitoringBatchUseCase) processItem(
+	ctx context.Context,
+	item BulkMonitoringBatchItemInput,
+	cycle string,
+	orgID uuid.UUID,
+	createdBy *uuid.UUID,
+	codeMap map[string]*entity.Risk,
+	now time.Time,
+) BulkMonitoringBatchItemOutput {
+	if uc.monitoringRepo == nil {
+		return uc.processLegacyItem(ctx, item, cycle, orgID, createdBy, codeMap, now)
+	}
+
+	code := item.Code
+
+	sourceRisk, ok := codeMap[code]
+	if !ok {
+		return BulkMonitoringBatchItemOutput{
+			ClientKey: item.ClientKey,
+			Code:      &code,
+			Status:    "failed",
+			Message:   "risk not found or not approved+current",
+			Error:     fmt.Sprintf("no approved current risk found with code %q", code),
+		}
+	}
+
+	fullRisk, err := uc.riskRepo.GetByID(ctx, sourceRisk.ID, []uuid.UUID{orgID})
+	if err != nil {
+		return BulkMonitoringBatchItemOutput{
+			ClientKey: item.ClientKey,
+			Code:      &sourceRisk.Code,
+			Status:    "failed",
+			Message:   "failed to load full risk details",
+			Error:     err.Error(),
+		}
+	}
+	sourceRisk = fullRisk
+
+	if !sourceRisk.CanBeReassessed() {
+		return BulkMonitoringBatchItemOutput{
+			ClientKey: item.ClientKey,
+			Code:      &sourceRisk.Code,
+			Status:    "failed",
+			Message:   "risk cannot be reassessed",
+			Error:     "only current approved risks can be monitored",
+		}
+	}
+
+	if existing, err := uc.monitoringRepo.GetDraftBySourceAndCycle(ctx, sourceRisk.ID, cycle); err != nil {
+		return BulkMonitoringBatchItemOutput{
+			ClientKey: item.ClientKey,
+			Code:      &sourceRisk.Code,
+			Status:    "failed",
+			Message:   "failed to check existing monitoring transactions",
+			Error:     err.Error(),
+		}
+	} else if existing != nil {
+		return BulkMonitoringBatchItemOutput{
+			ClientKey: item.ClientKey,
+			ID:        &existing.ID,
+			Code:      &sourceRisk.Code,
+			Status:    "failed",
+			Message:   "an in-progress monitoring transaction already exists for this cycle",
+			Error:     fmt.Sprintf("existing monitoring transaction %s for cycle %s", existing.ID, cycle),
+		}
+	}
+
+	if hasFinalized, err := uc.monitoringRepo.HasFinalizedForSourceAndCycle(ctx, sourceRisk.ID, cycle); err != nil {
+		return BulkMonitoringBatchItemOutput{
+			ClientKey: item.ClientKey,
+			Code:      &sourceRisk.Code,
+			Status:    "failed",
+			Message:   "failed to check finalized monitoring transactions",
+			Error:     err.Error(),
+		}
+	} else if hasFinalized {
+		return BulkMonitoringBatchItemOutput{
+			ClientKey: item.ClientKey,
+			Code:      &sourceRisk.Code,
+			Status:    "failed",
+			Message:   "monitoring transaction already finalized for this cycle",
+			Error:     fmt.Sprintf("finalized monitoring already exists for cycle %s", cycle),
+		}
+	}
+
+	monitoring := entity.NewRiskMonitoringDraft(sourceRisk, cycle, *createdBy)
+	monitoring.StartedAt = now
+	monitoring.ObservedProbability = item.RealisasiP
+	monitoring.ObservedImpact = item.RealisasiD
+	monitoring.CalculateObservedScore()
+	monitoring.SourceRisk = sourceRisk
+
+	if err := uc.monitoringRepo.Create(ctx, monitoring); err != nil {
+		return BulkMonitoringBatchItemOutput{
+			ClientKey: item.ClientKey,
+			Code:      &sourceRisk.Code,
+			Status:    "failed",
+			Message:   "failed to create monitoring transaction",
+			Error:     err.Error(),
+		}
+	}
+
+	return BulkMonitoringBatchItemOutput{
+		ClientKey: item.ClientKey,
+		ID:        &monitoring.ID,
+		Code:      &sourceRisk.Code,
+		Status:    "created",
+		Message:   "monitoring transaction created",
+	}
+}
+
+func (uc *CreateMonitoringBatchUseCase) processLegacyItem(
 	ctx context.Context,
 	item BulkMonitoringBatchItemInput,
 	cycle string,
@@ -113,7 +225,6 @@ func (uc *CreateMonitoringBatchUseCase) processItem(
 			Error:     err.Error(),
 		}
 	}
-
 	sourceRisk = fullRisk
 
 	if !sourceRisk.CanBeReassessed() {
@@ -159,7 +270,6 @@ func (uc *CreateMonitoringBatchUseCase) processItem(
 	}
 
 	draft := BuildPeriodicReassessmentDraft(sourceRisk, cycle, now, *createdBy)
-
 	draft.Probability = item.RealisasiP
 	draft.Impact = item.RealisasiD
 	draft.Weight = entity.GetBobot(item.RealisasiP, item.RealisasiD)

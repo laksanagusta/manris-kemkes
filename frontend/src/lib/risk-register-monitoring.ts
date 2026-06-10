@@ -35,6 +35,46 @@ export function formatMonitoringScoreChange(
   return `${sourceText} -> ${observedText}`;
 }
 
+export function getRiskRegisterMonitoringStatusLabel(
+  status?: string | null,
+  isEligible = true,
+) {
+  if (!isEligible) {
+    return "-";
+  }
+
+  switch ((status ?? "").trim().toLowerCase()) {
+    case "draft":
+      return "Draf";
+    case "finalized":
+      return "Selesai";
+    case "void":
+      return "Dibatalkan";
+    default:
+      return "Belum Dimulai";
+  }
+}
+
+export function getRiskRegisterMonitoringStatusTone(
+  status?: string | null,
+  isEligible = true,
+) {
+  if (!isEligible) {
+    return "neutral";
+  }
+
+  switch ((status ?? "").trim().toLowerCase()) {
+    case "draft":
+      return "warning";
+    case "finalized":
+      return "success";
+    case "void":
+      return "danger";
+    default:
+      return "neutral";
+  }
+}
+
 export function formatMonitoringReviewNext(
   reviewScheduleText?: string | null,
   nextReviewDate?: string | null,

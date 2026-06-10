@@ -55,7 +55,7 @@ The monitoring transactions table should answer:
 
 Recommended column order:
 
-`Kode | Risiko | Kategori | Skor/Level | Status Kerja | Tindak Lanjut | Review Berikutnya | Update Terakhir | Aksi`
+`Kode | Risiko | Kategori | Skor/Level | Status Risiko | Status Pemantauan | Terakhir Dipantau | Update Terakhir | Aksi`
 
 ## Main Risk Register Column Rules
 
@@ -89,42 +89,33 @@ Recommended column order:
 - This column should stay near the front because it is the main priority signal
   for daily triage.
 
-### `Status Kerja`
+### `Status Risiko`
 
 - This column replaces the current status column as the operational status
-  indicator.
-- It should show the user-facing work state, not just the raw storage status.
+  indicator for the risk lifecycle.
+- It should show the user-facing risk workflow state, not just the raw storage
+  status.
 - For draft or active rows, display the most useful current work state:
   - `Draft`
   - `Dalam Review`
   - `Disetujui`
-  - `Pemantauan Berjalan`
   - `Diarsipkan`
-- If a row has both a main status and an ongoing draft status, show the ongoing
-  state as the dominant badge.
-- If a secondary status is still needed, render it inline as a second compact
-  badge, not as a stacked label.
 
-### `Tindak Lanjut`
+### `Status Pemantauan`
 
-- Replace the generic `Penanganan` wording with a more operational label.
-- This column should describe the next practical action or the current
-  treatment posture.
+- Show the lifecycle state of the active or selected monitoring cycle.
 - Use human-readable values such as:
-  - `Mulai pemantauan`
-  - `Lanjutkan pemantauan`
-  - `Menunggu review`
-  - `Mitigasi`
-  - `Menerima risiko`
-  - `-` when no useful action is available
+  - `Belum Dimulai`
+  - `Draf`
+  - `Selesai`
+  - `Dibatalkan`
+  - `-` when monitoring is not applicable
 
-### `Review Berikutnya`
+### `Terakhir Dipantau`
 
-- Replace `Dibuat` with a next-review oriented column for the main register.
-- Prefer a due/review signal over creation time for day-to-day work.
-- If the source data has no review target, show `-`.
-- If the row is archived or closed and no review is expected, keep the column as
-  `-`.
+- Show the timestamp of the most recent finalized monitoring transaction for
+  the risk.
+- If there has never been a finalized monitoring transaction, show `-`.
 
 ### `Update Terakhir`
 
@@ -254,6 +245,7 @@ Not recommended as standalone columns in either operational table:
 
 - `Versi`
 - `Dibuat`
+- `Review Berikutnya`
 
 Those values can still appear in the row, but they should no longer consume
 prime column slots in the main register or monitoring transactions table.

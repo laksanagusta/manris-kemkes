@@ -1,3 +1,74 @@
+import type { Risk } from "./risk";
+
+export interface RiskMonitoringDetail {
+  id: string;
+  sourceRiskId: string;
+  resultRiskId?: string | null;
+  assessmentCycle: string;
+  status: string;
+  mode: string;
+  sourceProbability: number;
+  sourceImpact: number;
+  sourceWeight: number;
+  sourceNilai: number;
+  sourceLevel: string;
+  sourceVersionNumber: number;
+  observedProbability: number;
+  observedImpact: number;
+  observedWeight: number;
+  observedNilai: number;
+  observedLevel: string;
+  conditionSummary: string;
+  eventSummary: string;
+  trend: string;
+  effectivenessConclusion: string;
+  followUpNote: string;
+  conclusion: string;
+  mitigationProgressSummary: string;
+  mitigationCompletionPercent: number;
+  mitigationObstacles: string;
+  mitigationFollowUp: string;
+  draftTitle: string;
+  draftCategory: string;
+  draftCause: string[];
+  draftRiskSource: string;
+  draftControllability: string;
+  draftImpactDesc: string[];
+  draftExistingControl: string;
+  draftControlEffectiveness: string;
+  draftTreatmentOption: string;
+  draftMitigations?: unknown[];
+  profileChangeSummary: string[];
+  changeReason: string;
+  startedAt: string;
+  updatedAt?: string;
+  finalizedAt?: string | null;
+  voidedAt?: string | null;
+  voidReason?: string;
+  sourceRisk?: Risk | null;
+  resultRisk?: Risk | null;
+}
+
+export interface PaginatedRiskMonitoringResponse {
+  data: RiskMonitoringDetail[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface RiskMonitoringListParams {
+  q?: string;
+  lifecycle?: "active" | "archived" | "all";
+  status?: string;
+  category?: string;
+  assessment_cycle?: string;
+  created_at?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+  page?: number;
+  limit?: number;
+}
+
 // Monitoring Preview Item — corresponds to BulkMonitoringPreviewItem
 export interface MonitoringPreviewItem {
   clientKey: string;

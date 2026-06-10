@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -393,4 +394,55 @@ func TestRiskRegisterListSerializesReviewScheduleText(t *testing.T) {
 	}
 }
 
+func TestRiskRegisterListSerializesMonitoringStatusAndLastMonitoredAt(t *testing.T) {
+	lastMonitoredAt := time.Date(2026, time.June, 9, 10, 15, 0, 0, time.UTC)
+	repo := &riskRegisterRepoStub{
+		registerItems: []*entity.Risk{
+			{
+				ID:               uuid.New(),
+				Code:             "R-002",
+				Title:            "Server outage",
+				Status:           entity.RiskStatusApproved,
+				Category:         entity.RiskCategoryOperasional,
+				MonitoringStatus: strPtr(entity.RiskMonitoringStatusFinalized),
+				LastMonitoredAt:  &lastMonitoredAt,
+			},
+		},
+		registerTotal: 1,
+	}
+	handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repo)}
+
+	app := fiber.New()
+	app.Get("/risks/register", handler.ListRiskRegister)
+
+	resp, err := app.Test(httptest.NewRequest(fiber.MethodGet, "/risks/register", nil))
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, body)
+	}
+
+	var payload struct {
+		Data []map[string]any `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(payload.Data) != 1 {
+		t.Fatalf("expected 1 data item, got %d", len(payload.Data))
+	}
+	if payload.Data[0]["monitoringStatus"] != entity.RiskMonitoringStatusFinalized {
+		t.Fatalf("expected monitoringStatus finalized, got %#v", payload.Data[0]["monitoringStatus"])
+	}
+	if payload.Data[0]["lastMonitoredAt"] == nil {
+		t.Fatal("expected lastMonitoredAt in response")
+	}
+}
+
 func floatPtr(v float64) *float64 { return &v }
+
+func strPtr(v string) *string { return &v }

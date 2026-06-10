@@ -13,7 +13,6 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -31,6 +30,7 @@ import type { RiskVersionTimelineItem } from "@/types/risk";
 type AnalysisRow = {
   id: string;
   label: string;
+  versionNumber?: number;
   period: string;
   createdAt: string;
   inherentScore: number;
@@ -72,7 +72,7 @@ function getVersionTargetScore(version: RiskVersionTimelineItem) {
 }
 
 function formatDelta(delta: number | null) {
-  if (delta === null) return "Baru";
+  if (delta === null) return "Versi awal";
   if (delta === 0) return "Stabil";
   return delta > 0 ? `+${delta}` : `${delta}`;
 }
@@ -97,6 +97,7 @@ export function RiskAnalysisTab({
         return {
           id: version.id,
           label: formatVersionLabel(version),
+          versionNumber: version.versionNumber,
           period: version.assessmentCycle || formatShortDate(version.createdAt),
           createdAt: version.createdAt,
           inherentScore,
@@ -145,7 +146,7 @@ export function RiskAnalysisTab({
         <CardContent className="flex items-center justify-center py-14">
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">
-            Memuat analisa risiko...
+            Memuat analisis risiko...
           </span>
         </CardContent>
       </Card>
@@ -157,11 +158,11 @@ export function RiskAnalysisTab({
       <Card className="border-dashed border-border/60 bg-muted/10">
         <CardContent className="flex flex-col items-center justify-center gap-2 py-14 text-center">
           <p className="text-sm font-medium text-foreground">
-            Belum ada riwayat versi untuk dianalisis.
+            Belum ada versi risiko untuk dianalisis.
           </p>
           <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
-            Setelah draft risiko disimpan dan berubah beberapa kali, tab ini
-            akan menampilkan tren skor, perubahan level, dan catatan revisi.
+            Setelah risiko disimpan sebagai versi, tab ini menampilkan
+            perubahan nilai, level, target, dan catatan revisi.
           </p>
         </CardContent>
       </Card>
@@ -173,7 +174,7 @@ export function RiskAnalysisTab({
       <div className="grid gap-3 md:grid-cols-4">
         <div className="rounded-2xl border border-border/50 bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-            Skor terakhir
+            Nilai risiko terkini
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
             {latest?.inherentScore ?? 0}
@@ -184,7 +185,7 @@ export function RiskAnalysisTab({
         </div>
         <div className="rounded-2xl border border-border/50 bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-            Skor sebelumnya
+            Nilai sebelumnya
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
             {previous?.inherentScore ?? "—"}
@@ -211,7 +212,7 @@ export function RiskAnalysisTab({
         </div>
         <div className="rounded-2xl border border-border/50 bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-            Jarak ke target
+            Selisih dari target
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
             {targetGap === null ? "—" : `${targetGap}`}
@@ -219,22 +220,22 @@ export function RiskAnalysisTab({
           <p className="mt-1 text-xs text-muted-foreground">
             {latest?.targetScore && latest.targetScore > 0
               ? latest.targetLevel
-              : "Target belum diisi"}
+              : "Target belum ditetapkan"}
           </p>
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+      <div className="space-y-5">
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="space-y-1.5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <CardTitle className="text-sm font-semibold">
-                  Tren skor inherent risiko
+                  Tren nilai risiko
                 </CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Pergerakan skor inherent dari versi ke versi, dengan
-                  pembanding target untuk membaca jarak residual.
+                  Pergerakan nilai risiko dari versi ke versi, dibandingkan
+                  dengan target penanganan.
                 </p>
               </div>
               <Badge variant="outline" className="h-5 px-2 text-[10px]">
@@ -276,8 +277,8 @@ export function RiskAnalysisTab({
                     formatter={(value, name) => [
                       `${value ?? 0}`,
                       name === "inherentScore"
-                        ? "Skor inherent"
-                        : "Skor target",
+                        ? "Nilai risiko"
+                        : "Target penanganan",
                     ]}
                   />
                   <Line
@@ -303,11 +304,11 @@ export function RiskAnalysisTab({
             <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <span className="size-2.5 rounded-full bg-[oklch(0.68_0.17_35)]" />
-                Skor inherent
+                Nilai risiko
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="size-2.5 rounded-full bg-[oklch(0.53_0.12_240)]" />
-                Skor target
+                Target penanganan
               </span>
             </div>
           </CardContent>
@@ -315,92 +316,134 @@ export function RiskAnalysisTab({
 
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="space-y-1.5">
-            <CardTitle className="text-sm font-semibold">
-              Ringkasan versi
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Tabel ringkas untuk melihat periode, level, dan alasan perubahan.
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-sm font-semibold">
+                  Ringkasan versi
+                </CardTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Lihat setiap versi risiko, kapan dibuat, nilai target, dan
+                  alasan perubahannya.
+                </p>
+              </div>
+              <Badge variant="outline" className="h-5 px-2 text-[10px]">
+                {rows.length} versi
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-72">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[140px]">Periode</TableHead>
-                    <TableHead className="w-[84px] text-right">
-                      Inherent
-                    </TableHead>
-                    <TableHead className="w-[84px] text-right">
-                      Target
-                    </TableHead>
-                    <TableHead className="w-[70px] text-right">Delta</TableHead>
-                    <TableHead className="w-[120px]">Level</TableHead>
-                    <TableHead>Catatan</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      className={row.isCurrent ? "bg-muted/25" : ""}
-                    >
-                      <TableCell className="align-top">
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-medium text-foreground">
+          <CardContent className="pt-0">
+            <div className="overflow-hidden rounded-lg border border-border/70 bg-card">
+              <div className="relative w-full overflow-x-auto">
+                <Table className="w-full caption-bottom text-sm">
+                  <TableHeader className="sticky top-0 z-10 bg-muted [&_tr]:border-b">
+                    <TableRow className="border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted">
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        Versi
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        Periode
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        Tanggal
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        Status
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-right align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        Nilai
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-right align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        Target
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-right align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        Perubahan
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        Level
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        Catatan
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="[&_tr:last-child]:border-0">
+                    {rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        className={cn(
+                          "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+                          row.isCurrent && "bg-muted/25",
+                        )}
+                      >
+                        <TableCell className="p-2 align-middle whitespace-nowrap">
+                          <span className="text-sm font-medium text-foreground">
+                            {row.versionNumber ? `v${row.versionNumber}` : "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="p-2 align-middle whitespace-nowrap">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-sm font-medium text-foreground">
                               {row.label}
                             </span>
-                            {row.isCurrent && (
-                              <Badge
-                                variant="outline"
-                                className="h-5 px-1.5 text-[9px]"
-                              >
-                                Current
-                              </Badge>
-                            )}
                           </div>
-                          <p className="text-[11px] text-muted-foreground">
-                            {formatShortDate(row.createdAt)}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top text-right text-sm font-medium">
-                        {row.inherentScore}
-                      </TableCell>
-                      <TableCell className="align-top text-right text-sm text-muted-foreground">
-                        {row.targetScore > 0 ? row.targetScore : "—"}
-                      </TableCell>
-                      <TableCell className="align-top text-right text-sm">
-                        <span
-                          className={cn(
-                            row.delta === null
-                              ? "text-muted-foreground"
-                              : row.delta <= 0
-                                ? "text-success"
-                                : "text-destructive",
-                          )}
-                        >
-                          {formatDelta(row.delta)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Badge
-                          variant="outline"
-                          className="h-5 px-2 text-[10px]"
-                        >
-                          {row.level}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="align-top text-xs leading-relaxed text-muted-foreground">
-                        {row.changeReason}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+                        </TableCell>
+                        <TableCell className="p-2 align-middle whitespace-nowrap text-sm text-muted-foreground">
+                          {formatShortDate(row.createdAt)}
+                        </TableCell>
+                        <TableCell className="p-2 align-middle whitespace-nowrap">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "h-5 px-2 text-[10px]",
+                              row.isCurrent
+                                ? "border-primary/30 bg-primary/10 text-primary"
+                                : "text-muted-foreground",
+                            )}
+                          >
+                            {row.isCurrent ? "Terkini" : "Riwayat"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="p-2 align-middle whitespace-nowrap text-right text-sm font-medium text-foreground">
+                          {row.inherentScore}
+                        </TableCell>
+                        <TableCell className="p-2 align-middle whitespace-nowrap text-right text-sm text-muted-foreground">
+                          {row.targetScore > 0 ? row.targetScore : "—"}
+                        </TableCell>
+                        <TableCell className="p-2 align-middle whitespace-nowrap text-right text-sm">
+                          <span
+                            className={cn(
+                              row.delta === null
+                                ? "text-muted-foreground"
+                                : row.delta <= 0
+                                  ? "text-success"
+                                  : "text-destructive",
+                            )}
+                          >
+                            {formatDelta(row.delta)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="p-2 align-middle whitespace-nowrap">
+                          <Badge
+                            variant="outline"
+                            className="h-5 px-2 text-[10px]"
+                          >
+                            {row.level}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="p-2 align-middle whitespace-nowrap">
+                          <span
+                            className="block max-w-[28rem] truncate text-xs leading-relaxed text-muted-foreground"
+                            title={row.changeReason}
+                          >
+                            {row.changeReason}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
