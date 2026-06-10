@@ -466,6 +466,8 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		                  draft.id as draft_id,
 		                  draft.status as draft_status,
 		                  CASE WHEN draft.id IS NOT NULL THEN true ELSE false END as has_ongoing,
+		                  monitoring.status as monitoring_status,
+		                  monitoring_last.last_monitored_at as last_monitored_at,
 		                  prev.inherent_score as before_monitoring_nilai,
 		                  r.inherent_score as monitoring_result_nilai
 		           FROM risks r
@@ -477,6 +479,21 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		             AND draft.status IN ('assessment_draft', 'assessment_in_review')
 		             AND draft.created_at > r.created_at
 		             AND draft.archived_at IS NULL
+		           LEFT JOIN LATERAL (
+		             SELECT rm.status
+		             FROM risk_monitorings rm
+		             WHERE (rm.source_risk_id = r.id OR rm.result_risk_id = r.id)
+		               AND COALESCE(r.assessment_cycle, '') <> ''
+		               AND rm.assessment_cycle = r.assessment_cycle
+		             ORDER BY rm.updated_at DESC, rm.id DESC
+		             LIMIT 1
+		           ) monitoring ON true
+		           LEFT JOIN LATERAL (
+		             SELECT MAX(rm.finalized_at) AS last_monitored_at
+		             FROM risk_monitorings rm
+		             WHERE (rm.source_risk_id = r.id OR rm.result_risk_id = r.id)
+		               AND rm.finalized_at IS NOT NULL
+		           ) monitoring_last ON true
 		           WHERE 1=1`
 	args := []interface{}{}
 	argIdx := 1
@@ -583,6 +600,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 			&risk.DraftID, &risk.DraftStatus, &risk.HasOngoing,
+			&risk.MonitoringStatus, &risk.LastMonitoredAt,
 			&risk.BeforeMonitoringNilai, &risk.MonitoringResultNilai,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan risk register row: %w", err)

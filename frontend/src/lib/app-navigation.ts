@@ -20,12 +20,12 @@ export const mainMenuItems: MainMenuGroup[] = [
         icon: "ClipboardPenLine",
         matchHrefs: ["/management/charters"],
       },
-      // {
-      //   label: "Eskalasi Risiko",
-      //   href: "/risk/cascading",
-      //   icon: "GitBranch",
-      //   matchHrefs: ["/risk/cascading"],
-      // },
+      {
+        label: "Eskalasi Risiko",
+        href: "/risk/cascading",
+        icon: "GitBranch",
+        matchHrefs: ["/risk/cascading"],
+      },
       {
         label: "Struktur Kinerja",
         href: "/management/planning",

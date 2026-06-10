@@ -1,7 +1,5 @@
 export type RiskRegisterTab =
   | "all-risks"
-  | "my-drafts"
-  | "history"
   | "monitoring-transactions";
 export type RiskRegisterStatusFilter =
   | "all"
@@ -34,11 +32,7 @@ export type RiskRegisterQueryState = {
 };
 
 function getRiskRegisterTab(value: string | null): RiskRegisterTab {
-  if (
-    value === "my-drafts" ||
-    value === "history" ||
-    value === "monitoring-transactions"
-  ) {
+  if (value === "monitoring-transactions") {
     return value;
   }
 

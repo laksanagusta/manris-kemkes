@@ -20,8 +20,12 @@ import {
   type RiskRegisterListItem,
   type RiskRegisterStatusFilter,
 } from "@/lib/api/risk-register";
+import {
+  listRiskMonitorings,
+} from "@/lib/api/risk-monitoring";
 import { useAuth } from "@/contexts/auth-context";
-import type { RiskCategory, RiskVersionTimelineItem } from "@/types/risk";
+import type { RiskVersionTimelineItem } from "@/types/risk";
+import type { RiskMonitoringDetail } from "@/types/risk-monitoring";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { toast } from "sonner";
 
@@ -94,6 +98,10 @@ import {
 } from "@/lib/risk";
 import { buildVersionHistoryItem } from "@/lib/risk-history";
 import {
+  getRiskRegisterMonitoringStatusLabel,
+  getRiskRegisterMonitoringStatusTone,
+} from "@/lib/risk-register-monitoring";
+import {
   buildRiskRegisterQueryString,
   parseRiskRegisterQueryState,
   shouldReplaceRiskRegisterUrl,
@@ -107,12 +115,10 @@ import {
   ChevronRight,
   ChevronUp,
   ChevronDown,
-  Edit3,
   Trash2,
   MoreHorizontal,
   Clock,
   Send,
-  History,
   GitBranch,
   Calendar,
   TrendingDown,
@@ -135,6 +141,9 @@ const statusVariant: Record<string, string> = {
   assessment_draft: getLinearStatusBadgeClass("assessment_draft"),
   assessment_in_review: getLinearStatusBadgeClass("assessment_in_review"),
   approved: getLinearStatusBadgeClass("approved"),
+  draft: getLinearStatusBadgeClass("draft"),
+  finalized: getLinearStatusBadgeClass("completed"),
+  void: getLinearToneBadgeClass("danger"),
 };
 
 const levelBadgeVariant: Record<string, string> = {
@@ -146,9 +155,12 @@ const levelBadgeVariant: Record<string, string> = {
 };
 
 const statusLabel: Record<string, string> = {
-  assessment_draft: "Draf Pemantauan",
+  assessment_draft: "Draf Risiko",
   assessment_in_review: "Dalam Review",
   approved: "Disetujui",
+  draft: "Draft",
+  finalized: "Finalized",
+  void: "Void",
 };
 
 type RiskListItem = RiskRegisterListItem;
@@ -174,11 +186,7 @@ type VersionOption = {
   versionNumber?: number;
 };
 
-type RiskRegisterTab =
-  | "all-risks"
-  | "my-drafts"
-  | "history"
-  | "monitoring-transactions";
+type RiskRegisterTab = "all-risks" | "monitoring-transactions";
 
 type RiskRegisterFilterToolbarProps = {
   search: string;
@@ -370,7 +378,9 @@ function RiskRegisterFiltersSidebar({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="assessment_draft">Draf Pemantauan</SelectItem>
+                <SelectItem value="assessment_draft">
+                  Draf Risiko
+                </SelectItem>
                 <SelectItem value="assessment_in_review">
                   Dalam Review
                 </SelectItem>
@@ -403,7 +413,9 @@ function RiskRegisterFiltersSidebar({
                 <SelectItem value="fraud_korupsi">
                   {riskCategoryLabels.fraud_korupsi}
                 </SelectItem>
-                <SelectItem value="legal">{riskCategoryLabels.legal}</SelectItem>
+                <SelectItem value="legal">
+                  {riskCategoryLabels.legal}
+                </SelectItem>
                 <SelectItem value="kepatuhan">
                   {riskCategoryLabels.kepatuhan}
                 </SelectItem>
@@ -421,7 +433,11 @@ function RiskRegisterFiltersSidebar({
           <Button type="button" variant="ghost" onClick={onReset}>
             Reset
           </Button>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Tutup
           </Button>
         </SheetFooter>
@@ -470,33 +486,6 @@ function formatCycleLabel(cycle?: string, createdAt?: string) {
   if (cycle) return cycle;
   if (!createdAt) return "Baseline";
   return `Baseline ${new Date(createdAt).toLocaleDateString("id-ID", { year: "numeric", month: "short" })}`;
-}
-
-function formatTreatmentOption(value?: string | null) {
-  if (!value) return "-";
-
-  switch (value.trim().toLowerCase()) {
-    case "avoid":
-    case "menghindari":
-    case "menghindari risiko":
-      return "Menghindari Risiko";
-    case "transfer":
-    case "berbagi":
-    case "berbagi risiko":
-      return "Berbagi Risiko";
-    case "mitigate":
-    case "mitigasi":
-    case "mitigasi risiko":
-    case "mitigasi / penanganan":
-      return "Mitigasi";
-    case "accept":
-    case "terima":
-    case "menerima":
-    case "menerima risiko":
-      return "Menerima Risiko";
-    default:
-      return value;
-  }
 }
 
 function formatLocalDateTime(value?: string | null) {
@@ -607,7 +596,7 @@ export default function RiskRegisterPage() {
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
   const [monitoringTransactions, setMonitoringTransactions] = useState<
-    RiskListItem[]
+    RiskMonitoringDetail[]
   >([]);
   const [historyRisks, setHistoryRisks] = useState<RiskListItem[]>([]);
   const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
@@ -758,7 +747,6 @@ export default function RiskRegisterPage() {
       statusFilter === "all" || statusFilter === "assessment_draft"
         ? undefined
         : statusFilter;
-    const monitoringStatus = statusFilter === "all" ? undefined : statusFilter;
 
     const [
       allRisksResponse,
@@ -780,11 +768,10 @@ export default function RiskRegisterPage() {
       }),
       api.get<RiskListItem[]>("/risks?status=draft", activeToken),
       api.get<RiskListItem[]>("/risks?status=approved", activeToken),
-      listRiskRegister(activeToken, {
-        view: "monitoring-transactions",
+      listRiskMonitorings(activeToken, {
         q: normalizedSearch || undefined,
         lifecycle: lifecycleFilter,
-        status: monitoringStatus,
+        status: undefined,
         category: categoryFilter === "all" ? undefined : categoryFilter,
         assessment_cycle: normalizedAssessmentCycle || undefined,
         created_at: normalizedCreatedAt || undefined,
@@ -1191,33 +1178,35 @@ export default function RiskRegisterPage() {
       (async () => {
         const result = await api.post<{
           id: string;
+          redirectURL?: string;
           redirectUrl?: string;
           existingDraft?: boolean;
         }>(
-          `/risks/${selectedRiskForReassessment.id}/reassess`,
+          `/risks/${selectedRiskForReassessment.id}/monitorings`,
           { cycle: selectedAssessmentCycle },
           token,
         );
         await refreshRegisterData(token);
 
-        if (result.redirectUrl) {
-          router.push(result.redirectUrl);
+        const redirectUrl = result.redirectUrl || result.redirectURL;
+        if (redirectUrl) {
+          router.push(redirectUrl);
         } else {
-          router.push(`/risk/assessment/${result.id}`);
+          router.push(`/risk/monitoring/${result.id}`);
         }
 
         return result;
       })(),
       {
-        loading: `Membuat draft reassessment ${selectedAssessmentCycle}...`,
+        loading: `Memulai transaksi pemantauan ${selectedAssessmentCycle}...`,
         success: (result) =>
           result.existingDraft
-            ? `Melanjutkan draft reassessment ${selectedAssessmentCycle} yang sudah ada.`
-            : `Draft reassessment ${selectedAssessmentCycle} berhasil dibuat.`,
+            ? `Melanjutkan transaksi pemantauan ${selectedAssessmentCycle} yang sudah ada.`
+            : `Transaksi pemantauan ${selectedAssessmentCycle} berhasil dibuat.`,
         error: (err) =>
           err instanceof Error
             ? err.message
-            : "Draft reassessment belum berhasil dibuat.",
+            : "Transaksi pemantauan belum berhasil dibuat.",
       },
     );
   };
@@ -1306,20 +1295,7 @@ export default function RiskRegisterPage() {
         <TabsList className="bg-muted/40 border border-border/50">
           <TabsTrigger value="all-risks" className="gap-2">
             <GitBranch className="size-3.5" />
-            All Risks
-          </TabsTrigger>
-          <TabsTrigger value="my-drafts" className="gap-2">
-            <Edit3 className="size-3.5" />
-            Draf
-            {drafts.length > 0 && (
-              <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
-                {drafts.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="history" className="gap-2">
-            <History className="size-3.5" />
-            Version History
+            Risiko
           </TabsTrigger>
           <TabsTrigger value="monitoring-transactions" className="gap-2">
             <RefreshCcw className="size-3.5" />
@@ -1394,23 +1370,20 @@ export default function RiskRegisterPage() {
             </div>
 
             <div className="relative w-full overflow-x-auto">
-              <Table className="min-w-[1180px]">
+              <Table className="min-w-[1280px]">
                 <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
                   <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
                     <TableHead className="w-20 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
                       Kode
                     </TableHead>
-                    <TableHead className="w-16 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Versi
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Judul Risiko
+                    <TableHead className="w-72 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Risiko
                     </TableHead>
                     <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
                       Kategori
                     </TableHead>
                     <TableHead
-                      className="w-16 cursor-pointer select-none whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500"
+                      className="w-28 cursor-pointer select-none whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500"
                       onClick={() => {
                         if (sortBy === "nilai") {
                           setSortOrder((prev) =>
@@ -1422,8 +1395,8 @@ export default function RiskRegisterPage() {
                         }
                       }}
                     >
-                      <div className="flex items-center justify-center gap-1">
-                        Nilai
+                      <div className="flex items-center gap-1">
+                        Skor/Level
                         {sortBy === "nilai" &&
                           (sortOrder === "desc" ? (
                             <ChevronDown className="size-3" />
@@ -1432,17 +1405,17 @@ export default function RiskRegisterPage() {
                           ))}
                       </div>
                     </TableHead>
-                    <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Tingkat Risiko
+                    <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Status Risiko
                     </TableHead>
-                    <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Status
+                    <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Status Pemantauan
                     </TableHead>
-                    <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Penanganan
+                    <TableHead className="w-36 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Terakhir Dipantau
                     </TableHead>
                     <TableHead
-                      className="w-28 cursor-pointer select-none whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500"
+                      className="w-32 cursor-pointer select-none whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500"
                       onClick={() => {
                         if (sortBy === "created_at") {
                           setSortOrder((prev) =>
@@ -1455,7 +1428,7 @@ export default function RiskRegisterPage() {
                       }}
                     >
                       <div className="flex items-center gap-1">
-                        Dibuat
+                        Update Terakhir
                         {sortBy === "created_at" &&
                           (sortOrder === "desc" ? (
                             <ChevronDown className="size-3" />
@@ -1473,7 +1446,7 @@ export default function RiskRegisterPage() {
                   {risks.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={10}
+                        colSpan={9}
                         className="py-8 text-left text-xs text-zinc-500"
                       >
                         Tidak ada risiko yang ditemukan
@@ -1502,97 +1475,117 @@ export default function RiskRegisterPage() {
                         !risk.archivedAt &&
                         !isReadOnly;
                       const canRestore = !!risk.archivedAt && !isReadOnly;
+                      const statusText =
+                        risk.archivedAt
+                          ? "Diarsipkan"
+                          : risk.status === "assessment_draft" &&
+                              risk.versionNumber == 1
+                            ? "Draft"
+                            : statusLabel[risk.status || ""] ||
+                              risk.status ||
+                              "-";
+                      const monitoringEligible =
+                        risk.status === "approved" &&
+                        !risk.archivedAt &&
+                        !!risk.assessmentCycle;
+                      const monitoringStatusText =
+                        getRiskRegisterMonitoringStatusLabel(
+                          risk.monitoringStatus,
+                          monitoringEligible,
+                        );
+                      const monitoringTone =
+                        getRiskRegisterMonitoringStatusTone(
+                          risk.monitoringStatus,
+                          monitoringEligible,
+                        );
+                      const monitoringStatusClass =
+                        monitoringTone === "neutral"
+                          ? getLinearToneBadgeClass("neutral")
+                          : monitoringTone === "warning"
+                            ? getLinearToneBadgeClass("warning")
+                            : monitoringTone === "success"
+                              ? getLinearToneBadgeClass("success")
+                              : getLinearToneBadgeClass("danger");
+                      const monitoringLastText = formatLocalDateTime(
+                        risk.lastMonitoredAt,
+                      );
+                      const updateText = formatLocalDateTime(
+                        risk.updatedAt || risk.createdAt,
+                      );
                       return (
                         <TableRow
                           key={risk.id}
                           className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
                         >
                           <TableCell className="font-mono text-zinc-600 pl-4 pr-2 md:pl-6">
-                            <span className="flex items-center gap-1.5">
-                              {risk.code || "-"}
-                            </span>
+                            {risk.code || "-"}
                           </TableCell>
-                          <TableCell>
-                            {risk.versionNumber != null ? (
-                              <Badge
-                                className={getLinearToneBadgeClass("neutral")}
+                          <TableCell className="max-w-[260px] px-2.5">
+                            <div className="flex min-w-0 items-center gap-1.5">
+                              <Link
+                                href={`/risk/register/${risk.id}`}
+                                className="min-w-0 flex-1 truncate text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary"
+                                title={risk.title || "-"}
                               >
-                                v{risk.versionNumber}
+                                {risk.title || "-"}
+                              </Link>
+                              {risk.versionNumber != null ? (
+                                <Badge className="h-4 shrink-0 border border-zinc-200 bg-zinc-50 px-1 text-[9px] font-semibold text-zinc-600">
+                                  v{risk.versionNumber}
+                                </Badge>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-2.5 whitespace-nowrap text-zinc-600">
+                            {riskCategoryLabels[risk.category ?? ""] ||
+                              risk.category ||
+                              "-"}
+                          </TableCell>
+                          <TableCell className="px-2.5">
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                              <span className="font-mono text-xs font-semibold text-zinc-900">
+                                {scoreSemantics.effective.score}
+                              </span>
+                              <Badge
+                                className={getLinearRiskLevelBadgeClass(
+                                  levelLabel,
+                                )}
+                              >
+                                {levelLabel}
                               </Badge>
-                            ) : (
-                              <span className="text-zinc-500">-</span>
-                            )}
+                            </div>
                           </TableCell>
-                          <TableCell className="max-w-[250px]">
-                            <Link
-                              href={`/risk/register/${risk.id}`}
-                              className="block truncate text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary"
-                            >
-                              {risk.title || "-"}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="text-zinc-600">
-                            {riskCategoryLabels[risk.category ?? ""]}
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm font-bold text-zinc-900">
-                              {scoreSemantics.effective.score}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              className={getLinearRiskLevelBadgeClass(
-                                levelLabel,
-                              )}
-                            >
-                              {levelLabel}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1.5">
+                          <TableCell className="px-2.5">
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
                               <Badge
                                 className={cn(
-                                  risk.status
-                                    ? statusVariant[risk.status]
+                                  risk.archivedAt
+                                    ? getLinearStatusBadgeClass("archived")
+                                    : risk.status
+                                      ? statusVariant[risk.status]
                                     : getLinearToneBadgeClass("neutral"),
                                 )}
                               >
-                                {risk.status
-                                  ? risk.versionNumber == 1 &&
-                                    risk.status == "assessment_draft"
-                                    ? "Draft"
-                                    : statusLabel[risk.status] || risk.status
-                                  : "-"}
+                                {statusText}
                               </Badge>
-                              {risk.hasOngoing && risk.draftStatus && (
-                                <Badge
-                                  className={getLinearStatusBadgeClass(
-                                    risk.draftStatus,
-                                  )}
-                                >
-                                  📝{" "}
-                                  {statusLabel[risk.draftStatus] ||
-                                    risk.draftStatus}
-                                </Badge>
-                              )}
-                              {risk.archivedAt && (
-                                <Badge
-                                  className={getLinearStatusBadgeClass(
-                                    "archived",
-                                  )}
-                                >
-                                  Diarsipkan
-                                </Badge>
-                              )}
                             </div>
                           </TableCell>
-                          <TableCell className="text-zinc-600">
-                            {formatTreatmentOption(risk.treatmentOption)}
+                          <TableCell className="px-2.5 whitespace-nowrap text-zinc-600">
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                              <Badge className={monitoringStatusClass}>
+                                {monitoringStatusText}
+                              </Badge>
+                            </div>
                           </TableCell>
-                          <TableCell className="text-xs text-zinc-600">
-                            {formatLocalDateTime(risk.createdAt)}
+                          <TableCell className="px-2.5 whitespace-nowrap text-xs text-zinc-600">
+                            <span className="block truncate" title={monitoringLastText}>
+                              {monitoringLastText}
+                            </span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="px-2.5 whitespace-nowrap text-xs text-zinc-600">
+                            {updateText}
+                          </TableCell>
+                          <TableCell className="px-2.5">
                             <div className="flex">
                               <RiskRowActions
                                 risk={risk}
@@ -1601,7 +1594,7 @@ export default function RiskRegisterPage() {
                                   canReassess && risk.hasOngoing && risk.draftId
                                     ? () =>
                                         router.push(
-                                          `/risk/assessment/${risk.draftId}`,
+                                          `/risk/monitoring/${risk.draftId}`,
                                         )
                                     : undefined
                                 }
@@ -1723,27 +1716,38 @@ export default function RiskRegisterPage() {
 
         {/* TAB 2: MONITORING TRANSACTIONS */}
         <TabsContent value="monitoring-transactions" className="space-y-6 mt-6">
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-            <CardHeader className="border-b border-border/40 pb-4">
-              <CardTitle className="text-[15px] font-semibold">
-                Transaksi Pemantauan
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Pantau versi hasil mulai pemantauan, bandingkan nilai sebelum
-                dan hasil pemantauan, lalu lanjutkan draf yang masih berjalan.
-              </p>
-            </CardHeader>
-            <MonitoringTransactionsTable
-              items={monitoringTransactions}
-              levelBadgeVariant={levelBadgeVariant}
-              statusVariant={statusVariant}
-              statusLabel={statusLabel}
-              getRiskLevelLabel={getRiskLevelLabel}
-              formatTreatmentOption={formatTreatmentOption}
-              formatLocalDateTime={formatLocalDateTime}
-            />
+          <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
+            <div className="flex flex-col gap-3 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:flex-row md:items-start md:justify-between md:px-6">
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900 text-balance">
+                    Transaksi Pemantauan
+                  </h2>
+                  <p className="mt-1 text-xs text-zinc-500 text-pretty">
+                    Pantau versi hasil mulai pemantauan, bandingkan nilai
+                    sebelum dan hasil pemantauan, lalu lanjutkan draf yang
+                    masih berjalan.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
+                  {activeTotal} transaksi
+                </span>
+              </div>
+            </div>
 
-            <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+            <div className="relative w-full overflow-x-auto">
+              <MonitoringTransactionsTable
+                items={monitoringTransactions}
+                levelBadgeVariant={levelBadgeVariant}
+                statusVariant={statusVariant}
+                getRiskLevelLabel={getRiskLevelLabel}
+                formatLocalDateTime={formatLocalDateTime}
+              />
+            </div>
+
+            <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">
@@ -1769,8 +1773,8 @@ export default function RiskRegisterPage() {
                   </Select>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Menampilkan {activeTotal === 0 ? 0 : (page - 1) * limit + 1} -{" "}
-                  {Math.min(page * limit, activeTotal)} dari {activeTotal}{" "}
+                  Menampilkan {activeTotal === 0 ? 0 : (page - 1) * limit + 1}{" "}
+                  - {Math.min(page * limit, activeTotal)} dari {activeTotal}{" "}
                   transaksi pemantauan
                 </p>
               </div>
@@ -1813,7 +1817,7 @@ export default function RiskRegisterPage() {
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </TabsContent>
 
         {/* TAB 3: MY DRAFTS */}
@@ -1973,7 +1977,7 @@ export default function RiskRegisterPage() {
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Pilih satu risiko current approved untuk melihat timeline
-                  reassessment dan membandingkannya dengan versi aktif saat ini.
+                  pemantauan dan membandingkannya dengan versi aktif saat ini.
                 </p>
               </div>
               <Select value={historyRiskId} onValueChange={setHistoryRiskId}>
@@ -2242,11 +2246,11 @@ export default function RiskRegisterPage() {
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Reassessment</AlertDialogTitle>
+            <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
             <AlertDialogDescription>
               Anda akan memulai pemantauan untuk risiko berikut. Tindakan ini
-              akan membuat draft reassessment baru yang dapat Anda edit sebelum
-              finalisasi.
+              akan membuat transaksi pemantauan baru yang dapat Anda edit
+              sebelum finalisasi.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">

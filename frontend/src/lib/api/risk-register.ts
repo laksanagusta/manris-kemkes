@@ -42,6 +42,8 @@ export interface RiskRegisterListItem {
   draftId?: string | null;
   draftStatus?: RiskStatus | null;
   hasOngoing?: boolean;
+  monitoringStatus?: string | null;
+  lastMonitoredAt?: string | null;
   archivedAt?: string | null;
   archivedReason?: string;
   beforeMonitoringNilai?: number | null;

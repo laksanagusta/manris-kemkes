@@ -40,9 +40,9 @@ func main() {
 
 	// Clean architecture handlers
 	cleanRiskHandler := httpHandler.NewRiskHandler(
-		container.RiskCreateUC, container.RiskCreateBatchUC, container.RiskSpreadsheetUC, container.RiskGetUC, container.RiskExportPDFUC, container.RiskReassessUC, container.RiskArchiveUC, container.RiskRestoreUC, container.RiskUpdateUC, container.RiskDeleteUC, container.RiskListUC, container.RiskListRegisterUC, container.RiskListCycleSnapshotUC, container.RiskListVersionsUC, container.RiskReviewQueueUC, container.RiskCompareCyclesUC, container.RiskCompareCycleDetailsUC, container.RiskReviewSummaryUC,
+		container.RiskCreateUC, container.RiskCreateBatchUC, container.RiskSpreadsheetUC, container.RiskGetUC, container.RiskExportPDFUC, container.RiskReassessUC, container.RiskArchiveUC, container.RiskRestoreUC, container.RiskUpdateUC, container.RiskDeleteUC, container.RiskListUC, container.RiskListRegisterUC, container.RiskListMonitoringUC, container.RiskListCycleSnapshotUC, container.RiskListVersionsUC, container.RiskReviewQueueUC, container.RiskCompareCyclesUC, container.RiskCompareCycleDetailsUC, container.RiskReviewSummaryUC,
 		container.RiskDashboardSummaryUC, container.RiskActionPressureUC, container.RiskExecutiveAlertsUC, container.RiskHeatmapDataUC, container.RiskHeatmapMultiUC, container.RiskTopRisksUC, container.RiskDashboardCategoriesUC, container.RiskListApprovedUC,
-		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskKRIBreachUC, container.RiskUnitResponseUC, container.RiskMonitoringSpreadsheetUC, container.RiskCreateMonitoringBatchUC, container.MMRepository,
+		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskKRIBreachUC, container.RiskUnitResponseUC, container.RiskMonitoringSpreadsheetUC, container.RiskCreateMonitoringBatchUC, container.RiskMonitoringStartUC, container.RiskMonitoringGetUC, container.RiskMonitoringUpdateUC, container.RiskMonitoringFinalizeUC, container.MMRepository,
 	)
 	cleanUserHandler := httpHandler.NewUserHandler(
 		container.UserCreateUC, container.UserGetUC, container.UserUpdateUC, container.UserDeleteUC, container.UserListUC, container.UserListFilterUC, container.UserApproveRegistrationUC, container.UserRejectRegistrationUC,
@@ -311,6 +311,7 @@ func main() {
 	// Risks (Clean Architecture)
 	protected.Get("/risks", cleanRiskHandler.ListRisks)
 	protected.Get("/risks/register", cleanRiskHandler.ListRiskRegister)
+	protected.Get("/risk-monitorings", cleanRiskHandler.ListRiskMonitorings)
 	protected.Get("/risks/cycle-snapshot", cleanRiskHandler.ListCycleSnapshot)
 	protected.Get("/risks/review-queue", cleanRiskHandler.ListReviewQueue)
 	protected.Get("/risks/compare", cleanRiskHandler.CompareCycles)
@@ -327,10 +328,14 @@ func main() {
 	protected.Get("/risks/:id/export-pdf", cleanRiskHandler.ExportRiskPDF)
 	protected.Get("/risks/:id/versions", cleanRiskHandler.ListVersions)
 	protected.Post("/risks/:id/reassess", cleanRiskHandler.CreateReassessment)
+	protected.Post("/risks/:id/monitorings", cleanRiskHandler.StartMonitoring)
 	protected.Post("/risks/:id/archive", cleanRiskHandler.ArchiveRisk)
 	protected.Post("/risks/:id/restore", cleanRiskHandler.RestoreRisk)
 	protected.Put("/risks/:id", cleanRiskHandler.UpdateRisk)
 	protected.Delete("/risks/:id", cleanRiskHandler.DeleteRisk)
+	protected.Get("/risk-monitorings/:id", cleanRiskHandler.GetMonitoring)
+	protected.Put("/risk-monitorings/:id", cleanRiskHandler.UpdateMonitoring)
+	protected.Post("/risk-monitorings/:id/finalize", cleanRiskHandler.FinalizeMonitoring)
 
 	// Risk Dashboard (Clean Architecture)
 	protected.Get("/dashboard/summary", cleanRiskHandler.DashboardSummary)

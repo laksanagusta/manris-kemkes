@@ -76,6 +76,7 @@ type Container struct {
 	FormalReportRepository         domainrepo.FormalReportRepository
 	LikelihoodAssessmentRepository domainrepo.LikelihoodAssessmentRepository
 	ImpactCriteriaRepository       domainrepo.ImpactCriteriaRepository
+	RiskMonitoringRepository       domainrepo.RiskMonitoringRepository
 
 	// Domain Services
 	OrgHierarchySvc *domainsvc.OrganizationHierarchy
@@ -104,6 +105,7 @@ type Container struct {
 	RiskDeleteUC                *riskuc.DeleteRiskUseCase
 	RiskListUC                  *riskuc.ListRisksUseCase
 	RiskListRegisterUC          *riskuc.ListRiskRegisterUseCase
+	RiskListMonitoringUC        *riskuc.ListRiskMonitoringsUseCase
 	RiskListVersionsUC          *riskuc.ListRiskVersionsUseCase
 	RiskReviewQueueUC           *riskuc.ListRiskReviewQueueUseCase
 	RiskCompareCyclesUC         *riskuc.CompareRiskCyclesUseCase
@@ -124,6 +126,10 @@ type Container struct {
 	RiskListCycleSnapshotUC     *riskuc.ListRiskCycleSnapshotUseCase
 	RiskMonitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase
 	RiskCreateMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase
+	RiskMonitoringStartUC       *riskuc.StartMonitoringUseCase
+	RiskMonitoringGetUC         *riskuc.GetMonitoringUseCase
+	RiskMonitoringUpdateUC      *riskuc.UpdateMonitoringUseCase
+	RiskMonitoringFinalizeUC    *riskuc.FinalizeMonitoringUseCase
 
 	// Risk Cascade UseCases
 	RiskCascadeCreateMandatoryUC *riskcascadeuc.CreateMandatoryUseCase
@@ -336,6 +342,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.FormalReportRepository = postgresrepo.NewFormalReportRepository(pool)
 	c.LikelihoodAssessmentRepository = postgresrepo.NewLikelihoodAssessmentRepository(pool)
 	c.ImpactCriteriaRepository = postgresrepo.NewImpactCriteriaRepository(pool)
+	c.RiskMonitoringRepository = postgresrepo.NewRiskMonitoringRepository(pool)
 
 	// ============================================================================
 	// Domain Services
@@ -383,6 +390,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskDeleteUC = riskuc.NewDeleteRiskUseCase(c.RiskRepository)
 	c.RiskListUC = riskuc.NewListRisksUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskListRegisterUC = riskuc.NewListRiskRegisterUseCase(c.RiskRepository)
+	c.RiskListMonitoringUC = riskuc.NewListRiskMonitoringsUseCase(c.RiskMonitoringRepository)
 	c.RiskListVersionsUC = riskuc.NewListRiskVersionsUseCase(c.RiskRepository)
 	c.RiskReviewQueueUC = riskuc.NewListRiskReviewQueueUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskCompareCyclesUC = riskuc.NewCompareRiskCyclesUseCase(c.RiskRepository, c.OrgHierarchySvc)
@@ -402,7 +410,11 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskUnitResponseUC = riskuc.NewUnitResponseTimeUseCase(c.RiskRepository)
 	c.RiskListCycleSnapshotUC = riskuc.NewListRiskCycleSnapshotUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskMonitoringSpreadsheetUC = riskuc.NewBulkMonitoringSpreadsheetUseCase(c.OrgRepository, c.UserRepository, c.RiskRepository)
-	c.RiskCreateMonitoringBatchUC = riskuc.NewCreateMonitoringBatchUseCase(c.RiskRepository, c.UserRepository)
+	c.RiskCreateMonitoringBatchUC = riskuc.NewCreateMonitoringBatchUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.UserRepository)
+	c.RiskMonitoringStartUC = riskuc.NewStartMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
+	c.RiskMonitoringGetUC = riskuc.NewGetMonitoringUseCase(c.RiskMonitoringRepository)
+	c.RiskMonitoringUpdateUC = riskuc.NewUpdateMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
+	c.RiskMonitoringFinalizeUC = riskuc.NewFinalizeMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
 
 	c.RiskCascadeCreateMandatoryUC = riskcascadeuc.NewCreateMandatoryUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)
 	c.RiskCascadeCreateBottomUpUC = riskcascadeuc.NewCreateBottomUpUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)

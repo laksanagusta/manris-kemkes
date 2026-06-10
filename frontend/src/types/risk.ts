@@ -314,6 +314,8 @@ export interface Risk {
   draftId?: string | null;
   draftStatus?: RiskStatus | null;
   hasOngoing?: boolean;
+  monitoringStatus?: string | null;
+  lastMonitoredAt?: string | null;
   objectiveId?: string;
   roId?: string;
 

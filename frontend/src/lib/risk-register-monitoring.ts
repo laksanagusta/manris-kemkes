@@ -1,8 +1,12 @@
-import type { RiskRegisterListItem } from "@/lib/api/risk-register";
-
 const numberFormatter = new Intl.NumberFormat("id-ID", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 2,
+});
+
+const dateFormatter = new Intl.DateTimeFormat("id-ID", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
 });
 
 export function formatMonitoringNilai(value?: number | null) {
@@ -13,18 +17,110 @@ export function formatMonitoringNilai(value?: number | null) {
   return numberFormatter.format(value);
 }
 
-export function getMonitoringTransactionHref(
-  risk: Pick<RiskRegisterListItem, "id">,
+export function formatMonitoringScoreChange(
+  sourceValue?: number | null,
+  observedValue?: number | null,
 ) {
-  return `/risk/assessment/${risk.id}`;
+  const sourceText = formatMonitoringNilai(sourceValue);
+  const observedText = formatMonitoringNilai(observedValue);
+
+  if (sourceText === "-" && observedText === "-") {
+    return "-";
+  }
+
+  if (observedText === "-") {
+    return sourceText;
+  }
+
+  return `${sourceText} -> ${observedText}`;
+}
+
+export function getRiskRegisterMonitoringStatusLabel(
+  status?: string | null,
+  isEligible = true,
+) {
+  if (!isEligible) {
+    return "-";
+  }
+
+  switch ((status ?? "").trim().toLowerCase()) {
+    case "draft":
+      return "Draf";
+    case "finalized":
+      return "Selesai";
+    case "void":
+      return "Dibatalkan";
+    default:
+      return "Belum Dimulai";
+  }
+}
+
+export function getRiskRegisterMonitoringStatusTone(
+  status?: string | null,
+  isEligible = true,
+) {
+  if (!isEligible) {
+    return "neutral";
+  }
+
+  switch ((status ?? "").trim().toLowerCase()) {
+    case "draft":
+      return "warning";
+    case "finalized":
+      return "success";
+    case "void":
+      return "danger";
+    default:
+      return "neutral";
+  }
+}
+
+export function formatMonitoringReviewNext(
+  reviewScheduleText?: string | null,
+  nextReviewDate?: string | null,
+) {
+  const text = reviewScheduleText?.trim();
+  if (text) {
+    return text;
+  }
+
+  if (!nextReviewDate) {
+    return "-";
+  }
+
+  const parsed = new Date(nextReviewDate);
+  if (Number.isNaN(parsed.getTime())) {
+    return nextReviewDate;
+  }
+
+  return dateFormatter.format(parsed);
+}
+
+export function getMonitoringTransactionStatusLabel(status?: string) {
+  switch (status) {
+    case "draft":
+      return "Draft";
+    case "finalized":
+      return "Final";
+    case "void":
+      return "Void";
+    default:
+      return status || "-";
+  }
+}
+
+export function getMonitoringTransactionHref(
+  risk: { id: string },
+) {
+  return `/risk/monitoring/${risk.id}`;
 }
 
 export function getMonitoringTransactionActionLabel(
-  status?: RiskRegisterListItem["status"],
+  status?: string,
 ) {
-  if (status === "assessment_draft" || status === "assessment_in_review") {
+  if (status === "draft") {
     return "Lanjutkan Pemantauan";
   }
 
-  return "Lihat Hasil";
+  return "Lihat Hasil Pemantauan";
 }

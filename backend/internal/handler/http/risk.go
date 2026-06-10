@@ -33,6 +33,7 @@ type RiskHandler struct {
 	deleteUC                *riskuc.DeleteRiskUseCase
 	listUC                  *riskuc.ListRisksUseCase
 	listRegisterUC          *riskuc.ListRiskRegisterUseCase
+	listMonitoringUC        *riskuc.ListRiskMonitoringsUseCase
 	listCycleSnapshotUC     *riskuc.ListRiskCycleSnapshotUseCase
 	listVersionsUC          *riskuc.ListRiskVersionsUseCase
 	reviewQueueUC           *riskuc.ListRiskReviewQueueUseCase
@@ -53,6 +54,10 @@ type RiskHandler struct {
 	unitResponseTimeUC      *riskuc.UnitResponseTimeUseCase
 	monitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase
 	createMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase
+	startMonitoringUC       *riskuc.StartMonitoringUseCase
+	getMonitoringUC         *riskuc.GetMonitoringUseCase
+	updateMonitoringUC      *riskuc.UpdateMonitoringUseCase
+	finalizeMonitoringUC    *riskuc.FinalizeMonitoringUseCase
 	mmRepo                  repository.MeetingMinuteRepository
 }
 
@@ -73,6 +78,7 @@ func NewRiskHandler(
 	deleteUC *riskuc.DeleteRiskUseCase,
 	listUC *riskuc.ListRisksUseCase,
 	listRegisterUC *riskuc.ListRiskRegisterUseCase,
+	listMonitoringUC *riskuc.ListRiskMonitoringsUseCase,
 	listCycleSnapshotUC *riskuc.ListRiskCycleSnapshotUseCase,
 	listVersionsUC *riskuc.ListRiskVersionsUseCase,
 	reviewQueueUC *riskuc.ListRiskReviewQueueUseCase,
@@ -93,6 +99,10 @@ func NewRiskHandler(
 	unitResponseTimeUC *riskuc.UnitResponseTimeUseCase,
 	monitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase,
 	createMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase,
+	startMonitoringUC *riskuc.StartMonitoringUseCase,
+	getMonitoringUC *riskuc.GetMonitoringUseCase,
+	updateMonitoringUC *riskuc.UpdateMonitoringUseCase,
+	finalizeMonitoringUC *riskuc.FinalizeMonitoringUseCase,
 	mmRepo repository.MeetingMinuteRepository,
 ) *RiskHandler {
 	return &RiskHandler{
@@ -108,6 +118,7 @@ func NewRiskHandler(
 		deleteUC:                deleteUC,
 		listUC:                  listUC,
 		listRegisterUC:          listRegisterUC,
+		listMonitoringUC:        listMonitoringUC,
 		listCycleSnapshotUC:     listCycleSnapshotUC,
 		listVersionsUC:          listVersionsUC,
 		reviewQueueUC:           reviewQueueUC,
@@ -128,6 +139,10 @@ func NewRiskHandler(
 		unitResponseTimeUC:      unitResponseTimeUC,
 		monitoringSpreadsheetUC: monitoringSpreadsheetUC,
 		createMonitoringBatchUC: createMonitoringBatchUC,
+		startMonitoringUC:       startMonitoringUC,
+		getMonitoringUC:         getMonitoringUC,
+		updateMonitoringUC:      updateMonitoringUC,
+		finalizeMonitoringUC:    finalizeMonitoringUC,
 		mmRepo:                  mmRepo,
 	}
 }
@@ -202,6 +217,64 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 	}
 	if result.Data == nil {
 		result.Data = []*entity.Risk{}
+	}
+
+	return c.JSON(fiber.Map{
+		"data":  result.Data,
+		"total": result.Total,
+		"page":  result.Page,
+		"limit": result.Limit,
+	})
+}
+
+// ListRiskMonitorings handles GET /api/risk-monitorings
+func (h *RiskHandler) ListRiskMonitorings(c *fiber.Ctx) error {
+	if h.listMonitoringUC == nil {
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Not Implemented", "https://api.manris.com/errors/not-implemented", "monitoring list use case is not configured")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, c.Query("org_id"))
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrForbidden) {
+			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+		}
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+	}
+
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	result, err := h.listMonitoringUC.Execute(c.Context(), riskuc.ListRiskMonitoringsInput{
+		OrgIDs:          orgIDs,
+		Query:           strings.TrimSpace(c.Query("q", "")),
+		Lifecycle:       strings.TrimSpace(c.Query("lifecycle", "active")),
+		Category:        strings.TrimSpace(c.Query("category", "")),
+		AssessmentCycle: strings.TrimSpace(c.Query("assessment_cycle", "")),
+		CreatedAt:       strings.TrimSpace(c.Query("created_at", "")),
+		Status:          strings.TrimSpace(c.Query("status", "all")),
+		Page:            page,
+		Limit:           limit,
+		SortBy:          strings.TrimSpace(c.Query("sort_by", "")),
+		SortOrder:       strings.TrimSpace(c.Query("sort_order", "")),
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+	if result == nil {
+		result = &riskuc.ListRiskMonitoringsResult{Data: []*entity.RiskMonitoring{}, Page: page, Limit: limit}
+	}
+	if result.Data == nil {
+		result.Data = []*entity.RiskMonitoring{}
 	}
 
 	return c.JSON(fiber.Map{
@@ -484,6 +557,30 @@ type createMonitoringBatchRequest struct {
 
 type createRiskReassessmentRequest struct {
 	Cycle string `json:"cycle"`
+}
+
+type startMonitoringRequest struct {
+	Cycle string `json:"cycle"`
+}
+
+type updateMonitoringRequest struct {
+	ObservedProbability         int                              `json:"observedProbability"`
+	ObservedImpact              int                              `json:"observedImpact"`
+	ConditionSummary            string                           `json:"conditionSummary"`
+	EventSummary                string                           `json:"eventSummary"`
+	Trend                       string                           `json:"trend"`
+	EffectivenessConclusion     string                           `json:"effectivenessConclusion"`
+	FollowUpNote                string                           `json:"followUpNote"`
+	Conclusion                  string                           `json:"conclusion"`
+	MitigationProgressSummary   string                           `json:"mitigationProgressSummary"`
+	MitigationCompletionPercent int                              `json:"mitigationCompletionPercent"`
+	MitigationObstacles         string                           `json:"mitigationObstacles"`
+	MitigationFollowUp          string                           `json:"mitigationFollowUp"`
+	Values                      entity.RiskMonitoringDraftValues `json:"values"`
+}
+
+type finalizeMonitoringRequest struct {
+	FinalizedBy uuid.UUID `json:"finalizedBy"`
 }
 
 // CreateRisk handles POST /api/risks
@@ -772,6 +869,164 @@ func (h *RiskHandler) CreateReassessment(c *fiber.Ctx) error {
 	}
 
 	return c.Status(201).JSON(fiber.Map{"data": result})
+}
+
+// StartMonitoring handles POST /api/risks/:id/monitorings
+func (h *RiskHandler) StartMonitoring(c *fiber.Ctx) error {
+	if h.startMonitoringUC == nil {
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Not Implemented", "https://api.manris.com/errors/not-implemented", "monitoring use case is not configured")
+	}
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+	}
+
+	var req startMonitoringRequest
+	if err := c.BodyParser(&req); err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrForbidden) {
+			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+		}
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+	}
+
+	userID, _ := c.Locals("userId").(uuid.UUID)
+	result, err := h.startMonitoringUC.Execute(c.Context(), riskuc.StartMonitoringInput{
+		SourceRiskID: id,
+		Cycle:        req.Cycle,
+		OrgIDs:       orgIDs,
+		StartedBy:    userID,
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": result})
+}
+
+// GetMonitoring handles GET /api/risk-monitorings/:id
+func (h *RiskHandler) GetMonitoring(c *fiber.Ctx) error {
+	if h.getMonitoringUC == nil {
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Not Implemented", "https://api.manris.com/errors/not-implemented", "monitoring use case is not configured")
+	}
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid monitoring ID")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrForbidden) {
+			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+		}
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+	}
+
+	result, err := h.getMonitoringUC.Execute(c.Context(), id, orgIDs)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
+}
+
+// UpdateMonitoring handles PUT /api/risk-monitorings/:id
+func (h *RiskHandler) UpdateMonitoring(c *fiber.Ctx) error {
+	if h.updateMonitoringUC == nil {
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Not Implemented", "https://api.manris.com/errors/not-implemented", "monitoring use case is not configured")
+	}
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid monitoring ID")
+	}
+
+	var req updateMonitoringRequest
+	if err := c.BodyParser(&req); err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrForbidden) {
+			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+		}
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+	}
+
+	result, err := h.updateMonitoringUC.Execute(c.Context(), riskuc.UpdateMonitoringInput{
+		MonitoringID:                id,
+		OrgIDs:                      orgIDs,
+		ObservedProbability:         req.Values.Probability,
+		ObservedImpact:              req.Values.Impact,
+		ConditionSummary:            req.ConditionSummary,
+		EventSummary:                req.EventSummary,
+		Trend:                       req.Trend,
+		EffectivenessConclusion:     req.EffectivenessConclusion,
+		FollowUpNote:                req.FollowUpNote,
+		Conclusion:                  req.Conclusion,
+		MitigationProgressSummary:   req.MitigationProgressSummary,
+		MitigationCompletionPercent: req.MitigationCompletionPercent,
+		MitigationObstacles:         req.MitigationObstacles,
+		MitigationFollowUp:          req.MitigationFollowUp,
+		Values:                      req.Values,
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
+}
+
+// FinalizeMonitoring handles POST /api/risk-monitorings/:id/finalize
+func (h *RiskHandler) FinalizeMonitoring(c *fiber.Ctx) error {
+	if h.finalizeMonitoringUC == nil {
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Not Implemented", "https://api.manris.com/errors/not-implemented", "monitoring use case is not configured")
+	}
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid monitoring ID")
+	}
+
+	var req finalizeMonitoringRequest
+	if err := c.BodyParser(&req); err != nil && !errors.Is(err, io.EOF) {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrForbidden) {
+			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+		}
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+	}
+
+	finalizedBy, _ := c.Locals("userId").(uuid.UUID)
+	if req.FinalizedBy != uuid.Nil {
+		finalizedBy = req.FinalizedBy
+	}
+
+	result, err := h.finalizeMonitoringUC.Execute(c.Context(), riskuc.FinalizeMonitoringInput{
+		MonitoringID: id,
+		OrgIDs:       orgIDs,
+		FinalizedBy:  finalizedBy,
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
 }
 
 // UpdateRisk handles PUT /api/risks/:id

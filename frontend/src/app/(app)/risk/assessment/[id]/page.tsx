@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -28,6 +28,11 @@ import { useAuth } from "@/contexts/auth-context";
 import { api, ApiError } from "@/lib/api";
 import { getRiskDetail, updateRiskAssessment } from "@/lib/api/risk-assessment";
 import {
+  finalizeMonitoring,
+  getMonitoringDetail,
+  updateMonitoringDraft,
+} from "@/lib/api/risk-monitoring";
+import {
   getBobot,
   calculateNilai,
   PROBABILITY_LABELS,
@@ -37,6 +42,7 @@ import {
   resolveRiskAssessmentClassification,
 } from "@/lib/risk";
 import type { Risk } from "@/types/risk";
+import type { RiskMonitoringDetail } from "@/types/risk-monitoring";
 import { listUsers } from "@/lib/api/users";
 
 import {
@@ -113,6 +119,49 @@ function getRiskOrganizationId(risk: Risk): string {
   );
 }
 
+function buildRiskFromMonitoring(
+  monitoring: RiskMonitoringDetail,
+  sourceRisk: Risk | null,
+): Risk {
+  const base = (monitoring.resultRisk ?? sourceRisk ?? {}) as Risk;
+  const status =
+    monitoring.status === "finalized" ? "approved" : "assessment_draft";
+
+  return {
+    ...base,
+    id: monitoring.resultRisk?.id ?? monitoring.id,
+    title: monitoring.draftTitle || base.title,
+    category: monitoring.draftCategory || base.category,
+    cause: monitoring.draftCause?.length ? monitoring.draftCause : base.cause,
+    riskSource: monitoring.draftRiskSource || base.riskSource,
+    controllability:
+      monitoring.draftControllability || base.controllability,
+    impactDesc: monitoring.draftImpactDesc?.length
+      ? monitoring.draftImpactDesc
+      : base.impactDesc,
+    existingControl:
+      monitoring.draftExistingControl || base.existingControl,
+    controlEffectiveness:
+      monitoring.draftControlEffectiveness || base.controlEffectiveness,
+    treatmentOption:
+      monitoring.draftTreatmentOption || base.treatmentOption,
+    probability: monitoring.observedProbability || base.probability,
+    impact: monitoring.observedImpact || base.impact,
+    weight: monitoring.observedWeight || base.weight,
+    nilai: monitoring.observedNilai || base.nilai,
+    inherentScore:
+      Math.round(monitoring.observedNilai || base.nilai || base.inherentScore) ||
+      base.inherentScore,
+    status,
+    assessmentCycle: monitoring.assessmentCycle || base.assessmentCycle,
+    reviewType: "periodic",
+    reviewSummary: monitoring.conclusion || base.reviewSummary,
+    changeReason: monitoring.changeReason || base.changeReason,
+    previousRiskId: monitoring.sourceRiskId || base.previousRiskId || null,
+    versionNumber: monitoring.sourceVersionNumber + 1,
+  } as Risk;
+}
+
 const approvalRoleLabels: Record<string, string> = {
   reviewer: "Reviewer",
   approval: "Pimpinan",
@@ -167,7 +216,12 @@ type AssessmentFormInput = z.input<typeof formSchema>;
 export default function AssessmentFormPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const pathname = usePathname();
   const { token, user } = useAuth();
+  const isMonitoringRoute = pathname.startsWith("/risk/monitoring");
+  const backTarget = isMonitoringRoute
+    ? "/risk/register?tab=monitoring-transactions"
+    : "/risk/assessment";
   const riskApprovalCapabilityBehavior = useMemo(
     () => getRiskApprovalCapabilityBehavior(user?.capabilities),
     [user?.capabilities],
@@ -177,6 +231,8 @@ export default function AssessmentFormPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [draftRisk, setDraftRisk] = useState<Risk | null>(null);
   const [sourceRisk, setSourceRisk] = useState<Risk | null>(null);
+  const [monitoringDraft, setMonitoringDraft] =
+    useState<RiskMonitoringDetail | null>(null);
   const [substanceEditEnabled, setSubstanceEditEnabled] = useState(false);
   const [substanceDraft, setSubstanceDraft] = useState<RiskSubstanceValues>(
     () => buildSubstanceDefaults(null),
@@ -230,10 +286,12 @@ export default function AssessmentFormPage() {
     selectedApprovalLine.length > 0 &&
     approvalLine.every((member) => member.id);
   const isAssessmentSectionReady =
-    Boolean(form.watch("changeReason")?.trim()) &&
-    Boolean(form.watch("reviewSummary")?.trim());
+    Boolean(form.watch("reviewSummary")?.trim()) &&
+    (isMonitoringRoute || Boolean(form.watch("changeReason")?.trim()));
   const submitActionLabel =
-    riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+    isMonitoringRoute
+      ? "Finalisasi pemantauan"
+      : riskApprovalCapabilityBehavior.usesDirectApprovalCopy
       ? "Finalisasi pemantauan"
       : "Ajukan review";
 
@@ -393,6 +451,11 @@ export default function AssessmentFormPage() {
   const openSubmitReviewConfirm = () => {
     submitTarget.current = "review";
 
+    if (isMonitoringRoute) {
+      setShowSubmitReviewConfirm(true);
+      return;
+    }
+
     if (
       riskApprovalCapabilityBehavior.requiresReviewerSelection &&
       !reviewerId
@@ -444,7 +507,34 @@ export default function AssessmentFormPage() {
 
     try {
       setIsLoading(true);
+      if (isMonitoringRoute) {
+        const monitoring = await getMonitoringDetail(token, id);
+        const source = monitoring.sourceRisk
+          ? monitoring.sourceRisk
+          : await getRiskDetail(token, monitoring.sourceRiskId);
+        const syntheticDraft = buildRiskFromMonitoring(monitoring, source);
+
+        setMonitoringDraft(monitoring);
+        setDraftRisk(syntheticDraft);
+        setSourceRisk(source);
+        setSubstanceEditEnabled(monitoring.mode === "with_profile_revision");
+        setSubstanceDraft(buildSubstanceDefaults(syntheticDraft));
+        form.reset({
+          probability: monitoring.observedProbability || 1,
+          impact: monitoring.observedImpact || 1,
+          changeReason: monitoring.changeReason || "",
+          reviewSummary: monitoring.conclusion || "",
+        });
+        setReviewerId("");
+        setReviewerOption(null);
+        setApprovalLine([]);
+        setApprovalId(null);
+        setApprovalWorkflow(null);
+        return;
+      }
+
       const draft = await getRiskDetail(token, id);
+      setMonitoringDraft(null);
       setDraftRisk(draft);
       setSubstanceEditEnabled(false);
       setSubstanceDraft(buildSubstanceDefaults(draft));
@@ -574,6 +664,7 @@ export default function AssessmentFormPage() {
       if (error instanceof ApiError && error.status === 404) {
         setDraftRisk(null);
         setSourceRisk(null);
+        setMonitoringDraft(null);
         setSubstanceDraft(buildSubstanceDefaults(null));
         form.reset({
           probability: 1,
@@ -583,7 +674,11 @@ export default function AssessmentFormPage() {
         });
         setApprovalId(null);
         setApprovalWorkflow(null);
-        toast.error("Data risiko tidak ditemukan.");
+        toast.error(
+          isMonitoringRoute
+            ? "Data transaksi pemantauan tidak ditemukan."
+            : "Data risiko tidak ditemukan.",
+        );
         return;
       }
       toast.error("Gagal memuat data risiko", {
@@ -593,7 +688,7 @@ export default function AssessmentFormPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, token, form]);
+  }, [id, token, form, isMonitoringRoute]);
 
   useEffect(() => {
     loadRiskData();
@@ -617,6 +712,68 @@ export default function AssessmentFormPage() {
         newWeight,
       );
       const classification = resolveRiskAssessmentClassification(newNilai);
+      const mergedSubstance = buildSubstancePayload(draftRisk, {
+        enabled: substanceEditEnabled,
+        values: substanceDraft,
+      });
+
+      if (isMonitoringRoute) {
+        const monitoring = monitoringDraft;
+        const monitoringPayload = {
+          observedProbability: values.probability,
+          observedImpact: values.impact,
+          conditionSummary: monitoring?.conditionSummary || "",
+          eventSummary: monitoring?.eventSummary || "",
+          trend: monitoring?.trend || "",
+          effectivenessConclusion: monitoring?.effectivenessConclusion || "",
+          followUpNote: monitoring?.followUpNote || "",
+          conclusion: values.reviewSummary,
+          mitigationProgressSummary: monitoring?.mitigationProgressSummary || "",
+          mitigationCompletionPercent:
+            monitoring?.mitigationCompletionPercent || 0,
+          mitigationObstacles: monitoring?.mitigationObstacles || "",
+          mitigationFollowUp: monitoring?.mitigationFollowUp || "",
+          values: {
+            title: mergedSubstance.title ?? draftRisk.title,
+            category: mergedSubstance.category ?? draftRisk.category,
+            cause: mergedSubstance.cause ?? (draftRisk.cause || []),
+            riskSource: mergedSubstance.riskSource ?? (draftRisk.riskSource || ""),
+            controllability:
+              mergedSubstance.controllability ??
+              (draftRisk.controllability || ""),
+          impactDesc: mergedSubstance.impactDesc ?? (draftRisk.impactDesc || []),
+          existingControl:
+            mergedSubstance.existingControl ?? (draftRisk.existingControl || ""),
+          controlEffectiveness:
+            mergedSubstance.controlEffectiveness ??
+            (draftRisk.controlEffectiveness || ""),
+          treatmentOption:
+            mergedSubstance.treatmentOption ?? (draftRisk.treatmentOption || ""),
+            mitigations:
+              mergedSubstance.mitigations ??
+              draftRisk.mitigations ??
+              (draftRisk.mitigation ? [draftRisk.mitigation] : []),
+            probability: values.probability,
+            impact: values.impact,
+            conditionSummary: monitoring?.conditionSummary || "",
+            eventSummary: monitoring?.eventSummary || "",
+            effectiveness: monitoring?.effectivenessConclusion || "",
+            conclusion: values.reviewSummary,
+            changeReason: values.changeReason,
+          },
+        };
+
+        await updateMonitoringDraft(token, id, monitoringPayload);
+        if (submitTarget.current === "review") {
+          await finalizeMonitoring(token, id);
+          toast.success("Transaksi pemantauan berhasil difinalisasi");
+        } else {
+          toast.success("Transaksi pemantauan berhasil disimpan");
+        }
+        await loadRiskData();
+        return;
+      }
+
       const isDraftSubmission = submitTarget.current === "draft";
       const submissionStatus =
         isDraftSubmission || riskApprovalCapabilityBehavior.submitsForApproval
@@ -643,11 +800,6 @@ export default function AssessmentFormPage() {
                 })),
             ]
           : [];
-
-      const mergedSubstance = buildSubstancePayload(draftRisk, {
-        enabled: substanceEditEnabled,
-        values: substanceDraft,
-      });
 
       // Merge assessment fields with existing risk data so backend validation passes
       const payload = {
@@ -717,19 +869,19 @@ export default function AssessmentFormPage() {
           toast.success(
             "Pemantauan berhasil disimpan dan diajukan untuk review!",
           );
-          router.push("/risk/assessment");
+          router.push(backTarget);
         } catch (approvalErr: unknown) {
           toast.error(
             `Pemantauan disimpan, namun gagal diajukan: ${(approvalErr as Error).message}`,
           );
-          router.push("/risk/assessment");
+          router.push(backTarget);
         }
       } else if (submitTarget.current === "review") {
         toast.success("Pemantauan berhasil disimpan dan langsung disetujui!");
-        router.push("/risk/assessment");
+        router.push(backTarget);
       } else {
         toast.success("Pemantauan risiko berhasil disimpan");
-        router.push("/risk/assessment");
+        router.push(backTarget);
       }
     } catch (error) {
       toast.error("Gagal menyimpan pemantauan", {
@@ -757,7 +909,7 @@ export default function AssessmentFormPage() {
         <p className="text-muted-foreground">Data risiko tidak ditemukan.</p>
         <Button
           variant="outline"
-          onClick={() => router.push("/risk/assessment")}
+          onClick={() => router.push(backTarget)}
         >
           <ArrowLeft className="mr-2 size-4" />
           Kembali
@@ -770,7 +922,7 @@ export default function AssessmentFormPage() {
     draftRisk.status === "assessment_in_review" ||
     draftRisk.status === "approved";
   const defaultAccordionSections =
-    riskApprovalCapabilityBehavior.showsApprovalLineEditor
+    !isMonitoringRoute && riskApprovalCapabilityBehavior.showsApprovalLineEditor
       ? ["hasil-pemantauan", "approval-line"]
       : ["hasil-pemantauan"];
 
@@ -806,8 +958,8 @@ export default function AssessmentFormPage() {
             </Badge>
           </>
         }
-        backLabel="Kembali ke Pemantauan"
-        onBack={() => router.push("/risk/assessment")}
+        backLabel={isMonitoringRoute ? "Kembali ke Pemantauan" : "Kembali"}
+        onBack={() => router.push(backTarget)}
         actions={
           <div className="flex items-center gap-2 sm:gap-3">
             <TooltipProvider>
@@ -1178,7 +1330,7 @@ export default function AssessmentFormPage() {
                           className="border-border/60 bg-background text-muted-foreground"
                         >
                           {substanceChangeReasonNeeded
-                            ? "Alasan perubahan wajib diisi"
+                            ? "Alasan perubahan opsional"
                             : "Alasan perubahan belum diperlukan"}
                         </Badge>
                       </div>
@@ -1205,7 +1357,8 @@ export default function AssessmentFormPage() {
             </AccordionItem>
 
             {/* Accordion Approval Line */}
-            {riskApprovalCapabilityBehavior.showsApprovalLineEditor &&
+            {!isMonitoringRoute &&
+              riskApprovalCapabilityBehavior.showsApprovalLineEditor &&
               (!id || draftRisk.status === "assessment_draft") && (
                 <AccordionItem
                   value="approval-line"
@@ -1321,22 +1474,24 @@ export default function AssessmentFormPage() {
               />
             </div>
           </div>
-          <ReviewSidePanel
-            approvalId={approvalId}
-            approvalWorkflow={approvalWorkflow}
-            currentUserId={user?.id}
-            riskStatus={draftRisk.status}
-            userRole={user?.role || ""}
-            inherentScore={Math.round(computedNilai)}
-            token={token || undefined}
-            allowStatusFallbackWorkflowStage={
-              riskApprovalCapabilityBehavior.riskApprovalWorkflowEnabled
-            }
-            onActionComplete={loadRiskData}
-            onNavigateToLog={() =>
-              router.push(`/risk/register/${sourceRisk.id}`)
-            }
-          />
+          {!isMonitoringRoute && (
+            <ReviewSidePanel
+              approvalId={approvalId}
+              approvalWorkflow={approvalWorkflow}
+              currentUserId={user?.id}
+              riskStatus={draftRisk.status}
+              userRole={user?.role || ""}
+              inherentScore={Math.round(computedNilai)}
+              token={token || undefined}
+              allowStatusFallbackWorkflowStage={
+                riskApprovalCapabilityBehavior.riskApprovalWorkflowEnabled
+              }
+              onActionComplete={loadRiskData}
+              onNavigateToLog={() =>
+                router.push(`/risk/register/${sourceRisk.id}`)
+              }
+            />
+          )}
         </div>
       </div>
       <AlertDialog
@@ -1346,12 +1501,14 @@ export default function AssessmentFormPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+              {isMonitoringRoute ||
+              riskApprovalCapabilityBehavior.usesDirectApprovalCopy
                 ? "Finalisasi Pemantauan?"
                 : "Ajukan Pemantauan untuk Review?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+              {isMonitoringRoute ||
+              riskApprovalCapabilityBehavior.usesDirectApprovalCopy
                 ? "Pastikan seluruh bagian sudah final sebelum melanjutkan."
                 : "Pemantauan akan disimpan lalu dikirim ke reviewer dan approval line yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan."}
             </AlertDialogDescription>
@@ -1380,7 +1537,7 @@ export default function AssessmentFormPage() {
               onClick={handleSubmitForReview}
               disabled={isSaving || isAssessmentLocked}
             >
-              Lanjutkan
+              {isMonitoringRoute ? "Finalisasi" : "Lanjutkan"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
