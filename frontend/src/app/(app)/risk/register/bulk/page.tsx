@@ -197,10 +197,6 @@ export default function BulkRiskRegisterPage() {
       toast.error("Pilih unit kerja terlebih dahulu.");
       return;
     }
-    if (bulkMode === "baru" && !selectedRoId) {
-      toast.error("Pilih RO terlebih dahulu.");
-      return;
-    }
     if (bulkMode === "pemantauan" && !selectedCycle) {
       toast.error("Pilih siklus pemantauan terlebih dahulu.");
       return;
@@ -358,7 +354,7 @@ export default function BulkRiskRegisterPage() {
                 {
                   ...row.payload,
                   organizationId: effectiveOrgId || row.payload.organizationId,
-                  roId: selectedRoId,
+                  ...(selectedRoId ? { roId: selectedRoId } : {}),
                 },
               ]
             : [],
