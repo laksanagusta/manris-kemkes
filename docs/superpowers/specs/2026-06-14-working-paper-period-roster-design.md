@@ -147,8 +147,9 @@ Resolution is deterministic:
    `source_risk_id` as the source version.
 2. If no monitoring exists, select the approved version effective at the start of
    the target quarter: April 1 for Q2 and October 1 for Q4.
-3. If the logical risk was first approved later in the semester, use its first
-   approved version after the target quarter began.
+3. If no version was effective at the target-quarter boundary, select the approved
+   version in the semester closest to that boundary: the latest version ending
+   before it, otherwise the first version approved after it.
 4. Never replace the resolved source version with a newer current version merely
    because the working paper is created later.
 
