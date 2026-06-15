@@ -20,6 +20,7 @@ import {
   MitigationTable,
   type MitigationItem,
 } from "@/components/shared/mitigation-table";
+import { MitigationStatusTable } from "./_components/mitigation-status-table";
 import { ProbabilityCriteriaTooltip } from "@/components/shared/probability-criteria-tooltip";
 import { RiskSubstanceFields } from "@/components/risk/risk-substance-fields";
 import { Switch } from "@/components/ui/switch";
@@ -1123,6 +1124,11 @@ export default function AssessmentFormPage() {
                       </div>
                     );
                   })()}
+
+                  {isMonitoringRoute &&
+                    monitoringDraft?.id && (
+                      <MitigationStatusTable monitoringId={monitoringDraft.id} />
+                    )}
 
                   <TooltipProvider>
                     <div className="grid w-full min-w-0 grid-cols-1 gap-4">
