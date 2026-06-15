@@ -1236,7 +1236,6 @@ export default function RiskInputPage() {
         if (documentPrefill?.kind === "mitigation-report") {
           setMitigationProgressDraft({
             taskId: documentPrefill.taskId,
-            progressPct: documentPrefill.progressPct || 0,
             notes: documentPrefill.notes || "",
           });
           if (existingRiskId) {
@@ -1314,7 +1313,6 @@ export default function RiskInputPage() {
         if (latestMitigationPrefill?.kind === "mitigation-report") {
           setMitigationProgressDraft({
             taskId: latestMitigationPrefill.taskId,
-            progressPct: latestMitigationPrefill.progressPct || 0,
             notes: latestMitigationPrefill.notes || "",
           });
           toast.success("Draft laporan mitigasi siap dipakai di tab Progress.");

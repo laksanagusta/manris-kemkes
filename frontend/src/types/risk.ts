@@ -59,7 +59,6 @@ export interface MitigationTask {
   periodEnd: string;
   dueDate: string;
   status: MitigationTaskStatus;
-  progressPct: number;
   actualCost: number;
   evidenceUrl: string;
   notes: string;

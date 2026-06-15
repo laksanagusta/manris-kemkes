@@ -57,7 +57,6 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import {
-  normalizeMitigationReportPayload,
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
 import { getMitigationSubmissionActionState } from "@/lib/kri-reporting";
@@ -132,7 +131,6 @@ export function MitigationMonitoringPanel() {
   const [selectedTask, setSelectedTask] = useState<MitigationTaskRow | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [progressPct, setProgressPct] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [showValidationErrors, setShowValidationErrors] = useState(false);
@@ -147,11 +145,10 @@ export function MitigationMonitoringPanel() {
   const formErrors = useMemo(
     () =>
       validateMitigationReportForm({
-        progressPct,
         evidenceUrl,
         notes,
       }),
-    [evidenceUrl, notes, progressPct]
+    [evidenceUrl, notes]
   );
   const hasFormErrors = Object.keys(formErrors).length > 0;
 
@@ -228,7 +225,6 @@ export function MitigationMonitoringPanel() {
           tier,
           mitigationAction: m.mitigationAction || "—",
           status: backendStatus,
-          progressPct: m.progressPct || 0,
         };
       });
 
@@ -274,7 +270,6 @@ export function MitigationMonitoringPanel() {
 
   const handleOpenSubmit = (task: MitigationTaskRow) => {
     setSelectedTask(task);
-    setProgressPct(task.progressPct ? String(task.progressPct) : "");
     setEvidenceUrl(task.evidenceUrl || "");
     setNotes(task.notes || "");
     setShowValidationErrors(false);
@@ -296,13 +291,13 @@ export function MitigationMonitoringPanel() {
 
     setSubmitting(true);
     try {
-      await api.post(
-        `/mitigation-tasks/${selectedTask.id}/submit`,
-        normalizeMitigationReportPayload({
-          progressPct,
+      await api.put(
+        `/mitigation-tasks/${selectedTask.id}/report`,
+        {
+          status: "done",
           evidenceUrl,
           notes,
-        }),
+        },
         token
       );
       toast.success("Progress berhasil dilaporkan!");
@@ -901,18 +896,14 @@ export function MitigationMonitoringPanel() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Progress
+                      Status
                     </p>
                     <p className="text-lg font-bold">
                       {detailTask.status === "done"
-                        ? `${detailTask.progressPct}%`
+                        ? "Selesai"
                         : "Belum dilaporkan"}
                     </p>
                   </div>
-                  <Progress
-                    value={detailTask.status === "done" ? detailTask.progressPct : 0}
-                    className="h-2 flex-1 max-w-xs"
-                  />
                 </div>
                 <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -979,29 +970,6 @@ export function MitigationMonitoringPanel() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Persentase Penyelesaian</Label>
-              <div className="flex items-center gap-3">
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={progressPct}
-                  onChange={(e) => setProgressPct(e.target.value)}
-                  className="w-24 text-xs"
-                  placeholder="0"
-                  aria-invalid={Boolean(showValidationErrors && formErrors.progressPct)}
-                  aria-describedby={showValidationErrors && formErrors.progressPct ? "monitoring-progress-error" : undefined}
-                />
-                <span className="text-xs text-muted-foreground">%</span>
-                <Progress value={Number(progressPct || 0)} className="h-2 flex-1" />
-              </div>
-              {showValidationErrors && formErrors.progressPct && (
-                <p id="monitoring-progress-error" className="text-[11px] text-destructive">
-                  {formErrors.progressPct}
-                </p>
-              )}
-            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">
                 Link Bukti / Evidence<span className="text-destructive ml-0.5">*</span>

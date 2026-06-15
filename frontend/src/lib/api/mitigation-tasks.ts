@@ -28,7 +28,6 @@ export async function updateTaskReport(
   taskId: string,
   data: {
     status?: string;
-    progressPct?: number;
     reportOutput?: string;
     reportObstacle?: string;
     evidenceUrl?: string;

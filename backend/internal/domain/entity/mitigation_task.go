@@ -22,10 +22,9 @@ type MitigationTask struct {
 	DueDate     string `json:"dueDate"`
 
 	// Progress (filled by PIC)
-	Status      string  `json:"status"` // pending, done, overdue, skipped
-	ProgressPct int     `json:"progressPct"`
-	EvidenceURL string  `json:"evidenceUrl"`
-	Notes       string  `json:"notes"`
+	Status      string `json:"status"` // pending, done, overdue, skipped
+	EvidenceURL string `json:"evidenceUrl"`
+	Notes       string `json:"notes"`
 
 	// Monitoring report fields
 	ReportOutput   string `json:"reportOutput"`

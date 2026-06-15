@@ -85,9 +85,6 @@ export function MitigationReportTable({
 
   const handleChangeStatus = (taskId: string, status: string) => {
     handleUpdateTask(taskId, "status", status);
-    if (status === "done") {
-      handleUpdateTask(taskId, "progressPct", 100);
-    }
   };
 
   if (loading) {

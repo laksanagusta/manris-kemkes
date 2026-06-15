@@ -1,5 +1,4 @@
 export interface MitigationReportFormValues {
-  progressPct: string;
   evidenceUrl: string;
   notes: string;
 }
@@ -42,15 +41,6 @@ export function validateMitigationReportForm(
 ): FieldErrors<keyof MitigationReportFormValues> {
   const errors: FieldErrors<keyof MitigationReportFormValues> = {};
 
-  const progressPct = parseNumberInput(values.progressPct);
-  if (progressPct === null) {
-    errors.progressPct = "Persentase penyelesaian wajib diisi.";
-  } else if (!Number.isInteger(progressPct)) {
-    errors.progressPct = "Persentase penyelesaian harus berupa bilangan bulat.";
-  } else if (progressPct < 0 || progressPct > 100) {
-    errors.progressPct = "Persentase penyelesaian harus antara 0 sampai 100.";
-  }
-
   const evidenceUrl = values.evidenceUrl.trim();
   if (!evidenceUrl) {
     errors.evidenceUrl = "Link bukti wajib diisi.";
@@ -72,7 +62,6 @@ export function validateMitigationReportForm(
 
 export function normalizeMitigationReportPayload(values: MitigationReportFormValues) {
   return {
-    progressPct: Number(values.progressPct.trim()),
     evidenceUrl: values.evidenceUrl.trim(),
     notes: values.notes.trim(),
   };

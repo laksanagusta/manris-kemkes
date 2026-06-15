@@ -164,7 +164,6 @@ func NewSubmitProgressUseCase(taskRepo repository.MitigationTaskRepository, risk
 
 type SubmitProgressInput struct {
 	TaskID      uuid.UUID `json:"taskId"`
-	ProgressPct int       `json:"progressPct"`
 	EvidenceURL string    `json:"evidenceUrl"`
 	Notes       string    `json:"notes"`
 	ReportedBy  uuid.UUID `json:"-"`
@@ -172,10 +171,6 @@ type SubmitProgressInput struct {
 }
 
 func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgressInput) (*entity.MitigationTask, error) {
-	if input.ProgressPct < 0 || input.ProgressPct > 100 {
-		return nil, domainerrors.ErrInvalidProgress
-	}
-
 	evidenceURL := strings.TrimSpace(input.EvidenceURL)
 	if evidenceURL == "" {
 		return nil, domainerrors.ErrInvalidEvidenceURL
@@ -204,7 +199,6 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 	}
 
 	now := time.Now().In(timeutil.JakartaLocation())
-	task.ProgressPct = input.ProgressPct
 	task.EvidenceURL = evidenceURL
 	task.Notes = notes
 	task.ReportedBy = &input.ReportedBy
@@ -224,7 +218,6 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 type SubmitMonitoringReportInput struct {
 	TaskID         uuid.UUID `json:"-"`
 	Status         string    `json:"status,omitempty"`
-	ProgressPct    *int      `json:"progressPct,omitempty"`
 	EvidenceURL    string    `json:"evidenceUrl,omitempty"`
 	Notes          string    `json:"notes,omitempty"`
 	ReportOutput   string    `json:"reportOutput,omitempty"`
@@ -243,10 +236,6 @@ func NewSubmitMonitoringReportUseCase(taskRepo repository.MitigationTaskReposito
 }
 
 func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input SubmitMonitoringReportInput) (*entity.MitigationTask, error) {
-	if input.ProgressPct != nil && (*input.ProgressPct < 0 || *input.ProgressPct > 100) {
-		return nil, domainerrors.ErrInvalidProgress
-	}
-
 	if input.Status != "" && input.Status != "pending" && input.Status != "done" {
 		return nil, fmt.Errorf("invalid status: must be pending or done")
 	}
@@ -272,9 +261,6 @@ func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input Subm
 
 	if input.Status != "" {
 		task.Status = input.Status
-	}
-	if input.ProgressPct != nil {
-		task.ProgressPct = *input.ProgressPct
 	}
 	if evidenceURL != "" {
 		task.EvidenceURL = evidenceURL

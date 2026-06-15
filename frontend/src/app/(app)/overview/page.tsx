@@ -2,15 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   ClipboardCheck,
-  Clock,
   FileBarChart,
-  Flame,
-  Gauge,
   Minus,
-  ShieldAlert,
-  TrendingDown,
-  TrendingUp,
+  MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import { MultiPhaseHeatmapCompareCard } from "../compliance/_components/multi-phase-heatmap-compare";
 import { UnitTotalRiskScoreChart } from "./_components/unit-total-risk-score-chart";
-import type {
-  Risk,
-} from "@/types/risk";
+import type { Risk } from "@/types/risk";
 import { api } from "@/lib/api";
 import {
   buildUnitTotalRiskScoreData,
@@ -42,9 +37,6 @@ type KpiCard = {
   value: number;
   change: string;
   trend: "up" | "down" | "stable";
-  icon: typeof ShieldAlert;
-  color: string;
-  bgColor: string;
   description: string;
 };
 
@@ -95,38 +87,31 @@ export default function DashboardPage() {
         token,
       ),
       api.get<Risk[]>("/risks/trend", token),
-    ]).then(
-      ([
-        summaryResult,
-        prevSummaryResult,
-        risksResult,
-      ]) => {
-        if (summaryResult.status === "fulfilled")
-          setSummary(summaryResult.value);
-        else console.error(summaryResult.reason);
+    ]).then(([summaryResult, prevSummaryResult, risksResult]) => {
+      if (summaryResult.status === "fulfilled") setSummary(summaryResult.value);
+      else console.error(summaryResult.reason);
 
-        if (prevSummaryResult.status === "fulfilled")
-          setPrevSummary(prevSummaryResult.value);
-        else console.error(prevSummaryResult.reason);
+      if (prevSummaryResult.status === "fulfilled")
+        setPrevSummary(prevSummaryResult.value);
+      else console.error(prevSummaryResult.reason);
 
-        if (risksResult.status === "fulfilled") {
-          const risks = risksResult.value;
-          setTrendRisks(risks);
-          const score = risks.reduce((sum, r) => {
-            const lvl = levelFromScore(
-              resolveRiskScoreSemantics(r).effective.score,
-            );
-            return sum + weightFor(lvl);
-          }, 0);
-          setExposureScore(score);
-        } else {
-          console.error(risksResult.reason);
-          setTrendRisks([]);
-        }
+      if (risksResult.status === "fulfilled") {
+        const risks = risksResult.value;
+        setTrendRisks(risks);
+        const score = risks.reduce((sum, r) => {
+          const lvl = levelFromScore(
+            resolveRiskScoreSemantics(r).effective.score,
+          );
+          return sum + weightFor(lvl);
+        }, 0);
+        setExposureScore(score);
+      } else {
+        console.error(risksResult.reason);
+        setTrendRisks([]);
+      }
 
-        setLoading(false);
-      },
-    );
+      setLoading(false);
+    });
   }, [token, currentCycle, previousCycle]);
 
   const calculateTrend = (
@@ -134,15 +119,14 @@ export default function DashboardPage() {
     prev: number | undefined,
   ): Pick<KpiCard, "trend" | "change"> => {
     if (prev === undefined || prev === 0)
-      return { trend: "stable", change: "--" };
+      return { trend: "stable", change: "0%" };
     const percent = Math.round(((current - prev) / prev) * 100);
-    const sign = percent > 0 ? "+" : percent < 0 ? "-" : "";
     const absPercent = Math.abs(percent);
     let trend: "up" | "down" | "stable" = "stable";
     if (percent > 0) trend = "up";
     else if (percent < 0) trend = "down";
 
-    return { trend, change: percent === 0 ? "0%" : `${sign}${absPercent}%` };
+    return { trend, change: percent === 0 ? "0%" : `${absPercent}%` };
   };
 
   const kpiCards: KpiCard[] = summary
@@ -151,18 +135,12 @@ export default function DashboardPage() {
           title: "Total Risiko",
           value: summary.totalRisks,
           ...calculateTrend(summary.totalRisks, prevSummary?.totalRisks),
-          icon: ShieldAlert,
-          color: "text-chart-1",
-          bgColor: "bg-chart-1/10",
           description: "risiko terdaftar",
         },
         {
           title: "Risiko Tinggi & Sangat Tinggi",
           value: summary.highExtreme,
           ...calculateTrend(summary.highExtreme, prevSummary?.highExtreme),
-          icon: Flame,
-          color: "text-risk-extreme",
-          bgColor: "bg-risk-extreme/10",
           description: "memerlukan perhatian",
         },
         {
@@ -172,19 +150,13 @@ export default function DashboardPage() {
             summary.overdueMitigations,
             prevSummary?.overdueMitigations,
           ),
-          icon: Clock,
-          color: "text-warning",
-          bgColor: "bg-warning/10",
           description: "melewati tenggat",
         },
         {
           title: "Risk Exposure",
           value: exposureScore,
-          change: "--",
+          change: "0%",
           trend: "stable",
-          icon: Gauge,
-          color: "text-chart-5",
-          bgColor: "bg-chart-5/10",
           description: "skor eksposur tertimbang",
         },
       ]
@@ -218,58 +190,51 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {kpiCards.map((kpi) => (
-          <Card
+      <div className="mt-6 flex overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
+        {kpiCards.map((kpi, index) => (
+          <div
             key={kpi.title}
-            className="group relative h-full overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5"
+            className={cn(
+              "flex flex-1 flex-col justify-between px-5 py-5",
+              index !== kpiCards.length - 1 && "border-r border-zinc-100",
+            )}
           >
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {kpi.title}
-                  </p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold tracking-tight">
-                      {kpi.value}
-                    </span>
-                    <div
-                      className={cn(
-                        "flex items-center gap-0.5 text-xs font-medium",
-                        kpi.trend === "down"
-                          ? "text-success"
-                          : kpi.trend === "up"
-                            ? "text-risk-high"
-                            : "text-muted-foreground",
-                      )}
-                    >
-                      {kpi.trend === "up" && <TrendingUp className="size-3" />}
-                      {kpi.trend === "down" && (
-                        <TrendingDown className="size-3" />
-                      )}
-                      {kpi.trend === "stable" && kpi.change !== "--" && (
-                        <Minus className="size-3" />
-                      )}
-                      {kpi.change}
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground/70">
-                    {kpi.description}
-                  </p>
-                </div>
+            <div className="flex items-center justify-between">
+              <p className="text-[13px] font-medium text-zinc-500">
+                {kpi.title}
+              </p>
+              <button className="text-zinc-400 hover:text-zinc-600 transition-colors">
+                <MoreHorizontal className="size-4" />
+              </button>
+            </div>
+
+            <div className="mt-3">
+              <span className="text-[32px] font-bold tracking-tight text-zinc-900 leading-none">
+                {kpi.value}
+              </span>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              {kpi.change !== "--" && (
                 <div
                   className={cn(
-                    "flex size-10 items-center justify-center rounded-xl transition-transform group-hover:scale-110",
-                    kpi.bgColor,
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                    kpi.trend === "up" && "bg-emerald-50 text-emerald-700",
+                    kpi.trend === "down" && "bg-red-50 text-red-700",
+                    kpi.trend === "stable" && "bg-zinc-100 text-zinc-600",
                   )}
                 >
-                  <kpi.icon className={cn("size-5", kpi.color)} />
+                  {kpi.trend === "up" && <ArrowUp className="size-3" />}
+                  {kpi.trend === "down" && <ArrowDown className="size-3" />}
+                  {kpi.trend === "stable" && <Minus className="size-3" />}
+                  {kpi.change}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              )}
+              <span className="text-[13px] text-zinc-500">
+                vs siklus sebelumnya
+              </span>
+            </div>
+          </div>
         ))}
       </div>
 

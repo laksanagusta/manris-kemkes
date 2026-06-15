@@ -203,7 +203,6 @@ type documentMitigationTaskContext struct {
 	PeriodLabel      string `json:"periodLabel"`
 	DueDate          string `json:"dueDate,omitempty"`
 	Status           string `json:"status"`
-	ProgressPct      int    `json:"progressPct,omitempty"`
 	Notes            string `json:"notes,omitempty"`
 }
 
@@ -272,7 +271,6 @@ func buildOpenMitigationTaskContexts(tasks []*entity.MitigationTask) []documentM
 			PeriodLabel:      task.PeriodLabel,
 			DueDate:          task.DueDate,
 			Status:           task.Status,
-			ProgressPct:      task.ProgressPct,
 			Notes:            task.Notes,
 		})
 	}
