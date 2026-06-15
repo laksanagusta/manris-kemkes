@@ -75,7 +75,7 @@ func (uc *EnsureTasksForRiskVersionUseCase) Execute(
 			PeriodEnd:    periodEnd,
 			DueDate:      dueDate,
 			Status:       "pending",
-			GeneratedBy:  "system",
+			GeneratedBy:  "manual",
 		}
 		if err := uc.taskRepo.Create(ctx, task); err != nil {
 			return created, fmt.Errorf("create mitigation task: %w", err)
