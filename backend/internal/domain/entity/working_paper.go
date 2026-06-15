@@ -18,6 +18,12 @@ const (
 	WorkingPaperStatusCancelled = "cancelled"
 )
 
+const (
+	WorkingPaperRosterFinalizedResult    = "finalized_result"
+	WorkingPaperRosterExistingDraft      = "existing_draft"
+	WorkingPaperRosterDraftWillBeCreated = "draft_will_be_created"
+)
+
 type WorkingPaper struct {
 	ID                       uuid.UUID              `json:"id"`
 	SequenceNo               int                    `json:"sequence_no"`
@@ -48,6 +54,60 @@ type WorkingPaperRiskLink struct {
 	SourceMode     string               `json:"source_mode"`
 	CreatedAt      time.Time            `json:"created_at"`
 	Risk           WorkingPaperRiskData `json:"risk"`
+
+	VersionGroupID uuid.UUID            `json:"version_group_id,omitempty"`
+	SourceRiskID   uuid.UUID            `json:"source_risk_id,omitempty"`
+	MonitoringID   *uuid.UUID           `json:"monitoring_id,omitempty"`
+	ResultRiskID   *uuid.UUID           `json:"result_risk_id,omitempty"`
+	ResultRisk     *WorkingPaperRiskData `json:"result_risk,omitempty"`
+	RosterStatus   string               `json:"roster_status,omitempty"`
+}
+
+type WorkingPaperRosterEntry struct {
+	VersionGroupID      uuid.UUID  `json:"versionGroupId"`
+	Code                string     `json:"code"`
+	Title               string     `json:"title"`
+	OrganizationID      uuid.UUID  `json:"organizationId"`
+	SourceRiskID        uuid.UUID  `json:"sourceRiskId"`
+	SourceVersionNumber int        `json:"sourceVersionNumber"`
+	ResultRiskID        *uuid.UUID `json:"resultRiskId,omitempty"`
+	ResultVersionNumber *int       `json:"resultVersionNumber,omitempty"`
+	MonitoringID        *uuid.UUID `json:"monitoringId,omitempty"`
+	MonitoringCycle     string     `json:"monitoringCycle"`
+	MonitoringStatus    string     `json:"monitoringStatus"`
+	RosterStatus        string     `json:"rosterStatus"`
+}
+
+type WorkingPaperRosterSummary struct {
+	EligibleCount      int `json:"eligibleCount"`
+	FinalizedCount     int `json:"finalizedCount"`
+	ExistingDraftCount int `json:"existingDraftCount"`
+	NewDraftCount      int `json:"newDraftCount"`
+}
+
+type WorkingPaperRosterPreview struct {
+	OrganizationID  uuid.UUID                  `json:"organizationId"`
+	AssessmentCycle string                     `json:"assessmentCycle"`
+	MonitoringCycle string                     `json:"monitoringCycle"`
+	Revision        string                     `json:"revision"`
+	Entries         []WorkingPaperRosterEntry  `json:"entries"`
+	Summary         WorkingPaperRosterSummary  `json:"summary"`
+}
+
+type WorkingPaperRosterDecision struct {
+	VersionGroupID  uuid.UUID
+	Included        bool
+	ExclusionReason string
+}
+
+type WorkingPaperRiskExclusion struct {
+	ID              uuid.UUID `json:"id"`
+	WorkingPaperID  uuid.UUID `json:"workingPaperId"`
+	VersionGroupID  uuid.UUID `json:"versionGroupId"`
+	AssessmentCycle string    `json:"assessmentCycle"`
+	Reason          string    `json:"reason"`
+	ExcludedBy      uuid.UUID `json:"excludedBy"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 
 type WorkingPaperRiskMonitoring struct {

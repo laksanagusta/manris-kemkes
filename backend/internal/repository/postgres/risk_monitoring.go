@@ -28,6 +28,14 @@ type riskMonitoringQueryer interface {
 }
 
 func (r *riskMonitoringRepository) Create(ctx context.Context, monitoring *entity.RiskMonitoring) error {
+	return insertRiskMonitoring(ctx, r.pool, monitoring)
+}
+
+func insertRiskMonitoring(
+	ctx context.Context,
+	q riskMonitoringQueryer,
+	monitoring *entity.RiskMonitoring,
+) error {
 	if err := monitoring.Validate(); err != nil {
 		return err
 	}
@@ -37,9 +45,9 @@ func (r *riskMonitoringRepository) Create(ctx context.Context, monitoring *entit
 		return fmt.Errorf("marshal profile changes: %w", err)
 	}
 	draftPayload := mustJSON(monitoring.DraftPayloadSnapshot())
-	err = r.pool.QueryRow(ctx, `
+	err = q.QueryRow(ctx, `
 		INSERT INTO risk_monitorings (
-			source_risk_id, result_risk_id, assessment_cycle, status, mode,
+			source_risk_id, version_group_id, result_risk_id, assessment_cycle, status, mode,
 			source_probability, source_impact, source_weight, source_nilai, source_level, source_version_number,
 			observed_probability, observed_impact, observed_weight, observed_nilai, observed_level,
 			condition_summary, event_summary, trend, effectiveness_conclusion, follow_up_note, conclusion,
@@ -47,9 +55,10 @@ func (r *riskMonitoringRepository) Create(ctx context.Context, monitoring *entit
 			draft_payload,
 			profile_change_summary, change_reason, started_by, started_at
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32)
 		RETURNING id, started_at, created_at, updated_at`,
 		monitoring.SourceRiskID,
+		monitoring.VersionGroupID,
 		monitoring.ResultRiskID,
 		monitoring.AssessmentCycle,
 		monitoring.Status,
@@ -419,7 +428,7 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 func baseRiskMonitoringSelect() string {
 	return `
 		SELECT
-			rm.id, rm.source_risk_id, rm.result_risk_id, rm.assessment_cycle, rm.status, rm.mode,
+			rm.id, rm.source_risk_id, rm.version_group_id, rm.result_risk_id, rm.assessment_cycle, rm.status, rm.mode,
 			rm.source_probability, rm.source_impact, rm.source_weight, rm.source_nilai, rm.source_level, rm.source_version_number,
 			rm.observed_probability, rm.observed_impact, rm.observed_weight, rm.observed_nilai, rm.observed_level,
 			rm.condition_summary, rm.event_summary, rm.trend, rm.effectiveness_conclusion, rm.follow_up_note, rm.conclusion,
@@ -474,7 +483,7 @@ func scanRiskMonitoring(row pgx.Row) (*entity.RiskMonitoring, error) {
 	var resultID uuid.NullUUID
 
 	if err := row.Scan(
-		&monitoring.ID, &monitoring.SourceRiskID, &monitoring.ResultRiskID, &monitoring.AssessmentCycle, &monitoring.Status, &monitoring.Mode,
+		&monitoring.ID, &monitoring.SourceRiskID, &monitoring.VersionGroupID, &monitoring.ResultRiskID, &monitoring.AssessmentCycle, &monitoring.Status, &monitoring.Mode,
 		&monitoring.SourceProbability, &monitoring.SourceImpact, &monitoring.SourceWeight, &monitoring.SourceNilai, &monitoring.SourceLevel, &monitoring.SourceVersionNumber,
 		&monitoring.ObservedProbability, &monitoring.ObservedImpact, &monitoring.ObservedWeight, &monitoring.ObservedNilai, &monitoring.ObservedLevel,
 		&monitoring.ConditionSummary, &monitoring.EventSummary, &monitoring.Trend, &monitoring.EffectivenessConclusion, &monitoring.FollowUpNote, &monitoring.Conclusion,
