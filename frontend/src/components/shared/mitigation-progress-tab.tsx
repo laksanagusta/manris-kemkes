@@ -634,7 +634,6 @@ export function MitigationProgressTab({
             <div className="space-y-1.5">
               <Label className="text-xs">
                 Link Bukti / Evidence
-                <span className="text-destructive ml-0.5">*</span>
               </Label>
               <Input
                 value={evidenceUrl}

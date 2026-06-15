@@ -86,6 +86,9 @@ export function MitigationStatusTable({ monitoringId }: MitigationStatusTablePro
                 <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   Status
                 </TableHead>
+                <TableHead className="w-40 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  Dilaporkan
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -102,14 +105,25 @@ export function MitigationStatusTable({ monitoringId }: MitigationStatusTablePro
                   </TableCell>
                   <TableCell className="px-2.5 py-2.5 text-sm">
                     {task.status === "done" ? (
-                      <Badge variant="default" className="text-[11px]">
+                      <Badge className="text-[11px] bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
                         Selesai
                       </Badge>
                     ) : (
-                      <Badge variant="secondary" className="text-[11px]">
+                      <Badge className="text-[11px] bg-amber-100 text-amber-700 hover:bg-amber-100">
                         Pending
                       </Badge>
                     )}
+                  </TableCell>
+                  <TableCell className="px-2.5 py-2.5 text-sm text-muted-foreground">
+                    {task.reportedAt
+                      ? new Date(task.reportedAt).toLocaleDateString("id-ID", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "-"}
                   </TableCell>
                 </TableRow>
               ))}
