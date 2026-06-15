@@ -5,22 +5,22 @@ export async function listMonitoringTasks(
   token: string,
   monitoringId: string,
 ): Promise<MitigationTask[]> {
-  const res = await api.get<{ data: MitigationTask[] }>(
+  const res = await api.get<MitigationTask[]>(
     `/risk-monitorings/${monitoringId}/tasks`,
     token,
   );
-  return res.data ?? [];
+  return res ?? [];
 }
 
 export async function validateMonitoringFinalize(
   token: string,
   monitoringId: string,
 ): Promise<MonitoringValidationResult> {
-  const res = await api.get<{ data: MonitoringValidationResult }>(
+  const res = await api.get<MonitoringValidationResult>(
     `/risk-monitorings/${monitoringId}/validate-finalize`,
     token,
   );
-  return res.data;
+  return res;
 }
 
 export async function updateTaskReport(
@@ -34,10 +34,10 @@ export async function updateTaskReport(
     notes?: string;
   },
 ): Promise<MitigationTask> {
-  const res = await api.put<{ data: MitigationTask }>(
+  const res = await api.put<MitigationTask>(
     `/mitigation-tasks/${taskId}/report`,
     data,
     token,
   );
-  return res.data;
+  return res;
 }
