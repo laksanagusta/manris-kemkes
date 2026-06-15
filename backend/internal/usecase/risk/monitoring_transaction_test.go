@@ -297,7 +297,7 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 	monitoringRepo.byID[monitoringID] = monitoring
 	monitoringRepo.drafts[sourceID.String()+"|2026-H1"] = monitoring
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
-	uc := NewFinalizeMonitoringUseCase(riskRepo, monitoringRepo, nil)
+	uc := NewFinalizeMonitoringUseCase(riskRepo, monitoringRepo, nil, nil)
 
 	out, err := uc.Execute(context.Background(), FinalizeMonitoringInput{
 		MonitoringID: monitoringID,

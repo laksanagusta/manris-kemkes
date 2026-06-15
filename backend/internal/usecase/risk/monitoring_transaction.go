@@ -51,6 +51,7 @@ type FinalizeMonitoringUseCase struct {
 	riskRepo       monitoringRiskRepository
 	monitoringRepo monitoringTransactionRepository
 	taskRepo       domainrepo.MitigationTaskRepository
+	fullRiskRepo   domainrepo.RiskRepository
 }
 
 type StartMonitoringInput struct {
@@ -117,8 +118,8 @@ func NewUpdateMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRep
 	return &UpdateMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo}
 }
 
-func NewFinalizeMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository, taskRepo domainrepo.MitigationTaskRepository) *FinalizeMonitoringUseCase {
-	return &FinalizeMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo, taskRepo: taskRepo}
+func NewFinalizeMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository, taskRepo domainrepo.MitigationTaskRepository, fullRiskRepo domainrepo.RiskRepository) *FinalizeMonitoringUseCase {
+	return &FinalizeMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo, taskRepo: taskRepo, fullRiskRepo: fullRiskRepo}
 }
 
 func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonitoringInput) (*StartMonitoringOutput, error) {
@@ -302,10 +303,31 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		return nil, errors.Wrap(err, "failed to finalize monitoring transaction")
 	}
 
+	if uc.fullRiskRepo != nil && uc.taskRepo != nil {
+		ensureUC := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.taskRepo, uc.fullRiskRepo)
+		nextCycle := nextQuarterCycle(monitoring.AssessmentCycle)
+		if _, err := ensureUC.Execute(ctx, resultRisk.ID, nextCycle, input.OrgIDs); err != nil {
+			log.Printf("[WARN] ensure mitigation tasks after finalize for next cycle %s: %v", nextCycle, err)
+		}
+	}
+
 	return &FinalizeMonitoringOutput{
 		Monitoring: finalizedMonitoring,
 		Message:    "monitoring transaction finalized",
 	}, nil
+}
+
+func nextQuarterCycle(cycle string) string {
+	year, quarter, err := mtuc.ParseQuarterCycle(cycle)
+	if err != nil {
+		return cycle
+	}
+	quarter++
+	if quarter > 4 {
+		quarter = 1
+		year++
+	}
+	return fmt.Sprintf("%d-Q%d", year, quarter)
 }
 
 func buildRiskVersionFromMonitoring(source *entity.Risk, monitoring *entity.RiskMonitoring, finalizedBy uuid.UUID) (*entity.Risk, error) {
