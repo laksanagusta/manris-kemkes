@@ -53,6 +53,7 @@ export interface MitigationTask {
   id: string;
   mitigationId: string;
   riskId: string;
+  monitoringId?: string | null;
   periodLabel: string;
   periodStart: string;
   periodEnd: string;
@@ -62,6 +63,8 @@ export interface MitigationTask {
   actualCost: number;
   evidenceUrl: string;
   notes: string;
+  reportOutput: string;
+  reportObstacle: string;
   reportedBy?: string;
   reportedByName?: string;
   reportedAt?: string;
@@ -72,6 +75,13 @@ export interface MitigationTask {
   mitigationOwner: string;
   riskCode: string;
   riskTitle: string;
+}
+
+export interface MonitoringValidationResult {
+  canFinalize: boolean;
+  totalTasks: number;
+  reportedTasks: number;
+  pendingTasks: number;
 }
 
 export interface RiskVersion {
