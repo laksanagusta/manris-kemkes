@@ -129,6 +129,12 @@ export interface WorkingPaperRiskLink {
   source_mode: WorkingPaperRiskSourceMode;
   created_at: string;
   risk: WorkingPaperRiskData;
+  version_group_id?: string;
+  source_risk_id?: string;
+  monitoring_id?: string;
+  result_risk_id?: string;
+  result_risk?: WorkingPaperRiskData;
+  roster_status?: WorkingPaperRosterStatus;
 }
 
 export interface WorkingPaperSignatory {
@@ -183,15 +189,59 @@ export interface CreateSignatoryInput {
   signer_pangkat: string;
 }
 
-export interface CreateWorkingPaperRiskInput {
-  risk_id: string;
-  source_mode: WorkingPaperRiskSourceMode;
+export type WorkingPaperRosterStatus =
+  | "finalized_result"
+  | "existing_draft"
+  | "draft_will_be_created";
+
+export interface WorkingPaperRosterEntry {
+  versionGroupId: string;
+  code: string;
+  title: string;
+  organizationId: string;
+  sourceRiskId: string;
+  sourceVersionNumber: number;
+  resultRiskId?: string;
+  resultVersionNumber?: number;
+  monitoringId?: string;
+  monitoringCycle: string;
+  monitoringStatus: string;
+  rosterStatus: WorkingPaperRosterStatus;
+}
+
+export interface WorkingPaperRosterPreview {
+  organizationId: string;
+  assessmentCycle: string;
+  monitoringCycle: string;
+  revision: string;
+  entries: WorkingPaperRosterEntry[];
+  summary: {
+    eligibleCount: number;
+    finalizedCount: number;
+    existingDraftCount: number;
+    newDraftCount: number;
+  };
+}
+
+export interface WorkingPaperRosterDecisionInput {
+  version_group_id: string;
+  included: boolean;
+  exclusion_reason?: string;
 }
 
 export interface CreateWorkingPaperRequest {
-  assessment_cycle?: string;
-  risks: CreateWorkingPaperRiskInput[];
+  organization_id: string;
+  assessment_cycle: string;
+  roster_revision: string;
+  roster_decisions: WorkingPaperRosterDecisionInput[];
   signatories: CreateSignatoryInput[];
+}
+
+export interface WorkingPaperSigningBlocker {
+  version_group_id?: string;
+  code: string;
+  title: string;
+  monitoring_status: string;
 }
 
 export interface WorkingPaperListResponse {
