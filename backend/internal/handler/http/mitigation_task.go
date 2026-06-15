@@ -220,3 +220,55 @@ func (h *MitigationTaskHandler) TriggerGenerate(c *fiber.Ctx) error {
 		},
 	})
 }
+
+// ListByMonitoring handles GET /api/risk-monitorings/:id/tasks
+func (h *MitigationTaskHandler) ListByMonitoring(c *fiber.Ctx) error {
+	monitoringID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid monitoring ID")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	tasks, err := h.listUC.ListByMonitoring(c.Context(), monitoringID, orgIDs)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	if tasks == nil {
+		return c.JSON(fiber.Map{"data": []interface{}{}})
+	}
+	return c.JSON(fiber.Map{"data": tasks})
+}
+
+// ValidateFinalize handles GET /api/risk-monitorings/:id/validate-finalize
+func (h *MitigationTaskHandler) ValidateFinalize(c *fiber.Ctx) error {
+	monitoringID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid monitoring ID")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	counts, err := h.listUC.CountByMonitoring(c.Context(), monitoringID, orgIDs)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{
+		"data": fiber.Map{
+			"canFinalize":   counts.Pending == 0,
+			"totalTasks":    counts.Total,
+			"reportedTasks": counts.Done,
+			"pendingTasks":  counts.Pending,
+		},
+	})
+}

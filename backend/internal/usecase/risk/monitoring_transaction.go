@@ -2,6 +2,7 @@ package risk
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
+	domainrepo "github.com/manris/backend/internal/domain/repository"
 )
 
 type monitoringRiskRepository interface {
@@ -20,6 +22,7 @@ type monitoringTransactionRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.RiskMonitoring, error)
 	GetDraftBySourceAndCycle(ctx context.Context, sourceRiskID uuid.UUID, cycle string) (*entity.RiskMonitoring, error)
 	HasFinalizedForSourceAndCycle(ctx context.Context, sourceRiskID uuid.UUID, cycle string) (bool, error)
+	GetByVersionGroupAndCycle(ctx context.Context, versionGroupID uuid.UUID, cycle string) (*entity.RiskMonitoring, error)
 	Create(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	UpdateDraft(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error)
@@ -42,6 +45,7 @@ type UpdateMonitoringUseCase struct {
 type FinalizeMonitoringUseCase struct {
 	riskRepo       monitoringRiskRepository
 	monitoringRepo monitoringTransactionRepository
+	taskRepo       domainrepo.MitigationTaskRepository
 }
 
 type StartMonitoringInput struct {
@@ -108,8 +112,8 @@ func NewUpdateMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRep
 	return &UpdateMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo}
 }
 
-func NewFinalizeMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository) *FinalizeMonitoringUseCase {
-	return &FinalizeMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo}
+func NewFinalizeMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository, taskRepo domainrepo.MitigationTaskRepository) *FinalizeMonitoringUseCase {
+	return &FinalizeMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo, taskRepo: taskRepo}
 }
 
 func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonitoringInput) (*StartMonitoringOutput, error) {
@@ -117,7 +121,7 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 		return nil, errors.ErrInvalidInput
 	}
 	if !IsValidCycleFormat(input.Cycle) {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return nil, errors.Wrap(errors.ErrInvalidInput, "assessment_cycle must be in YYYY-QN format (e.g. 2026-Q1)")
 	}
 
 	sourceRisk, err := uc.riskRepo.GetByID(ctx, input.SourceRiskID, input.OrgIDs)
@@ -128,15 +132,12 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "only current approved risks can be monitored")
 	}
 
-	if hasFinalized, err := uc.monitoringRepo.HasFinalizedForSourceAndCycle(ctx, sourceRisk.ID, input.Cycle); err != nil {
-		return nil, errors.Wrap(err, "failed to check finalized monitoring")
-	} else if hasFinalized {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "a finalized monitoring already exists for this cycle")
-	}
-
-	if existing, err := uc.monitoringRepo.GetDraftBySourceAndCycle(ctx, sourceRisk.ID, input.Cycle); err != nil {
-		return nil, errors.Wrap(err, "failed to check existing monitoring draft")
+	if existing, err := uc.monitoringRepo.GetByVersionGroupAndCycle(ctx, sourceRisk.VersionGroupID, input.Cycle); err != nil {
+		return nil, errors.Wrap(err, "failed to check existing monitoring for this risk")
 	} else if existing != nil {
+		if existing.Status == entity.RiskMonitoringStatusFinalized {
+			return nil, errors.Wrap(errors.ErrInvalidStatus, "a finalized monitoring already exists for this cycle")
+		}
 		return &StartMonitoringOutput{
 			Monitoring:    existing,
 			Message:       "an in-progress monitoring transaction already exists for this cycle, returning existing draft",
@@ -251,6 +252,19 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "only draft monitoring transactions can be finalized")
 	}
 
+	if uc.taskRepo != nil {
+		counts, err := uc.taskRepo.CountByMonitoringAndStatus(ctx, monitoring.ID, input.OrgIDs)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to validate mitigation tasks")
+		}
+		if counts.Pending > 0 {
+			return nil, fmt.Errorf(
+				"cannot finalize: %d of %d mitigation tasks are still pending (not reported)",
+				counts.Pending, counts.Total,
+			)
+		}
+	}
+
 	sourceRisk, err := uc.riskRepo.GetByID(ctx, monitoring.SourceRiskID, input.OrgIDs)
 	if err != nil {
 		return nil, errors.ErrRiskNotFound
@@ -259,7 +273,10 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		return nil, errors.Wrap(errors.ErrInvalidStatus, "source risk is no longer active")
 	}
 
-	resultRisk := buildRiskVersionFromMonitoring(sourceRisk, monitoring, input.FinalizedBy)
+	resultRisk, err := buildRiskVersionFromMonitoring(sourceRisk, monitoring, input.FinalizedBy)
+	if err != nil {
+		return nil, err
+	}
 	if err := resultRisk.Validate(); err != nil {
 		return nil, err
 	}
@@ -275,7 +292,7 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 	}, nil
 }
 
-func buildRiskVersionFromMonitoring(source *entity.Risk, monitoring *entity.RiskMonitoring, finalizedBy uuid.UUID) *entity.Risk {
+func buildRiskVersionFromMonitoring(source *entity.Risk, monitoring *entity.RiskMonitoring, finalizedBy uuid.UUID) (*entity.Risk, error) {
 	clone := *source
 	clone.ID = uuid.Nil
 	clone.PreviousRiskID = &source.ID
@@ -283,7 +300,11 @@ func buildRiskVersionFromMonitoring(source *entity.Risk, monitoring *entity.Risk
 	clone.IsCurrent = true
 	clone.IsCycleCurrent = true
 	clone.Status = entity.RiskStatusApproved
-	clone.AssessmentCycle = monitoring.AssessmentCycle
+	assessmentCycle, err := QuarterToAssessmentSemester(monitoring.AssessmentCycle)
+	if err != nil {
+		return nil, err
+	}
+	clone.AssessmentCycle = assessmentCycle
 	clone.ReviewType = "periodic"
 	clone.ReviewSummary = monitoring.Conclusion
 	clone.ReviewStartedAt = timePtr(monitoring.StartedAt.UTC().Round(time.Second))
@@ -320,7 +341,7 @@ func buildRiskVersionFromMonitoring(source *entity.Risk, monitoring *entity.Risk
 		clone.ReviewSummary = monitoring.Conclusion
 	}
 
-	return &clone
+	return &clone, nil
 }
 
 func cloneMitigations(src []entity.Mitigation) []entity.Mitigation {

@@ -11,7 +11,6 @@ import (
 	"github.com/manris/backend/internal/database"
 	postgresrepo "github.com/manris/backend/internal/repository/postgres"
 	krireportuc "github.com/manris/backend/internal/usecase/kri_report"
-	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
 func main() {
@@ -40,32 +39,13 @@ func main() {
 	defer pool.Close()
 
 	// Repositories
-	domainMitigationTaskRepo := postgresrepo.NewMitigationTaskRepository(pool)
 	domainKRIReportRepo := postgresrepo.NewKRIReportRepository(pool)
 
 	// Usecases
-	mtGenerateUC := mtuc.NewGenerateTasksUseCase(domainMitigationTaskRepo)
-	mtOverdueUC := mtuc.NewMarkOverdueUseCase(domainMitigationTaskRepo)
 	kriReportGenerateUC := krireportuc.NewGenerateReportsUseCase(domainKRIReportRepo)
 	kriReportOverdueUC := krireportuc.NewMarkOverdueUseCase(domainKRIReportRepo)
 
 	ctx := context.Background()
-
-	// Mitigation Tasks
-	fmt.Println("=== MITIGATION TASKS ===")
-	tasksCreated, err := mtGenerateUC.Execute(ctx, now)
-	if err != nil {
-		log.Printf("Task generation error: %v", err)
-	} else {
-		log.Printf("Generated %d new tasks", tasksCreated)
-	}
-	
-	tasksMarked, err := mtOverdueUC.Execute(ctx, now)
-	if err != nil {
-		log.Printf("Task overdue check error: %v", err)
-	} else {
-		log.Printf("Marked %d tasks as overdue", tasksMarked)
-	}
 
 	// KRI Reports
 	fmt.Println("\n=== KRI REPORTS ===")

@@ -409,6 +409,8 @@ func main() {
 	protected.Get("/mitigation-tasks/my", cleanMitigationTaskHandler.ListMyTasks)
 	protected.Post("/mitigation-tasks/:id/submit", cleanMitigationTaskHandler.SubmitProgress)
 	protected.Put("/mitigation-tasks/:id/report", cleanMitigationTaskHandler.SubmitReport)
+	protected.Get("/risk-monitorings/:id/tasks", cleanMitigationTaskHandler.ListByMonitoring)
+	protected.Get("/risk-monitorings/:id/validate-finalize", cleanMitigationTaskHandler.ValidateFinalize)
 	protected.Post("/mitigation-tasks/generate", cleanMitigationTaskHandler.TriggerGenerate)
 
 	// KRI Reports (Periodic Reporting)

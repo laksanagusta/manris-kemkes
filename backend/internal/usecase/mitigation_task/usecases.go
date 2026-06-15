@@ -142,6 +142,16 @@ func (uc *ListTasksUseCase) ExecutePaginated(ctx context.Context, input ListTask
 	}, nil
 }
 
+// ListByMonitoring returns all tasks linked to a specific monitoring
+func (uc *ListTasksUseCase) ListByMonitoring(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return uc.taskRepo.ListByMonitoring(ctx, monitoringID, orgIDs)
+}
+
+// CountByMonitoring returns task counts grouped by status for a monitoring
+func (uc *ListTasksUseCase) CountByMonitoring(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) (*repository.MonitoringTaskCounts, error) {
+	return uc.taskRepo.CountByMonitoringAndStatus(ctx, monitoringID, orgIDs)
+}
+
 // SubmitProgressUseCase handles a PIC submitting progress for a task
 type SubmitProgressUseCase struct {
 	taskRepo repository.MitigationTaskRepository
