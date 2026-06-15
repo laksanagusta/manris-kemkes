@@ -1058,15 +1058,3 @@ func (r *workingPaperRepository) HasBlockingDocumentLink(ctx context.Context, ri
 
 	return exists, nil
 }
-
-func (r *workingPaperRepository) PreviewPeriodRoster(ctx context.Context, orgID uuid.UUID, assessmentCycle string) (*entity.WorkingPaperRosterPreview, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp *entity.WorkingPaper, revision string, decisions []entity.WorkingPaperRosterDecision) error {
-	return fmt.Errorf("not implemented")
-}
-
-func (r *workingPaperRepository) ListSigningBlockers(ctx context.Context, workingPaperID uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
-	return nil, fmt.Errorf("not implemented")
-}

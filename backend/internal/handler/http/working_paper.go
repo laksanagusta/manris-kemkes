@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/middleware"
@@ -27,14 +28,17 @@ func NewWorkingPaperHandler(uc *workingpaper.UseCase, wpRepo repository.WorkingP
 
 // createWorkingPaperRequest is the JSON body for POST /working-papers.
 type createWorkingPaperRequest struct {
-	AssessmentCycle string                   `json:"assessment_cycle"`
-	Risks           []workingPaperRiskInput  `json:"risks"`
-	Signatories     []createSignatoryRequest `json:"signatories"`
+	OrganizationID  uuid.UUID                      `json:"organization_id"`
+	AssessmentCycle string                         `json:"assessment_cycle"`
+	RosterRevision  string                         `json:"roster_revision"`
+	RosterDecisions []workingPaperRosterDecision   `json:"roster_decisions"`
+	Signatories     []createSignatoryRequest       `json:"signatories"`
 }
 
-type workingPaperRiskInput struct {
-	RiskID     uuid.UUID `json:"risk_id"`
-	SourceMode string    `json:"source_mode"`
+type workingPaperRosterDecision struct {
+	VersionGroupID  uuid.UUID `json:"version_group_id"`
+	Included        bool      `json:"included"`
+	ExclusionReason string    `json:"exclusion_reason"`
 }
 
 type createSignatoryRequest struct {
@@ -83,19 +87,23 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 		}
 	}
 
-	risks := make([]workingpaper.RiskInput, len(req.Risks))
-	for i, r := range req.Risks {
-		risks[i] = workingpaper.RiskInput{
-			RiskID:     r.RiskID,
-			SourceMode: r.SourceMode,
+	decisions := make([]entity.WorkingPaperRosterDecision, len(req.RosterDecisions))
+	for i, d := range req.RosterDecisions {
+		decisions[i] = entity.WorkingPaperRosterDecision{
+			VersionGroupID:  d.VersionGroupID,
+			Included:        d.Included,
+			ExclusionReason: d.ExclusionReason,
 		}
 	}
 
 	input := workingpaper.CreateWorkingPaperInput{
 		AssessmentCycle:  req.AssessmentCycle,
+		OrganizationID:   req.OrganizationID,
+		RosterRevision:   req.RosterRevision,
 		AccessibleOrgIDs: append([]uuid.UUID(nil), accessibleOrgIDs...),
+		IsGlobal:         scope.IsGlobal,
 		CreatedByUserID:  userID,
-		Risks:            risks,
+		Decisions:        decisions,
 		Signatories:      signatories,
 	}
 
@@ -105,6 +113,31 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 	}
 
 	return c.Status(201).JSON(fiber.Map{"data": wp})
+}
+
+func (h *WorkingPaperHandler) PreviewRoster(c *fiber.Ctx) error {
+	orgID, err := uuid.Parse(strings.TrimSpace(c.Query("organization_id")))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
+	}
+	cycle := strings.TrimSpace(c.Query("assessment_cycle"))
+
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "no organization scope")
+	}
+
+	var accessibleOrgIDs []uuid.UUID
+	if !scope.IsGlobal {
+		accessibleOrgIDs = scope.AccessibleOrgIDs
+	}
+
+	preview, err := h.uc.PreviewRoster(c.Context(), orgID, cycle, accessibleOrgIDs, scope.IsGlobal)
+	if err != nil {
+		return handleWPError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": preview})
 }
 
 // List handles GET /working-papers.

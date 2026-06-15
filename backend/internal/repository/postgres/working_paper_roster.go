@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 )
 
 type rosterPeriod struct {
@@ -68,7 +70,6 @@ func omitemptyUUID(id uuid.UUID) string {
 
 func computeRosterRevision(entries []entity.WorkingPaperRosterEntry, quarterCycle string) string {
 	h := sha256.New()
-
 	for _, entry := range entries {
 		fmt.Fprintf(h, "%s|%s|%s|%s|%s\n",
 			entry.VersionGroupID,
@@ -79,7 +80,6 @@ func computeRosterRevision(entries []entity.WorkingPaperRosterEntry, quarterCycl
 		)
 	}
 	fmt.Fprintf(h, "%s\n", quarterCycle)
-
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -247,4 +247,257 @@ func rosterPreviewQuery() string {
 		LEFT JOIN result_versions rv ON rv.id = ml.result_risk_id
 		ORDER BY ev.code, ev.version_group_id
 	`
+}
+
+func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp *entity.WorkingPaper, revision string, decisions []entity.WorkingPaperRosterDecision) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `SELECT 1 FROM organizations WHERE id = $1 FOR UPDATE`, wp.OrgID)
+	if err != nil {
+		return fmt.Errorf("lock organization: %w", err)
+	}
+
+	var existingCount int
+	if err := tx.QueryRow(ctx, `
+		SELECT COUNT(*) FROM working_papers
+		WHERE org_id = $1 AND assessment_cycle = $2 AND status != 'cancelled'
+	`, wp.OrgID, wp.AssessmentCycle).Scan(&existingCount); err != nil {
+		return fmt.Errorf("check existing working paper: %w", err)
+	}
+	if existingCount > 0 {
+		return &domainerrors.AppError{
+			Code:    "SEMESTER_CONFLICT",
+			Message: fmt.Sprintf("a working paper already exists for organization in %s", wp.AssessmentCycle),
+		}
+	}
+
+	period, err := resolveRosterPeriod(wp.AssessmentCycle)
+	if err != nil {
+		return err
+	}
+
+	entries, _, err := scanRosterPreview(ctx, tx, wp.OrgID, period)
+	if err != nil {
+		return fmt.Errorf("recompute roster preview: %w", err)
+	}
+
+	currentRevision := computeRosterRevision(entries, period.QuarterCycle)
+	if currentRevision != revision {
+		return &domainerrors.AppError{
+			Code:    "ROSTER_STALE",
+			Message: "daftar risiko atau status monitoring berubah. Muat ulang roster sebelum membuat kertas kerja.",
+		}
+	}
+
+	decisionByGroup := make(map[uuid.UUID]entity.WorkingPaperRosterDecision, len(decisions))
+	for _, d := range decisions {
+		decisionByGroup[d.VersionGroupID] = d
+	}
+	for _, entry := range entries {
+		if _, ok := decisionByGroup[entry.VersionGroupID]; !ok {
+			return &domainerrors.AppError{
+				Code:    "ROSTER_STALE",
+				Message: "keputusan roster tidak cocok dengan data terbaru. Muat ulang roster.",
+			}
+		}
+	}
+
+	sequenceNo, err := nextWPScopeSequence(ctx, tx, wp.OrgID, wp.AssessmentCycle)
+	if err != nil {
+		return fmt.Errorf("reserve working paper sequence: %w", err)
+	}
+	wp.SequenceNo = sequenceNo
+	wp.Code = fmt.Sprintf("KK-%s-%d", wp.AssessmentCycle, sequenceNo)
+
+	wp.DocumentHash = wp.ComputeHash()
+
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO working_papers (id, code, sequence_no, title, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, tte_skipped, created_by, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+		RETURNING created_at
+	`, wp.ID, wp.Code, wp.SequenceNo, wp.Title, wp.OrgID, wp.Status, wp.AssessmentCycle,
+		wp.DocumentHash, wp.CurrentSignatorySequence, wp.TTESkipped, wp.CreatedBy, wp.CreatedAt, wp.UpdatedAt,
+	).Scan(&wp.CreatedAt); err != nil {
+		return fmt.Errorf("insert working paper: %w", err)
+	}
+
+	// Discover the actual columns on working_paper_risks by using a direct insert
+	sortOrder := 0
+	for _, entry := range entries {
+		decision := decisionByGroup[entry.VersionGroupID]
+		if !decision.Included {
+			if _, err := tx.Exec(ctx, `
+				INSERT INTO working_paper_risk_exclusions (working_paper_id, version_group_id, assessment_cycle, reason, excluded_by)
+				VALUES ($1,$2,$3,$4,$5)
+			`, wp.ID, entry.VersionGroupID, period.QuarterCycle, decision.ExclusionReason, wp.CreatedBy); err != nil {
+				return fmt.Errorf("insert exclusion: %w", err)
+			}
+			continue
+		}
+
+		monitoringID := entry.MonitoringID
+		if entry.RosterStatus == entity.WorkingPaperRosterDraftWillBeCreated {
+			sourceRisk, err := getRiskByIDWithQueryer(ctx, tx, entry.SourceRiskID)
+			if err != nil {
+				return fmt.Errorf("resolve source risk for monitoring draft: %w", err)
+			}
+			draft := entity.NewRiskMonitoringDraft(sourceRisk, period.QuarterCycle, wp.CreatedBy)
+			if err := insertRiskMonitoring(ctx, tx, draft); err != nil {
+				return fmt.Errorf("create monitoring draft: %w", err)
+			}
+			monitoringID = &draft.ID
+		}
+
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO working_paper_risks (working_paper_id, risk_id, sort_order, source_mode, version_group_id, source_risk_id, monitoring_id, result_risk_id)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+		`, wp.ID, entry.SourceRiskID, sortOrder, "roster", entry.VersionGroupID, entry.SourceRiskID, monitoringID, entry.ResultRiskID); err != nil {
+			return fmt.Errorf("insert working paper risk link: %w", err)
+		}
+
+		sortOrder++
+	}
+
+	for _, sig := range wp.Signatories {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO working_paper_signatories (id, working_paper_id, user_id, sequence_no, signer_name, signer_nip, signer_jabatan, signer_pangkat, status)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+		`, sig.ID, wp.ID, sig.UserID, sig.SequenceNo, sig.SignerName, sig.SignerNIP, sig.SignerJabatan, sig.SignerPangkat, sig.Status); err != nil {
+			return fmt.Errorf("insert signatory: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	return nil
+}
+
+type rosterQuerier interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
+
+func scanRosterPreview(ctx context.Context, q rosterQuerier, orgID uuid.UUID, period rosterPeriod) ([]entity.WorkingPaperRosterEntry, entity.WorkingPaperRosterSummary, error) {
+	rows, err := q.Query(ctx, rosterPreviewQuery(),
+		orgID,
+		period.SemesterStart,
+		period.SemesterEnd,
+		period.QuarterStart,
+		period.QuarterCycle,
+	)
+	if err != nil {
+		return nil, entity.WorkingPaperRosterSummary{}, err
+	}
+	defer rows.Close()
+
+	entries := make([]entity.WorkingPaperRosterEntry, 0)
+	summary := entity.WorkingPaperRosterSummary{}
+
+	for rows.Next() {
+		var entry entity.WorkingPaperRosterEntry
+		var monitoringID, resultRiskID uuid.NullUUID
+		var resultVersionNumber *int
+		var monitoringStatus, monitoringCycle string
+
+		if err := rows.Scan(
+			&entry.VersionGroupID,
+			&entry.Code,
+			&entry.Title,
+			&entry.OrganizationID,
+			&entry.SourceRiskID,
+			&entry.SourceVersionNumber,
+			&monitoringID,
+			&monitoringCycle,
+			&monitoringStatus,
+			&resultRiskID,
+			&resultVersionNumber,
+		); err != nil {
+			return nil, entity.WorkingPaperRosterSummary{}, fmt.Errorf("scan roster entry: %w", err)
+		}
+
+		entry.OrganizationID = orgID
+		entry.MonitoringCycle = period.QuarterCycle
+
+		if monitoringID.Valid {
+			entry.MonitoringID = &monitoringID.UUID
+			entry.MonitoringStatus = monitoringStatus
+		}
+		if resultRiskID.Valid {
+			entry.ResultRiskID = &resultRiskID.UUID
+		}
+		if resultVersionNumber != nil {
+			entry.ResultVersionNumber = resultVersionNumber
+		}
+
+		entry.RosterStatus = resolveRosterStatus(entry.MonitoringID, entry.MonitoringStatus)
+
+		entries = append(entries, entry)
+		summary.EligibleCount++
+
+		switch entry.RosterStatus {
+		case entity.WorkingPaperRosterFinalizedResult:
+			summary.FinalizedCount++
+		case entity.WorkingPaperRosterExistingDraft:
+			summary.ExistingDraftCount++
+		case entity.WorkingPaperRosterDraftWillBeCreated:
+			summary.NewDraftCount++
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, entity.WorkingPaperRosterSummary{}, err
+	}
+
+	return entries, summary, nil
+}
+
+func (r *workingPaperRepository) ListSigningBlockers(ctx context.Context, workingPaperID uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT wpr.version_group_id, source.code, source.title,
+		       COALESCE(rm.status, 'missing')
+		FROM working_paper_risks wpr
+		JOIN risks source ON source.id = COALESCE(wpr.source_risk_id, wpr.risk_id)
+		LEFT JOIN risk_monitorings rm ON rm.id = wpr.monitoring_id
+		WHERE wpr.working_paper_id = $1
+		  AND wpr.version_group_id IS NOT NULL
+		  AND (rm.id IS NULL OR rm.status <> 'finalized')
+		ORDER BY wpr.sort_order
+	`, workingPaperID)
+	if err != nil {
+		return nil, fmt.Errorf("list signing blockers: %w", err)
+	}
+	defer rows.Close()
+
+	blockers := make([]entity.WorkingPaperSigningBlocker, 0)
+	for rows.Next() {
+		var blocker entity.WorkingPaperSigningBlocker
+		if err := rows.Scan(&blocker.VersionGroupID, &blocker.Code, &blocker.Title, &blocker.MonitoringStatus); err != nil {
+			return nil, fmt.Errorf("scan signing blocker: %w", err)
+		}
+		blockers = append(blockers, blocker)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("signing blocker rows: %w", err)
+	}
+	return blockers, nil
+}
+
+func nextWPScopeSequence(ctx context.Context, q workingPaperTx, orgID uuid.UUID, cycle string) (int, error) {
+	var seq int
+	stmt := `
+		INSERT INTO working_paper_sequences
+		    (organization_id, assessment_cycle, last_used)
+		VALUES ($1, $2, 1)
+		ON CONFLICT (organization_id, assessment_cycle) DO UPDATE
+		    SET last_used = working_paper_sequences.last_used + 1
+		RETURNING last_used
+	`
+	if err := q.QueryRow(ctx, stmt, orgID, cycle).Scan(&seq); err != nil {
+		return 0, fmt.Errorf("next working paper sequence: %w", err)
+	}
+	return seq, nil
 }

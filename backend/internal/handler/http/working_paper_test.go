@@ -143,6 +143,16 @@ func (r *handlerCreateWorkingPaperRepo) CountByOrgAndCycle(context.Context, uuid
 	return 0, nil
 }
 
+func (r *handlerCreateWorkingPaperRepo) PreviewPeriodRoster(context.Context, uuid.UUID, string) (*entity.WorkingPaperRosterPreview, error) {
+	return nil, nil
+}
+func (r *handlerCreateWorkingPaperRepo) CreateWithPeriodRoster(context.Context, *entity.WorkingPaper, string, []entity.WorkingPaperRosterDecision) error {
+	return nil
+}
+func (r *handlerCreateWorkingPaperRepo) ListSigningBlockers(context.Context, uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
+	return nil, nil
+}
+
 var _ repository.WorkingPaperRepository = (*handlerCreateWorkingPaperRepo)(nil)
 
 func TestWorkingPaperCreatePassesFullAccessibleOrgScope(t *testing.T) {

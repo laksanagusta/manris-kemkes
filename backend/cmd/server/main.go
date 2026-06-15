@@ -443,6 +443,7 @@ func main() {
 	protected.Get("/working-papers", wpHandler.List)
 	protected.Get("/working-papers/pending-count", wpHandler.GetPendingSigningCount)
 	protected.Get("/working-papers/pending-signing", wpHandler.ListPendingSigning)
+	protected.Get("/working-papers/roster-preview", wpHandler.PreviewRoster)
 	protected.Post("/working-papers", wpHandler.Create)
 	protected.Get("/working-papers/:id", wpHandler.Get)
 	protected.Delete("/working-papers/:id", wpHandler.Delete)
