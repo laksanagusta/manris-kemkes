@@ -1101,6 +1101,9 @@ export default function AssessmentFormPage() {
                         isExistingControl: m.isExistingControl ?? false,
                       }),
                     );
+
+                    if (isMonitoringRoute) return null;
+
                     return mitigationItems.length > 0 ? (
                       <div className="w-full min-w-0 space-y-2">
                         <Label className="text-sm font-medium text-foreground">
