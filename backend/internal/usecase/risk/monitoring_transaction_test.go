@@ -157,7 +157,7 @@ func TestStartMonitoringUseCase_CreatesDraft(t *testing.T) {
 
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
 	monitoringRepo := newFakeMonitoringTransactionRepo()
-	uc := NewStartMonitoringUseCase(riskRepo, monitoringRepo)
+	uc := NewStartMonitoringUseCase(riskRepo, monitoringRepo, nil, nil)
 
 	out, err := uc.Execute(context.Background(), StartMonitoringInput{
 		SourceRiskID: sourceID,

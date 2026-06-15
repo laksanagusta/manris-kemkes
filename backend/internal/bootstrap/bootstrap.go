@@ -413,7 +413,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskListCycleSnapshotUC = riskuc.NewListRiskCycleSnapshotUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskMonitoringSpreadsheetUC = riskuc.NewBulkMonitoringSpreadsheetUseCase(c.OrgRepository, c.UserRepository, c.RiskRepository)
 	c.RiskCreateMonitoringBatchUC = riskuc.NewCreateMonitoringBatchUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.UserRepository)
-	c.RiskMonitoringStartUC = riskuc.NewStartMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
+	c.RiskMonitoringStartUC = riskuc.NewStartMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.RiskRepository, c.MitigationTaskRepository)
 	c.RiskMonitoringGetUC = riskuc.NewGetMonitoringUseCase(c.RiskMonitoringRepository)
 	c.RiskMonitoringUpdateUC = riskuc.NewUpdateMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
 	c.RiskMonitoringFinalizeUC = riskuc.NewFinalizeMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.MitigationTaskRepository)

@@ -3,6 +3,7 @@ package risk
 import (
 	"context"
 	"fmt"
+	"log"
 	"math"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	domainrepo "github.com/manris/backend/internal/domain/repository"
+	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
 type monitoringRiskRepository interface {
@@ -26,11 +28,14 @@ type monitoringTransactionRepository interface {
 	Create(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	UpdateDraft(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error)
+	UpdateTaskMonitoringIDs(ctx context.Context, monitoringID uuid.UUID, riskID uuid.UUID, cycle string) error
 }
 
 type StartMonitoringUseCase struct {
-	riskRepo       monitoringRiskRepository
-	monitoringRepo monitoringTransactionRepository
+	riskRepo           monitoringRiskRepository
+	monitoringRepo     monitoringTransactionRepository
+	fullRiskRepo       domainrepo.RiskRepository
+	mitigationTaskRepo domainrepo.MitigationTaskRepository
 }
 
 type GetMonitoringUseCase struct {
@@ -100,8 +105,8 @@ type FinalizeMonitoringOutput struct {
 	Message    string                 `json:"message"`
 }
 
-func NewStartMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository) *StartMonitoringUseCase {
-	return &StartMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo}
+func NewStartMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository, fullRiskRepo domainrepo.RiskRepository, mitigationTaskRepo domainrepo.MitigationTaskRepository) *StartMonitoringUseCase {
+	return &StartMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo, fullRiskRepo: fullRiskRepo, mitigationTaskRepo: mitigationTaskRepo}
 }
 
 func NewGetMonitoringUseCase(monitoringRepo monitoringTransactionRepository) *GetMonitoringUseCase {
@@ -150,6 +155,17 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 	if err := uc.monitoringRepo.Create(ctx, monitoring); err != nil {
 		return nil, errors.Wrap(err, "failed to create monitoring transaction")
 	}
+
+	if uc.mitigationTaskRepo != nil && uc.fullRiskRepo != nil {
+		ensureUC := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.mitigationTaskRepo, uc.fullRiskRepo)
+		if _, err := ensureUC.Execute(ctx, sourceRisk.ID, input.Cycle, input.OrgIDs); err != nil {
+			log.Printf("[WARN] ensure mitigation tasks on monitoring start: %v", err)
+		}
+		if err := uc.monitoringRepo.UpdateTaskMonitoringIDs(ctx, monitoring.ID, sourceRisk.ID, input.Cycle); err != nil {
+			log.Printf("[WARN] link tasks to monitoring: %v", err)
+		}
+	}
+
 	monitoring.SourceRisk = sourceRisk
 
 	return &StartMonitoringOutput{

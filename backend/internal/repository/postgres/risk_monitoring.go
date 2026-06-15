@@ -611,3 +611,14 @@ func containsUUID(values []uuid.UUID, target *uuid.UUID) bool {
 	}
 	return false
 }
+
+// UpdateTaskMonitoringIDs links pending mitigation_tasks for a given risk+cycle
+func (r *riskMonitoringRepository) UpdateTaskMonitoringIDs(ctx context.Context, monitoringID uuid.UUID, riskID uuid.UUID, cycle string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE mitigation_tasks
+		 SET monitoring_id = $1, updated_at = NOW()
+		 WHERE risk_id = $2 AND period_label = $3 AND monitoring_id IS NULL`,
+		monitoringID, riskID, cycle,
+	)
+	return err
+}
