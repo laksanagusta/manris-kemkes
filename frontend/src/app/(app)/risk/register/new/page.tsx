@@ -395,7 +395,6 @@ const mitigationSchema = z.object({
   owner: z.string().default(""),
   treatmentOwnerId: z.string().optional(),
   externalPicId: z.string().optional(),
-  dueDate: z.string().optional(),
   mitigationType: z
     .enum(["reduce_probability", "reduce_impact", "reduce_both"])
     .default("reduce_probability"),
@@ -471,7 +470,6 @@ const formSchema = z
       const hasContent =
         [
           mitigation.owner,
-          mitigation.dueDate,
           mitigation.activityStage,
           mitigation.expectedOutput,
           mitigation.quantitativeTarget,
@@ -1283,7 +1281,6 @@ export default function RiskInputPage() {
                     {
                       action: documentPrefill.mitigation,
                       owner: "",
-                      dueDate: "",
                       mitigationType: "reduce_probability",
                       isBreakthroughActivity: false,
                       isExistingControl: false,
@@ -1393,7 +1390,6 @@ export default function RiskInputPage() {
                 {
                   action: meetingPrefill.mitigation,
                   owner: "",
-                  dueDate: "",
                   mitigationType: "reduce_probability",
                   isBreakthroughActivity: false,
                   isExistingControl: false,
@@ -3301,7 +3297,6 @@ export default function RiskInputPage() {
                               owner: mitigation.owner ?? "",
                               treatmentOwnerId: mitigation.treatmentOwnerId,
                               externalPicId: mitigation.externalPicId,
-                              dueDate: mitigation.dueDate ?? "",
                               mitigationType:
                                 mitigation.mitigationType ??
                                 "reduce_probability",
@@ -3350,7 +3345,6 @@ export default function RiskInputPage() {
                               {
                                 action,
                                 owner: "",
-                                dueDate: "",
                                 mitigationType: "reduce_probability",
                                 isBreakthroughActivity: false,
                                 isExistingControl: false,

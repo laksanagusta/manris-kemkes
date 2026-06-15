@@ -30,11 +30,6 @@ export interface MitigationItem {
   ownerUserId?: string;
   treatmentOwnerId?: string;
   externalPicId?: string;
-  dueDate: string;
-  frequency?: string;
-  recurringInterval?: string;
-  reportDay?: number;
-  reportDate?: number;
   executionScheduleText?: string;
   targetCost?: number;
   mitigationType?: MitigationType;
@@ -72,7 +67,6 @@ interface MitigationTableProps {
 const emptyMitigation = (): MitigationItem => ({
   action: "",
   owner: "",
-  dueDate: "",
   mitigationType: "reduce_probability",
   activityStage: "",
   expectedOutput: "",
@@ -241,9 +235,6 @@ export function MitigationTable({
                 <TableHead className="w-56 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   PIC
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                  Due Date
-                </TableHead>
                 <TableHead className="w-44 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   Tipe
                 </TableHead>
@@ -316,17 +307,6 @@ export function MitigationTable({
                             />
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Input
-                          type="date"
-                          value={item.dueDate || ""}
-                          onChange={(e) =>
-                            updateItem(index, "dueDate", e.target.value)
-                          }
-                          className="h-8 bg-background/80 text-xs border-border/50"
-                          disabled={disabled}
-                        />
                       </TableCell>
                       <TableCell className="align-top">
                         <Select

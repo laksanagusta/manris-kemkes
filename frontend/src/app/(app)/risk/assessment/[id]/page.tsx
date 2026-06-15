@@ -20,6 +20,8 @@ import {
   MitigationTable,
   type MitigationItem,
 } from "@/components/shared/mitigation-table";
+import { MitigationReportTable } from "./_components/mitigation-report-table";
+import type { MonitoringValidationResult } from "@/types/risk";
 import { ProbabilityCriteriaTooltip } from "@/components/shared/probability-criteria-tooltip";
 import { RiskSubstanceFields } from "@/components/risk/risk-substance-fields";
 import { Switch } from "@/components/ui/switch";
@@ -41,7 +43,7 @@ import {
   getRiskLevelFromNilai,
   resolveRiskAssessmentClassification,
 } from "@/lib/risk";
-import type { Risk } from "@/types/risk";
+import type { Risk, RiskMitigation } from "@/types/risk";
 import type { RiskMonitoringDetail } from "@/types/risk-monitoring";
 import { listUsers } from "@/lib/api/users";
 
@@ -159,6 +161,10 @@ function buildRiskFromMonitoring(
     changeReason: monitoring.changeReason || base.changeReason,
     previousRiskId: monitoring.sourceRiskId || base.previousRiskId || null,
     versionNumber: monitoring.sourceVersionNumber + 1,
+    mitigations:
+      (monitoring.draftMitigations?.length
+        ? (monitoring.draftMitigations as RiskMitigation[])
+        : base.mitigations) ?? [],
   } as Risk;
 }
 
@@ -233,6 +239,7 @@ export default function AssessmentFormPage() {
   const [sourceRisk, setSourceRisk] = useState<Risk | null>(null);
   const [monitoringDraft, setMonitoringDraft] =
     useState<RiskMonitoringDetail | null>(null);
+  const [canFinalize, setCanFinalize] = useState(true);
   const [substanceEditEnabled, setSubstanceEditEnabled] = useState(false);
   const [substanceDraft, setSubstanceDraft] = useState<RiskSubstanceValues>(
     () => buildSubstanceDefaults(null),
@@ -981,7 +988,11 @@ export default function AssessmentFormPage() {
                   <Button
                     className="gap-2 text-xs font-medium shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={openSubmitReviewConfirm}
-                    disabled={isSaving || isAssessmentLocked}
+                    disabled={
+                      isSaving ||
+                      isAssessmentLocked ||
+                      (isMonitoringRoute && !canFinalize)
+                    }
                   >
                     {isSaving && submitTarget.current === "review" ? (
                       <Loader2 className="size-4 animate-spin" />
@@ -1113,6 +1124,17 @@ export default function AssessmentFormPage() {
                       </div>
                     );
                   })()}
+
+                  {isMonitoringRoute &&
+                    monitoringDraft?.status !== "finalized" &&
+                    monitoringDraft?.id && (
+                      <MitigationReportTable
+                        monitoringId={monitoringDraft.id}
+                        onValidationChange={(v: MonitoringValidationResult) =>
+                          setCanFinalize(v.canFinalize)
+                        }
+                      />
+                    )}
 
                   <TooltipProvider>
                     <div className="grid w-full min-w-0 grid-cols-1 gap-4">
@@ -1527,6 +1549,18 @@ export default function AssessmentFormPage() {
                 </span>
                 <span className="text-muted-foreground">
                   {selectedApprovalLine.length} orang
+                </span>
+              </div>
+            </div>
+          )}
+          {substanceEditEnabled && substanceDiffs.length > 0 && (
+            <div className="space-y-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm">
+              <div>
+                <span className="font-medium text-foreground">
+                  Perubahan substansi:{" "}
+                </span>
+                <span className="text-muted-foreground">
+                  {substanceDiffSummary}
                 </span>
               </div>
             </div>
