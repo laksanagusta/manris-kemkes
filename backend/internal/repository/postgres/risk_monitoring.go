@@ -381,7 +381,6 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 	resultRisk.IsCurrent = true
 	resultRisk.IsCycleCurrent = true
 	resultRisk.Status = entity.RiskStatusApproved
-	resultRisk.AssessmentCycle = monitoring.AssessmentCycle
 	resultRisk.ReviewType = "periodic"
 	startedAt := monitoring.StartedAt.UTC().Round(time.Second)
 	resultRisk.ReviewStartedAt = &startedAt
