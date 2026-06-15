@@ -52,6 +52,16 @@ func (r *stubSignWorkingPaperRepo) CountByOrgAndCycle(context.Context, uuid.UUID
 	return 0, nil
 }
 
+func (r *stubSignWorkingPaperRepo) PreviewPeriodRoster(context.Context, uuid.UUID, string) (*entity.WorkingPaperRosterPreview, error) {
+	return nil, nil
+}
+func (r *stubSignWorkingPaperRepo) CreateWithPeriodRoster(context.Context, *entity.WorkingPaper, string, []entity.WorkingPaperRosterDecision) error {
+	return nil
+}
+func (r *stubSignWorkingPaperRepo) ListSigningBlockers(context.Context, uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
+	return nil, nil
+}
+
 func TestSignComputesDocumentHashFromLinkedRisksBeforeFirstSignature(t *testing.T) {
 	signerID := uuid.New()
 	sigID := uuid.New()

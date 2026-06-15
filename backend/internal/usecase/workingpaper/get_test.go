@@ -67,6 +67,16 @@ func (r *stubGetWorkingPaperRepo) MutateByIDForUpdate(context.Context, uuid.UUID
 	return nil, nil
 }
 
+func (r *stubGetWorkingPaperRepo) PreviewPeriodRoster(context.Context, uuid.UUID, string) (*entity.WorkingPaperRosterPreview, error) {
+	return nil, nil
+}
+func (r *stubGetWorkingPaperRepo) CreateWithPeriodRoster(context.Context, *entity.WorkingPaper, string, []entity.WorkingPaperRosterDecision) error {
+	return nil
+}
+func (r *stubGetWorkingPaperRepo) ListSigningBlockers(context.Context, uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
+	return nil, nil
+}
+
 func TestGetReturnsLinkedRisksInsteadOfSnapshots(t *testing.T) {
 	orgID := uuid.New()
 	wpID := uuid.New()
@@ -263,6 +273,16 @@ func (r *atomicSignWorkingPaperRepo) HasBlockingDocumentLink(context.Context, uu
 
 func (r *atomicSignWorkingPaperRepo) CountByOrgAndCycle(context.Context, uuid.UUID, string) (int, error) {
 	return 0, nil
+}
+
+func (r *atomicSignWorkingPaperRepo) PreviewPeriodRoster(context.Context, uuid.UUID, string) (*entity.WorkingPaperRosterPreview, error) {
+	return nil, nil
+}
+func (r *atomicSignWorkingPaperRepo) CreateWithPeriodRoster(context.Context, *entity.WorkingPaper, string, []entity.WorkingPaperRosterDecision) error {
+	return nil
+}
+func (r *atomicSignWorkingPaperRepo) ListSigningBlockers(context.Context, uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
+	return nil, nil
 }
 
 func (r *atomicSignWorkingPaperRepo) MutateByIDForUpdate(_ context.Context, _ uuid.UUID, mutate func(*entity.WorkingPaper) error) (*entity.WorkingPaper, error) {

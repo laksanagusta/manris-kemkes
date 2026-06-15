@@ -201,6 +201,16 @@ func (r *fakeCreateWorkingPaperRepo) CountByOrgAndCycle(_ context.Context, _ uui
 	return 0, nil
 }
 
+func (r *fakeCreateWorkingPaperRepo) PreviewPeriodRoster(context.Context, uuid.UUID, string) (*entity.WorkingPaperRosterPreview, error) {
+	return nil, nil
+}
+func (r *fakeCreateWorkingPaperRepo) CreateWithPeriodRoster(context.Context, *entity.WorkingPaper, string, []entity.WorkingPaperRosterDecision) error {
+	return nil
+}
+func (r *fakeCreateWorkingPaperRepo) ListSigningBlockers(context.Context, uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
+	return nil, nil
+}
+
 type fakeCreateMonitoringRepo struct {
 	draftBySourceAndCycle        *entity.RiskMonitoring
 	hasFinalizedForSourceAndCycle bool
@@ -238,6 +248,10 @@ func (r *fakeCreateMonitoringRepo) UpdateDraft(context.Context, *entity.RiskMoni
 
 func (r *fakeCreateMonitoringRepo) Finalize(context.Context, uuid.UUID, *entity.Risk, uuid.UUID) (*entity.RiskMonitoring, error) {
 	return nil, nil
+}
+
+func (r *fakeCreateMonitoringRepo) UpdateTaskMonitoringIDs(context.Context, uuid.UUID, uuid.UUID, string) error {
+	return nil
 }
 
 func TestCreateLatestApprovedLinksTheExactApprovedRiskID(t *testing.T) {
