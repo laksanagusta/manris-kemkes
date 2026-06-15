@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
+import { CheckCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -10,17 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -64,27 +57,19 @@ export function MitigationReportTable({
     loadData();
   }, [loadData]);
 
-  const handleUpdateTask = async (
-    taskId: string,
-    field: string,
-    value: string | number,
-  ) => {
+  const handleReportDone = async (taskId: string) => {
     if (!token) return;
     try {
-      await updateTaskReport(token, taskId, { [field]: value });
+      await updateTaskReport(token, taskId, { status: "done" });
       setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, [field]: value } : t)),
+        prev.map((t) => (t.id === taskId ? { ...t, status: "done" } : t)),
       );
       const v = await validateMonitoringFinalize(token, monitoringId);
       setValidation(v);
       onValidationChange?.(v);
     } catch {
-      toast.error("Gagal memperbarui laporan");
+      toast.error("Gagal melaporkan mitigasi");
     }
-  };
-
-  const handleChangeStatus = (taskId: string, status: string) => {
-    handleUpdateTask(taskId, "status", status);
   };
 
   if (loading) {
@@ -119,7 +104,7 @@ export function MitigationReportTable({
               Laporan Pelaksanaan Mitigasi
             </CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              Laporkan status setiap rencana mitigasi sebelum finalisasi pemantauan.
+              Laporkan setiap rencana mitigasi yang sudah dilaksanakan sebelum finalisasi.
             </p>
           </div>
           <Badge variant={validation?.canFinalize ? "default" : "outline"}>
@@ -136,17 +121,14 @@ export function MitigationReportTable({
                 <TableHead className="h-11 whitespace-nowrap py-3 align-middle">
                   Mitigasi
                 </TableHead>
-                <TableHead className="h-11 w-32 whitespace-nowrap py-3 align-middle">
+                <TableHead className="h-11 w-36 whitespace-nowrap py-3 align-middle">
                   PIC
                 </TableHead>
-                <TableHead className="h-11 w-28 whitespace-nowrap py-3 align-middle">
+                <TableHead className="h-11 w-36 whitespace-nowrap py-3 align-middle">
                   Status
                 </TableHead>
-                <TableHead className="h-11 w-40 whitespace-nowrap py-3 align-middle">
-                  Output Tercapai
-                </TableHead>
-                <TableHead className="h-11 w-40 whitespace-nowrap py-3 align-middle">
-                  Kendala
+                <TableHead className="h-11 w-24 whitespace-nowrap py-3 text-right align-middle">
+                  Aksi
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -160,60 +142,28 @@ export function MitigationReportTable({
                     {task.mitigationOwner || "-"}
                   </TableCell>
                   <TableCell>
-                    <Select
-                      value={task.status}
-                      onValueChange={(val) => handleChangeStatus(task.id, val)}
-                    >
-                      <SelectTrigger className="h-8 w-[140px] text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Belum Dilaporkan</SelectItem>
-                        <SelectItem value="done">Selesai Dilaporkan</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {task.status === "done" ? (
+                      <Badge variant="default" className="text-xs">
+                        Selesai
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">
+                        Pending
+                      </Badge>
+                    )}
                   </TableCell>
-                  <TableCell>
-                    <Input
-                      className="h-8 text-xs"
-                      placeholder="Output..."
-                      value={task.reportOutput}
-                      onChange={(e) => {
-                        setTasks((prev) =>
-                          prev.map((t) =>
-                            t.id === task.id
-                              ? { ...t, reportOutput: e.target.value }
-                              : t,
-                          ),
-                        );
-                      }}
-                      onBlur={(e) => {
-                        if (e.target.value !== (task.reportOutput ?? "")) {
-                          handleUpdateTask(task.id, "reportOutput", e.target.value);
-                        }
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      className="h-8 text-xs"
-                      placeholder="Kendala..."
-                      value={task.reportObstacle}
-                      onChange={(e) => {
-                        setTasks((prev) =>
-                          prev.map((t) =>
-                            t.id === task.id
-                              ? { ...t, reportObstacle: e.target.value }
-                              : t,
-                          ),
-                        );
-                      }}
-                      onBlur={(e) => {
-                        if (e.target.value !== (task.reportObstacle ?? "")) {
-                          handleUpdateTask(task.id, "reportObstacle", e.target.value);
-                        }
-                      }}
-                    />
+                  <TableCell className="text-right">
+                    {task.status !== "done" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1 text-xs"
+                        onClick={() => handleReportDone(task.id)}
+                      >
+                        <CheckCircle className="size-3" />
+                        Selesai
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
