@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { CheckCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -13,7 +12,6 @@ import {
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -57,12 +55,13 @@ export function MitigationReportTable({
     loadData();
   }, [loadData]);
 
-  const handleReportDone = async (taskId: string) => {
+  const handleToggleStatus = async (task: MitigationTask) => {
     if (!token) return;
+    const nextStatus = task.status === "done" ? "pending" : "done";
     try {
-      await updateTaskReport(token, taskId, { status: "done" });
+      await updateTaskReport(token, task.id, { status: nextStatus });
       setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, status: "done" } : t)),
+        prev.map((t) => (t.id === task.id ? { ...t, status: nextStatus } : t)),
       );
       const v = await validateMonitoringFinalize(token, monitoringId);
       setValidation(v);
@@ -127,9 +126,6 @@ export function MitigationReportTable({
                 <TableHead className="h-11 w-36 whitespace-nowrap py-3 align-middle">
                   Status
                 </TableHead>
-                <TableHead className="h-11 w-24 whitespace-nowrap py-3 text-right align-middle">
-                  Aksi
-                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -142,28 +138,21 @@ export function MitigationReportTable({
                     {task.mitigationOwner || "-"}
                   </TableCell>
                   <TableCell>
-                    {task.status === "done" ? (
-                      <Badge variant="default" className="text-xs">
-                        Selesai
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="text-xs">
-                        Pending
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {task.status !== "done" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 gap-1 text-xs"
-                        onClick={() => handleReportDone(task.id)}
-                      >
-                        <CheckCircle className="size-3" />
-                        Selesai
-                      </Button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(task)}
+                      className="cursor-pointer"
+                    >
+                      {task.status === "done" ? (
+                        <Badge variant="default" className="text-xs">
+                          Selesai
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">
+                          Pending
+                        </Badge>
+                      )}
+                    </button>
                   </TableCell>
                 </TableRow>
               ))}
