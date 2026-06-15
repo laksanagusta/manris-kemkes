@@ -20,8 +20,6 @@ import {
   MitigationTable,
   type MitigationItem,
 } from "@/components/shared/mitigation-table";
-import { MitigationReportTable } from "./_components/mitigation-report-table";
-import type { MonitoringValidationResult } from "@/types/risk";
 import { ProbabilityCriteriaTooltip } from "@/components/shared/probability-criteria-tooltip";
 import { RiskSubstanceFields } from "@/components/risk/risk-substance-fields";
 import { Switch } from "@/components/ui/switch";
@@ -239,7 +237,6 @@ export default function AssessmentFormPage() {
   const [sourceRisk, setSourceRisk] = useState<Risk | null>(null);
   const [monitoringDraft, setMonitoringDraft] =
     useState<RiskMonitoringDetail | null>(null);
-  const [canFinalize, setCanFinalize] = useState(true);
   const [substanceEditEnabled, setSubstanceEditEnabled] = useState(false);
   const [substanceDraft, setSubstanceDraft] = useState<RiskSubstanceValues>(
     () => buildSubstanceDefaults(null),
@@ -990,8 +987,7 @@ export default function AssessmentFormPage() {
                     onClick={openSubmitReviewConfirm}
                     disabled={
                       isSaving ||
-                      isAssessmentLocked ||
-                      (isMonitoringRoute && !canFinalize)
+                      isAssessmentLocked
                     }
                   >
                     {isSaving && submitTarget.current === "review" ? (
@@ -1127,17 +1123,6 @@ export default function AssessmentFormPage() {
                       </div>
                     );
                   })()}
-
-                  {isMonitoringRoute &&
-                    monitoringDraft?.status !== "finalized" &&
-                    monitoringDraft?.id && (
-                      <MitigationReportTable
-                        monitoringId={monitoringDraft.id}
-                        onValidationChange={(v: MonitoringValidationResult) =>
-                          setCanFinalize(v.canFinalize)
-                        }
-                      />
-                    )}
 
                   <TooltipProvider>
                     <div className="grid w-full min-w-0 grid-cols-1 gap-4">
