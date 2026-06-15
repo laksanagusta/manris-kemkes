@@ -129,6 +129,22 @@ func (r *riskMonitoringRepository) HasFinalizedForSourceAndCycle(ctx context.Con
 	return exists, nil
 }
 
+func (r *riskMonitoringRepository) GetByVersionGroupAndCycle(ctx context.Context, versionGroupID uuid.UUID, cycle string) (*entity.RiskMonitoring, error) {
+	monitoring, err := scanRiskMonitoring(r.pool.QueryRow(ctx, baseRiskMonitoringSelect()+`
+		JOIN risks rv ON rv.id = rm.source_risk_id
+		WHERE rv.version_group_id = $1 AND rm.assessment_cycle = $2
+		ORDER BY rm.created_at DESC
+		LIMIT 1
+	`, versionGroupID, cycle))
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return monitoring, nil
+}
+
 func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.RiskMonitoringListFilter) ([]*entity.RiskMonitoring, int, error) {
 	if filter.Page <= 0 {
 		filter.Page = 1

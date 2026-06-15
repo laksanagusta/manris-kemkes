@@ -20,6 +20,19 @@ func sendProblemDetails(c *fiber.Ctx, status int, title, errorType, detail strin
 	})
 }
 
+func sendProblemDetailsWithDetails(c *fiber.Ctx, status int, title, errorType, detail string, details any) error {
+	log.Printf("http problem details status=%d title=%q path=%q detail=%q", status, title, c.Path(), detail)
+	c.Set(fiber.HeaderContentType, "application/problem+json")
+	return c.Status(status).JSON(fiber.Map{
+		"type":     errorType,
+		"title":    title,
+		"status":   status,
+		"detail":   detail,
+		"details":  details,
+		"instance": c.Path(),
+	})
+}
+
 // handleError is a unified error handler that converts domain errors to HTTP RFC 7807 Problem Details
 func handleError(c *fiber.Ctx, err error) error {
 	log.Printf("http handler error path=%q err=%v", c.Path(), err)

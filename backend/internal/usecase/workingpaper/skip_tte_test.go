@@ -40,7 +40,7 @@ func TestSkipTTEFinalizesDraftWorkingPaperForCreator(t *testing.T) {
 		}},
 	}}
 
-	uc := NewWorkingPaperUseCase(repo, nil)
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
 
 	got, err := uc.SkipTTE(context.Background(), workingPaperID, creatorID)
 	if err != nil {
@@ -82,7 +82,7 @@ func TestSkipTTERejectsNonCreator(t *testing.T) {
 		}},
 	}}
 
-	uc := NewWorkingPaperUseCase(repo, nil)
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
 
 	_, err := uc.SkipTTE(context.Background(), workingPaperID, uuid.New())
 	if err == nil {
@@ -110,7 +110,7 @@ func TestSkipTTERejectsUnapprovedRisks(t *testing.T) {
 		}},
 	}}
 
-	uc := NewWorkingPaperUseCase(repo, nil)
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
 
 	_, err := uc.SkipTTE(context.Background(), workingPaperID, creatorID)
 	if err == nil {
@@ -140,7 +140,7 @@ func TestSkipTTERequiresDraftStatus(t *testing.T) {
 		}},
 	}}
 
-	uc := NewWorkingPaperUseCase(repo, nil)
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
 
 	_, err := uc.SkipTTE(context.Background(), workingPaperID, creatorID)
 	if err == nil {
@@ -149,5 +149,51 @@ func TestSkipTTERequiresDraftStatus(t *testing.T) {
 	var appErr *domainerrors.AppError
 	if !errors.As(err, &appErr) || appErr.Code != "INVALID_STATUS" {
 		t.Fatalf("expected invalid status error, got %v", err)
+	}
+}
+
+func TestSkipTTEBlocksWhenMonitoringDraftRemains(t *testing.T) {
+	workingPaperID := uuid.New()
+	creatorID := uuid.New()
+	repo := &atomicSignWorkingPaperRepo{wp: &entity.WorkingPaper{
+		ID:        workingPaperID,
+		CreatedBy: creatorID,
+		Status:    entity.WorkingPaperStatusDraft,
+		Risks: []entity.WorkingPaperRiskLink{
+			{
+				ID: uuid.New(),
+				Risk: entity.WorkingPaperRiskData{
+					ID:         uuid.New(),
+					Code:       "R-001",
+					Title:      "Risk one",
+					Status:     entity.RiskStatusApproved,
+					Monitoring: &entity.WorkingPaperRiskMonitoring{Status: entity.RiskMonitoringStatusFinalized},
+				},
+			},
+			{
+				ID: uuid.New(),
+				Risk: entity.WorkingPaperRiskData{
+					ID:         uuid.New(),
+					Code:       "R-002",
+					Title:      "Risk two",
+					Status:     entity.RiskStatusApproved,
+					Monitoring: &entity.WorkingPaperRiskMonitoring{Status: entity.RiskMonitoringStatusDraft},
+				},
+			},
+		},
+	}}
+
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
+
+	_, err := uc.SkipTTE(context.Background(), workingPaperID, creatorID)
+	if err == nil {
+		t.Fatal("expected monitoring blocker error")
+	}
+	var appErr *domainerrors.AppError
+	if !errors.As(err, &appErr) || appErr.Code != "MONITORING_INCOMPLETE" {
+		t.Fatalf("expected monitoring incomplete error, got %v", err)
+	}
+	if repo.mutateCalls != 1 {
+		t.Fatalf("expected atomic mutation path once, got %d", repo.mutateCalls)
 	}
 }

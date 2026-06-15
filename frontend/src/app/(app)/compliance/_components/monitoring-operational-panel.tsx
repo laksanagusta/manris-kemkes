@@ -6,15 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-import { RiskHeatmap } from "../../overview/_components/risk-heatmap";
-import { TopRisksPanel } from "../../overview/_components/top-risks-panel";
 import { RiskMovementSnapshot } from "../../overview/_components/risk-movement-snapshot";
 import type {
   DashboardActionPressurePoint,
-  HeatmapVelocityCell,
   Risk,
   RiskCycleComparisonItem,
-  TopRiskItem,
 } from "@/types/risk";
 import { buildMovementSnapshotData, type MovementSnapshotDatum } from "@/lib/dashboard-insights";
 import { buildMonitoringMitigationSummary } from "@/lib/monitoring-mitigation-summary";
@@ -42,9 +38,6 @@ function formatMonthPeriod(period: string) {
 
 export function MonitoringOperationalPanel() {
   const { token } = useAuth();
-  const [heatmapData, setHeatmapData] = useState<number[][]>([]);
-  const [velocityData, setVelocityData] = useState<HeatmapVelocityCell[]>([]);
-  const [topRisks, setTopRisks] = useState<TopRiskItem[]>([]);
   const [movementSnapshot, setMovementSnapshot] = useState<
     MovementSnapshotDatum[]
   >([]);
@@ -52,7 +45,6 @@ export function MonitoringOperationalPanel() {
     DashboardActionPressurePoint[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const [heatmapError, setHeatmapError] = useState(false);
 
   const cycle = useMemo(() => currentGlobalCycle(), []);
   const previousCycle = useMemo(() => previousGlobalCycle(cycle), [cycle]);
@@ -60,16 +52,7 @@ export function MonitoringOperationalPanel() {
   useEffect(() => {
     if (!token) return;
 
-    const buildHeatmapPath = (heatmapCycle: string) =>
-      `/dashboard/heatmap?cycle=${heatmapCycle}`;
-
     Promise.allSettled([
-      api.get<number[][]>(buildHeatmapPath(cycle), token),
-      api.get<HeatmapVelocityCell[]>(
-        `/dashboard/heatmap-velocity?from=${previousCycle}&to=${cycle}`,
-        token,
-      ),
-      api.get<TopRiskItem[]>(`/dashboard/top-risks?cycle=${cycle}`, token),
       api.get<RiskCycleComparisonItem[]>(
         `/risks/compare?from=${previousCycle}&to=${cycle}`,
         token,
@@ -82,37 +65,11 @@ export function MonitoringOperationalPanel() {
       ),
     ]).then(
       ([
-        heatmapResult,
-        velocityResult,
-        topRisksResult,
         comparisonsResult,
         currentRisksResult,
         previousRisksResult,
         actionPressureResult,
       ]) => {
-        if (heatmapResult.status === "fulfilled") {
-          setHeatmapData(heatmapResult.value);
-          setHeatmapError(false);
-        } else {
-          console.error(heatmapResult.reason);
-          setHeatmapData([]);
-          setHeatmapError(true);
-        }
-
-        if (velocityResult.status === "fulfilled") {
-          setVelocityData(velocityResult.value);
-        } else {
-          console.error(velocityResult.reason);
-          setVelocityData([]);
-        }
-
-        if (topRisksResult.status === "fulfilled") {
-          setTopRisks(topRisksResult.value);
-        } else {
-          console.error(topRisksResult.reason);
-          setTopRisks([]);
-        }
-
         if (
           comparisonsResult.status === "fulfilled" &&
           currentRisksResult.status === "fulfilled" &&
@@ -152,16 +109,6 @@ export function MonitoringOperationalPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-5">
-        <RiskHeatmap
-          data={heatmapData}
-          loading={loading}
-          error={heatmapError}
-          velocityData={velocityData}
-        />
-        <TopRisksPanel risks={topRisks} loading={loading} />
-      </div>
-
       <RiskMovementSnapshot data={movementSnapshot} loading={loading} />
 
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">

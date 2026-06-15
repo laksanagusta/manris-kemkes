@@ -48,6 +48,10 @@ func (r *stubSignWorkingPaperRepo) HasBlockingDocumentLink(context.Context, uuid
 	return false, nil
 }
 
+func (r *stubSignWorkingPaperRepo) CountByOrgAndCycle(context.Context, uuid.UUID, string) (int, error) {
+	return 0, nil
+}
+
 func TestSignComputesDocumentHashFromLinkedRisksBeforeFirstSignature(t *testing.T) {
 	signerID := uuid.New()
 	sigID := uuid.New()
@@ -55,7 +59,7 @@ func TestSignComputesDocumentHashFromLinkedRisksBeforeFirstSignature(t *testing.
 	repo := &stubSignWorkingPaperRepo{wp: &entity.WorkingPaper{
 		ID:              wpID,
 		Title:           "KK Semester I",
-		Status:          entity.WorkingPaperStatusDraft,
+		Status:          entity.WorkingPaperStatusSigning,
 		AssessmentCycle: "2026-H1",
 		Risks: []entity.WorkingPaperRiskLink{{
 			RiskID:    uuid.New(),
@@ -65,7 +69,7 @@ func TestSignComputesDocumentHashFromLinkedRisksBeforeFirstSignature(t *testing.
 		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)", Status: "pending"}},
 	}}
 
-	uc := NewWorkingPaperUseCase(repo, nil)
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
 	got, err := uc.Sign(context.Background(), wpID, signerID)
 	if err != nil {
 		t.Fatalf("Sign returned error: %v", err)
@@ -78,6 +82,33 @@ func TestSignComputesDocumentHashFromLinkedRisksBeforeFirstSignature(t *testing.
 	}
 }
 
+func TestSignRejectsDraftWorkingPaperBeforeSigningStarted(t *testing.T) {
+	signerID := uuid.New()
+	wpID := uuid.New()
+	repo := &stubSignWorkingPaperRepo{wp: &entity.WorkingPaper{
+		ID:              wpID,
+		Title:           "KK Semester I",
+		Status:          entity.WorkingPaperStatusDraft,
+		AssessmentCycle: "2026-H1",
+		Risks: []entity.WorkingPaperRiskLink{{
+			RiskID:    uuid.New(),
+			Risk:      entity.WorkingPaperRiskData{Code: "R-001", Title: "Risk one", Probability: 4, Impact: 5, Nilai: 20, TingkatRisiko: entity.RiskLevelSangatTinggi, AssessmentCycle: "2026-H1", Status: entity.RiskStatusApproved},
+			CreatedAt: time.Now(),
+		}},
+		Signatories: []entity.WorkingPaperSignatory{{ID: uuid.New(), UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)", Status: "pending"}},
+	}}
+
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
+	_, err := uc.Sign(context.Background(), wpID, signerID)
+	if err == nil {
+		t.Fatal("expected error for draft working paper")
+	}
+	var appErr *domainerrors.AppError
+	if !errors.As(err, &appErr) || appErr.Code != "INVALID_STATUS" {
+		t.Fatalf("expected invalid status error, got %v", err)
+	}
+}
+
 func TestSignRejectsWhenLinkedRiskNotApproved(t *testing.T) {
 	signerID := uuid.New()
 	sigID := uuid.New()
@@ -85,7 +116,7 @@ func TestSignRejectsWhenLinkedRiskNotApproved(t *testing.T) {
 	repo := &stubSignWorkingPaperRepo{wp: &entity.WorkingPaper{
 		ID:              wpID,
 		Title:           "KK Semester I",
-		Status:          entity.WorkingPaperStatusDraft,
+		Status:          entity.WorkingPaperStatusSigning,
 		AssessmentCycle: "2026-H1",
 		Risks: []entity.WorkingPaperRiskLink{
 			{
@@ -102,7 +133,7 @@ func TestSignRejectsWhenLinkedRiskNotApproved(t *testing.T) {
 		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)", Status: "pending"}},
 	}}
 
-	uc := NewWorkingPaperUseCase(repo, nil)
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
 	_, err := uc.Sign(context.Background(), wpID, signerID)
 	if err == nil {
 		t.Fatal("expected error when linked risk is not approved, got nil")
@@ -124,7 +155,7 @@ func TestSignSucceedsWhenAllLinkedRisksApproved(t *testing.T) {
 	repo := &stubSignWorkingPaperRepo{wp: &entity.WorkingPaper{
 		ID:              wpID,
 		Title:           "KK Semester I",
-		Status:          entity.WorkingPaperStatusDraft,
+		Status:          entity.WorkingPaperStatusSigning,
 		AssessmentCycle: "2026-H1",
 		Risks: []entity.WorkingPaperRiskLink{
 			{
@@ -141,12 +172,54 @@ func TestSignSucceedsWhenAllLinkedRisksApproved(t *testing.T) {
 		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)", Status: "pending"}},
 	}}
 
-	uc := NewWorkingPaperUseCase(repo, nil)
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
 	got, err := uc.Sign(context.Background(), wpID, signerID)
 	if err != nil {
 		t.Fatalf("Sign returned error: %v", err)
 	}
 	if got.DocumentHash == "" {
 		t.Fatal("expected document hash to be computed")
+	}
+}
+
+func TestSignBlocksWhenMonitoringDraftRemains(t *testing.T) {
+	signerID := uuid.New()
+	sigID := uuid.New()
+	wpID := uuid.New()
+	repo := &stubSignWorkingPaperRepo{wp: &entity.WorkingPaper{
+		ID:              wpID,
+		Title:           "KK Semester I",
+		Status:          entity.WorkingPaperStatusSigning,
+		AssessmentCycle: "2026-H1",
+		Risks: []entity.WorkingPaperRiskLink{
+			{
+				RiskID:    uuid.New(),
+				Risk:      entity.WorkingPaperRiskData{Code: "R-001", Title: "Risk one", Probability: 4, Impact: 5, Nilai: 20, TingkatRisiko: entity.RiskLevelSangatTinggi, AssessmentCycle: "2026-H1", Status: entity.RiskStatusApproved, Monitoring: &entity.WorkingPaperRiskMonitoring{Status: entity.RiskMonitoringStatusFinalized}},
+				CreatedAt: time.Now(),
+			},
+			{
+				RiskID:    uuid.New(),
+				Risk:      entity.WorkingPaperRiskData{Code: "R-002", Title: "Risk two", Probability: 3, Impact: 3, Nilai: 9, TingkatRisiko: entity.RiskLevelSedang, AssessmentCycle: "2026-H1", Status: entity.RiskStatusApproved, Monitoring: &entity.WorkingPaperRiskMonitoring{Status: entity.RiskMonitoringStatusDraft}},
+				CreatedAt: time.Now(),
+			},
+		},
+		Signatories: []entity.WorkingPaperSignatory{{ID: sigID, UserID: signerID, SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)", Status: "pending"}},
+	}}
+
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
+	_, err := uc.Sign(context.Background(), wpID, signerID)
+	if err == nil {
+		t.Fatal("expected monitoring blocker error")
+	}
+
+	var appErr *domainerrors.AppError
+	if !errors.As(err, &appErr) {
+		t.Fatalf("expected AppError, got %T: %v", err, err)
+	}
+	if appErr.Code != "MONITORING_INCOMPLETE" {
+		t.Fatalf("expected code MONITORING_INCOMPLETE, got %s", appErr.Code)
+	}
+	if repo.updated != nil {
+		t.Fatal("expected working paper not to be updated when monitoring blocks signing")
 	}
 }

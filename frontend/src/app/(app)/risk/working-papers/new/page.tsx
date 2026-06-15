@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { useForm, useFieldArray, SubmitHandler } from "react-hook-form";
@@ -22,10 +22,7 @@ import {
 } from "@/components/shared/form-shell";
 import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -44,24 +41,10 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, FileSearch, X } from "lucide-react";
-import {
-  getRiskLevelLabel,
-  riskCategoryLabels,
-  getRiskLevelFromNilai,
-} from "@/lib/risk";
-
-const levelBadgeVariant: Record<string, string> = {
-  "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
-  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
-  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi":
-    "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
-};
+import { getRiskLevelLabel, riskCategoryLabels, getRiskLevelFromNilai } from "@/lib/risk";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
-  title: z.string().min(3, "Judul kertas kerja harus diisi (min. 3 karakter)"),
-  description: z.string().optional(),
   assessment_cycle: z.string().optional(),
   risks: z
     .array(
@@ -92,6 +75,8 @@ type RiskOption = {
   title: string;
   category: string;
   status: string;
+  versionNumber?: number;
+  assessmentCycle?: string;
   isCurrent: boolean;
   nilai: number;
 };
@@ -115,19 +100,19 @@ function toUserPickerOption(user: UserListItem): UserPickerOption {
 
 export default function CreateWorkingPaperPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { token, user } = useAuth();
+
+  const assessmentCycle = searchParams.get("cycle") ?? (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-H${now.getMonth() < 6 ? 1 : 2}`;
+  })();
 
   const [loadingRisks, setLoadingRisks] = useState(true);
   const [risks, setRisks] = useState<RiskOption[]>([]);
   const [searchRisk, setSearchRisk] = useState("");
 
-  const assessmentCycle = (() => {
-    const now = new Date();
-    return `${now.getFullYear()}-H${now.getMonth() < 6 ? 1 : 2}`;
-  })();
-
   const {
-    register,
     handleSubmit,
     control,
     watch,
@@ -136,8 +121,6 @@ export default function CreateWorkingPaperPage() {
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      description: "",
       assessment_cycle: assessmentCycle,
       risks: [],
       signatories: [createEmptyWorkingPaperSignatory()],
@@ -313,8 +296,6 @@ export default function CreateWorkingPaperPage() {
     if (!token) return;
     try {
       const payload = {
-        title: data.title,
-        description: data.description || undefined,
         assessment_cycle: data.assessment_cycle || undefined,
         risks: data.risks,
         signatories: data.signatories.map((sig, idx) => ({
@@ -342,8 +323,7 @@ export default function CreateWorkingPaperPage() {
         title="Buat Kertas Kerja Baru"
         description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            Pilih risiko dan atur penandatangan untuk menghasilkan dokumen
-            kertas kerja.
+            Pilih risiko dan atur penandatangan untuk kertas kerja semester{" "}
             <Badge variant="secondary" className="font-mono text-[11px]">
               {assessmentCycle}
             </Badge>
@@ -377,45 +357,16 @@ export default function CreateWorkingPaperPage() {
         onSubmit={handleSubmit(onSubmit)}
         className="space-y-8"
       >
-        {/* ── Informasi Kertas Kerja ─────────────────────── */}
-        <FormSection
-          title="Informasi Kertas Kerja"
-          description="Masukkan detail identifikasi untuk kertas kerja ini"
-        >
-          <div className="space-y-2">
-            <Label htmlFor="title">
-              Judul Kertas Kerja <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="title"
-              placeholder="Contoh: Kertas Kerja Manajemen Risiko IT 2024"
-              {...register("title")}
-            />
-            {errors.title && (
-              <p className="text-xs text-destructive">{errors.title.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Deskripsi (Opsional)</Label>
-            <Textarea
-              id="description"
-              placeholder="Penjelasan singkat mengenai tujuan pembuatan kertas kerja ini..."
-              {...register("description")}
-              className="min-h-[100px]"
-            />
-          </div>
-        </FormSection>
-
         {/* ── Pilih Risiko ───────────────────────────────── */}
         <FormSection
-          title="Pilih Risiko"
-          description="Pilih risiko yang telah disetujui (minimal 1)"
+          title="Daftar Risiko"
+          description="Pilih risiko yang telah disetujui, lalu tentukan sumber data yang akan dipakai untuk kertas kerja."
           action={
-            <Badge variant="secondary" className="px-2.5 py-0.5">
+            <Badge variant="outline" className="h-5 px-2 text-[10px]">
               {watchRisks.length} dipilih
             </Badge>
           }
+          contentClassName="space-y-4"
         >
           <div className="flex items-center gap-2 max-w-sm">
             <div className="relative flex-1">
@@ -445,183 +396,206 @@ export default function CreateWorkingPaperPage() {
             </p>
           )}
 
-          <Card className="overflow-hidden border-border/50 bg-card/80 py-0 backdrop-blur-sm">
-            <CardContent className="p-0">
-              {loadingRisks ? (
-                <div className="flex items-center justify-center p-8 text-muted-foreground">
-                  <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Memuat
-                  daftar risiko...
-                </div>
-              ) : risks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-                  <div className="inline-flex size-12 items-center justify-center rounded-full bg-muted">
-                    <FileSearch className="size-6 text-muted-foreground" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">
-                      Belum ada risiko yang disetujui
-                    </p>
-                    <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-                      Kertas kerja membutuhkan risiko berstatus disetujui. Buat
-                      dan ajukan risiko terlebih dahulu.
-                    </p>
-                  </div>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href="/risk/register">Buka Register Risiko</Link>
-                  </Button>
-                </div>
-              ) : (
-                <div className="max-h-[400px] overflow-auto">
-                  <Table>
-                    <TableHeader className="sticky top-0 z-10 bg-muted/50">
-                      <TableRow>
-                        <TableHead className="w-[50px] text-center whitespace-nowrap">
-                          <Checkbox
-                            checked={
-                              filteredRisks.length > 0 &&
-                              filteredRisks.every((r) =>
-                                selectedRiskIds.includes(r.id),
-                              )
-                            }
-                            onCheckedChange={(checked) =>
-                              handleToggleAll(!!checked)
-                            }
-                            aria-label="Pilih semua risiko"
-                          />
-                        </TableHead>
-                        <TableHead className="w-[100px] whitespace-nowrap">
-                          Kode
-                        </TableHead>
-                        <TableHead className="max-w-[280px] whitespace-nowrap">
-                          Judul Risiko
-                        </TableHead>
-                        <TableHead className="w-[140px] whitespace-nowrap">
-                          Kategori
-                        </TableHead>
-                        <TableHead className="w-[120px] text-center whitespace-nowrap">
-                          Nilai
-                        </TableHead>
-                        <TableHead className="w-[140px] text-center whitespace-nowrap">
-                          Tingkat
-                        </TableHead>
-                        <TableHead className="w-[180px] whitespace-nowrap">
-                          Sumber Data
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredRisks.length > 0 ? (
-                        filteredRisks.map((risk) => {
-                          const isChecked = selectedRiskIds.includes(risk.id);
-                          const riskEntry = watchRisks.find(
-                            (r) => r.risk_id === risk.id,
-                          );
-                          const displayNilai = risk.nilai ?? 0;
-                          const lvlLabel = getRiskLevelLabel(
-                            getRiskLevelFromNilai(displayNilai),
-                          );
-                          return (
-                            <TableRow
-                              key={risk.id}
-                              className={isChecked ? "bg-primary/5" : ""}
-                            >
-                              <TableCell className="text-center">
-                                <Checkbox
-                                  checked={isChecked}
-                                  onCheckedChange={(checked) =>
-                                    handleToggleRisk(risk.id, !!checked)
-                                  }
-                                  aria-label={`Pilih ${risk.code}`}
-                                />
-                              </TableCell>
-                              <TableCell className="font-mono text-xs text-muted-foreground">
+          {loadingRisks ? (
+            <div className="flex items-center justify-center p-8 text-muted-foreground">
+              <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Memuat daftar
+              risiko...
+            </div>
+          ) : risks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+              <div className="inline-flex size-12 items-center justify-center rounded-full bg-muted">
+                <FileSearch className="size-6 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  Belum ada risiko yang disetujui
+                </p>
+                <p className="max-w-sm text-sm leading-6 text-muted-foreground">
+                  Kertas kerja membutuhkan risiko berstatus disetujui. Buat dan
+                  ajukan risiko terlebih dahulu.
+                </p>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/risk/register">Buka Register Risiko</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-border/70 bg-card">
+              <div className="relative w-full overflow-x-auto">
+                <Table className="w-full caption-bottom text-sm">
+                  <TableHeader className="sticky top-0 z-10 bg-muted [&_tr]:border-b">
+                    <TableRow className="border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted">
+                      <TableHead className="h-10 px-2 text-center align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] w-[50px]">
+                        <Checkbox
+                          checked={
+                            filteredRisks.length > 0 &&
+                            filteredRisks.every((r) =>
+                              selectedRiskIds.includes(r.id),
+                            )
+                          }
+                          onCheckedChange={(checked) =>
+                            handleToggleAll(!!checked)
+                          }
+                          aria-label="Pilih semua risiko"
+                        />
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] w-[100px]">
+                        Kode
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] w-[90px] text-center">
+                        Versi
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] w-[150px]">
+                        Periode Monitoring Terakhir
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] max-w-[280px]">
+                        Judul Risiko
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] w-[140px]">
+                        Kategori
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-right align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] w-[120px] text-center">
+                        Nilai
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] w-[140px] text-center">
+                        Tingkat
+                      </TableHead>
+                      <TableHead className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] w-[180px]">
+                        Sumber Data
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="[&_tr:last-child]:border-0">
+                    {filteredRisks.length > 0 ? (
+                      filteredRisks.map((risk) => {
+                        const isChecked = selectedRiskIds.includes(risk.id);
+                        const riskEntry = watchRisks.find(
+                          (r) => r.risk_id === risk.id,
+                        );
+                        const displayNilai = risk.nilai ?? 0;
+                        const lvlLabel = getRiskLevelLabel(
+                          getRiskLevelFromNilai(displayNilai),
+                        );
+                        return (
+                          <TableRow
+                            key={risk.id}
+                            className={cn(
+                              "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+                              isChecked && "bg-muted/25",
+                            )}
+                          >
+                            <TableCell className="p-2 align-middle whitespace-nowrap text-center">
+                              <Checkbox
+                                checked={isChecked}
+                                onCheckedChange={(checked) =>
+                                  handleToggleRisk(risk.id, !!checked)
+                                }
+                                aria-label={`Pilih ${risk.code}`}
+                              />
+                            </TableCell>
+                            <TableCell className="p-2 align-middle whitespace-nowrap">
+                              <span className="text-sm font-medium text-foreground">
                                 {risk.code}
-                              </TableCell>
-                              <TableCell className="max-w-[280px] font-medium">
-                                <span
-                                  className="block truncate"
-                                  title={risk.title}
-                                >
-                                  {risk.title}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-xs">
-                                {riskCategoryLabels[
-                                  risk.category as keyof typeof riskCategoryLabels
-                                ] || risk.category}
-                              </TableCell>
-                              <TableCell className="text-center font-mono text-xs">
-                                {Math.round(displayNilai)}
-                              </TableCell>
-                              <TableCell className="text-center">
+                              </span>
+                            </TableCell>
+                            <TableCell className="p-2 align-middle whitespace-nowrap text-center">
+                              {typeof risk.versionNumber === "number" ? (
                                 <Badge
                                   variant="outline"
-                                  className={
-                                    levelBadgeVariant[lvlLabel] ||
-                                    "bg-muted text-muted-foreground"
+                                  className="h-5 px-2 text-[10px]"
+                                >
+                                  v{risk.versionNumber}
+                                </Badge>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  &mdash;
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="p-2 align-middle whitespace-nowrap text-sm text-muted-foreground">
+                              <span
+                                className="block max-w-[10rem] truncate"
+                                title={risk.assessmentCycle || "-"}
+                              >
+                                {risk.assessmentCycle || "-"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="p-2 align-middle whitespace-nowrap">
+                              <span
+                                className="block max-w-[280px] truncate text-sm font-medium text-foreground"
+                                title={risk.title}
+                              >
+                                {risk.title}
+                              </span>
+                            </TableCell>
+                            <TableCell className="p-2 align-middle whitespace-nowrap text-sm text-muted-foreground">
+                              {riskCategoryLabels[
+                                risk.category as keyof typeof riskCategoryLabels
+                              ] || risk.category}
+                            </TableCell>
+                            <TableCell className="p-2 align-middle whitespace-nowrap text-right text-sm font-medium text-foreground">
+                              {Math.round(displayNilai)}
+                            </TableCell>
+                            <TableCell className="p-2 align-middle whitespace-nowrap">
+                              <Badge
+                                variant="outline"
+                                className="h-5 px-2 text-[10px]"
+                              >
+                                {lvlLabel}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="p-2 align-middle whitespace-nowrap">
+                              {isChecked ? (
+                                <Select
+                                  value={riskEntry?.source_mode || "latest_approved"}
+                                  onValueChange={(val) =>
+                                    handleSourceModeChange(
+                                      risk.id,
+                                      val as "latest_approved" | "review_periodic",
+                                    )
                                   }
                                 >
-                                  {lvlLabel}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {isChecked ? (
-                                  <Select
-                                    value={
-                                      riskEntry?.source_mode ||
-                                      "latest_approved"
-                                    }
-                                    onValueChange={(val) =>
-                                      handleSourceModeChange(
-                                        risk.id,
-                                        val as
-                                          | "latest_approved"
-                                          | "review_periodic",
-                                      )
-                                    }
-                                  >
-                                    <SelectTrigger className="h-8 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="latest_approved">
-                                        Versi Terakhir
-                                      </SelectItem>
-                                      <SelectItem value="review_periodic">
-                                        Pemantauan Ulang
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">
-                                    &mdash;
-                                  </span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-24">
-                            <div className="flex flex-col gap-1 text-left">
-                              <p className="text-sm font-medium text-muted-foreground">
-                                Pencarian tidak menemukan risiko
-                              </p>
-                              <p className="text-xs text-muted-foreground/70">
-                                Pastikan unit dan jenis risiko yang dicari sudah
-                                benar
-                              </p>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="latest_approved">
+                                      Versi Terakhir
+                                    </SelectItem>
+                                    <SelectItem value="review_periodic">
+                                      Pemantauan Ulang
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  &mdash;
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={9} className="p-2 align-middle">
+                          <div className="flex flex-col gap-1 py-10 text-left">
+                            <p className="text-sm font-medium text-foreground">
+                              Pencarian tidak menemukan risiko
+                            </p>
+                            <p className="text-xs leading-relaxed text-muted-foreground">
+                              Pastikan unit dan jenis risiko yang dicari sudah
+                              benar
+                            </p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
         </FormSection>
 
         {/* ── Konfigurasi Penandatangan ──────────────────── */}

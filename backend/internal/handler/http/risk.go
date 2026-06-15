@@ -664,7 +664,7 @@ func (h *RiskHandler) DownloadMonitoringTemplate(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-QN format (e.g. 2026-Q1)")
 	}
 
 	content, filename, err := h.monitoringSpreadsheetUC.Template(c.Context(), orgID, cycle)
@@ -717,7 +717,7 @@ func (h *RiskHandler) PreviewMonitoringBatchUpload(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-QN format (e.g. 2026-Q1)")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
@@ -756,7 +756,7 @@ func (h *RiskHandler) CreateMonitoringBatch(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-QN format (e.g. 2026-Q1)")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)

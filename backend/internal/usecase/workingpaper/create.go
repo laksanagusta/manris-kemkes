@@ -2,11 +2,13 @@ package workingpaper
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
+	riskusecase "github.com/manris/backend/internal/usecase/risk"
 )
 
 type CreateSignatoryInput struct {
@@ -24,8 +26,6 @@ type RiskInput struct {
 }
 
 type CreateWorkingPaperInput struct {
-	Title            string
-	Description      string
 	AssessmentCycle  string
 	AccessibleOrgIDs []uuid.UUID
 	OrgID            uuid.UUID
@@ -35,14 +35,14 @@ type CreateWorkingPaperInput struct {
 }
 
 func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*entity.WorkingPaper, error) {
-	if input.Title == "" {
-		return nil, domainerrors.ErrInvalidTitle
-	}
 	if len(input.Risks) == 0 {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one risk is required"}
 	}
 	if len(input.Signatories) == 0 {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one signatory is required"}
+	}
+	if !riskusecase.IsValidSemesterFormat(input.AssessmentCycle) {
+		return nil, domainerrors.Wrap(domainerrors.ErrInvalidInput, "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)")
 	}
 
 	lookupOrgIDs := append([]uuid.UUID(nil), input.AccessibleOrgIDs...)
@@ -51,6 +51,7 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 	}
 
 	linkedRisks := make([]entity.WorkingPaperRiskLink, 0, len(input.Risks))
+	var reviewPeriodicResolved []resolvedWorkingPaperRisk
 	resolvedOrgID := input.OrgID
 	for idx, ri := range input.Risks {
 		sourceMode := normalizeRiskSourceMode(ri.SourceMode)
@@ -73,16 +74,57 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 
 		resolvedRisk.link.SortOrder = idx
 		linkedRisks = append(linkedRisks, resolvedRisk.link)
+
+		if sourceMode == riskSourceModeReviewPeriodic {
+			reviewPeriodicResolved = append(reviewPeriodicResolved, *resolvedRisk)
+		}
 	}
 	if resolvedOrgID == uuid.Nil {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "unable to determine working paper organization"}
 	}
 
+	existingCount, err := uc.wpRepo.CountByOrgAndCycle(ctx, resolvedOrgID, input.AssessmentCycle)
+	if err != nil {
+		return nil, domainerrors.Wrap(err, "failed to check existing working papers for this semester")
+	}
+	if existingCount > 0 {
+		return nil, &domainerrors.AppError{
+			Code:    "SEMESTER_CONFLICT",
+			Message: fmt.Sprintf("a working paper already exists for organization in %s", input.AssessmentCycle),
+		}
+	}
+
+	targetQuarter, err := riskusecase.SemesterToTargetQuarter(input.AssessmentCycle)
+	if err != nil {
+		return nil, domainerrors.Wrap(err, "failed to determine target quarter from semester")
+	}
+
+	for _, resolved := range reviewPeriodicResolved {
+		if resolved.sourceRisk == nil {
+			continue
+		}
+
+		existing, err := uc.monitoringRepo.GetByVersionGroupAndCycle(ctx, resolved.sourceRisk.VersionGroupID, targetQuarter)
+		if err != nil {
+			return nil, domainerrors.Wrap(err, "failed to check existing monitoring for target quarter")
+		}
+		if existing != nil {
+			return nil, &domainerrors.AppError{
+				Code:    "MONITORING_CONFLICT",
+				Message: fmt.Sprintf("a risk monitoring transaction already exists for risk %s in %s", resolved.sourceRisk.ID, targetQuarter),
+			}
+		}
+
+		monitoring := entity.NewRiskMonitoringDraft(resolved.sourceRisk, targetQuarter, input.CreatedByUserID)
+		if err := uc.monitoringRepo.Create(ctx, monitoring); err != nil {
+			return nil, domainerrors.Wrap(err, "failed to create quarterly monitoring transaction")
+		}
+	}
+
 	now := time.Now()
 	wp := entity.WorkingPaper{
 		ID:                       uuid.New(),
-		Title:                    input.Title,
-		Description:              input.Description,
+		Title:                    fmt.Sprintf("Kertas Kerja %s", input.AssessmentCycle),
 		OrgID:                    resolvedOrgID,
 		Status:                   entity.WorkingPaperStatusDraft,
 		AssessmentCycle:          input.AssessmentCycle,

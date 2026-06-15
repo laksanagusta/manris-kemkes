@@ -2,6 +2,34 @@ export type WorkingPaperStatus = 'draft' | 'signing' | 'completed' | 'cancelled'
 export type SignatoryStatus = 'pending' | 'signed';
 export type WorkingPaperRiskSourceMode = "latest_approved" | "review_periodic";
 
+export interface WorkingPaperRiskMonitoring {
+  id: string;
+  status: "draft" | "finalized";
+  assessmentCycle: string;
+  sourceProbability: number;
+  sourceImpact: number;
+  sourceWeight: number;
+  sourceNilai: number;
+  sourceLevel: string;
+  observedProbability: number;
+  observedImpact: number;
+  observedWeight: number;
+  observedNilai: number;
+  observedLevel: string;
+  trend: "up" | "down" | "stable" | string;
+  mitigationCompletionPercent: number;
+  mitigationProgressSummary: string;
+  effectivenessConclusion: string;
+  conditionSummary: string;
+  eventSummary: string;
+  mitigationObstacles: string;
+  mitigationFollowUp: string;
+  followUpNote: string;
+  startedAt: string;
+  updatedAt: string;
+  finalizedAt?: string;
+}
+
 export interface WorkingPaperRiskData {
   id: string;
   code: string;
@@ -41,11 +69,13 @@ export interface WorkingPaperRiskData {
   target_tingkat_risiko_display?: string;
   assessment_cycle?: string;
   versionNumber?: number;
+  previousRiskId?: string | null;
 
   // Previous semester risk profile (for sheets 1 & 2)
   previous?: WorkingPaperRiskSnapshot;
 
   // Monitoring/realization data (for sheet 3)
+  monitoring?: WorkingPaperRiskMonitoring;
   monitoring_p?: number;
   monitoring_d?: number;
   monitoring_bobot?: number;
@@ -122,7 +152,6 @@ export interface WorkingPaper {
   sequence_no: number;
   code: string;
   title: string;
-  description?: string;
   org_id: string;
   status: WorkingPaperStatus;
   assessment_cycle?: string;
@@ -136,6 +165,13 @@ export interface WorkingPaper {
   cancelled_at?: string;
   tte_skipped: boolean;
   signatories: WorkingPaperSignatory[];
+}
+
+export interface WorkingPaperSigningBlocker {
+  version_group_id?: string;
+  code: string;
+  title: string;
+  monitoring_status: string;
 }
 
 export interface CreateSignatoryInput {
@@ -153,8 +189,6 @@ export interface CreateWorkingPaperRiskInput {
 }
 
 export interface CreateWorkingPaperRequest {
-  title: string;
-  description?: string;
   assessment_cycle?: string;
   risks: CreateWorkingPaperRiskInput[];
   signatories: CreateSignatoryInput[];

@@ -9,6 +9,7 @@ import (
 type AppError struct {
 	Code    string
 	Message string
+	Details any
 	Err     error
 }
 

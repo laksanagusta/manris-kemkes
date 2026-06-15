@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/usecase/workingpaper"
 )
@@ -39,9 +40,9 @@ func (r *handlerCreateRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([
 	return nil, nil
 }
 func (r *handlerCreateRiskRepo) NextRiskCode(context.Context) (string, error) { return "", nil }
-func (r *handlerCreateRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
+func (r *handlerCreateRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, nil
- }
+}
 func (r *handlerCreateRiskRepo) DashboardSummary(context.Context, string, []uuid.UUID) (*entity.DashboardSummary, error) {
 	return nil, nil
 }
@@ -138,6 +139,10 @@ func (r *handlerCreateWorkingPaperRepo) HasBlockingDocumentLink(context.Context,
 	return false, nil
 }
 
+func (r *handlerCreateWorkingPaperRepo) CountByOrgAndCycle(context.Context, uuid.UUID, string) (int, error) {
+	return 0, nil
+}
+
 var _ repository.WorkingPaperRepository = (*handlerCreateWorkingPaperRepo)(nil)
 
 func TestWorkingPaperCreatePassesFullAccessibleOrgScope(t *testing.T) {
@@ -159,7 +164,7 @@ func TestWorkingPaperCreatePassesFullAccessibleOrgScope(t *testing.T) {
 		Weight:         entity.GetBobot(4, 4),
 	}}
 	wpRepo := &handlerCreateWorkingPaperRepo{}
-	handler := NewWorkingPaperHandler(workingpaper.NewWorkingPaperUseCase(wpRepo, riskRepo), wpRepo)
+	handler := NewWorkingPaperHandler(workingpaper.NewWorkingPaperUseCase(wpRepo, riskRepo, nil), wpRepo)
 
 	body, err := json.Marshal(map[string]any{
 		"title":            "KK Semester I",
@@ -211,7 +216,7 @@ func TestWorkingPaperListSupportsDynamicFiltersAndClampsPagination(t *testing.T)
 	orgOne := uuid.New()
 	orgTwo := uuid.New()
 	wpRepo := &handlerCreateWorkingPaperRepo{}
-	handler := NewWorkingPaperHandler(workingpaper.NewWorkingPaperUseCase(wpRepo, nil), wpRepo)
+	handler := NewWorkingPaperHandler(workingpaper.NewWorkingPaperUseCase(wpRepo, nil, nil), wpRepo)
 
 	app := fiber.New()
 	app.Get("/working-papers", func(c *fiber.Ctx) error {
@@ -277,5 +282,49 @@ func TestWorkingPaperListSupportsDynamicFiltersAndClampsPagination(t *testing.T)
 	}
 	if payload.Limit != 100 {
 		t.Fatalf("expected response limit 100, got %d", payload.Limit)
+	}
+}
+
+func TestHandleWPErrorReturnsStructuredMonitoringConflict(t *testing.T) {
+	app := fiber.New()
+	app.Get("/working-papers", func(c *fiber.Ctx) error {
+		return handleWPError(c, &domainerrors.AppError{
+			Code:    "MONITORING_INCOMPLETE",
+			Message: "monitoring must be finalized before signing",
+			Details: []entity.WorkingPaperSigningBlocker{{Code: "R-001", Title: "Gangguan server", MonitoringStatus: "draft"}},
+		})
+	})
+
+	req := httptest.NewRequest(fiber.MethodGet, "/working-papers", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusConflict {
+		t.Fatalf("expected 409 conflict, got %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Type    string                              `json:"type"`
+		Title   string                              `json:"title"`
+		Detail  string                              `json:"detail"`
+		Details []entity.WorkingPaperSigningBlocker `json:"details"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Type != "https://api.manris.com/errors/monitoring-incomplete" {
+		t.Fatalf("unexpected type %q", payload.Type)
+	}
+	if payload.Title != "Monitoring Incomplete" {
+		t.Fatalf("unexpected title %q", payload.Title)
+	}
+	if payload.Detail == "" {
+		t.Fatal("expected detail text")
+	}
+	if len(payload.Details) != 1 || payload.Details[0].Code != "R-001" {
+		t.Fatalf("unexpected details payload %#v", payload.Details)
 	}
 }

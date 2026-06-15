@@ -11,8 +11,48 @@ import (
 	"github.com/manris/backend/internal/pkg/qrcode"
 )
 
+func workingPaperSigningBlockers(wp *entity.WorkingPaper) []entity.WorkingPaperSigningBlocker {
+	blockers := make([]entity.WorkingPaperSigningBlocker, 0)
+	hasMonitoring := false
+
+	for _, link := range wp.Risks {
+		if link.Risk.Monitoring != nil {
+			hasMonitoring = true
+		}
+	}
+
+	if !hasMonitoring {
+		return blockers
+	}
+
+	for _, link := range wp.Risks {
+		if link.Risk.Monitoring == nil || link.Risk.Monitoring.Status != entity.RiskMonitoringStatusFinalized {
+			status := "missing"
+			if link.Risk.Monitoring != nil && link.Risk.Monitoring.Status != "" {
+				status = link.Risk.Monitoring.Status
+			}
+			blockers = append(blockers, entity.WorkingPaperSigningBlocker{
+				VersionGroupID:   uuid.Nil,
+				Code:             link.Risk.Code,
+				Title:            link.Risk.Title,
+				MonitoringStatus: status,
+			})
+		}
+	}
+
+	return blockers
+}
+
 func (uc *UseCase) Sign(ctx context.Context, workingPaperID uuid.UUID, signerUserID uuid.UUID) (*entity.WorkingPaper, error) {
 	wp, err := uc.wpRepo.MutateByIDForUpdate(ctx, workingPaperID, func(wp *entity.WorkingPaper) error {
+		if blockers := workingPaperSigningBlockers(wp); len(blockers) > 0 {
+			return &domainerrors.AppError{
+				Code:    "MONITORING_INCOMPLETE",
+				Message: "monitoring must be finalized before signing",
+				Details: blockers,
+			}
+		}
+
 		for _, link := range wp.Risks {
 			if link.Risk.Status != entity.RiskStatusApproved {
 				return &domainerrors.AppError{Code: "RISKS_NOT_APPROVED", Message: "semua risiko harus berstatus approved sebelum dapat ditandatangani"}

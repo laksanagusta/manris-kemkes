@@ -18,8 +18,9 @@ const (
 )
 
 type resolvedWorkingPaperRisk struct {
-	link entity.WorkingPaperRiskLink
-	risk *entity.Risk
+	link       entity.WorkingPaperRiskLink
+	risk       *entity.Risk
+	sourceRisk *entity.Risk
 }
 
 type periodicReassessmentReservation interface {
@@ -52,8 +53,9 @@ func resolveLinkedRisk(ctx context.Context, repo repository.RiskRepository, risk
 			}
 		}
 		return &resolvedWorkingPaperRisk{
-			link: buildWorkingPaperRiskLink(sourceRisk, sourceMode),
-			risk: sourceRisk,
+			link:       buildWorkingPaperRiskLink(sourceRisk, sourceMode),
+			risk:       sourceRisk,
+			sourceRisk: sourceRisk,
 		}, nil
 	case riskSourceModeReviewPeriodic:
 		if !sourceRisk.CanBeReassessed() {
@@ -69,8 +71,9 @@ func resolveLinkedRisk(ctx context.Context, repo repository.RiskRepository, risk
 		}
 
 		return &resolvedWorkingPaperRisk{
-			link: buildWorkingPaperRiskLink(draftRisk, sourceMode),
-			risk: draftRisk,
+			link:       buildWorkingPaperRiskLink(draftRisk, sourceMode),
+			risk:       draftRisk,
+			sourceRisk: sourceRisk,
 		}, nil
 	default:
 		return nil, &domainerrors.AppError{
@@ -84,7 +87,7 @@ func resolveOrCreateReassessmentDraft(ctx context.Context, repo repository.RiskR
 	if cycle == "" {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "assessment_cycle is required for review_periodic risk source mode"}
 	}
-	if !riskusecase.IsValidCycleFormat(cycle) {
+	if !riskusecase.IsValidSemesterFormat(cycle) {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)"}
 	}
 	if manager, ok := repo.(periodicReassessmentReservation); ok {

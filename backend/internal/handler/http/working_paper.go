@@ -27,8 +27,6 @@ func NewWorkingPaperHandler(uc *workingpaper.UseCase, wpRepo repository.WorkingP
 
 // createWorkingPaperRequest is the JSON body for POST /working-papers.
 type createWorkingPaperRequest struct {
-	Title           string                   `json:"title"`
-	Description     string                   `json:"description"`
 	AssessmentCycle string                   `json:"assessment_cycle"`
 	Risks           []workingPaperRiskInput  `json:"risks"`
 	Signatories     []createSignatoryRequest `json:"signatories"`
@@ -94,8 +92,6 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 	}
 
 	input := workingpaper.CreateWorkingPaperInput{
-		Title:            req.Title,
-		Description:      req.Description,
 		AssessmentCycle:  req.AssessmentCycle,
 		AccessibleOrgIDs: append([]uuid.UUID(nil), accessibleOrgIDs...),
 		CreatedByUserID:  userID,
@@ -213,6 +209,26 @@ func (h *WorkingPaperHandler) Sign(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": wp})
 }
 
+// StartSigning handles POST /working-papers/:id/start-signing.
+func (h *WorkingPaperHandler) StartSigning(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid working paper ID")
+	}
+
+	userID, ok := c.Locals("userId").(uuid.UUID)
+	if !ok {
+		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+	}
+
+	wp, err := h.uc.StartSigning(c.Context(), id, userID)
+	if err != nil {
+		return handleWPError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": wp})
+}
+
 // Cancel handles POST /working-papers/:id/cancel.
 func (h *WorkingPaperHandler) Cancel(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
@@ -272,7 +288,6 @@ type pendingSigningItem struct {
 	ID              uuid.UUID `json:"id"`
 	WorkingPaperID  uuid.UUID `json:"working_paper_id"`
 	Title           string    `json:"title"`
-	Description     string    `json:"description"`
 	AssessmentCycle string    `json:"assessment_cycle"`
 	SequenceNo      int       `json:"sequence_no"`
 	SignerJabatan   string    `json:"signer_jabatan"`
@@ -306,7 +321,6 @@ func (h *WorkingPaperHandler) ListPendingSigning(c *fiber.Ctx) error {
 					ID:              sig.ID,
 					WorkingPaperID:  wp.ID,
 					Title:           wp.Title,
-					Description:     wp.Description,
 					AssessmentCycle: wp.AssessmentCycle,
 					SequenceNo:      sig.SequenceNo,
 					SignerJabatan:   sig.SignerJabatan,
@@ -324,8 +338,20 @@ func (h *WorkingPaperHandler) ListPendingSigning(c *fiber.Ctx) error {
 // handleWPError extends handleError with INVALID_STATUS → 409 Conflict.
 func handleWPError(c *fiber.Ctx, err error) error {
 	var appErr *domainerrors.AppError
-	if errors.As(err, &appErr) && appErr.Code == "INVALID_STATUS" {
-		return sendProblemDetails(c, fiber.StatusConflict, "Conflict", "https://api.manris.com/errors/conflict", appErr.Message)
+	if errors.As(err, &appErr) {
+		switch appErr.Code {
+		case "INVALID_STATUS", "ROSTER_STALE", "MONITORING_CONFLICT", "SEMESTER_CONFLICT":
+			return sendProblemDetails(c, fiber.StatusConflict, "Conflict", "https://api.manris.com/errors/conflict", appErr.Message)
+		case "MONITORING_INCOMPLETE":
+			return sendProblemDetailsWithDetails(
+				c,
+				fiber.StatusConflict,
+				"Monitoring Incomplete",
+				"https://api.manris.com/errors/monitoring-incomplete",
+				appErr.Message,
+				appErr.Details,
+			)
+		}
 	}
 	return handleError(c, err)
 }

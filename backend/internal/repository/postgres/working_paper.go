@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -74,6 +76,99 @@ func previousApprovedWorkingPaperRiskExpr() string {
 	)`
 }
 
+func previousApprovedWorkingPaperJoinExpr() string {
+	return `LEFT JOIN LATERAL (
+		SELECT
+			prev.id,
+			prev.probability,
+			prev.impact,
+			prev.weight,
+			prev.nilai,
+			prev.inherent_score,
+			prev.risk_appetite,
+			prev.treatment_option,
+			prev.existing_control,
+			prev.control_effectiveness,
+			prev.target_probability,
+			prev.target_impact,
+			prev.target_weight,
+			prev.target_nilai,
+			prev.target_score,
+			prev.cause,
+			prev.risk_source,
+			prev.controllability,
+			prev.impact_description
+		FROM risks prev
+		WHERE prev.version_group_id = risk.version_group_id
+		  AND prev.version_number < risk.version_number
+		  AND prev.status = 'approved'
+		ORDER BY
+		  CASE
+		    WHEN COALESCE(prev.assessment_cycle, '') = CASE
+		      WHEN risk.assessment_cycle ~ '^\d{4}-H[12]$' THEN
+		        CONCAT(
+		          CASE
+		            WHEN RIGHT(risk.assessment_cycle, 2) = 'H1'
+		              THEN ((LEFT(risk.assessment_cycle, 4))::int - 1)::text
+		            ELSE LEFT(risk.assessment_cycle, 4)
+		          END,
+		          '-',
+		          CASE
+		            WHEN RIGHT(risk.assessment_cycle, 2) = 'H1' THEN 'H2'
+		            ELSE 'H1'
+		          END
+		        )
+		      ELSE ''
+		    END THEN 0
+		    ELSE 1
+		  END,
+		  prev.version_number DESC
+		LIMIT 1
+	) prev_risk ON TRUE`
+}
+
+func workingPaperMonitoringExpr() string {
+	return `LEFT JOIN LATERAL (
+		SELECT
+			rm.id,
+			rm.status,
+			rm.assessment_cycle,
+			rm.source_probability,
+			rm.source_impact,
+			rm.source_weight,
+			rm.source_nilai,
+			rm.source_level,
+			rm.observed_probability,
+			rm.observed_impact,
+			rm.observed_weight,
+			rm.observed_nilai,
+			rm.observed_level,
+			rm.trend,
+			rm.mitigation_completion_percent,
+			rm.mitigation_progress_summary,
+			rm.effectiveness_conclusion,
+			rm.condition_summary,
+			rm.event_summary,
+			rm.mitigation_obstacles,
+			rm.mitigation_follow_up,
+			rm.follow_up_note,
+			rm.started_at,
+			rm.updated_at,
+			rm.finalized_at
+		FROM risk_monitorings rm
+		JOIN risks monitoring_source ON monitoring_source.id = rm.source_risk_id
+		WHERE monitoring_source.version_group_id = risk.version_group_id
+		  AND rm.assessment_cycle = CASE
+		    WHEN RIGHT(wp.assessment_cycle, 2) = 'H1' THEN LEFT(wp.assessment_cycle, 4) || '-Q2'
+		    WHEN RIGHT(wp.assessment_cycle, 2) = 'H2' THEN LEFT(wp.assessment_cycle, 4) || '-Q4'
+		    ELSE ''
+		  END
+		  AND rm.status IN ('draft', 'finalized')
+		ORDER BY CASE rm.status WHEN 'finalized' THEN 0 ELSE 1 END, rm.updated_at DESC, rm.id DESC
+		LIMIT 1
+	) monitoring ON TRUE`
+}
+
 func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q workingPaperReader, wpID uuid.UUID) ([]entity.WorkingPaperRiskLink, error) {
 	probabilityExpr := finalizedWorkingPaperRiskExpr("risk", "probability")
 	impactExpr := finalizedWorkingPaperRiskExpr("risk", "impact")
@@ -82,18 +177,6 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 
 	// Prefer the latest approved risk from the previous semester.
 	// If none exists, fall back to the latest approved version below the active one.
-	prevRiskExpr := previousApprovedWorkingPaperRiskExpr()
-
-	// Subquery: latest monitoring version (periodic review with highest version number)
-	monitoringRiskExpr := `(
-		SELECT mon.id FROM risks mon
-		WHERE mon.version_group_id = risk.version_group_id
-		  AND mon.review_type = 'periodic'
-		  AND mon.status = 'approved'
-		  AND mon.archived_at IS NULL
-		ORDER BY mon.version_number DESC LIMIT 1
-	)`
-
 	query := fmt.Sprintf(`SELECT wpr.id, wpr.working_paper_id, wpr.risk_id, wpr.sort_order, wpr.source_mode, wpr.created_at,
 		       risk.id, risk.code, risk.title, risk.description, risk.category, risk.status,
 		       COALESCE(org.name, ''),
@@ -136,7 +219,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(risk.review_schedule_text, ''),
 		       COALESCE((SELECT string_agg(CONCAT(u.name, ' (', u.role, ')'), ', ' ORDER BY m.sort_order) FROM mitigations m JOIN users u ON u.id = m.owner_user_id WHERE m.risk_id = risk.id AND m.owner_user_id IS NOT NULL), ''),
 		       -- Previous semester snapshot
-		       %s AS prev_id,
+		       prev_risk.id AS prev_id,
 		       COALESCE(prev_risk.probability, 0),
 		       COALESCE(prev_risk.impact, 0),
 		       COALESCE(prev_risk.weight, 0),
@@ -172,19 +255,39 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       	CASE WHEN pm.is_existing_control THEN 'Kontrol eksisting: Ya' END
 		       ) ORDER BY pm.sort_order) FROM mitigations pm WHERE pm.risk_id = prev_risk.id), ARRAY[]::text[]),
 		       -- Monitoring data
-		       %s AS mon_id,
-		       COALESCE(mon_risk.probability, 0),
-		       COALESCE(mon_risk.impact, 0),
-		       COALESCE(mon_risk.weight, 0),
-		       COALESCE(mon_risk.nilai, 0),
-		       COALESCE(mon_risk.inherent_score, 0)
+		       monitoring.id,
+		       COALESCE(monitoring.status, ''),
+		       COALESCE(monitoring.assessment_cycle, ''),
+		       COALESCE(monitoring.source_probability, 0),
+		       COALESCE(monitoring.source_impact, 0),
+		       COALESCE(monitoring.source_weight, 0),
+		       COALESCE(monitoring.source_nilai, 0),
+		       COALESCE(monitoring.source_level, ''),
+		       COALESCE(monitoring.observed_probability, 0),
+		       COALESCE(monitoring.observed_impact, 0),
+		       COALESCE(monitoring.observed_weight, 0),
+		       COALESCE(monitoring.observed_nilai, 0),
+		       COALESCE(monitoring.observed_level, ''),
+		       COALESCE(monitoring.trend, ''),
+		       COALESCE(monitoring.mitigation_completion_percent, 0),
+		       COALESCE(monitoring.mitigation_progress_summary, ''),
+		       COALESCE(monitoring.effectiveness_conclusion, ''),
+		       COALESCE(monitoring.condition_summary, ''),
+		       COALESCE(monitoring.event_summary, ''),
+		       COALESCE(monitoring.mitigation_obstacles, ''),
+		       COALESCE(monitoring.mitigation_follow_up, ''),
+		       COALESCE(monitoring.follow_up_note, ''),
+		       monitoring.started_at,
+		       monitoring.updated_at,
+		       monitoring.finalized_at
 		FROM working_paper_risks wpr
+		INNER JOIN working_papers wp ON wp.id = wpr.working_paper_id
 		INNER JOIN risks risk ON risk.id = wpr.risk_id
 		LEFT JOIN organizations org ON org.id = risk.organization_id
-		LEFT JOIN risks prev_risk ON prev_risk.id = (%s)
-		LEFT JOIN risks mon_risk ON mon_risk.id = (%s)
+		%s
+		%s
 		WHERE wpr.working_paper_id = $1
-		ORDER BY wpr.sort_order, wpr.created_at, wpr.id`, probabilityExpr, impactExpr, weightExpr, nilaiExpr, prevRiskExpr, monitoringRiskExpr, prevRiskExpr, monitoringRiskExpr)
+		ORDER BY wpr.sort_order, wpr.created_at, wpr.id`, probabilityExpr, impactExpr, weightExpr, nilaiExpr, previousApprovedWorkingPaperJoinExpr(), workingPaperMonitoringExpr())
 
 	rows, err := q.Query(ctx, query, wpID)
 	if err != nil {
@@ -207,10 +310,19 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		var prevTargetScore int
 		var prevCause, prevImpactDesc []string
 		var prevRiskSource, prevControllability string
-		var monID *uuid.UUID
-		var monProbability, monImpact int
-		var monWeight, monNilai float64
-		var monInherentScore int
+		var monitoringID *uuid.UUID
+		var monitoringStatus, monitoringCycle string
+		var monitoringSourceProbability, monitoringSourceImpact int
+		var monitoringSourceWeight, monitoringSourceNilai float64
+		var monitoringSourceLevel string
+		var monitoringObservedProbability, monitoringObservedImpact int
+		var monitoringObservedWeight, monitoringObservedNilai float64
+		var monitoringObservedLevel, monitoringTrend string
+		var monitoringCompletionPercent int
+		var monitoringProgressSummary, monitoringEffectiveness string
+		var monitoringConditionSummary, monitoringEventSummary string
+		var monitoringObstacles, monitoringFollowUp, monitoringFollowUpNote string
+		var monitoringStartedAt, monitoringUpdatedAt, monitoringFinalizedAt *time.Time
 
 		// Nullable fields that may be empty arrays from COALESCE
 		var nullableCause, nullableImpactDesc, nullableMitigations, nullableMitigationDueDates []string
@@ -281,12 +393,31 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&nullablePrevMitigationDueDates,
 			&nullablePrevMitigationDetails,
 			// Monitoring
-			&monID,
-			&monProbability,
-			&monImpact,
-			&monWeight,
-			&monNilai,
-			&monInherentScore,
+			&monitoringID,
+			&monitoringStatus,
+			&monitoringCycle,
+			&monitoringSourceProbability,
+			&monitoringSourceImpact,
+			&monitoringSourceWeight,
+			&monitoringSourceNilai,
+			&monitoringSourceLevel,
+			&monitoringObservedProbability,
+			&monitoringObservedImpact,
+			&monitoringObservedWeight,
+			&monitoringObservedNilai,
+			&monitoringObservedLevel,
+			&monitoringTrend,
+			&monitoringCompletionPercent,
+			&monitoringProgressSummary,
+			&monitoringEffectiveness,
+			&monitoringConditionSummary,
+			&monitoringEventSummary,
+			&monitoringObstacles,
+			&monitoringFollowUp,
+			&monitoringFollowUpNote,
+			&monitoringStartedAt,
+			&monitoringUpdatedAt,
+			&monitoringFinalizedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan working paper risk: %w", err)
 		}
@@ -298,6 +429,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		link.Risk.MitigationDueDates = nullableMitigationDueDates
 		link.Risk.MitigationDetails = nullableMitigationDetails
 		link.Risk.VersionNumber = versionNumber
+		link.Risk.PreviousRiskID = prevID
 		link.Risk.JadwalPelaksanaan = jadwalPelaksanaan
 		link.Risk.PenanggungJawab = penanggungJawab
 
@@ -330,37 +462,92 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			link.Risk.Previous = prev
 		}
 
-		// Monitoring realization data
-		if monID != nil && monProbability > 0 && monImpact > 0 {
-			link.Risk.MonitoringP = monProbability
-			link.Risk.MonitoringD = monImpact
-			link.Risk.MonitoringBobot = monWeight
-			link.Risk.MonitoringNilai = monNilai
-			link.Risk.MonitoringInherentScore = monInherentScore
-			monScore := monNilai
-			if monInherentScore > 0 {
-				monScore = float64(monInherentScore)
+		if monitoringID != nil {
+			observedScore := monitoringObservedNilai
+			if monitoringObservedProbability > 0 && monitoringObservedImpact > 0 && observedScore == 0 {
+				observedScore = float64(int(math.Round(monitoringObservedNilai)))
 			}
-			if monScore > 0 {
-				tingkat := entity.GetRiskLevelFromNilai(monScore)
-				link.Risk.MonitoringTingkatRisiko = tingkat
-				link.Risk.MonitoringTingkatRisikoDisplay = entity.GetRiskLevelDisplay(tingkat)
+			if observedScore == 0 && monitoringObservedProbability > 0 && monitoringObservedImpact > 0 {
+				observedScore = float64(monitoringObservedProbability * monitoringObservedImpact)
+			}
 
-			// Calculate simpulan and efektivitas by comparing monitoring vs previous semester baseline
-			prevScore := link.Risk.PreviousNilai()
-			if prevScore > 0 {
-				if monScore > prevScore {
-					link.Risk.MonitoringSimpulan = "Meningkat"
-					link.Risk.MonitoringEfektivitas = "Tidak Efektif"
-				} else if monScore == prevScore {
-					link.Risk.MonitoringSimpulan = "Tetap"
-					link.Risk.MonitoringEfektivitas = "Efektif"
-				} else {
-					link.Risk.MonitoringSimpulan = "Menurun"
-					link.Risk.MonitoringEfektivitas = "Efektif"
+			trend := monitoringTrend
+			if trend == "" {
+				sourceScore := monitoringSourceNilai
+				if sourceScore == 0 {
+					sourceScore = float64(link.Risk.InherentScore)
+				}
+				switch {
+				case observedScore > sourceScore:
+					trend = "up"
+				case observedScore < sourceScore:
+					trend = "down"
+				default:
+					trend = "stable"
 				}
 			}
+			effectiveness := monitoringEffectiveness
+			if effectiveness == "" {
+				if trend == "up" {
+					effectiveness = "Tidak Efektif"
+				} else {
+					effectiveness = "Efektif"
+				}
 			}
+
+			link.Risk.Monitoring = &entity.WorkingPaperRiskMonitoring{
+				ID:                          *monitoringID,
+				Status:                      monitoringStatus,
+				AssessmentCycle:             monitoringCycle,
+				SourceProbability:           monitoringSourceProbability,
+				SourceImpact:                monitoringSourceImpact,
+				SourceWeight:                monitoringSourceWeight,
+				SourceNilai:                 monitoringSourceNilai,
+				SourceLevel:                 monitoringSourceLevel,
+				ObservedProbability:         monitoringObservedProbability,
+				ObservedImpact:              monitoringObservedImpact,
+				ObservedWeight:              monitoringObservedWeight,
+				ObservedNilai:               monitoringObservedNilai,
+				ObservedLevel:               monitoringObservedLevel,
+				Trend:                       trend,
+				MitigationCompletionPercent: monitoringCompletionPercent,
+				MitigationProgressSummary:   monitoringProgressSummary,
+				EffectivenessConclusion:     effectiveness,
+				ConditionSummary:            monitoringConditionSummary,
+				EventSummary:                monitoringEventSummary,
+				MitigationObstacles:         monitoringObstacles,
+				MitigationFollowUp:          monitoringFollowUp,
+				FollowUpNote:                monitoringFollowUpNote,
+				StartedAt:                   time.Time{},
+				UpdatedAt:                   time.Time{},
+				FinalizedAt:                 monitoringFinalizedAt,
+			}
+			if monitoringStartedAt != nil {
+				link.Risk.Monitoring.StartedAt = monitoringStartedAt.UTC()
+			}
+			if monitoringUpdatedAt != nil {
+				link.Risk.Monitoring.UpdatedAt = monitoringUpdatedAt.UTC()
+			}
+
+			link.Risk.MonitoringP = monitoringObservedProbability
+			link.Risk.MonitoringD = monitoringObservedImpact
+			link.Risk.MonitoringBobot = monitoringObservedWeight
+			link.Risk.MonitoringNilai = monitoringObservedNilai
+			link.Risk.MonitoringInherentScore = int(math.Round(observedScore))
+			link.Risk.MonitoringTingkatRisiko = monitoringObservedLevel
+			if link.Risk.MonitoringTingkatRisiko == "" && observedScore > 0 {
+				link.Risk.MonitoringTingkatRisiko = entity.GetRiskLevelFromNilai(observedScore)
+			}
+			link.Risk.MonitoringTingkatRisikoDisplay = entity.GetRiskLevelDisplay(link.Risk.MonitoringTingkatRisiko)
+			switch trend {
+			case "up":
+				link.Risk.MonitoringSimpulan = "Meningkat"
+			case "down":
+				link.Risk.MonitoringSimpulan = "Menurun"
+			default:
+				link.Risk.MonitoringSimpulan = "Tetap"
+			}
+			link.Risk.MonitoringEfektivitas = effectiveness
 		}
 
 		link.Risk.NormalizeDerivedScores()
@@ -419,7 +606,7 @@ func (r *workingPaperRepository) getSignatoriesByWorkingPaperID(ctx context.Cont
 }
 
 func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q workingPaperReader, id uuid.UUID, forUpdate bool) (*entity.WorkingPaper, error) {
-	query := `SELECT id, sequence_no, code, title, description, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, created_by,
+	query := `SELECT id, sequence_no, code, title, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, created_by,
 	        created_at, updated_at, completed_at, cancelled_at, tte_skipped
 	 FROM working_papers
 	 WHERE id = $1`
@@ -429,7 +616,7 @@ func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q working
 
 	wp := &entity.WorkingPaper{}
 	err := q.QueryRow(ctx, query, id).Scan(
-		&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
+		&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 		&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
 		&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 	)
@@ -568,11 +755,11 @@ func (r *workingPaperRepository) Create(ctx context.Context, wp *entity.WorkingP
 	}
 
 	err = tx.QueryRow(ctx,
-		`INSERT INTO working_papers (sequence_no, code, title, description, org_id, status, assessment_cycle,
+		`INSERT INTO working_papers (sequence_no, code, title, org_id, status, assessment_cycle,
 		        document_hash, current_signatory_sequence, created_by, tte_skipped)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		 RETURNING id, created_at, updated_at`,
-		wp.SequenceNo, wp.Code, wp.Title, wp.Description, wp.OrgID, wp.Status, wp.AssessmentCycle,
+		wp.SequenceNo, wp.Code, wp.Title, wp.OrgID, wp.Status, wp.AssessmentCycle,
 		wp.DocumentHash, wp.CurrentSignatorySequence, wp.CreatedBy, wp.TTESkipped,
 	).Scan(&wp.ID, &wp.CreatedAt, &wp.UpdatedAt)
 	if err != nil {
@@ -602,7 +789,7 @@ func (r *workingPaperRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 // List retrieves working papers with optional filters and pagination
 func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle, createdAt string, page, limit int) ([]*entity.WorkingPaper, int, error) {
 	countQuery := `SELECT COUNT(*) FROM working_papers WHERE 1=1`
-	dataQuery := `SELECT id, sequence_no, code, title, description, org_id, status, assessment_cycle,
+	dataQuery := `SELECT id, sequence_no, code, title, org_id, status, assessment_cycle,
 	                     document_hash, current_signatory_sequence, created_by,
 	                     created_at, updated_at, completed_at, cancelled_at, tte_skipped
 	              FROM working_papers WHERE 1=1`
@@ -627,7 +814,7 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 	}
 
 	if query != "" {
-		filter := fmt.Sprintf(" AND (COALESCE(code, '') ILIKE $%d OR COALESCE(title, '') ILIKE $%d OR COALESCE(description, '') ILIKE $%d)", argIdx, argIdx, argIdx)
+		filter := fmt.Sprintf(" AND (COALESCE(code, '') ILIKE $%d OR COALESCE(title, '') ILIKE $%d)", argIdx, argIdx)
 		countQuery += filter
 		dataQuery += filter
 		args = append(args, "%"+query+"%")
@@ -671,7 +858,7 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 		wp := &entity.WorkingPaper{}
 
 		if err := rows.Scan(
-			&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
+			&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 			&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
 			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 		); err != nil {
@@ -760,7 +947,7 @@ func (r *workingPaperRepository) UpdateSignatory(ctx context.Context, sig *entit
 
 // GetPendingSigningByUserID retrieves working papers pending the given user's signature
 func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, userID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.WorkingPaper, error) {
-	query := `SELECT wp.id, wp.sequence_no, wp.code, wp.title, wp.description, wp.org_id, wp.status, wp.assessment_cycle,
+	query := `SELECT wp.id, wp.sequence_no, wp.code, wp.title, wp.org_id, wp.status, wp.assessment_cycle,
 		        wp.document_hash, wp.current_signatory_sequence, wp.created_by,
 		        wp.created_at, wp.updated_at, wp.completed_at, wp.cancelled_at, wp.tte_skipped
 		 FROM working_papers wp
@@ -792,7 +979,7 @@ func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, 
 		wp := &entity.WorkingPaper{}
 
 		if err := rows.Scan(
-			&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.Description, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
+			&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 			&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
 			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
 		); err != nil {
@@ -837,6 +1024,18 @@ func (r *workingPaperRepository) CountPendingSigningByUserID(ctx context.Context
 	).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count pending signing by user id: %w", err)
+	}
+	return count, nil
+}
+
+func (r *workingPaperRepository) CountByOrgAndCycle(ctx context.Context, orgID uuid.UUID, cycle string) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM working_papers WHERE org_id = $1 AND assessment_cycle = $2`,
+		orgID, cycle,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count working papers by org and cycle: %w", err)
 	}
 	return count, nil
 }

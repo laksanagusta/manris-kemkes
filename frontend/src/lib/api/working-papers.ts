@@ -48,6 +48,10 @@ export async function signWorkingPaper(id: string, token: string): Promise<Worki
   return api.post<WorkingPaper>(`/working-papers/${id}/sign`, {}, token);
 }
 
+export async function startSigningWorkingPaper(id: string, token: string): Promise<WorkingPaper> {
+  return api.post<WorkingPaper>(`/working-papers/${id}/start-signing`, {}, token);
+}
+
 export async function cancelWorkingPaper(id: string, token: string): Promise<void> {
   return api.post<void>(`/working-papers/${id}/cancel`, {}, token);
 }

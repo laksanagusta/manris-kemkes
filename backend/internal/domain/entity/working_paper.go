@@ -23,7 +23,6 @@ type WorkingPaper struct {
 	SequenceNo               int                    `json:"sequence_no"`
 	Code                     string                 `json:"code"`
 	Title                    string                 `json:"title"`
-	Description              string                 `json:"description"`
 	OrgID                    uuid.UUID              `json:"org_id"`
 	Status                   string                 `json:"status"` // draft, signing, completed, cancelled
 	AssessmentCycle          string                 `json:"assessment_cycle"`
@@ -51,40 +50,76 @@ type WorkingPaperRiskLink struct {
 	Risk           WorkingPaperRiskData `json:"risk"`
 }
 
+type WorkingPaperRiskMonitoring struct {
+	ID                          uuid.UUID  `json:"id"`
+	Status                      string     `json:"status"`
+	AssessmentCycle             string     `json:"assessmentCycle"`
+	SourceProbability           int        `json:"sourceProbability"`
+	SourceImpact                int        `json:"sourceImpact"`
+	SourceWeight                float64    `json:"sourceWeight"`
+	SourceNilai                 float64    `json:"sourceNilai"`
+	SourceLevel                 string     `json:"sourceLevel"`
+	ObservedProbability         int        `json:"observedProbability"`
+	ObservedImpact              int        `json:"observedImpact"`
+	ObservedWeight              float64    `json:"observedWeight"`
+	ObservedNilai               float64    `json:"observedNilai"`
+	ObservedLevel               string     `json:"observedLevel"`
+	Trend                       string     `json:"trend"`
+	MitigationCompletionPercent int        `json:"mitigationCompletionPercent"`
+	MitigationProgressSummary   string     `json:"mitigationProgressSummary"`
+	EffectivenessConclusion     string     `json:"effectivenessConclusion"`
+	ConditionSummary            string     `json:"conditionSummary"`
+	EventSummary                string     `json:"eventSummary"`
+	MitigationObstacles         string     `json:"mitigationObstacles"`
+	MitigationFollowUp          string     `json:"mitigationFollowUp"`
+	FollowUpNote                string     `json:"followUpNote"`
+	StartedAt                   time.Time  `json:"startedAt"`
+	UpdatedAt                   time.Time  `json:"updatedAt"`
+	FinalizedAt                 *time.Time `json:"finalizedAt,omitempty"`
+}
+
+type WorkingPaperSigningBlocker struct {
+	VersionGroupID   uuid.UUID `json:"version_group_id"`
+	Code             string    `json:"code"`
+	Title            string    `json:"title"`
+	MonitoringStatus string    `json:"monitoring_status"`
+}
+
 type WorkingPaperRiskData struct {
-	ID                   uuid.UUID `json:"id"`
-	Code                 string    `json:"code"`
-	Title                string    `json:"title"`
-	Description          string    `json:"description"`
-	Category             string    `json:"category"`
-	Status               string    `json:"status"`
-	OrgName              string    `json:"org_name"`
-	Probability          int       `json:"probability"`
-	Impact               int       `json:"impact"`
-	Bobot                float64   `json:"bobot"`
-	Nilai                float64   `json:"nilai"`
-	InherentScore        int       `json:"inherentScore"`
-	TingkatRisiko        string    `json:"tingkat_risiko"`
-	PrioritasRisiko      int       `json:"prioritas_risiko"`
-	Cause                []string  `json:"cause,omitempty"`
-	RiskSource           string    `json:"risk_source,omitempty"`
-	Controllability      string    `json:"controllability,omitempty"`
-	ImpactDesc           []string  `json:"impact_desc,omitempty"`
-	ExistingControl      string    `json:"existing_control,omitempty"`
-	ControlEffectiveness string    `json:"control_effectiveness,omitempty"`
-	RiskAppetite         string    `json:"risk_appetite,omitempty"`
-	TreatmentOption      string    `json:"treatment_option,omitempty"`
-	Mitigations          []string  `json:"mitigations,omitempty"`
-	MitigationDueDates   []string  `json:"mitigation_due_dates,omitempty"`
-	MitigationDetails    []string  `json:"mitigation_details,omitempty"`
-	TargetProbability    int       `json:"target_probability,omitempty"`
-	TargetImpact         int       `json:"target_impact,omitempty"`
-	TargetBobot          float64   `json:"target_bobot,omitempty"`
-	TargetNilai          float64   `json:"target_nilai,omitempty"`
-	TargetScore          int       `json:"target_score,omitempty"`
-	TargetTingkatRisiko  string    `json:"target_tingkat_risiko,omitempty"`
-	AssessmentCycle      string    `json:"assessment_cycle,omitempty"`
-	VersionNumber        int       `json:"versionNumber,omitempty"`
+	ID                   uuid.UUID  `json:"id"`
+	Code                 string     `json:"code"`
+	Title                string     `json:"title"`
+	Description          string     `json:"description"`
+	Category             string     `json:"category"`
+	Status               string     `json:"status"`
+	OrgName              string     `json:"org_name"`
+	Probability          int        `json:"probability"`
+	Impact               int        `json:"impact"`
+	Bobot                float64    `json:"bobot"`
+	Nilai                float64    `json:"nilai"`
+	InherentScore        int        `json:"inherentScore"`
+	TingkatRisiko        string     `json:"tingkat_risiko"`
+	PrioritasRisiko      int        `json:"prioritas_risiko"`
+	Cause                []string   `json:"cause,omitempty"`
+	RiskSource           string     `json:"risk_source,omitempty"`
+	Controllability      string     `json:"controllability,omitempty"`
+	ImpactDesc           []string   `json:"impact_desc,omitempty"`
+	ExistingControl      string     `json:"existing_control,omitempty"`
+	ControlEffectiveness string     `json:"control_effectiveness,omitempty"`
+	RiskAppetite         string     `json:"risk_appetite,omitempty"`
+	TreatmentOption      string     `json:"treatment_option,omitempty"`
+	Mitigations          []string   `json:"mitigations,omitempty"`
+	MitigationDueDates   []string   `json:"mitigation_due_dates,omitempty"`
+	MitigationDetails    []string   `json:"mitigation_details,omitempty"`
+	TargetProbability    int        `json:"target_probability,omitempty"`
+	TargetImpact         int        `json:"target_impact,omitempty"`
+	TargetBobot          float64    `json:"target_bobot,omitempty"`
+	TargetNilai          float64    `json:"target_nilai,omitempty"`
+	TargetScore          int        `json:"target_score,omitempty"`
+	TargetTingkatRisiko  string     `json:"target_tingkat_risiko,omitempty"`
+	AssessmentCycle      string     `json:"assessment_cycle,omitempty"`
+	VersionNumber        int        `json:"versionNumber,omitempty"`
+	PreviousRiskID       *uuid.UUID `json:"previousRiskId,omitempty"`
 
 	// Human-readable display labels
 	TingkatRisikoDisplay        string `json:"tingkat_risiko_display,omitempty"`
@@ -97,17 +132,18 @@ type WorkingPaperRiskData struct {
 	Previous *WorkingPaperRiskSnapshot `json:"previous,omitempty"`
 
 	// Monitoring/realization data (for sheet 3)
-	MonitoringP                    int     `json:"monitoring_p,omitempty"`
-	MonitoringD                    int     `json:"monitoring_d,omitempty"`
-	MonitoringBobot                float64 `json:"monitoring_bobot,omitempty"`
-	MonitoringNilai                float64 `json:"monitoring_nilai,omitempty"`
-	MonitoringInherentScore        int     `json:"monitoring_inherent_score,omitempty"`
-	MonitoringTingkatRisiko        string  `json:"monitoring_tingkat_risiko,omitempty"`
-	MonitoringTingkatRisikoDisplay string  `json:"monitoring_tingkat_risiko_display,omitempty"`
-	MonitoringSimpulan             string  `json:"monitoring_simpulan,omitempty"`
-	MonitoringEfektivitas          string  `json:"monitoring_efektivitas,omitempty"`
-	JadwalPelaksanaan              string  `json:"jadwal_pelaksanaan,omitempty"`
-	PenanggungJawab                string  `json:"penanggung_jawab,omitempty"`
+	Monitoring                     *WorkingPaperRiskMonitoring `json:"monitoring,omitempty"`
+	MonitoringP                    int                         `json:"monitoring_p,omitempty"`
+	MonitoringD                    int                         `json:"monitoring_d,omitempty"`
+	MonitoringBobot                float64                     `json:"monitoring_bobot,omitempty"`
+	MonitoringNilai                float64                     `json:"monitoring_nilai,omitempty"`
+	MonitoringInherentScore        int                         `json:"monitoring_inherent_score,omitempty"`
+	MonitoringTingkatRisiko        string                      `json:"monitoring_tingkat_risiko,omitempty"`
+	MonitoringTingkatRisikoDisplay string                      `json:"monitoring_tingkat_risiko_display,omitempty"`
+	MonitoringSimpulan             string                      `json:"monitoring_simpulan,omitempty"`
+	MonitoringEfektivitas          string                      `json:"monitoring_efektivitas,omitempty"`
+	JadwalPelaksanaan              string                      `json:"jadwal_pelaksanaan,omitempty"`
+	PenanggungJawab                string                      `json:"penanggung_jawab,omitempty"`
 }
 
 // WorkingPaperRiskSnapshot captures a previous-semester risk snapshot for export.
@@ -279,7 +315,7 @@ func (wp *WorkingPaper) Validate() error {
 
 // CanSign checks if the given user is the next signatory
 func (wp *WorkingPaper) CanSign(userID uuid.UUID) (bool, error) {
-	if wp.Status != WorkingPaperStatusDraft && wp.Status != WorkingPaperStatusSigning {
+	if wp.Status != WorkingPaperStatusSigning {
 		return false, &errors.AppError{
 			Code:    "INVALID_STATUS",
 			Message: "working paper is not in signing status",
@@ -364,6 +400,20 @@ func (wp *WorkingPaper) MarkSigned(signatoryID uuid.UUID, qrPNG string, qrData j
 		wp.Status = WorkingPaperStatusSigning
 	}
 
+	wp.UpdatedAt = time.Now()
+	return nil
+}
+
+// StartSigning marks a draft working paper as ready for signatures.
+func (wp *WorkingPaper) StartSigning() error {
+	if wp.Status != WorkingPaperStatusDraft {
+		return &errors.AppError{
+			Code:    "INVALID_STATUS",
+			Message: "only draft working papers can start signing",
+		}
+	}
+
+	wp.Status = WorkingPaperStatusSigning
 	wp.UpdatedAt = time.Now()
 	return nil
 }

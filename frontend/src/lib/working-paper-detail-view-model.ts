@@ -19,11 +19,13 @@ export type WorkingPaperTimelineItem = {
 
 export type WorkingPaperDetailViewModel = {
   nextSignatory: WorkingPaperSignatory | null;
+  canStartSigning: boolean;
   canSign: boolean;
   canCancel: boolean;
   canDelete: boolean;
   canSkipTTE: boolean;
   tteSkipped: boolean;
+  monitoringBlockers: string[];
   currentAction: WorkingPaperCurrentAction | null;
   timeline: WorkingPaperTimelineItem[];
 };
@@ -38,12 +40,34 @@ function getNextSignatory(workingPaper: WorkingPaper): WorkingPaperSignatory | n
   );
 }
 
+function getMonitoringBlockers(workingPaper: WorkingPaper): string[] {
+  const risks = workingPaper.risks ?? [];
+  const hasMonitoring = risks.some((link) => link.risk.monitoring);
+  if (!hasMonitoring) {
+    return [];
+  }
+
+  return risks
+    .filter((link) => !link.risk.monitoring || link.risk.monitoring.status !== "finalized")
+    .map((link) => {
+      const status =
+        link.risk.monitoring?.status === "draft"
+          ? "Draft"
+          : link.risk.monitoring?.status === "finalized"
+            ? "Final"
+            : "Missing";
+      return `${link.risk.code} (${status})`;
+    });
+}
+
 function buildCurrentAction(
   workingPaper: WorkingPaper,
   nextSignatory: WorkingPaperSignatory | null,
+  canStartSigning: boolean,
   canSign: boolean,
   canSkipTTE: boolean,
   allRisksApproved: boolean,
+  monitoringBlockers: string[],
   tteSkipped: boolean,
 ): WorkingPaperCurrentAction | null {
   if (workingPaper.status === "cancelled") {
@@ -70,6 +94,15 @@ function buildCurrentAction(
     };
   }
 
+  if (canStartSigning) {
+    return {
+      tone: "attention" as const,
+      title: "Siap ditandatangani",
+      description: "Periksa kembali isi dokumen lalu mulai proses tanda tangan elektronik.",
+      buttonLabel: "Mulai proses TTE",
+    };
+  }
+
   if (canSign) {
     return {
       tone: "attention" as const,
@@ -79,11 +112,20 @@ function buildCurrentAction(
     };
   }
 
+  if (monitoringBlockers.length > 0) {
+    return {
+      tone: "attention" as const,
+      title: "Finalisasi monitoring terlebih dahulu",
+      description: `Monitoring belum final untuk: ${monitoringBlockers.join(", ")}.`,
+    };
+  }
+
   if (canSkipTTE) {
     return {
       tone: "success" as const,
       title: "Dokumen siap diselesaikan",
-      description: "Semua risiko sudah diproses. Anda bisa melewati TTE dari detail.",
+      description: "Semua risiko sudah diproses. Anda bisa menyelesaikan dokumen tanpa tanda tangan elektronik.",
+      buttonLabel: "Lewati tanda tangan elektronik",
     };
   }
 
@@ -179,30 +221,43 @@ export function buildWorkingPaperDetailViewModel(
   const nextSignatory = getNextSignatory(workingPaper);
   const risks = workingPaper.risks ?? [];
   const allRisksApproved = risks.length > 0 && risks.every((link) => link.risk.status === "approved");
+  const monitoringBlockers = getMonitoringBlockers(workingPaper);
   const tteSkipped = workingPaper.tte_skipped;
   const canSign = Boolean(
     currentUserId &&
       nextSignatory &&
       nextSignatory.user_id === currentUserId &&
-      (workingPaper.status === "draft" || workingPaper.status === "signing") &&
-      allRisksApproved,
+      workingPaper.status === "signing" &&
+      allRisksApproved &&
+      monitoringBlockers.length === 0,
+  );
+  const canStartSigning = Boolean(
+    currentUserId &&
+      workingPaper.created_by === currentUserId &&
+      workingPaper.status === "draft" &&
+      allRisksApproved &&
+      monitoringBlockers.length === 0 &&
+      !tteSkipped,
   );
   const canSkipTTE = Boolean(
     currentUserId &&
       workingPaper.created_by === currentUserId &&
       workingPaper.status === "draft" &&
       allRisksApproved &&
+      monitoringBlockers.length === 0 &&
       !tteSkipped,
   );
 
   return {
     nextSignatory,
+    canStartSigning,
     canSign,
     canCancel: workingPaper.status === "draft" || workingPaper.status === "signing",
     canDelete: workingPaper.status === "draft",
     canSkipTTE,
     tteSkipped,
-    currentAction: buildCurrentAction(workingPaper, nextSignatory, canSign, canSkipTTE, allRisksApproved, tteSkipped),
+    monitoringBlockers,
+    currentAction: buildCurrentAction(workingPaper, nextSignatory, canStartSigning, canSign, canSkipTTE, allRisksApproved, monitoringBlockers, tteSkipped),
     timeline: workingPaper.signatories.map((signatory) =>
       buildTimelineItem(signatory, workingPaper, nextSignatory, currentUserId, tteSkipped),
     ),

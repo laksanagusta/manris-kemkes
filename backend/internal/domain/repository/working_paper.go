@@ -25,4 +25,5 @@ type WorkingPaperRepository interface {
 	GetPendingSigningByUserID(ctx context.Context, userID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.WorkingPaper, error)
 	CountPendingSigningByUserID(ctx context.Context, userID uuid.UUID) (int, error)
 	HasBlockingDocumentLink(ctx context.Context, riskID uuid.UUID) (bool, error)
+	CountByOrgAndCycle(ctx context.Context, orgID uuid.UUID, cycle string) (int, error)
 }

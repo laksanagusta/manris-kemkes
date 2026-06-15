@@ -8,8 +8,8 @@ import (
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 )
 
-// SkipTTE finalizes a draft working paper without electronic signatures.
-func (uc *UseCase) SkipTTE(ctx context.Context, workingPaperID uuid.UUID, userID uuid.UUID) (*entity.WorkingPaper, error) {
+// StartSigning moves a draft working paper into signing status.
+func (uc *UseCase) StartSigning(ctx context.Context, workingPaperID uuid.UUID, userID uuid.UUID) (*entity.WorkingPaper, error) {
 	wp, err := uc.wpRepo.MutateByIDForUpdate(ctx, workingPaperID, func(wp *entity.WorkingPaper) error {
 		if wp.CreatedBy != userID {
 			return domainerrors.ErrForbidden
@@ -17,13 +17,7 @@ func (uc *UseCase) SkipTTE(ctx context.Context, workingPaperID uuid.UUID, userID
 		if wp.Status != entity.WorkingPaperStatusDraft {
 			return &domainerrors.AppError{
 				Code:    "INVALID_STATUS",
-				Message: "only draft working papers can skip TTE",
-			}
-		}
-		if wp.TTESkipped {
-			return &domainerrors.AppError{
-				Code:    "INVALID_STATUS",
-				Message: "working paper already skipped TTE",
+				Message: "only draft working papers can be moved to signing",
 			}
 		}
 		if blockers := workingPaperSigningBlockers(wp); len(blockers) > 0 {
@@ -37,13 +31,12 @@ func (uc *UseCase) SkipTTE(ctx context.Context, workingPaperID uuid.UUID, userID
 			if link.Risk.Status != entity.RiskStatusApproved {
 				return &domainerrors.AppError{
 					Code:    "RISKS_NOT_APPROVED",
-					Message: "semua risiko harus berstatus approved sebelum TTE dapat dilewati",
+					Message: "semua risiko harus berstatus approved sebelum kertas kerja siap ditandatangani",
 				}
 			}
 		}
 
-		wp.SkipTTE()
-		return nil
+		return wp.StartSigning()
 	})
 	if err != nil {
 		return nil, err
