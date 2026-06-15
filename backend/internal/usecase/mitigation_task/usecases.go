@@ -209,6 +209,85 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 	return uc.taskRepo.GetByID(ctx, task.ID, input.OrgIDs)
 }
 
+// SubmitMonitoringReportInput is the input for submitting a mitigation
+// monitoring report. Fields are optional — only provided fields are updated.
+type SubmitMonitoringReportInput struct {
+	TaskID         uuid.UUID `json:"-"`
+	Status         string    `json:"status,omitempty"`
+	ProgressPct    *int      `json:"progressPct,omitempty"`
+	EvidenceURL    string    `json:"evidenceUrl,omitempty"`
+	Notes          string    `json:"notes,omitempty"`
+	ReportOutput   string    `json:"reportOutput,omitempty"`
+	ReportObstacle string    `json:"reportObstacle,omitempty"`
+	ReportedBy     uuid.UUID `json:"-"`
+	OrgIDs         []uuid.UUID
+}
+
+type SubmitMonitoringReportUseCase struct {
+	taskRepo repository.MitigationTaskRepository
+	riskRepo repository.RiskRepository
+}
+
+func NewSubmitMonitoringReportUseCase(taskRepo repository.MitigationTaskRepository, riskRepo repository.RiskRepository) *SubmitMonitoringReportUseCase {
+	return &SubmitMonitoringReportUseCase{taskRepo: taskRepo, riskRepo: riskRepo}
+}
+
+func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input SubmitMonitoringReportInput) (*entity.MitigationTask, error) {
+	if input.ProgressPct != nil && (*input.ProgressPct < 0 || *input.ProgressPct > 100) {
+		return nil, domainerrors.ErrInvalidProgress
+	}
+
+	if input.Status != "" && input.Status != "pending" && input.Status != "done" {
+		return nil, fmt.Errorf("invalid status: must be pending or done")
+	}
+
+	evidenceURL := strings.TrimSpace(input.EvidenceURL)
+	if evidenceURL != "" {
+		parsedURL, err := url.ParseRequestURI(evidenceURL)
+		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+			return nil, domainerrors.ErrInvalidEvidenceURL
+		}
+	}
+
+	task, err := uc.taskRepo.GetByID(ctx, input.TaskID, input.OrgIDs)
+	if err != nil {
+		return nil, fmt.Errorf("task not found: %w", err)
+	}
+
+	if _, err := uc.riskRepo.GetByID(ctx, task.RiskID, input.OrgIDs); err != nil {
+		return nil, domainerrors.ErrForbidden
+	}
+
+	now := time.Now().In(timeutil.JakartaLocation())
+
+	if input.Status != "" {
+		task.Status = input.Status
+	}
+	if input.ProgressPct != nil {
+		task.ProgressPct = *input.ProgressPct
+	}
+	if evidenceURL != "" {
+		task.EvidenceURL = evidenceURL
+	}
+	if input.Notes != "" {
+		task.Notes = input.Notes
+	}
+	if input.ReportOutput != "" {
+		task.ReportOutput = input.ReportOutput
+	}
+	if input.ReportObstacle != "" {
+		task.ReportObstacle = input.ReportObstacle
+	}
+	task.ReportedBy = &input.ReportedBy
+	task.ReportedAt = &now
+
+	if err := uc.taskRepo.Update(ctx, task); err != nil {
+		return nil, fmt.Errorf("update task: %w", err)
+	}
+
+	return uc.taskRepo.GetByID(ctx, task.ID, input.OrgIDs)
+}
+
 // GenerateTasksUseCase generates tasks for recurring mitigations (called by cron)
 type GenerateTasksUseCase struct {
 	taskRepo repository.MitigationTaskRepository

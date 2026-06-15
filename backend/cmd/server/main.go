@@ -154,7 +154,7 @@ func main() {
 
 	// Mitigation Task handler
 	cleanMitigationTaskHandler := httpHandler.NewMitigationTaskHandler(
-		container.MTListUC, container.MTSubmitUC, container.MTGenerateUC, container.MTOverdueUC,
+		container.MTListUC, container.MTSubmitUC, container.MTSubmitReportUC, container.MTGenerateUC, container.MTOverdueUC,
 	)
 
 	// KRI Report handler
@@ -408,6 +408,7 @@ func main() {
 	protected.Get("/mitigation-tasks/all", cleanMitigationTaskHandler.ListAll)
 	protected.Get("/mitigation-tasks/my", cleanMitigationTaskHandler.ListMyTasks)
 	protected.Post("/mitigation-tasks/:id/submit", cleanMitigationTaskHandler.SubmitProgress)
+	protected.Put("/mitigation-tasks/:id/report", cleanMitigationTaskHandler.SubmitReport)
 	protected.Post("/mitigation-tasks/generate", cleanMitigationTaskHandler.TriggerGenerate)
 
 	// KRI Reports (Periodic Reporting)
@@ -443,6 +444,7 @@ func main() {
 	protected.Post("/working-papers", wpHandler.Create)
 	protected.Get("/working-papers/:id", wpHandler.Get)
 	protected.Delete("/working-papers/:id", wpHandler.Delete)
+	protected.Post("/working-papers/:id/start-signing", wpHandler.StartSigning)
 	protected.Post("/working-papers/:id/sign", wpHandler.Sign)
 	protected.Post("/working-papers/:id/cancel", wpHandler.Cancel)
 	protected.Post("/working-papers/:id/skip-tte", wpHandler.SkipTTE)

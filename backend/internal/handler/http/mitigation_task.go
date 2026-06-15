@@ -15,6 +15,7 @@ import (
 type MitigationTaskHandler struct {
 	listUC           *mtuc.ListTasksUseCase
 	submitProgressUC *mtuc.SubmitProgressUseCase
+	submitReportUC   *mtuc.SubmitMonitoringReportUseCase
 	generateTasksUC  *mtuc.GenerateTasksUseCase
 	markOverdueUC    *mtuc.MarkOverdueUseCase
 }
@@ -22,12 +23,14 @@ type MitigationTaskHandler struct {
 func NewMitigationTaskHandler(
 	listUC *mtuc.ListTasksUseCase,
 	submitProgressUC *mtuc.SubmitProgressUseCase,
+	submitReportUC *mtuc.SubmitMonitoringReportUseCase,
 	generateTasksUC *mtuc.GenerateTasksUseCase,
 	markOverdueUC *mtuc.MarkOverdueUseCase,
 ) *MitigationTaskHandler {
 	return &MitigationTaskHandler{
 		listUC:           listUC,
 		submitProgressUC: submitProgressUC,
+		submitReportUC:   submitReportUC,
 		generateTasksUC:  generateTasksUC,
 		markOverdueUC:    markOverdueUC,
 	}
@@ -151,6 +154,41 @@ func (h *MitigationTaskHandler) SubmitProgress(c *fiber.Ctx) error {
 	input.OrgIDs = orgIDs
 
 	task, err := h.submitProgressUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": task})
+}
+
+// SubmitReport handles PUT /api/mitigation-tasks/:id/report
+func (h *MitigationTaskHandler) SubmitReport(c *fiber.Ctx) error {
+	taskID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid task ID")
+	}
+
+	userID, ok := c.Locals("userId").(uuid.UUID)
+	if !ok {
+		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	var input mtuc.SubmitMonitoringReportInput
+	if err := c.BodyParser(&input); err != nil {
+		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+	}
+
+	input.TaskID = taskID
+	input.ReportedBy = userID
+	input.OrgIDs = orgIDs
+
+	task, err := h.submitReportUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
 	}

@@ -284,7 +284,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testi
 		}},
 	}
 
-	uc := NewCreateRiskReassessmentUseCase(repo)
+	uc := NewCreateRiskReassessmentUseCase(repo, nil)
 	output, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -354,7 +354,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle(t *testing.T
 		}},
 	}
 
-	uc := NewCreateRiskReassessmentUseCase(repo)
+	uc := NewCreateRiskReassessmentUseCase(repo, nil)
 	out, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
 	if err != nil {
 		t.Fatalf("expected no error for in-progress reassessment, got %v", err)
@@ -397,7 +397,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved(t 
 		},
 	}
 
-	uc := NewCreateRiskReassessmentUseCase(repo)
+	uc := NewCreateRiskReassessmentUseCase(repo, nil)
 	output, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
 	if err != nil {
 		t.Fatalf("expected no error for reassessment after approved version, got %v", err)
@@ -444,7 +444,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteKeepsDraftOnPreliminarySemanticsEv
 		}},
 	}
 
-	uc := NewCreateRiskReassessmentUseCase(repo)
+	uc := NewCreateRiskReassessmentUseCase(repo, nil)
 	_, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -483,7 +483,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteUsesRepositoryManagedReservation(t
 		},
 	}
 
-	uc := NewCreateRiskReassessmentUseCase(repo)
+	uc := NewCreateRiskReassessmentUseCase(repo, nil)
 	out, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
 	if err != nil {
 		t.Fatalf("expected no error from repository-managed existing in-progress draft, got %v", err)

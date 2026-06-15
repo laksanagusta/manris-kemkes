@@ -263,6 +263,8 @@ type Container struct {
 	// Mitigation Task UseCases
 	MTListUC     *mtuc.ListTasksUseCase
 	MTSubmitUC   *mtuc.SubmitProgressUseCase
+	MTSubmitReportUC *mtuc.SubmitMonitoringReportUseCase
+	MTEnsureUC   *mtuc.EnsureTasksForRiskVersionUseCase
 	MTGenerateUC *mtuc.GenerateTasksUseCase
 	MTOverdueUC  *mtuc.MarkOverdueUseCase
 
@@ -383,7 +385,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskSpreadsheetUC = riskuc.NewBulkRiskSpreadsheetUseCase(c.OrgRepository, c.UserRepository)
 	c.RiskGetUC = riskuc.NewGetRiskUseCase(c.RiskRepository)
 	c.RiskExportPDFUC = riskuc.NewExportRiskPDFUseCase(c.RiskRepository, renderer)
-	c.RiskReassessUC = riskuc.NewCreateRiskReassessmentUseCase(c.RiskRepository)
+	c.RiskReassessUC = riskuc.NewCreateRiskReassessmentUseCase(c.RiskRepository, c.MTEnsureUC)
 	c.RiskArchiveUC = riskuc.NewArchiveRiskUseCase(c.RiskRepository, c.WPRepository)
 	c.RiskRestoreUC = riskuc.NewRestoreRiskUseCase(c.RiskRepository)
 	c.RiskUpdateUC = riskuc.NewUpdateRiskUseCase(c.RiskRepository, c.UserRepository, c.OrgRepository, c.WPRepository, c.MitigationTaskRepository)
@@ -593,6 +595,8 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 
 	c.MTListUC = mtuc.NewListTasksUseCase(c.MitigationTaskRepository, c.RiskRepository)
 	c.MTSubmitUC = mtuc.NewSubmitProgressUseCase(c.MitigationTaskRepository, c.RiskRepository)
+	c.MTSubmitReportUC = mtuc.NewSubmitMonitoringReportUseCase(c.MitigationTaskRepository, c.RiskRepository)
+	c.MTEnsureUC = mtuc.NewEnsureTasksForRiskVersionUseCase(c.MitigationTaskRepository, c.RiskRepository)
 	c.MTGenerateUC = mtuc.NewGenerateTasksUseCase(c.MitigationTaskRepository)
 	c.MTOverdueUC = mtuc.NewMarkOverdueUseCase(c.MitigationTaskRepository)
 
@@ -630,7 +634,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// Working Paper UseCase
 	// ============================================================================
 
-	c.WPUseCase = workingpaperusecase.NewWorkingPaperUseCase(c.WPRepository, c.RiskRepository)
+	c.WPUseCase = workingpaperusecase.NewWorkingPaperUseCase(c.WPRepository, c.RiskRepository, c.RiskMonitoringRepository)
 
 	// ============================================================================
 	// Report UseCases
