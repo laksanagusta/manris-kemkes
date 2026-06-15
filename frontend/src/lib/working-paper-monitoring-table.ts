@@ -1,4 +1,4 @@
-import type { WorkingPaperRiskData } from "@/types/working-paper";
+import type { WorkingPaperRiskData, WorkingPaperRiskLink } from "@/types/working-paper";
 
 export const WORKING_PAPER_MONITORING_COLUMNS = [
   { key: "code", label: "Kode" },
@@ -24,6 +24,8 @@ export type WorkingPaperMonitoringRow = {
   code: string;
   title: string;
   versionNumber?: number;
+  sourceVersionNumber?: number;
+  resultVersionNumber?: number;
   sourceScore: number;
   observedScore: number | null;
   observedLevelLabel: string;
@@ -38,6 +40,7 @@ export type WorkingPaperMonitoringRow = {
   status: "draft" | "finalized" | "unmonitored";
   statusLabel: string;
   actionItems: WorkingPaperMonitoringAction[];
+  rosterStatus?: string;
 };
 
 const levelLabels: Record<string, string> = {
@@ -89,6 +92,23 @@ function observedLevelLabel(value?: string | null) {
     return "-";
   }
   return levelLabels[value.trim().toLowerCase()] || value;
+}
+
+export function buildWorkingPaperMonitoringRowFromLink(
+  link: WorkingPaperRiskLink,
+): WorkingPaperMonitoringRow {
+  const row = buildWorkingPaperMonitoringRow(link.risk);
+  if (link.source_risk_id) {
+    row.sourceVersionNumber = link.risk.versionNumber;
+  }
+  if (link.roster_status) {
+    row.rosterStatus = link.roster_status;
+  }
+  if (link.monitoring_id && !link.risk.monitoring) {
+    row.status = "unmonitored";
+    row.statusLabel = "Data tidak konsisten";
+  }
+  return row;
 }
 
 function buildActionItems(risk: WorkingPaperRiskData): WorkingPaperMonitoringAction[] {

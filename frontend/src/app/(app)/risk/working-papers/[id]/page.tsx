@@ -198,6 +198,28 @@ function WorkingPaperStatusActions({
   );
 }
 
+interface SigningBlocker {
+  code: string;
+  title: string;
+  monitoring_status: string;
+}
+
+function formatSigningError(err: unknown): string {
+  if (err && typeof err === "object" && "details" in err) {
+    const details = (err as { details?: SigningBlocker[] }).details;
+    if (Array.isArray(details) && details.length > 0) {
+      const items = details
+        .map((b) => `${b.code} (${b.monitoring_status})`)
+        .join(", ");
+      return `Monitoring belum final: ${items}`;
+    }
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return "Gagal memproses kertas kerja.";
+}
+
 export default function WorkingPaperDetailPage(props: {
   params: Promise<{ id: string }>;
 }) {
@@ -262,11 +284,7 @@ export default function WorkingPaperDetailPage(props: {
       setSignDialogOpen(false);
       loadData();
     } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : "Gagal menandatangani kertas kerja.",
-      );
+      toast.error(formatSigningError(err));
     }
   };
 
@@ -278,11 +296,7 @@ export default function WorkingPaperDetailPage(props: {
       setStartSigningDialogOpen(false);
       loadData();
     } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : "Gagal memulai proses tanda tangan elektronik.",
-      );
+      toast.error(formatSigningError(err));
     }
   };
 
@@ -294,9 +308,7 @@ export default function WorkingPaperDetailPage(props: {
       setSkipDialogOpen(false);
       loadData();
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Gagal melewati tanda tangan elektronik.",
-      );
+      toast.error(formatSigningError(err));
     }
   };
 

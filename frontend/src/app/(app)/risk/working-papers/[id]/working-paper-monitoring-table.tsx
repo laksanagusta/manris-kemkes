@@ -27,7 +27,7 @@ import {
 import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 import {
   WORKING_PAPER_MONITORING_COLUMNS,
-  buildWorkingPaperMonitoringRow,
+  buildWorkingPaperMonitoringRowFromLink,
 } from "@/lib/working-paper-monitoring-table";
 import { cn } from "@/lib/utils";
 import type { WorkingPaperRiskLink } from "@/types/working-paper";
@@ -63,7 +63,7 @@ function NarrativeCell({ value }: { value: string }) {
 function MonitoringActionMenu({
   row,
 }: {
-  row: ReturnType<typeof buildWorkingPaperMonitoringRow>;
+  row: ReturnType<typeof buildWorkingPaperMonitoringRowFromLink>;
 }) {
   return (
     <DropdownMenu>
@@ -113,7 +113,7 @@ export function WorkingPaperMonitoringTable({
 }: {
   links: WorkingPaperRiskLink[];
 }) {
-  const rows = links.map((link) => buildWorkingPaperMonitoringRow(link.risk));
+  const rows = links.map((link) => buildWorkingPaperMonitoringRowFromLink(link));
 
   return (
     <div className="overflow-x-auto">
@@ -157,7 +157,16 @@ export function WorkingPaperMonitoringTable({
                 <TableCell className="w-40 min-w-40 max-w-40 px-2.5 font-mono text-xs text-zinc-600">
                   <span className="flex items-center gap-1.5">
                     {row.code}
-                    {row.versionNumber != null && row.versionNumber > 1 ? (
+                    {row.sourceVersionNumber != null ? (
+                      <Badge className="h-5 border-zinc-200 bg-zinc-50 px-1.5 text-[10px] text-zinc-600">
+                        Sumber v{row.sourceVersionNumber}
+                      </Badge>
+                    ) : null}
+                    {row.resultVersionNumber != null ? (
+                      <Badge className="h-5 border-blue-200 bg-blue-50 px-1.5 text-[10px] text-blue-700">
+                        Hasil v{row.resultVersionNumber}
+                      </Badge>
+                    ) : row.versionNumber != null && row.versionNumber > 1 ? (
                       <Badge className="h-5 border-zinc-200 bg-zinc-50 px-1.5 text-[10px] text-zinc-600">
                         v{row.versionNumber}
                       </Badge>
