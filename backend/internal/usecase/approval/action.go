@@ -2,11 +2,14 @@ package approval
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
@@ -116,7 +119,10 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 				return nil, domainerrors.Wrap(err, "failed to update entity status")
 			}
 			if approvalReq.RequestType == "risk" && newEntityStatus == entity.RiskStatusApproved && uc.taskRepo != nil {
-				if _, err := mtuc.NewEnsureTasksForApprovedRiskUseCase(uc.taskRepo, uc.riskRepo).Execute(ctx, approvalReq.EntityID, input.OrgIDs); err != nil {
+				now := time.Now().In(timeutil.JakartaLocation())
+				year, quarter := mtuc.CurrentQuarter(now)
+				cycle := fmt.Sprintf("%d-Q%d", year, quarter)
+				if _, err := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.taskRepo, uc.riskRepo).Execute(ctx, approvalReq.EntityID, cycle, input.OrgIDs); err != nil {
 					return nil, domainerrors.Wrap(err, "failed to create mitigation tasks")
 				}
 			}

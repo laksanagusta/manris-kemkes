@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,52 @@ func mitigationTaskPeriodLabel(assessmentCycle string) string {
 		return label
 	}
 	return singleMitigationTaskPeriodLabel
+}
+
+// QuarterStart returns the start date of a quarter, e.g. Q1 = Jan 1
+func QuarterStart(year int, quarter int) time.Time {
+	month := (quarter-1)*3 + 1
+	return time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+}
+
+// QuarterEnd returns the last day of a quarter, e.g. Q1 = Mar 31
+func QuarterEnd(year int, quarter int) time.Time {
+	start := QuarterStart(year, quarter)
+	return start.AddDate(0, 3, -1)
+}
+
+// CurrentQuarter returns the current year and quarter (1-4)
+func CurrentQuarter(now time.Time) (int, int) {
+	year := now.Year()
+	quarter := (int(now.Month())-1)/3 + 1
+	return year, quarter
+}
+
+// ParseQuarterCycle parses "2026-Q1" into year and quarter
+func ParseQuarterCycle(cycle string) (int, int, error) {
+	parts := strings.Split(cycle, "-Q")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("invalid quarter cycle format: %s", cycle)
+	}
+	year, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid year in cycle: %s", cycle)
+	}
+	quarter, err := strconv.Atoi(parts[1])
+	if err != nil || quarter < 1 || quarter > 4 {
+		return 0, 0, fmt.Errorf("invalid quarter in cycle: %s", cycle)
+	}
+	return year, quarter, nil
+}
+
+// QuarterDueDate returns the due date string for a quarter, e.g. "2026-03-31"
+func QuarterDueDate(year int, quarter int) string {
+	return QuarterEnd(year, quarter).Format("2006-01-02")
+}
+
+// QuarterPeriodStart returns the start date string for a quarter
+func QuarterPeriodStart(year int, quarter int) string {
+	return QuarterStart(year, quarter).Format("2006-01-02")
 }
 
 // ListTasksUseCase lists mitigation tasks for a risk

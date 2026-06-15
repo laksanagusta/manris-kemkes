@@ -23,11 +23,11 @@ func NewMitigationTaskRepository(pool *pgxpool.Pool) repository.MitigationTaskRe
 func (r *mitigationTaskRepository) Create(ctx context.Context, task *entity.MitigationTask) error {
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO mitigation_tasks 
-		 (mitigation_id, risk_id, period_label, period_start, period_end, due_date, status, generated_by)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+		 (mitigation_id, risk_id, monitoring_id, period_label, period_start, period_end, due_date, status, generated_by, report_output, report_obstacle)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
 		 RETURNING id, created_at, updated_at`,
-		task.MitigationID, task.RiskID, task.PeriodLabel, task.PeriodStart, task.PeriodEnd,
-		task.DueDate, task.Status, task.GeneratedBy,
+		task.MitigationID, task.RiskID, task.MonitoringID, task.PeriodLabel, task.PeriodStart, task.PeriodEnd,
+		task.DueDate, task.Status, task.GeneratedBy, task.ReportOutput, task.ReportObstacle,
 	).Scan(&task.ID, &task.CreatedAt, &task.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create mitigation task: %w", err)
@@ -38,9 +38,10 @@ func (r *mitigationTaskRepository) Create(ctx context.Context, task *entity.Miti
 func (r *mitigationTaskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.MitigationTask, error) {
 	task := &entity.MitigationTask{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT t.id, t.mitigation_id, t.risk_id,
+		`SELECT t.id, t.mitigation_id, t.risk_id, t.monitoring_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
 		        t.status, t.progress_pct, t.evidence_url, t.notes,
+		        t.report_output, t.report_obstacle,
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, '') as risk_code, COALESCE(r.title, '') as risk_title,
@@ -51,9 +52,10 @@ func (r *mitigationTaskRepository) GetByID(ctx context.Context, id uuid.UUID, or
 		 LEFT JOIN users u ON t.reported_by = u.id
 		 WHERE t.id = $1 AND (cardinality($2::uuid[]) = 0 OR r.organization_id = ANY($2::uuid[]))`, id, orgIDs,
 	).Scan(
-		&task.ID, &task.MitigationID, &task.RiskID,
+		&task.ID, &task.MitigationID, &task.RiskID, &task.MonitoringID,
 		&task.PeriodLabel, &task.PeriodStart, &task.PeriodEnd, &task.DueDate,
 		&task.Status, &task.ProgressPct, &task.EvidenceURL, &task.Notes,
+		&task.ReportOutput, &task.ReportObstacle,
 		&task.ReportedBy, &task.ReportedAt, &task.GeneratedBy, &task.CreatedAt, &task.UpdatedAt,
 		&task.MitigationAction, &task.MitigationOwner,
 		&task.RiskCode, &task.RiskTitle,
@@ -69,9 +71,11 @@ func (r *mitigationTaskRepository) Update(ctx context.Context, task *entity.Miti
 	_, err := r.pool.Exec(ctx,
 		`UPDATE mitigation_tasks SET
 		 status=$2, progress_pct=$3, evidence_url=$4, notes=$5,
-		 reported_by=$6, reported_at=$7, updated_at=now()
+		 report_output=$6, report_obstacle=$7,
+		 reported_by=$8, reported_at=$9, updated_at=now()
 		 WHERE id=$1`,
 		task.ID, task.Status, task.ProgressPct, task.EvidenceURL, task.Notes,
+		task.ReportOutput, task.ReportObstacle,
 		task.ReportedBy, task.ReportedAt,
 	)
 	if err != nil {
@@ -82,9 +86,10 @@ func (r *mitigationTaskRepository) Update(ctx context.Context, task *entity.Miti
 
 func (r *mitigationTaskRepository) ListByRisk(ctx context.Context, riskID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
 	return r.queryTasks(ctx,
-		`SELECT t.id, t.mitigation_id, t.risk_id,
+		`SELECT t.id, t.mitigation_id, t.risk_id, t.monitoring_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
 		        t.status, t.progress_pct, t.evidence_url, t.notes,
+		        t.report_output, t.report_obstacle,
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
@@ -99,9 +104,10 @@ func (r *mitigationTaskRepository) ListByRisk(ctx context.Context, riskID uuid.U
 
 func (r *mitigationTaskRepository) ListByMitigation(ctx context.Context, mitigationID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
 	return r.queryTasks(ctx,
-		`SELECT t.id, t.mitigation_id, t.risk_id,
+		`SELECT t.id, t.mitigation_id, t.risk_id, t.monitoring_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
 		        t.status, t.progress_pct, t.evidence_url, t.notes,
+		        t.report_output, t.report_obstacle,
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
@@ -115,9 +121,10 @@ func (r *mitigationTaskRepository) ListByMitigation(ctx context.Context, mitigat
 }
 
 func (r *mitigationTaskRepository) ListByUser(ctx context.Context, userID uuid.UUID, status string, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
-	query := `SELECT t.id, t.mitigation_id, t.risk_id,
+	query := `SELECT t.id, t.mitigation_id, t.risk_id, t.monitoring_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
 		        t.status, t.progress_pct, t.evidence_url, t.notes,
+		        t.report_output, t.report_obstacle,
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
@@ -140,9 +147,10 @@ func (r *mitigationTaskRepository) ListByUser(ctx context.Context, userID uuid.U
 
 func (r *mitigationTaskRepository) ListPendingOverdue(ctx context.Context, refDate time.Time) ([]*entity.MitigationTask, error) {
 	return r.queryTasks(ctx,
-		`SELECT t.id, t.mitigation_id, t.risk_id,
+		`SELECT t.id, t.mitigation_id, t.risk_id, t.monitoring_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
 		        t.status, t.progress_pct, t.evidence_url, t.notes,
+		        t.report_output, t.report_obstacle,
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
@@ -190,9 +198,10 @@ func (r *mitigationTaskRepository) GetRecurringMitigations(ctx context.Context) 
 }
 
 func (r *mitigationTaskRepository) ListAll(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
-	baseQuery := `SELECT t.id, t.mitigation_id, t.risk_id,
+	baseQuery := `SELECT t.id, t.mitigation_id, t.risk_id, t.monitoring_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
 		        t.status, t.progress_pct, t.evidence_url, t.notes,
+		        t.report_output, t.report_obstacle,
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
@@ -249,9 +258,10 @@ func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs 
 
 	offset := (page - 1) * limit
 	countQuery := `SELECT COUNT(*)` + baseFrom + whereClause
-	dataQuery := `SELECT t.id, t.mitigation_id, t.risk_id,
+	dataQuery := `SELECT t.id, t.mitigation_id, t.risk_id, t.monitoring_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
 		        t.status, t.progress_pct, t.evidence_url, t.notes,
+		        t.report_output, t.report_obstacle,
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
@@ -284,6 +294,43 @@ func (r *mitigationTaskRepository) TaskExistsForPeriod(ctx context.Context, miti
 	return exists, nil
 }
 
+// ListByMonitoring returns all tasks linked to a specific monitoring
+func (r *mitigationTaskRepository) ListByMonitoring(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return r.queryTasks(ctx,
+		`SELECT t.id, t.mitigation_id, t.risk_id, t.monitoring_id,
+		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
+		        t.status, t.progress_pct, t.evidence_url, t.notes,
+		        t.report_output, t.report_obstacle,
+		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
+		        m.action, m.owner,
+		        COALESCE(r.code, ''), COALESCE(r.title, ''),
+		        COALESCE(u.name, '')
+		 FROM mitigation_tasks t
+		 JOIN mitigations m ON t.mitigation_id = m.id
+		 JOIN risks r ON t.risk_id = r.id
+		 LEFT JOIN users u ON t.reported_by = u.id
+		 WHERE t.monitoring_id = $1
+		 ORDER BY t.created_at ASC`, monitoringID)
+}
+
+// CountByMonitoringAndStatus counts tasks linked to a monitoring by status
+func (r *mitigationTaskRepository) CountByMonitoringAndStatus(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) (*repository.MonitoringTaskCounts, error) {
+	query := `
+		SELECT
+			COUNT(*) AS total,
+			COUNT(*) FILTER (WHERE status = 'done') AS done,
+			COUNT(*) FILTER (WHERE status = 'pending') AS pending
+		FROM mitigation_tasks
+		WHERE monitoring_id = $1
+	`
+	var counts repository.MonitoringTaskCounts
+	err := r.pool.QueryRow(ctx, query, monitoringID).Scan(&counts.Total, &counts.Done, &counts.Pending)
+	if err != nil {
+		return nil, fmt.Errorf("count monitoring tasks: %w", err)
+	}
+	return &counts, nil
+}
+
 // queryTasks is a shared helper to scan task rows
 func (r *mitigationTaskRepository) queryTasks(ctx context.Context, query string, args ...interface{}) ([]*entity.MitigationTask, error) {
 	rows, err := r.pool.Query(ctx, query, args...)
@@ -296,9 +343,10 @@ func (r *mitigationTaskRepository) queryTasks(ctx context.Context, query string,
 	for rows.Next() {
 		var t entity.MitigationTask
 		if err := rows.Scan(
-			&t.ID, &t.MitigationID, &t.RiskID,
+			&t.ID, &t.MitigationID, &t.RiskID, &t.MonitoringID,
 			&t.PeriodLabel, &t.PeriodStart, &t.PeriodEnd, &t.DueDate,
 			&t.Status, &t.ProgressPct, &t.EvidenceURL, &t.Notes,
+			&t.ReportOutput, &t.ReportObstacle,
 			&t.ReportedBy, &t.ReportedAt, &t.GeneratedBy, &t.CreatedAt, &t.UpdatedAt,
 			&t.MitigationAction, &t.MitigationOwner,
 			&t.RiskCode, &t.RiskTitle,

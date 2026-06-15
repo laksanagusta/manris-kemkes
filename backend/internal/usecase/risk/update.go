@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
@@ -240,7 +242,10 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		}
 	}
 	if input.Status == entity.RiskStatusApproved && !wasApproved && uc.taskRepo != nil {
-		if _, err := mtuc.NewEnsureTasksForApprovedRiskUseCase(uc.taskRepo, uc.riskRepo).Execute(ctx, existingRisk.ID, orgIDs); err != nil {
+		now := time.Now().In(timeutil.JakartaLocation())
+		year, quarter := mtuc.CurrentQuarter(now)
+		cycle := fmt.Sprintf("%d-Q%d", year, quarter)
+		if _, err := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.taskRepo, uc.riskRepo).Execute(ctx, existingRisk.ID, cycle, orgIDs); err != nil {
 			return nil, errors.Wrap(err, "failed to create mitigation tasks")
 		}
 	}
