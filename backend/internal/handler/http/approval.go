@@ -98,7 +98,7 @@ func (h *ApprovalHandler) List(c *fiber.Ctx) error {
 func (h *ApprovalHandler) GetDetail(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "approval ID is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID persetujuan wajib diisi")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -124,17 +124,17 @@ func (h *ApprovalHandler) GetDetail(c *fiber.Ctx) error {
 func (h *ApprovalHandler) Submit(c *fiber.Ctx) error {
 	var input approvaluc.SubmitApprovalInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	userRole, ok := c.Locals("role").(string)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	userName, ok := c.Locals("username").(string)
@@ -169,22 +169,22 @@ func (h *ApprovalHandler) Submit(c *fiber.Ctx) error {
 func (h *ApprovalHandler) Action(c *fiber.Ctx) error {
 	approvalID := c.Params("id")
 	if approvalID == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "approval ID is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID persetujuan wajib diisi")
 	}
 
 	var input approvaluc.ApprovalActionInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	userRole, ok := c.Locals("role").(string)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	userName, ok := c.Locals("username").(string)
@@ -216,7 +216,7 @@ func (h *ApprovalHandler) Action(c *fiber.Ctx) error {
 func (h *ApprovalHandler) GetPendingCount(c *fiber.Ctx) error {
 	userRole, ok := c.Locals("role").(string)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -247,7 +247,7 @@ func (h *ApprovalHandler) GetByEntity(c *fiber.Ctx) error {
 	entityID := c.Query("entity_id")
 
 	if requestType == "" || entityID == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "request_type and entity_id are required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "request_type dan entity_id wajib diisi")
 	}
 
 	scope := middleware.GetAccessScope(c)

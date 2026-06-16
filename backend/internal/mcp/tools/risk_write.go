@@ -13,7 +13,7 @@ import (
 )
 
 // ErrRiskNotDraft is returned when an update is attempted on a non-draft risk.
-var ErrRiskNotDraft = errors.New("can only update risks in draft status")
+var ErrRiskNotDraft = errors.New("hanya dapat memperbarui risiko dalam status draft")
 
 // RiskCreateUseCaseI defines the interface for creating a risk.
 type RiskCreateUseCaseI interface {

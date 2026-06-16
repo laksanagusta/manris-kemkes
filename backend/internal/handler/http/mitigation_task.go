@@ -40,7 +40,7 @@ func NewMitigationTaskHandler(
 func (h *MitigationTaskHandler) ListByRisk(c *fiber.Ctx) error {
 	riskID, err := uuid.Parse(c.Params("riskId"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -104,7 +104,7 @@ func (h *MitigationTaskHandler) ListAll(c *fiber.Ctx) error {
 func (h *MitigationTaskHandler) ListMyTasks(c *fiber.Ctx) error {
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -130,12 +130,12 @@ func (h *MitigationTaskHandler) ListMyTasks(c *fiber.Ctx) error {
 func (h *MitigationTaskHandler) SubmitProgress(c *fiber.Ctx) error {
 	taskID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid task ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID tugas tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -146,7 +146,7 @@ func (h *MitigationTaskHandler) SubmitProgress(c *fiber.Ctx) error {
 
 	var input mtuc.SubmitProgressInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	input.TaskID = taskID
@@ -165,12 +165,12 @@ func (h *MitigationTaskHandler) SubmitProgress(c *fiber.Ctx) error {
 func (h *MitigationTaskHandler) SubmitReport(c *fiber.Ctx) error {
 	taskID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid task ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID tugas tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -181,7 +181,7 @@ func (h *MitigationTaskHandler) SubmitReport(c *fiber.Ctx) error {
 
 	var input mtuc.SubmitMonitoringReportInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	input.TaskID = taskID
@@ -225,7 +225,7 @@ func (h *MitigationTaskHandler) TriggerGenerate(c *fiber.Ctx) error {
 func (h *MitigationTaskHandler) ListByMonitoring(c *fiber.Ctx) error {
 	monitoringID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid monitoring ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pemantauan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -249,7 +249,7 @@ func (h *MitigationTaskHandler) ListByMonitoring(c *fiber.Ctx) error {
 func (h *MitigationTaskHandler) ValidateFinalize(c *fiber.Ctx) error {
 	monitoringID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid monitoring ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pemantauan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)

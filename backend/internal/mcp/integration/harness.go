@@ -53,16 +53,16 @@ func NewMCPServerHarness(ctx context.Context, binaryPath string) (*MCPServerHarn
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create stdin pipe: %w", err)
+		return nil, fmt.Errorf("gagal membuat stdin pipe: %w", err)
 	}
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create stdout pipe: %w", err)
+		return nil, fmt.Errorf("gagal membuat stdout pipe: %w", err)
 	}
 
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start MCP server: %w", err)
+		return nil, fmt.Errorf("gagal memulai server MCP: %w", err)
 	}
 
 	harness := &MCPServerHarness{
@@ -81,7 +81,7 @@ func NewMCPServerHarness(ctx context.Context, binaryPath string) (*MCPServerHarn
 	// (DB connect + usecase wiring) completes, preventing tool-call races.
 	if err := harness.initialize(ctx); err != nil {
 		_ = harness.Close()
-		return nil, fmt.Errorf("mcp initialize handshake failed: %w", err)
+		return nil, fmt.Errorf("mcp initialize handshake gagal: %w", err)
 	}
 
 	return harness, nil
@@ -110,11 +110,11 @@ func (h *MCPServerHarness) initialize(ctx context.Context) error {
 
 	data, err := json.Marshal(req)
 	if err != nil {
-		return fmt.Errorf("marshal initialize: %w", err)
+		return fmt.Errorf("gagal marshal initialize: %w", err)
 	}
 
 	if _, err := io.WriteString(h.stdin, string(data)+"\n"); err != nil {
-		return fmt.Errorf("write initialize: %w", err)
+		return fmt.Errorf("gagal tulis initialize: %w", err)
 	}
 
 	timeout := time.After(10 * time.Second)
@@ -123,7 +123,7 @@ func (h *MCPServerHarness) initialize(ctx context.Context) error {
 		case resp := <-h.respCh:
 			if resp.ID == id {
 				if resp.Error != nil {
-					return fmt.Errorf("initialize error: %s", resp.Error.Message)
+					return fmt.Errorf("kesalahan initialize: %s", resp.Error.Message)
 				}
 				return nil
 			}
@@ -189,12 +189,12 @@ func (h *MCPServerHarness) Call(ctx context.Context, toolName string, args map[s
 
 	data, err := json.Marshal(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
+		return nil, fmt.Errorf("gagal memproses request: %w", err)
 	}
 
 	line := string(data)
 	if _, err := io.WriteString(h.stdin, line+"\n"); err != nil {
-		return nil, fmt.Errorf("failed to write request: %w", err)
+		return nil, fmt.Errorf("gagal menulis request: %w", err)
 	}
 
 	timeout := time.After(5 * time.Second)
@@ -204,7 +204,7 @@ func (h *MCPServerHarness) Call(ctx context.Context, toolName string, args map[s
 		case resp := <-h.respCh:
 			if resp.ID == id {
 				if resp.Error != nil {
-					return nil, fmt.Errorf("rpc error: %s", resp.Error.Message)
+					return nil, fmt.Errorf("kesalahan rpc: %s", resp.Error.Message)
 				}
 				return resp.Result, nil
 			}
@@ -217,7 +217,7 @@ func (h *MCPServerHarness) Call(ctx context.Context, toolName string, args map[s
 			h.mu.Lock()
 			availableResponses := len(h.responses)
 			h.mu.Unlock()
-			return nil, fmt.Errorf("request timeout (expected ID %d, have %d responses in map)", id, availableResponses)
+			return nil, fmt.Errorf("request timeout (mengharapkan ID %d, mendapat %d respons di map)", id, availableResponses)
 		}
 	}
 }

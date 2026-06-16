@@ -33,7 +33,7 @@ function makeRisk(
   };
 }
 
-test("working paper monitoring table keeps the approved 11-column order", () => {
+test("working paper monitoring table keeps the approved 10-column order", () => {
   assert.deepEqual(
     WORKING_PAPER_MONITORING_COLUMNS.map((column) => column.key),
     [
@@ -41,7 +41,6 @@ test("working paper monitoring table keeps the approved 11-column order", () => 
       "risk",
       "score",
       "trend",
-      "progress",
       "effectiveness",
       "condition",
       "obstacles",
@@ -89,18 +88,16 @@ test("buildWorkingPaperMonitoringRow maps a final monitoring evaluation", () => 
   assert.equal(row.observedScore, 12);
   assert.equal(row.observedLevelLabel, "Tinggi");
   assert.equal(row.trendLabel, "Menurun");
-  assert.equal(row.progressPercent, 75);
-  assert.equal(row.progressSummary, "Tiga aksi selesai");
   assert.equal(row.condition, "Kondisi membaik\nSatu insiden minor");
   assert.equal(row.followUp, "Selesaikan pengadaan");
   assert.equal(row.statusLabel, "Final");
   assert.deepEqual(
     row.actionItems.map((item) => item.label),
-    ["Detail Risiko Awal", "Hasil Pemantauan", "Detail Risiko Akhir"],
+    ["Detail Risiko Awal", "Hasil Pemantauan"],
   );
   assert.deepEqual(
     row.actionItems.map((item) => item.href),
-    ["/risk/register/risk-prev", "/risk/assessment/risk-1", "/risk/register/risk-1"],
+    ["/risk/register/risk-prev", "/risk/assessment/monitoring-1"],
   );
 });
 
@@ -136,10 +133,8 @@ test("buildWorkingPaperMonitoringRow hides progress for draft monitoring", () =>
     }),
   );
 
-  assert.equal(row.progressPercent, null);
-  assert.equal(row.progressSummary, "-");
   assert.equal(row.statusLabel, "Draft");
-  assert.equal(row.actionItems[0]?.href, null);
+  assert.equal(row.actionItems[0]?.href, "/risk/register/risk-1");
   assert.equal(row.actionItems[1]?.href, null);
 });
 
@@ -149,18 +144,16 @@ test("buildWorkingPaperMonitoringRow falls back for unmonitored risks", () => {
   assert.equal(row.sourceScore, 16);
   assert.equal(row.observedScore, null);
   assert.equal(row.trendLabel, "-");
-  assert.equal(row.progressSummary, "-");
   assert.equal(row.condition, "-");
   assert.equal(row.obstacles, "-");
   assert.equal(row.followUp, "-");
   assert.equal(row.statusLabel, "Belum Dimonitor");
   assert.deepEqual(
     row.actionItems.map((item) => item.label),
-    ["Detail Risiko Awal", "Hasil Pemantauan", "Detail Risiko Akhir"],
+    ["Detail Risiko Awal", "Hasil Pemantauan"],
   );
-  assert.equal(row.actionItems[0]?.href, null);
+  assert.equal(row.actionItems[0]?.href, "/risk/register/risk-1");
   assert.equal(row.actionItems[1]?.href, null);
-  assert.equal(row.actionItems[2]?.href, "/risk/register/risk-1");
 });
 
 test("buildWorkingPaperMonitoringRow uses general follow-up as fallback", () => {

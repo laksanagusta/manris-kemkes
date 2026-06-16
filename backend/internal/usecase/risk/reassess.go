@@ -53,7 +53,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 		return nil, errors.ErrInvalidInput
 	}
 	if !IsValidSemesterFormat(input.Cycle) {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return nil, errors.ErrSemesterFormat
 	}
 
 	sourceRisk, err := uc.riskRepo.GetByID(ctx, input.RiskID, input.OrgIDs)
@@ -61,7 +61,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 		return nil, errors.ErrRiskNotFound
 	}
 	if !sourceRisk.CanBeReassessed() {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "only current approved risks can be reassessed")
+		return nil, errors.ErrOnlyApprovedCurrentReassessed
 	}
 	if err := validateNoNewerCycle(ctx, uc.riskRepo, sourceRisk.VersionGroupID, input.Cycle); err != nil {
 		return nil, err

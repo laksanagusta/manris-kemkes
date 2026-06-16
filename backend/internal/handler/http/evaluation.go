@@ -87,7 +87,7 @@ func (h *EvaluationHandler) List(c *fiber.Ctx) error {
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 
 	var organizationID *uuid.UUID
@@ -95,17 +95,17 @@ func (h *EvaluationHandler) List(c *fiber.Ctx) error {
 	rawOrgID := c.Query("organization_id")
 	rawGroupID := c.Query("organization_group_id")
 	if rawOrgID != "" && rawGroupID != "" {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id and organization_group_id are mutually exclusive")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id dan organization_group_id tidak dapat digunakan bersamaan")
 	}
 	if rawOrgID != "" {
 		orgID, err := uuid.Parse(rawOrgID)
 		if err != nil {
-			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		if !scope.IsGlobal {
 			narrowed, err := scope.NarrowToOrg(orgID)
 			if err != nil {
-				return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+				return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 			}
 			orgID = narrowed[0]
 		}
@@ -115,12 +115,12 @@ func (h *EvaluationHandler) List(c *fiber.Ctx) error {
 		orgIDs, err := resolveReportOrgIDsFromQuery(c.Context(), scope, "", rawGroupID, h.groupResolver)
 		if err != nil {
 			if errors.Is(err, domainerrors.ErrForbidden) {
-				return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+				return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 			}
 			if errors.Is(err, domainerrors.ErrInvalidInput) {
-				return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id and organization_group_id are mutually exclusive")
+				return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id dan organization_group_id tidak dapat digunakan bersamaan")
 			}
-			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization group ID")
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID grup organisasi tidak valid")
 		}
 		organizationIDs = orgIDs
 	} else if !scope.IsGlobal && scope.OrganizationID != nil {
@@ -153,18 +153,18 @@ func (h *EvaluationHandler) List(c *fiber.Ctx) error {
 func (h *EvaluationHandler) Create(c *fiber.Ctx) error {
 	var input evaluationuc.CreateInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 	input.Scope = scope
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+		return sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak ditemukan dalam konteks")
 	}
 	input.CreatedBy = &userID
 
@@ -179,7 +179,7 @@ func (h *EvaluationHandler) Create(c *fiber.Ctx) error {
 func (h *EvaluationHandler) Get(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid evaluation ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID evaluasi tidak valid")
 	}
 
 	result, err := h.getUC.Execute(c.Context(), evaluationuc.GetInput{
@@ -196,12 +196,12 @@ func (h *EvaluationHandler) Get(c *fiber.Ctx) error {
 func (h *EvaluationHandler) Update(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid evaluation ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID evaluasi tidak valid")
 	}
 
 	var input evaluationuc.UpdateInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 	input.ID = id
 	input.Scope = middleware.GetAccessScope(c)
@@ -217,7 +217,7 @@ func (h *EvaluationHandler) Update(c *fiber.Ctx) error {
 func (h *EvaluationHandler) Finalize(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid evaluation ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID evaluasi tidak valid")
 	}
 
 	result, err := h.finalizeUC.Execute(c.Context(), evaluationuc.FinalizeInput{
@@ -234,7 +234,7 @@ func (h *EvaluationHandler) Finalize(c *fiber.Ctx) error {
 func (h *EvaluationHandler) Reopen(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid evaluation ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID evaluasi tidak valid")
 	}
 
 	result, err := h.reopenUC.Execute(c.Context(), evaluationuc.ReopenInput{
@@ -252,16 +252,16 @@ func (h *EvaluationHandler) ExportPDF(c *fiber.Ctx) error {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			log.Printf("panic during evaluation download %q: %v\n%s", c.Params("id"), recovered, debug.Stack())
-			_ = sendProblemDetails(c, fiber.StatusInternalServerError, "Internal Server Error", "https://api.manris.com/errors/internal-server-error", fmt.Sprintf("evaluation pdf panic: %v", recovered))
+			_ = sendProblemDetails(c, fiber.StatusInternalServerError, "Kesalahan Server Internal", "https://api.manris.com/errors/internal-server-error", fmt.Sprintf("panic pdf evaluasi: %v", recovered))
 		}
 	}()
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid evaluation ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID evaluasi tidak valid")
 	}
 	if h.exportUC == nil {
-		return sendProblemDetails(c, fiber.StatusInternalServerError, "Internal Server Error", "https://api.manris.com/errors/internal-server-error", "evaluation pdf export use case is not configured")
+		return sendProblemDetails(c, fiber.StatusInternalServerError, "Kesalahan Server Internal", "https://api.manris.com/errors/internal-server-error", "use case ekspor pdf evaluasi belum dikonfigurasi")
 	}
 
 	result, err := h.exportUC.Execute(c.Context(), evaluationuc.ExportPDFInput{
@@ -272,7 +272,7 @@ func (h *EvaluationHandler) ExportPDF(c *fiber.Ctx) error {
 		return handleError(c, err)
 	}
 	if result == nil {
-		return sendProblemDetails(c, fiber.StatusInternalServerError, "Internal Server Error", "https://api.manris.com/errors/internal-server-error", "evaluation pdf export returned empty result")
+		return sendProblemDetails(c, fiber.StatusInternalServerError, "Kesalahan Server Internal", "https://api.manris.com/errors/internal-server-error", "ekspor pdf evaluasi menghasilkan hasil kosong")
 	}
 
 	c.Set("Content-Type", "application/pdf")

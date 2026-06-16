@@ -56,7 +56,7 @@ func (h *OrganizationHandler) List(c *fiber.Ctx) error {
 func (h *OrganizationHandler) Create(c *fiber.Ctx) error {
 	var input organizationuc.CreateOrganizationInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	result, err := h.createUC.Execute(c.Context(), input)
@@ -70,7 +70,7 @@ func (h *OrganizationHandler) Create(c *fiber.Ctx) error {
 func (h *OrganizationHandler) Get(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	org, err := h.getUC.Execute(c.Context(), id)
@@ -84,12 +84,12 @@ func (h *OrganizationHandler) Get(c *fiber.Ctx) error {
 func (h *OrganizationHandler) Update(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	var input organizationuc.UpdateOrganizationInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	input.ID = id
@@ -105,7 +105,7 @@ func (h *OrganizationHandler) Update(c *fiber.Ctx) error {
 func (h *OrganizationHandler) Delete(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	result, err := h.deleteUC.Execute(c.Context(), id)
@@ -119,14 +119,14 @@ func (h *OrganizationHandler) Delete(c *fiber.Ctx) error {
 func handleOrganizationError(c *fiber.Ctx, err error) error {
 	switch {
 	case errors.IsNotFound(err):
-		return sendProblemDetails(c, fiber.StatusNotFound, "Not Found", "https://api.manris.com/errors/not-found", err.Error())
+		return sendProblemDetails(c, fiber.StatusNotFound, "Tidak Ditemukan", "https://api.manris.com/errors/not-found", err.Error())
 	case errors.IsValidation(err):
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/validation", err.Error())
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/validation", err.Error())
 	case errors.IsForbidden(err):
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", err.Error())
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", err.Error())
 	case errors.IsUnauthorized(err):
-		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", err.Error())
+		return sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", err.Error())
 	default:
-		return sendProblemDetails(c, fiber.StatusInternalServerError, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
+		return sendProblemDetails(c, fiber.StatusInternalServerError, "Kesalahan Server", "https://api.manris.com/errors/server-error", err.Error())
 	}
 }

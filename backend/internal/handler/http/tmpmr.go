@@ -48,12 +48,12 @@ func (h *TMPMRHandler) List(c *fiber.Ctx) error {
 	if raw := c.Query("organization_id"); raw != "" {
 		parsed, err := uuid.Parse(raw)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		if scope != nil && !scope.IsGlobal {
 			narrowed, err := scope.NarrowToOrg(parsed)
 			if err != nil {
-				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+				return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 			}
 			organizationID = &narrowed[0]
 		} else {
@@ -80,7 +80,7 @@ func (h *TMPMRHandler) List(c *fiber.Ctx) error {
 func (h *TMPMRHandler) Create(c *fiber.Ctx) error {
 	var input tmpmruc.CreateInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 	input.Scope = middleware.GetAccessScope(c)
 
@@ -95,7 +95,7 @@ func (h *TMPMRHandler) Create(c *fiber.Ctx) error {
 func (h *TMPMRHandler) Get(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid tmpmr assessment ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID penilaian TMPMR tidak valid")
 	}
 
 	result, err := h.getUC.Execute(c.Context(), tmpmruc.GetInput{
@@ -112,12 +112,12 @@ func (h *TMPMRHandler) Get(c *fiber.Ctx) error {
 func (h *TMPMRHandler) Update(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid tmpmr assessment ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID penilaian TMPMR tidak valid")
 	}
 
 	var input tmpmruc.UpdateInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 	input.ID = id
 	input.Scope = middleware.GetAccessScope(c)
@@ -133,7 +133,7 @@ func (h *TMPMRHandler) Update(c *fiber.Ctx) error {
 func (h *TMPMRHandler) Submit(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid tmpmr assessment ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID penilaian TMPMR tidak valid")
 	}
 
 	result, err := h.submitUC.Execute(c.Context(), tmpmruc.SubmitInput{
@@ -150,7 +150,7 @@ func (h *TMPMRHandler) Submit(c *fiber.Ctx) error {
 func (h *TMPMRHandler) Review(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid tmpmr assessment ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID penilaian TMPMR tidak valid")
 	}
 
 	var input struct {
@@ -158,7 +158,7 @@ func (h *TMPMRHandler) Review(c *fiber.Ctx) error {
 		ReviewNote string     `json:"reviewNote"`
 	}
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	result, err := h.reviewUC.Execute(c.Context(), tmpmruc.ReviewInput{
@@ -177,7 +177,7 @@ func (h *TMPMRHandler) Review(c *fiber.Ctx) error {
 func (h *TMPMRHandler) Approve(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid tmpmr assessment ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID penilaian TMPMR tidak valid")
 	}
 
 	result, err := h.approveUC.Execute(c.Context(), tmpmruc.ApproveInput{

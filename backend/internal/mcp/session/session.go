@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	ErrNoSession      = errors.New("no session")
-	ErrSessionExpired = errors.New("session expired")
+	ErrNoSession      = errors.New("tidak ada sesi")
+	ErrSessionExpired = errors.New("sesi kedaluwarsa")
 )
 
 type Session struct {

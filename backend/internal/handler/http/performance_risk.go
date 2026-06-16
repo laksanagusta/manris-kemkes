@@ -68,7 +68,7 @@ func (h *PerformanceRiskHandler) Detail(c *fiber.Ctx) error {
 
 	roID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid RO ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID RO tidak valid")
 	}
 
 	result, err := h.detailUC.Execute(c.Context(), performanceriskuc.DetailInput{Input: input, ROID: roID})
@@ -97,13 +97,13 @@ func (h *PerformanceRiskHandler) parseInput(c *fiber.Ctx) (performanceriskuc.Inp
 	if raw := c.Query("planning_id"); raw != "" {
 		parsed, err := uuid.Parse(raw)
 		if err != nil {
-			_ = sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid planning ID")
+			_ = sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID perencanaan tidak valid")
 			return performanceriskuc.Input{}, false
 		}
 		planningID = &parsed
 	}
 	if period == "" && planningID == nil {
-		_ = sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "period query parameter is required")
+		_ = sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "parameter kueri period wajib diisi")
 		return performanceriskuc.Input{}, false
 	}
 
@@ -111,14 +111,14 @@ func (h *PerformanceRiskHandler) parseInput(c *fiber.Ctx) (performanceriskuc.Inp
 	orgIDs, err := resolveReportOrgIDsFromQuery(c.Context(), scope, c.Query("org_id"), c.Query("organization_group_id"), h.groupResolver)
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			_ = sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			_ = sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 			return performanceriskuc.Input{}, false
 		}
 		if errors.Is(err, domainerrors.ErrInvalidInput) {
-			_ = sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id and organization_group_id are mutually exclusive")
+			_ = sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id dan organization_group_id tidak dapat digunakan bersamaan")
 			return performanceriskuc.Input{}, false
 		}
-		_ = sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		_ = sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		return performanceriskuc.Input{}, false
 	}
 

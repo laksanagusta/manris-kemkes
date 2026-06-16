@@ -24,11 +24,11 @@ func NewCBARepository(ai repository.AIRepository) repository.CBARepository {
 // RecommendVariables generates CBA variable recommendations
 func (r *cbaRepository) RecommendVariables(ctx context.Context, riskDescription string, orgContext string) (*entity.CBARecommendation, error) {
 	if r.ai.client == nil {
-		return nil, fmt.Errorf("OpenAI client is not configured")
+		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	if riskDescription == "" {
-		return nil, fmt.Errorf("risk description is required")
+		return nil, fmt.Errorf("deskripsi risiko wajib diisi")
 	}
 
 	prompt := r.buildRecommendPrompt(riskDescription)
@@ -42,7 +42,7 @@ func (r *cbaRepository) RecommendVariables(ctx context.Context, riskDescription 
 
 	var recommendation entity.CBARecommendation
 	if err := json.Unmarshal([]byte(content), &recommendation); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
 	}
 
 	jsn, _ := json.Marshal(recommendation)

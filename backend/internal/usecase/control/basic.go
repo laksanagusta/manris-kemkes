@@ -111,7 +111,7 @@ func (uc *UpdateControlUseCase) Execute(ctx context.Context, input UpdateControl
 	if input.RiskID != nil {
 		_, err := uc.riskRepo.GetByID(ctx, *input.RiskID, orgIDs)
 		if err != nil {
-			return nil, errors.Wrap(err, "linked risk not found")
+			return nil, errors.ErrLinkedRiskNotFound
 		}
 	}
 
@@ -119,7 +119,7 @@ func (uc *UpdateControlUseCase) Execute(ctx context.Context, input UpdateControl
 	if input.OrganizationID != nil {
 		_, err := uc.orgRepo.GetByID(ctx, *input.OrganizationID)
 		if err != nil {
-			return nil, errors.Wrap(err, "organization not found")
+			return nil, errors.ErrOrganizationNotFound
 		}
 	}
 

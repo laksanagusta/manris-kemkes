@@ -36,18 +36,18 @@ func IsValidAnyCycleFormat(cycle string) bool {
 
 func CycleIndex(cycle string) (int, error) {
 	if !IsValidAnyCycleFormat(cycle) {
-		return 0, apperrors.Wrap(apperrors.ErrInvalidInput, "assessment_cycle must be in YYYY-QN or YYYY-HN format (e.g. 2026-Q1 or 2026-H1)")
+		return 0, apperrors.ErrAnyCycleFormat
 	}
 
 	year, err := strconv.Atoi(cycle[:4])
 	if err != nil {
-		return 0, apperrors.Wrap(apperrors.ErrInvalidInput, "invalid assessment_cycle year")
+		return 0, apperrors.Wrap(apperrors.ErrInvalidInput, "tahun dalam assessment_cycle tidak valid")
 	}
 
 	if cycleFormatRe.MatchString(cycle) {
 		quarter, err := strconv.Atoi(cycle[6:])
 		if err != nil {
-			return 0, apperrors.Wrap(apperrors.ErrInvalidInput, "invalid assessment_cycle quarter")
+			return 0, apperrors.Wrap(apperrors.ErrInvalidInput, "kuartal dalam assessment_cycle tidak valid")
 		}
 		return year*4 + (quarter - 1), nil
 	}
@@ -59,7 +59,7 @@ func CycleIndex(cycle string) (int, error) {
 	case "H2":
 		return year*4 + 3, nil
 	default:
-		return 0, apperrors.Wrap(apperrors.ErrInvalidInput, "invalid assessment_cycle half")
+		return 0, apperrors.Wrap(apperrors.ErrInvalidInput, "setengah tahun dalam assessment_cycle tidak valid")
 	}
 }
 
@@ -85,7 +85,7 @@ func CompareCycles(a string, b string) (int, error) {
 
 func SemesterToTargetQuarter(semesterCycle string) (string, error) {
 	if !IsValidSemesterFormat(semesterCycle) {
-		return "", apperrors.Wrap(apperrors.ErrInvalidInput, "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return "", apperrors.ErrSemesterFormat
 	}
 
 	year := semesterCycle[:4]
@@ -97,13 +97,13 @@ func SemesterToTargetQuarter(semesterCycle string) (string, error) {
 	case "H2":
 		return fmt.Sprintf("%s-Q4", year), nil
 	default:
-		return "", apperrors.Wrap(apperrors.ErrInvalidInput, "invalid assessment_cycle half")
+		return "", apperrors.Wrap(apperrors.ErrInvalidInput, "setengah tahun dalam assessment_cycle tidak valid")
 	}
 }
 
 func QuarterToAssessmentSemester(quarterCycle string) (string, error) {
 	if !IsValidCycleFormat(quarterCycle) {
-		return "", apperrors.Wrap(apperrors.ErrInvalidInput, "assessment_cycle must be in YYYY-QN format (e.g. 2026-Q1)")
+		return "", apperrors.ErrCycleFormat
 	}
 
 	year := quarterCycle[:4]
@@ -115,6 +115,6 @@ func QuarterToAssessmentSemester(quarterCycle string) (string, error) {
 	case "3", "4":
 		return fmt.Sprintf("%s-H2", year), nil
 	default:
-		return "", apperrors.Wrap(apperrors.ErrInvalidInput, "invalid assessment_cycle quarter")
+		return "", apperrors.Wrap(apperrors.ErrInvalidInput, "kuartal dalam assessment_cycle tidak valid")
 	}
 }

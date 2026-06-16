@@ -27,13 +27,13 @@ func NewPlanningHierarchyHandler(
 func (h *PlanningHierarchyHandler) ListROOptions(c *fiber.Ctx) error {
 	orgID, err := uuid.Parse(c.Query("organization_id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 	var planningID *uuid.UUID
 	if raw := c.Query("planning_id"); raw != "" {
 		parsed, err := uuid.Parse(raw)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid planning ID")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID perencanaan tidak valid")
 		}
 		planningID = &parsed
 	}
@@ -59,7 +59,7 @@ func (h *PlanningHierarchyHandler) ListObjectiveCompatibility(c *fiber.Ctx) erro
 	if raw := c.Query("organization_id"); raw != "" {
 		parsed, err := uuid.Parse(raw)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		organizationID = &parsed
 	}

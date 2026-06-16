@@ -64,7 +64,7 @@ func (uc *CreateControlUseCase) Execute(ctx context.Context, input CreateControl
 	if input.RiskID != nil {
 		_, err := uc.riskRepo.GetByID(ctx, *input.RiskID, input.OrgIDs)
 		if err != nil {
-			return nil, errors.Wrap(err, "linked risk not found")
+			return nil, errors.ErrLinkedRiskNotFound
 		}
 	}
 
@@ -72,7 +72,7 @@ func (uc *CreateControlUseCase) Execute(ctx context.Context, input CreateControl
 	if input.OrganizationID != nil {
 		_, err := uc.orgRepo.GetByID(ctx, *input.OrganizationID)
 		if err != nil {
-			return nil, errors.Wrap(err, "organization not found")
+			return nil, errors.ErrOrganizationNotFound
 		}
 	}
 

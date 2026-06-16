@@ -50,19 +50,19 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) (*R
 	}
 
 	if input.OrganizationID == nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "organization is required")
+		return nil, errors.ErrOrganizationRequired
 	}
 
 	if _, err := uc.orgRepo.GetByID(ctx, *input.OrganizationID); err != nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "organization not found")
+		return nil, errors.ErrOrganizationNotFound
 	}
 
 	if existingUser, err := uc.userRepo.GetByUsername(ctx, input.Email); err == nil && existingUser != nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "email already exists")
+		return nil, errors.ErrEmailAlreadyExists
 	}
 
 	if existingUser, err := uc.userRepo.GetByNIP(ctx, input.NIP); err == nil && existingUser != nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "nip already exists")
+		return nil, errors.ErrNIPAlreadyExists
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
@@ -114,13 +114,13 @@ func validateRegisterInput(input RegisterInput) error {
 		return errors.ErrInvalidPassword
 	}
 	if input.Password != input.ConfirmPassword {
-		return errors.Wrap(errors.ErrInvalidInput, "password confirmation does not match")
+		return errors.ErrPasswordConfirmation
 	}
 	if input.NIP == "" {
-		return errors.Wrap(errors.ErrInvalidInput, "nip cannot be empty")
+		return errors.ErrNIPRequired
 	}
 	if input.PhoneNumber == "" {
-		return errors.Wrap(errors.ErrInvalidInput, "phone number cannot be empty")
+		return errors.ErrPhoneRequired
 	}
 	return nil
 }

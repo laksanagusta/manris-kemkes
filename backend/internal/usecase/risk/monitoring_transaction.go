@@ -25,6 +25,7 @@ type monitoringTransactionRepository interface {
 	GetDraftBySourceAndCycle(ctx context.Context, sourceRiskID uuid.UUID, cycle string) (*entity.RiskMonitoring, error)
 	HasFinalizedForSourceAndCycle(ctx context.Context, sourceRiskID uuid.UUID, cycle string) (bool, error)
 	GetByVersionGroupAndCycle(ctx context.Context, versionGroupID uuid.UUID, cycle string) (*entity.RiskMonitoring, error)
+	ListByVersionGroup(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.RiskMonitoring, error)
 	Create(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	UpdateDraft(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error)
@@ -127,7 +128,7 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 		return nil, errors.ErrInvalidInput
 	}
 	if !IsValidCycleFormat(input.Cycle) {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "assessment_cycle must be in YYYY-QN format (e.g. 2026-Q1)")
+		return nil, errors.ErrCycleFormat
 	}
 
 	sourceRisk, err := uc.riskRepo.GetByID(ctx, input.SourceRiskID, input.OrgIDs)
@@ -135,14 +136,18 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 		return nil, errors.ErrRiskNotFound
 	}
 	if !sourceRisk.CanBeReassessed() {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "only current approved risks can be monitored")
+		return nil, errors.ErrOnlyApprovedCurrentMonitored
+	}
+
+	if err := uc.validateNoNewerQuarter(ctx, sourceRisk.VersionGroupID, input.Cycle); err != nil {
+		return nil, err
 	}
 
 	if existing, err := uc.monitoringRepo.GetByVersionGroupAndCycle(ctx, sourceRisk.VersionGroupID, input.Cycle); err != nil {
 		return nil, errors.Wrap(err, "failed to check existing monitoring for this risk")
 	} else if existing != nil {
 		if existing.Status == entity.RiskMonitoringStatusFinalized {
-			return nil, errors.Wrap(errors.ErrInvalidStatus, "a finalized monitoring already exists for this cycle")
+			return nil, errors.ErrMonitoringAlreadyFinalized
 		}
 		return &StartMonitoringOutput{
 			Monitoring:    existing,
@@ -198,7 +203,7 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 		return nil, errors.ErrRiskNotFound
 	}
 	if monitoring.Status != entity.RiskMonitoringStatusDraft {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "only draft monitoring transactions can be updated")
+		return nil, errors.ErrMonitoringNotDraft
 	}
 
 	sourceRisk, err := uc.riskRepo.GetByID(ctx, monitoring.SourceRiskID, input.OrgIDs)
@@ -206,7 +211,7 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 		return nil, errors.ErrRiskNotFound
 	}
 	if !sourceRisk.CanBeReassessed() {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "source risk is no longer active")
+		return nil, errors.ErrSourceRiskNoLongerActive
 	}
 
 	mode, changedFields := entity.DetectRiskMonitoringMode(sourceRisk, &input.Values)
@@ -266,7 +271,7 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		return nil, errors.ErrRiskNotFound
 	}
 	if monitoring.Status != entity.RiskMonitoringStatusDraft {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "only draft monitoring transactions can be finalized")
+		return nil, errors.ErrMonitoringNotFinalizable
 	}
 
 	if uc.taskRepo != nil {
@@ -276,7 +281,7 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		}
 		if counts.Pending > 0 {
 			return nil, fmt.Errorf(
-				"cannot finalize: %d of %d mitigation tasks are still pending (not reported)",
+				"tidak dapat memfinalisasi: %d dari %d tugas mitigasi masih tertunda (belum dilaporkan)",
 				counts.Pending, counts.Total,
 			)
 		}
@@ -287,7 +292,7 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		return nil, errors.ErrRiskNotFound
 	}
 	if !sourceRisk.IsApprovedCurrent() {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "source risk is no longer active")
+		return nil, errors.ErrSourceRiskNoLongerActive
 	}
 
 	resultRisk, err := buildRiskVersionFromMonitoring(sourceRisk, monitoring, input.FinalizedBy)
@@ -315,6 +320,30 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		Monitoring: finalizedMonitoring,
 		Message:    "monitoring transaction finalized",
 	}, nil
+}
+
+func (uc *StartMonitoringUseCase) validateNoNewerQuarter(ctx context.Context, versionGroupID uuid.UUID, requestedCycle string) error {
+	list, err := uc.monitoringRepo.ListByVersionGroup(ctx, versionGroupID)
+	if err != nil {
+		return errors.Wrap(err, "failed to check existing monitorings")
+	}
+
+	for _, m := range list {
+		if m.Status != entity.RiskMonitoringStatusDraft && m.Status != entity.RiskMonitoringStatusFinalized {
+			continue
+		}
+
+		cmp, err := CompareCycles(m.AssessmentCycle, requestedCycle)
+		if err != nil {
+			continue
+		}
+
+		if cmp > 0 {
+			return errors.ErrBackQuarterMsg(requestedCycle, m.AssessmentCycle)
+		}
+	}
+
+	return nil
 }
 
 func nextQuarterCycle(cycle string) string {

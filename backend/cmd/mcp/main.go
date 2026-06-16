@@ -95,7 +95,7 @@ func main() {
 
 	container, err := bootstrap.Build(ctx, cfg)
 	if err != nil {
-		log.Fatalf("failed to build container: %v", err)
+		log.Fatalf("gagal membangun container: %v", err)
 	}
 	defer container.Close()
 
@@ -124,6 +124,6 @@ func main() {
 	}()
 
 	if err := server.ServeStdio(mcpServer); err != nil {
-		log.Fatalf("stdio server error: %v", err)
+		log.Fatalf("kesalahan server stdio: %v", err)
 	}
 }

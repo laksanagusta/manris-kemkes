@@ -66,7 +66,7 @@ type ExportPDFOutput struct {
 
 func (uc *ExportPDFUseCase) Execute(ctx context.Context, input ExportPDFInput) (*ExportPDFOutput, error) {
 	if uc == nil || uc.repo == nil || uc.orgRepo == nil || uc.renderer == nil {
-		return nil, errors.Wrap(errors.ErrInternal, "evaluation pdf export dependencies are not configured")
+		return nil, errors.ErrEvalPDFDepsNotConfigured
 	}
 
 	evaluation, err := uc.repo.GetByID(ctx, input.ID)
@@ -102,7 +102,7 @@ func (uc *ExportPDFUseCase) Execute(ctx context.Context, input ExportPDFInput) (
 		return nil, errors.Wrap(err, "failed to render evaluation pdf")
 	}
 	if len(pdfBytes) == 0 {
-		return nil, errors.Wrap(errors.ErrInternal, "evaluation pdf renderer returned empty bytes")
+		return nil, errors.ErrEvalPDFEmpty
 	}
 
 	return &ExportPDFOutput{

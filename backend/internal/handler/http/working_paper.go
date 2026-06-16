@@ -54,23 +54,23 @@ type createSignatoryRequest struct {
 func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 	var req createWorkingPaperRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "no organization scope")
+		return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak ada cakupan organisasi")
 	}
 
 	var accessibleOrgIDs []uuid.UUID
 	if !scope.IsGlobal {
 		if len(scope.AccessibleOrgIDs) == 0 {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "no organization scope")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak ada cakupan organisasi")
 		}
 		accessibleOrgIDs = scope.AccessibleOrgIDs
 	}
@@ -118,13 +118,13 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 func (h *WorkingPaperHandler) PreviewRoster(c *fiber.Ctx) error {
 	orgID, err := uuid.Parse(strings.TrimSpace(c.Query("organization_id")))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id tidak valid")
 	}
 	cycle := strings.TrimSpace(c.Query("assessment_cycle"))
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "no organization scope")
+		return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak ada cakupan organisasi")
 	}
 
 	var accessibleOrgIDs []uuid.UUID
@@ -155,7 +155,7 @@ func (h *WorkingPaperHandler) List(c *fiber.Ctx) error {
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	if createdAt != "" {
 		if _, err := time.Parse("2006-01-02", createdAt); err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid created_at date")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "tanggal created_at tidak valid")
 		}
 	}
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
@@ -186,7 +186,7 @@ func (h *WorkingPaperHandler) List(c *fiber.Ctx) error {
 func (h *WorkingPaperHandler) Get(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid working paper ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID kertas kerja tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -207,31 +207,31 @@ func (h *WorkingPaperHandler) Get(c *fiber.Ctx) error {
 func (h *WorkingPaperHandler) Delete(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid working paper ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID kertas kerja tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	if err := h.uc.Delete(c.Context(), id, userID); err != nil {
 		return handleWPError(c, err)
 	}
 
-	return c.JSON(fiber.Map{"message": "working paper deleted"})
+	return c.JSON(fiber.Map{"message": "kertas kerja dihapus"})
 }
 
 // Sign handles POST /working-papers/:id/sign.
 func (h *WorkingPaperHandler) Sign(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid working paper ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID kertas kerja tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	wp, err := h.uc.Sign(c.Context(), id, userID)
@@ -246,12 +246,12 @@ func (h *WorkingPaperHandler) Sign(c *fiber.Ctx) error {
 func (h *WorkingPaperHandler) StartSigning(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid working paper ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID kertas kerja tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	wp, err := h.uc.StartSigning(c.Context(), id, userID)
@@ -266,31 +266,31 @@ func (h *WorkingPaperHandler) StartSigning(c *fiber.Ctx) error {
 func (h *WorkingPaperHandler) Cancel(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid working paper ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID kertas kerja tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	if err := h.uc.Cancel(c.Context(), id, userID); err != nil {
 		return handleWPError(c, err)
 	}
 
-	return c.JSON(fiber.Map{"message": "working paper cancelled"})
+	return c.JSON(fiber.Map{"message": "kertas kerja dibatalkan"})
 }
 
 // SkipTTE handles POST /working-papers/:id/skip-tte.
 func (h *WorkingPaperHandler) SkipTTE(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid working paper ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID kertas kerja tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	wp, err := h.uc.SkipTTE(c.Context(), id, userID)
@@ -305,7 +305,7 @@ func (h *WorkingPaperHandler) SkipTTE(c *fiber.Ctx) error {
 func (h *WorkingPaperHandler) GetPendingSigningCount(c *fiber.Ctx) error {
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	count, err := h.wpRepo.CountPendingSigningByUserID(c.Context(), userID)
@@ -332,7 +332,7 @@ type pendingSigningItem struct {
 func (h *WorkingPaperHandler) ListPendingSigning(c *fiber.Ctx) error {
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -374,12 +374,12 @@ func handleWPError(c *fiber.Ctx, err error) error {
 	if errors.As(err, &appErr) {
 		switch appErr.Code {
 		case "INVALID_STATUS", "ROSTER_STALE", "MONITORING_CONFLICT", "SEMESTER_CONFLICT":
-			return sendProblemDetails(c, fiber.StatusConflict, "Conflict", "https://api.manris.com/errors/conflict", appErr.Message)
+			return sendProblemDetails(c, fiber.StatusConflict, "Konflik", "https://api.manris.com/errors/conflict", appErr.Message)
 		case "MONITORING_INCOMPLETE":
 			return sendProblemDetailsWithDetails(
 				c,
 				fiber.StatusConflict,
-				"Monitoring Incomplete",
+				"Pemantauan Belum Lengkap",
 				"https://api.manris.com/errors/monitoring-incomplete",
 				appErr.Message,
 				appErr.Details,

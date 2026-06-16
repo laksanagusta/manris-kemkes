@@ -49,7 +49,7 @@ func (uc *UpdateUseCase) Execute(ctx context.Context, input UpdateInput) (*entit
 		return nil, errors.ErrForbidden
 	}
 	if existing.Status == entity.EvaluationStatusFinal {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "only draft evaluations can be updated")
+		return nil, errors.ErrOnlyDraftEvaluationUpdated
 	}
 
 	updated := *existing
@@ -78,7 +78,7 @@ func (uc *UpdateUseCase) Execute(ctx context.Context, input UpdateInput) (*entit
 		return nil, errors.Wrap(err, "failed to validate evaluation uniqueness")
 	}
 	if exists {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "evaluation already exists for organization and period")
+		return nil, errors.ErrEvaluationExists
 	}
 
 	if len(input.Sections) > 0 {

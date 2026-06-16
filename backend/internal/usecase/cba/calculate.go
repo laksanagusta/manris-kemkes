@@ -29,10 +29,10 @@ func NewCalculateUseCase() *CalculateUseCase {
 // Execute performs the CBA calculation
 func (uc *CalculateUseCase) Execute(ctx context.Context, input CalculateInput) (*entity.CBACalculationResult, error) {
 	if len(input.CostOfInactionVars) == 0 {
-		return nil, fmt.Errorf("cost of inaction variables are required")
+		return nil, fmt.Errorf("variabel biaya tanpa tindakan wajib diisi")
 	}
 	if len(input.CostOfActionVars) == 0 {
-		return nil, fmt.Errorf("cost of action variables are required")
+		return nil, fmt.Errorf("variabel biaya tindakan wajib diisi")
 	}
 
 	// Clamp percentages

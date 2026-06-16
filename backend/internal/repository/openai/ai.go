@@ -38,7 +38,7 @@ func NewAIRepository(apiKey string, riskRepo repository.RiskRepository, modelPro
 // GenerateFishbone generates root cause analysis using fishbone diagram
 func (r *aiRepository) GenerateFishbone(ctx context.Context, req entity.AIRequest, orgContext string) (*entity.FishboneAnalysis, error) {
 	if r.client == nil {
-		return nil, fmt.Errorf("OpenAI client is not configured")
+		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	// Validate input
@@ -58,7 +58,7 @@ func (r *aiRepository) GenerateFishbone(ctx context.Context, req entity.AIReques
 	// Parse response
 	var analysis entity.FishboneAnalysis
 	if err := json.Unmarshal([]byte(content), &analysis); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
 	}
 
 	return &analysis, nil
@@ -67,7 +67,7 @@ func (r *aiRepository) GenerateFishbone(ctx context.Context, req entity.AIReques
 // GenerateImpact generates impact description for a risk
 func (r *aiRepository) GenerateImpact(ctx context.Context, req entity.AIRequest, orgContext string) (string, error) {
 	if r.client == nil {
-		return "", fmt.Errorf("OpenAI client is not configured")
+		return "", fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	prompt := r.buildImpactPrompt(req.Title, req.Description)
@@ -83,7 +83,7 @@ func (r *aiRepository) GenerateImpact(ctx context.Context, req entity.AIRequest,
 // GenerateMitigation generates mitigation action recommendations
 func (r *aiRepository) GenerateMitigation(ctx context.Context, req entity.AIRequest, orgContext string) (entity.MitigationAction, error) {
 	if r.client == nil {
-		return nil, fmt.Errorf("OpenAI client is not configured")
+		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	prompt := r.buildMitigationPrompt(req.Title, req.Description, req.Cause, req.Impact)
@@ -99,7 +99,7 @@ func (r *aiRepository) GenerateMitigation(ctx context.Context, req entity.AIRequ
 	// Parse response
 	var actions entity.MitigationAction
 	if err := json.Unmarshal([]byte(content), &actions); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
 	}
 
 	return actions, nil
@@ -108,7 +108,7 @@ func (r *aiRepository) GenerateMitigation(ctx context.Context, req entity.AIRequ
 // GenerateMeetingMinutes generates structured meeting minutes from transcript
 func (r *aiRepository) GenerateMeetingMinutes(ctx context.Context, transcript string, orgContext string) (*entity.MeetingMinutes, error) {
 	if r.client == nil {
-		return nil, fmt.Errorf("OpenAI client is not configured")
+		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	prompt := r.buildMinutesPrompt(transcript)
@@ -124,7 +124,7 @@ func (r *aiRepository) GenerateMeetingMinutes(ctx context.Context, transcript st
 	// Parse response
 	var minutes entity.MeetingMinutes
 	if err := json.Unmarshal([]byte(content), &minutes); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
 	}
 
 	return &minutes, nil
@@ -133,7 +133,7 @@ func (r *aiRepository) GenerateMeetingMinutes(ctx context.Context, transcript st
 // AnalyzeTranscript analyzes meeting transcript and extracts risk suggestions
 func (r *aiRepository) AnalyzeTranscript(ctx context.Context, transcript string, orgContext string) (*entity.TranscriptAnalysis, error) {
 	if r.client == nil {
-		return nil, fmt.Errorf("OpenAI client is not configured")
+		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	existingRisks, err := r.riskRepo.List(ctx, nil, "", "")
@@ -172,7 +172,7 @@ func (r *aiRepository) AnalyzeTranscript(ctx context.Context, transcript string,
 	// Parse response
 	var analysis entity.TranscriptAnalysis
 	if err := json.Unmarshal([]byte(content), &analysis); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
 	}
 
 	return &analysis, nil
@@ -181,7 +181,7 @@ func (r *aiRepository) AnalyzeTranscript(ctx context.Context, transcript string,
 // GeneratePredictive generates predictive risk scoring based on historical data
 func (r *aiRepository) GeneratePredictive(ctx context.Context, risks []entity.Risk, orgContext string) ([]entity.PredictiveRisk, error) {
 	if r.client == nil {
-		return nil, fmt.Errorf("OpenAI client is not configured")
+		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	// Limit to top 10 risks
@@ -207,7 +207,7 @@ func (r *aiRepository) GeneratePredictive(ctx context.Context, risks []entity.Ri
 	// Parse response
 	var predictions []entity.PredictiveRisk
 	if err := json.Unmarshal([]byte(content), &predictions); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
 	}
 
 	return predictions, nil
@@ -216,7 +216,7 @@ func (r *aiRepository) GeneratePredictive(ctx context.Context, risks []entity.Ri
 // GenerateRiskSuggestions generates unique risk suggestions different from existing ones
 func (r *aiRepository) GenerateRiskSuggestions(ctx context.Context, orgContext string) (*entity.RiskSuggestions, error) {
 	if r.client == nil {
-		return nil, fmt.Errorf("OpenAI client is not configured")
+		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	// Fetch existing risks
@@ -254,7 +254,7 @@ func (r *aiRepository) GenerateRiskSuggestions(ctx context.Context, orgContext s
 	// Parse response
 	var suggestions entity.RiskSuggestions
 	if err := json.Unmarshal([]byte(content), &suggestions); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
 	}
 
 	return &suggestions, nil
@@ -263,7 +263,7 @@ func (r *aiRepository) GenerateRiskSuggestions(ctx context.Context, orgContext s
 // GenerateIncidentBatchExtraction extracts one or more incident candidates from a PDF-derived text document.
 func (r *aiRepository) GenerateIncidentBatchExtraction(ctx context.Context, req entity.IncidentExtractionRequest, orgContext string) (*entity.IncidentBatchExtraction, error) {
 	if r.client == nil {
-		return nil, fmt.Errorf("OpenAI client is not configured")
+		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	riskCandidatesJSON, err := r.buildIncidentRiskCandidatesJSON(ctx, req.OrganizationID)
@@ -281,7 +281,7 @@ func (r *aiRepository) GenerateIncidentBatchExtraction(ctx context.Context, req 
 
 	var extraction entity.IncidentBatchExtraction
 	if err := json.Unmarshal([]byte(content), &extraction); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
 	}
 
 	extraction.SourcePreview = truncateText(strings.TrimSpace(req.DocumentText), 1200)
@@ -291,7 +291,7 @@ func (r *aiRepository) GenerateIncidentBatchExtraction(ctx context.Context, req 
 // GenerateManualIncidentRiskSuggestions suggests related risks for a manual incident form input.
 func (r *aiRepository) GenerateManualIncidentRiskSuggestions(ctx context.Context, req entity.ManualIncidentRiskSuggestionRequest, orgContext string) ([]entity.IncidentRiskSuggestion, error) {
 	if r.client == nil {
-		return nil, fmt.Errorf("OpenAI client is not configured")
+		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	riskCandidatesJSON, err := r.buildIncidentRiskCandidatesJSON(ctx, req.OrganizationID)
@@ -316,7 +316,7 @@ func (r *aiRepository) GenerateManualIncidentRiskSuggestions(ctx context.Context
 
 	var suggestions []entity.IncidentRiskSuggestion
 	if err := json.Unmarshal([]byte(content), &suggestions); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
 	}
 
 	return suggestions, nil
@@ -356,7 +356,7 @@ func (r *aiRepository) callOpenAI(ctx context.Context, prompt string, systemMess
 	}
 
 	if len(resp.Choices) == 0 {
-		return "", fmt.Errorf("OpenAI returned no choices")
+		return "", fmt.Errorf("OpenAI tidak mengembalikan pilihan")
 	}
 
 	return resp.Choices[0].Message.Content, nil
@@ -398,7 +398,7 @@ func (r *aiRepository) callOpenAIJSON(ctx context.Context, prompt string, system
 	}
 
 	if len(resp.Choices) == 0 {
-		return "", fmt.Errorf("OpenAI returned no choices")
+		return "", fmt.Errorf("OpenAI tidak mengembalikan pilihan")
 	}
 
 	choice := resp.Choices[0]
@@ -406,13 +406,13 @@ func (r *aiRepository) callOpenAIJSON(ctx context.Context, prompt string, system
 	log.Printf("OpenAI JSON feature=%s finish_reason=%s content_length=%d", feature, choice.FinishReason, len(content))
 
 	if choice.FinishReason == openai.FinishReasonLength {
-		return "", fmt.Errorf("OpenAI response was truncated before completing JSON")
+		return "", fmt.Errorf("respons OpenAI terpotong sebelum JSON selesai")
 	}
 	if choice.FinishReason == openai.FinishReasonContentFilter {
-		return "", fmt.Errorf("OpenAI response was blocked by content filter")
+		return "", fmt.Errorf("respons OpenAI diblokir oleh filter konten")
 	}
 	if content == "" {
-		return "", fmt.Errorf("OpenAI returned empty JSON response")
+		return "", fmt.Errorf("OpenAI mengembalikan respons JSON kosong")
 	}
 
 	return content, nil
@@ -819,7 +819,7 @@ func truncateText(value string, limit int) string {
 // GenerateKRI generates KRI suggestions for a given risk
 func (r *aiRepository) GenerateKRI(ctx context.Context, req entity.AIRequest, orgContext string) (*entity.KRISuggestions, error) {
 	if r.client == nil {
-		return nil, fmt.Errorf("OpenAI client is not configured")
+		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	if err := req.Validate(); err != nil {
@@ -839,7 +839,7 @@ func (r *aiRepository) GenerateKRI(ctx context.Context, req entity.AIRequest, or
 	// Parse response
 	var suggestions entity.KRISuggestions
 	if err := json.Unmarshal([]byte(content), &suggestions); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
 	}
 
 	return &suggestions, nil
@@ -847,7 +847,7 @@ func (r *aiRepository) GenerateKRI(ctx context.Context, req entity.AIRequest, or
 
 func (r *aiRepository) AnalyzeDocument(ctx context.Context, req entity.DocumentAnalysisRequest, orgContext string) (*entity.DocumentIntelligenceResult, error) {
 	if r.client == nil {
-		return nil, fmt.Errorf("OpenAI client is not configured")
+		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
 	}
 
 	prompt := r.buildDocumentIntelligencePrompt(req)
@@ -872,7 +872,7 @@ func (r *aiRepository) AnalyzeDocument(ctx context.Context, req entity.DocumentA
 func parseDocumentIntelligenceResult(mode entity.DocumentAnalysisMode, content string) (*entity.DocumentIntelligenceResult, error) {
 	content = strings.TrimSpace(cleanMarkdown(content))
 	if content == "" {
-		return nil, fmt.Errorf("failed to parse AI response: empty response")
+		return nil, fmt.Errorf("gagal mengurai respons AI: respons kosong")
 	}
 
 	var envelope entity.DocumentIntelligenceResult
@@ -882,7 +882,7 @@ func parseDocumentIntelligenceResult(mode entity.DocumentAnalysisMode, content s
 			return &envelope, nil
 		}
 	} else {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
 	}
 
 	result := &entity.DocumentIntelligenceResult{Mode: mode}
@@ -890,29 +890,29 @@ func parseDocumentIntelligenceResult(mode entity.DocumentAnalysisMode, content s
 	case entity.DocumentModeSOPRiskUniverse:
 		var sop entity.SOPRiskUniverseResult
 		if err := json.Unmarshal([]byte(content), &sop); err != nil {
-			return nil, fmt.Errorf("failed to parse SOP AI response: %w", err)
+			return nil, fmt.Errorf("gagal mengurai respons AI SOP: %w", err)
 		}
 		result.SOP = &sop
 	case entity.DocumentModeAuditFindingMapper:
 		var audit entity.AuditFindingMapperResult
 		if err := json.Unmarshal([]byte(content), &audit); err != nil {
-			return nil, fmt.Errorf("failed to parse audit AI response: %w", err)
+			return nil, fmt.Errorf("gagal mengurai respons AI audit: %w", err)
 		}
 		result.Audit = &audit
 	case entity.DocumentModeStrategicObjectiveRisk:
 		var strategic entity.StrategicObjectiveRiskResult
 		if err := json.Unmarshal([]byte(content), &strategic); err != nil {
-			return nil, fmt.Errorf("failed to parse strategic AI response: %w", err)
+			return nil, fmt.Errorf("gagal mengurai respons AI strategis: %w", err)
 		}
 		result.Strategic = &strategic
 	case entity.DocumentModeMitigationReportMapper:
 		var mitigation entity.MitigationReportMapperResult
 		if err := json.Unmarshal([]byte(content), &mitigation); err != nil {
-			return nil, fmt.Errorf("failed to parse mitigation AI response: %w", err)
+			return nil, fmt.Errorf("gagal mengurai respons AI mitigasi: %w", err)
 		}
 		result.Mitigation = &mitigation
 	default:
-		return nil, fmt.Errorf("failed to parse AI response: invalid document mode %q", mode)
+		return nil, fmt.Errorf("gagal mengurai respons AI: mode dokumen tidak valid %q", mode)
 	}
 
 	return result, nil

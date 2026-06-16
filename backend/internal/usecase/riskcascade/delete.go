@@ -33,7 +33,7 @@ func (uc *DeleteUseCase) Execute(ctx context.Context, input DeleteInput) error {
 		return errors.ErrForbidden
 	}
 	if cascade.Status != "proposed" {
-		return errors.Wrap(errors.ErrInvalidStatus, "only proposed cascades can be deleted")
+		return errors.ErrOnlyProposedCascadeDeleted
 	}
 	if err := uc.repo.Delete(ctx, input.ID); err != nil {
 		return errors.Wrap(err, "failed to delete risk cascade")

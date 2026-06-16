@@ -50,6 +50,7 @@ import {
   Download,
   Loader2,
   MoreHorizontal,
+  Pen,
   SkipForward,
   ShieldAlert,
   Trash2,
@@ -83,27 +84,6 @@ const statusLabel: Record<WorkingPaperStatus, string> = {
   completed: "Selesai",
   cancelled: "Dibatalkan",
 };
-
-const actionToneClassName = {
-  attention: "border-border/70 bg-zinc-50",
-  neutral: "border-border/70 bg-zinc-50",
-  success: "border-border/70 bg-zinc-50",
-  danger: "border-border/70 bg-zinc-50",
-} as const;
-
-const actionToneTitleClassName = {
-  attention: "text-zinc-900",
-  neutral: "text-foreground",
-  success: "text-zinc-900",
-  danger: "text-zinc-900",
-} as const;
-
-const actionToneDotClassName = {
-  attention: "bg-zinc-500",
-  neutral: "bg-zinc-500",
-  success: "bg-zinc-500",
-  danger: "bg-zinc-500",
-} as const;
 
 const timelineStatusClassName = {
   signed: "border-success/20 bg-success/10 text-success",
@@ -444,6 +424,10 @@ export default function WorkingPaperDetailPage(props: {
       value: data.code || "-",
     },
     {
+      label: "Status",
+      value: statusLabel[status],
+    },
+    {
       label: "Siklus asesmen",
       value: data.assessment_cycle || "Belum ditetapkan",
     },
@@ -492,6 +476,18 @@ export default function WorkingPaperDetailPage(props: {
               onCancel={() => setCancelDialogOpen(true)}
               onDelete={() => setDeleteDialogOpen(true)}
             />
+            {viewModel.canStartSigning && (
+              <Button size="sm" onClick={() => setStartSigningDialogOpen(true)}>
+                <Pen className="w-4 h-4 mr-2" />
+                Mulai Proses TTE
+              </Button>
+            )}
+            {viewModel.canSign && (
+              <Button size="sm" onClick={() => setSignDialogOpen(true)}>
+                <Pen className="w-4 h-4 mr-2" />
+                Tanda Tangani
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />
               Ekspor Excel
@@ -499,75 +495,6 @@ export default function WorkingPaperDetailPage(props: {
           </>
         }
       />
-
-      {viewModel.currentAction ? (
-        <section
-          className={cn(
-            "rounded-xl border px-4 py-3",
-            actionToneClassName[viewModel.currentAction.tone],
-          )}
-        >
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <div
-                className={cn(
-                  "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-border/70 bg-zinc-100",
-                )}
-              >
-                <span
-                  className={cn(
-                    "size-2 rounded-full",
-                    actionToneDotClassName[viewModel.currentAction.tone],
-                  )}
-                />
-              </div>
-
-              <div className="min-w-0 space-y-0.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Status saat ini
-                </p>
-                <h2
-                  className={cn(
-                    "text-sm font-semibold leading-5",
-                    actionToneTitleClassName[viewModel.currentAction.tone],
-                  )}
-                >
-                  {viewModel.currentAction.title}
-                </h2>
-                <p className="max-w-2xl text-sm leading-5 text-muted-foreground line-clamp-2">
-                  {viewModel.currentAction.description}
-                </p>
-                {viewModel.currentAction.buttonLabel ? (
-                  <div className="pt-1">
-                    <Button
-                      size="sm"
-                      variant={viewModel.canSign ? "default" : "outline"}
-                      onClick={() => {
-                        if (viewModel.canSign) {
-                          setSignDialogOpen(true);
-                          return;
-                        }
-
-                        if (viewModel.canStartSigning) {
-                          setStartSigningDialogOpen(true);
-                          return;
-                        }
-
-                        if (viewModel.canSkipTTE) {
-                          setSkipDialogOpen(true);
-                        }
-                      }}
-                    >
-                      {viewModel.currentAction.buttonLabel}
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-          </div>
-        </section>
-      ) : null}
 
       {viewModel.monitoringBlockers.length > 0 ? (
         <section className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">

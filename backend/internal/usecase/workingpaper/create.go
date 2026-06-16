@@ -37,7 +37,7 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one signatory is required"}
 	}
 	if !riskusecase.IsValidSemesterFormat(input.AssessmentCycle) {
-		return nil, domainerrors.Wrap(domainerrors.ErrInvalidInput, "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return nil, domainerrors.ErrSemesterFormat
 	}
 	if len(input.Decisions) == 0 {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "roster decisions are required"}

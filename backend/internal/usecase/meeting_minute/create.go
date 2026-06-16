@@ -49,7 +49,7 @@ type CreateOutput struct {
 func (uc *CreateMeetingMinuteUseCase) Execute(ctx context.Context, input CreateInput) (*CreateOutput, error) {
 	date, err := time.Parse("2006-01-02", input.Date)
 	if err != nil {
-		return nil, fmt.Errorf("invalid date format: %w", err)
+		return nil, fmt.Errorf("format tanggal tidak valid: %w", err)
 	}
 
 	var nextCheckIn *time.Time

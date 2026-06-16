@@ -37,7 +37,7 @@ func (h *RiskCharterHandler) List(c *fiber.Ctx) error {
 	if raw := c.Query("organization_id"); raw != "" {
 		parsed, err := uuid.Parse(raw)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		organizationID = &parsed
 	}
@@ -58,7 +58,7 @@ func (h *RiskCharterHandler) List(c *fiber.Ctx) error {
 func (h *RiskCharterHandler) Create(c *fiber.Ctx) error {
 	var input riskcharteruc.CreateRiskCharterInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	result, err := h.createUC.Execute(c.Context(), input)
@@ -72,7 +72,7 @@ func (h *RiskCharterHandler) Create(c *fiber.Ctx) error {
 func (h *RiskCharterHandler) Get(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk charter ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID piagam risiko tidak valid")
 	}
 
 	result, err := h.getUC.Execute(c.Context(), id)
@@ -86,12 +86,12 @@ func (h *RiskCharterHandler) Get(c *fiber.Ctx) error {
 func (h *RiskCharterHandler) Update(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk charter ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID piagam risiko tidak valid")
 	}
 
 	var input riskcharteruc.UpdateRiskCharterInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 	input.ID = id
 

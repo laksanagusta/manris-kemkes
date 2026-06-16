@@ -38,7 +38,7 @@ func (uc *EnsureTasksForRiskVersionUseCase) Execute(
 ) (int, error) {
 	risk, err := uc.riskRepo.GetByID(ctx, riskID, orgIDs)
 	if err != nil {
-		return 0, fmt.Errorf("load risk: %w", err)
+		return 0, fmt.Errorf("gagal memuat risiko: %w", err)
 	}
 
 	year, quarter, err := ParseQuarterCycle(cycle)
@@ -61,7 +61,7 @@ func (uc *EnsureTasksForRiskVersionUseCase) Execute(
 
 		exists, err := uc.taskRepo.TaskExistsForPeriod(ctx, mitigation.ID, periodStart, periodEnd)
 		if err != nil {
-			return created, fmt.Errorf("check task existence: %w", err)
+			return created, fmt.Errorf("gagal memeriksa keberadaan tugas: %w", err)
 		}
 		if exists {
 			continue
@@ -78,7 +78,7 @@ func (uc *EnsureTasksForRiskVersionUseCase) Execute(
 			GeneratedBy:  "manual",
 		}
 		if err := uc.taskRepo.Create(ctx, task); err != nil {
-			return created, fmt.Errorf("create mitigation task: %w", err)
+			return created, fmt.Errorf("gagal membuat tugas mitigasi: %w", err)
 		}
 		created++
 	}

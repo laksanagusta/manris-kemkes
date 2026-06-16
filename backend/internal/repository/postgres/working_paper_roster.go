@@ -46,11 +46,11 @@ func resolveRosterPeriod(cycle string) (rosterPeriod, error) {
 func parseSemester(cycle string) (int, int, error) {
 	parts := strings.SplitN(cycle, "-", 2)
 	if len(parts) != 2 || (parts[1] != "H1" && parts[1] != "H2") {
-		return 0, 0, fmt.Errorf("invalid assessment cycle %q, expected YYYY-H1 or YYYY-H2", cycle)
+		return 0, 0, domainerrors.ErrSemesterFormat
 	}
 	year, err := strconv.Atoi(parts[0])
 	if err != nil || year < 2000 || year > 2100 {
-		return 0, 0, fmt.Errorf("invalid year in cycle %q", cycle)
+		return 0, 0, fmt.Errorf("tahun tidak valid dalam siklus %q", cycle)
 	}
 	var half int
 	if parts[1] == "H1" {
@@ -100,7 +100,6 @@ func (r *workingPaperRepository) PreviewPeriodRoster(ctx context.Context, orgID 
 		orgID,
 		period.SemesterStart,
 		period.SemesterEnd,
-		period.QuarterStart,
 		period.QuarterCycle,
 	)
 	if err != nil {
@@ -115,13 +114,12 @@ func (r *workingPaperRepository) PreviewPeriodRoster(ctx context.Context, orgID 
 		var entry entity.WorkingPaperRosterEntry
 		var monitoringID, resultRiskID uuid.NullUUID
 		var resultVersionNumber *int
-		var monitoringStatus, monitoringCycle string
+		var monitoringStatus, monitoringCycle *string
 
 		if err := rows.Scan(
 			&entry.VersionGroupID,
 			&entry.Code,
 			&entry.Title,
-			&entry.OrganizationID,
 			&entry.SourceRiskID,
 			&entry.SourceVersionNumber,
 			&monitoringID,
@@ -138,8 +136,12 @@ func (r *workingPaperRepository) PreviewPeriodRoster(ctx context.Context, orgID 
 
 		if monitoringID.Valid {
 			entry.MonitoringID = &monitoringID.UUID
-			entry.MonitoringStatus = monitoringStatus
-			entry.MonitoringCycle = monitoringCycle
+			if monitoringStatus != nil {
+				entry.MonitoringStatus = *monitoringStatus
+			}
+			if monitoringCycle != nil {
+				entry.MonitoringCycle = *monitoringCycle
+			}
 		}
 		if resultRiskID.Valid {
 			entry.ResultRiskID = &resultRiskID.UUID
@@ -220,7 +222,7 @@ func rosterPreviewQuery() string {
 				rm.result_risk_id
 			FROM risk_monitorings rm
 			JOIN eligible_versions ev ON ev.version_group_id = rm.version_group_id
-			WHERE rm.assessment_cycle = $5
+			WHERE rm.assessment_cycle = $4
 			  AND rm.status IN ('draft', 'finalized')
 		),
 		result_versions AS (
@@ -271,7 +273,7 @@ func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp 
 	if existingCount > 0 {
 		return &domainerrors.AppError{
 			Code:    "SEMESTER_CONFLICT",
-			Message: fmt.Sprintf("a working paper already exists for organization in %s", wp.AssessmentCycle),
+			Message: fmt.Sprintf("Kertas kerja untuk semester %s sudah ada (tidak termasuk yang dibatalkan). Batalkan kertas kerja yang ada terlebih dahulu atau gunakan semester lain.", wp.AssessmentCycle),
 		}
 	}
 
@@ -387,7 +389,6 @@ func scanRosterPreview(ctx context.Context, q rosterQuerier, orgID uuid.UUID, pe
 		orgID,
 		period.SemesterStart,
 		period.SemesterEnd,
-		period.QuarterStart,
 		period.QuarterCycle,
 	)
 	if err != nil {
@@ -402,13 +403,12 @@ func scanRosterPreview(ctx context.Context, q rosterQuerier, orgID uuid.UUID, pe
 		var entry entity.WorkingPaperRosterEntry
 		var monitoringID, resultRiskID uuid.NullUUID
 		var resultVersionNumber *int
-		var monitoringStatus, monitoringCycle string
+		var monitoringStatus, monitoringCycle *string
 
 		if err := rows.Scan(
 			&entry.VersionGroupID,
 			&entry.Code,
 			&entry.Title,
-			&entry.OrganizationID,
 			&entry.SourceRiskID,
 			&entry.SourceVersionNumber,
 			&monitoringID,
@@ -425,11 +425,17 @@ func scanRosterPreview(ctx context.Context, q rosterQuerier, orgID uuid.UUID, pe
 
 		if monitoringID.Valid {
 			entry.MonitoringID = &monitoringID.UUID
-			entry.MonitoringStatus = monitoringStatus
+			if monitoringStatus != nil {
+				entry.MonitoringStatus = *monitoringStatus
+			}
+			if monitoringCycle != nil {
+				entry.MonitoringCycle = *monitoringCycle
+			}
 		}
 		if resultRiskID.Valid {
 			entry.ResultRiskID = &resultRiskID.UUID
 		}
+
 		if resultVersionNumber != nil {
 			entry.ResultVersionNumber = resultVersionNumber
 		}
@@ -488,15 +494,11 @@ func (r *workingPaperRepository) ListSigningBlockers(ctx context.Context, workin
 
 func nextWPScopeSequence(ctx context.Context, q workingPaperTx, orgID uuid.UUID, cycle string) (int, error) {
 	var seq int
-	stmt := `
-		INSERT INTO working_paper_sequences
-		    (organization_id, assessment_cycle, last_used)
-		VALUES ($1, $2, 1)
-		ON CONFLICT (organization_id, assessment_cycle) DO UPDATE
-		    SET last_used = working_paper_sequences.last_used + 1
-		RETURNING last_used
-	`
-	if err := q.QueryRow(ctx, stmt, orgID, cycle).Scan(&seq); err != nil {
+	if err := q.QueryRow(ctx, `
+		SELECT COALESCE(MAX(sequence_no), 0) + 1
+		FROM working_papers
+		WHERE org_id = $1
+	`, orgID).Scan(&seq); err != nil {
 		return 0, fmt.Errorf("next working paper sequence: %w", err)
 	}
 	return seq, nil

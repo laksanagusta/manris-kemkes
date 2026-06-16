@@ -397,9 +397,8 @@ export default function CreateWorkingPaperPage() {
         }
         actions={
           <Button
-            type="submit"
-            form="working-paper-create-form"
-            disabled={isSubmitting}
+            onClick={handleConfirmOpen}
+            disabled={isSubmitting || loadingPreview}
           >
             {isSubmitting ? (
               <>
@@ -711,24 +710,6 @@ export default function CreateWorkingPaperPage() {
         </AlertDialog>
       )}
 
-      <div className="mt-6 flex justify-end">
-        <Button
-          onClick={handleConfirmOpen}
-          disabled={isSubmitting || loadingPreview}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Menyimpan...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Buat Kertas Kerja
-            </>
-          )}
-        </Button>
-      </div>
     </FormPage>
   );
 }

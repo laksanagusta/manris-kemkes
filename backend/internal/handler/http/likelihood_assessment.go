@@ -28,13 +28,13 @@ func (h *LikelihoodAssessmentHandler) Upsert(c *fiber.Ctx) error {
 	var input likelihoodassessment.UpsertInput
 	if err := c.BodyParser(&input); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid request body",
+			"error": "body permintaan tidak valid",
 		})
 	}
 
 	if input.RiskID == uuid.Nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "riskId is required",
+			"error": "riskId wajib diisi",
 		})
 	}
 
@@ -53,7 +53,7 @@ func (h *LikelihoodAssessmentHandler) GetByRiskID(c *fiber.Ctx) error {
 	riskID, err := uuid.Parse(riskIDStr)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid riskId format",
+			"error": "format riskId tidak valid",
 		})
 	}
 
@@ -61,7 +61,7 @@ func (h *LikelihoodAssessmentHandler) GetByRiskID(c *fiber.Ctx) error {
 	if err != nil {
 		if errors.Is(err, likelihoodassessment.ErrNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"error": "likelihood assessment not found",
+				"error": "penilaian likelihood tidak ditemukan",
 			})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -78,7 +78,7 @@ func (h *LikelihoodAssessmentHandler) ListByRiskIDs(c *fiber.Ctx) error {
 	riskIDsParam := c.Query("riskIds")
 	if riskIDsParam == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "riskIds query parameter is required",
+			"error": "parameter kueri riskIds wajib diisi",
 		})
 	}
 
@@ -89,7 +89,7 @@ func (h *LikelihoodAssessmentHandler) ListByRiskIDs(c *fiber.Ctx) error {
 		id, err := uuid.Parse(s)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "invalid riskId in list: " + s,
+				"error": "riskId tidak valid dalam daftar: " + s,
 			})
 		}
 		riskIDs = append(riskIDs, id)

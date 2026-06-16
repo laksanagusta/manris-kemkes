@@ -47,12 +47,12 @@ func (uc *CreateOrganizationUseCase) Execute(ctx context.Context, input CreateOr
 	if input.ParentID != nil {
 		_, err := uc.orgRepo.GetByID(ctx, *input.ParentID)
 		if err != nil {
-			return nil, errors.Wrap(err, "parent organization not found")
+			return nil, errors.ErrParentOrganizationNotFound
 		}
 	}
 
 	if !entity.IsValidOrganizationUPRLevel(input.UPRLevel) {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "upr level must be kementerian, upr_t1, or upr_t2")
+		return nil, errors.ErrUPRLevelInvalid
 	}
 
 	org := &entity.Organization{

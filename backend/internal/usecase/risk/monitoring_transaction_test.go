@@ -56,6 +56,16 @@ func (f *fakeMonitoringTransactionRepo) GetByVersionGroupAndCycle(_ context.Cont
 	return nil, nil
 }
 
+func (f *fakeMonitoringTransactionRepo) ListByVersionGroup(_ context.Context, versionGroupID uuid.UUID) ([]*entity.RiskMonitoring, error) {
+	var result []*entity.RiskMonitoring
+	for _, m := range f.byID {
+		if m.VersionGroupID == versionGroupID {
+			result = append(result, cloneRiskMonitoringForTest(m))
+		}
+	}
+	return result, nil
+}
+
 func (f *fakeMonitoringTransactionRepo) Create(_ context.Context, monitoring *entity.RiskMonitoring) error {
 	if monitoring.ID == uuid.Nil {
 		monitoring.ID = uuid.New()

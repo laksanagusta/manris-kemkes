@@ -664,7 +664,7 @@ func parseBulkMonitoringRecords(filename string, content []byte) ([]map[string]s
 		if preferred == "" {
 			sheets := f.GetSheetList()
 			if len(sheets) == 0 {
-				return nil, fmt.Errorf("spreadsheet has no sheets")
+				return nil, fmt.Errorf("spreadsheet tidak memiliki sheet")
 			}
 			preferred = sheets[0]
 		}

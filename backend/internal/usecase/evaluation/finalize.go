@@ -32,7 +32,7 @@ func (uc *FinalizeUseCase) Execute(ctx context.Context, input FinalizeInput) (*e
 		return nil, errors.ErrForbidden
 	}
 	if evaluation.Status == entity.EvaluationStatusFinal {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "evaluation is already final")
+		return nil, errors.ErrEvaluationAlreadyFinal
 	}
 	if err := validateEvaluationSections(evaluation.Sections); err != nil {
 		return nil, errors.Wrap(errors.ErrInvalidInput, err.Error())

@@ -69,7 +69,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	// 1. Parse request
 	var req LoginRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	// 2. Execute use case
@@ -89,12 +89,12 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	var req RegisterRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	orgID, err := uuid.Parse(req.OrganizationID)
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	result, err := h.registerUC.Execute(c.Context(), authuc.RegisterInput{
@@ -137,7 +137,7 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 	var req ChangePasswordRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	userID, err := userIDFromContext(c)
@@ -161,7 +161,7 @@ func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 	var req UpdateProfileRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	userID, err := userIDFromContext(c)
@@ -191,10 +191,10 @@ func userIDFromContext(c *fiber.Ctx) (uuid.UUID, error) {
 	case string:
 		parsed, err := uuid.Parse(v)
 		if err != nil {
-			return uuid.Nil, sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "invalid user ID")
+			return uuid.Nil, sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak valid")
 		}
 		return parsed, nil
 	default:
-		return uuid.Nil, sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return uuid.Nil, sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 }

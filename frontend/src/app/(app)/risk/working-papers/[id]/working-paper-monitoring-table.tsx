@@ -116,8 +116,8 @@ export function WorkingPaperMonitoringTable({
   const rows = links.map((link) => buildWorkingPaperMonitoringRowFromLink(link));
 
   return (
-    <div className="overflow-x-auto">
-      <Table className="min-w-[1960px]">
+    <div>
+      <Table>
         <TableHeader>
           <TableRow className="border-zinc-200/80 hover:bg-transparent">
             {WORKING_PAPER_MONITORING_COLUMNS.map((column, index) => (
@@ -137,7 +137,7 @@ export function WorkingPaperMonitoringTable({
         <TableBody>
           {rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={11} className="h-24">
+              <TableCell colSpan={10} className="h-24">
                 <div className="flex flex-col gap-1 text-left">
                   <p className="text-sm font-medium text-muted-foreground">
                     Belum ada risiko
@@ -199,24 +199,6 @@ export function WorkingPaperMonitoringTable({
                 </TableCell>
                 <TableCell className="px-2.5">
                   <TrendCell trend={row.trend} />
-                </TableCell>
-                <TableCell className="px-2.5">
-                  <div className="min-w-[180px] space-y-1.5">
-                    <div className="flex items-center justify-between gap-2 text-xs">
-                      <span className="text-zinc-600">{row.progressSummary}</span>
-                      <span className="font-mono font-semibold text-zinc-900">
-                        {row.progressPercent == null ? "-" : `${row.progressPercent}%`}
-                      </span>
-                    </div>
-                    {row.progressPercent != null ? (
-                      <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100">
-                        <div
-                          className="h-full rounded-full bg-primary"
-                          style={{ width: `${row.progressPercent}%` }}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
                 </TableCell>
                 <TableCell className="px-2.5">
                   <span className="block max-w-[200px] truncate text-xs text-zinc-600">

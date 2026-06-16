@@ -48,15 +48,15 @@ func CurrentQuarter(now time.Time) (int, int) {
 func ParseQuarterCycle(cycle string) (int, int, error) {
 	parts := strings.Split(cycle, "-Q")
 	if len(parts) != 2 {
-		return 0, 0, fmt.Errorf("invalid quarter cycle format: %s", cycle)
+		return 0, 0, fmt.Errorf("format siklus kuartal tidak valid: %s", cycle)
 	}
 	year, err := strconv.Atoi(parts[0])
 	if err != nil {
-		return 0, 0, fmt.Errorf("invalid year in cycle: %s", cycle)
+		return 0, 0, fmt.Errorf("tahun tidak valid dalam siklus: %s", cycle)
 	}
 	quarter, err := strconv.Atoi(parts[1])
 	if err != nil || quarter < 1 || quarter > 4 {
-		return 0, 0, fmt.Errorf("invalid quarter in cycle: %s", cycle)
+		return 0, 0, fmt.Errorf("kuartal tidak valid dalam siklus: %s", cycle)
 	}
 	return year, quarter, nil
 }
@@ -102,7 +102,7 @@ type ListTasksPaginatedResult struct {
 func (uc *ListTasksUseCase) Execute(ctx context.Context, input ListTasksInput) ([]*entity.MitigationTask, error) {
 	if input.RiskID != nil {
 		if _, err := uc.riskRepo.GetByID(ctx, *input.RiskID, input.OrgIDs); err != nil {
-			return nil, fmt.Errorf("risk not found or not accessible: %w", err)
+			return nil, fmt.Errorf("risiko tidak ditemukan atau tidak dapat diakses: %w", err)
 		}
 		return uc.taskRepo.ListByRisk(ctx, *input.RiskID, input.OrgIDs)
 	}
@@ -129,7 +129,7 @@ func (uc *ListTasksUseCase) ExecutePaginated(ctx context.Context, input ListTask
 
 	tasks, total, err := uc.taskRepo.ListAllPaginated(ctx, input.OrgIDs, input.Query, input.Page, input.Limit)
 	if err != nil {
-		return nil, fmt.Errorf("list mitigation tasks: %w", err)
+		return nil, fmt.Errorf("gagal mengambil daftar tugas mitigasi: %w", err)
 	}
 	if tasks == nil {
 		tasks = make([]*entity.MitigationTask, 0)
@@ -187,7 +187,7 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 
 	task, err := uc.taskRepo.GetByID(ctx, input.TaskID, input.OrgIDs)
 	if err != nil {
-		return nil, fmt.Errorf("task not found: %w", err)
+		return nil, fmt.Errorf("tugas tidak ditemukan: %w", err)
 	}
 
 	if _, err := uc.riskRepo.GetByID(ctx, task.RiskID, input.OrgIDs); err != nil {
@@ -195,7 +195,7 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 	}
 
 	if _, err := time.Parse("2006-01-02", task.DueDate); err != nil {
-		return nil, fmt.Errorf("invalid due date: %w", err)
+		return nil, fmt.Errorf("tanggal jatuh tempo tidak valid: %w", err)
 	}
 
 	now := time.Now().In(timeutil.JakartaLocation())
@@ -206,7 +206,7 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 	task.Status = "done"
 
 	if err := uc.taskRepo.Update(ctx, task); err != nil {
-		return nil, fmt.Errorf("update task: %w", err)
+		return nil, fmt.Errorf("gagal memperbarui tugas: %w", err)
 	}
 
 	// Re-fetch to get joined fields
@@ -237,7 +237,7 @@ func NewSubmitMonitoringReportUseCase(taskRepo repository.MitigationTaskReposito
 
 func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input SubmitMonitoringReportInput) (*entity.MitigationTask, error) {
 	if input.Status != "" && input.Status != "pending" && input.Status != "done" {
-		return nil, fmt.Errorf("invalid status: must be pending or done")
+		return nil, fmt.Errorf("status tidak valid: harus pending atau done")
 	}
 
 	evidenceURL := strings.TrimSpace(input.EvidenceURL)
@@ -250,7 +250,7 @@ func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input Subm
 
 	task, err := uc.taskRepo.GetByID(ctx, input.TaskID, input.OrgIDs)
 	if err != nil {
-		return nil, fmt.Errorf("task not found: %w", err)
+		return nil, fmt.Errorf("tugas tidak ditemukan: %w", err)
 	}
 
 	if _, err := uc.riskRepo.GetByID(ctx, task.RiskID, input.OrgIDs); err != nil {
@@ -278,7 +278,7 @@ func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input Subm
 	task.ReportedAt = &now
 
 	if err := uc.taskRepo.Update(ctx, task); err != nil {
-		return nil, fmt.Errorf("update task: %w", err)
+		return nil, fmt.Errorf("gagal memperbarui tugas: %w", err)
 	}
 
 	return uc.taskRepo.GetByID(ctx, task.ID, input.OrgIDs)
@@ -296,7 +296,7 @@ func NewGenerateTasksUseCase(taskRepo repository.MitigationTaskRepository) *Gene
 func (uc *GenerateTasksUseCase) Execute(ctx context.Context, now time.Time) (int, error) {
 	mitigations, err := uc.taskRepo.GetRecurringMitigations(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("get recurring mitigations: %w", err)
+		return 0, fmt.Errorf("gagal mengambil mitigasi berulang: %w", err)
 	}
 
 	created := 0

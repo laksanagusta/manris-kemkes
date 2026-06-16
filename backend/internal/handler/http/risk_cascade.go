@@ -67,7 +67,7 @@ func (h *RiskCascadeHandler) CreateBottomUp(c *fiber.Ctx) error {
 func (h *RiskCascadeHandler) createCascade(c *fiber.Ctx, mode string) error {
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "access scope missing")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "akses tidak tersedia")
 	}
 	var input struct {
 		SourceRiskID uuid.UUID `json:"sourceRiskId"`
@@ -75,7 +75,7 @@ func (h *RiskCascadeHandler) createCascade(c *fiber.Ctx, mode string) error {
 		AnalysisNote string    `json:"analysisNote"`
 	}
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	currentUserID, _ := c.Locals("userId").(uuid.UUID)
@@ -113,18 +113,18 @@ func (h *RiskCascadeHandler) createCascade(c *fiber.Ctx, mode string) error {
 		}
 		return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": result})
 	default:
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid cascade mode")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "mode kaskade tidak valid")
 	}
 }
 
 func (h *RiskCascadeHandler) Decide(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "access scope missing")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "akses tidak tersedia")
 	}
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid cascade ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID kaskade tidak valid")
 	}
 	var input struct {
 		Decision     string `json:"decision"`
@@ -132,7 +132,7 @@ func (h *RiskCascadeHandler) Decide(c *fiber.Ctx) error {
 		DecisionNote string `json:"decisionNote"`
 	}
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 	currentUserID, _ := c.Locals("userId").(uuid.UUID)
 	currentUserName, _ := c.Locals("username").(string)
@@ -160,11 +160,11 @@ func (h *RiskCascadeHandler) Decide(c *fiber.Ctx) error {
 func (h *RiskCascadeHandler) Delete(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "access scope missing")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "akses tidak tersedia")
 	}
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid cascade ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID kaskade tidak valid")
 	}
 	orgIDs := scope.AccessibleOrgIDs
 	if scope.IsGlobal {

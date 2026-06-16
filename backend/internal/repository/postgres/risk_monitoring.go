@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -152,6 +153,33 @@ func (r *riskMonitoringRepository) GetByVersionGroupAndCycle(ctx context.Context
 		return nil, err
 	}
 	return monitoring, nil
+}
+
+func (r *riskMonitoringRepository) ListByVersionGroup(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.RiskMonitoring, error) {
+	rows, err := r.pool.Query(ctx, baseRiskMonitoringSelect()+`
+		JOIN risks rv ON rv.id = rm.source_risk_id
+		WHERE rv.version_group_id = $1
+		  AND rm.status IN ('draft', 'finalized')
+		ORDER BY rm.assessment_cycle
+	`, versionGroupID)
+	if err != nil {
+		return nil, fmt.Errorf("list monitorings by version group: %w", err)
+	}
+	defer rows.Close()
+
+	var items []*entity.RiskMonitoring
+	for rows.Next() {
+		item, err := scanRiskMonitoring(rows)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration: %w", err)
+	}
+
+	return items, nil
 }
 
 func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.RiskMonitoringListFilter) ([]*entity.RiskMonitoring, int, error) {
@@ -358,7 +386,7 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		return nil, err
 	}
 	if monitoring.Status != entity.RiskMonitoringStatusDraft {
-		return nil, fmt.Errorf("monitoring is not draft")
+		return nil, domainerrors.ErrMonitoringNotFinalizable
 	}
 
 	source, err := getRiskByIDWithQueryer(ctx, tx, monitoring.SourceRiskID)
@@ -366,7 +394,7 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		return nil, err
 	}
 	if !source.IsApprovedCurrent() {
-		return nil, fmt.Errorf("source risk is no longer active")
+		return nil, domainerrors.ErrSourceRiskNoLongerActive
 	}
 
 	_, err = tx.Exec(ctx, `
@@ -415,7 +443,7 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		return nil, fmt.Errorf("mark monitoring finalized: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
-		return nil, fmt.Errorf("monitoring was already finalized")
+		return nil, domainerrors.ErrMonitoringAlreadyFinalized
 	}
 
 	if err := tx.Commit(ctx); err != nil {

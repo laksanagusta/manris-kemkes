@@ -66,7 +66,7 @@ func (uc *ChangePasswordUseCase) Execute(ctx context.Context, input ChangePasswo
 			return nil, errors.ErrForbidden
 		}
 		if input.CurrentPassword == "" {
-			return nil, errors.Wrap(errors.ErrInvalidInput, "currentPassword is required for active users")
+			return nil, errors.ErrCurrentPasswordRequired
 		}
 		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(input.CurrentPassword)); err != nil {
 			return nil, errors.ErrInvalidCredentials
@@ -92,10 +92,10 @@ func validateChangePasswordInput(input ChangePasswordInput) error {
 		return errors.ErrInvalidInput
 	}
 	if input.NewPassword == "" || input.ConfirmPassword == "" {
-		return errors.Wrap(errors.ErrInvalidInput, "newPassword and confirmPassword are required")
+		return errors.ErrNewPasswordRequired
 	}
 	if input.NewPassword != input.ConfirmPassword {
-		return errors.Wrap(errors.ErrInvalidInput, "password confirmation does not match")
+		return errors.ErrPasswordConfirmation
 	}
 	return nil
 }

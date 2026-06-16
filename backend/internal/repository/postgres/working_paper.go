@@ -952,7 +952,7 @@ func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, 
 		        wp.created_at, wp.updated_at, wp.completed_at, wp.cancelled_at, wp.tte_skipped
 		 FROM working_papers wp
 		 INNER JOIN working_paper_signatories wps ON wps.working_paper_id = wp.id
-		 WHERE wp.status IN ('draft', 'signing')
+		 WHERE wp.status = 'signing'
 		   AND wps.user_id = $1
 		   AND wps.sequence_no = wp.current_signatory_sequence + 1
 		   AND wps.status = 'pending'`
@@ -1017,7 +1017,7 @@ func (r *workingPaperRepository) CountPendingSigningByUserID(ctx context.Context
 		`SELECT COUNT(*)
 		 FROM working_papers wp
 		 INNER JOIN working_paper_signatories wps ON wps.working_paper_id = wp.id
-		 WHERE wp.status IN ('draft', 'signing')
+		 WHERE wp.status = 'signing'
 		   AND wps.user_id = $1
 		   AND wps.sequence_no = wp.current_signatory_sequence + 1
 		   AND wps.status = 'pending'`, userID,

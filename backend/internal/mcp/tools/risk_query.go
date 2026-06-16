@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	ErrNotAuthenticated = errors.New("not authenticated")
+	ErrNotAuthenticated = errors.New("tidak terautentikasi")
 )
 
 // RiskGetUseCaseI defines the interface for getting a single risk
@@ -34,7 +34,7 @@ func HandleGetRisk(ctx context.Context, uc RiskGetUseCaseI, sess *session.Sessio
 
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid risk ID: %w", err)
+		return nil, fmt.Errorf("ID risiko tidak valid: %w", err)
 	}
 
 	// Call the usecase with parsed UUID and org IDs from session

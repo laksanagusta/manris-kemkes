@@ -22,7 +22,7 @@ func main() {
 	if *dateStr != "" {
 		parsed, err := time.Parse("2006-01-02", *dateStr)
 		if err != nil {
-			log.Fatalf("Invalid date format, expected YYYY-MM-DD: %v", err)
+			log.Fatalf("Format tanggal tidak valid, diharapkan YYYY-MM-DD: %v", err)
 		}
 		now = parsed
 	}
@@ -34,7 +34,7 @@ func main() {
 	// Connect to database
 	pool, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Gagal terhubung ke basis data: %v", err)
 	}
 	defer pool.Close()
 

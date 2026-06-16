@@ -32,16 +32,16 @@ func normalizeTMPMRItems(items []entity.TMPMRItem) ([]entity.TMPMRItem, error) {
 		item.Notes = strings.TrimSpace(item.Notes)
 
 		if _, ok := tmpmrDimensionOrder[item.Dimension]; !ok {
-			return nil, fmt.Errorf("invalid tmpmr dimension: %s", item.Dimension)
+			return nil, fmt.Errorf("dimensi TMPMR tidak valid: %s", item.Dimension)
 		}
 		if item.Question == "" {
-			return nil, fmt.Errorf("tmpmr question is required")
+			return nil, fmt.Errorf("pertanyaan TMPMR wajib diisi")
 		}
 		if item.Score < 0 || item.Score > 5 {
-			return nil, fmt.Errorf("tmpmr score must be between 0 and 5")
+			return nil, fmt.Errorf("skor TMPMR harus antara 0 dan 5")
 		}
 		if _, exists := seen[item.Dimension]; exists {
-			return nil, fmt.Errorf("duplicate tmpmr dimension: %s", item.Dimension)
+			return nil, fmt.Errorf("dimensi TMPMR duplikat: %s", item.Dimension)
 		}
 		seen[item.Dimension] = struct{}{}
 
@@ -52,7 +52,7 @@ func normalizeTMPMRItems(items []entity.TMPMRItem) ([]entity.TMPMRItem, error) {
 	}
 
 	if len(normalized) != len(tmpmrDimensionOrder) {
-		return nil, fmt.Errorf("tmpmr assessments must contain exactly 6 items")
+		return nil, fmt.Errorf("penilaian TMPMR harus berisi tepat 6 item")
 	}
 
 	slices.SortFunc(normalized, func(a, b entity.TMPMRItem) int {

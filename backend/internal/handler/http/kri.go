@@ -38,13 +38,13 @@ func NewKRIHandler(
 func (h *KRIHandler) CreateKRI(c *fiber.Ctx) error {
 	var input kriuc.CreateKRIInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	if riskIDStr := c.Query("risk_id"); riskIDStr != "" {
 		riskID, err := uuid.Parse(riskIDStr)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 		}
 		input.RiskID = riskID
 	}
@@ -52,7 +52,7 @@ func (h *KRIHandler) CreateKRI(c *fiber.Ctx) error {
 	if orgIDStr := c.Query("organization_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		input.OrganizationID = &orgID
 	}
@@ -60,7 +60,7 @@ func (h *KRIHandler) CreateKRI(c *fiber.Ctx) error {
 	// Get access scope for linked-risk validation
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 	input.OrgIDs = scope.AccessibleOrgIDs
 
@@ -75,7 +75,7 @@ func (h *KRIHandler) CreateKRI(c *fiber.Ctx) error {
 func (h *KRIHandler) GetKRI(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid KRI ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID KRI tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -95,12 +95,12 @@ func (h *KRIHandler) GetKRI(c *fiber.Ctx) error {
 func (h *KRIHandler) UpdateKRI(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid KRI ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID KRI tidak valid")
 	}
 
 	var input kriuc.UpdateKRIInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	input.ID = id
@@ -122,12 +122,12 @@ func (h *KRIHandler) UpdateKRI(c *fiber.Ctx) error {
 func (h *KRIHandler) ArchiveKRI(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid KRI ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID KRI tidak valid")
 	}
 
 	var input kriuc.ArchiveKRIInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	input.ID = id
@@ -156,12 +156,12 @@ func (h *KRIHandler) ListKRIs(c *fiber.Ctx) error {
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		if scope != nil && !scope.IsGlobal {
 			narrowed, err := scope.NarrowToOrg(orgID)
 			if err != nil {
-				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+				return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 			}
 			orgIDs = narrowed
 		} else {
@@ -194,12 +194,12 @@ func (h *KRIHandler) KRIDashboard(c *fiber.Ctx) error {
 	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		if scope != nil && !scope.IsGlobal {
 			narrowed, err := scope.NarrowToOrg(orgID)
 			if err != nil {
-				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+				return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 			}
 			orgIDs = narrowed
 		} else {

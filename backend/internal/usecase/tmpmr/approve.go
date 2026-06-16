@@ -31,7 +31,7 @@ func (uc *ApproveUseCase) Execute(ctx context.Context, input ApproveInput) (*ent
 		return nil, errors.ErrForbidden
 	}
 	if assessment.Status != entity.TMPMRStatusReviewed {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "only reviewed tmpmr assessments can be approved")
+		return nil, errors.ErrOnlyReviewedTMPMRApproved
 	}
 
 	assessment.Status = entity.TMPMRStatusApproved

@@ -5,7 +5,6 @@ export const WORKING_PAPER_MONITORING_COLUMNS = [
   { key: "risk", label: "Risiko" },
   { key: "score", label: "Skor Awal -> Aktual" },
   { key: "trend", label: "Tren" },
-  { key: "progress", label: "Progres Mitigasi" },
   { key: "effectiveness", label: "Efektivitas" },
   { key: "condition", label: "Kondisi/Hasil Monitoring" },
   { key: "obstacles", label: "Hambatan" },
@@ -31,8 +30,6 @@ export type WorkingPaperMonitoringRow = {
   observedLevelLabel: string;
   trend: "up" | "down" | "stable" | null;
   trendLabel: string;
-  progressPercent: number | null;
-  progressSummary: string;
   effectiveness: string;
   condition: string;
   obstacles: string;
@@ -61,6 +58,13 @@ function normalizeScore(value?: number | null) {
     return 0;
   }
   return Math.round(value);
+}
+
+function computeTrend(source: number | null, observed: number | null): "up" | "down" | "stable" | null {
+  if (source == null || observed == null) return null;
+  if (source < observed) return "up";
+  if (source > observed) return "down";
+  return "stable";
 }
 
 function combineNarrative(...values: Array<string | undefined>) {
@@ -98,6 +102,7 @@ export function buildWorkingPaperMonitoringRowFromLink(
   link: WorkingPaperRiskLink,
 ): WorkingPaperMonitoringRow {
   const row = buildWorkingPaperMonitoringRow(link.risk);
+  row.actionItems = buildActionItems(link.risk, link);
   if (link.source_risk_id) {
     row.sourceVersionNumber = link.risk.versionNumber;
   }
@@ -111,21 +116,20 @@ export function buildWorkingPaperMonitoringRowFromLink(
   return row;
 }
 
-function buildActionItems(risk: WorkingPaperRiskData): WorkingPaperMonitoringAction[] {
+function buildActionItems(risk: WorkingPaperRiskData, link?: WorkingPaperRiskLink): WorkingPaperMonitoringAction[] {
   const monitoringHref =
-    risk.monitoring?.status === "finalized" ? `/risk/assessment/${risk.id}` : null;
+    risk.monitoring?.status === "finalized"
+      ? `/risk/assessment/${risk.monitoring.id}`
+      : null;
+  const sourceRiskId = link?.source_risk_id || risk.previousRiskId;
   return [
     {
       label: "Detail Risiko Awal",
-      href: risk.previousRiskId ? `/risk/register/${risk.previousRiskId}` : null,
+      href: sourceRiskId ? `/risk/register/${sourceRiskId}` : `/risk/register/${risk.id}`,
     },
     {
       label: "Hasil Pemantauan",
       href: monitoringHref,
-    },
-    {
-      label: "Detail Risiko Akhir",
-      href: `/risk/register/${risk.id}`,
     },
   ];
 }
@@ -134,7 +138,6 @@ export function buildWorkingPaperMonitoringRow(
   risk: WorkingPaperRiskData,
 ): WorkingPaperMonitoringRow {
   const monitoring = risk.monitoring;
-  const finalizedMonitoring = monitoring?.status === "finalized" ? monitoring : null;
   if (!monitoring) {
     return {
       id: risk.id,
@@ -146,8 +149,6 @@ export function buildWorkingPaperMonitoringRow(
       observedLevelLabel: "-",
       trend: null,
       trendLabel: "-",
-      progressPercent: null,
-      progressSummary: "-",
       effectiveness: "-",
       condition: "-",
       obstacles: "-",
@@ -158,34 +159,31 @@ export function buildWorkingPaperMonitoringRow(
     };
   }
 
-  const trendLabels = {
-    up: "Meningkat",
-    down: "Menurun",
-    stable: "Tetap",
-  } as const;
-
   const rowObservedScore = observedScore(risk);
+  const rowSourceScore = baselineScore(risk);
+  const computedTrend = computeTrend(rowSourceScore, rowObservedScore);
+  const rowTrend = computedTrend ??
+    (monitoring.trend === "up" || monitoring.trend === "down" || monitoring.trend === "stable"
+      ? monitoring.trend
+      : null);
 
   return {
     id: risk.id,
     code: risk.code || "-",
     title: risk.title || "-",
     versionNumber: risk.versionNumber,
-    sourceScore: baselineScore(risk),
+    sourceScore: rowSourceScore,
     observedScore: rowObservedScore,
     observedLevelLabel: observedLevelLabel(monitoring.observedLevel),
-    trend: monitoring.trend === "up" || monitoring.trend === "down" || monitoring.trend === "stable"
-      ? monitoring.trend
-      : null,
+    trend: rowTrend,
     trendLabel:
-      monitoring.trend === "up" || monitoring.trend === "down" || monitoring.trend === "stable"
-        ? trendLabels[monitoring.trend]
-        : "-",
-    progressPercent:
-      finalizedMonitoring && typeof finalizedMonitoring.mitigationCompletionPercent === "number"
-        ? finalizedMonitoring.mitigationCompletionPercent
-        : null,
-    progressSummary: textOrDash(finalizedMonitoring?.mitigationProgressSummary),
+      rowTrend === "up"
+        ? "Meningkat"
+        : rowTrend === "down"
+          ? "Menurun"
+          : rowTrend === "stable"
+            ? "Tetap"
+            : "-",
     effectiveness: textOrDash(monitoring.effectivenessConclusion),
     condition: combineNarrative(
       monitoring.conditionSummary,
