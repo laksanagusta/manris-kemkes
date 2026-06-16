@@ -15,6 +15,7 @@ import (
 type MitigationTaskHandler struct {
 	listUC           *mtuc.ListTasksUseCase
 	submitProgressUC *mtuc.SubmitProgressUseCase
+	submitReportUC   *mtuc.SubmitMonitoringReportUseCase
 	generateTasksUC  *mtuc.GenerateTasksUseCase
 	markOverdueUC    *mtuc.MarkOverdueUseCase
 }
@@ -22,12 +23,14 @@ type MitigationTaskHandler struct {
 func NewMitigationTaskHandler(
 	listUC *mtuc.ListTasksUseCase,
 	submitProgressUC *mtuc.SubmitProgressUseCase,
+	submitReportUC *mtuc.SubmitMonitoringReportUseCase,
 	generateTasksUC *mtuc.GenerateTasksUseCase,
 	markOverdueUC *mtuc.MarkOverdueUseCase,
 ) *MitigationTaskHandler {
 	return &MitigationTaskHandler{
 		listUC:           listUC,
 		submitProgressUC: submitProgressUC,
+		submitReportUC:   submitReportUC,
 		generateTasksUC:  generateTasksUC,
 		markOverdueUC:    markOverdueUC,
 	}
@@ -37,7 +40,7 @@ func NewMitigationTaskHandler(
 func (h *MitigationTaskHandler) ListByRisk(c *fiber.Ctx) error {
 	riskID, err := uuid.Parse(c.Params("riskId"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -101,7 +104,7 @@ func (h *MitigationTaskHandler) ListAll(c *fiber.Ctx) error {
 func (h *MitigationTaskHandler) ListMyTasks(c *fiber.Ctx) error {
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -127,12 +130,12 @@ func (h *MitigationTaskHandler) ListMyTasks(c *fiber.Ctx) error {
 func (h *MitigationTaskHandler) SubmitProgress(c *fiber.Ctx) error {
 	taskID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid task ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID tugas tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -143,7 +146,7 @@ func (h *MitigationTaskHandler) SubmitProgress(c *fiber.Ctx) error {
 
 	var input mtuc.SubmitProgressInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	input.TaskID = taskID
@@ -151,6 +154,41 @@ func (h *MitigationTaskHandler) SubmitProgress(c *fiber.Ctx) error {
 	input.OrgIDs = orgIDs
 
 	task, err := h.submitProgressUC.Execute(c.Context(), input)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": task})
+}
+
+// SubmitReport handles PUT /api/mitigation-tasks/:id/report
+func (h *MitigationTaskHandler) SubmitReport(c *fiber.Ctx) error {
+	taskID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID tugas tidak valid")
+	}
+
+	userID, ok := c.Locals("userId").(uuid.UUID)
+	if !ok {
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	var input mtuc.SubmitMonitoringReportInput
+	if err := c.BodyParser(&input); err != nil {
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
+	}
+
+	input.TaskID = taskID
+	input.ReportedBy = userID
+	input.OrgIDs = orgIDs
+
+	task, err := h.submitReportUC.Execute(c.Context(), input)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -179,6 +217,58 @@ func (h *MitigationTaskHandler) TriggerGenerate(c *fiber.Ctx) error {
 		"data": fiber.Map{
 			"tasksGenerated": created,
 			"tasksOverdue":   marked,
+		},
+	})
+}
+
+// ListByMonitoring handles GET /api/risk-monitorings/:id/tasks
+func (h *MitigationTaskHandler) ListByMonitoring(c *fiber.Ctx) error {
+	monitoringID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pemantauan tidak valid")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	tasks, err := h.listUC.ListByMonitoring(c.Context(), monitoringID, orgIDs)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	if tasks == nil {
+		return c.JSON(fiber.Map{"data": []interface{}{}})
+	}
+	return c.JSON(fiber.Map{"data": tasks})
+}
+
+// ValidateFinalize handles GET /api/risk-monitorings/:id/validate-finalize
+func (h *MitigationTaskHandler) ValidateFinalize(c *fiber.Ctx) error {
+	monitoringID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pemantauan tidak valid")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	counts, err := h.listUC.CountByMonitoring(c.Context(), monitoringID, orgIDs)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{
+		"data": fiber.Map{
+			"canFinalize":   counts.Pending == 0,
+			"totalTasks":    counts.Total,
+			"reportedTasks": counts.Done,
+			"pendingTasks":  counts.Pending,
 		},
 	})
 }

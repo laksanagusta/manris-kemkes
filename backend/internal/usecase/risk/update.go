@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
@@ -111,18 +113,18 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 			return nil, errors.Wrap(bErr, "failed to check working paper lock")
 		}
 		if blocked {
-			return nil, errors.Wrap(errors.ErrInvalidStatus, "risk version is locked by a signing or completed working paper")
+			return nil, errors.ErrWorkingPaperLocked
 		}
 	}
 	// 3. Validate status transitions
 	if existingRisk.Status == entity.RiskStatusApproved && input.Status != entity.RiskStatusApproved && input.Status != entity.RiskStatusDraft {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "cannot change status from approved except to draft")
+		return nil, errors.ErrCannotChangeStatusFromApproved
 	}
 	// 4. Validate organization if changed
 	if input.OrganizationID != nil && *input.OrganizationID != *existingRisk.OrganizationID {
 		_, err := uc.orgRepo.GetByID(ctx, *input.OrganizationID)
 		if err != nil {
-			return nil, errors.Wrap(err, "organization not found")
+			return nil, errors.ErrOrganizationNotFound
 		}
 	}
 
@@ -130,7 +132,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	input.Mitigations = pruneEmptyMitigations(input.Mitigations)
 	for i, m := range input.Mitigations {
 		if err := m.Validate(); err != nil {
-			return nil, errors.Wrap(err, "mitigation validation failed")
+			return nil, errors.ErrMitigationValidationFailed
 		}
 		input.Mitigations[i] = m
 		input.Mitigations[i].RiskID = input.ID
@@ -195,12 +197,12 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 			return nil, errors.Wrap(err, "failed to load previous risk version")
 		}
 		if previousRisk == nil {
-			return nil, errors.Wrap(errors.ErrRiskNotFound, "previous risk version not found")
+			return nil, errors.ErrPreviousRiskVersionNotFound
 		}
 
 		substanceChanges := DetectSubstanceChanges(previousRisk, existingRisk)
 		if len(substanceChanges) > 0 && strings.TrimSpace(input.ChangeReason) == "" {
-			return nil, errors.Wrap(errors.ErrInvalidInput, "changeReason is required when monitoring changes risk substance")
+			return nil, errors.ErrChangeReasonRequired
 		}
 		warnings = BuildSubstanceChangeWarnings(previousRisk, existingRisk)
 	}
@@ -240,7 +242,10 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		}
 	}
 	if input.Status == entity.RiskStatusApproved && !wasApproved && uc.taskRepo != nil {
-		if _, err := mtuc.NewEnsureTasksForApprovedRiskUseCase(uc.taskRepo, uc.riskRepo).Execute(ctx, existingRisk.ID, orgIDs); err != nil {
+		now := time.Now().In(timeutil.JakartaLocation())
+		year, quarter := mtuc.CurrentQuarter(now)
+		cycle := fmt.Sprintf("%d-Q%d", year, quarter)
+		if _, err := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.taskRepo, uc.riskRepo).Execute(ctx, existingRisk.ID, cycle, orgIDs); err != nil {
 			return nil, errors.Wrap(err, "failed to create mitigation tasks")
 		}
 	}

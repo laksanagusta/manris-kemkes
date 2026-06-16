@@ -52,12 +52,12 @@ func AuthRequired(secret string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "missing authorization header"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "header otorisasi tidak ditemukan"})
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid authorization format"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "format otorisasi tidak valid"})
 		}
 
 		claims := &JWTClaims{}
@@ -65,7 +65,7 @@ func AuthRequired(secret string) fiber.Handler {
 			return []byte(secret), nil
 		})
 		if err != nil || !token.Valid {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid or expired token"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "token tidak valid atau kedaluwarsa"})
 		}
 
 		// Store claims in context locals
@@ -83,7 +83,7 @@ func RequireFullSession() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		setupOnly, _ := c.Locals("setupOnly").(bool)
 		if setupOnly {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "full session required"})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "sesi penuh diperlukan"})
 		}
 		return c.Next()
 	}
@@ -98,7 +98,7 @@ func RoleGuard(allowed ...string) fiber.Handler {
 				return c.Next()
 			}
 		}
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "insufficient permissions"})
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "izin tidak mencukupi"})
 	}
 }
 
@@ -119,7 +119,7 @@ func ResolveOrgScope(resolver ScopeResolver) fiber.Handler {
 
 		scope, err := resolver.ResolveAccessScope(c.Context(), userID, rawRole, orgID)
 		if err != nil {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "insufficient permissions"})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "izin tidak mencukupi"})
 		}
 
 		c.Locals(AccessScopeKey, scope)

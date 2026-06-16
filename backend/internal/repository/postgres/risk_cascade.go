@@ -137,7 +137,7 @@ func (r *riskCascadeRepository) Delete(ctx context.Context, id uuid.UUID) error 
 		return fmt.Errorf("delete risk cascade: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("delete risk cascade: not found or not deletable")
+		return fmt.Errorf("hapus kaskade risiko: tidak ditemukan atau tidak dapat dihapus")
 	}
 	return nil
 }

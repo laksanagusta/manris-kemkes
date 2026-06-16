@@ -31,11 +31,11 @@ func (uc *SubmitUseCase) Execute(ctx context.Context, input SubmitInput) (*entit
 		return nil, errors.ErrForbidden
 	}
 	if assessment.Status != entity.TMPMRStatusDraft {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "only draft tmpmr assessments can be submitted")
+		return nil, errors.ErrOnlyDraftTMPMRSubmitted
 	}
 	for _, item := range assessment.Items {
 		if item.Score <= 0 {
-			return nil, errors.Wrap(errors.ErrInvalidInput, "all tmpmr items must have a score before submission")
+			return nil, errors.ErrAllTMPMRItemsNeedScore
 		}
 	}
 

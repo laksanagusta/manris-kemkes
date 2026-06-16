@@ -12,11 +12,11 @@ import (
 )
 
 var (
-	ErrMissingField       = errors.New("missing required field")
-	ErrInvalidUUID        = errors.New("invalid UUID format")
-	ErrOrgNotAccessible   = errors.New("organization not accessible in session")
-	ErrInvalidType        = errors.New("invalid field type")
-	ErrInvalidStringSlice = errors.New("invalid string slice format")
+	ErrMissingField       = errors.New("kolom diperlukan tidak ditemukan")
+	ErrInvalidUUID        = errors.New("format UUID tidak valid")
+	ErrOrgNotAccessible   = errors.New("organisasi tidak dapat diakses dalam sesi")
+	ErrInvalidType        = errors.New("tipe kolom tidak valid")
+	ErrInvalidStringSlice = errors.New("format string slice tidak valid")
 )
 
 func ToCreateRiskInput(args map[string]any, sess *session.Session) (risk.CreateRiskInput, error) {

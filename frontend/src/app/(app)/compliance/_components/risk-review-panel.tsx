@@ -136,7 +136,11 @@ function dedupeOrganizations(items: OrganizationOption[]) {
   return result;
 }
 
-export function RiskReviewPanel() {
+export function RiskReviewPanel({
+  children,
+}: {
+  children?: React.ReactNode;
+}) {
   const router = useRouter();
   const { token, user } = useAuth();
   const [items, setItems] = useState<RiskReviewQueueItem[]>([]);
@@ -383,7 +387,7 @@ export function RiskReviewPanel() {
             icon: AlertCircle,
             tone: "rose" as const,
           },
-        ].map((metric) => (
+        ]        .map((metric) => (
           <KpiCard
             key={metric.label}
             label={metric.label}
@@ -393,6 +397,8 @@ export function RiskReviewPanel() {
           />
         ))}
       </div>
+
+      {children}
 
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">

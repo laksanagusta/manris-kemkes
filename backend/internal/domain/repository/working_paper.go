@@ -25,4 +25,9 @@ type WorkingPaperRepository interface {
 	GetPendingSigningByUserID(ctx context.Context, userID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.WorkingPaper, error)
 	CountPendingSigningByUserID(ctx context.Context, userID uuid.UUID) (int, error)
 	HasBlockingDocumentLink(ctx context.Context, riskID uuid.UUID) (bool, error)
+	CountByOrgAndCycle(ctx context.Context, orgID uuid.UUID, cycle string) (int, error)
+
+	PreviewPeriodRoster(ctx context.Context, orgID uuid.UUID, assessmentCycle string) (*entity.WorkingPaperRosterPreview, error)
+	CreateWithPeriodRoster(ctx context.Context, wp *entity.WorkingPaper, revision string, decisions []entity.WorkingPaperRosterDecision) error
+	ListSigningBlockers(ctx context.Context, workingPaperID uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error)
 }

@@ -3,7 +3,6 @@ import type { MitigationType } from "@/types/risk";
 export interface MitigationSearchItem {
   action: string;
   owner: string;
-  dueDate: string;
   mitigationType?: MitigationType;
   activityStage?: string;
   expectedOutput?: string;
@@ -14,8 +13,6 @@ export interface MitigationSearchItem {
   potentialObstacle?: string;
   costBenefitNote?: string;
   executionScheduleText?: string;
-  frequency?: string;
-  recurringInterval?: string;
 }
 
 export interface IndexedMitigationSearchItem<T> {
@@ -37,7 +34,6 @@ function collectMitigationSearchText(item: MitigationSearchItem) {
   return [
     item.action,
     item.owner,
-    item.dueDate,
     item.activityStage,
     item.expectedOutput,
     item.quantitativeTarget,
@@ -47,8 +43,6 @@ function collectMitigationSearchText(item: MitigationSearchItem) {
     item.potentialObstacle,
     item.costBenefitNote,
     item.executionScheduleText,
-    item.frequency,
-    item.recurringInterval,
     item.mitigationType ? mitigationTypeLabels[item.mitigationType] : "",
   ]
     .filter(Boolean)

@@ -2,7 +2,6 @@ package workingpaper
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -74,8 +73,9 @@ func (r *fakeCreateRiskRepo) DashboardCategoryCounts(context.Context, string, []
 func (r *fakeCreateRiskRepo) HeatmapData(context.Context, string, []uuid.UUID) ([]*entity.HeatmapCell, error) {
 	return nil, nil
 }
+
 func (r *fakeCreateRiskRepo) HeatmapMultiPhase(context.Context, int, []uuid.UUID) (*entity.HeatmapMultiPhase, error) {
-	return nil, errors.New("not implemented")
+	return nil, nil
 }
 
 func (r *fakeCreateRiskRepo) TopRisks(context.Context, string, int, []uuid.UUID) ([]*entity.Risk, error) {
@@ -145,7 +145,8 @@ func (r *transactionalCreateRiskRepo) GetOrCreatePeriodicReassessmentInTx(_ cont
 }
 
 type fakeCreateWorkingPaperRepo struct {
-	created *entity.WorkingPaper
+	created              *entity.WorkingPaper
+	countByOrgAndCycleFn func(uuid.UUID, string) int
 }
 
 func (r *fakeCreateWorkingPaperRepo) Create(_ context.Context, wp *entity.WorkingPaper) error {
@@ -170,7 +171,7 @@ func (r *fakeCreateWorkingPaperRepo) Delete(context.Context, uuid.UUID) error {
 }
 
 func (r *fakeCreateWorkingPaperRepo) MutateByIDForUpdate(context.Context, uuid.UUID, func(*entity.WorkingPaper) error) (*entity.WorkingPaper, error) {
-	return nil, errors.New("not implemented")
+	return nil, nil
 }
 
 func (r *fakeCreateWorkingPaperRepo) GetSignatoriesByWorkingPaperID(context.Context, uuid.UUID) ([]*entity.WorkingPaperSignatory, error) {
@@ -193,286 +194,149 @@ func (r *fakeCreateWorkingPaperRepo) HasBlockingDocumentLink(context.Context, uu
 	return false, nil
 }
 
-func TestCreateLatestApprovedLinksTheExactApprovedRiskID(t *testing.T) {
-	orgID := uuid.New()
-	approvedID := uuid.New()
-	versionGroupID := uuid.New()
+func (r *fakeCreateWorkingPaperRepo) CountByOrgAndCycle(_ context.Context, _ uuid.UUID, _ string) (int, error) {
+	if r.countByOrgAndCycleFn != nil {
+		return r.countByOrgAndCycleFn(uuid.Nil, ""), nil
+	}
+	return 0, nil
+}
 
-	riskRepo := &fakeCreateRiskRepo{risksByID: map[uuid.UUID]*entity.Risk{
-		approvedID: {
-			ID:              approvedID,
-			VersionGroupID:  versionGroupID,
-			Status:          entity.RiskStatusApproved,
-			IsCurrent:       true,
-			AssessmentCycle: "2026-H1",
-			Code:            "R-001",
-			Title:           "Gangguan server",
-			Category:        entity.RiskCategoryOperasional,
-			Probability:     4,
-			Impact:          5,
-			Weight:          entity.GetBobot(4, 5),
-		},
-	}}
-	wpRepo := &fakeCreateWorkingPaperRepo{}
-	uc := NewWorkingPaperUseCase(wpRepo, riskRepo)
+func (r *fakeCreateWorkingPaperRepo) PreviewPeriodRoster(context.Context, uuid.UUID, string) (*entity.WorkingPaperRosterPreview, error) {
+	return nil, nil
+}
+func (r *fakeCreateWorkingPaperRepo) CreateWithPeriodRoster(context.Context, *entity.WorkingPaper, string, []entity.WorkingPaperRosterDecision) error {
+	return nil
+}
+func (r *fakeCreateWorkingPaperRepo) ListSigningBlockers(context.Context, uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
+	return nil, nil
+}
 
+type fakeCreateMonitoringRepo struct {
+	draftBySourceAndCycle        *entity.RiskMonitoring
+	hasFinalizedForSourceAndCycle bool
+	createdMonitorings           []*entity.RiskMonitoring
+}
+
+func (r *fakeCreateMonitoringRepo) GetByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.RiskMonitoring, error) {
+	return nil, nil
+}
+
+func (r *fakeCreateMonitoringRepo) GetDraftBySourceAndCycle(_ context.Context, _ uuid.UUID, _ string) (*entity.RiskMonitoring, error) {
+	return r.draftBySourceAndCycle, nil
+}
+
+func (r *fakeCreateMonitoringRepo) HasFinalizedForSourceAndCycle(_ context.Context, _ uuid.UUID, _ string) (bool, error) {
+	return r.hasFinalizedForSourceAndCycle, nil
+}
+
+func (r *fakeCreateMonitoringRepo) GetByVersionGroupAndCycle(_ context.Context, _ uuid.UUID, _ string) (*entity.RiskMonitoring, error) {
+	return r.draftBySourceAndCycle, nil
+}
+
+func (r *fakeCreateMonitoringRepo) List(context.Context, repo.RiskMonitoringListFilter) ([]*entity.RiskMonitoring, int, error) {
+	return nil, 0, nil
+}
+
+func (r *fakeCreateMonitoringRepo) Create(_ context.Context, monitoring *entity.RiskMonitoring) error {
+	r.createdMonitorings = append(r.createdMonitorings, monitoring)
+	return nil
+}
+
+func (r *fakeCreateMonitoringRepo) UpdateDraft(context.Context, *entity.RiskMonitoring) error {
+	return nil
+}
+
+func (r *fakeCreateMonitoringRepo) Finalize(context.Context, uuid.UUID, *entity.Risk, uuid.UUID) (*entity.RiskMonitoring, error) {
+	return nil, nil
+}
+
+func (r *fakeCreateMonitoringRepo) UpdateTaskMonitoringIDs(context.Context, uuid.UUID, uuid.UUID, string) error {
+	return nil
+}
+
+func TestCreateRejectsExcludedRiskWithoutReason(t *testing.T) {
+	uc := NewWorkingPaperUseCase(&fakeCreateWorkingPaperRepo{}, nil, nil)
 	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
-		Title:           "KK Semester I",
-		OrgID:           orgID,
-		CreatedByUserID: uuid.New(),
 		AssessmentCycle: "2026-H1",
-		Risks:           []RiskInput{{RiskID: approvedID, SourceMode: "latest_approved"}},
-		Signatories: []CreateSignatoryInput{{
-			UserID:        uuid.New(),
-			SequenceNo:    1,
-			SignerName:    "Rina",
-			SignerPangkat: "Pembina Tk. I (IV/b)",
-		}},
-	})
-	if err != nil {
-		t.Fatalf("Create returned error: %v", err)
-	}
-	if wpRepo.created == nil {
-		t.Fatal("expected working paper to be created")
-	}
-	if len(wpRepo.created.Risks) != 1 {
-		t.Fatalf("expected 1 linked risk, got %d", len(wpRepo.created.Risks))
-	}
-	if wpRepo.created.Risks[0].RiskID != approvedID {
-		t.Fatalf("expected linked approved risk %s, got %s", approvedID, wpRepo.created.Risks[0].RiskID)
-	}
-	if wpRepo.created.Risks[0].SourceMode != "latest_approved" {
-		t.Fatalf("expected latest_approved source mode, got %q", wpRepo.created.Risks[0].SourceMode)
-	}
-}
-
-func TestCreateLatestApprovedUsesFullAccessibleOrgScope(t *testing.T) {
-	accessibleOrgOne := uuid.New()
-	accessibleOrgTwo := uuid.New()
-	approvedID := uuid.New()
-	versionGroupID := uuid.New()
-
-	riskRepo := &fakeCreateRiskRepo{risksByID: map[uuid.UUID]*entity.Risk{
-		approvedID: {
-			ID:              approvedID,
-			VersionGroupID:  versionGroupID,
-			Status:          entity.RiskStatusApproved,
-			IsCurrent:       true,
-			AssessmentCycle: "2026-H1",
-			Code:            "R-001",
-			Title:           "Gangguan server",
-			Category:        entity.RiskCategoryOperasional,
-			OrganizationID:  &accessibleOrgTwo,
-			Probability:     4,
-			Impact:          5,
-			Weight:          entity.GetBobot(4, 5),
-		},
-	}}
-	wpRepo := &fakeCreateWorkingPaperRepo{}
-	uc := NewWorkingPaperUseCase(wpRepo, riskRepo)
-
-	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
-		Title:            "KK Semester I",
-		CreatedByUserID:  uuid.New(),
-		AssessmentCycle:  "2026-H1",
-		AccessibleOrgIDs: []uuid.UUID{accessibleOrgOne, accessibleOrgTwo},
-		Risks:            []RiskInput{{RiskID: approvedID, SourceMode: "latest_approved"}},
-		Signatories: []CreateSignatoryInput{{
-			UserID:        uuid.New(),
-			SequenceNo:    1,
-			SignerName:    "Rina",
-			SignerPangkat: "Pembina Tk. I (IV/b)",
-		}},
-	})
-	if err != nil {
-		t.Fatalf("Create returned error: %v", err)
-	}
-	if len(riskRepo.gotOrgIDs) != 2 {
-		t.Fatalf("expected risk lookup to use 2 accessible org IDs, got %d", len(riskRepo.gotOrgIDs))
-	}
-	if riskRepo.gotOrgIDs[0] != accessibleOrgOne || riskRepo.gotOrgIDs[1] != accessibleOrgTwo {
-		t.Fatalf("expected full org scope [%s %s], got %v", accessibleOrgOne, accessibleOrgTwo, riskRepo.gotOrgIDs)
-	}
-	if wpRepo.created == nil {
-		t.Fatal("expected working paper to be created")
-	}
-	if wpRepo.created.OrgID != accessibleOrgTwo {
-		t.Fatalf("expected working paper org %s derived from resolved risk, got %s", accessibleOrgTwo, wpRepo.created.OrgID)
-	}
-}
-
-func TestCreateReviewPeriodicReusesExistingDraftRiskVersion(t *testing.T) {
-	orgID := uuid.New()
-	approvedID := uuid.New()
-	versionGroupID := uuid.New()
-	existingDraftID := uuid.New()
-
-	riskRepo := &fakeCreateRiskRepo{
-		risksByID: map[uuid.UUID]*entity.Risk{
-			approvedID: {
-				ID:              approvedID,
-				VersionGroupID:  versionGroupID,
-				Status:          entity.RiskStatusApproved,
-				IsCurrent:       true,
-				AssessmentCycle: "2025-H2",
-				Code:            "R-010",
-				Title:           "Keterlambatan distribusi",
-				Category:        entity.RiskCategoryOperasional,
-				Probability:     4,
-				Impact:          4,
-				Weight:          entity.GetBobot(4, 4),
-			},
-		},
-		versions: []*entity.Risk{{
-			ID:              existingDraftID,
-			VersionGroupID:  versionGroupID,
-			Status:          entity.RiskStatusDraft,
-			AssessmentCycle: "2026-H1",
-		}},
-	}
-	wpRepo := &fakeCreateWorkingPaperRepo{}
-	uc := NewWorkingPaperUseCase(wpRepo, riskRepo)
-
-	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
-		Title:           "KK Semester I",
-		OrgID:           orgID,
+		OrganizationID:  uuid.New(),
 		CreatedByUserID: uuid.New(),
-		AssessmentCycle: "2026-H1",
-		Risks:           []RiskInput{{RiskID: approvedID, SourceMode: "review_periodic"}},
+		Decisions: []entity.WorkingPaperRosterDecision{
+			{VersionGroupID: uuid.New(), Included: false, ExclusionReason: ""},
+		},
 		Signatories: []CreateSignatoryInput{{
-			UserID:        uuid.New(),
-			SequenceNo:    1,
-			SignerName:    "Rina",
-			SignerPangkat: "Pembina Tk. I (IV/b)",
+			UserID: uuid.New(), SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)",
 		}},
 	})
-	if err != nil {
-		t.Fatalf("Create returned error: %v", err)
-	}
-	if wpRepo.created == nil {
-		t.Fatal("expected working paper to be created")
-	}
-	if len(wpRepo.created.Risks) != 1 {
-		t.Fatalf("expected 1 linked risk, got %d", len(wpRepo.created.Risks))
-	}
-	if wpRepo.created.Risks[0].RiskID != existingDraftID {
-		t.Fatalf("expected linked draft risk %s, got %s", existingDraftID, wpRepo.created.Risks[0].RiskID)
-	}
-	if riskRepo.createdRisk != nil {
-		t.Fatal("expected existing draft to be reused without creating a new draft")
+	if err == nil {
+		t.Fatal("expected error for exclusion without reason")
 	}
 }
 
-func TestCreateReviewPeriodicCreatesDraftRiskVersionWhenMissing(t *testing.T) {
-	orgID := uuid.New()
-	approvedID := uuid.New()
-	versionGroupID := uuid.New()
-	riskRepo := &fakeCreateRiskRepo{risksByID: map[uuid.UUID]*entity.Risk{
-		approvedID: {
-			ID:              approvedID,
-			VersionGroupID:  versionGroupID,
-			Status:          entity.RiskStatusApproved,
-			IsCurrent:       true,
-			AssessmentCycle: "2025-H2",
-			Code:            "R-011",
-			Title:           "Keterlambatan stok",
-			Category:        entity.RiskCategoryOperasional,
-			Probability:     3,
-			Impact:          4,
-			Weight:          entity.GetBobot(3, 4),
-		},
-	}}
-	wpRepo := &fakeCreateWorkingPaperRepo{}
-	uc := NewWorkingPaperUseCase(wpRepo, riskRepo)
-
+func TestCreateRejectsEmptyIncludedRoster(t *testing.T) {
+	uc := NewWorkingPaperUseCase(&fakeCreateWorkingPaperRepo{}, nil, nil)
 	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
-		Title:           "KK Semester I",
-		OrgID:           orgID,
+		AssessmentCycle: "2026-H1",
+		OrganizationID:  uuid.New(),
 		CreatedByUserID: uuid.New(),
-		AssessmentCycle: "2026-H1",
-		Risks:           []RiskInput{{RiskID: approvedID, SourceMode: "review_periodic"}},
+		Decisions: []entity.WorkingPaperRosterDecision{
+			{VersionGroupID: uuid.New(), Included: false, ExclusionReason: "Risiko ditutup"},
+		},
 		Signatories: []CreateSignatoryInput{{
-			UserID:        uuid.New(),
-			SequenceNo:    1,
-			SignerName:    "Rina",
-			SignerPangkat: "Pembina Tk. I (IV/b)",
+			UserID: uuid.New(), SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)",
 		}},
 	})
-	if err != nil {
-		t.Fatalf("Create returned error: %v", err)
-	}
-	if riskRepo.createdRisk == nil {
-		t.Fatal("expected review_periodic to create a reassessment draft when none exists")
-	}
-	if wpRepo.created == nil {
-		t.Fatal("expected working paper to be created")
-	}
-	if len(wpRepo.created.Risks) != 1 {
-		t.Fatalf("expected 1 linked risk, got %d", len(wpRepo.created.Risks))
-	}
-	if wpRepo.created.Risks[0].RiskID != riskRepo.createdRisk.ID {
-		t.Fatalf("expected linked created draft risk %s, got %s", riskRepo.createdRisk.ID, wpRepo.created.Risks[0].RiskID)
-	}
-	if wpRepo.created.Risks[0].SourceMode != "review_periodic" {
-		t.Fatalf("expected review_periodic source mode, got %q", wpRepo.created.Risks[0].SourceMode)
-	}
-	if riskRepo.createdRisk.AssessmentCycle != "2026-H1" {
-		t.Fatalf("expected created draft cycle 2026-H1, got %q", riskRepo.createdRisk.AssessmentCycle)
+	if err == nil {
+		t.Fatal("expected error for empty included roster")
 	}
 }
 
-func TestCreateReviewPeriodicRejectsWhenReviewedVersionAlreadyExists(t *testing.T) {
-	approvedID := uuid.New()
-	versionGroupID := uuid.New()
-	reviewedID := uuid.New()
-
-	riskRepo := &transactionalCreateRiskRepo{fakeCreateRiskRepo: &fakeCreateRiskRepo{
-		risksByID: map[uuid.UUID]*entity.Risk{
-			approvedID: {
-				ID:             approvedID,
-				VersionGroupID: versionGroupID,
-				Status:         entity.RiskStatusApproved,
-				IsCurrent:      true,
-				Code:           "R-021",
-				Title:          "Distribusi tersendat",
-				Category:       entity.RiskCategoryOperasional,
-			},
-		},
-	},
-		reservedRisk: &entity.Risk{
-			ID:              reviewedID,
-			VersionGroupID:  versionGroupID,
-			Status:          "reviewed",
-			AssessmentCycle: "2026-H1",
-		},
-	}
-	wpRepo := &fakeCreateWorkingPaperRepo{}
-	uc := NewWorkingPaperUseCase(wpRepo, riskRepo)
-
+func TestCreateRejectsEmptyDecisions(t *testing.T) {
+	uc := NewWorkingPaperUseCase(&fakeCreateWorkingPaperRepo{}, nil, nil)
 	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
-		Title:            "KK Semester I",
-		CreatedByUserID:  uuid.New(),
-		AssessmentCycle:  "2026-H1",
-		AccessibleOrgIDs: []uuid.UUID{uuid.New()},
-		Risks:            []RiskInput{{RiskID: approvedID, SourceMode: "review_periodic"}},
+		AssessmentCycle: "2026-H1",
+		OrganizationID:  uuid.New(),
+		CreatedByUserID: uuid.New(),
+		Decisions:       []entity.WorkingPaperRosterDecision{},
 		Signatories: []CreateSignatoryInput{{
-			UserID:        uuid.New(),
-			SequenceNo:    1,
-			SignerName:    "Rina",
-			SignerPangkat: "Pembina Tk. I (IV/b)",
+			UserID: uuid.New(), SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)",
 		}},
 	})
-	if !errors.Is(err, domainerrors.ErrInvalidStatus) {
-		t.Fatalf("expected invalid status error when reviewed reassessment exists, got %v", err)
+	if err == nil {
+		t.Fatal("expected error for empty decisions")
 	}
-	if riskRepo.reserveCalls != 1 {
-		t.Fatalf("expected repository-managed reassessment reservation once, got %d", riskRepo.reserveCalls)
+}
+
+func TestCreateRejectsMissingSignatories(t *testing.T) {
+	uc := NewWorkingPaperUseCase(&fakeCreateWorkingPaperRepo{}, nil, nil)
+	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
+		AssessmentCycle: "2026-H1",
+		OrganizationID:  uuid.New(),
+		CreatedByUserID: uuid.New(),
+		Decisions: []entity.WorkingPaperRosterDecision{
+			{VersionGroupID: uuid.New(), Included: true},
+		},
+		Signatories: []CreateSignatoryInput{},
+	})
+	if err == nil {
+		t.Fatal("expected error for missing signatories")
 	}
-	if riskRepo.createdRisk != nil {
-		t.Fatal("expected no new draft when reviewed in-progress version exists")
-	}
-	if wpRepo.created != nil {
-		t.Fatal("expected working paper not to be created")
+}
+
+func TestCreateRejectsInvalidSemesterFormat(t *testing.T) {
+	uc := NewWorkingPaperUseCase(&fakeCreateWorkingPaperRepo{}, nil, nil)
+	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
+		AssessmentCycle: "invalid",
+		OrganizationID:  uuid.New(),
+		CreatedByUserID: uuid.New(),
+		Decisions: []entity.WorkingPaperRosterDecision{
+			{VersionGroupID: uuid.New(), Included: true},
+		},
+		Signatories: []CreateSignatoryInput{{
+			UserID: uuid.New(), SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)",
+		}},
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid semester")
 	}
 }
 

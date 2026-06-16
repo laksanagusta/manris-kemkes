@@ -20,6 +20,7 @@ import {
   MitigationTable,
   type MitigationItem,
 } from "@/components/shared/mitigation-table";
+import { MitigationStatusTable } from "./_components/mitigation-status-table";
 import { ProbabilityCriteriaTooltip } from "@/components/shared/probability-criteria-tooltip";
 import { RiskSubstanceFields } from "@/components/risk/risk-substance-fields";
 import { Switch } from "@/components/ui/switch";
@@ -41,7 +42,7 @@ import {
   getRiskLevelFromNilai,
   resolveRiskAssessmentClassification,
 } from "@/lib/risk";
-import type { Risk } from "@/types/risk";
+import type { Risk, RiskMitigation } from "@/types/risk";
 import type { RiskMonitoringDetail } from "@/types/risk-monitoring";
 import { listUsers } from "@/lib/api/users";
 
@@ -134,24 +135,22 @@ function buildRiskFromMonitoring(
     category: monitoring.draftCategory || base.category,
     cause: monitoring.draftCause?.length ? monitoring.draftCause : base.cause,
     riskSource: monitoring.draftRiskSource || base.riskSource,
-    controllability:
-      monitoring.draftControllability || base.controllability,
+    controllability: monitoring.draftControllability || base.controllability,
     impactDesc: monitoring.draftImpactDesc?.length
       ? monitoring.draftImpactDesc
       : base.impactDesc,
-    existingControl:
-      monitoring.draftExistingControl || base.existingControl,
+    existingControl: monitoring.draftExistingControl || base.existingControl,
     controlEffectiveness:
       monitoring.draftControlEffectiveness || base.controlEffectiveness,
-    treatmentOption:
-      monitoring.draftTreatmentOption || base.treatmentOption,
+    treatmentOption: monitoring.draftTreatmentOption || base.treatmentOption,
     probability: monitoring.observedProbability || base.probability,
     impact: monitoring.observedImpact || base.impact,
     weight: monitoring.observedWeight || base.weight,
     nilai: monitoring.observedNilai || base.nilai,
     inherentScore:
-      Math.round(monitoring.observedNilai || base.nilai || base.inherentScore) ||
-      base.inherentScore,
+      Math.round(
+        monitoring.observedNilai || base.nilai || base.inherentScore,
+      ) || base.inherentScore,
     status,
     assessmentCycle: monitoring.assessmentCycle || base.assessmentCycle,
     reviewType: "periodic",
@@ -159,6 +158,10 @@ function buildRiskFromMonitoring(
     changeReason: monitoring.changeReason || base.changeReason,
     previousRiskId: monitoring.sourceRiskId || base.previousRiskId || null,
     versionNumber: monitoring.sourceVersionNumber + 1,
+    mitigations:
+      (monitoring.draftMitigations?.length
+        ? (monitoring.draftMitigations as RiskMitigation[])
+        : base.mitigations) ?? [],
   } as Risk;
 }
 
@@ -288,10 +291,9 @@ export default function AssessmentFormPage() {
   const isAssessmentSectionReady =
     Boolean(form.watch("reviewSummary")?.trim()) &&
     (isMonitoringRoute || Boolean(form.watch("changeReason")?.trim()));
-  const submitActionLabel =
-    isMonitoringRoute
-      ? "Finalisasi pemantauan"
-      : riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+  const submitActionLabel = isMonitoringRoute
+    ? "Finalisasi pemantauan"
+    : riskApprovalCapabilityBehavior.usesDirectApprovalCopy
       ? "Finalisasi pemantauan"
       : "Ajukan review";
 
@@ -728,7 +730,8 @@ export default function AssessmentFormPage() {
           effectivenessConclusion: monitoring?.effectivenessConclusion || "",
           followUpNote: monitoring?.followUpNote || "",
           conclusion: values.reviewSummary,
-          mitigationProgressSummary: monitoring?.mitigationProgressSummary || "",
+          mitigationProgressSummary:
+            monitoring?.mitigationProgressSummary || "",
           mitigationCompletionPercent:
             monitoring?.mitigationCompletionPercent || 0,
           mitigationObstacles: monitoring?.mitigationObstacles || "",
@@ -737,18 +740,22 @@ export default function AssessmentFormPage() {
             title: mergedSubstance.title ?? draftRisk.title,
             category: mergedSubstance.category ?? draftRisk.category,
             cause: mergedSubstance.cause ?? (draftRisk.cause || []),
-            riskSource: mergedSubstance.riskSource ?? (draftRisk.riskSource || ""),
+            riskSource:
+              mergedSubstance.riskSource ?? (draftRisk.riskSource || ""),
             controllability:
               mergedSubstance.controllability ??
               (draftRisk.controllability || ""),
-          impactDesc: mergedSubstance.impactDesc ?? (draftRisk.impactDesc || []),
-          existingControl:
-            mergedSubstance.existingControl ?? (draftRisk.existingControl || ""),
-          controlEffectiveness:
-            mergedSubstance.controlEffectiveness ??
-            (draftRisk.controlEffectiveness || ""),
-          treatmentOption:
-            mergedSubstance.treatmentOption ?? (draftRisk.treatmentOption || ""),
+            impactDesc:
+              mergedSubstance.impactDesc ?? (draftRisk.impactDesc || []),
+            existingControl:
+              mergedSubstance.existingControl ??
+              (draftRisk.existingControl || ""),
+            controlEffectiveness:
+              mergedSubstance.controlEffectiveness ??
+              (draftRisk.controlEffectiveness || ""),
+            treatmentOption:
+              mergedSubstance.treatmentOption ??
+              (draftRisk.treatmentOption || ""),
             mitigations:
               mergedSubstance.mitigations ??
               draftRisk.mitigations ??
@@ -907,10 +914,7 @@ export default function AssessmentFormPage() {
     return (
       <div className="flex h-[50vh] w-full flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Data risiko tidak ditemukan.</p>
-        <Button
-          variant="outline"
-          onClick={() => router.push(backTarget)}
-        >
+        <Button variant="outline" onClick={() => router.push(backTarget)}>
           <ArrowLeft className="mr-2 size-4" />
           Kembali
         </Button>
@@ -1051,16 +1055,6 @@ export default function AssessmentFormPage() {
               </AccordionTrigger>
               <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
                 <div className="grid gap-6 min-w-0">
-                  <div className="rounded-xl border border-border/50 bg-background px-4 py-3">
-                    <p className="text-sm font-medium text-foreground">
-                      {sourceRisk.title}
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      Nilai ulang probabilitas dan dampak residual berdasarkan
-                      kondisi terbaru, lalu catat alasan perubahan dengan bahasa
-                      yang singkat dan operasional.
-                    </p>
-                  </div>
                   {(() => {
                     const mitigations =
                       draftRisk?.mitigations ??
@@ -1090,6 +1084,9 @@ export default function AssessmentFormPage() {
                         isExistingControl: m.isExistingControl ?? false,
                       }),
                     );
+
+                    if (isMonitoringRoute) return null;
+
                     return mitigationItems.length > 0 ? (
                       <div className="w-full min-w-0 space-y-2">
                         <Label className="text-sm font-medium text-foreground">
@@ -1113,6 +1110,10 @@ export default function AssessmentFormPage() {
                       </div>
                     );
                   })()}
+
+                  {isMonitoringRoute && monitoringDraft?.id && (
+                    <MitigationStatusTable monitoringId={monitoringDraft.id} />
+                  )}
 
                   <TooltipProvider>
                     <div className="grid w-full min-w-0 grid-cols-1 gap-4">
@@ -1527,6 +1528,18 @@ export default function AssessmentFormPage() {
                 </span>
                 <span className="text-muted-foreground">
                   {selectedApprovalLine.length} orang
+                </span>
+              </div>
+            </div>
+          )}
+          {substanceEditEnabled && substanceDiffs.length > 0 && (
+            <div className="space-y-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm">
+              <div>
+                <span className="font-medium text-foreground">
+                  Perubahan substansi:{" "}
+                </span>
+                <span className="text-muted-foreground">
+                  {substanceDiffSummary}
                 </span>
               </div>
             </div>

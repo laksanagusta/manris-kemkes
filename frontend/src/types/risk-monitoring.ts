@@ -1,4 +1,4 @@
-import type { Risk } from "./risk";
+import type { Risk, RiskMitigation } from "./risk";
 
 export interface RiskMonitoringDetail {
   id: string;
@@ -37,7 +37,7 @@ export interface RiskMonitoringDetail {
   draftExistingControl: string;
   draftControlEffectiveness: string;
   draftTreatmentOption: string;
-  draftMitigations?: unknown[];
+  draftMitigations?: RiskMitigation[];
   profileChangeSummary: string[];
   changeReason: string;
   startedAt: string;

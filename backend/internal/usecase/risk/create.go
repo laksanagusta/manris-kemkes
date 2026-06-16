@@ -95,14 +95,14 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 	// 2. Validate user exists
 	_, err := uc.userRepo.GetByID(ctx, *input.CreatedBy)
 	if err != nil {
-		return nil, errors.Wrap(err, "creator not found")
+		return nil, errors.ErrCreatorNotFound
 	}
 
 	// 3. Validate organization if provided
 	if input.OrganizationID != nil {
 		_, err := uc.orgRepo.GetByID(ctx, *input.OrganizationID)
 		if err != nil {
-			return nil, errors.Wrap(err, "organization not found")
+			return nil, errors.ErrOrganizationNotFound
 		}
 	}
 
@@ -116,7 +116,7 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 	input.Mitigations = pruneEmptyMitigations(input.Mitigations)
 	for i, m := range input.Mitigations {
 		if err := m.Validate(); err != nil {
-			return nil, errors.Wrap(err, "mitigation validation failed")
+			return nil, errors.ErrMitigationValidationFailed
 		}
 		input.Mitigations[i] = m
 		input.Mitigations[i].RiskID = uuid.Nil // Will be set after risk creation

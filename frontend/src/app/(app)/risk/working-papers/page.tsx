@@ -58,6 +58,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   Filter,
@@ -352,6 +360,30 @@ export default function WorkingPapersPage() {
 
   const [paperToDelete, setPaperToDelete] = useState<WorkingPaper | null>(null);
   const [paperToCancel, setPaperToCancel] = useState<WorkingPaper | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [selectedSemester, setSelectedSemester] = useState("");
+
+  const semesterOptions: { value: string; label: string }[] = (() => {
+    const year = new Date().getFullYear();
+    const half = new Date().getMonth() < 6 ? 1 : 2;
+    if (half === 1) {
+      return [
+        { value: `${year - 1}-H2`, label: `${year - 1}-H2` },
+        { value: `${year}-H1`, label: `${year}-H1` },
+        { value: `${year}-H2`, label: `${year}-H2` },
+      ];
+    }
+    return [
+      { value: `${year}-H1`, label: `${year}-H1` },
+      { value: `${year}-H2`, label: `${year}-H2` },
+      { value: `${year + 1}-H1`, label: `${year + 1}-H1` },
+    ];
+  })();
+
+  const currentSemester = (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-H${now.getMonth() < 6 ? 1 : 2}`;
+  })();
 
   const handleResetFilters = () => {
     setStatusFilter("all");
@@ -582,12 +614,16 @@ export default function WorkingPapersPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/risk/working-papers/new">
-            <Button className="gap-2 shadow-lg shadow-primary/20">
-              <Plus className="size-4" />
-              Buat Kertas Kerja
-            </Button>
-          </Link>
+          <Button
+            className="gap-2 shadow-lg shadow-primary/20"
+            onClick={() => {
+              setSelectedSemester(currentSemester);
+              setCreateModalOpen(true);
+            }}
+          >
+            <Plus className="size-4" />
+            Buat Kertas Kerja
+          </Button>
         </div>
       </div>
 
@@ -688,7 +724,7 @@ export default function WorkingPapersPage() {
             </div>
           ) : (
             <>
-              <div className="space-y-3 p-4 md:hidden">
+              <div className="space-y-2 p-4 md:hidden">
                 {papers.map((wp) => {
                   const signedCount =
                     wp.signatories?.filter((s) => s.status === "signed")
@@ -711,86 +747,50 @@ export default function WorkingPapersPage() {
                   return (
                     <div
                       key={wp.id}
-                      className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
+                      className="rounded-xl border border-zinc-200/80 bg-white px-4 py-3 transition-colors hover:bg-zinc-50/70"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="mb-1 text-[11px] font-mono uppercase tracking-[0.16em] text-zinc-500">
-                            {wp.code}
-                          </p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500">
+                              {wp.code}
+                            </span>
+                            <Badge
+                              className={getLinearStatusBadgeClass(wp.status)}
+                            >
+                              {statusLabels[wp.status] || wp.status}
+                            </Badge>
+                          </div>
                           <Link
                             href={`/risk/working-papers/${wp.id}`}
-                            className="line-clamp-2 text-sm font-semibold text-zinc-900 transition-colors hover:text-primary"
+                            className="mt-1 line-clamp-2 text-sm font-semibold text-zinc-900 transition-colors hover:text-primary"
                           >
                             {wp.title || "Tanpa Judul"}
                           </Link>
-                          <p className="mt-1 text-xs tabular-nums text-zinc-500">
-                            {wp.assessment_cycle || "Tanpa siklus asesmen"}
-                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
+                            <span>{wp.assessment_cycle || "Tanpa siklus"}</span>
+                            <span className="text-zinc-300">|</span>
+                            <span>{wp.risks?.length || 0} risiko</span>
+                            <span className="text-zinc-300">|</span>
+                            <span>{createdDate}</span>
+                          </div>
                         </div>
-                        <span
-                          className={cn(
-                            "px-2.5",
-                            getLinearStatusBadgeClass(wp.status),
-                          )}
-                        >
-                          {statusLabels[wp.status] || wp.status}
-                          {wp.status === "completed" && wp.tte_skipped ? " (tanpa TTE)" : ""}
-                        </span>
+                        <ChevronRight className="mt-1 size-4 shrink-0 text-zinc-400" />
                       </div>
 
-                      <div className="mt-3 grid gap-2">
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <div className="space-y-1 rounded-xl bg-zinc-50/80 px-3 py-2 ring-1 ring-inset ring-zinc-200/80">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500 text-pretty">
-                              Jumlah risiko
-                            </p>
-                            <div className="text-sm font-medium text-zinc-900 text-pretty">
-                              {wp.risks?.length || 0} risiko
-                            </div>
-                          </div>
-                          <div className="space-y-1 rounded-xl bg-zinc-50/80 px-3 py-2 ring-1 ring-inset ring-zinc-200/80">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500 text-pretty">
-                              Dibuat pada
-                            </p>
-                            <div className="text-sm text-zinc-900 text-pretty">
-                              {createdDate}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 rounded-xl bg-zinc-50/80 px-3 py-3 ring-1 ring-inset ring-zinc-200/80">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500 text-pretty">
-                              Progres TTE
-                            </p>
-                            <span className="text-sm font-medium text-zinc-900">
-                              {progressText}
-                            </span>
-                          </div>
-                          {totalSignatories > 0 ? (
-                            <Progress
-                              value={progressPercent}
-                              className="h-2 bg-zinc-200"
+                      {totalSignatories > 0 && (
+                        <div className="mt-3 flex items-center gap-3">
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100">
+                            <div
+                              className="h-full rounded-full bg-emerald-500 transition-all"
+                              style={{ width: `${progressPercent}%` }}
                             />
-                          ) : (
-                            <p className="text-sm text-zinc-500">
-                              Belum ada penandatangan.
-                            </p>
-                          )}
+                          </div>
+                          <span className="text-xs font-medium tabular-nums text-zinc-500">
+                            {progressText} TTE
+                          </span>
                         </div>
-                      </div>
-
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="mt-3 w-full border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50"
-                      >
-                        <Link href={`/risk/working-papers/${wp.id}`}>
-                          Buka detail
-                        </Link>
-                      </Button>
+                      )}
                     </div>
                   );
                 })}
@@ -1010,6 +1010,53 @@ export default function WorkingPapersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Pilih Periode Semester</DialogTitle>
+            <DialogDescription>
+              Tentukan semester untuk kertas kerja yang akan dibuat.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Select
+              value={selectedSemester}
+              onValueChange={setSelectedSemester}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Pilih semester" />
+              </SelectTrigger>
+              <SelectContent>
+                {semesterOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCreateModalOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={() => {
+                setCreateModalOpen(false);
+                router.push(
+                  `/risk/working-papers/new?cycle=${selectedSemester}`,
+                );
+              }}
+              disabled={!selectedSemester}
+            >
+              Lanjutkan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -11,19 +11,21 @@ import (
 )
 
 type fakeMonitoringTransactionRepo struct {
-	byID       map[uuid.UUID]*entity.RiskMonitoring
-	drafts     map[string]*entity.RiskMonitoring
-	finalized  map[string]bool
-	created    []*entity.RiskMonitoring
-	updated    []*entity.RiskMonitoring
-	finalizedR []*entity.Risk
+	byID           map[uuid.UUID]*entity.RiskMonitoring
+	drafts         map[string]*entity.RiskMonitoring
+	finalized      map[string]bool
+	byVersionGroup map[string]*entity.RiskMonitoring
+	created        []*entity.RiskMonitoring
+	updated        []*entity.RiskMonitoring
+	finalizedR     []*entity.Risk
 }
 
 func newFakeMonitoringTransactionRepo() *fakeMonitoringTransactionRepo {
 	return &fakeMonitoringTransactionRepo{
-		byID:      make(map[uuid.UUID]*entity.RiskMonitoring),
-		drafts:    make(map[string]*entity.RiskMonitoring),
-		finalized: make(map[string]bool),
+		byID:           make(map[uuid.UUID]*entity.RiskMonitoring),
+		drafts:         make(map[string]*entity.RiskMonitoring),
+		finalized:      make(map[string]bool),
+		byVersionGroup: make(map[string]*entity.RiskMonitoring),
 	}
 }
 
@@ -44,6 +46,24 @@ func (f *fakeMonitoringTransactionRepo) GetDraftBySourceAndCycle(_ context.Conte
 
 func (f *fakeMonitoringTransactionRepo) HasFinalizedForSourceAndCycle(_ context.Context, sourceRiskID uuid.UUID, cycle string) (bool, error) {
 	return f.finalized[sourceRiskID.String()+"|"+cycle], nil
+}
+
+func (f *fakeMonitoringTransactionRepo) GetByVersionGroupAndCycle(_ context.Context, versionGroupID uuid.UUID, cycle string) (*entity.RiskMonitoring, error) {
+	key := versionGroupID.String() + "|" + cycle
+	if m, ok := f.byVersionGroup[key]; ok {
+		return cloneRiskMonitoringForTest(m), nil
+	}
+	return nil, nil
+}
+
+func (f *fakeMonitoringTransactionRepo) ListByVersionGroup(_ context.Context, versionGroupID uuid.UUID) ([]*entity.RiskMonitoring, error) {
+	var result []*entity.RiskMonitoring
+	for _, m := range f.byID {
+		if m.VersionGroupID == versionGroupID {
+			result = append(result, cloneRiskMonitoringForTest(m))
+		}
+	}
+	return result, nil
 }
 
 func (f *fakeMonitoringTransactionRepo) Create(_ context.Context, monitoring *entity.RiskMonitoring) error {
@@ -147,11 +167,11 @@ func TestStartMonitoringUseCase_CreatesDraft(t *testing.T) {
 
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
 	monitoringRepo := newFakeMonitoringTransactionRepo()
-	uc := NewStartMonitoringUseCase(riskRepo, monitoringRepo)
+	uc := NewStartMonitoringUseCase(riskRepo, monitoringRepo, nil, nil)
 
 	out, err := uc.Execute(context.Background(), StartMonitoringInput{
 		SourceRiskID: sourceID,
-		Cycle:        "2026-H1",
+		Cycle:        "2026-Q1",
 		OrgIDs:       []uuid.UUID{orgID},
 		StartedBy:    uuid.New(),
 	})
@@ -190,7 +210,7 @@ func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
 		Impact:         3,
 		Weight:         entity.GetBobot(4, 3),
 	}
-	monitoring := entity.NewRiskMonitoringDraft(source, "2026-H1", uuid.New())
+	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q1", uuid.New())
 	monitoring.ID = monitoringID
 	monitoringRepo := newFakeMonitoringTransactionRepo()
 	monitoringRepo.byID[monitoringID] = monitoring
@@ -263,7 +283,7 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 		Weight:         entity.GetBobot(4, 3),
 		Mitigations:    []entity.Mitigation{{Action: "Original", Owner: "Unit"}},
 	}
-	monitoring := entity.NewRiskMonitoringDraft(source, "2026-H1", uuid.New())
+	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q1", uuid.New())
 	monitoring.ID = monitoringID
 	monitoring.Mode = entity.RiskMonitoringModeWithProfileRevision
 	monitoring.SetDraftPayload(&entity.RiskMonitoringDraftPayload{
@@ -287,7 +307,7 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 	monitoringRepo.byID[monitoringID] = monitoring
 	monitoringRepo.drafts[sourceID.String()+"|2026-H1"] = monitoring
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
-	uc := NewFinalizeMonitoringUseCase(riskRepo, monitoringRepo)
+	uc := NewFinalizeMonitoringUseCase(riskRepo, monitoringRepo, nil, nil)
 
 	out, err := uc.Execute(context.Background(), FinalizeMonitoringInput{
 		MonitoringID: monitoringID,
@@ -321,5 +341,8 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 	}
 	if resultRisk.ReviewStartedAt == nil {
 		t.Fatalf("expected review started at to be set")
+	}
+	if resultRisk.AssessmentCycle != "2026-H1" {
+		t.Fatalf("expected result risk assessment cycle 2026-H1, got %q", resultRisk.AssessmentCycle)
 	}
 }

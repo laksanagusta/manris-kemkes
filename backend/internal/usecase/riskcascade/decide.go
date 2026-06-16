@@ -2,6 +2,7 @@ package riskcascade
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
@@ -58,13 +60,13 @@ func (uc *DecideUseCase) Execute(ctx context.Context, input DecideInput) (*Decid
 
 	cascade, err := uc.cascadeRepo.GetByID(ctx, input.ID)
 	if err != nil {
-		return nil, errors.Wrap(errors.ErrNotFound, "risk cascade not found")
+		return nil, errors.ErrRiskCascadeNotFound
 	}
 	if !isOrgAccessible(cascade.TargetOrgID, input.OrgIDs) {
 		return nil, errors.ErrForbidden
 	}
 	if cascade.Status != "proposed" && cascade.Status != "analyzed" {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "cascade is not in a decidable state")
+		return nil, errors.ErrCascadeNotDecidable
 	}
 
 	now := time.Now().UTC()
@@ -85,11 +87,11 @@ func (uc *DecideUseCase) Execute(ctx context.Context, input DecideInput) (*Decid
 		return &DecideOutput{Cascade: cascade}, nil
 	case "accept":
 	default:
-		return nil, errors.Wrap(errors.ErrInvalidInput, "decision must be accept or reject")
+		return nil, errors.ErrCascadeDecisionInvalid
 	}
 
 	if input.AdoptionType != "full" && input.AdoptionType != "partial" {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "adoption type must be full or partial")
+		return nil, errors.ErrAdoptionTypeInvalid
 	}
 	cascade.Status = "accepted"
 	cascade.AdoptionType = input.AdoptionType
@@ -105,10 +107,10 @@ func (uc *DecideUseCase) Execute(ctx context.Context, input DecideInput) (*Decid
 		return nil, errors.ErrRiskNotFound
 	}
 	if sourceRisk.OrganizationID == nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "source risk must belong to an organization")
+		return nil, errors.ErrSourceRiskOrgRequired
 	}
 	if _, err := uc.orgRepo.GetByID(ctx, cascade.TargetOrgID); err != nil {
-		return nil, errors.Wrap(err, "target organization not found")
+		return nil, errors.ErrTargetOrganizationNotFound
 	}
 
 	approverName := uc.resolveApproverName(ctx, input.CreatedBy, input.CreatedByName)
@@ -123,7 +125,10 @@ func (uc *DecideUseCase) Execute(ctx context.Context, input DecideInput) (*Decid
 		return nil, errors.Wrap(err, "failed to activate cascaded risk")
 	}
 	if uc.mitigationTaskRepo != nil {
-		if _, err := mtuc.NewEnsureTasksForApprovedRiskUseCase(uc.mitigationTaskRepo, uc.riskRepo).Execute(ctx, newRisk.ID, []uuid.UUID{cascade.TargetOrgID}); err != nil {
+		now := time.Now().In(timeutil.JakartaLocation())
+		year, quarter := mtuc.CurrentQuarter(now)
+		cycle := fmt.Sprintf("%d-Q%d", year, quarter)
+		if _, err := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.mitigationTaskRepo, uc.riskRepo).Execute(ctx, newRisk.ID, cycle, []uuid.UUID{cascade.TargetOrgID}); err != nil {
 			return nil, errors.Wrap(err, "failed to create mitigation tasks")
 		}
 	}

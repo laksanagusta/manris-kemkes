@@ -30,7 +30,7 @@ func NewCommunicationLogHandler(
 func (h *CommunicationLogHandler) Create(c *fiber.Ctx) error {
 	riskID := c.Params("riskId")
 	if riskID == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "risk ID is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko wajib diisi")
 	}
 
 	var input struct {
@@ -41,17 +41,17 @@ func (h *CommunicationLogHandler) Create(c *fiber.Ctx) error {
 	}
 
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 	var orgIDs []uuid.UUID
 	if !scope.IsGlobal {
@@ -78,12 +78,12 @@ func (h *CommunicationLogHandler) Create(c *fiber.Ctx) error {
 func (h *CommunicationLogHandler) List(c *fiber.Ctx) error {
 	riskID := c.Params("riskId")
 	if riskID == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "risk ID is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko wajib diisi")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 	var orgIDs []uuid.UUID
 	if !scope.IsGlobal {
@@ -105,12 +105,12 @@ func (h *CommunicationLogHandler) List(c *fiber.Ctx) error {
 func (h *CommunicationLogHandler) Delete(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "communication log ID is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID log komunikasi wajib diisi")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 	var orgIDs []uuid.UUID
 	if !scope.IsGlobal {

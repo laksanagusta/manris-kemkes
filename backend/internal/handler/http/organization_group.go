@@ -46,14 +46,14 @@ func (h *OrganizationGroupHandler) List(c *fiber.Ctx) error {
 	if raw := c.Query("owner_organization_id"); raw != "" {
 		parsed, err := uuid.Parse(raw)
 		if err != nil {
-			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid owner organization ID")
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pemilik organisasi tidak valid")
 		}
 		ownerOrganizationID = &parsed
 	}
 
 	includeMembers, err := strconv.ParseBool(c.Query("include_members", "false"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid include_members value")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "nilai include_members tidak valid")
 	}
 
 	result, err := h.listUC.Execute(c.Context(), organizationgroupuc.ListInput{
@@ -74,7 +74,7 @@ func (h *OrganizationGroupHandler) List(c *fiber.Ctx) error {
 func (h *OrganizationGroupHandler) Create(c *fiber.Ctx) error {
 	var input organizationgroupuc.CreateInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 	input.Scope = middleware.GetAccessScope(c)
 
@@ -89,7 +89,7 @@ func (h *OrganizationGroupHandler) Create(c *fiber.Ctx) error {
 func (h *OrganizationGroupHandler) Get(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization group ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID grup organisasi tidak valid")
 	}
 
 	result, err := h.getUC.Execute(c.Context(), organizationgroupuc.GetInput{
@@ -106,12 +106,12 @@ func (h *OrganizationGroupHandler) Get(c *fiber.Ctx) error {
 func (h *OrganizationGroupHandler) Update(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization group ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID grup organisasi tidak valid")
 	}
 
 	var input organizationgroupuc.UpdateInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 	input.ID = id
 	input.Scope = middleware.GetAccessScope(c)
@@ -127,7 +127,7 @@ func (h *OrganizationGroupHandler) Update(c *fiber.Ctx) error {
 func (h *OrganizationGroupHandler) Delete(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization group ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID grup organisasi tidak valid")
 	}
 
 	result, err := h.deleteUC.Execute(c.Context(), organizationgroupuc.DeleteInput{
@@ -144,16 +144,16 @@ func (h *OrganizationGroupHandler) Delete(c *fiber.Ctx) error {
 func handleOrganizationGroupError(c *fiber.Ctx, err error) error {
 	switch {
 	case errors.Is(err, domainerrors.ErrNotFound):
-		return sendProblemDetails(c, fiber.StatusNotFound, "Not Found", "https://api.manris.com/errors/not-found", err.Error())
+		return sendProblemDetails(c, fiber.StatusNotFound, "Tidak Ditemukan", "https://api.manris.com/errors/not-found", err.Error())
 	case errors.Is(err, domainerrors.ErrConflict):
-		return sendProblemDetails(c, fiber.StatusConflict, "Conflict", "https://api.manris.com/errors/conflict", err.Error())
+		return sendProblemDetails(c, fiber.StatusConflict, "Konflik", "https://api.manris.com/errors/conflict", err.Error())
 	case domainerrors.IsValidation(err):
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", err.Error())
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", err.Error())
 	case errors.Is(err, domainerrors.ErrForbidden):
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", err.Error())
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", err.Error())
 	case errors.Is(err, domainerrors.ErrUnauthorized):
-		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", err.Error())
+		return sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", err.Error())
 	default:
-		return sendProblemDetails(c, fiber.StatusInternalServerError, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
+		return sendProblemDetails(c, fiber.StatusInternalServerError, "Kesalahan Server", "https://api.manris.com/errors/server-error", err.Error())
 	}
 }

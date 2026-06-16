@@ -40,7 +40,7 @@ type ListReportsInput struct {
 func (uc *ListReportsUseCase) Execute(ctx context.Context, input ListReportsInput) ([]*entity.KRIReport, error) {
 	if input.KRIID != nil {
 		if _, err := uc.kriRepo.GetByID(ctx, *input.KRIID, input.OrgIDs); err != nil {
-			return nil, fmt.Errorf("KRI not found or not accessible: %w", err)
+			return nil, fmt.Errorf("KRI tidak ditemukan atau tidak dapat diakses: %w", err)
 		}
 	}
 
@@ -54,7 +54,7 @@ func (uc *ListReportsUseCase) Execute(ctx context.Context, input ListReportsInpu
 	} else if input.Status != "" {
 		reports, err = uc.reportRepo.ListByStatus(ctx, input.Status, input.OrgIDs)
 	} else {
-		return nil, fmt.Errorf("one of kriID, userID, or status is required")
+		return nil, fmt.Errorf("salah satu dari kriID, userID, atau status wajib diisi")
 	}
 
 	if err != nil {
@@ -114,7 +114,7 @@ func (uc *SubmitReportUseCase) Execute(ctx context.Context, input SubmitReportIn
 
 	report, err := uc.reportRepo.GetByID(ctx, input.ReportID, input.OrgIDs)
 	if err != nil {
-		return nil, fmt.Errorf("report not found: %w", err)
+		return nil, fmt.Errorf("laporan tidak ditemukan: %w", err)
 	}
 
 	if _, err := uc.kriRepo.GetByID(ctx, report.KRIID, input.OrgIDs); err != nil {
@@ -122,12 +122,12 @@ func (uc *SubmitReportUseCase) Execute(ctx context.Context, input SubmitReportIn
 	}
 
 	if report.Status == "submitted" {
-		return nil, fmt.Errorf("report has already been submitted")
+		return nil, fmt.Errorf("laporan sudah dikirim")
 	}
 
 	periodEnd, err := time.Parse("2006-01-02", report.PeriodEnd)
 	if err != nil {
-		return nil, fmt.Errorf("invalid period end date: %w", err)
+		return nil, fmt.Errorf("tanggal akhir periode tidak valid: %w", err)
 	}
 
 	loc := timeutil.JakartaLocation()
@@ -151,7 +151,7 @@ func (uc *SubmitReportUseCase) Execute(ctx context.Context, input SubmitReportIn
 	report.ReviewNote = ""
 
 	if err := uc.reportRepo.Update(ctx, report); err != nil {
-		return nil, fmt.Errorf("update report: %w", err)
+		return nil, fmt.Errorf("gagal memperbarui laporan: %w", err)
 	}
 
 	return uc.reportRepo.GetByID(ctx, report.ID, input.OrgIDs)
@@ -172,7 +172,7 @@ func NewGenerateReportsUseCase(reportRepo repository.KRIReportRepository) *Gener
 func (uc *GenerateReportsUseCase) Execute(ctx context.Context, now time.Time) (int, error) {
 	kris, err := uc.reportRepo.GetAllKRIs(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("get all kris: %w", err)
+		return 0, fmt.Errorf("gagal mengambil semua KRI: %w", err)
 	}
 
 	created := 0
@@ -308,11 +308,11 @@ type AcceptReportInput struct {
 func (uc *AcceptReportUseCase) Execute(ctx context.Context, input AcceptReportInput) (*entity.KRIReport, error) {
 	report, err := uc.reportRepo.GetByID(ctx, input.ReportID, input.OrgIDs)
 	if err != nil {
-		return nil, fmt.Errorf("report not found: %w", err)
+		return nil, fmt.Errorf("laporan tidak ditemukan: %w", err)
 	}
 
 	if report.Status != "submitted" {
-		return nil, fmt.Errorf("cannot accept report with status '%s'", report.Status)
+		return nil, fmt.Errorf("tidak dapat menerima laporan dengan status '%s'", report.Status)
 	}
 
 	now := time.Now()
@@ -322,7 +322,7 @@ func (uc *AcceptReportUseCase) Execute(ctx context.Context, input AcceptReportIn
 	report.ReviewNote = input.ReviewNote
 
 	if err := uc.reportRepo.Update(ctx, report); err != nil {
-		return nil, fmt.Errorf("update report: %w", err)
+		return nil, fmt.Errorf("gagal memperbarui laporan: %w", err)
 	}
 
 	if report.Value != nil {
@@ -335,7 +335,7 @@ func (uc *AcceptReportUseCase) Execute(ctx context.Context, input AcceptReportIn
 				report.ReviewedAt = nil
 				report.ReviewNote = ""
 				_ = uc.reportRepo.Update(ctx, report)
-				return nil, fmt.Errorf("update kri after accepting report: %w", updateErr)
+				return nil, fmt.Errorf("gagal memperbarui KRI setelah menerima laporan: %w", updateErr)
 			}
 		}
 	}
@@ -368,12 +368,12 @@ type RequestRevisionInput struct {
 
 func (uc *RequestRevisionUseCase) Execute(ctx context.Context, input RequestRevisionInput) (*entity.KRIReport, error) {
 	if strings.TrimSpace(input.ReviewNote) == "" {
-		return nil, fmt.Errorf("review_note is required for revision request")
+		return nil, fmt.Errorf("catatan review wajib diisi untuk permintaan revisi")
 	}
 
 	report, err := uc.reportRepo.GetByID(ctx, input.ReportID, input.OrgIDs)
 	if err != nil {
-		return nil, fmt.Errorf("report not found: %w", err)
+		return nil, fmt.Errorf("laporan tidak ditemukan: %w", err)
 	}
 
 	if _, err := uc.kriRepo.GetByID(ctx, report.KRIID, input.OrgIDs); err != nil {
@@ -381,7 +381,7 @@ func (uc *RequestRevisionUseCase) Execute(ctx context.Context, input RequestRevi
 	}
 
 	if report.Status != "submitted" {
-		return nil, fmt.Errorf("report must be in submitted status to request revision, current: %s", report.Status)
+		return nil, fmt.Errorf("laporan harus berstatus submitted untuk meminta revisi, saat ini: %s", report.Status)
 	}
 
 	now := time.Now()
@@ -391,7 +391,7 @@ func (uc *RequestRevisionUseCase) Execute(ctx context.Context, input RequestRevi
 	report.ReviewNote = input.ReviewNote
 
 	if err := uc.reportRepo.Update(ctx, report); err != nil {
-		return nil, fmt.Errorf("update report: %w", err)
+		return nil, fmt.Errorf("gagal memperbarui laporan: %w", err)
 	}
 
 	return uc.reportRepo.GetByID(ctx, report.ID, input.OrgIDs)
@@ -422,12 +422,12 @@ type SkipReportInput struct {
 
 func (uc *SkipReportUseCase) Execute(ctx context.Context, input SkipReportInput) (*entity.KRIReport, error) {
 	if strings.TrimSpace(input.SkipReason) == "" {
-		return nil, fmt.Errorf("skip_reason is required")
+		return nil, fmt.Errorf("alasan skip wajib diisi")
 	}
 
 	report, err := uc.reportRepo.GetByID(ctx, input.ReportID, input.OrgIDs)
 	if err != nil {
-		return nil, fmt.Errorf("report not found: %w", err)
+		return nil, fmt.Errorf("laporan tidak ditemukan: %w", err)
 	}
 
 	if _, err := uc.kriRepo.GetByID(ctx, report.KRIID, input.OrgIDs); err != nil {
@@ -435,13 +435,13 @@ func (uc *SkipReportUseCase) Execute(ctx context.Context, input SkipReportInput)
 	}
 
 	if report.Status != "pending" && report.Status != "overdue" {
-		return nil, fmt.Errorf("report must be pending or overdue to skip, current: %s", report.Status)
+		return nil, fmt.Errorf("laporan harus berstatus pending atau overdue untuk diskip, saat ini: %s", report.Status)
 	}
 
 	report.Status = "skipped"
 	report.Notes = input.SkipReason
 	if err := uc.reportRepo.Update(ctx, report); err != nil {
-		return nil, fmt.Errorf("update report: %w", err)
+		return nil, fmt.Errorf("gagal memperbarui laporan: %w", err)
 	}
 
 	return uc.reportRepo.GetByID(ctx, report.ID, input.OrgIDs)

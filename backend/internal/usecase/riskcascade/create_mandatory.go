@@ -47,17 +47,17 @@ func (uc *CreateMandatoryUseCase) create(ctx context.Context, input CreateMandat
 		return nil, errors.ErrRiskNotFound
 	}
 	if sourceRisk.OrganizationID == nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "source risk must belong to an organization")
+		return nil, errors.ErrSourceRiskOrgRequired
 	}
 	if sourceRisk.Status != entity.RiskStatusApproved || !sourceRisk.IsCurrent {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "only active approved risks can be escalated")
+		return nil, errors.ErrOnlyActiveApprovedEscalated
 	}
 	if sourceRisk.HasOngoing {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "risk with ongoing monitoring draft cannot be escalated")
+		return nil, errors.ErrRiskWithMonitoringDraftEscalate
 	}
 
 	if _, err := uc.orgRepo.GetByID(ctx, input.TargetOrgID); err != nil {
-		return nil, errors.Wrap(err, "target organization not found")
+		return nil, errors.ErrTargetOrganizationNotFound
 	}
 	if !allowTargetOutsideScope && !isOrgAccessible(input.TargetOrgID, input.OrgIDs) {
 		return nil, errors.ErrForbidden

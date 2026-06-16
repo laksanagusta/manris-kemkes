@@ -127,10 +127,10 @@ func sectionFromInput(input SectionInput) (entity.EvaluationSection, error) {
 	}
 
 	if section.SectionKey == "" {
-		return entity.EvaluationSection{}, fmt.Errorf("section key is required")
+		return entity.EvaluationSection{}, fmt.Errorf("kunci section wajib diisi")
 	}
 	if section.Title == "" {
-		return entity.EvaluationSection{}, fmt.Errorf("section title is required")
+		return entity.EvaluationSection{}, fmt.Errorf("judul section wajib diisi")
 	}
 
 	items, err := itemsFromInputs(input.Items)
@@ -183,7 +183,7 @@ func itemFromInput(input ItemInput) (entity.EvaluationItem, error) {
 	case string(entity.EvaluationAnswerNo):
 		item.Answer = entity.EvaluationAnswerNo
 	default:
-		return entity.EvaluationItem{}, fmt.Errorf("invalid evaluation answer")
+		return entity.EvaluationItem{}, fmt.Errorf("jawaban evaluasi tidak valid")
 	}
 
 	if err := item.Validate(); err != nil {
@@ -220,14 +220,14 @@ func cloneSections(sections []entity.EvaluationSection) []entity.EvaluationSecti
 
 func validateEvaluationSections(sections []entity.EvaluationSection) error {
 	if len(sections) == 0 {
-		return fmt.Errorf("sections are required")
+		return fmt.Errorf("section wajib diisi")
 	}
 	for _, section := range sections {
 		if normalizeText(section.SectionKey) == "" {
-			return fmt.Errorf("section key is required")
+			return fmt.Errorf("kunci section wajib diisi")
 		}
 		if normalizeText(section.Title) == "" {
-			return fmt.Errorf("section title is required")
+			return fmt.Errorf("judul section wajib diisi")
 		}
 		for _, item := range section.Items {
 			if err := item.Validate(); err != nil {

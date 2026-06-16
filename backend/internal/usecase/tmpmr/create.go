@@ -56,7 +56,7 @@ func (uc *CreateUseCase) Execute(ctx context.Context, input CreateInput) (*entit
 		return nil, errors.Wrap(err, "failed to validate tmpmr uniqueness")
 	}
 	if exists {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "tmpmr assessment already exists for organization and period")
+		return nil, errors.ErrTMPMRAssessmentExists
 	}
 
 	rawItems := make([]entity.TMPMRItem, 0, len(input.Items))

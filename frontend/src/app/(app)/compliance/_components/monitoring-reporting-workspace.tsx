@@ -1,6 +1,7 @@
 "use client";
 
 import { RiskReviewPanel } from "./risk-review-panel";
+import { MonitoringHeatmapTopRisks } from "./monitoring-heatmap-top-risks";
 
 export function MonitoringReportingWorkspace() {
   return (
@@ -18,7 +19,9 @@ export function MonitoringReportingWorkspace() {
         </p>
       </section>
 
-      <RiskReviewPanel />
+      <RiskReviewPanel>
+        <MonitoringHeatmapTopRisks />
+      </RiskReviewPanel>
     </div>
   );
 }

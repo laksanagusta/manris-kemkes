@@ -59,7 +59,21 @@ func (r *stubGetWorkingPaperRepo) HasBlockingDocumentLink(context.Context, uuid.
 	return false, nil
 }
 
+func (r *stubGetWorkingPaperRepo) CountByOrgAndCycle(context.Context, uuid.UUID, string) (int, error) {
+	return 0, nil
+}
+
 func (r *stubGetWorkingPaperRepo) MutateByIDForUpdate(context.Context, uuid.UUID, func(*entity.WorkingPaper) error) (*entity.WorkingPaper, error) {
+	return nil, nil
+}
+
+func (r *stubGetWorkingPaperRepo) PreviewPeriodRoster(context.Context, uuid.UUID, string) (*entity.WorkingPaperRosterPreview, error) {
+	return nil, nil
+}
+func (r *stubGetWorkingPaperRepo) CreateWithPeriodRoster(context.Context, *entity.WorkingPaper, string, []entity.WorkingPaperRosterDecision) error {
+	return nil
+}
+func (r *stubGetWorkingPaperRepo) ListSigningBlockers(context.Context, uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
 	return nil, nil
 }
 
@@ -93,7 +107,7 @@ func TestGetReturnsLinkedRisksInsteadOfSnapshots(t *testing.T) {
 			},
 			CreatedAt: time.Now(),
 		}},
-	}}, nil)
+	}}, nil, nil)
 
 	got, err := uc.Get(context.Background(), wpID, []uuid.UUID{orgID})
 	if err != nil {
@@ -104,6 +118,57 @@ func TestGetReturnsLinkedRisksInsteadOfSnapshots(t *testing.T) {
 	}
 	if got.Risks[0].Risk.Code != "R-001" {
 		t.Fatalf("expected linked risk code R-001, got %q", got.Risks[0].Risk.Code)
+	}
+}
+
+func TestWorkingPaperRiskDataMarshalsMonitoringSnapshot(t *testing.T) {
+	finalizedAt := time.Date(2026, time.June, 30, 9, 0, 0, 0, time.UTC)
+	risk := entity.WorkingPaperRiskData{
+		ID:    uuid.New(),
+		Code:  "R-001",
+		Title: "Gangguan layanan",
+		Monitoring: &entity.WorkingPaperRiskMonitoring{
+			ID:                          uuid.New(),
+			Status:                      entity.RiskMonitoringStatusFinalized,
+			AssessmentCycle:             "2026-Q2",
+			SourceNilai:                 16,
+			ObservedNilai:               12,
+			ObservedLevel:               entity.RiskLevelTinggi,
+			Trend:                       "down",
+			MitigationCompletionPercent: 75,
+			MitigationProgressSummary:   "Tiga dari empat aksi selesai",
+			EffectivenessConclusion:     "Kontrol cukup efektif",
+			ConditionSummary:            "Gangguan menurun",
+			EventSummary:                "Satu insiden minor",
+			MitigationObstacles:         "Pengadaan terlambat",
+			MitigationFollowUp:          "Selesaikan pengadaan",
+			FollowUpNote:                "Pantau mingguan",
+			UpdatedAt:                   finalizedAt,
+			FinalizedAt:                 &finalizedAt,
+		},
+	}
+
+	payload, err := json.Marshal(risk)
+	if err != nil {
+		t.Fatalf("Marshal returned error: %v", err)
+	}
+
+	var got map[string]any
+	if err := json.Unmarshal(payload, &got); err != nil {
+		t.Fatalf("Unmarshal returned error: %v", err)
+	}
+	monitoring, ok := got["monitoring"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected monitoring object, got %#v", got["monitoring"])
+	}
+	if monitoring["status"] != entity.RiskMonitoringStatusFinalized {
+		t.Fatalf("expected finalized monitoring, got %#v", monitoring["status"])
+	}
+	if monitoring["assessmentCycle"] != "2026-Q2" {
+		t.Fatalf("expected 2026-Q2, got %#v", monitoring["assessmentCycle"])
+	}
+	if monitoring["mitigationCompletionPercent"] != float64(75) {
+		t.Fatalf("expected 75 percent, got %#v", monitoring["mitigationCompletionPercent"])
 	}
 }
 
@@ -206,6 +271,20 @@ func (r *atomicSignWorkingPaperRepo) HasBlockingDocumentLink(context.Context, uu
 	return false, nil
 }
 
+func (r *atomicSignWorkingPaperRepo) CountByOrgAndCycle(context.Context, uuid.UUID, string) (int, error) {
+	return 0, nil
+}
+
+func (r *atomicSignWorkingPaperRepo) PreviewPeriodRoster(context.Context, uuid.UUID, string) (*entity.WorkingPaperRosterPreview, error) {
+	return nil, nil
+}
+func (r *atomicSignWorkingPaperRepo) CreateWithPeriodRoster(context.Context, *entity.WorkingPaper, string, []entity.WorkingPaperRosterDecision) error {
+	return nil
+}
+func (r *atomicSignWorkingPaperRepo) ListSigningBlockers(context.Context, uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
+	return nil, nil
+}
+
 func (r *atomicSignWorkingPaperRepo) MutateByIDForUpdate(_ context.Context, _ uuid.UUID, mutate func(*entity.WorkingPaper) error) (*entity.WorkingPaper, error) {
 	r.mutateCalls++
 	if err := mutate(r.wp); err != nil {
@@ -223,7 +302,7 @@ func TestSignUsesAtomicMutationPath(t *testing.T) {
 		ID:           workingPaperID,
 		Title:        "KK Semester I",
 		DocumentHash: "hash-123",
-		Status:       entity.WorkingPaperStatusDraft,
+		Status:       entity.WorkingPaperStatusSigning,
 		Signatories: []entity.WorkingPaperSignatory{{
 			ID:             signatoryID,
 			WorkingPaperID: workingPaperID,
@@ -236,7 +315,7 @@ func TestSignUsesAtomicMutationPath(t *testing.T) {
 		}},
 	}}
 
-	uc := NewWorkingPaperUseCase(repo, nil)
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
 
 	got, err := uc.Sign(context.Background(), workingPaperID, signerID)
 	if err != nil {

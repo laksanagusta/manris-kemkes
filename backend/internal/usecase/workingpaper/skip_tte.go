@@ -26,6 +26,13 @@ func (uc *UseCase) SkipTTE(ctx context.Context, workingPaperID uuid.UUID, userID
 				Message: "working paper already skipped TTE",
 			}
 		}
+		if blockers := workingPaperSigningBlockers(wp); len(blockers) > 0 {
+			return &domainerrors.AppError{
+				Code:    "MONITORING_INCOMPLETE",
+				Message: "monitoring must be finalized before signing",
+				Details: blockers,
+			}
+		}
 		for _, link := range wp.Risks {
 			if link.Risk.Status != entity.RiskStatusApproved {
 				return &domainerrors.AppError{

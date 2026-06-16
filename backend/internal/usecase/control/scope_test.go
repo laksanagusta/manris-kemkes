@@ -3,7 +3,7 @@ package control
 import (
 	"context"
 	"fmt"
-	"strings"
+	stderrors "errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -271,8 +271,8 @@ func TestControlUpdateRejectsSiblingLinkedRisk(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for cross-org linked risk, got nil")
 	}
-	if !strings.Contains(err.Error(), "linked risk not found") {
-		t.Fatalf("expected 'linked risk not found' error, got: %v", err)
+	if !stderrors.Is(err, errors.ErrLinkedRiskNotFound) {
+		t.Fatalf("expected linked risk not found error, got: %v", err)
 	}
 }
 

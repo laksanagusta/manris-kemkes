@@ -120,7 +120,7 @@ export function MonitoringLatestProgressChart({
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="p-0">
           <CollapsibleTrigger className="group w-full text-left transition-colors hover:no-underline hover:bg-muted/30">
-            <div className="flex items-center justify-between gap-4 px-5">
+            <div className="flex items-center justify-between gap-4 px-5 py-3">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-600 shadow-inner ring-1 ring-inset ring-zinc-200/80 transition-colors duration-150 ease-out group-hover:bg-white">
                   <ChevronDown

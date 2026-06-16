@@ -17,6 +17,12 @@ function isExistingCurrentCycleReassessmentError(message: string): boolean {
 export function getWorkingPaperCreateErrorMessage(error: unknown): string {
   const message = getErrorMessage(error);
 
+  if (/ROSTER_STALE|roster.*berubah|refresh/i.test(message)) {
+    return "Daftar risiko atau status monitoring berubah. Muat ulang roster sebelum membuat kertas kerja.";
+  }
+  if (/MONITORING_CONFLICT|lebih dari satu.*monitoring/i.test(message)) {
+    return "Terdapat konflik transaksi monitoring pada periode ini. Hubungi administrator.";
+  }
   if (isExistingCurrentCycleReassessmentError(message)) {
     return "Kertas kerja tidak bisa dibuat karena draft pemantauan untuk siklus saat ini sudah ada dan masih berjalan.";
   }

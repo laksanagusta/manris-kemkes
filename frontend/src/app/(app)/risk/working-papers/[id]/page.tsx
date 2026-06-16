@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
@@ -8,23 +7,16 @@ import { toast } from "sonner";
 import { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 import {
   getWorkingPaper,
+  startSigningWorkingPaper,
   signWorkingPaper,
   cancelWorkingPaper,
   skipTTEWorkingPaper,
   deleteWorkingPaper,
 } from "@/lib/api/working-papers";
 import { buildWorkingPaperDetailViewModel } from "@/lib/working-paper-detail-view-model";
-import { resolveWorkingPaperRiskDisplay } from "@/lib/working-paper-risk-display";
+import { WorkingPaperMonitoringTable } from "./working-paper-monitoring-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +28,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   FormPage,
   FormHeader,
   FormSection,
@@ -45,12 +45,12 @@ import { cn } from "@/lib/utils";
 import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 import {
   AlertCircle,
-  ArrowRight,
   CheckCircle2,
   Circle,
   Download,
-  FileSignature,
   Loader2,
+  MoreHorizontal,
+  Pen,
   SkipForward,
   ShieldAlert,
   Trash2,
@@ -85,49 +85,12 @@ const statusLabel: Record<WorkingPaperStatus, string> = {
   cancelled: "Dibatalkan",
 };
 
-const levelBadgeVariant: Record<string, string> = {
-  "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
-  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
-  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi":
-    "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
-};
-
-const actionToneClassName = {
-  attention: "border-border/70 bg-zinc-50",
-  neutral: "border-border/70 bg-zinc-50",
-  success: "border-border/70 bg-zinc-50",
-  danger: "border-border/70 bg-zinc-50",
-} as const;
-
-const actionToneTitleClassName = {
-  attention: "text-zinc-900",
-  neutral: "text-foreground",
-  success: "text-zinc-900",
-  danger: "text-zinc-900",
-} as const;
-
-const actionToneDotClassName = {
-  attention: "bg-zinc-500",
-  neutral: "bg-zinc-500",
-  success: "bg-zinc-500",
-  danger: "bg-zinc-500",
-} as const;
-
 const timelineStatusClassName = {
   signed: "border-success/20 bg-success/10 text-success",
   current: "border-primary/20 bg-primary/[0.06] text-primary",
   upcoming: "border-border bg-muted/40 text-muted-foreground",
   skipped: "border-amber-200 bg-amber-50 text-amber-700",
 } as const;
-
-const workingPaperRiskStatusLabel: Record<string, string> = {
-  approved: "Disetujui",
-  reviewed: "Ditinjau",
-  pending_review: "Menunggu Review",
-  draft: "Draft",
-};
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -141,12 +104,100 @@ function formatDateTime(value?: string) {
   return dateTimeFormatter.format(new Date(value));
 }
 
-function formatWorkingPaperRiskStatus(status?: string | null) {
-  const normalized = (status ?? "").trim().toLowerCase();
-  if (!normalized) return "-";
+function WorkingPaperStatusActions({
+  canStartSigning,
+  canSkipTTE,
+  canCancel,
+  canDelete,
+  onStartSigning,
+  onSkipTTE,
+  onCancel,
+  onDelete,
+}: {
+  canStartSigning: boolean;
+  canSkipTTE: boolean;
+  canCancel: boolean;
+  canDelete: boolean;
+  onStartSigning: () => void;
+  onSkipTTE: () => void;
+  onCancel: () => void;
+  onDelete: () => void;
+}) {
+  const hasActions = canStartSigning || canSkipTTE || canCancel || canDelete;
+
+  if (!hasActions) {
+    return null;
+  }
+
   return (
-    workingPaperRiskStatusLabel[normalized] || normalized.replace(/_/g, " ")
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 border-border/70 bg-background/90"
+        >
+          <MoreHorizontal className="size-4" />
+          Tindakan
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Pilih tindakan</DropdownMenuLabel>
+        {canStartSigning ? (
+          <DropdownMenuItem className="gap-2" onClick={onStartSigning}>
+            <ShieldAlert className="size-3.5" />
+            Mulai proses TTE
+          </DropdownMenuItem>
+        ) : null}
+        {canSkipTTE || canCancel || canDelete ? (
+          <DropdownMenuSeparator />
+        ) : null}
+        {canSkipTTE ? (
+          <DropdownMenuItem className="gap-2" onClick={onSkipTTE}>
+            <SkipForward className="size-3.5" />
+            Lewati tanda tangan elektronik
+          </DropdownMenuItem>
+        ) : null}
+        {canCancel ? (
+          <DropdownMenuItem className="gap-2" onClick={onCancel}>
+            <XCircle className="size-3.5" />
+            Batalkan dokumen
+          </DropdownMenuItem>
+        ) : null}
+        {canDelete ? (
+          <DropdownMenuItem
+            className="gap-2 text-destructive focus:text-destructive"
+            onClick={onDelete}
+          >
+            <Trash2 className="size-3.5" />
+            Hapus kertas kerja
+          </DropdownMenuItem>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
+}
+
+interface SigningBlocker {
+  code: string;
+  title: string;
+  monitoring_status: string;
+}
+
+function formatSigningError(err: unknown): string {
+  if (err && typeof err === "object" && "details" in err) {
+    const details = (err as { details?: SigningBlocker[] }).details;
+    if (Array.isArray(details) && details.length > 0) {
+      const items = details
+        .map((b) => `${b.code} (${b.monitoring_status})`)
+        .join(", ");
+      return `Monitoring belum final: ${items}`;
+    }
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return "Gagal memproses kertas kerja.";
 }
 
 export default function WorkingPaperDetailPage(props: {
@@ -162,6 +213,7 @@ export default function WorkingPaperDetailPage(props: {
   const [error, setError] = useState<string | null>(null);
 
   const [signDialogOpen, setSignDialogOpen] = useState(false);
+  const [startSigningDialogOpen, setStartSigningDialogOpen] = useState(false);
   const [skipDialogOpen, setSkipDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -176,7 +228,7 @@ export default function WorkingPaperDetailPage(props: {
       setError(
         err instanceof Error
           ? err.message
-          : "Gagal memuat detail Kertas Kerja.",
+          : "Gagal memuat detail kertas kerja.",
       );
     } finally {
       setLoading(false);
@@ -196,10 +248,10 @@ export default function WorkingPaperDetailPage(props: {
           throw new Error("Fitur ekspor Excel belum tersedia.");
         });
       await exportWorkingPaper(data);
-      toast.success("Kertas Kerja berhasil diekspor.");
+      toast.success("Kertas kerja berhasil diekspor.");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Gagal mengekspor Kertas Kerja.",
+        err instanceof Error ? err.message : "Gagal mengekspor kertas kerja.",
       );
     }
   };
@@ -208,15 +260,23 @@ export default function WorkingPaperDetailPage(props: {
     if (!token || !data) return;
     try {
       await signWorkingPaper(id, token);
-      toast.success("Berhasil menandatangani Kertas Kerja.");
+      toast.success("Kertas kerja berhasil ditandatangani.");
       setSignDialogOpen(false);
       loadData();
     } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : "Gagal menandatangani Kertas Kerja.",
-      );
+      toast.error(formatSigningError(err));
+    }
+  };
+
+  const handleStartSigning = async () => {
+    if (!token || !data) return;
+    try {
+      await startSigningWorkingPaper(id, token);
+      toast.success("Kertas kerja siap diproses untuk tanda tangan elektronik.");
+      setStartSigningDialogOpen(false);
+      loadData();
+    } catch (err) {
+      toast.error(formatSigningError(err));
     }
   };
 
@@ -224,13 +284,11 @@ export default function WorkingPaperDetailPage(props: {
     if (!token || !data) return;
     try {
       await skipTTEWorkingPaper(id, token);
-      toast.success("TTE berhasil dilewati dan kertas kerja diselesaikan.");
+      toast.success("Tanda tangan elektronik dilewati dan kertas kerja diselesaikan.");
       setSkipDialogOpen(false);
       loadData();
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Gagal melewati TTE.",
-      );
+      toast.error(formatSigningError(err));
     }
   };
 
@@ -238,12 +296,12 @@ export default function WorkingPaperDetailPage(props: {
     if (!token || !data) return;
     try {
       await cancelWorkingPaper(id, token);
-      toast.success("Kertas Kerja berhasil dibatalkan.");
+      toast.success("Kertas kerja berhasil dibatalkan.");
       setCancelDialogOpen(false);
       loadData();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Gagal membatalkan Kertas Kerja.",
+        err instanceof Error ? err.message : "Gagal membatalkan kertas kerja.",
       );
     }
   };
@@ -252,12 +310,12 @@ export default function WorkingPaperDetailPage(props: {
     if (!token || !data) return;
     try {
       await deleteWorkingPaper(id, token);
-      toast.success("Kertas Kerja berhasil dihapus.");
+      toast.success("Kertas kerja berhasil dihapus.");
       setDeleteDialogOpen(false);
       router.push("/risk/working-papers");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Gagal menghapus Kertas Kerja.",
+        err instanceof Error ? err.message : "Gagal menghapus kertas kerja.",
       );
     }
   };
@@ -268,14 +326,14 @@ export default function WorkingPaperDetailPage(props: {
         <FormHeader
           title="Memuat detail kertas kerja"
           description="Sistem sedang menyiapkan ringkasan dokumen, status tanda tangan, dan daftar risiko."
-          backLabel="Kembali ke Kertas Kerja"
+          backLabel="Kembali ke kertas kerja"
           onBack={() => router.push("/risk/working-papers")}
         />
 
         <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-xl border border-border/50 bg-muted/20 px-6 py-12 text-center">
           <Loader2 className="size-6 animate-spin text-primary" />
           <p className="text-sm font-medium text-foreground">
-            Memuat detail kertas kerja…
+            Memuat detail kertas kerja...
           </p>
         </div>
       </FormPage>
@@ -288,7 +346,7 @@ export default function WorkingPaperDetailPage(props: {
         <FormHeader
           title="Detail kertas kerja belum tersedia"
           description="Halaman ini membutuhkan data dokumen yang valid sebelum Anda bisa meninjau tindakan penandatanganan."
-          backLabel="Kembali ke Kertas Kerja"
+          backLabel="Kembali ke kertas kerja"
           onBack={() => router.push("/risk/working-papers")}
         />
 
@@ -324,7 +382,7 @@ export default function WorkingPaperDetailPage(props: {
         <FormHeader
           title="Kertas kerja tidak ditemukan"
           description="Dokumen yang Anda cari mungkin sudah dipindahkan, tidak lagi tersedia, atau Anda tidak memiliki akses untuk melihatnya."
-          backLabel="Kembali ke Kertas Kerja"
+          backLabel="Kembali ke kertas kerja"
           onBack={() => router.push("/risk/working-papers")}
         />
 
@@ -354,15 +412,20 @@ export default function WorkingPaperDetailPage(props: {
   ).length;
 
   const totalRiskCount = data.risks?.length || 0;
-  const approvedRiskCount =
-    data.risks?.filter((link) => link.risk.status === "approved").length || 0;
-  const isAllApproved =
-    totalRiskCount > 0 && approvedRiskCount === totalRiskCount;
+  const finalizedMonitoringCount =
+    data.risks?.filter((link) => link.risk.monitoring?.status === "finalized")
+      .length || 0;
+  const isAllMonitoringFinal =
+    totalRiskCount > 0 && finalizedMonitoringCount === totalRiskCount;
 
   const summaryItems = [
     {
       label: "Kode",
       value: data.code || "-",
+    },
+    {
+      label: "Status",
+      value: statusLabel[status],
     },
     {
       label: "Siklus asesmen",
@@ -392,8 +455,7 @@ export default function WorkingPaperDetailPage(props: {
     <FormPage className="max-w-7xl">
       <FormHeader
         title={data.title}
-        description={data.description}
-        backLabel="Kembali ke Kertas Kerja"
+        backLabel="Kembali ke kertas kerja"
         onBack={() => router.back()}
         badges={
           <Badge
@@ -404,37 +466,26 @@ export default function WorkingPaperDetailPage(props: {
         }
         actions={
           <>
-            {viewModel.canDelete && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:bg-destructive/10"
-                onClick={() => setDeleteDialogOpen(true)}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Hapus
+            <WorkingPaperStatusActions
+              canStartSigning={viewModel.canStartSigning}
+              canSkipTTE={viewModel.canSkipTTE}
+              canCancel={viewModel.canCancel}
+              canDelete={viewModel.canDelete}
+              onStartSigning={() => setStartSigningDialogOpen(true)}
+              onSkipTTE={() => setSkipDialogOpen(true)}
+              onCancel={() => setCancelDialogOpen(true)}
+              onDelete={() => setDeleteDialogOpen(true)}
+            />
+            {viewModel.canStartSigning && (
+              <Button size="sm" onClick={() => setStartSigningDialogOpen(true)}>
+                <Pen className="w-4 h-4 mr-2" />
+                Mulai Proses TTE
               </Button>
             )}
-            {viewModel.canCancel && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-amber-600 hover:bg-amber-500/10 hover:text-amber-700"
-                onClick={() => setCancelDialogOpen(true)}
-              >
-                <XCircle className="w-4 h-4 mr-2" />
-                Batalkan
-              </Button>
-            )}
-            {viewModel.canSkipTTE && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-success hover:bg-success/10 hover:text-success"
-                onClick={() => setSkipDialogOpen(true)}
-              >
-                <SkipForward className="w-4 h-4 mr-2" />
-                Lewati TTE
+            {viewModel.canSign && (
+              <Button size="sm" onClick={() => setSignDialogOpen(true)}>
+                <Pen className="w-4 h-4 mr-2" />
+                Tanda Tangani
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={handleExport}>
@@ -445,57 +496,22 @@ export default function WorkingPaperDetailPage(props: {
         }
       />
 
-      {viewModel.currentAction ? (
-        <section
-          className={cn(
-            "rounded-xl border px-4 py-3",
-            actionToneClassName[viewModel.currentAction.tone],
-          )}
-        >
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <div
-                className={cn(
-                  "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-border/70 bg-zinc-100",
-                )}
-              >
-                <span
-                  className={cn(
-                    "size-2 rounded-full",
-                    actionToneDotClassName[viewModel.currentAction.tone],
-                  )}
-                />
-              </div>
-
-              <div className="min-w-0 space-y-0.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Status saat ini
-                </p>
-                <h2
-                  className={cn(
-                    "text-sm font-semibold leading-5",
-                    actionToneTitleClassName[viewModel.currentAction.tone],
-                  )}
-                >
-                  {viewModel.currentAction.title}
-                </h2>
-                <p className="max-w-2xl text-sm leading-5 text-muted-foreground line-clamp-2">
-                  {viewModel.currentAction.description}
-                </p>
-              </div>
-            </div>
-
-            {viewModel.canSign && viewModel.currentAction.buttonLabel ? (
-              <Button
-                size="sm"
-                className="shadow-sm"
-                onClick={() => setSignDialogOpen(true)}
-              >
-                <FileSignature className="mr-2 size-3.5" />
-                {viewModel.currentAction.buttonLabel}
-              </Button>
-            ) : null}
-          </div>
+      {viewModel.monitoringBlockers.length > 0 ? (
+        <section className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">
+            Finalisasi monitoring terlebih dahulu
+          </p>
+          <p className="mt-1 text-sm leading-5">
+            Berikut risiko yang masih memiliki monitoring draft atau belum
+            memiliki monitoring final:
+          </p>
+          <ul className="mt-2 space-y-1 text-sm">
+            {viewModel.monitoringBlockers.map((item) => (
+              <li key={item} className="font-medium">
+                {item}
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 
@@ -509,7 +525,7 @@ export default function WorkingPaperDetailPage(props: {
                 variant="secondary"
                 className="border-zinc-200 bg-zinc-100 text-zinc-700 font-mono"
               >
-                {signedCount}/{signatories.length || 0} TTE
+                {signedCount} dari {signatories.length || 0} ditandatangani
               </Badge>
             }
           >
@@ -542,216 +558,37 @@ export default function WorkingPaperDetailPage(props: {
               <div className="flex flex-col gap-3 px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    {isAllApproved ? (
+                    {isAllMonitoringFinal ? (
                       <CheckCircle2 className="size-4 text-success" />
                     ) : (
                       <AlertCircle className="size-4 text-amber-500" />
                     )}
                     <span className="text-sm font-medium text-foreground">
-                      {approvedRiskCount} dari {totalRiskCount} risiko telah
-                      disetujui
+                      {finalizedMonitoringCount} dari {totalRiskCount} risiko
+                      memiliki monitoring final
                     </span>
                   </div>
                   <span className="text-xs font-medium text-muted-foreground">
-                    {Math.round((approvedRiskCount / totalRiskCount) * 100)}%
+                    {Math.round(
+                      (finalizedMonitoringCount / totalRiskCount) * 100,
+                    )}
+                    %
                   </span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                   <div
                     className={cn(
                       "h-full rounded-full transition-all duration-500",
-                      isAllApproved ? "bg-success" : "bg-primary",
+                      isAllMonitoringFinal ? "bg-success" : "bg-primary",
                     )}
                     style={{
-                      width: `${(approvedRiskCount / totalRiskCount) * 100}%`,
+                      width: `${(finalizedMonitoringCount / totalRiskCount) * 100}%`,
                     }}
                   />
                 </div>
               </div>
             )}
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-zinc-200/80 hover:bg-transparent">
-                    <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Kode
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Judul Risiko
-                    </TableHead>
-                    <TableHead className="hidden xl:table-cell w-24 whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Probabilitas
-                    </TableHead>
-                    <TableHead className="hidden xl:table-cell w-24 whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Dampak
-                    </TableHead>
-                    <TableHead className="w-16 whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Nilai
-                    </TableHead>
-                    <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Tingkat
-                    </TableHead>
-                    <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Status
-                    </TableHead>
-                    <TableHead className="w-28 whitespace-nowrap px-2.5 text-right align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Aksi
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(() => {
-                    if (!data.risks || data.risks.length === 0) {
-                      return (
-                        <TableRow>
-                          <TableCell colSpan={8} className="h-24">
-                            <div className="flex flex-col gap-1 text-left">
-                              <p className="text-sm font-medium text-muted-foreground">
-                                Belum ada risiko
-                              </p>
-                              <p className="text-xs text-muted-foreground/70">
-                                Dokumen ini belum memuat risiko apa pun
-                              </p>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    }
-                    return data.risks.map((link, index) => {
-                      const risk = link.risk;
-                      const riskDisplay = resolveWorkingPaperRiskDisplay(risk);
-                      const badgeCls =
-                        levelBadgeVariant[riskDisplay.label] ||
-                        levelBadgeVariant["Rendah"];
-                      const riskHref = `/risk/register/new?id=${risk.id}`;
-
-                      let statusBadge = null;
-                      switch ((risk.status || "").toLowerCase()) {
-                        case "approved":
-                          statusBadge = (
-                            <Badge
-                              className={cn(
-                                "px-1.5 h-5",
-                                getLinearStatusBadgeClass("approved"),
-                              )}
-                            >
-                              Disetujui
-                            </Badge>
-                          );
-                          break;
-                        case "reviewed":
-                          statusBadge = (
-                            <Badge
-                              className={cn(
-                                "px-1.5 h-5",
-                                getLinearStatusBadgeClass("reviewed"),
-                              )}
-                            >
-                              Ditinjau
-                            </Badge>
-                          );
-                          break;
-                        case "pending_review":
-                          statusBadge = (
-                            <Badge
-                              className={cn(
-                                "px-1.5 h-5",
-                                getLinearStatusBadgeClass("pending_review"),
-                              )}
-                            >
-                              Menunggu Review
-                            </Badge>
-                          );
-                          break;
-                        case "draft":
-                          statusBadge = (
-                            <Badge
-                              className={cn(
-                                "px-1.5 h-5",
-                                getLinearStatusBadgeClass("draft"),
-                              )}
-                            >
-                              Draft
-                            </Badge>
-                          );
-                          break;
-                        default:
-                          statusBadge = (
-                            <Badge
-                              className={cn(
-                                "px-1.5 h-5",
-                                getLinearStatusBadgeClass(risk.status),
-                              )}
-                            >
-                              {formatWorkingPaperRiskStatus(risk.status)}
-                            </Badge>
-                          );
-                      }
-
-                      return (
-                        <TableRow
-                          key={risk.id || index}
-                          className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
-                        >
-                          <TableCell className="px-2.5 font-mono text-xs text-zinc-600">
-                            <span className="flex items-center gap-1.5">
-                              {risk.code || "-"}
-                              {risk.versionNumber != null &&
-                                risk.versionNumber > 1 && (
-                                  <span className="inline-flex items-center rounded-md bg-zinc-50 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600 ring-1 ring-inset ring-zinc-200">
-                                    v{risk.versionNumber}
-                                  </span>
-                                )}
-                            </span>
-                          </TableCell>
-                          <TableCell
-                            className="px-2.5 max-w-[240px] truncate text-xs font-medium text-foreground"
-                            title={risk.title}
-                          >
-                            {risk.title}
-                          </TableCell>
-                          <TableCell className="hidden xl:table-cell px-2.5 text-center text-xs text-zinc-600">
-                            {risk.probability || "-"}
-                          </TableCell>
-                          <TableCell className="hidden xl:table-cell px-2.5 text-center text-xs text-zinc-600">
-                            {risk.impact || "-"}
-                          </TableCell>
-                          <TableCell className="px-2.5 text-center text-xs font-semibold text-foreground">
-                            {riskDisplay.score}
-                          </TableCell>
-                          <TableCell className="px-2.5">
-                            <Badge
-                              className={cn(
-                                "text-[10px] font-semibold border px-1.5 h-5",
-                                badgeCls,
-                              )}
-                            >
-                              {riskDisplay.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="px-2.5">
-                            {statusBadge}
-                          </TableCell>
-                          <TableCell className="px-2.5 text-right">
-                            <Button
-                              asChild
-                              variant="ghost"
-                              size="sm"
-                              className="text-primary hover:text-primary h-auto py-1 px-2"
-                            >
-                              <Link href={riskHref}>
-                                Buka risiko
-                                <ArrowRight className="size-3.5" />
-                              </Link>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    });
-                  })()}
-                </TableBody>
-              </Table>
-            </div>
+            <WorkingPaperMonitoringTable links={data.risks ?? []} />
           </FormSection>
         </div>
 
@@ -865,10 +702,32 @@ export default function WorkingPaperDetailPage(props: {
       </div>
 
       {/* Dialogs */}
+      <AlertDialog
+        open={startSigningDialogOpen}
+        onOpenChange={setStartSigningDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mulai proses TTE</AlertDialogTitle>
+            <AlertDialogDescription>
+              Status akan diubah dari draft menjadi proses tanda tangan.
+              Setelah itu, para penandatangan bisa mulai menandatangani
+              dokumen ini.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleStartSigning}>
+              Mulai proses TTE
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={signDialogOpen} onOpenChange={setSignDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Tanda Tangani Kertas Kerja</AlertDialogTitle>
+            <AlertDialogTitle>Tanda tangani kertas kerja</AlertDialogTitle>
             <AlertDialogDescription>
               Apakah Anda yakin ingin menandatangani dokumen ini? Tindakan ini
               akan menyimpan data Anda sebagai penandatangan sah.
@@ -886,10 +745,10 @@ export default function WorkingPaperDetailPage(props: {
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Batalkan Kertas Kerja</AlertDialogTitle>
+            <AlertDialogTitle>Batalkan kertas kerja</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin membatalkan Kertas Kerja ini? Dokumen yang
-              dibatalkan tidak dapat ditandatangani lagi.
+              Apakah Anda yakin ingin membatalkan kertas kerja ini? Dokumen
+              yang dibatalkan tidak dapat ditandatangani lagi.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -908,9 +767,9 @@ export default function WorkingPaperDetailPage(props: {
       <AlertDialog open={skipDialogOpen} onOpenChange={setSkipDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Lewati TTE</AlertDialogTitle>
+            <AlertDialogTitle>Lewati tanda tangan elektronik</AlertDialogTitle>
             <AlertDialogDescription>
-              Tindakan ini akan menyelesaikan Kertas Kerja tanpa tanda tangan
+              Tindakan ini akan menyelesaikan kertas kerja tanpa tanda tangan
               elektronik dan langsung mengunci versi risiko terkait. Pastikan
               semua risiko di dalam dokumen sudah selesai diproses.
             </AlertDialogDescription>
@@ -918,7 +777,7 @@ export default function WorkingPaperDetailPage(props: {
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={handleSkipTTE}>
-              Lewati TTE
+              Lewati tanda tangan elektronik
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -927,16 +786,16 @@ export default function WorkingPaperDetailPage(props: {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Kertas Kerja</AlertDialogTitle>
+            <AlertDialogTitle>Hapus kertas kerja</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus Kertas Kerja ini? Tindakan ini
+              Apakah Anda yakin ingin menghapus kertas kerja ini? Tindakan ini
               tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={handleDelete}>
-              Ya, Hapus
+              Ya, hapus
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

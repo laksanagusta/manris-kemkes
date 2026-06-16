@@ -33,7 +33,7 @@ func (uc *DeleteRiskUseCase) Execute(ctx context.Context, id uuid.UUID, orgIDs [
 
 	// 2. Business rule: only drafts can be deleted.
 	if risk.Status != entity.RiskStatusDraft {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "only draft risks can be deleted")
+		return nil, errors.ErrOnlyDraftRisksDeleted
 	}
 
 	// 3. Delete from database

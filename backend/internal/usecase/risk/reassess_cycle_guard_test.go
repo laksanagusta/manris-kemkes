@@ -48,7 +48,7 @@ func TestCreateRiskReassessmentUseCase_AllowsLatePreviousCycleWhenNoNewerCycleEx
 		},
 	}
 
-	uc := NewCreateRiskReassessmentUseCase(repo)
+	uc := NewCreateRiskReassessmentUseCase(repo, nil)
 	out, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{
 		RiskID:    sourceID,
 		Cycle:     "2026-H1",
@@ -91,7 +91,7 @@ func TestCreateRiskReassessmentUseCase_BlocksOlderCycleWhenNewerCycleExists(t *t
 		},
 	}
 
-	uc := NewCreateRiskReassessmentUseCase(repo)
+	uc := NewCreateRiskReassessmentUseCase(repo, nil)
 	_, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{
 		RiskID: sourceID,
 		Cycle:  "2026-H1",

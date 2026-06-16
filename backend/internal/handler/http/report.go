@@ -29,19 +29,19 @@ func NewReportHandler(generateUC *reportuc.GenerateReportUseCase, pdfRenderer se
 func (h *ReportHandler) GenerateRiskPDF(c *fiber.Ctx) error {
 	cycle := c.Query("cycle")
 	if cycle == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle query parameter is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "parameter kueri cycle wajib diisi")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveReportOrgIDsFromQuery(c.Context(), scope, c.Query("org_id"), c.Query("organization_group_id"), h.groupResolver)
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
 		if errors.Is(err, domainerrors.ErrInvalidInput) {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id and organization_group_id are mutually exclusive")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id dan organization_group_id tidak dapat digunakan bersamaan")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	input := reportuc.GenerateReportInput{
@@ -56,7 +56,7 @@ func (h *ReportHandler) GenerateRiskPDF(c *fiber.Ctx) error {
 
 	pdfBytes, err := h.pdfRenderer.Render(c.Context(), reportData)
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusInternalServerError, "Internal Server Error", "https://api.manris.com/errors/internal-server-error", fmt.Sprintf("failed to render PDF: %v", err))
+		return sendProblemDetails(c, fiber.StatusInternalServerError, "Kesalahan Server Internal", "https://api.manris.com/errors/internal-server-error", fmt.Sprintf("gagal merender PDF: %v", err))
 	}
 
 	c.Set("Content-Type", "application/pdf")

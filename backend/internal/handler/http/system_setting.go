@@ -34,12 +34,12 @@ type upsertSettingRequest struct {
 func (h *SystemSettingHandler) Get(c *fiber.Ctx) error {
 	key := c.Params("key")
 	if key == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "key is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "kunci wajib diisi")
 	}
 
 	setting, err := h.getUC.Get(c.Context(), key)
 	if err != nil {
-		return sendProblemDetails(c, 404, "Not Found", "https://api.manris.com/errors/not-found", "setting not found")
+		return sendProblemDetails(c, 404, "Tidak Ditemukan", "https://api.manris.com/errors/not-found", "pengaturan tidak ditemukan")
 	}
 
 	return c.JSON(fiber.Map{"data": setting})
@@ -58,7 +58,7 @@ func (h *SystemSettingHandler) List(c *fiber.Ctx) error {
 	}
 
 	if err != nil {
-		return sendProblemDetails(c, 500, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
+		return sendProblemDetails(c, 500, "Kesalahan Server", "https://api.manris.com/errors/server-error", err.Error())
 	}
 
 	return c.JSON(fiber.Map{"data": settings})
@@ -67,7 +67,7 @@ func (h *SystemSettingHandler) List(c *fiber.Ctx) error {
 func (h *SystemSettingHandler) GetAIModels(c *fiber.Ctx) error {
 	models, err := h.getUC.GetAIModels(c.Context())
 	if err != nil {
-		return sendProblemDetails(c, 500, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
+		return sendProblemDetails(c, 500, "Kesalahan Server", "https://api.manris.com/errors/server-error", err.Error())
 	}
 
 	return c.JSON(fiber.Map{"data": models})
@@ -76,11 +76,11 @@ func (h *SystemSettingHandler) GetAIModels(c *fiber.Ctx) error {
 func (h *SystemSettingHandler) Upsert(c *fiber.Ctx) error {
 	var req upsertSettingRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	if req.Key == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "key is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "kunci wajib diisi")
 	}
 
 	if req.Category == "" {
@@ -95,7 +95,7 @@ func (h *SystemSettingHandler) Upsert(c *fiber.Ctx) error {
 	}
 
 	if err := h.upsertUC.Upsert(c.Context(), setting); err != nil {
-		return sendProblemDetails(c, 500, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
+		return sendProblemDetails(c, 500, "Kesalahan Server", "https://api.manris.com/errors/server-error", err.Error())
 	}
 
 	return c.JSON(fiber.Map{"data": setting})
@@ -104,7 +104,7 @@ func (h *SystemSettingHandler) Upsert(c *fiber.Ctx) error {
 func (h *SystemSettingHandler) UpdateAIModels(c *fiber.Ctx) error {
 	var req entity.AIModels
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	settings := []struct {
@@ -132,13 +132,13 @@ func (h *SystemSettingHandler) UpdateAIModels(c *fiber.Ctx) error {
 			Category:    "ai",
 		}
 		if err := h.upsertUC.Upsert(c.Context(), setting); err != nil {
-			return sendProblemDetails(c, 500, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
+			return sendProblemDetails(c, 500, "Kesalahan Server", "https://api.manris.com/errors/server-error", err.Error())
 		}
 	}
 
 	models, err := h.getUC.GetAIModels(c.Context())
 	if err != nil {
-		return sendProblemDetails(c, 500, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
+		return sendProblemDetails(c, 500, "Kesalahan Server", "https://api.manris.com/errors/server-error", err.Error())
 	}
 
 	return c.JSON(fiber.Map{"data": models})
@@ -147,11 +147,11 @@ func (h *SystemSettingHandler) UpdateAIModels(c *fiber.Ctx) error {
 func (h *SystemSettingHandler) Delete(c *fiber.Ctx) error {
 	key := c.Params("key")
 	if key == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "key is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "kunci wajib diisi")
 	}
 
 	if err := h.deleteUC.Delete(c.Context(), key); err != nil {
-		return sendProblemDetails(c, 500, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
+		return sendProblemDetails(c, 500, "Kesalahan Server", "https://api.manris.com/errors/server-error", err.Error())
 	}
 
 	return c.JSON(fiber.Map{"data": fiber.Map{"deleted": key}})

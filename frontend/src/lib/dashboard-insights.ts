@@ -92,9 +92,15 @@ export type SemesterScoreTargetDatum = {
 
 function normalizeSemesterKey(value?: string) {
   if (!value) return null;
-  const match = value.trim().match(/^(\d{4})-(H[12])$/i);
+  const match = value.trim().match(/^(\d{4})-(H[12]|Q[1-4])$/i);
   if (!match) return null;
-  return `${match[1]}-${match[2].toUpperCase()}`;
+  const year = match[1];
+  const suffix = match[2].toUpperCase();
+  if (suffix.startsWith("H")) {
+    return `${year}-${suffix}`;
+  }
+  const quarter = Number(suffix.slice(1));
+  return `${year}-${quarter <= 2 ? "H1" : "H2"}`;
 }
 
 function deriveSemester(createdAt?: string) {

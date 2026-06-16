@@ -14,7 +14,7 @@ import (
 
 // ErrMonitoringNotDraft is returned when the monitoring draft update target
 // is not in the assessment_draft status.
-var ErrMonitoringNotDraft = errors.New("can only update monitoring drafts in assessment_draft status")
+var ErrMonitoringNotDraft = errors.New("hanya dapat memperbarui draft pemantauan dalam status assessment_draft")
 
 type RiskReassessmentUseCaseI interface {
 	Execute(ctx context.Context, input riskuc.CreateRiskReassessmentInput) (*riskuc.CreateRiskReassessmentOutput, error)
@@ -27,16 +27,16 @@ func HandleMonitorRisk(ctx context.Context, reassessmentUC RiskReassessmentUseCa
 
 	riskIDStr, ok := args["riskId"].(string)
 	if !ok || riskIDStr == "" {
-		return nil, fmt.Errorf("missing required field: riskId")
+		return nil, fmt.Errorf("kolom diperlukan tidak ditemukan: riskId")
 	}
 	riskID, err := uuid.Parse(riskIDStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid riskId format: %w", err)
+		return nil, fmt.Errorf("format riskId tidak valid: %w", err)
 	}
 
 	cycle, ok := args["assessmentCycle"].(string)
 	if !ok || cycle == "" {
-		return nil, fmt.Errorf("missing required field: assessmentCycle")
+		return nil, fmt.Errorf("kolom diperlukan tidak ditemukan: assessmentCycle")
 	}
 
 	reassessmentInput := riskuc.CreateRiskReassessmentInput{
@@ -100,7 +100,7 @@ func HandleUpdateMonitoringDraft(ctx context.Context, updateUC RiskUpdateUseCase
 
 	updateInput, err := mapping.ToUpdateRiskInput(args, sess)
 	if err != nil {
-		return nil, fmt.Errorf("invalid update input: %w", err)
+		return nil, fmt.Errorf("input pembaruan tidak valid: %w", err)
 	}
 
 	current, err := getUC.Execute(ctx, updateInput.ID, sess.AccessibleOrgIDs)

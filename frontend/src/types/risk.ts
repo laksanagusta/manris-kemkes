@@ -27,11 +27,11 @@ export interface RiskMitigation {
   ownerUserId?: string;
   treatmentOwnerId?: string;
   externalPicId?: string;
-  dueDate: string;
+  dueDate?: string;
   frequency?: MitigationFrequency;
   recurringInterval?: RecurringInterval;
-  reportDay?: number;   // 0=Sun..6=Sat (for mingguan)
-  reportDate?: number;  // 1-31 (for bulanan/triwulan)
+  reportDay?: number;
+  reportDate?: number;
   executionScheduleText?: string;
   targetCost?: number;
   mitigationType?: MitigationType;
@@ -53,15 +53,17 @@ export interface MitigationTask {
   id: string;
   mitigationId: string;
   riskId: string;
+  monitoringId?: string | null;
   periodLabel: string;
   periodStart: string;
   periodEnd: string;
   dueDate: string;
   status: MitigationTaskStatus;
-  progressPct: number;
   actualCost: number;
   evidenceUrl: string;
   notes: string;
+  reportOutput: string;
+  reportObstacle: string;
   reportedBy?: string;
   reportedByName?: string;
   reportedAt?: string;
@@ -72,6 +74,13 @@ export interface MitigationTask {
   mitigationOwner: string;
   riskCode: string;
   riskTitle: string;
+}
+
+export interface MonitoringValidationResult {
+  canFinalize: boolean;
+  totalTasks: number;
+  reportedTasks: number;
+  pendingTasks: number;
 }
 
 export interface RiskVersion {

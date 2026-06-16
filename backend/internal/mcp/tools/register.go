@@ -14,7 +14,7 @@ import (
 func successResult(data map[string]interface{}) *mcp.CallToolResult {
 	b, err := json.Marshal(data)
 	if err != nil {
-		return errorResult("failed to marshal result: " + err.Error())
+		return errorResult("gagal memproses hasil: " + err.Error())
 	}
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{mcp.TextContent{Type: "text", Text: string(b)}},

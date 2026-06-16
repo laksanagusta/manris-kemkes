@@ -43,7 +43,6 @@ import {
 
 import type { MitigationTask } from "@/types/risk";
 import {
-  normalizeMitigationReportPayload,
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
 import { isWithinMitigationSubmissionWindow } from "@/lib/kri-reporting";
@@ -51,7 +50,6 @@ import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 
 export interface MitigationProgressDraft {
   taskId: string;
-  progressPct: number;
   notes: string;
 }
 
@@ -103,7 +101,6 @@ export function MitigationProgressTab({
   const [showDialog, setShowDialog] = useState(false);
 
   // Form state for progress submission
-  const [progressPct, setProgressPct] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [showValidationErrors, setShowValidationErrors] = useState(false);
@@ -112,11 +109,10 @@ export function MitigationProgressTab({
   const formErrors = useMemo(
     () =>
       validateMitigationReportForm({
-        progressPct,
         evidenceUrl,
         notes,
       }),
-    [evidenceUrl, notes, progressPct],
+    [evidenceUrl, notes],
   );
   const hasFormErrors = Object.keys(formErrors).length > 0;
 
@@ -145,13 +141,6 @@ export function MitigationProgressTab({
   const openSubmitDialog = useCallback(
     (task: MitigationTask, draft?: MitigationProgressDraft | null) => {
       setSelectedTask(task);
-      setProgressPct(
-        draft
-          ? String(draft.progressPct)
-          : task.progressPct
-            ? String(task.progressPct)
-            : "",
-      );
       setEvidenceUrl(draft ? "" : task.evidenceUrl || "");
       setNotes(draft ? draft.notes : task.notes || "");
       setShowValidationErrors(false);
@@ -205,13 +194,13 @@ export function MitigationProgressTab({
     }
     setSubmitting(true);
     try {
-      await api.post(
-        `/mitigation-tasks/${selectedTask.id}/submit`,
-        normalizeMitigationReportPayload({
-          progressPct,
+      await api.put(
+        `/mitigation-tasks/${selectedTask.id}/report`,
+        {
+          status: "done",
           evidenceUrl,
           notes,
-        }),
+        },
         token,
       );
       toast.success("Progress berhasil dilaporkan!");
@@ -410,15 +399,13 @@ export function MitigationProgressTab({
                         <td className="px-4 py-3 align-top">
                           <div className="space-y-1">
                             <Progress
-                              value={
-                                task.status === "done" ? task.progressPct : 0
-                              }
+                              value={task.status === "done" ? 100 : 0}
                               className="h-1.5"
                             />
                             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                               <span>
                                 {task.status === "done"
-                                  ? `${task.progressPct}%`
+                                  ? "Selesai"
                                   : "Belum dilaporkan"}
                               </span>
                               {task.reportedByName &&
@@ -568,16 +555,10 @@ export function MitigationProgressTab({
                     </p>
                     <p className="text-lg font-bold">
                       {detailTask.status === "done"
-                        ? `${detailTask.progressPct}%`
+                        ? "Selesai"
                         : "Belum dilaporkan"}
                     </p>
                   </div>
-                  <Progress
-                    value={
-                      detailTask.status === "done" ? detailTask.progressPct : 0
-                    }
-                    className="h-2 flex-1 max-w-xs"
-                  />
                 </div>
                 <div className="rounded-lg bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -652,46 +633,7 @@ export function MitigationProgressTab({
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs">
-                Persentase Penyelesaian
-                <span className="text-destructive ml-0.5">*</span>
-              </Label>
-              <div className="flex items-center gap-3">
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={progressPct}
-                  onChange={(e) => setProgressPct(e.target.value)}
-                  className="text-xs w-24"
-                  placeholder="0"
-                  aria-invalid={Boolean(
-                    showValidationErrors && formErrors.progressPct,
-                  )}
-                  aria-describedby={
-                    showValidationErrors && formErrors.progressPct
-                      ? "mitigation-progress-error"
-                      : undefined
-                  }
-                />
-                <span className="text-xs text-muted-foreground">%</span>
-                <Progress
-                  value={Number(progressPct || 0)}
-                  className="flex-1 h-2"
-                />
-              </div>
-              {showValidationErrors && formErrors.progressPct && (
-                <p
-                  id="mitigation-progress-error"
-                  className="text-[11px] text-destructive"
-                >
-                  {formErrors.progressPct}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">
                 Link Bukti / Evidence
-                <span className="text-destructive ml-0.5">*</span>
               </Label>
               <Input
                 value={evidenceUrl}

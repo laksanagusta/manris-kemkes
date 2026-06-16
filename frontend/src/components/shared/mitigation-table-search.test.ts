@@ -9,8 +9,8 @@ const { filterMitigationItems } = mitigationTableSearchLib as typeof import("./m
 
 test("filterMitigationItems returns all items for blank query", () => {
   const items = [
-    { action: "Koordinasi vendor", owner: "Tim Logistik", dueDate: "2026-06-01" },
-    { action: "Audit proses", owner: "Inspektorat", dueDate: "2026-06-02" },
+    { action: "Koordinasi vendor", owner: "Tim Logistik" },
+    { action: "Audit proses", owner: "Inspektorat" },
   ];
 
   const result = filterMitigationItems(items, "   ");
@@ -24,14 +24,12 @@ test("filterMitigationItems matches action, owner, detail, and mitigation type",
     {
       action: "Koordinasi vendor cadangan",
       owner: "Tim Logistik",
-      dueDate: "2026-06-01",
       mitigationType: "reduce_probability" as const,
       activityStage: "Pelaksanaan",
     },
     {
       action: "Revisi SOP",
       owner: "Unit Kepatuhan",
-      dueDate: "2026-06-02",
       mitigationType: "reduce_impact" as const,
       expectedOutput: "SOP baru disetujui",
     },

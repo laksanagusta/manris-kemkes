@@ -20,6 +20,7 @@ const (
 
 type RiskMonitoring struct {
 	ID                          uuid.UUID                   `json:"id"`
+	VersionGroupID              uuid.UUID                   `json:"versionGroupId"`
 	SourceRiskID                uuid.UUID                   `json:"sourceRiskId"`
 	ResultRiskID                *uuid.UUID                  `json:"resultRiskId,omitempty"`
 	AssessmentCycle             string                      `json:"assessmentCycle"`
@@ -107,6 +108,7 @@ type RiskMonitoringDraftValues struct {
 
 func NewRiskMonitoringDraft(source *Risk, cycle string, startedBy uuid.UUID) *RiskMonitoring {
 	draft := &RiskMonitoring{
+		VersionGroupID:      source.VersionGroupID,
 		SourceRiskID:        source.ID,
 		AssessmentCycle:     cycle,
 		Status:              RiskMonitoringStatusDraft,

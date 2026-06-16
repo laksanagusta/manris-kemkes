@@ -36,10 +36,10 @@ func (uc *UpdateUseCase) Execute(ctx context.Context, input UpdateInput) (*entit
 		return nil, errors.ErrForbidden
 	}
 	if input.OrganizationID != existing.OrganizationID {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "organization id cannot be changed")
+		return nil, errors.ErrOrganizationIDCannotChange
 	}
 	if existing.Status != entity.TMPMRStatusDraft {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "only draft tmpmr assessments can be updated")
+		return nil, errors.ErrOnlyDraftTMPMRUpdated
 	}
 
 	updated := *existing
@@ -55,7 +55,7 @@ func (uc *UpdateUseCase) Execute(ctx context.Context, input UpdateInput) (*entit
 		return nil, errors.Wrap(err, "failed to validate tmpmr uniqueness")
 	}
 	if exists {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "tmpmr assessment already exists for organization and period")
+		return nil, errors.ErrTMPMRAssessmentExists
 	}
 
 	if len(input.Items) > 0 {

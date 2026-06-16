@@ -112,9 +112,17 @@ type Risk struct {
 	LastMonitoredAt       *time.Time `json:"lastMonitoredAt,omitempty"`
 	BeforeMonitoringNilai *float64   `json:"beforeMonitoringNilai,omitempty"`
 	MonitoringResultNilai *float64   `json:"monitoringResultNilai,omitempty"`
+	QuarterlyMonitoring   *QuarterlyMonitoringStatus `json:"quarterlyMonitoring,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type QuarterlyMonitoringStatus struct {
+	Q1 *string `json:"q1"`
+	Q2 *string `json:"q2"`
+	Q3 *string `json:"q3"`
+	Q4 *string `json:"q4"`
 }
 
 type ApprovalLineMember struct {

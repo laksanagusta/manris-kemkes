@@ -149,9 +149,9 @@ func TestEnsureTasksForApprovedRiskUseCase_ExecuteCreatesOneTaskPerMitigation(t 
 		},
 	}
 	taskRepo := &fakeApprovalSyncTaskRepo{}
-	uc := NewEnsureTasksForApprovedRiskUseCase(taskRepo, riskRepo)
+	uc := NewEnsureTasksForRiskVersionUseCase(taskRepo, riskRepo)
 
-	created, err := uc.Execute(context.Background(), riskID, nil)
+	created, err := uc.Execute(context.Background(), riskID, "2026-Q2", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -188,9 +188,9 @@ func TestEnsureTasksForApprovedRiskUseCase_ExecuteSkipsExistingTask(t *testing.T
 			mitigationID.String() + ":" + dueDate + ":" + dueDate: true,
 		},
 	}
-	uc := NewEnsureTasksForApprovedRiskUseCase(taskRepo, riskRepo)
+	uc := NewEnsureTasksForRiskVersionUseCase(taskRepo, riskRepo)
 
-	created, err := uc.Execute(context.Background(), riskID, nil)
+	created, err := uc.Execute(context.Background(), riskID, "2026-Q2", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -219,9 +219,9 @@ func TestEnsureTasksForApprovedRiskUseCase_ExecuteSkipsExistingControls(t *testi
 		},
 	}
 	taskRepo := &fakeApprovalSyncTaskRepo{}
-	uc := NewEnsureTasksForApprovedRiskUseCase(taskRepo, riskRepo)
+	uc := NewEnsureTasksForRiskVersionUseCase(taskRepo, riskRepo)
 
-	created, err := uc.Execute(context.Background(), riskID, nil)
+	created, err := uc.Execute(context.Background(), riskID, "2026-Q2", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

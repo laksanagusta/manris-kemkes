@@ -33,11 +33,11 @@ type RecommendVariablesRequest struct {
 func (h *CBAHandler) RecommendVariables(c *fiber.Ctx) error {
 	var req RecommendVariablesRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	if req.RiskDescription == "" {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Risk description is required")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "deskripsi risiko wajib diisi")
 	}
 
 	result, err := h.recommendUC.Execute(c.Context(), cbauc.RecommendVariablesInput{
@@ -74,7 +74,7 @@ type CBAVariableInputDTO struct {
 func (h *CBAHandler) Calculate(c *fiber.Ctx) error {
 	var req CalculateRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	// Convert DTOs to domain entities

@@ -51,8 +51,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  currentAssessmentCycle,
-  getSelectableAssessmentCycles,
+  currentMonitoringCycle,
+  getSelectableMonitoringCycles,
 } from "@/lib/risk-cycle-options";
 import {
   DropdownMenu,
@@ -501,6 +501,54 @@ function formatLocalDateTime(value?: string | null) {
   });
 }
 
+function getQuarterColor(
+  status: string | null | undefined,
+  quarter: number,
+  year: number,
+): string {
+  if (status === "finalized") return "bg-emerald-100 text-emerald-700";
+  if (status === "draft") return "bg-amber-100 text-amber-700";
+
+  const now = new Date();
+  const quarterEndMonth = quarter * 3 - 1;
+  const quarterEnd = new Date(year, quarterEndMonth, 0);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (today > quarterEnd) return "bg-red-100 text-red-500";
+  return "bg-zinc-100 text-zinc-400";
+}
+
+function QuarterlyIndicator({
+  data,
+}: {
+  data: { q1?: string | null; q2?: string | null; q3?: string | null; q4?: string | null } | null | undefined;
+}) {
+  const year = new Date().getFullYear();
+  const quarters = [
+    { key: "q1", label: "Q1", value: data?.q1 },
+    { key: "q2", label: "Q2", value: data?.q2 },
+    { key: "q3", label: "Q3", value: data?.q3 },
+    { key: "q4", label: "Q4", value: data?.q4 },
+  ];
+
+  return (
+    <div className="flex items-center gap-1">
+      {quarters.map((q, i) => (
+        <div
+          key={q.key}
+          className={cn(
+            "size-5 rounded text-[9px] font-semibold flex items-center justify-center",
+            getQuarterColor(q.value, i + 1, year),
+          )}
+          title={`${q.label}: ${q.value === "finalized" ? "Selesai" : q.value === "draft" ? "Draf" : q.value ? q.value : "-"}`}
+        >
+          {q.label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function RiskRowActions({
   risk,
   isReadOnly,
@@ -660,10 +708,10 @@ export default function RiskRegisterPage() {
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
     useState<RiskListItem | null>(null);
   const [selectedAssessmentCycle, setSelectedAssessmentCycle] = useState(
-    currentAssessmentCycle(),
+    currentMonitoringCycle(),
   );
-  const selectableAssessmentCycles = useMemo(
-    () => getSelectableAssessmentCycles(currentAssessmentCycle()),
+  const selectableMonitoringCycles = useMemo(
+    () => getSelectableMonitoringCycles(currentMonitoringCycle()),
     [],
   );
   const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
@@ -1162,7 +1210,7 @@ export default function RiskRegisterPage() {
 
   const handleOpenConfirmDialog = (risk: RiskListItem) => {
     setSelectedRiskForReassessment(risk);
-    setSelectedAssessmentCycle(currentAssessmentCycle());
+    setSelectedAssessmentCycle(currentMonitoringCycle());
     setConfirmDialogOpen(true);
   };
 
@@ -1411,6 +1459,9 @@ export default function RiskRegisterPage() {
                     <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
                       Status Pemantauan
                     </TableHead>
+                    <TableHead className="w-40 whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      Pemantauan {new Date().getFullYear()}
+                    </TableHead>
                     <TableHead className="w-36 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
                       Terakhir Dipantau
                     </TableHead>
@@ -1446,7 +1497,7 @@ export default function RiskRegisterPage() {
                   {risks.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={9}
+                        colSpan={10}
                         className="py-8 text-left text-xs text-zinc-500"
                       >
                         Tidak ada risiko yang ditemukan
@@ -1576,6 +1627,9 @@ export default function RiskRegisterPage() {
                                 {monitoringStatusText}
                               </Badge>
                             </div>
+                          </TableCell>
+                          <TableCell className="px-2.5">
+                            <QuarterlyIndicator data={risk.quarterlyMonitoring} />
                           </TableCell>
                           <TableCell className="px-2.5 whitespace-nowrap text-xs text-zinc-600">
                             <span className="block truncate" title={monitoringLastText}>
@@ -2267,7 +2321,7 @@ export default function RiskRegisterPage() {
               </span>
             </div>
             <div className="text-sm">
-              <span className="font-medium text-foreground">Cycle: </span>
+              <span className="font-medium text-foreground">Siklus: </span>
               <span className="text-muted-foreground">
                 {selectedAssessmentCycle}
               </span>
@@ -2281,10 +2335,10 @@ export default function RiskRegisterPage() {
                 onValueChange={setSelectedAssessmentCycle}
               >
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Pilih semester" />
+                  <SelectValue placeholder="Pilih kuartal" />
                 </SelectTrigger>
                 <SelectContent>
-                  {selectableAssessmentCycles.map((cycleOption) => (
+                  {selectableMonitoringCycles.map((cycleOption) => (
                     <SelectItem
                       key={cycleOption.value}
                       value={cycleOption.value}

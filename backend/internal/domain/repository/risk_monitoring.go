@@ -11,10 +11,16 @@ type RiskMonitoringRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.RiskMonitoring, error)
 	GetDraftBySourceAndCycle(ctx context.Context, sourceRiskID uuid.UUID, cycle string) (*entity.RiskMonitoring, error)
 	HasFinalizedForSourceAndCycle(ctx context.Context, sourceRiskID uuid.UUID, cycle string) (bool, error)
+	GetByVersionGroupAndCycle(ctx context.Context, versionGroupID uuid.UUID, cycle string) (*entity.RiskMonitoring, error)
 	List(ctx context.Context, filter RiskMonitoringListFilter) ([]*entity.RiskMonitoring, int, error)
+	ListByVersionGroup(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.RiskMonitoring, error)
 	Create(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	UpdateDraft(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error)
+
+	// UpdateTaskMonitoringIDs links pending mitigation_tasks for a given risk+cycle
+	// to a monitoring, by setting their monitoring_id
+	UpdateTaskMonitoringIDs(ctx context.Context, monitoringID uuid.UUID, riskID uuid.UUID, cycle string) error
 }
 
 type RiskMonitoringListFilter struct {

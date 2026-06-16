@@ -348,7 +348,7 @@ func parseBulkRiskRecords(filename string, content []byte) ([]map[string]string,
 		if preferred == "" {
 			sheets := f.GetSheetList()
 			if len(sheets) == 0 {
-				return nil, fmt.Errorf("spreadsheet has no sheets")
+				return nil, fmt.Errorf("spreadsheet tidak memiliki sheet")
 			}
 			preferred = sheets[0]
 		}

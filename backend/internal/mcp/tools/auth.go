@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	ErrMissingCredentials = errors.New("nip and password required")
-	ErrUserNotFound       = errors.New("user not found")
+	ErrMissingCredentials = errors.New("nip dan kata sandi diperlukan")
+	ErrUserNotFound       = errors.New("pengguna tidak ditemukan")
 )
 
 type AuthLoginUseCaseI interface {
@@ -41,7 +41,7 @@ func HandleLogin(ctx context.Context, deps Deps, nip, password string) (map[stri
 	}
 
 	if result == nil {
-		return nil, errors.New("login failed: no result")
+		return nil, errors.New("gagal masuk: tidak ada hasil")
 	}
 
 	if result.User == nil {

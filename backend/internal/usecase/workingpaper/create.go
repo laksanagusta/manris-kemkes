@@ -2,11 +2,14 @@ package workingpaper
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
+	riskusecase "github.com/manris/backend/internal/usecase/risk"
 )
 
 type CreateSignatoryInput struct {
@@ -18,82 +21,56 @@ type CreateSignatoryInput struct {
 	SignerPangkat string
 }
 
-type RiskInput struct {
-	RiskID     uuid.UUID
-	SourceMode string
-}
-
 type CreateWorkingPaperInput struct {
-	Title            string
-	Description      string
 	AssessmentCycle  string
+	OrganizationID   uuid.UUID
+	RosterRevision   string
 	AccessibleOrgIDs []uuid.UUID
-	OrgID            uuid.UUID
+	IsGlobal         bool
 	CreatedByUserID  uuid.UUID
-	Risks            []RiskInput
+	Decisions        []entity.WorkingPaperRosterDecision
 	Signatories      []CreateSignatoryInput
 }
 
 func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*entity.WorkingPaper, error) {
-	if input.Title == "" {
-		return nil, domainerrors.ErrInvalidTitle
-	}
-	if len(input.Risks) == 0 {
-		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one risk is required"}
-	}
 	if len(input.Signatories) == 0 {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one signatory is required"}
 	}
-
-	lookupOrgIDs := append([]uuid.UUID(nil), input.AccessibleOrgIDs...)
-	if len(lookupOrgIDs) == 0 && input.OrgID != uuid.Nil {
-		lookupOrgIDs = []uuid.UUID{input.OrgID}
+	if !riskusecase.IsValidSemesterFormat(input.AssessmentCycle) {
+		return nil, domainerrors.ErrSemesterFormat
+	}
+	if len(input.Decisions) == 0 {
+		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "roster decisions are required"}
 	}
 
-	linkedRisks := make([]entity.WorkingPaperRiskLink, 0, len(input.Risks))
-	resolvedOrgID := input.OrgID
-	for idx, ri := range input.Risks {
-		sourceMode := normalizeRiskSourceMode(ri.SourceMode)
-		resolvedRisk, err := resolveLinkedRisk(ctx, uc.riskRepo, ri.RiskID, input.AssessmentCycle, sourceMode, lookupOrgIDs, input.CreatedByUserID)
-		if err != nil {
-			return nil, err
+	included := 0
+	for _, decision := range input.Decisions {
+		if decision.Included {
+			included++
+			continue
 		}
-		if resolvedRisk.risk.OrganizationID == nil {
-			if resolvedOrgID == uuid.Nil {
-				return nil, &domainerrors.AppError{Code: "INVALID_RISK", Message: "resolved risk is missing organization_id"}
-			}
-		} else if resolvedOrgID == uuid.Nil {
-			resolvedOrgID = *resolvedRisk.risk.OrganizationID
-		} else if resolvedOrgID != *resolvedRisk.risk.OrganizationID {
-			return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "all selected risks must belong to the same organization"}
+		if strings.TrimSpace(decision.ExclusionReason) == "" {
+			return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "exclusion reason is required"}
 		}
-		if resolvedRisk.risk.OrganizationID == nil && resolvedOrgID == uuid.Nil {
-			return nil, &domainerrors.AppError{Code: "INVALID_RISK", Message: "resolved risk is missing organization_id"}
-		}
+	}
+	if included == 0 {
+		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one roster risk must be included"}
+	}
 
-		resolvedRisk.link.SortOrder = idx
-		linkedRisks = append(linkedRisks, resolvedRisk.link)
-	}
-	if resolvedOrgID == uuid.Nil {
-		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "unable to determine working paper organization"}
-	}
+	title := fmt.Sprintf("Kertas Kerja %s", input.AssessmentCycle)
 
 	now := time.Now()
 	wp := entity.WorkingPaper{
 		ID:                       uuid.New(),
-		Title:                    input.Title,
-		Description:              input.Description,
-		OrgID:                    resolvedOrgID,
+		Title:                    title,
+		OrgID:                    input.OrganizationID,
 		Status:                   entity.WorkingPaperStatusDraft,
 		AssessmentCycle:          input.AssessmentCycle,
-		Risks:                    linkedRisks,
 		CurrentSignatorySequence: 0,
 		CreatedBy:                input.CreatedByUserID,
 		CreatedAt:                now,
 		UpdatedAt:                now,
 	}
-
-	wp.DocumentHash = wp.ComputeHash()
 
 	signatories := make([]entity.WorkingPaperSignatory, 0, len(input.Signatories))
 	for _, s := range input.Signatories {
@@ -111,16 +88,48 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 	}
 	wp.Signatories = signatories
 
-	if err := wp.Validate(); err != nil {
+	if err := uc.wpRepo.CreateWithPeriodRoster(
+		ctx,
+		&wp,
+		input.RosterRevision,
+		input.Decisions,
+	); err != nil {
 		return nil, err
 	}
 
-	if err := uc.wpRepo.Create(ctx, &wp); err != nil {
-		return nil, domainerrors.Wrap(err, "failed to create working paper")
-	}
-	for i := range wp.Risks {
-		wp.Risks[i].WorkingPaperID = wp.ID
-	}
-
 	return &wp, nil
+}
+
+func buildWorkingPaperRiskData(risk *entity.Risk) entity.WorkingPaperRiskData {
+	data := entity.WorkingPaperRiskData{
+		ID:                   risk.ID,
+		Code:                 risk.Code,
+		Title:                risk.Title,
+		Description:          risk.Description,
+		Category:             risk.Category,
+		Status:               risk.Status,
+		OrgName:              risk.OrgName,
+		Probability:          risk.EffectiveProbability(),
+		Impact:               risk.EffectiveImpact(),
+		Bobot:                risk.Weight,
+		Nilai:                risk.EffectiveNilai(),
+		InherentScore:        risk.GetEffectiveScore(),
+		Cause:                append([]string(nil), risk.Cause...),
+		RiskSource:           risk.RiskSource,
+		Controllability:      risk.Controllability,
+		ImpactDesc:           append([]string(nil), risk.ImpactDesc...),
+		ExistingControl:      risk.ExistingControl,
+		ControlEffectiveness: risk.ControlEffectiveness,
+		RiskAppetite:         risk.RiskAppetite,
+		TreatmentOption:      risk.TreatmentOption,
+		TargetProbability:    risk.TargetProbability,
+		TargetImpact:          risk.TargetImpact,
+		TargetBobot:          risk.TargetWeight,
+		TargetNilai:          risk.TargetNilai,
+		AssessmentCycle:      risk.AssessmentCycle,
+		VersionNumber:        risk.VersionNumber,
+		JadwalPelaksanaan:    risk.ReviewScheduleText,
+	}
+	data.NormalizeDerivedScores()
+	return data
 }

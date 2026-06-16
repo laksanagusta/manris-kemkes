@@ -23,7 +23,7 @@ func (h *SystemHandler) GetSlowQueries(c *fiber.Ctx) error {
 	// 1. Get role from context (set by auth middleware)
 	role, ok := c.Locals("role").(string)
 	if !ok {
-		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	// 2. Get limit from query
@@ -48,9 +48,9 @@ func (h *SystemHandler) GetSlowQueries(c *fiber.Ctx) error {
 // handleSystemError converts domain errors to HTTP responses
 func handleSystemError(c *fiber.Ctx, err error) error {
 	if errors.IsForbidden(err) {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", err.Error())
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", err.Error())
 	}
 
 	// Default to 500 for other errors
-	return sendProblemDetails(c, fiber.StatusInternalServerError, "Server Error", "https://api.manris.com/errors/server-error", err.Error())
+	return sendProblemDetails(c, fiber.StatusInternalServerError, "Kesalahan Server", "https://api.manris.com/errors/server-error", err.Error())
 }

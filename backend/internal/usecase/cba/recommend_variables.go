@@ -28,7 +28,7 @@ func NewRecommendVariablesUseCase(cbaRepo repository.CBARepository, orgRepo repo
 
 func (uc *RecommendVariablesUseCase) Execute(ctx context.Context, input RecommendVariablesInput) (*entity.CBARecommendation, error) {
 	if input.RiskDescription == "" {
-		return nil, fmt.Errorf("risk description is required")
+		return nil, fmt.Errorf("deskripsi risiko wajib diisi")
 	}
 
 	var orgContext string
@@ -38,7 +38,7 @@ func (uc *RecommendVariablesUseCase) Execute(ctx context.Context, input Recommen
 
 	recommendation, err := uc.cbaRepo.RecommendVariables(ctx, input.RiskDescription, orgContext)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate recommendations: %w", err)
+		return nil, fmt.Errorf("gagal menghasilkan rekomendasi: %w", err)
 	}
 
 	return recommendation, nil

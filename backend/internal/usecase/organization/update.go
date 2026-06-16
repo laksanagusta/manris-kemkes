@@ -44,12 +44,12 @@ func (uc *UpdateOrganizationUseCase) Execute(ctx context.Context, input UpdateOr
 
 	if input.ParentID != nil {
 		if *input.ParentID == input.ID {
-			return nil, errors.Wrap(errors.ErrInvalidInput, "organization cannot be its own parent")
+			return nil, errors.ErrOrganizationCannotBeOwnParent
 		}
 
 		_, err := uc.orgRepo.GetByID(ctx, *input.ParentID)
 		if err != nil {
-			return nil, errors.Wrap(err, "parent organization not found")
+			return nil, errors.ErrParentOrganizationNotFound
 		}
 
 		descendants, err := uc.orgRepo.GetDescendants(ctx, input.ID)
@@ -59,7 +59,7 @@ func (uc *UpdateOrganizationUseCase) Execute(ctx context.Context, input UpdateOr
 
 		for _, descID := range descendants {
 			if descID == *input.ParentID {
-				return nil, errors.Wrap(errors.ErrInvalidInput, "circular reference: cannot set a descendant as parent")
+				return nil, errors.ErrCircularReference
 			}
 		}
 	}

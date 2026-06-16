@@ -58,7 +58,7 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, input CreateUserInput)
 		return nil, errors.ErrInvalidEmail
 	}
 	if input.NIP == "" {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "nip cannot be empty")
+		return nil, errors.ErrNIPRequired
 	}
 	if normalizedRole == "" {
 		return nil, errors.ErrInvalidRole
@@ -70,14 +70,14 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, input CreateUserInput)
 		return nil, errors.ErrInvalidPassword
 	}
 	if roleRequiresOrganization(normalizedRole) && input.OrganizationID == nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "organization is required for non-superadmin users")
+		return nil, errors.ErrOrganizationRequiredNonAdmin
 	}
 
 	// 2. Validate organization if provided
 	if input.OrganizationID != nil {
 		_, err := uc.orgRepo.GetByID(ctx, *input.OrganizationID)
 		if err != nil {
-			return nil, errors.Wrap(err, "organization not found")
+			return nil, errors.ErrOrganizationNotFound
 		}
 	}
 
@@ -89,12 +89,12 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, input CreateUserInput)
 	// 3. Check if email already exists
 	existingUser, err := uc.lookupExistingUser(ctx, input.Email, "email")
 	if existingUser != nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "email already exists")
+		return nil, errors.ErrEmailAlreadyExists
 	}
 
 	existingUser, err = uc.lookupExistingUser(ctx, input.NIP, "nip")
 	if existingUser != nil {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "nip already exists")
+		return nil, errors.ErrNIPAlreadyExists
 	}
 
 	// 4. Create user entity

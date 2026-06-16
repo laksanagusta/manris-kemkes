@@ -37,6 +37,7 @@ import {
   previewMonitoringUpload,
   submitMonitoringBatch,
 } from "@/lib/api/risk-monitoring";
+import { currentMonitoringCycle } from "@/lib/risk-cycle-options";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
@@ -107,13 +108,22 @@ function statusBadgeClass(preview: BulkRiskPreview) {
 }
 
 function getCycleOptions(): string[] {
-  const year = new Date().getFullYear();
-  const opts: string[] = [];
-  for (let y = year - 1; y <= year + 1; y++) {
-    opts.push(`${y}-H1`);
-    opts.push(`${y}-H2`);
+  const current = currentMonitoringCycle();
+  const [yearRaw, quarterRaw] = current.split("-");
+  const year = Number(yearRaw);
+  const quarter = Number(quarterRaw?.slice(1));
+
+  if (!Number.isInteger(year) || !Number.isInteger(quarter)) {
+    return [current];
   }
-  return opts;
+
+  const previousQuarter = quarter === 1 ? 4 : quarter - 1;
+  const nextQuarter = quarter === 4 ? 1 : quarter + 1;
+  return [
+    `${quarter === 1 ? year - 1 : year}-Q${previousQuarter}`,
+    `${year}-Q${quarter}`,
+    `${quarter === 4 ? year + 1 : year}-Q${nextQuarter}`,
+  ];
 }
 
 function getPlanningPeriodOptions(): string[] {

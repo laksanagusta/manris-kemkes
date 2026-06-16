@@ -69,7 +69,7 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*entity.
 
 func validateLoginInput(input LoginInput) error {
 	if input.NIP == "" {
-		return errors.Wrap(errors.ErrInvalidInput, "nip cannot be empty")
+		return errors.ErrNIPRequired
 	}
 	if input.Password == "" {
 		return errors.ErrInvalidPassword

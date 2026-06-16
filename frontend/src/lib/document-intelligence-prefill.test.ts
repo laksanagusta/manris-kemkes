@@ -81,7 +81,6 @@ test("document intelligence prefill supports mitigation report payloads", () => 
     saveDocumentIntelligencePrefill(token, {
       kind: "mitigation-report",
       taskId: "task-1",
-      progressPct: 75,
       actualCost: 1250000,
       notes: "Draft laporan",
       quote: "Bukti laporan",
@@ -90,7 +89,6 @@ test("document intelligence prefill supports mitigation report payloads", () => 
     const value = consumeDocumentIntelligencePrefill(token);
     assert.equal(value?.kind, "mitigation-report");
     assert.equal(value?.taskId, "task-1");
-    assert.equal(value?.progressPct, 75);
     assert.equal(value?.actualCost, 1250000);
     assert.equal(value?.notes, "Draft laporan");
   });
@@ -109,7 +107,6 @@ test("document intelligence latest mitigation prefill can be consumed once", () 
     saveLatestMitigationReportPrefill({
       kind: "mitigation-report",
       taskId: "task-2",
-      progressPct: 50,
       actualCost: 500000,
       notes: "Catatan mitigasi",
       quote: "Kutipan mitigasi",
@@ -118,7 +115,6 @@ test("document intelligence latest mitigation prefill can be consumed once", () 
     const first = consumeLatestMitigationReportPrefill();
     assert.equal(first?.kind, "mitigation-report");
     assert.equal(first?.taskId, "task-2");
-    assert.equal(first?.progressPct, 50);
     assert.equal(first?.notes, "Catatan mitigasi");
 
     const second = consumeLatestMitigationReportPrefill();

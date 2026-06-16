@@ -34,7 +34,7 @@ func (uc *ReviewUseCase) Execute(ctx context.Context, input ReviewInput) (*entit
 		return nil, errors.ErrForbidden
 	}
 	if assessment.Status != entity.TMPMRStatusSubmitted {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "only submitted tmpmr assessments can be reviewed")
+		return nil, errors.ErrOnlySubmittedTMPMRReviewed
 	}
 
 	assessment.Status = entity.TMPMRStatusReviewed

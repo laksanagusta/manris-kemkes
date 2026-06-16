@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,52 @@ func mitigationTaskPeriodLabel(assessmentCycle string) string {
 		return label
 	}
 	return singleMitigationTaskPeriodLabel
+}
+
+// QuarterStart returns the start date of a quarter, e.g. Q1 = Jan 1
+func QuarterStart(year int, quarter int) time.Time {
+	month := (quarter-1)*3 + 1
+	return time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+}
+
+// QuarterEnd returns the last day of a quarter, e.g. Q1 = Mar 31
+func QuarterEnd(year int, quarter int) time.Time {
+	start := QuarterStart(year, quarter)
+	return start.AddDate(0, 3, -1)
+}
+
+// CurrentQuarter returns the current year and quarter (1-4)
+func CurrentQuarter(now time.Time) (int, int) {
+	year := now.Year()
+	quarter := (int(now.Month())-1)/3 + 1
+	return year, quarter
+}
+
+// ParseQuarterCycle parses "2026-Q1" into year and quarter
+func ParseQuarterCycle(cycle string) (int, int, error) {
+	parts := strings.Split(cycle, "-Q")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("format siklus kuartal tidak valid: %s", cycle)
+	}
+	year, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("tahun tidak valid dalam siklus: %s", cycle)
+	}
+	quarter, err := strconv.Atoi(parts[1])
+	if err != nil || quarter < 1 || quarter > 4 {
+		return 0, 0, fmt.Errorf("kuartal tidak valid dalam siklus: %s", cycle)
+	}
+	return year, quarter, nil
+}
+
+// QuarterDueDate returns the due date string for a quarter, e.g. "2026-03-31"
+func QuarterDueDate(year int, quarter int) string {
+	return QuarterEnd(year, quarter).Format("2006-01-02")
+}
+
+// QuarterPeriodStart returns the start date string for a quarter
+func QuarterPeriodStart(year int, quarter int) string {
+	return QuarterStart(year, quarter).Format("2006-01-02")
 }
 
 // ListTasksUseCase lists mitigation tasks for a risk
@@ -55,7 +102,7 @@ type ListTasksPaginatedResult struct {
 func (uc *ListTasksUseCase) Execute(ctx context.Context, input ListTasksInput) ([]*entity.MitigationTask, error) {
 	if input.RiskID != nil {
 		if _, err := uc.riskRepo.GetByID(ctx, *input.RiskID, input.OrgIDs); err != nil {
-			return nil, fmt.Errorf("risk not found or not accessible: %w", err)
+			return nil, fmt.Errorf("risiko tidak ditemukan atau tidak dapat diakses: %w", err)
 		}
 		return uc.taskRepo.ListByRisk(ctx, *input.RiskID, input.OrgIDs)
 	}
@@ -82,7 +129,7 @@ func (uc *ListTasksUseCase) ExecutePaginated(ctx context.Context, input ListTask
 
 	tasks, total, err := uc.taskRepo.ListAllPaginated(ctx, input.OrgIDs, input.Query, input.Page, input.Limit)
 	if err != nil {
-		return nil, fmt.Errorf("list mitigation tasks: %w", err)
+		return nil, fmt.Errorf("gagal mengambil daftar tugas mitigasi: %w", err)
 	}
 	if tasks == nil {
 		tasks = make([]*entity.MitigationTask, 0)
@@ -93,6 +140,16 @@ func (uc *ListTasksUseCase) ExecutePaginated(ctx context.Context, input ListTask
 		Page:  input.Page,
 		Limit: input.Limit,
 	}, nil
+}
+
+// ListByMonitoring returns all tasks linked to a specific monitoring
+func (uc *ListTasksUseCase) ListByMonitoring(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return uc.taskRepo.ListByMonitoring(ctx, monitoringID, orgIDs)
+}
+
+// CountByMonitoring returns task counts grouped by status for a monitoring
+func (uc *ListTasksUseCase) CountByMonitoring(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) (*repository.MonitoringTaskCounts, error) {
+	return uc.taskRepo.CountByMonitoringAndStatus(ctx, monitoringID, orgIDs)
 }
 
 // SubmitProgressUseCase handles a PIC submitting progress for a task
@@ -107,7 +164,6 @@ func NewSubmitProgressUseCase(taskRepo repository.MitigationTaskRepository, risk
 
 type SubmitProgressInput struct {
 	TaskID      uuid.UUID `json:"taskId"`
-	ProgressPct int       `json:"progressPct"`
 	EvidenceURL string    `json:"evidenceUrl"`
 	Notes       string    `json:"notes"`
 	ReportedBy  uuid.UUID `json:"-"`
@@ -115,10 +171,6 @@ type SubmitProgressInput struct {
 }
 
 func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgressInput) (*entity.MitigationTask, error) {
-	if input.ProgressPct < 0 || input.ProgressPct > 100 {
-		return nil, domainerrors.ErrInvalidProgress
-	}
-
 	evidenceURL := strings.TrimSpace(input.EvidenceURL)
 	if evidenceURL == "" {
 		return nil, domainerrors.ErrInvalidEvidenceURL
@@ -135,7 +187,7 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 
 	task, err := uc.taskRepo.GetByID(ctx, input.TaskID, input.OrgIDs)
 	if err != nil {
-		return nil, fmt.Errorf("task not found: %w", err)
+		return nil, fmt.Errorf("tugas tidak ditemukan: %w", err)
 	}
 
 	if _, err := uc.riskRepo.GetByID(ctx, task.RiskID, input.OrgIDs); err != nil {
@@ -143,11 +195,10 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 	}
 
 	if _, err := time.Parse("2006-01-02", task.DueDate); err != nil {
-		return nil, fmt.Errorf("invalid due date: %w", err)
+		return nil, fmt.Errorf("tanggal jatuh tempo tidak valid: %w", err)
 	}
 
 	now := time.Now().In(timeutil.JakartaLocation())
-	task.ProgressPct = input.ProgressPct
 	task.EvidenceURL = evidenceURL
 	task.Notes = notes
 	task.ReportedBy = &input.ReportedBy
@@ -155,10 +206,81 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 	task.Status = "done"
 
 	if err := uc.taskRepo.Update(ctx, task); err != nil {
-		return nil, fmt.Errorf("update task: %w", err)
+		return nil, fmt.Errorf("gagal memperbarui tugas: %w", err)
 	}
 
 	// Re-fetch to get joined fields
+	return uc.taskRepo.GetByID(ctx, task.ID, input.OrgIDs)
+}
+
+// SubmitMonitoringReportInput is the input for submitting a mitigation
+// monitoring report. Fields are optional — only provided fields are updated.
+type SubmitMonitoringReportInput struct {
+	TaskID         uuid.UUID `json:"-"`
+	Status         string    `json:"status,omitempty"`
+	EvidenceURL    string    `json:"evidenceUrl,omitempty"`
+	Notes          string    `json:"notes,omitempty"`
+	ReportOutput   string    `json:"reportOutput,omitempty"`
+	ReportObstacle string    `json:"reportObstacle,omitempty"`
+	ReportedBy     uuid.UUID `json:"-"`
+	OrgIDs         []uuid.UUID
+}
+
+type SubmitMonitoringReportUseCase struct {
+	taskRepo repository.MitigationTaskRepository
+	riskRepo repository.RiskRepository
+}
+
+func NewSubmitMonitoringReportUseCase(taskRepo repository.MitigationTaskRepository, riskRepo repository.RiskRepository) *SubmitMonitoringReportUseCase {
+	return &SubmitMonitoringReportUseCase{taskRepo: taskRepo, riskRepo: riskRepo}
+}
+
+func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input SubmitMonitoringReportInput) (*entity.MitigationTask, error) {
+	if input.Status != "" && input.Status != "pending" && input.Status != "done" {
+		return nil, fmt.Errorf("status tidak valid: harus pending atau done")
+	}
+
+	evidenceURL := strings.TrimSpace(input.EvidenceURL)
+	if evidenceURL != "" {
+		parsedURL, err := url.ParseRequestURI(evidenceURL)
+		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+			return nil, domainerrors.ErrInvalidEvidenceURL
+		}
+	}
+
+	task, err := uc.taskRepo.GetByID(ctx, input.TaskID, input.OrgIDs)
+	if err != nil {
+		return nil, fmt.Errorf("tugas tidak ditemukan: %w", err)
+	}
+
+	if _, err := uc.riskRepo.GetByID(ctx, task.RiskID, input.OrgIDs); err != nil {
+		return nil, domainerrors.ErrForbidden
+	}
+
+	now := time.Now().In(timeutil.JakartaLocation())
+
+	if input.Status != "" {
+		task.Status = input.Status
+	}
+	if evidenceURL != "" {
+		task.EvidenceURL = evidenceURL
+	}
+	if input.Notes != "" {
+		task.Notes = input.Notes
+	}
+	if input.ReportOutput != "" {
+		task.ReportOutput = input.ReportOutput
+	}
+	if input.ReportObstacle != "" {
+		task.ReportObstacle = input.ReportObstacle
+	}
+	task.ReportedBy = &input.ReportedBy
+	task.ReportedAt = &now
+
+	if err := uc.taskRepo.Update(ctx, task); err != nil {
+		return nil, fmt.Errorf("gagal memperbarui tugas: %w", err)
+	}
+
 	return uc.taskRepo.GetByID(ctx, task.ID, input.OrgIDs)
 }
 
@@ -174,7 +296,7 @@ func NewGenerateTasksUseCase(taskRepo repository.MitigationTaskRepository) *Gene
 func (uc *GenerateTasksUseCase) Execute(ctx context.Context, now time.Time) (int, error) {
 	mitigations, err := uc.taskRepo.GetRecurringMitigations(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("get recurring mitigations: %w", err)
+		return 0, fmt.Errorf("gagal mengambil mitigasi berulang: %w", err)
 	}
 
 	created := 0

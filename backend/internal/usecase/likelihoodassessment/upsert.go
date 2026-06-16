@@ -75,7 +75,7 @@ func (uc *UpsertUseCase) Execute(ctx context.Context, input UpsertInput) (*Upser
 	}
 
 	if err := assessment.Validate(); err != nil {
-		return nil, fmt.Errorf("validation failed: %w", err)
+		return nil, fmt.Errorf("validasi gagal: %w", err)
 	}
 
 	if err := uc.repo.UpsertByRiskID(ctx, &assessment); err != nil {

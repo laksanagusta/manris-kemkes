@@ -51,7 +51,7 @@ type CreateMonitoringBatchInput struct {
 // Execute processes all items and creates monitoring transactions.
 func (uc *CreateMonitoringBatchUseCase) Execute(ctx context.Context, input CreateMonitoringBatchInput) (*BulkMonitoringBatchOutput, error) {
 	if !IsValidCycleFormat(input.Cycle) {
-		return nil, apperrors.Wrap(apperrors.ErrInvalidInput, "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return nil, apperrors.Wrap(apperrors.ErrInvalidInput, "assessment_cycle must be in YYYY-QN format (e.g. 2026-Q1)")
 	}
 
 	if input.CreatedBy == nil || *input.CreatedBy == uuid.Nil {
@@ -130,7 +130,7 @@ func (uc *CreateMonitoringBatchUseCase) processItem(
 		}
 	}
 
-	if existing, err := uc.monitoringRepo.GetDraftBySourceAndCycle(ctx, sourceRisk.ID, cycle); err != nil {
+	if existing, err := uc.monitoringRepo.GetByVersionGroupAndCycle(ctx, sourceRisk.VersionGroupID, cycle); err != nil {
 		return BulkMonitoringBatchItemOutput{
 			ClientKey: item.ClientKey,
 			Code:      &sourceRisk.Code,
@@ -139,31 +139,17 @@ func (uc *CreateMonitoringBatchUseCase) processItem(
 			Error:     err.Error(),
 		}
 	} else if existing != nil {
+		msg := "an in-progress monitoring transaction already exists for this cycle"
+		if existing.Status == entity.RiskMonitoringStatusFinalized {
+			msg = "monitoring transaction already finalized for this cycle"
+		}
 		return BulkMonitoringBatchItemOutput{
 			ClientKey: item.ClientKey,
 			ID:        &existing.ID,
 			Code:      &sourceRisk.Code,
 			Status:    "failed",
-			Message:   "an in-progress monitoring transaction already exists for this cycle",
+			Message:   msg,
 			Error:     fmt.Sprintf("existing monitoring transaction %s for cycle %s", existing.ID, cycle),
-		}
-	}
-
-	if hasFinalized, err := uc.monitoringRepo.HasFinalizedForSourceAndCycle(ctx, sourceRisk.ID, cycle); err != nil {
-		return BulkMonitoringBatchItemOutput{
-			ClientKey: item.ClientKey,
-			Code:      &sourceRisk.Code,
-			Status:    "failed",
-			Message:   "failed to check finalized monitoring transactions",
-			Error:     err.Error(),
-		}
-	} else if hasFinalized {
-		return BulkMonitoringBatchItemOutput{
-			ClientKey: item.ClientKey,
-			Code:      &sourceRisk.Code,
-			Status:    "failed",
-			Message:   "monitoring transaction already finalized for this cycle",
-			Error:     fmt.Sprintf("finalized monitoring already exists for cycle %s", cycle),
 		}
 	}
 

@@ -22,8 +22,6 @@ export type DocumentIntelligencePrefill =
   | {
       kind: "mitigation-report";
       taskId: string;
-      progressPct?: number;
-      actualCost?: number;
       notes?: string;
       quote?: string;
     };

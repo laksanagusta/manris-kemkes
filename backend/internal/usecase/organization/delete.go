@@ -40,7 +40,7 @@ func (uc *DeleteOrganizationUseCase) Execute(ctx context.Context, id uuid.UUID) 
 
 	// If there are more than 1 descendant (including itself), it has children
 	if len(descendants) > 1 {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "cannot delete organization with child organizations")
+		return nil, errors.ErrOrganizationHasChildren
 	}
 
 	// 3. Delete from database

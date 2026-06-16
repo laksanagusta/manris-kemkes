@@ -54,7 +54,7 @@ func (uc *CreateRiskCharterUseCase) Execute(ctx context.Context, input CreateRis
 		return nil, errors.Wrap(err, "failed to validate charter uniqueness")
 	}
 	if exists {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "risk charter already exists for organization, period, and upr level")
+		return nil, errors.ErrRiskCharterExists
 	}
 
 	if err := uc.repo.Create(ctx, charter); err != nil {

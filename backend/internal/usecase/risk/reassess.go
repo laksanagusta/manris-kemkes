@@ -3,16 +3,23 @@ package risk
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
 type CreateRiskReassessmentUseCase struct {
-	riskRepo reassessmentRiskRepository
+	riskRepo      reassessmentRiskRepository
+	ensureTasksUC *mtuc.EnsureTasksForRiskVersionUseCase
+}
+
+func NewCreateRiskReassessmentUseCase(riskRepo reassessmentRiskRepository, ensureTasksUC *mtuc.EnsureTasksForRiskVersionUseCase) *CreateRiskReassessmentUseCase {
+	return &CreateRiskReassessmentUseCase{riskRepo: riskRepo, ensureTasksUC: ensureTasksUC}
 }
 
 type periodicReassessmentReservation interface {
@@ -23,10 +30,6 @@ type reassessmentRiskRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Risk, error)
 	ListVersions(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.Risk, error)
 	Create(ctx context.Context, risk *entity.Risk) error
-}
-
-func NewCreateRiskReassessmentUseCase(riskRepo reassessmentRiskRepository) *CreateRiskReassessmentUseCase {
-	return &CreateRiskReassessmentUseCase{riskRepo: riskRepo}
 }
 
 type CreateRiskReassessmentInput struct {
@@ -49,8 +52,8 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 	if input.RiskID == uuid.Nil || input.Cycle == "" {
 		return nil, errors.ErrInvalidInput
 	}
-	if !IsValidCycleFormat(input.Cycle) {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)")
+	if !IsValidSemesterFormat(input.Cycle) {
+		return nil, errors.ErrSemesterFormat
 	}
 
 	sourceRisk, err := uc.riskRepo.GetByID(ctx, input.RiskID, input.OrgIDs)
@@ -58,7 +61,7 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 		return nil, errors.ErrRiskNotFound
 	}
 	if !sourceRisk.CanBeReassessed() {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "only current approved risks can be reassessed")
+		return nil, errors.ErrOnlyApprovedCurrentReassessed
 	}
 	if err := validateNoNewerCycle(ctx, uc.riskRepo, sourceRisk.VersionGroupID, input.Cycle); err != nil {
 		return nil, err
@@ -108,6 +111,12 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 
 	if err := uc.riskRepo.Create(ctx, reassessment); err != nil {
 		return nil, errors.Wrap(err, "failed to create reassessment draft")
+	}
+
+	if uc.ensureTasksUC != nil {
+		if _, err := uc.ensureTasksUC.Execute(ctx, sourceRisk.ID, input.Cycle, input.OrgIDs); err != nil {
+			log.Printf("[WARN] ensure mitigation tasks on reassessment: %v", err)
+		}
 	}
 
 	return &CreateRiskReassessmentOutput{

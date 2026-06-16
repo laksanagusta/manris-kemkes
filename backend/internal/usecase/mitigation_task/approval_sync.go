@@ -9,42 +9,59 @@ import (
 	"github.com/manris/backend/internal/domain/repository"
 )
 
-// EnsureTasksForApprovedRiskUseCase creates one reporting task per mitigation
-// when a risk becomes approved/finalized.
-type EnsureTasksForApprovedRiskUseCase struct {
+// EnsureTasksForRiskVersionUseCase ensures mitigation_tasks exist for a risk
+// version in a given quarter cycle. Idempotent — if tasks already exist
+// for this cycle, no new tasks are created.
+type EnsureTasksForRiskVersionUseCase struct {
 	taskRepo repository.MitigationTaskRepository
 	riskRepo repository.RiskRepository
 }
 
-func NewEnsureTasksForApprovedRiskUseCase(taskRepo repository.MitigationTaskRepository, riskRepo repository.RiskRepository) *EnsureTasksForApprovedRiskUseCase {
-	return &EnsureTasksForApprovedRiskUseCase{
+func NewEnsureTasksForRiskVersionUseCase(
+	taskRepo repository.MitigationTaskRepository,
+	riskRepo repository.RiskRepository,
+) *EnsureTasksForRiskVersionUseCase {
+	return &EnsureTasksForRiskVersionUseCase{
 		taskRepo: taskRepo,
 		riskRepo: riskRepo,
 	}
 }
 
-func (uc *EnsureTasksForApprovedRiskUseCase) Execute(ctx context.Context, riskID uuid.UUID, orgIDs []uuid.UUID) (int, error) {
+// Execute generates one mitigation_task per mitigation plan item for the
+// given quarter cycle. Skips mitigations marked as existing controls.
+// Returns the number of newly created tasks.
+func (uc *EnsureTasksForRiskVersionUseCase) Execute(
+	ctx context.Context,
+	riskID uuid.UUID,
+	cycle string,
+	orgIDs []uuid.UUID,
+) (int, error) {
 	risk, err := uc.riskRepo.GetByID(ctx, riskID, orgIDs)
 	if err != nil {
-		return 0, fmt.Errorf("load approved risk: %w", err)
+		return 0, fmt.Errorf("gagal memuat risiko: %w", err)
 	}
-	if risk.Status != entity.RiskStatusApproved {
-		return 0, nil
+
+	year, quarter, err := ParseQuarterCycle(cycle)
+	if err != nil {
+		return 0, err
 	}
+
+	periodStart := QuarterPeriodStart(year, quarter)
+	dueDate := QuarterDueDate(year, quarter)
+	periodEnd := dueDate
 
 	created := 0
 	for _, mitigation := range risk.Mitigations {
-		if mitigation.ID == uuid.Nil || mitigation.DueDate == nil || *mitigation.DueDate == "" {
+		if mitigation.ID == uuid.Nil {
 			continue
 		}
 		if mitigation.IsExistingControl {
 			continue
 		}
 
-		dueDate := *mitigation.DueDate
-		exists, err := uc.taskRepo.TaskExistsForPeriod(ctx, mitigation.ID, dueDate, dueDate)
+		exists, err := uc.taskRepo.TaskExistsForPeriod(ctx, mitigation.ID, periodStart, periodEnd)
 		if err != nil {
-			return created, fmt.Errorf("check mitigation task existence: %w", err)
+			return created, fmt.Errorf("gagal memeriksa keberadaan tugas: %w", err)
 		}
 		if exists {
 			continue
@@ -53,15 +70,15 @@ func (uc *EnsureTasksForApprovedRiskUseCase) Execute(ctx context.Context, riskID
 		task := &entity.MitigationTask{
 			MitigationID: mitigation.ID,
 			RiskID:       risk.ID,
-			PeriodLabel:  mitigationTaskPeriodLabel(risk.AssessmentCycle),
-			PeriodStart:  dueDate,
-			PeriodEnd:    dueDate,
+			PeriodLabel:  cycle,
+			PeriodStart:  periodStart,
+			PeriodEnd:    periodEnd,
 			DueDate:      dueDate,
 			Status:       "pending",
 			GeneratedBy:  "manual",
 		}
 		if err := uc.taskRepo.Create(ctx, task); err != nil {
-			return created, fmt.Errorf("create mitigation task: %w", err)
+			return created, fmt.Errorf("gagal membuat tugas mitigasi: %w", err)
 		}
 		created++
 	}

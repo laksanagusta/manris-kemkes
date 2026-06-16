@@ -469,7 +469,11 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		                  monitoring.status as monitoring_status,
 		                  monitoring_last.last_monitored_at as last_monitored_at,
 		                  prev.inherent_score as before_monitoring_nilai,
-		                  r.inherent_score as monitoring_result_nilai
+		                  r.inherent_score as monitoring_result_nilai,
+		                  quarterly.q1 as quarterly_q1,
+		                  quarterly.q2 as quarterly_q2,
+		                  quarterly.q3 as quarterly_q3,
+		                  quarterly.q4 as quarterly_q4
 		           FROM risks r
 		           LEFT JOIN organizations o ON r.organization_id = o.id
 		           LEFT JOIN users u ON r.created_by = u.id
@@ -494,6 +498,21 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		             WHERE (rm.source_risk_id = r.id OR rm.result_risk_id = r.id)
 		               AND rm.finalized_at IS NOT NULL
 		           ) monitoring_last ON true
+		           LEFT JOIN LATERAL (
+		             SELECT
+		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q1' THEN rm.status END) AS q1,
+		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q2' THEN rm.status END) AS q2,
+		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q3' THEN rm.status END) AS q3,
+		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q4' THEN rm.status END) AS q4
+		             FROM risk_monitorings rm
+		             WHERE (rm.source_risk_id = r.id OR rm.result_risk_id = r.id)
+		               AND rm.assessment_cycle IN (
+		                 EXTRACT(YEAR FROM NOW())::text || '-Q1',
+		                 EXTRACT(YEAR FROM NOW())::text || '-Q2',
+		                 EXTRACT(YEAR FROM NOW())::text || '-Q3',
+		                 EXTRACT(YEAR FROM NOW())::text || '-Q4'
+		               )
+		           ) quarterly ON true
 		           WHERE 1=1`
 	args := []interface{}{}
 	argIdx := 1
@@ -590,6 +609,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	risks := make([]*entity.Risk, 0)
 	for rows.Next() {
 		var risk entity.Risk
+		var q1, q2, q3, q4 *string
 		if err := rows.Scan(
 			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
@@ -602,8 +622,14 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			&risk.DraftID, &risk.DraftStatus, &risk.HasOngoing,
 			&risk.MonitoringStatus, &risk.LastMonitoredAt,
 			&risk.BeforeMonitoringNilai, &risk.MonitoringResultNilai,
+			&q1, &q2, &q3, &q4,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan risk register row: %w", err)
+		}
+		if q1 != nil || q2 != nil || q3 != nil || q4 != nil {
+			risk.QuarterlyMonitoring = &entity.QuarterlyMonitoringStatus{
+				Q1: q1, Q2: q2, Q3: q3, Q4: q4,
+			}
 		}
 		risks = append(risks, &risk)
 	}

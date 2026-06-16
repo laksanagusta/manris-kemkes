@@ -53,13 +53,13 @@ func validateGroupMembers(ctx context.Context, orgRepo repository.OrganizationRe
 
 	for _, memberID := range memberIDs {
 		if memberID == uuid.Nil {
-			return errors.Wrap(errors.ErrInvalidInput, "member organization id is required")
+			return errors.ErrMemberOrgIDRequired
 		}
 		if memberID == ownerID {
-			return errors.Wrap(errors.ErrInvalidInput, "owner organization cannot be a group member")
+			return errors.ErrOwnerOrgNotGroupMember
 		}
 		if _, ok := descendants[memberID]; !ok {
-			return errors.Wrap(errors.ErrInvalidInput, "member organization must be owner descendant")
+			return errors.ErrMemberOrgMustBeDescendant
 		}
 		if scope != nil && !scope.CanRead(memberID) {
 			return errors.ErrForbidden

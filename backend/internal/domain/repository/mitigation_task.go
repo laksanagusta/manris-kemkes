@@ -42,4 +42,16 @@ type MitigationTaskRepository interface {
 
 	// TaskExistsForPeriod checks if a task already exists for a mitigation in a given period
 	TaskExistsForPeriod(ctx context.Context, mitigationID uuid.UUID, periodStart, periodEnd string) (bool, error)
+
+	// ListByMonitoring returns all tasks linked to a specific monitoring
+	ListByMonitoring(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error)
+
+	// CountByMonitoringAndStatus counts tasks linked to a monitoring by status
+	CountByMonitoringAndStatus(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) (*MonitoringTaskCounts, error)
+}
+
+type MonitoringTaskCounts struct {
+	Total   int `json:"total"`
+	Done    int `json:"done"`
+	Pending int `json:"pending"`
 }

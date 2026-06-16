@@ -96,7 +96,7 @@ func (h *AIHandler) GenerateCause(c *fiber.Ctx) error {
 	// 1. Parse request
 	var req GenerateCauseRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -120,7 +120,7 @@ func (h *AIHandler) GenerateImpact(c *fiber.Ctx) error {
 	// 1. Parse request
 	var req GenerateImpactRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -146,7 +146,7 @@ func (h *AIHandler) GenerateMitigation(c *fiber.Ctx) error {
 	// 1. Parse request
 	var req GenerateMitigationRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -177,7 +177,7 @@ func (h *AIHandler) GenerateMinutes(c *fiber.Ctx) error {
 	// 1. Parse request
 	var req GenerateMinutesRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -210,7 +210,7 @@ func (h *AIHandler) GenerateTranscript(c *fiber.Ctx) error {
 	// 1. Parse request
 	var req AnalyzeTranscriptRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -232,30 +232,30 @@ func (h *AIHandler) GenerateTranscript(c *fiber.Ctx) error {
 func (h *AIHandler) ApplyTranscriptRiskChange(c *fiber.Ctx) error {
 	var req ApplyTranscriptRiskChangeRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	userIDValue, ok := c.Locals("userId").(string)
 	if !ok || strings.TrimSpace(userIDValue) == "" {
-		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 	role, ok := c.Locals("role").(string)
 	if !ok || strings.TrimSpace(role) == "" {
-		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	targetRiskID, err := uuid.Parse(req.TargetRiskID)
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 	actorID, err := uuid.Parse(userIDValue)
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "unauthorized")
+		return sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 	var orgIDs []uuid.UUID
 	if !scope.IsGlobal {
@@ -281,7 +281,7 @@ func (h *AIHandler) GeneratePredictive(c *fiber.Ctx) error {
 	// 1. Parse request - accept risks as array
 	var risks []entity.Risk
 	if err := c.BodyParser(&risks); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	// 2. Execute use case
@@ -301,7 +301,7 @@ func (h *AIHandler) GeneratePredictive(c *fiber.Ctx) error {
 func (h *AIHandler) GenerateRiskSuggestion(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 	var orgIDs []uuid.UUID
 	if !scope.IsGlobal {
@@ -341,7 +341,7 @@ func (h *AIHandler) GenerateKRI(c *fiber.Ctx) error {
 	// 1. Parse request
 	var req GenerateKRIRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -364,7 +364,7 @@ func (h *AIHandler) GenerateKRI(c *fiber.Ctx) error {
 func (h *AIHandler) GenerateManualIncidentRiskSuggestions(c *fiber.Ctx) error {
 	var req GenerateManualIncidentRiskSuggestionRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "Invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	result, err := h.incidentRiskUC.Execute(c.Context(), aiuc.GenerateManualIncidentRiskSuggestionsInput{
@@ -388,15 +388,15 @@ func (h *AIHandler) GenerateManualIncidentRiskSuggestions(c *fiber.Ctx) error {
 func (h *AIHandler) GenerateIncidentBatch(c *fiber.Ctx) error {
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "file is required")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "file wajib diisi")
 	}
 
 	if fileHeader.Size > 10*1024*1024 {
-		return sendProblemDetails(c, fiber.StatusRequestEntityTooLarge, "File Too Large", "https://api.manris.com/errors/file-too-large", domainerrors.ErrFileTooLarge.Error())
+		return sendProblemDetails(c, fiber.StatusRequestEntityTooLarge, "File Terlalu Besar", "https://api.manris.com/errors/file-too-large", domainerrors.ErrFileTooLarge.Error())
 	}
 
 	if !isPDFFile(fileHeader.Filename, fileHeader.Header.Get("Content-Type")) {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/invalid-file-type", domainerrors.ErrInvalidFileType.Error())
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/invalid-file-type", domainerrors.ErrInvalidFileType.Error())
 	}
 
 	documentText, err := extractTextFromPDF(fileHeader)
@@ -408,7 +408,7 @@ func (h *AIHandler) GenerateIncidentBatch(c *fiber.Ctx) error {
 	if orgIDStr := c.FormValue("organizationId"); orgIDStr != "" {
 		parsedOrgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
-			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		organizationID = &parsedOrgID
 	}
@@ -428,25 +428,25 @@ func (h *AIHandler) GenerateIncidentBatch(c *fiber.Ctx) error {
 func (h *AIHandler) AnalyzeDocumentIntelligence(c *fiber.Ctx) error {
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "file is required")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "file wajib diisi")
 	}
 
 	if fileHeader.Size > 10*1024*1024 {
-		return sendProblemDetails(c, fiber.StatusRequestEntityTooLarge, "File Too Large", "https://api.manris.com/errors/file-too-large", domainerrors.ErrFileTooLarge.Error())
+		return sendProblemDetails(c, fiber.StatusRequestEntityTooLarge, "File Terlalu Besar", "https://api.manris.com/errors/file-too-large", domainerrors.ErrFileTooLarge.Error())
 	}
 
 	if !isDocumentIntelligenceFile(fileHeader.Filename) {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/invalid-file-type", "only PDF and XLSX files are supported")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/invalid-file-type", "hanya file PDF dan XLSX yang didukung")
 	}
 
 	mode := entity.DocumentAnalysisMode(strings.TrimSpace(c.FormValue("mode")))
 	if !entity.IsValidDocumentAnalysisMode(mode) {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid document analysis mode")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "mode analisis dokumen tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 
 	var requestedOrgID *uuid.UUID
@@ -454,11 +454,11 @@ func (h *AIHandler) AnalyzeDocumentIntelligence(c *fiber.Ctx) error {
 	if orgIDStr := strings.TrimSpace(c.FormValue("organizationId")); orgIDStr != "" {
 		parsedOrgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
-			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		if !scope.IsGlobal {
 			if _, err := scope.NarrowToOrg(parsedOrgID); err != nil {
-				return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "insufficient permissions")
+				return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "izin tidak mencukupi")
 			}
 		}
 		requestedOrgID = &parsedOrgID
@@ -509,13 +509,13 @@ func isPDFFile(filename, contentType string) bool {
 func extractDocumentFromUpload(fileHeader *multipart.FileHeader) (*documenttext.ExtractResult, error) {
 	src, err := fileHeader.Open()
 	if err != nil {
-		return nil, domainerrors.Wrap(err, "failed to open uploaded file")
+		return nil, domainerrors.Wrap(err, "gagal membuka file yang diunggah")
 	}
 	defer src.Close()
 
 	content, err := io.ReadAll(src)
 	if err != nil {
-		return nil, domainerrors.Wrap(err, "failed to read uploaded file")
+		return nil, domainerrors.Wrap(err, "gagal membaca file yang diunggah")
 	}
 
 	return documenttext.Extract(documenttext.ExtractInput{

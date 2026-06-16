@@ -53,9 +53,9 @@ func mapOrganizationGroupError(err error) error {
 	if errors.As(err, &pgErr) {
 		switch {
 		case pgErr.Code == "23505" && pgErr.ConstraintName == "idx_organization_groups_owner_name_unique":
-			return domainerrors.Wrap(domainerrors.ErrConflict, "organization group name already exists for this owner")
+			return domainerrors.ErrOrgGroupNameAlreadyExists
 		case pgErr.Code == "23503":
-			return domainerrors.Wrap(domainerrors.ErrInvalidInput, "referenced organization or group does not exist")
+			return domainerrors.ErrReferencedOrgOrGroupNotFound
 		}
 	}
 

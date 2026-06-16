@@ -11,7 +11,6 @@ import (
 	"github.com/manris/backend/internal/database"
 	postgresrepo "github.com/manris/backend/internal/repository/postgres"
 	krireportuc "github.com/manris/backend/internal/usecase/kri_report"
-	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
 func main() {
@@ -23,7 +22,7 @@ func main() {
 	if *dateStr != "" {
 		parsed, err := time.Parse("2006-01-02", *dateStr)
 		if err != nil {
-			log.Fatalf("Invalid date format, expected YYYY-MM-DD: %v", err)
+			log.Fatalf("Format tanggal tidak valid, diharapkan YYYY-MM-DD: %v", err)
 		}
 		now = parsed
 	}
@@ -35,37 +34,18 @@ func main() {
 	// Connect to database
 	pool, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Gagal terhubung ke basis data: %v", err)
 	}
 	defer pool.Close()
 
 	// Repositories
-	domainMitigationTaskRepo := postgresrepo.NewMitigationTaskRepository(pool)
 	domainKRIReportRepo := postgresrepo.NewKRIReportRepository(pool)
 
 	// Usecases
-	mtGenerateUC := mtuc.NewGenerateTasksUseCase(domainMitigationTaskRepo)
-	mtOverdueUC := mtuc.NewMarkOverdueUseCase(domainMitigationTaskRepo)
 	kriReportGenerateUC := krireportuc.NewGenerateReportsUseCase(domainKRIReportRepo)
 	kriReportOverdueUC := krireportuc.NewMarkOverdueUseCase(domainKRIReportRepo)
 
 	ctx := context.Background()
-
-	// Mitigation Tasks
-	fmt.Println("=== MITIGATION TASKS ===")
-	tasksCreated, err := mtGenerateUC.Execute(ctx, now)
-	if err != nil {
-		log.Printf("Task generation error: %v", err)
-	} else {
-		log.Printf("Generated %d new tasks", tasksCreated)
-	}
-	
-	tasksMarked, err := mtOverdueUC.Execute(ctx, now)
-	if err != nil {
-		log.Printf("Task overdue check error: %v", err)
-	} else {
-		log.Printf("Marked %d tasks as overdue", tasksMarked)
-	}
 
 	// KRI Reports
 	fmt.Println("\n=== KRI REPORTS ===")

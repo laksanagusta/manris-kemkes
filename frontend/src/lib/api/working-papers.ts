@@ -3,6 +3,7 @@ import type {
   WorkingPaper,
   CreateWorkingPaperRequest,
   WorkingPaperListResponse,
+  WorkingPaperRosterPreview,
 } from "@/types/working-paper";
 
 export async function listWorkingPapers(
@@ -40,12 +41,28 @@ export async function createWorkingPaper(
   return api.post<WorkingPaper>("/working-papers", data, token);
 }
 
+export async function previewWorkingPaperRoster(
+  organizationId: string,
+  assessmentCycle: string,
+  token: string,
+): Promise<WorkingPaperRosterPreview> {
+  const params = new URLSearchParams({
+    organization_id: organizationId,
+    assessment_cycle: assessmentCycle,
+  });
+  return api.get<WorkingPaperRosterPreview>(`/working-papers/roster-preview?${params}`, token);
+}
+
 export async function deleteWorkingPaper(id: string, token: string): Promise<void> {
   return api.delete<void>(`/working-papers/${id}`, undefined, token);
 }
 
 export async function signWorkingPaper(id: string, token: string): Promise<WorkingPaper> {
   return api.post<WorkingPaper>(`/working-papers/${id}/sign`, {}, token);
+}
+
+export async function startSigningWorkingPaper(id: string, token: string): Promise<WorkingPaper> {
+  return api.post<WorkingPaper>(`/working-papers/${id}/start-signing`, {}, token);
 }
 
 export async function cancelWorkingPaper(id: string, token: string): Promise<void> {

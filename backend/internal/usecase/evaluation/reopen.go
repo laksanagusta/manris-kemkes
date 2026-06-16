@@ -31,7 +31,7 @@ func (uc *ReopenUseCase) Execute(ctx context.Context, input ReopenInput) (*entit
 		return nil, errors.ErrForbidden
 	}
 	if evaluation.Status != entity.EvaluationStatusFinal {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "only final evaluations can be reopened")
+		return nil, errors.ErrOnlyFinalEvaluationReopened
 	}
 
 	evaluation.Status = entity.EvaluationStatusDraft

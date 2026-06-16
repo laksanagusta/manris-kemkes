@@ -152,9 +152,9 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -184,27 +184,27 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 	}
 	// Validate sort_by — only "created_at" or "nilai" (priority) allowed
 	if input.SortBy != "" && input.SortBy != "created_at" && input.SortBy != "nilai" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid sort_by")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "sort_by tidak valid")
 	}
 	// Validate sort_order
 	if input.SortOrder != "" && input.SortOrder != "asc" && input.SortOrder != "desc" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid sort_order")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "sort_order tidak valid")
 	}
 	if input.View != "" && input.View != "monitoring-transactions" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid view")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "view tidak valid")
 	}
 	if input.Lifecycle != "active" && input.Lifecycle != "archived" && input.Lifecycle != "all" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid lifecycle")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "lifecycle tidak valid")
 	}
 	if category := strings.TrimSpace(c.Query("category")); category != "" {
 		if !entity.IsValidRiskCategory(category) {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid category")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "kategori tidak valid")
 		}
 		input.Category = category
 	}
 	if input.CreatedAt != "" {
 		if _, err := time.Parse("2006-01-02", input.CreatedAt); err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid created_at date")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "tanggal created_at tidak valid")
 		}
 	}
 
@@ -230,16 +230,16 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 // ListRiskMonitorings handles GET /api/risk-monitorings
 func (h *RiskHandler) ListRiskMonitorings(c *fiber.Ctx) error {
 	if h.listMonitoringUC == nil {
-		return sendProblemDetails(c, fiber.StatusNotImplemented, "Not Implemented", "https://api.manris.com/errors/not-implemented", "monitoring list use case is not configured")
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Belum Diimplementasikan", "https://api.manris.com/errors/not-implemented", "use case daftar pemantauan belum dikonfigurasi")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -288,12 +288,12 @@ func (h *RiskHandler) ListRiskMonitorings(c *fiber.Ctx) error {
 func (h *RiskHandler) ArchiveRisk(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	var input riskuc.ArchiveRiskInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 	input.ID = id
 
@@ -301,9 +301,9 @@ func (h *RiskHandler) ArchiveRisk(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	result, err := h.archiveUC.Execute(c.Context(), input, orgIDs, scope)
@@ -317,16 +317,16 @@ func (h *RiskHandler) ArchiveRisk(c *fiber.Ctx) error {
 func (h *RiskHandler) RestoreRisk(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	result, err := h.restoreUC.Execute(c.Context(), riskuc.RestoreRiskInput{ID: id}, orgIDs, scope)
@@ -341,16 +341,16 @@ func (h *RiskHandler) RestoreRisk(c *fiber.Ctx) error {
 func (h *RiskHandler) ListCycleSnapshot(c *fiber.Ctx) error {
 	cycle := c.Query("cycle")
 	if cycle == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	input := riskuc.ListRiskCycleSnapshotInput{
@@ -374,9 +374,9 @@ func (h *RiskHandler) CompareCyclesDetail(c *fiber.Ctx) error {
 	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	input := riskuc.CompareRiskCycleDetailsInput{
@@ -408,9 +408,9 @@ func (h *RiskHandler) ListReviewQueue(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -439,9 +439,9 @@ func (h *RiskHandler) CompareCycles(c *fiber.Ctx) error {
 	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	input := riskuc.CompareRiskCyclesInput{
@@ -466,9 +466,9 @@ func (h *RiskHandler) ReviewSummary(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	input := riskuc.RiskReviewSummaryInput{
@@ -498,38 +498,38 @@ func (h *RiskHandler) DownloadBulkRiskTemplate(c *fiber.Ctx) error {
 func (h *RiskHandler) PreviewRiskBatchUpload(c *fiber.Ctx) error {
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "file is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "file wajib diisi")
 	}
 	// Max 5MB file size
 	const maxUploadSize = 5 << 20 // 5MB
 	if fileHeader.Size > maxUploadSize {
-		return sendProblemDetails(c, 413, "Payload Too Large", "https://api.manris.com/errors/payload-too-large", "file size exceeds 5MB limit")
+		return sendProblemDetails(c, 413, "Payload Terlalu Besar", "https://api.manris.com/errors/payload-too-large", "ukuran file melebihi batas 5MB")
 	}
 	// Server-side file extension validation
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 	allowedExts := map[string]bool{".xlsx": true, ".xls": true, ".csv": true}
 	if !allowedExts[ext] {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "file must be .xlsx, .xls, or .csv")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "file harus berformat .xlsx, .xls, atau .csv")
 	}
 	file, err := fileHeader.Open()
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "failed to open uploaded file")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "gagal membuka file yang diunggah")
 	}
 	defer file.Close()
 	content, err := io.ReadAll(file)
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "failed to read uploaded file")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "gagal membaca file yang diunggah")
 	}
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak ditemukan dalam konteks")
 	}
 
 	var orgID *uuid.UUID
 	if orgIDStr := c.Query("organization_id"); orgIDStr != "" {
 		parsed, err := uuid.Parse(orgIDStr)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id tidak valid")
 		}
 		orgID = &parsed
 	}
@@ -587,21 +587,21 @@ type finalizeMonitoringRequest struct {
 func (h *RiskHandler) CreateRisk(c *fiber.Ctx) error {
 	var input riskuc.CreateRiskInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", fmt.Sprintf("invalid request body: %v", err))
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", fmt.Sprintf("body permintaan tidak valid: %v", err))
 	}
 
 	// Get user ID from context (set by auth middleware)
 	// Note: middleware sets "userId" (camelCase), not "userID"
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak ditemukan dalam konteks")
 	}
 	input.CreatedBy = &userID
 
 	// Scope enforcement — user must have write access to the target org
 	scope := middleware.GetAccessScope(c)
 	if input.OrganizationID != nil && scope != nil && !scope.CanWrite(*input.OrganizationID) {
-		return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "cannot create risk in this organization")
+		return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak dapat membuat risiko di organisasi ini")
 	}
 
 	result, err := h.createUC.Execute(c.Context(), input)
@@ -616,22 +616,22 @@ func (h *RiskHandler) CreateRisk(c *fiber.Ctx) error {
 func (h *RiskHandler) CreateRiskBatch(c *fiber.Ctx) error {
 	var req createRiskBatchRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", fmt.Sprintf("invalid request body: %v", err))
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", fmt.Sprintf("body permintaan tidak valid: %v", err))
 	}
 	const maxBatchSize = 100
 	if len(req.Items) > maxBatchSize {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", fmt.Sprintf("batch size exceeds %d items limit", maxBatchSize))
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", fmt.Sprintf("ukuran batch melebihi batas %d item", maxBatchSize))
 	}
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak ditemukan dalam konteks")
 	}
 
 	var orgID *uuid.UUID
 	if orgIDStr := c.Query("organization_id"); orgIDStr != "" {
 		parsed, err := uuid.Parse(orgIDStr)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id tidak valid")
 		}
 		orgID = &parsed
 	}
@@ -652,19 +652,19 @@ func (h *RiskHandler) CreateRiskBatch(c *fiber.Ctx) error {
 func (h *RiskHandler) DownloadMonitoringTemplate(c *fiber.Ctx) error {
 	orgIDStr := c.Query("organization_id")
 	if orgIDStr == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id wajib diisi")
 	}
 	orgID, err := uuid.Parse(orgIDStr)
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id tidak valid")
 	}
 
 	cycle := c.Query("cycle")
 	if cycle == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
 	}
 
 	content, filename, err := h.monitoringSpreadsheetUC.Template(c.Context(), orgID, cycle)
@@ -680,49 +680,49 @@ func (h *RiskHandler) DownloadMonitoringTemplate(c *fiber.Ctx) error {
 func (h *RiskHandler) PreviewMonitoringBatchUpload(c *fiber.Ctx) error {
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "file is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "file wajib diisi")
 	}
 	// Max 5MB file size
 	const maxUploadSize = 5 << 20 // 5MB
 	if fileHeader.Size > maxUploadSize {
-		return sendProblemDetails(c, 413, "Payload Too Large", "https://api.manris.com/errors/payload-too-large", "file size exceeds 5MB limit")
+		return sendProblemDetails(c, 413, "Payload Terlalu Besar", "https://api.manris.com/errors/payload-too-large", "ukuran file melebihi batas 5MB")
 	}
 	// Server-side file extension validation
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 	allowedExts := map[string]bool{".xlsx": true, ".xls": true, ".csv": true}
 	if !allowedExts[ext] {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "file must be .xlsx, .xls, or .csv")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "file harus berformat .xlsx, .xls, atau .csv")
 	}
 	file, err := fileHeader.Open()
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "failed to open uploaded file")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "gagal membuka file yang diunggah")
 	}
 	defer file.Close()
 	content, err := io.ReadAll(file)
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "failed to read uploaded file")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "gagal membaca file yang diunggah")
 	}
 
 	orgIDStr := c.Query("organization_id")
 	if orgIDStr == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id wajib diisi")
 	}
 	orgID, err := uuid.Parse(orgIDStr)
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id tidak valid")
 	}
 
 	cycle := c.Query("cycle")
 	if cycle == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak ditemukan dalam konteks")
 	}
 
 	result, err := h.monitoringSpreadsheetUC.Preview(c.Context(), riskuc.BulkMonitoringSpreadsheetInput{
@@ -742,35 +742,35 @@ func (h *RiskHandler) PreviewMonitoringBatchUpload(c *fiber.Ctx) error {
 func (h *RiskHandler) CreateMonitoringBatch(c *fiber.Ctx) error {
 	var req createMonitoringBatchRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", fmt.Sprintf("invalid request body: %v", err))
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", fmt.Sprintf("body permintaan tidak valid: %v", err))
 	}
 	const maxBatchSize = 100
 	if len(req.Items) > maxBatchSize {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", fmt.Sprintf("batch size exceeds %d items limit", maxBatchSize))
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", fmt.Sprintf("ukuran batch melebihi batas %d item", maxBatchSize))
 	}
 	cycle := strings.TrimSpace(req.Cycle)
 	if cycle == "" {
 		cycle = strings.TrimSpace(c.Query("cycle"))
 	}
 	if cycle == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, 401, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak ditemukan dalam konteks")
 	}
 
 	orgIDStr := c.Query("organization_id")
 	if orgIDStr == "" {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id is required")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id wajib diisi")
 	}
 	orgID, err := uuid.Parse(orgIDStr)
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization_id")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id tidak valid")
 	}
 
 	result, err := h.createMonitoringBatchUC.Execute(c.Context(), riskuc.CreateMonitoringBatchInput{
@@ -790,16 +790,16 @@ func (h *RiskHandler) CreateMonitoringBatch(c *fiber.Ctx) error {
 func (h *RiskHandler) GetRisk(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	risk, err := h.getUC.Execute(c.Context(), id, orgIDs)
@@ -813,12 +813,12 @@ func (h *RiskHandler) GetRisk(c *fiber.Ctx) error {
 // ExportRiskPDF handles GET /api/v1/risks/:id/export-pdf
 func (h *RiskHandler) ExportRiskPDF(c *fiber.Ctx) error {
 	if h.exportPDFUC == nil {
-		return sendProblemDetails(c, fiber.StatusInternalServerError, "Internal Server Error", "https://api.manris.com/errors/internal-server-error", "risk pdf export use case is not configured")
+		return sendProblemDetails(c, fiber.StatusInternalServerError, "Kesalahan Server Internal", "https://api.manris.com/errors/internal-server-error", "use case ekspor pdf risiko belum dikonfigurasi")
 	}
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	result, err := h.exportPDFUC.Execute(c.Context(), riskuc.ExportRiskPDFInput{
@@ -827,12 +827,12 @@ func (h *RiskHandler) ExportRiskPDF(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrInvalidStatus) {
-			return sendProblemDetails(c, fiber.StatusConflict, "Conflict", "https://api.manris.com/errors/conflict", "export PDF only available for finalized risks")
+			return sendProblemDetails(c, fiber.StatusConflict, "Konflik", "https://api.manris.com/errors/conflict", "ekspor PDF hanya tersedia untuk risiko yang sudah difinalisasi")
 		}
 		return handleError(c, err)
 	}
 	if result == nil || len(result.Bytes) == 0 {
-		return sendProblemDetails(c, fiber.StatusInternalServerError, "Internal Server Error", "https://api.manris.com/errors/internal-server-error", "risk pdf export returned empty result")
+		return sendProblemDetails(c, fiber.StatusInternalServerError, "Kesalahan Server Internal", "https://api.manris.com/errors/internal-server-error", "ekspor pdf risiko menghasilkan hasil kosong")
 	}
 
 	c.Set("Content-Type", "application/pdf")
@@ -844,21 +844,21 @@ func (h *RiskHandler) ExportRiskPDF(c *fiber.Ctx) error {
 func (h *RiskHandler) CreateReassessment(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	var req createRiskReassessmentRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	userID, _ := c.Locals("userId").(uuid.UUID)
@@ -874,26 +874,26 @@ func (h *RiskHandler) CreateReassessment(c *fiber.Ctx) error {
 // StartMonitoring handles POST /api/risks/:id/monitorings
 func (h *RiskHandler) StartMonitoring(c *fiber.Ctx) error {
 	if h.startMonitoringUC == nil {
-		return sendProblemDetails(c, fiber.StatusNotImplemented, "Not Implemented", "https://api.manris.com/errors/not-implemented", "monitoring use case is not configured")
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Belum Diimplementasikan", "https://api.manris.com/errors/not-implemented", "use case pemantauan belum dikonfigurasi")
 	}
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	var req startMonitoringRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	userID, _ := c.Locals("userId").(uuid.UUID)
@@ -913,21 +913,21 @@ func (h *RiskHandler) StartMonitoring(c *fiber.Ctx) error {
 // GetMonitoring handles GET /api/risk-monitorings/:id
 func (h *RiskHandler) GetMonitoring(c *fiber.Ctx) error {
 	if h.getMonitoringUC == nil {
-		return sendProblemDetails(c, fiber.StatusNotImplemented, "Not Implemented", "https://api.manris.com/errors/not-implemented", "monitoring use case is not configured")
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Belum Diimplementasikan", "https://api.manris.com/errors/not-implemented", "use case pemantauan belum dikonfigurasi")
 	}
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid monitoring ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pemantauan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	result, err := h.getMonitoringUC.Execute(c.Context(), id, orgIDs)
@@ -941,26 +941,26 @@ func (h *RiskHandler) GetMonitoring(c *fiber.Ctx) error {
 // UpdateMonitoring handles PUT /api/risk-monitorings/:id
 func (h *RiskHandler) UpdateMonitoring(c *fiber.Ctx) error {
 	if h.updateMonitoringUC == nil {
-		return sendProblemDetails(c, fiber.StatusNotImplemented, "Not Implemented", "https://api.manris.com/errors/not-implemented", "monitoring use case is not configured")
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Belum Diimplementasikan", "https://api.manris.com/errors/not-implemented", "use case pemantauan belum dikonfigurasi")
 	}
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid monitoring ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pemantauan tidak valid")
 	}
 
 	var req updateMonitoringRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	result, err := h.updateMonitoringUC.Execute(c.Context(), riskuc.UpdateMonitoringInput{
@@ -990,26 +990,26 @@ func (h *RiskHandler) UpdateMonitoring(c *fiber.Ctx) error {
 // FinalizeMonitoring handles POST /api/risk-monitorings/:id/finalize
 func (h *RiskHandler) FinalizeMonitoring(c *fiber.Ctx) error {
 	if h.finalizeMonitoringUC == nil {
-		return sendProblemDetails(c, fiber.StatusNotImplemented, "Not Implemented", "https://api.manris.com/errors/not-implemented", "monitoring use case is not configured")
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Belum Diimplementasikan", "https://api.manris.com/errors/not-implemented", "use case pemantauan belum dikonfigurasi")
 	}
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid monitoring ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pemantauan tidak valid")
 	}
 
 	var req finalizeMonitoringRequest
 	if err := c.BodyParser(&req); err != nil && !errors.Is(err, io.EOF) {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	finalizedBy, _ := c.Locals("userId").(uuid.UUID)
@@ -1033,12 +1033,12 @@ func (h *RiskHandler) FinalizeMonitoring(c *fiber.Ctx) error {
 func (h *RiskHandler) UpdateRisk(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	var input riskuc.UpdateRiskInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	input.ID = id
@@ -1047,9 +1047,9 @@ func (h *RiskHandler) UpdateRisk(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	result, err := h.updateUC.Execute(c.Context(), input, orgIDs)
@@ -1064,16 +1064,16 @@ func (h *RiskHandler) UpdateRisk(c *fiber.Ctx) error {
 func (h *RiskHandler) DeleteRisk(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	result, err := h.deleteUC.Execute(c.Context(), id, orgIDs)
@@ -1090,9 +1090,9 @@ func (h *RiskHandler) ListApprovedRisks(c *fiber.Ctx) error {
 	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	input := riskuc.ListApprovedRisksInput{
@@ -1117,9 +1117,9 @@ func (h *RiskHandler) ListRisks(c *fiber.Ctx) error {
 	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	var input riskuc.ListRisksInput
@@ -1127,7 +1127,7 @@ func (h *RiskHandler) ListRisks(c *fiber.Ctx) error {
 	input.Status = c.Query("status", "all")
 	if category := strings.TrimSpace(c.Query("category")); category != "" {
 		if !entity.IsValidRiskCategory(category) {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid category")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "kategori tidak valid")
 		}
 		input.Category = category
 	}
@@ -1147,16 +1147,16 @@ func (h *RiskHandler) ListRisks(c *fiber.Ctx) error {
 func (h *RiskHandler) ListVersions(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	versions, err := h.listVersionsUC.Execute(c.Context(), id, orgIDs)
@@ -1176,9 +1176,9 @@ func (h *RiskHandler) DashboardSummary(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 	summary, err := h.dashboardSummaryUC.Execute(c.Context(), riskuc.DashboardSummaryInput{Cycle: cycle, OrgIDs: orgIDs})
 	if err != nil {
@@ -1194,9 +1194,9 @@ func (h *RiskHandler) ActionPressure(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	points, err := h.actionPressureUC.Execute(c.Context(), riskuc.DashboardActionPressureInput{
@@ -1219,9 +1219,9 @@ func (h *RiskHandler) ExecutiveAlerts(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 	alerts, err := h.executiveAlertsUC.Execute(c.Context(), riskuc.ExecutiveAlertsInput{
 		Cycle:  c.Query("cycle"),
@@ -1244,9 +1244,9 @@ func (h *RiskHandler) HeatmapData(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 	data, err := h.heatmapDataUC.Execute(c.Context(), riskuc.HeatmapDataInput{Cycle: cycle, OrgIDs: orgIDs})
 	if err != nil {
@@ -1274,9 +1274,9 @@ func (h *RiskHandler) HeatmapMulti(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 	data, err := h.heatmapMultiUC.Execute(c.Context(), riskuc.HeatmapMultiInput{Year: year, OrgIDs: orgIDs})
 	if err != nil {
@@ -1297,9 +1297,9 @@ func (h *RiskHandler) TopRisks(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
 	input := riskuc.TopRisksInput{Cycle: cycle, Limit: limit, OrgIDs: orgIDs}
@@ -1322,9 +1322,9 @@ func (h *RiskHandler) GetDashboardRiskCategories(c *fiber.Ctx) error {
 	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 	result, err := h.dashboardCategoriesUC.Execute(c.Context(), riskuc.DashboardRiskCategoriesInput{Cycle: cycle, OrgIDs: orgIDs})
 	if err != nil {
@@ -1340,7 +1340,7 @@ func (h *RiskHandler) GetDashboardRiskCategories(c *fiber.Ctx) error {
 func (h *RiskHandler) GetMeetingMinutes(c *fiber.Ctx) error {
 	riskID, err := uuid.Parse(c.Params("riskId"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 	}
 
 	// Scope enforcement — verify the parent risk belongs to user's accessible orgs
@@ -1348,9 +1348,9 @@ func (h *RiskHandler) GetMeetingMinutes(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 	if _, err := h.getUC.Execute(c.Context(), riskID, orgIDs); err != nil {
 		return handleError(c, err)
@@ -1374,9 +1374,9 @@ func (h *RiskHandler) GetHeatmapVelocity(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 	input := riskuc.HeatmapVelocityInput{FromCycle: fromCycle, ToCycle: toCycle, OrgIDs: orgIDs}
 	data, err := h.heatmapVelocityUC.Execute(c.Context(), input)
@@ -1394,9 +1394,9 @@ func (h *RiskHandler) GetOverdueMitigationsTimeline(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 	data, err := h.overdueTimelineUC.Execute(c.Context(), riskuc.OverdueMitigationTimelineInput{OrgIDs: orgIDs})
 	if err != nil {
@@ -1413,9 +1413,9 @@ func (h *RiskHandler) GetKRIBreachSummary(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 	data, err := h.kriBreachSummaryUC.Execute(c.Context(), riskuc.KRIBreachSummaryInput{OrgIDs: orgIDs})
 	if err != nil {
@@ -1432,9 +1432,9 @@ func (h *RiskHandler) GetUnitResponseTime(c *fiber.Ctx) error {
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 	data, err := h.unitResponseTimeUC.Execute(c.Context(), riskuc.UnitResponseTimeInput{OrgIDs: orgIDs})
 	if err != nil {

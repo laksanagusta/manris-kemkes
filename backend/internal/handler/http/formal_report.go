@@ -41,7 +41,7 @@ func NewFormalReportHandler(
 func (h *FormalReportHandler) Generate(c *fiber.Ctx) error {
 	var input formalreportuc.GenerateFormalReportInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 	input.Scope = middleware.GetAccessScope(c)
 
@@ -64,12 +64,12 @@ func (h *FormalReportHandler) List(c *fiber.Ctx) error {
 		orgIDs, err := resolveReportOrgIDsFromQuery(c.Context(), scope, raw, c.Query("organization_group_id"), h.groupResolver)
 		if err != nil {
 			if errors.Is(err, domainerrors.ErrForbidden) {
-				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+				return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 			}
 			if errors.Is(err, domainerrors.ErrInvalidInput) {
-				return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "organization_id and organization_group_id are mutually exclusive")
+				return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id dan organization_group_id tidak dapat digunakan bersamaan")
 			}
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		organizationIDs = orgIDs
 		if len(orgIDs) == 1 {
@@ -100,7 +100,7 @@ func (h *FormalReportHandler) List(c *fiber.Ctx) error {
 func (h *FormalReportHandler) Get(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid formal report ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID laporan formal tidak valid")
 	}
 
 	result, err := h.getUC.Execute(c.Context(), formalreportuc.GetInput{
@@ -121,20 +121,20 @@ func (h *FormalReportHandler) Download(c *fiber.Ctx) error {
 			_ = sendProblemDetails(
 				c,
 				500,
-				"Internal Server Error",
+				"Kesalahan Server Internal",
 				"https://api.manris.com/errors/internal-server-error",
-				fmt.Sprintf("formal report download panic: %v", recovered),
+				fmt.Sprintf("panic unduhan laporan formal: %v", recovered),
 			)
 		}
 	}()
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid formal report ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID laporan formal tidak valid")
 	}
 
 	if h.downloadUC == nil {
-		return sendProblemDetails(c, 500, "Internal Server Error", "https://api.manris.com/errors/internal-server-error", "download use case is not configured")
+		return sendProblemDetails(c, 500, "Kesalahan Server Internal", "https://api.manris.com/errors/internal-server-error", "use case unduhan belum dikonfigurasi")
 	}
 
 	result, err := h.downloadUC.Execute(c.Context(), formalreportuc.DownloadInput{
@@ -145,7 +145,7 @@ func (h *FormalReportHandler) Download(c *fiber.Ctx) error {
 		return handleError(c, err)
 	}
 	if result == nil {
-		return sendProblemDetails(c, 500, "Internal Server Error", "https://api.manris.com/errors/internal-server-error", "formal report download returned empty result")
+		return sendProblemDetails(c, 500, "Kesalahan Server Internal", "https://api.manris.com/errors/internal-server-error", "unduhan laporan formal menghasilkan hasil kosong")
 	}
 
 	c.Set("Content-Type", "application/pdf")

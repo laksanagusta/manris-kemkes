@@ -54,17 +54,17 @@ type CreateMeetingMinuteRequest struct {
 func (h *MeetingMinuteHandler) Create(c *fiber.Ctx) error {
 	var req CreateMeetingMinuteRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+		return sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak ditemukan dalam konteks")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 
 	orgID := req.OrganizationID
@@ -72,7 +72,7 @@ func (h *MeetingMinuteHandler) Create(c *fiber.Ctx) error {
 		orgID = scope.OrganizationID
 	}
 	if orgID != nil && !scope.CanWrite(*orgID) {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "cannot create meeting minute for this organization")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak dapat membuat notulen rapat untuk organisasi ini")
 	}
 
 	result, err := h.createUC.Execute(c.Context(), mmuc.CreateInput{
@@ -101,12 +101,12 @@ func (h *MeetingMinuteHandler) Create(c *fiber.Ctx) error {
 func (h *MeetingMinuteHandler) Get(c *fiber.Ctx) error {
 	idStr := c.Params("id")
 	if idStr == "" {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "meeting minute ID is required")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID notulen rapat wajib diisi")
 	}
 
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid meeting minute ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID notulen rapat tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
@@ -133,12 +133,12 @@ func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
 	if orgIDStr := c.Query("organizationId"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
 		if err != nil {
-			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		if scope != nil && !scope.IsGlobal {
 			narrowed, err := scope.NarrowToOrg(orgID)
 			if err != nil {
-				return sendProblemDetails(c, 403, "Forbidden", "https://api.manris.com/errors/forbidden", "organization not accessible")
+				return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 			}
 			orgIDs = narrowed
 		} else {
@@ -152,7 +152,7 @@ func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
 	if createdByIDStr := c.Query("createdBy"); createdByIDStr != "" {
 		createdBy, err := uuid.Parse(createdByIDStr)
 		if err != nil {
-			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid created by ID")
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pembuat tidak valid")
 		}
 		input.CreatedBy = &createdBy
 	}
@@ -160,7 +160,7 @@ func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
 	if riskIDStr := c.Query("riskId"); riskIDStr != "" {
 		riskID, err := uuid.Parse(riskIDStr)
 		if err != nil {
-			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid risk ID")
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 		}
 		input.RiskID = &riskID
 	}
@@ -168,7 +168,7 @@ func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
 	input.CreatedAt = strings.TrimSpace(c.Query("created_at", ""))
 	if input.CreatedAt != "" {
 		if _, err := time.Parse("2006-01-02", input.CreatedAt); err != nil {
-			return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid created_at date")
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "tanggal created_at tidak valid")
 		}
 	}
 
@@ -198,17 +198,17 @@ func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
 func (h *MeetingMinuteHandler) Delete(c *fiber.Ctx) error {
 	idStr := c.Params("id")
 	if idStr == "" {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "meeting minute ID is required")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID notulen rapat wajib diisi")
 	}
 
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid meeting minute ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID notulen rapat tidak valid")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 
 	var orgIDs []uuid.UUID
@@ -222,7 +222,7 @@ func (h *MeetingMinuteHandler) Delete(c *fiber.Ctx) error {
 	}
 
 	if mm.OrganizationID != nil && !scope.CanWrite(*mm.OrganizationID) {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "cannot delete meeting minute for this organization")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak dapat menghapus notulen rapat untuk organisasi ini")
 	}
 
 	if err := h.deleteUC.Execute(c.Context(), mmuc.DeleteInput{ID: id}); err != nil {
@@ -239,31 +239,31 @@ type LinkRisksRequest struct {
 func (h *MeetingMinuteHandler) LinkRisks(c *fiber.Ctx) error {
 	idStr := c.Params("id")
 	if idStr == "" {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "meeting minute ID is required")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID notulen rapat wajib diisi")
 	}
 
 	meetingID, err := uuid.Parse(idStr)
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid meeting minute ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID notulen rapat tidak valid")
 	}
 
 	var req LinkRisksRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	if len(req.RiskIDs) == 0 {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "at least one risk ID is required")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "minimal satu ID risiko wajib diisi")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		return sendProblemDetails(c, fiber.StatusUnauthorized, "Unauthorized", "https://api.manris.com/errors/unauthorized", "user ID not found in context")
+		return sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak ditemukan dalam konteks")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 
 	var orgIDs []uuid.UUID
@@ -277,7 +277,7 @@ func (h *MeetingMinuteHandler) LinkRisks(c *fiber.Ctx) error {
 	}
 
 	if mm.OrganizationID != nil && !scope.CanWrite(*mm.OrganizationID) {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "cannot modify meeting minute for this organization")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak dapat mengubah notulen rapat untuk organisasi ini")
 	}
 
 	err = h.linkUC.Execute(c.Context(), mmuc.LinkRisksInput{
@@ -303,26 +303,26 @@ type UnlinkRisksRequest struct {
 func (h *MeetingMinuteHandler) UnlinkRisks(c *fiber.Ctx) error {
 	idStr := c.Params("id")
 	if idStr == "" {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "meeting minute ID is required")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID notulen rapat wajib diisi")
 	}
 
 	meetingID, err := uuid.Parse(idStr)
 	if err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid meeting minute ID")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID notulen rapat tidak valid")
 	}
 
 	var req UnlinkRisksRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	if len(req.RiskIDs) == 0 {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Bad Request", "https://api.manris.com/errors/bad-request", "at least one risk ID is required")
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "minimal satu ID risiko wajib diisi")
 	}
 
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "missing access scope")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 
 	var orgIDs []uuid.UUID
@@ -336,7 +336,7 @@ func (h *MeetingMinuteHandler) UnlinkRisks(c *fiber.Ctx) error {
 	}
 
 	if mm.OrganizationID != nil && !scope.CanWrite(*mm.OrganizationID) {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Forbidden", "https://api.manris.com/errors/forbidden", "cannot modify meeting minute for this organization")
+		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak dapat mengubah notulen rapat untuk organisasi ini")
 	}
 
 	err = h.linkUC.Unlink(c.Context(), mmuc.UnlinkRisksInput{

@@ -56,14 +56,14 @@ func NewUserHandler(
 func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 	var req createUserRequest
 	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	var organizationID *uuid.UUID
 	if req.OrganizationID != "" {
 		parsedID, err := uuid.Parse(req.OrganizationID)
 		if err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 		}
 		organizationID = &parsedID
 	}
@@ -91,7 +91,7 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid user ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pengguna tidak valid")
 	}
 
 	user, err := h.getUC.Execute(c.Context(), id)
@@ -106,12 +106,12 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid user ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pengguna tidak valid")
 	}
 
 	var input useruc.UpdateUserInput
 	if err := c.BodyParser(&input); err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid request body")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
 	}
 
 	input.ID = id
@@ -128,7 +128,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid user ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pengguna tidak valid")
 	}
 
 	result, err := h.deleteUC.Execute(c.Context(), id)
@@ -143,7 +143,7 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 func (h *UserHandler) ApproveRegistration(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid user ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pengguna tidak valid")
 	}
 
 	result, err := h.approveUC.Execute(c.Context(), id)
@@ -158,7 +158,7 @@ func (h *UserHandler) ApproveRegistration(c *fiber.Ctx) error {
 func (h *UserHandler) RejectRegistration(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid user ID")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pengguna tidak valid")
 	}
 
 	result, err := h.rejectUC.Execute(c.Context(), id)
@@ -181,7 +181,7 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 	// Validate organizationId if provided
 	if organizationId != "" {
 		if _, err := uuid.Parse(organizationId); err != nil {
-			return sendProblemDetails(c, 400, "Bad Request", "https://api.manris.com/errors/bad-request", "invalid organization ID format")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format ID organisasi tidak valid")
 		}
 	}
 

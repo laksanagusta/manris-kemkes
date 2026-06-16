@@ -47,10 +47,10 @@ func (uc *ArchiveRiskUseCase) Execute(ctx context.Context, input ArchiveRiskInpu
 	}
 
 	if risk.Status != entity.RiskStatusApproved || !risk.IsCurrent {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "only current approved risks can be archived")
+		return nil, errors.ErrOnlyApprovedCurrentArchived
 	}
 	if risk.ArchivedAt != nil {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "risk is already archived")
+		return nil, errors.ErrRiskArchived
 	}
 
 	if uc.wpRepo != nil {
@@ -59,14 +59,14 @@ func (uc *ArchiveRiskUseCase) Execute(ctx context.Context, input ArchiveRiskInpu
 			return nil, errors.Wrap(err, "failed to check working paper lock")
 		}
 		if blocked {
-			return nil, errors.Wrap(errors.ErrInvalidStatus, "risk version is locked by a signing or completed working paper")
+			return nil, errors.ErrWorkingPaperLocked
 		}
 	}
 
 	reason := strings.TrimSpace(input.Reason)
 	note := strings.TrimSpace(input.Note)
 	if reason == "" {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "archive reason is required")
+		return nil, errors.ErrArchiveReasonRequired
 	}
 	if note != "" {
 		reason = reason + ": " + note
@@ -113,7 +113,7 @@ func (uc *RestoreRiskUseCase) Execute(ctx context.Context, input RestoreRiskInpu
 		return nil, err
 	}
 	if risk.ArchivedAt == nil {
-		return nil, errors.Wrap(errors.ErrInvalidStatus, "risk is not archived")
+		return nil, errors.ErrRiskNotArchived
 	}
 
 	risk.ArchivedAt = nil

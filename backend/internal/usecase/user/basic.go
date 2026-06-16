@@ -152,7 +152,7 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 	if input.OrganizationID != nil {
 		_, err := uc.orgRepo.GetByID(ctx, *input.OrganizationID)
 		if err != nil {
-			return nil, errors.Wrap(err, "organization not found")
+			return nil, errors.ErrOrganizationNotFound
 		}
 	}
 

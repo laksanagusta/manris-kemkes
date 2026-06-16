@@ -140,8 +140,8 @@ func TestWorkingPaperRepositoryCreateAssignsSequenceCodePerOrganization(t *testi
 	userB := insertWorkingPaperTestUser(t, pool, orgB, "wp-user-b")
 
 	firstA := &entity.WorkingPaper{
-		Title:                    "Kertas Kerja A1",
-		Description:              "Test",
+		Title: "Kertas Kerja A1",
+
 		OrgID:                    orgA,
 		Status:                   entity.WorkingPaperStatusDraft,
 		AssessmentCycle:          "2026-H1",
@@ -159,8 +159,8 @@ func TestWorkingPaperRepositoryCreateAssignsSequenceCodePerOrganization(t *testi
 	})
 
 	secondA := &entity.WorkingPaper{
-		Title:                    "Kertas Kerja A2",
-		Description:              "Test",
+		Title: "Kertas Kerja A2",
+
 		OrgID:                    orgA,
 		Status:                   entity.WorkingPaperStatusDraft,
 		AssessmentCycle:          "2026-H2",
@@ -178,8 +178,8 @@ func TestWorkingPaperRepositoryCreateAssignsSequenceCodePerOrganization(t *testi
 	})
 
 	firstB := &entity.WorkingPaper{
-		Title:                    "Kertas Kerja B1",
-		Description:              "Test",
+		Title: "Kertas Kerja B1",
+
 		OrgID:                    orgB,
 		Status:                   entity.WorkingPaperStatusDraft,
 		AssessmentCycle:          "2026-H1",
@@ -240,5 +240,317 @@ func TestPreviousApprovedWorkingPaperRiskExprPrefersPreviousSemesterBeforeFallba
 
 	if strings.Contains(expr, "prev.archived_at IS NULL") {
 		t.Fatalf("expected previous risk expression to allow archived historical versions, got:\n%s", expr)
+	}
+}
+
+func TestWorkingPaperMonitoringExprPrefersFinalizedAndTargetQuarter(t *testing.T) {
+	expr := workingPaperMonitoringExpr()
+
+	expectedSnippets := []string{
+		"LEFT JOIN LATERAL (",
+		"JOIN risks monitoring_source ON monitoring_source.id = rm.source_risk_id",
+		"monitoring_source.version_group_id = risk.version_group_id",
+		"RIGHT(wp.assessment_cycle, 2) = 'H1'",
+		"THEN LEFT(wp.assessment_cycle, 4) || '-Q2'",
+		"RIGHT(wp.assessment_cycle, 2) = 'H2'",
+		"THEN LEFT(wp.assessment_cycle, 4) || '-Q4'",
+		"rm.status IN ('draft', 'finalized')",
+		"CASE rm.status WHEN 'finalized' THEN 0 ELSE 1 END",
+		"rm.updated_at DESC",
+		"LIMIT 1",
+	}
+
+	for _, snippet := range expectedSnippets {
+		if !strings.Contains(expr, snippet) {
+			t.Fatalf("expected monitoring expression to contain %q, got:\n%s", snippet, expr)
+		}
+	}
+
+	if strings.Contains(expr, "rm.status = 'void'") {
+		t.Fatalf("monitoring expression must exclude void transactions, got:\n%s", expr)
+	}
+}
+
+func TestWorkingPaperRepositoryHydratesMonitoringSelection(t *testing.T) {
+	pool := setupWorkingPaperPool(t)
+	repo := NewWorkingPaperRepository(pool)
+	riskRepo := NewRiskRepository(pool)
+	monitoringRepo := NewRiskMonitoringRepository(pool)
+	ctx := context.Background()
+
+	orgID := insertWorkingPaperTestOrganization(t, pool, "Working Paper Monitoring Org")
+	userID := insertWorkingPaperTestUser(t, pool, orgID, "working-paper-monitoring-user")
+
+	versionGroupID := uuid.New()
+	sourceRisk := &entity.Risk{
+		Code:            "R-WP-MON-001",
+		Title:           "Monitoring source risk",
+		Description:     "Base risk for monitoring selection",
+		Category:        entity.RiskCategoryOperasional,
+		Status:          entity.RiskStatusApproved,
+		VersionGroupID:  versionGroupID,
+		IsCurrent:       true,
+		IsCycleCurrent:  true,
+		VersionNumber:   3,
+		OrganizationID:  &orgID,
+		CreatedBy:       &userID,
+		AssessmentCycle: "2025-H2",
+		Probability:     3,
+		Impact:          4,
+		RiskSource:      "internal",
+		Controllability: "C",
+		TreatmentOption: "mitigasi",
+	}
+	if err := riskRepo.Create(ctx, sourceRisk); err != nil {
+		t.Fatalf("Create source risk: %v", err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM risks WHERE id = $1`, sourceRisk.ID) })
+
+	draftSource := &entity.Risk{
+		Code:            "R-WP-MON-002",
+		Title:           "Draft monitoring source risk",
+		Description:     "Competing draft monitoring source",
+		Category:        entity.RiskCategoryOperasional,
+		Status:          entity.RiskStatusApproved,
+		VersionGroupID:  versionGroupID,
+		IsCurrent:       false,
+		IsCycleCurrent:  true,
+		VersionNumber:   4,
+		OrganizationID:  &orgID,
+		CreatedBy:       &userID,
+		AssessmentCycle: "2025-H2",
+		Probability:     2,
+		Impact:          5,
+		RiskSource:      "internal",
+		Controllability: "C",
+		TreatmentOption: "mitigasi",
+	}
+	if err := riskRepo.Create(ctx, draftSource); err != nil {
+		t.Fatalf("Create draft source risk: %v", err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM risks WHERE id = $1`, draftSource.ID) })
+
+	voidSource := &entity.Risk{
+		Code:            "R-WP-MON-003",
+		Title:           "Void monitoring source risk",
+		Description:     "Competing void monitoring source",
+		Category:        entity.RiskCategoryOperasional,
+		Status:          entity.RiskStatusApproved,
+		VersionGroupID:  versionGroupID,
+		IsCurrent:       false,
+		IsCycleCurrent:  true,
+		VersionNumber:   5,
+		OrganizationID:  &orgID,
+		CreatedBy:       &userID,
+		AssessmentCycle: "2025-H2",
+		Probability:     4,
+		Impact:          3,
+		RiskSource:      "internal",
+		Controllability: "C",
+		TreatmentOption: "mitigasi",
+	}
+	if err := riskRepo.Create(ctx, voidSource); err != nil {
+		t.Fatalf("Create void source risk: %v", err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM risks WHERE id = $1`, voidSource.ID) })
+
+	finalMonitoring := entity.NewRiskMonitoringDraft(sourceRisk, "2026-Q2", userID)
+	finalMonitoring.Status = entity.RiskMonitoringStatusFinalized
+	finalMonitoring.ObservedProbability = 2
+	finalMonitoring.ObservedImpact = 3
+	finalMonitoring.CalculateObservedScore()
+	finalMonitoring.ConditionSummary = "Kondisi membaik"
+	finalMonitoring.EventSummary = "Satu insiden minor"
+	finalMonitoring.MitigationProgressSummary = "Tiga aksi selesai"
+	finalMonitoring.MitigationCompletionPercent = 75
+	finalMonitoring.MitigationObstacles = "Pengadaan terlambat"
+	finalMonitoring.MitigationFollowUp = "Selesaikan pengadaan"
+	finalMonitoring.FollowUpNote = "Pantau mingguan"
+	finalMonitoring.Trend = "down"
+	finalMonitoring.EffectivenessConclusion = "Kontrol cukup efektif"
+	if err := monitoringRepo.Create(ctx, finalMonitoring); err != nil {
+		t.Fatalf("Create finalized monitoring: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM risk_monitorings WHERE id = $1`, finalMonitoring.ID)
+	})
+
+	draftMonitoring := entity.NewRiskMonitoringDraft(draftSource, "2026-Q2", userID)
+	draftMonitoring.ObservedProbability = 4
+	draftMonitoring.ObservedImpact = 4
+	draftMonitoring.CalculateObservedScore()
+	draftMonitoring.ConditionSummary = "Draft condition"
+	draftMonitoring.MitigationProgressSummary = "Dua aksi berjalan"
+	draftMonitoring.MitigationCompletionPercent = 50
+	draftMonitoring.Trend = "stable"
+	if err := monitoringRepo.Create(ctx, draftMonitoring); err != nil {
+		t.Fatalf("Create draft monitoring: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM risk_monitorings WHERE id = $1`, draftMonitoring.ID)
+	})
+
+	voidMonitoring := entity.NewRiskMonitoringDraft(voidSource, "2026-Q2", userID)
+	voidMonitoring.Status = entity.RiskMonitoringStatusVoid
+	voidMonitoring.ObservedProbability = 5
+	voidMonitoring.ObservedImpact = 5
+	voidMonitoring.CalculateObservedScore()
+	voidMonitoring.MitigationProgressSummary = "Tidak dipakai"
+	voidMonitoring.Trend = "up"
+	if err := monitoringRepo.Create(ctx, voidMonitoring); err != nil {
+		t.Fatalf("Create void monitoring: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM risk_monitorings WHERE id = $1`, voidMonitoring.ID)
+	})
+
+	wp := &entity.WorkingPaper{
+		Title:                    "Kertas Kerja 2026-H1",
+		OrgID:                    orgID,
+		Status:                   entity.WorkingPaperStatusDraft,
+		AssessmentCycle:          "2026-H1",
+		DocumentHash:             "hash-monitoring",
+		CurrentSignatorySequence: 0,
+		CreatedBy:                userID,
+		Risks: []entity.WorkingPaperRiskLink{
+			{RiskID: sourceRisk.ID, SourceMode: "review_periodic"},
+		},
+		Signatories: []entity.WorkingPaperSignatory{
+			{
+				UserID:        userID,
+				SequenceNo:    1,
+				SignerName:    "Tester",
+				SignerJabatan: "Tester",
+				SignerPangkat: "Tester",
+				Status:        "pending",
+			},
+		},
+	}
+	if err := repo.Create(ctx, wp); err != nil {
+		t.Fatalf("Create working paper: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM working_paper_signatories WHERE working_paper_id = $1`, wp.ID)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM working_paper_risks WHERE working_paper_id = $1`, wp.ID)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM working_papers WHERE id = $1`, wp.ID)
+	})
+
+	got, err := repo.GetByID(ctx, wp.ID)
+	if err != nil {
+		t.Fatalf("GetByID returned error: %v", err)
+	}
+	if len(got.Risks) != 1 {
+		t.Fatalf("expected 1 linked risk, got %d", len(got.Risks))
+	}
+	monitoring := got.Risks[0].Risk.Monitoring
+	if monitoring == nil {
+		t.Fatal("expected monitoring snapshot to be hydrated")
+	}
+	if monitoring.ID != finalMonitoring.ID {
+		t.Fatalf("expected finalized monitoring %s, got %s", finalMonitoring.ID, monitoring.ID)
+	}
+	if monitoring.Status != entity.RiskMonitoringStatusFinalized {
+		t.Fatalf("expected finalized status, got %q", monitoring.Status)
+	}
+	if monitoring.AssessmentCycle != "2026-Q2" {
+		t.Fatalf("expected target quarter 2026-Q2, got %q", monitoring.AssessmentCycle)
+	}
+	if monitoring.Trend != "down" {
+		t.Fatalf("expected trend down, got %q", monitoring.Trend)
+	}
+	if monitoring.MitigationCompletionPercent != 75 {
+		t.Fatalf("expected completion 75, got %d", monitoring.MitigationCompletionPercent)
+	}
+	if monitoring.EffectivenessConclusion != "Kontrol cukup efektif" {
+		t.Fatalf("expected effectiveness conclusion to come from monitoring row, got %q", monitoring.EffectivenessConclusion)
+	}
+	if got.Risks[0].Risk.MonitoringSimpulan != "Menurun" {
+		t.Fatalf("expected monitoring simpulan Menurun, got %q", got.Risks[0].Risk.MonitoringSimpulan)
+	}
+	if got.Risks[0].Risk.MonitoringEfektivitas != "Kontrol cukup efektif" {
+		t.Fatalf("expected monitoring efektivitas to mirror monitoring row, got %q", got.Risks[0].Risk.MonitoringEfektivitas)
+	}
+	if got.Risks[0].Risk.MonitoringP != 2 || got.Risks[0].Risk.MonitoringD != 3 {
+		t.Fatalf("expected observed P/D 2/3, got %d/%d", got.Risks[0].Risk.MonitoringP, got.Risks[0].Risk.MonitoringD)
+	}
+}
+
+func TestWorkingPaperRepositoryReturnsNilMonitoringWhenNoMatchingTransactionExists(t *testing.T) {
+	pool := setupWorkingPaperPool(t)
+	repo := NewWorkingPaperRepository(pool)
+	riskRepo := NewRiskRepository(pool)
+	ctx := context.Background()
+
+	orgID := insertWorkingPaperTestOrganization(t, pool, "Working Paper No Monitoring Org")
+	userID := insertWorkingPaperTestUser(t, pool, orgID, "working-paper-no-monitoring-user")
+
+	versionGroupID := uuid.New()
+	sourceRisk := &entity.Risk{
+		Code:            "R-WP-MON-004",
+		Title:           "Risk without monitoring",
+		Description:     "No matching monitoring exists",
+		Category:        entity.RiskCategoryOperasional,
+		Status:          entity.RiskStatusApproved,
+		VersionGroupID:  versionGroupID,
+		IsCurrent:       true,
+		IsCycleCurrent:  true,
+		VersionNumber:   1,
+		OrganizationID:  &orgID,
+		CreatedBy:       &userID,
+		AssessmentCycle: "2025-H2",
+		Probability:     2,
+		Impact:          2,
+		RiskSource:      "internal",
+		Controllability: "C",
+		TreatmentOption: "mitigasi",
+	}
+	if err := riskRepo.Create(ctx, sourceRisk); err != nil {
+		t.Fatalf("Create source risk: %v", err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM risks WHERE id = $1`, sourceRisk.ID) })
+
+	wp := &entity.WorkingPaper{
+		Title:                    "Kertas Kerja 2026-H1",
+		OrgID:                    orgID,
+		Status:                   entity.WorkingPaperStatusDraft,
+		AssessmentCycle:          "2026-H1",
+		DocumentHash:             "hash-no-monitoring",
+		CurrentSignatorySequence: 0,
+		CreatedBy:                userID,
+		Risks: []entity.WorkingPaperRiskLink{
+			{RiskID: sourceRisk.ID, SourceMode: "review_periodic"},
+		},
+		Signatories: []entity.WorkingPaperSignatory{
+			{
+				UserID:        userID,
+				SequenceNo:    1,
+				SignerName:    "Tester",
+				SignerJabatan: "Tester",
+				SignerPangkat: "Tester",
+				Status:        "pending",
+			},
+		},
+	}
+	if err := repo.Create(ctx, wp); err != nil {
+		t.Fatalf("Create working paper: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM working_paper_signatories WHERE working_paper_id = $1`, wp.ID)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM working_paper_risks WHERE working_paper_id = $1`, wp.ID)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM working_papers WHERE id = $1`, wp.ID)
+	})
+
+	got, err := repo.GetByID(ctx, wp.ID)
+	if err != nil {
+		t.Fatalf("GetByID returned error: %v", err)
+	}
+	if len(got.Risks) != 1 {
+		t.Fatalf("expected 1 linked risk, got %d", len(got.Risks))
+	}
+	if got.Risks[0].Risk.Monitoring != nil {
+		t.Fatalf("expected no monitoring snapshot, got %#v", got.Risks[0].Risk.Monitoring)
+	}
+	if got.Risks[0].Risk.MonitoringP != 0 || got.Risks[0].Risk.MonitoringNilai != 0 {
+		t.Fatalf("expected empty flat monitoring fields, got %+v", got.Risks[0].Risk)
 	}
 }
