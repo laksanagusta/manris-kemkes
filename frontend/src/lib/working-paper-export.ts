@@ -110,7 +110,6 @@ const DEFAULT_WORKING_PAPER_METADATA = {
     "Persentase Faktor Risiko Penyakit di Pintu Masuk Negara yang dikendalikan\nNilai Maturitas Sistem Pengendalian Intern Pemerintah Terintegrasi (SPIPT)",
   activity:
     "Pelaksanaan surveilans dan deteksi dini penyakit dan faktor risiko kesehatan berpotensi KLB/Wabah di pintu masuk sesuai standar",
-  riskOwnerName: "Kepala Loka Kekarantinaan Kesehatan Entikong",
   riskManagementTeam:
     "Para Ketua Tim Kerja 1,2,3,4, Bendahara Penerimaan, Bendahara Pengeluaran, dan TIM SKI",
   riskUpdateDate: "-",
@@ -265,11 +264,17 @@ function getRiskPeriodLabel(assessmentCycle: string | undefined | null, createdA
 
 function buildSheetMetadata(workingPaper: WorkingPaper, risks: WorkingPaperRiskData[]): WorkingPaperSheetMetadata {
   const primaryOrgName = risks.find((risk) => safeStr(risk.org_name).trim().length > 0)?.org_name
-    ?? DEFAULT_WORKING_PAPER_METADATA.riskOwnerName.replace(/^Kepala\s+/i, "");
+    ?? "";
+  const riskOwnerName = primaryOrgName.toLowerCase().startsWith("kepala ")
+    ? primaryOrgName
+    : primaryOrgName
+      ? `Kepala ${primaryOrgName}`
+      : "Kepala";
 
   return {
     ...DEFAULT_WORKING_PAPER_METADATA,
     riskOwnerUnit: primaryOrgName,
+    riskOwnerName,
     assessmentDate: formatLongDate(workingPaper.created_at),
     riskPeriod: getRiskPeriodLabel(workingPaper.assessment_cycle, workingPaper.created_at),
   };

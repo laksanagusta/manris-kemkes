@@ -102,6 +102,7 @@ test("createWorkingPaperWorkbookBuffer adds attachment-style metadata to the fir
       "expected I4 to be merged with the adjacent label cell",
     );
     assert.equal(sheet.getCell("K4").value, "");
+    assert.equal(sheet.getCell("K5").value, "Kepala Loka Kekarantinaan Kesehatan Entikong * :");
     assert.equal(sheet.getCell("K9").value, "4 Maret 2026 * :");
     assert.equal(sheet.getCell("K10").value, "Maret s/d Juni 2026 * :");
     assert.equal(sheet.getCell("K11").value, "- * :");
