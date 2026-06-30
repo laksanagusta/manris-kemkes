@@ -1465,29 +1465,6 @@ export default function RiskRegisterPage() {
                     <TableHead className="w-36 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
                       Terakhir Dipantau
                     </TableHead>
-                    <TableHead
-                      className="w-32 cursor-pointer select-none whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500"
-                      onClick={() => {
-                        if (sortBy === "created_at") {
-                          setSortOrder((prev) =>
-                            prev === "asc" ? "desc" : "asc",
-                          );
-                        } else {
-                          setSortBy("created_at");
-                          setSortOrder("desc");
-                        }
-                      }}
-                    >
-                      <div className="flex items-center gap-1">
-                        Update Terakhir
-                        {sortBy === "created_at" &&
-                          (sortOrder === "desc" ? (
-                            <ChevronDown className="size-3" />
-                          ) : (
-                            <ChevronUp className="size-3" />
-                          ))}
-                      </div>
-                    </TableHead>
                     <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
                       Aksi
                     </TableHead>
@@ -1497,7 +1474,7 @@ export default function RiskRegisterPage() {
                   {risks.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={10}
+                        colSpan={9}
                         className="py-8 text-left text-xs text-zinc-500"
                       >
                         Tidak ada risiko yang ditemukan
@@ -1559,9 +1536,6 @@ export default function RiskRegisterPage() {
                               : getLinearToneBadgeClass("danger");
                       const monitoringLastText = formatLocalDateTime(
                         risk.lastMonitoredAt,
-                      );
-                      const updateText = formatLocalDateTime(
-                        risk.updatedAt || risk.createdAt,
                       );
                       return (
                         <TableRow
@@ -1635,9 +1609,6 @@ export default function RiskRegisterPage() {
                             <span className="block truncate" title={monitoringLastText}>
                               {monitoringLastText}
                             </span>
-                          </TableCell>
-                          <TableCell className="px-2.5 whitespace-nowrap text-xs text-zinc-600">
-                            {updateText}
                           </TableCell>
                           <TableCell className="px-2.5">
                             <div className="flex">
