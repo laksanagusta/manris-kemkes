@@ -171,7 +171,7 @@ func TestStartMonitoringUseCase_CreatesDraft(t *testing.T) {
 
 	out, err := uc.Execute(context.Background(), StartMonitoringInput{
 		SourceRiskID: sourceID,
-		Cycle:        "2026-Q1",
+		Cycle:        "2026-H1",
 		OrgIDs:       []uuid.UUID{orgID},
 		StartedBy:    uuid.New(),
 	})
@@ -210,7 +210,7 @@ func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
 		Impact:         3,
 		Weight:         entity.GetBobot(4, 3),
 	}
-	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q1", uuid.New())
+	monitoring := entity.NewRiskMonitoringDraft(source, "2026-H1", uuid.New())
 	monitoring.ID = monitoringID
 	monitoringRepo := newFakeMonitoringTransactionRepo()
 	monitoringRepo.byID[monitoringID] = monitoring
@@ -283,7 +283,7 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 		Weight:         entity.GetBobot(4, 3),
 		Mitigations:    []entity.Mitigation{{Action: "Original", Owner: "Unit"}},
 	}
-	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q1", uuid.New())
+	monitoring := entity.NewRiskMonitoringDraft(source, "2026-H1", uuid.New())
 	monitoring.ID = monitoringID
 	monitoring.Mode = entity.RiskMonitoringModeWithProfileRevision
 	monitoring.SetDraftPayload(&entity.RiskMonitoringDraftPayload{

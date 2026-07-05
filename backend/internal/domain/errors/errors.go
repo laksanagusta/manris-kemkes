@@ -102,16 +102,16 @@ var (
 	ErrDocumentUnreadable           = newValidationError("DOCUMENT_UNREADABLE", "dokumen tidak dapat dibaca sebagai teks")
 
 	// ── Not Found ──
-	ErrOrganizationNotFound          = newNotFoundError("ORGANIZATION_NOT_FOUND", "organisasi tidak ditemukan")
-	ErrParentOrganizationNotFound    = newNotFoundError("PARENT_ORGANIZATION_NOT_FOUND", "organisasi induk tidak ditemukan")
-	ErrTargetOrganizationNotFound    = newNotFoundError("TARGET_ORGANIZATION_NOT_FOUND", "organisasi target tidak ditemukan")
-	ErrLinkedRiskNotFound            = newNotFoundError("LINKED_RISK_NOT_FOUND", "risiko terkait tidak ditemukan")
-	ErrRiskCascadeNotFound           = newNotFoundError("RISK_CASCADE_NOT_FOUND", "kaskade risiko tidak ditemukan")
-	ErrPreviousRiskVersionNotFound   = newNotFoundError("PREVIOUS_RISK_VERSION_NOT_FOUND", "versi risiko sebelumnya tidak ditemukan")
-	ErrUploaderNotFound              = newNotFoundError("UPLOADER_NOT_FOUND", "pengunggah tidak ditemukan")
-	ErrCreatorNotFound               = newNotFoundError("CREATOR_NOT_FOUND", "pembuat tidak ditemukan")
-	ErrUserNotFound                  = newNotFoundError("USER_NOT_FOUND", "pengguna tidak ditemukan")
-	ErrROIDNotFound                  = newNotFoundError("RO_ID_NOT_FOUND", "RO ID tidak ditemukan")
+	ErrOrganizationNotFound        = newNotFoundError("ORGANIZATION_NOT_FOUND", "organisasi tidak ditemukan")
+	ErrParentOrganizationNotFound  = newNotFoundError("PARENT_ORGANIZATION_NOT_FOUND", "organisasi induk tidak ditemukan")
+	ErrTargetOrganizationNotFound  = newNotFoundError("TARGET_ORGANIZATION_NOT_FOUND", "organisasi target tidak ditemukan")
+	ErrLinkedRiskNotFound          = newNotFoundError("LINKED_RISK_NOT_FOUND", "risiko terkait tidak ditemukan")
+	ErrRiskCascadeNotFound         = newNotFoundError("RISK_CASCADE_NOT_FOUND", "kaskade risiko tidak ditemukan")
+	ErrPreviousRiskVersionNotFound = newNotFoundError("PREVIOUS_RISK_VERSION_NOT_FOUND", "versi risiko sebelumnya tidak ditemukan")
+	ErrUploaderNotFound            = newNotFoundError("UPLOADER_NOT_FOUND", "pengunggah tidak ditemukan")
+	ErrCreatorNotFound             = newNotFoundError("CREATOR_NOT_FOUND", "pembuat tidak ditemukan")
+	ErrUserNotFound                = newNotFoundError("USER_NOT_FOUND", "pengguna tidak ditemukan")
+	ErrROIDNotFound                = newNotFoundError("RO_ID_NOT_FOUND", "RO ID tidak ditemukan")
 
 	// ── Risk Status / Cycle ──
 	ErrOnlyApprovedCurrentMonitored    = newStatusError("RISK_NOT_MONITORABLE", "hanya risiko yang disetujui dan aktif yang dapat dipantau")
@@ -126,11 +126,11 @@ var (
 	ErrSourceRiskNoLongerActive        = newStatusError("SOURCE_RISK_NOT_ACTIVE", "risiko sumber sudah tidak aktif")
 
 	// ── Cycle ──
-	ErrCycleFormat             = newValidationError("RISK_CYCLE_FORMAT", "format assessment_cycle harus YYYY-QN (contoh: 2026-Q1)")
+	ErrCycleFormat             = newValidationError("RISK_CYCLE_FORMAT", "format assessment_cycle harus YYYY-HN (contoh: 2026-H1)")
 	ErrSemesterFormat          = newValidationError("RISK_SEMESTER_FORMAT", "format assessment_cycle harus YYYY-HN (contoh: 2026-H1)")
-	ErrAnyCycleFormat          = newValidationError("RISK_ANY_CYCLE_FORMAT", "format assessment_cycle harus YYYY-QN atau YYYY-HN (contoh: 2026-Q1 atau 2026-H1)")
+	ErrAnyCycleFormat          = newValidationError("RISK_ANY_CYCLE_FORMAT", "format assessment_cycle harus YYYY-HN (contoh: 2026-H1)")
 	ErrAssessmentCycleRequired = newValidationError("ASSESSMENT_CYCLE_REQUIRED", "siklus penilaian wajib diisi")
-	ErrBackQuarter             = newValidationError("MONITORING_BACK_QUARTER", "tidak dapat membuat pemantauan untuk kuartal lebih awal jika kuartal lebih baru sudah ada")
+	ErrBackCycle               = newValidationError("MONITORING_BACK_CYCLE", "tidak dapat membuat pemantauan untuk semester lebih awal jika semester lebih baru sudah ada")
 
 	// ── Monitoring ──
 	ErrMonitoringNotDraft         = newStatusError("MONITORING_NOT_DRAFT", "hanya pemantauan draft yang dapat diperbarui")
@@ -193,47 +193,47 @@ var (
 	ErrInvalidTreatmentOptionChange = newValidationError("INVALID_TREATMENT_OPTION_CHANGE", "perubahan opsi perlakuan tidak valid")
 
 	// ── TMPMR / Evaluation ──
-	ErrTMPMRAssessmentExists     = newValidationError("TMPMR_ASSESSMENT_EXISTS", "penilaian TMPMR untuk organisasi dan periode ini sudah ada")
-	ErrEvaluationExists          = newValidationError("EVALUATION_EXISTS", "evaluasi untuk organisasi dan periode ini sudah ada")
-	ErrOnlyDraftTMPMRUpdated     = newStatusError("TMPMR_NOT_DRAFT", "hanya penilaian TMPMR draft yang dapat diperbarui")
-	ErrOnlyDraftTMPMRSubmitted   = newStatusError("TMPMR_NOT_SUBMITTABLE", "hanya penilaian TMPMR draft yang dapat dikirim")
-	ErrOnlySubmittedTMPMRReviewed = newStatusError("TMPMR_NOT_REVIEWABLE", "hanya penilaian TMPMR yang sudah dikirim yang dapat ditinjau")
-	ErrOnlyReviewedTMPMRApproved  = newStatusError("TMPMR_NOT_APPROVABLE", "hanya penilaian TMPMR yang sudah ditinjau yang dapat disetujui")
-	ErrAllTMPMRItemsNeedScore    = newValidationError("TMPMR_ALL_ITEMS_NEED_SCORE", "semua item TMPMR harus memiliki skor sebelum dikirim")
-	ErrOnlyDraftEvaluationUpdated = newStatusError("EVALUATION_NOT_DRAFT", "hanya evaluasi draft yang dapat diperbarui")
+	ErrTMPMRAssessmentExists       = newValidationError("TMPMR_ASSESSMENT_EXISTS", "penilaian TMPMR untuk organisasi dan periode ini sudah ada")
+	ErrEvaluationExists            = newValidationError("EVALUATION_EXISTS", "evaluasi untuk organisasi dan periode ini sudah ada")
+	ErrOnlyDraftTMPMRUpdated       = newStatusError("TMPMR_NOT_DRAFT", "hanya penilaian TMPMR draft yang dapat diperbarui")
+	ErrOnlyDraftTMPMRSubmitted     = newStatusError("TMPMR_NOT_SUBMITTABLE", "hanya penilaian TMPMR draft yang dapat dikirim")
+	ErrOnlySubmittedTMPMRReviewed  = newStatusError("TMPMR_NOT_REVIEWABLE", "hanya penilaian TMPMR yang sudah dikirim yang dapat ditinjau")
+	ErrOnlyReviewedTMPMRApproved   = newStatusError("TMPMR_NOT_APPROVABLE", "hanya penilaian TMPMR yang sudah ditinjau yang dapat disetujui")
+	ErrAllTMPMRItemsNeedScore      = newValidationError("TMPMR_ALL_ITEMS_NEED_SCORE", "semua item TMPMR harus memiliki skor sebelum dikirim")
+	ErrOnlyDraftEvaluationUpdated  = newStatusError("EVALUATION_NOT_DRAFT", "hanya evaluasi draft yang dapat diperbarui")
 	ErrOnlyFinalEvaluationReopened = newStatusError("EVALUATION_NOT_FINAL", "hanya evaluasi final yang dapat dibuka kembali")
-	ErrEvaluationAlreadyFinal     = newStatusError("EVALUATION_ALREADY_FINAL", "evaluasi sudah final")
+	ErrEvaluationAlreadyFinal      = newStatusError("EVALUATION_ALREADY_FINAL", "evaluasi sudah final")
 
 	// ── Risk Charter ──
 	ErrRiskCharterExists = newValidationError("RISK_CHARTER_EXISTS", "piagam risiko untuk organisasi, periode, dan level UPR ini sudah ada")
 	ErrUPRLevelInvalid   = newValidationError("UPR_LEVEL_INVALID", "level UPR harus kementerian, upr_t1, atau upr_t2")
 
 	// ── Cascade ──
-	ErrCascadeNotDecidable       = newStatusError("CASCADE_NOT_DECIDABLE", "kaskade tidak dalam status yang dapat diputuskan")
-	ErrCascadeDecisionInvalid    = newValidationError("CASCADE_DECISION_INVALID", "keputusan harus accept atau reject")
+	ErrCascadeNotDecidable        = newStatusError("CASCADE_NOT_DECIDABLE", "kaskade tidak dalam status yang dapat diputuskan")
+	ErrCascadeDecisionInvalid     = newValidationError("CASCADE_DECISION_INVALID", "keputusan harus accept atau reject")
 	ErrOnlyProposedCascadeDeleted = newStatusError("CASCADE_NOT_DELETABLE", "hanya kaskade yang diusulkan yang dapat dihapus")
-	ErrAdoptionTypeInvalid       = newValidationError("ADOPTION_TYPE_INVALID", "tipe adopsi harus full atau partial")
+	ErrAdoptionTypeInvalid        = newValidationError("ADOPTION_TYPE_INVALID", "tipe adopsi harus full atau partial")
 
 	// ── File / PDF ──
-	ErrOnlyPDFAndXLSX              = newValidationError("ONLY_PDF_AND_XLSX", "hanya file PDF dan XLSX yang didukung")
-	ErrRiskPDFExportNotAvailable   = newValidationError("RISK_PDF_EXPORT_NOT_AVAILABLE", "ekspor PDF risiko hanya tersedia untuk risiko yang sudah difinalisasi")
-	ErrRiskPDFDepsNotConfigured    = &AppError{Code: "RISK_PDF_DEPS_NOT_CONFIGURED", Message: "dependensi ekspor PDF risiko belum dikonfigurasi", Err: ErrInternal}
-	ErrEvalPDFDepsNotConfigured    = &AppError{Code: "EVAL_PDF_DEPS_NOT_CONFIGURED", Message: "dependensi ekspor PDF evaluasi belum dikonfigurasi", Err: ErrInternal}
+	ErrOnlyPDFAndXLSX                = newValidationError("ONLY_PDF_AND_XLSX", "hanya file PDF dan XLSX yang didukung")
+	ErrRiskPDFExportNotAvailable     = newValidationError("RISK_PDF_EXPORT_NOT_AVAILABLE", "ekspor PDF risiko hanya tersedia untuk risiko yang sudah difinalisasi")
+	ErrRiskPDFDepsNotConfigured      = &AppError{Code: "RISK_PDF_DEPS_NOT_CONFIGURED", Message: "dependensi ekspor PDF risiko belum dikonfigurasi", Err: ErrInternal}
+	ErrEvalPDFDepsNotConfigured      = &AppError{Code: "EVAL_PDF_DEPS_NOT_CONFIGURED", Message: "dependensi ekspor PDF evaluasi belum dikonfigurasi", Err: ErrInternal}
 	ErrFormalReportDepsNotConfigured = &AppError{Code: "FORMAL_REPORT_DEPS_NOT_CONFIGURED", Message: "dependensi unduh laporan formal belum dikonfigurasi", Err: ErrInternal}
-	ErrRiskPDFEmpty                = &AppError{Code: "RISK_PDF_EMPTY", Message: "render PDF risiko menghasilkan file kosong", Err: ErrInternal}
-	ErrEvalPDFEmpty                = &AppError{Code: "EVAL_PDF_EMPTY", Message: "render PDF evaluasi menghasilkan file kosong", Err: ErrInternal}
-	ErrFormalReportPDFEmpty        = &AppError{Code: "FORMAL_REPORT_PDF_EMPTY", Message: "render PDF laporan formal menghasilkan file kosong", Err: ErrInternal}
+	ErrRiskPDFEmpty                  = &AppError{Code: "RISK_PDF_EMPTY", Message: "render PDF risiko menghasilkan file kosong", Err: ErrInternal}
+	ErrEvalPDFEmpty                  = &AppError{Code: "EVAL_PDF_EMPTY", Message: "render PDF evaluasi menghasilkan file kosong", Err: ErrInternal}
+	ErrFormalReportPDFEmpty          = &AppError{Code: "FORMAL_REPORT_PDF_EMPTY", Message: "render PDF laporan formal menghasilkan file kosong", Err: ErrInternal}
 
 	// ── Misc ──
-	ErrInvalidRiskCategoryDetail  = newValidationError("INVALID_RISK_CATEGORY_DETAIL", "kategori risiko tidak valid")
+	ErrInvalidRiskCategoryDetail   = newValidationError("INVALID_RISK_CATEGORY_DETAIL", "kategori risiko tidak valid")
 	ErrInvalidDocumentAnalysisMode = newValidationError("INVALID_DOCUMENT_ANALYSIS_MODE", "mode analisis dokumen tidak valid")
-	ErrInvalidFormalReportType    = newValidationError("INVALID_FORMAL_REPORT_TYPE", "tipe laporan formal tidak valid")
-	ErrInvalidImpactDescChange    = newValidationError("INVALID_IMPACT_DESCRIPTION_CHANGE", "perubahan deskripsi dampak tidak valid")
+	ErrInvalidFormalReportType     = newValidationError("INVALID_FORMAL_REPORT_TYPE", "tipe laporan formal tidak valid")
+	ErrInvalidImpactDescChange     = newValidationError("INVALID_IMPACT_DESCRIPTION_CHANGE", "perubahan deskripsi dampak tidak valid")
 )
 
-func ErrBackQuarterMsg(requestedCycle, existingCycle string) error {
+func ErrBackCycleMsg(requestedCycle, existingCycle string) error {
 	return &AppError{
-		Code:    "MONITORING_BACK_QUARTER",
+		Code:    "MONITORING_BACK_CYCLE",
 		Message: fmt.Sprintf("tidak dapat membuat pemantauan untuk %s karena pemantauan untuk periode yang lebih baru (%s) sudah ada", requestedCycle, existingCycle),
 		Err:     ErrInvalidInput,
 	}

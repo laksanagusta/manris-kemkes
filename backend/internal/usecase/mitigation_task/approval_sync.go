@@ -10,7 +10,7 @@ import (
 )
 
 // EnsureTasksForRiskVersionUseCase ensures mitigation_tasks exist for a risk
-// version in a given quarter cycle. Idempotent — if tasks already exist
+// version in a given semester cycle. Idempotent — if tasks already exist
 // for this cycle, no new tasks are created.
 type EnsureTasksForRiskVersionUseCase struct {
 	taskRepo repository.MitigationTaskRepository
@@ -28,7 +28,7 @@ func NewEnsureTasksForRiskVersionUseCase(
 }
 
 // Execute generates one mitigation_task per mitigation plan item for the
-// given quarter cycle. Skips mitigations marked as existing controls.
+// given semester cycle. Skips mitigations marked as existing controls.
 // Returns the number of newly created tasks.
 func (uc *EnsureTasksForRiskVersionUseCase) Execute(
 	ctx context.Context,
@@ -41,13 +41,13 @@ func (uc *EnsureTasksForRiskVersionUseCase) Execute(
 		return 0, fmt.Errorf("gagal memuat risiko: %w", err)
 	}
 
-	year, quarter, err := ParseQuarterCycle(cycle)
+	year, half, err := ParseSemesterCycle(cycle)
 	if err != nil {
 		return 0, err
 	}
 
-	periodStart := QuarterPeriodStart(year, quarter)
-	dueDate := QuarterDueDate(year, quarter)
+	periodStart := SemesterPeriodStart(year, half)
+	dueDate := SemesterDueDate(year, half)
 	periodEnd := dueDate
 
 	created := 0

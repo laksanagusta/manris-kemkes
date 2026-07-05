@@ -12,9 +12,10 @@ type KpiCardProps = {
   description?: ReactNode;
   className?: string;
   valueClassName?: string;
+  valueWrapClassName?: string;
   labelClassName?: string;
   descriptionClassName?: string;
-};
+} & React.ComponentPropsWithoutRef<"div">;
 
 const toneStyles: Record<
   KpiCardTone,
@@ -30,7 +31,7 @@ const toneStyles: Record<
     container:
       "min-h-[108px] rounded-xl px-4 py-4 ring-1 ring-inset bg-white ring-zinc-200/80",
     label:
-      "text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500 text-pretty",
+      "text-xs font-medium uppercase tracking-[0.14em] text-zinc-500 text-pretty",
     value:
       "text-2xl font-semibold tabular-nums text-zinc-900 tracking-tight leading-none",
     valueWrap: "mt-3 flex items-baseline gap-1",
@@ -39,7 +40,7 @@ const toneStyles: Record<
   zinc: {
     container:
       "min-h-[108px] rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-4",
-    label: "text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500",
+    label: "text-xs font-medium uppercase tracking-[0.14em] text-zinc-500",
     value: "mt-1 text-xl font-semibold tabular-nums text-zinc-900 leading-none",
     valueWrap: "mt-3 flex items-center justify-between gap-3",
     description: "mt-2 text-[11px] text-zinc-500",
@@ -47,7 +48,7 @@ const toneStyles: Record<
   emerald: {
     container:
       "min-h-[108px] rounded-lg border border-emerald-200 bg-emerald-50/60 px-4 py-4",
-    label: "text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-700",
+    label: "text-xs font-medium uppercase tracking-[0.14em] text-emerald-700",
     value:
       "mt-1 text-xl font-semibold tabular-nums text-emerald-900 leading-none",
     valueWrap: "mt-3 flex items-center justify-between gap-3",
@@ -56,7 +57,7 @@ const toneStyles: Record<
   rose: {
     container:
       "min-h-[108px] rounded-lg border border-rose-200 bg-rose-50/60 px-4 py-4",
-    label: "text-[11px] font-medium uppercase tracking-[0.14em] text-rose-700",
+    label: "text-xs font-medium uppercase tracking-[0.14em] text-rose-700",
     value: "mt-1 text-xl font-semibold tabular-nums text-rose-900 leading-none",
     valueWrap: "mt-3 flex items-center justify-between gap-3",
     description: "mt-2 text-[11px] text-rose-800/70",
@@ -71,15 +72,17 @@ export function KpiCard({
   description,
   className,
   valueClassName,
+  valueWrapClassName,
   labelClassName,
   descriptionClassName,
+  ...rest
 }: KpiCardProps) {
   const styles = toneStyles[tone];
 
   return (
-    <div className={cn(styles.container, className)}>
+    <div className={cn(styles.container, className)} {...rest}>
       <p className={cn(styles.label, labelClassName)}>{label}</p>
-      <div className={styles.valueWrap}>
+      <div className={cn(styles.valueWrap, valueWrapClassName)}>
         <p className={cn(styles.value, valueClassName)}>{value}</p>
         {icon ? <div className="shrink-0">{icon}</div> : null}
       </div>

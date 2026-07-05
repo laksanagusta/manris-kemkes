@@ -20,9 +20,8 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import {
   Select,
   SelectContent,
@@ -740,14 +739,7 @@ export default function InboxPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Persetujuan & TTE</h1>
-        <p className="text-sm text-muted-foreground">
-          Tinjau permintaan persetujuan & tanda tangan.
-        </p>
-      </div>
-
+    <div className="space-y-4 animate-fade-in">
       <Tabs
         value={filter}
         onValueChange={(value) => {
@@ -755,40 +747,65 @@ export default function InboxPage() {
           setPage(1);
         }}
       >
-        <TabsList className="bg-muted/40 border border-border/50">
-          <TabsTrigger value="all">Semua</TabsTrigger>
-          <TabsTrigger value="my_approvals" className="gap-2">
+        <TabsList className="rounded-lg ring-1 ring-inset ring-border/50 bg-muted/50 p-0.5" style={{ height: '36px' }}>
+          <TabsTrigger value="all" className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200">
+            Semua
+          </TabsTrigger>
+          <TabsTrigger value="my_approvals" className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200 gap-2">
             Persetujuan Saya
             {counts.myApprovals > 0 && (
-              <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
+              <Badge className="ml-1 h-4 border border-primary/20 bg-primary/20 px-1 text-[9px] text-primary">
                 {counts.myApprovals}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="approved">Disetujui</TabsTrigger>
-          <TabsTrigger value="rejected">Ditolak</TabsTrigger>
+          <TabsTrigger value="approved" className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200">
+            Disetujui
+          </TabsTrigger>
+          <TabsTrigger value="rejected" className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200">
+            Ditolak
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (
-          <KpiCard key={card.label} label={card.label} value={card.value} tone={card.tone} />
+          <KpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            tone="white"
+            className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+            labelClassName="capitalize tracking-normal"
+            valueClassName="font-medium"
+            valueWrapClassName="mt-auto"
+          />
         ))}
       </div>
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[220px] max-w-sm">
-              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Cari kode, judul, unit, atau pemohon..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="h-8 pl-8 text-xs bg-background/80 border border-border/50"
-              />
+      <div className="rounded-lg gap-0 overflow-hidden ring-1 ring-inset ring-border bg-card p-4 shadow-none">
+        <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
+              Daftar Persetujuan
+            </h2>
+            <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
+              Tinjau permintaan persetujuan & tanda tangan.
+            </p>
+          </div>
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
+            <div className="min-w-0 flex-1 sm:w-64 md:flex-none">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+                <SearchInput
+                  placeholder="Cari kode, judul, unit, atau pemohon..."
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  aria-label="Cari permintaan persetujuan"
+                  className="bg-muted pl-10 text-sm"
+                />
+              </div>
             </div>
-
             <Select
               value={typeFilter}
               onValueChange={(value) => {
@@ -796,7 +813,7 @@ export default function InboxPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 w-40 text-xs bg-background/80 border border-border/50">
+              <SelectTrigger className="h-9 w-40 text-sm bg-muted/50 border-0">
                 <SelectValue placeholder="Jenis Permintaan" />
               </SelectTrigger>
               <SelectContent>
@@ -807,44 +824,60 @@ export default function InboxPage() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
-              <TableHead className="whitespace-nowrap">Entitas</TableHead>
-              <TableHead className="w-32 whitespace-nowrap">
-                Unit Kerja
-              </TableHead>
-              <TableHead className="w-24 whitespace-nowrap">Jenis</TableHead>
-              <TableHead className="w-36 whitespace-nowrap">Pemohon</TableHead>
-              <TableHead className="w-32 whitespace-nowrap">Tanggal</TableHead>
-              <TableHead className="w-28 whitespace-nowrap">Status</TableHead>
-              <TableHead className="w-28 text-right whitespace-nowrap">
-                Tindakan
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredRequests.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="h-24">
-                  <div className="flex flex-col gap-1 text-left">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Belum ada permintaan persetujuan yang sesuai filter
-                    </p>
-                    <p className="text-xs text-muted-foreground/70">
-                      Ubah filter pencarian atau tab status untuk melihat data
-                      lain
-                    </p>
-                  </div>
-                </TableCell>
+        <div className="-mx-4 overflow-x-auto">
+          <Table className="min-w-[1120px] table-fixed">
+            <colgroup>
+              <col className="w-[10%]" />
+              <col className="w-[26%]" />
+              <col className="w-[13%]" />
+              <col className="w-[10%]" />
+              <col className="w-[12%]" />
+              <col className="w-[11%]" />
+              <col className="w-[10%]" />
+              <col className="w-[8%]" />
+            </colgroup>
+            <TableHeader className="[&_tr]:border-b [&_tr]:border-border">
+              <TableRow className="h-9 hover:bg-transparent">
+                <TableHead className="whitespace-nowrap pl-4 pr-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                  Kode
+                </TableHead>
+                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                  Entitas
+                </TableHead>
+                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                  Unit Kerja
+                </TableHead>
+                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                  Jenis
+                </TableHead>
+                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                  Pemohon
+                </TableHead>
+                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                  Tanggal
+                </TableHead>
+                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                  Status
+                </TableHead>
+                <TableHead className="whitespace-nowrap pl-3 pr-4 text-right align-middle text-xs font-medium capitalize text-muted-foreground">
+                  Tindakan
+                </TableHead>
               </TableRow>
-            ) : (
-              filteredRequests.map((item) => {
+            </TableHeader>
+            <TableBody>
+              {filteredRequests.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={8}
+                    className="py-8 text-left text-xs text-muted-foreground"
+                  >
+                    Belum ada permintaan persetujuan yang sesuai filter
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredRequests.map((item) => {
                 const typeConfig =
                   requestTypeConfig[item.requestType] ?? requestTypeConfig.risk;
                 const Icon = typeConfig.icon;
@@ -909,16 +942,16 @@ export default function InboxPage() {
                 return (
                   <TableRow
                     key={item.id}
-                    className="border-border/30 hover:bg-muted/30"
+                    className="border-b border-border hover:bg-muted/50"
                   >
-                    <TableCell className="font-mono text-muted-foreground truncate max-w-[100px]">
+                    <TableCell className="py-2 pl-4 pr-3 text-foreground">
                       {displayCode || `REQ-${item.id.slice(0, 8)}`}
                     </TableCell>
-                    <TableCell className="max-w-[300px]">
+                    <TableCell className="px-3 py-2">
                       <div className="min-w-0">
                         <Link
                           href={typeConfig.href(entityId, extraId)}
-                          className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80"
+                          className="block min-w-0 truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
                         >
                           {displayTitle || "Tanpa judul"}
                         </Link>
@@ -927,10 +960,10 @@ export default function InboxPage() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground truncate max-w-[150px]">
+                    <TableCell className="px-3 py-2 text-muted-foreground">
                       {displayOrg || "—"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-3 py-2">
                       <Badge variant="outline" className="h-5 px-1.5 text-xs">
                         <span className="inline-flex items-center gap-1">
                           <Icon className="size-3" />
@@ -938,7 +971,7 @@ export default function InboxPage() {
                         </span>
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-3 py-2">
                       <div>
                         <p className="text-sm font-medium">
                           {displayRequester || "System"}
@@ -950,13 +983,13 @@ export default function InboxPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="px-3 py-2 text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="size-3" />
                         {formatDate(displayDate)}
                       </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-3 py-2">
                       <Badge
                         className={cn(
                           "h-5 px-1.5 text-[10px] font-medium border",
@@ -966,9 +999,8 @@ export default function InboxPage() {
                         {statusLabel[status]}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-1">
-                        {isWorkingPaper ? (
+                    <TableCell className="py-2 pl-3 pr-4 text-right">
+                      {isWorkingPaper ? (
                           <Button
                             size="sm"
                             asChild
@@ -983,7 +1015,7 @@ export default function InboxPage() {
                           </Button>
                         ) : canAction ? (
                           isKRIReport ? (
-                            <>
+                            <div className="inline-flex gap-1">
                               <Button
                                 size="sm"
                                 onClick={() =>
@@ -1013,7 +1045,7 @@ export default function InboxPage() {
                                 <AlertCircle className="size-3" />
                                 Revisi
                               </Button>
-                            </>
+                            </div>
                           ) : (
                             <Button
                               size="sm"
@@ -1042,7 +1074,6 @@ export default function InboxPage() {
                                 : "Tidak ada aksi"}
                           </span>
                         )}
-                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -1050,8 +1081,9 @@ export default function InboxPage() {
             )}
           </TableBody>
         </Table>
+        </div>
 
-        <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
+        <div className="-mx-4 -mb-4 flex items-center justify-between border-t border-border/50 px-4 py-3">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">
@@ -1064,7 +1096,7 @@ export default function InboxPage() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-7 w-[65px] text-xs bg-muted/30 border-none">
+                <SelectTrigger className="h-7 w-[65px] border-border bg-card text-xs text-muted-foreground">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1085,8 +1117,8 @@ export default function InboxPage() {
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 text-muted-foreground"
+              size="icon"
+              className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
               disabled={page === 1 || loading || isPending}
               onClick={() => setPage((current) => Math.max(1, current - 1))}
             >
@@ -1100,8 +1132,8 @@ export default function InboxPage() {
             </span>
             <Button
               variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 text-muted-foreground"
+              size="icon"
+              className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
               disabled={
                 page >= (Math.ceil(approvalTotal / limit) || 1) ||
                 approvalTotal === 0 ||
@@ -1118,7 +1150,7 @@ export default function InboxPage() {
             </Button>
           </div>
         </div>
-      </Card>
+      </div>
 
       <Dialog open={kriModalOpen} onOpenChange={setKriModalOpen}>
         <DialogContent className="sm:max-w-md">

@@ -43,3 +43,19 @@ func TestMitigationValidateRejectsUnknownType(t *testing.T) {
 		t.Fatalf("expected ErrInvalidMitigationType, got %v", err)
 	}
 }
+
+func TestMitigationValidateNormalizesBlankDueDateToNil(t *testing.T) {
+	blank := "   "
+	m := Mitigation{
+		Action:  "Kurangi frekuensi review",
+		Owner:   "PIC",
+		DueDate: &blank,
+	}
+
+	if err := m.Validate(); err != nil {
+		t.Fatalf("expected no validation error, got %v", err)
+	}
+	if m.DueDate != nil {
+		t.Fatalf("expected blank due date to normalize to nil, got %q", *m.DueDate)
+	}
+}

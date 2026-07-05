@@ -77,6 +77,8 @@ import {
   Search,
 } from "lucide-react";
 import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
+import { SearchInput } from "@/components/ui/search-input";
+import { useSetHeaderActions } from "@/lib/header-actions-context";
 
 type WorkingPaperStatusFilter = "all" | WorkingPaperStatus;
 
@@ -151,15 +153,15 @@ function WorkingPaperFiltersSidebar({
   return (
     <Sheet modal={false} open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
-        <Button variant="outline" className="h-8 gap-2">
-          <Filter className="size-3.5" />
+        <Button variant="outline" size="md" className="gap-2 shadow-none">
+          <Filter className="size-3.5" strokeWidth={2.5} />
           Filter
         </Button>
       </SheetTrigger>
 
       <SheetContent
         side="right"
-        className="data-[side=right]:w-full data-[side=right]:sm:max-w-[22rem]"
+        className="data-[side=right]:w-full data-[side=right]:sm:max-w-[22rem] rounded-2xl"
       >
         <SheetHeader>
           <SheetTitle>Filter Kertas Kerja</SheetTitle>
@@ -182,7 +184,7 @@ function WorkingPaperFiltersSidebar({
                 onStatusFilterChange(value as WorkingPaperStatusFilter)
               }
             >
-              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
+              <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
                 <SelectValue placeholder="Semua status" />
               </SelectTrigger>
               <SelectContent>
@@ -205,7 +207,7 @@ function WorkingPaperFiltersSidebar({
                 onAssessmentCycleFilterChange(event.target.value)
               }
               placeholder="Filter siklus asesmen"
-              className="h-8 border border-border/50 bg-background/80 text-xs"
+              className="h-9 border-0 bg-muted/50 text-sm"
             />
           </div>
 
@@ -217,7 +219,7 @@ function WorkingPaperFiltersSidebar({
               type="date"
               value={createdAtFilter}
               onChange={(event) => onCreatedAtFilterChange(event.target.value)}
-              className="h-8 border border-border/50 bg-background/80 text-xs"
+              className="h-9 border-0 bg-muted/50 text-sm"
             />
           </div>
         </div>
@@ -225,11 +227,17 @@ function WorkingPaperFiltersSidebar({
         <Separator />
 
         <SheetFooter className="sm:flex-row sm:justify-between">
-          <Button type="button" variant="ghost" onClick={onReset}>
+          <Button type="button" variant="ghost" size="md" onClick={onReset} className="shadow-none">
             Reset
           </Button>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Tutup
+          <Button
+            type="button"
+            size="md"
+            className="gap-1.5"
+            style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
+            onClick={() => onOpenChange(false)}
+          >
+            Terapkan
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -269,16 +277,16 @@ function WorkingPaperFiltersToolbar({
   onReset,
 }: WorkingPaperFiltersToolbarProps) {
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-      <div className="min-w-0 flex-1 md:max-w-md">
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
+      <div className="min-w-0 flex-1 sm:w-64 md:flex-none">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+          <Search className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+          <SearchInput
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder={searchPlaceholder}
             aria-label={searchAriaLabel}
-            className="h-8 border border-border/50 bg-background/80 pl-9 text-xs"
+            className="bg-muted pl-10 text-sm"
           />
         </div>
       </div>
@@ -362,6 +370,7 @@ export default function WorkingPapersPage() {
   const [paperToCancel, setPaperToCancel] = useState<WorkingPaper | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState("");
+  const setHeaderActions = useSetHeaderActions();
 
   const semesterOptions: { value: string; label: string }[] = (() => {
     const year = new Date().getFullYear();
@@ -604,66 +613,47 @@ export default function WorkingPapersPage() {
   ];
   const visiblePaperCount = papers.length;
 
-  return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Kertas Kerja</h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola daftar kertas kerja untuk proses pengesahan profil risiko
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            className="gap-2 shadow-lg shadow-primary/20"
-            onClick={() => {
-              setSelectedSemester(currentSemester);
-              setCreateModalOpen(true);
-            }}
-          >
-            <Plus className="size-4" />
-            Buat Kertas Kerja
-          </Button>
-        </div>
-      </div>
+  useEffect(() => {
+    if (!token) return;
+    setHeaderActions(
+      <div className="flex items-center gap-2">
+        <Button
+          size="md"
+          className="gap-2 border-0"
+          style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
+          onClick={() => {
+            setSelectedSemester(currentSemester);
+            setCreateModalOpen(true);
+          }}
+        >
+          <Plus className="size-3.5" strokeWidth={2.5} />
+          Buat Kertas Kerja
+        </Button>
+      </div>,
+    );
+    return () => setHeaderActions(null);
+  }, [token, setHeaderActions]);
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {summaryCards.map((card) => (
-          <KpiCard key={card.label} label={card.label} value={card.value} tone={card.tone} />
+          <KpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            tone="white"
+            className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+            labelClassName="capitalize tracking-normal"
+            valueClassName="font-medium"
+            valueWrapClassName="mt-auto"
+          />
         ))}
       </div>
 
-      <div className="space-y-3">
-          <WorkingPaperFiltersToolbar
-          search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          searchPlaceholder="Cari judul kertas kerja..."
-          searchAriaLabel="Cari judul kertas kerja"
-          filterOpen={filterOpen}
-          onFilterOpenChange={setFilterOpen}
-          statusFilter={statusFilter}
-          onStatusFilterChange={(value) => {
-            setStatusFilter(value);
-            setPage(1);
-          }}
-          assessmentCycleFilter={assessmentCycleFilter}
-          onAssessmentCycleFilterChange={(value) => {
-            setAssessmentCycleFilter(value);
-            setPage(1);
-          }}
-          createdAtFilter={createdAtFilter}
-          onCreatedAtFilterChange={(value) => {
-            setCreatedAtFilter(value);
-            setPage(1);
-          }}
-          onReset={handleResetFilters}
-        />
-
+      <div className="space-y-4">
         {error ? (
-          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-4 text-sm text-destructive">
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-4 text-sm text-destructive">
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
               <div className="space-y-1">
@@ -672,7 +662,7 @@ export default function WorkingPapersPage() {
                 <Button
                   onClick={() => window.location.reload()}
                   variant="outline"
-                  className="mt-2 gap-2 border-destructive/20 bg-white text-destructive hover:bg-destructive/5"
+                  className="mt-2 gap-2 border-destructive/20 bg-background text-destructive shadow-none hover:bg-destructive/5"
                 >
                   <ArrowUpRight className="size-4" />
                   Muat Ulang Halaman
@@ -682,30 +672,51 @@ export default function WorkingPapersPage() {
           </div>
         ) : null}
 
-        <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
-          <div className="flex flex-col gap-3 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:flex-row md:items-start md:justify-between md:px-6">
-            <div className="flex min-w-0 flex-1 items-start gap-3">
-              <div className="min-w-0">
-                <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900 text-balance">
-                  Daftar kertas kerja
-                </h2>
-                <p className="mt-1 text-xs text-zinc-500 text-pretty">
-                  Dokumen kertas kerja risiko beserta status dan progres
-                  penandatanganan untuk filter yang sedang aktif.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 md:justify-end">
-              <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
-                {visiblePaperCount} kertas kerja
-              </span>
+        <div className="rounded-lg gap-0 overflow-hidden ring-1 ring-inset ring-border bg-card p-4">
+      <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
+            Daftar Kertas Kerja
+          </h2>
+          <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
+            Dokumen risiko dan progres penandatanganan
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <WorkingPaperFiltersToolbar
+                search={search}
+                onSearchChange={(value) => {
+                  setSearch(value);
+                  setPage(1);
+                }}
+                searchPlaceholder="Cari judul kertas kerja..."
+                searchAriaLabel="Cari judul kertas kerja"
+                filterOpen={filterOpen}
+                onFilterOpenChange={setFilterOpen}
+                statusFilter={statusFilter}
+                onStatusFilterChange={(value) => {
+                  setStatusFilter(value);
+                  setPage(1);
+                }}
+                assessmentCycleFilter={assessmentCycleFilter}
+                onAssessmentCycleFilterChange={(value) => {
+                  setAssessmentCycleFilter(value);
+                  setPage(1);
+                }}
+                createdAtFilter={createdAtFilter}
+                onCreatedAtFilterChange={(value) => {
+                  setCreatedAtFilter(value);
+                  setPage(1);
+                }}
+                onReset={handleResetFilters}
+              />
             </div>
           </div>
 
           {showInitialLoading ? (
             <div className="p-4">
-              <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/70 px-4 py-8 text-left">
-                <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+              <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-8 text-left">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <Search className="size-4 animate-pulse" />
                   Memuat daftar kertas kerja...
                 </div>
@@ -713,11 +724,11 @@ export default function WorkingPapersPage() {
             </div>
           ) : papers.length === 0 ? (
             <div className="p-4">
-              <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/70 px-4 py-8 text-left">
-                <p className="text-sm font-medium text-zinc-700">
+              <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-8 text-left">
+                <p className="text-sm font-medium text-foreground">
                   Belum ada kertas kerja yang sesuai filter
                 </p>
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Ubah filter pencarian atau tab status untuk melihat data lain.
                 </p>
               </div>
@@ -747,12 +758,12 @@ export default function WorkingPapersPage() {
                   return (
                     <div
                       key={wp.id}
-                      className="rounded-xl border border-zinc-200/80 bg-white px-4 py-3 transition-colors hover:bg-zinc-50/70"
+                      className="rounded-lg border border-border bg-background px-4 py-3 transition-colors hover:bg-muted/50"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500">
+                            <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                               {wp.code}
                             </span>
                             <Badge
@@ -763,30 +774,30 @@ export default function WorkingPapersPage() {
                           </div>
                           <Link
                             href={`/risk/working-papers/${wp.id}`}
-                            className="mt-1 line-clamp-2 text-sm font-semibold text-zinc-900 transition-colors hover:text-primary"
+                            className="mt-1 line-clamp-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
                           >
                             {wp.title || "Tanpa Judul"}
                           </Link>
-                          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
+                          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                             <span>{wp.assessment_cycle || "Tanpa siklus"}</span>
-                            <span className="text-zinc-300">|</span>
+                            <span className="text-border">|</span>
                             <span>{wp.risks?.length || 0} risiko</span>
-                            <span className="text-zinc-300">|</span>
+                            <span className="text-border">|</span>
                             <span>{createdDate}</span>
                           </div>
                         </div>
-                        <ChevronRight className="mt-1 size-4 shrink-0 text-zinc-400" />
+                        <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
                       </div>
 
                       {totalSignatories > 0 && (
                         <div className="mt-3 flex items-center gap-3">
-                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100">
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                             <div
                               className="h-full rounded-full bg-emerald-500 transition-all"
                               style={{ width: `${progressPercent}%` }}
                             />
                           </div>
-                          <span className="text-xs font-medium tabular-nums text-zinc-500">
+                          <span className="text-xs font-medium tabular-nums text-muted-foreground">
                             {progressText} TTE
                           </span>
                         </div>
@@ -796,29 +807,30 @@ export default function WorkingPapersPage() {
                 })}
               </div>
 
-              <Table className="hidden min-w-[980px] md:table">
-                <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
-                  <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
-                    <TableHead className="h-10 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
+            <div className="-mx-4 overflow-x-auto hidden md:block">
+              <Table className="min-w-[980px]">
+                <TableHeader className="[&_tr]:border-b [&_tr]:border-border">
+                  <TableRow className="h-9 hover:bg-transparent">
+                    <TableHead className="h-9 whitespace-nowrap pl-4 pr-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                       Judul
                     </TableHead>
-                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="h-9 whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                       Siklus
                     </TableHead>
-                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="h-9 whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                       Status
                     </TableHead>
-                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="h-9 whitespace-nowrap px-3 text-center align-middle text-xs font-medium capitalize text-muted-foreground">
                       Risiko
                     </TableHead>
-                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="h-9 whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                       Progres TTE
                     </TableHead>
-                    <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="h-9 whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                       Dibuat
                     </TableHead>
-                </TableRow>
-              </TableHeader>
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
                   {papers.map((wp) => {
                     const signedCount =
@@ -842,72 +854,67 @@ export default function WorkingPapersPage() {
                     return (
                       <TableRow
                         key={wp.id}
-                        className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
+                        className="border-b border-border hover:bg-muted/50"
                       >
-                        <TableCell className="min-w-[320px] pl-4 pr-2.5 py-2.5 align-middle md:pl-6">
-                          <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+                        <TableCell className="min-w-[320px] py-2 pl-4 pr-3 align-middle">
+                          <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                             {wp.code}
                           </div>
                           <Link
                             href={`/risk/working-papers/${wp.id}`}
-                            className="block text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary"
+                            className="block text-sm font-normal leading-relaxed text-foreground transition-colors hover:text-primary"
                             title={wp.title}
                           >
                             {wp.title || "Tanpa Judul"}
                           </Link>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap p-2.5 align-middle text-sm text-zinc-600">
+                        <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-muted-foreground">
                           {wp.assessment_cycle || "-"}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap p-2.5 align-middle">
+                        <TableCell className="whitespace-nowrap px-3 py-2 align-middle">
                           <Badge
                             className={cn(
-                              "h-6 border px-2 py-0 text-xs font-semibold",
+                              "h-6 rounded-lg border-0 px-2.5 text-xs",
                               statusVariant[wp.status],
                             )}
                           >
                             {statusLabels[wp.status] || wp.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap p-2.5 text-center align-middle text-sm font-medium tabular-nums text-zinc-900">
+                        <TableCell className="whitespace-nowrap px-3 py-2 text-center align-middle text-sm font-medium tabular-nums text-foreground">
                           {wp.risks?.length || 0}
                         </TableCell>
-                        <TableCell className="min-w-[180px] p-2.5 align-middle">
+                        <TableCell className="min-w-[180px] px-3 py-2 align-middle">
                           {totalSignatories > 0 ? (
                             <div className="space-y-1.5">
                               <div className="flex items-center justify-between gap-3">
-                                <span className="text-sm font-medium text-zinc-900">
+                                <span className="text-sm font-medium text-foreground">
                                   {progressText}
                                 </span>
-                                <span className="text-xs text-zinc-500">
-                                  Penandatangan
-                                </span>
                               </div>
-                              <Progress
-                                value={progressPercent}
-                                className="h-2 bg-zinc-200"
-                              />
+                              <Progress value={progressPercent} className="h-2 bg-muted" />
                             </div>
                           ) : (
-                            <span className="text-sm text-zinc-500">-</span>
+                            <span className="text-sm text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap p-2.5 align-middle text-sm text-zinc-600">
+                        <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-muted-foreground">
                           {createdDate}
                         </TableCell>
-                    </TableRow>
-                  );
-                })}
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
+            </div>
             </>
           )}
 
-          <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3">
-            <div className="flex items-center gap-4">
+          <div className="-mx-4 -mb-4 flex items-center justify-between border-t border-border/50 px-4 py-3">
+            <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-zinc-500">
-                  Baris per halaman:
+                <span className="text-[11px] text-muted-foreground">
+                  Baris:
                 </span>
                 <Select
                   value={limit.toString()}
@@ -916,7 +923,7 @@ export default function WorkingPapersPage() {
                     setPage(1);
                   }}
                 >
-                  <SelectTrigger className="h-7 w-[65px] border-zinc-200 bg-white text-xs text-zinc-700">
+                  <SelectTrigger className="h-6 w-[56px] rounded-md border-0 bg-transparent text-[11px] shadow-none">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -928,28 +935,37 @@ export default function WorkingPapersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <p className="text-xs text-zinc-500">
-                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
-                {Math.min(page * limit, total)} dari {total} kertas kerja
+              <p className="text-[11px] text-muted-foreground">
+                {total === 0 ? 0 : (page - 1) * limit + 1}
+                &ndash;{Math.min(page * limit, total)} dari{" "}
+                {total}
               </p>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               <Button
                 variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                size="icon-xs"
+                className="text-muted-foreground shadow-none"
                 disabled={page === 1 || loading || isPending}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
                 <ChevronLeft className="size-3.5" />
               </Button>
-              <span className="px-2 text-xs text-zinc-500">
-                Halaman {page} dari {totalPages}
+              <Button
+                variant="ghost"
+                size="xs"
+                className="bg-muted text-[11px] font-medium text-foreground shadow-none"
+                disabled
+              >
+                {page}
+              </Button>
+              <span className="px-0.5 text-[11px] text-muted-foreground">
+                / {totalPages}
               </span>
               <Button
                 variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                size="icon-xs"
+                className="text-muted-foreground shadow-none"
                 disabled={
                   page === totalPages || total === 0 || loading || isPending
                 }
@@ -966,7 +982,7 @@ export default function WorkingPapersPage() {
         open={!!paperToDelete}
         onOpenChange={(open) => !open && setPaperToDelete(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-md rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus Kertas Kerja?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -990,7 +1006,7 @@ export default function WorkingPapersPage() {
         open={!!paperToCancel}
         onOpenChange={(open) => !open && setPaperToCancel(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-md rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Batalkan Kertas Kerja?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1012,7 +1028,7 @@ export default function WorkingPapersPage() {
       </AlertDialog>
 
       <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm rounded-2xl">
           <DialogHeader>
             <DialogTitle>Pilih Periode Semester</DialogTitle>
             <DialogDescription>
@@ -1039,11 +1055,13 @@ export default function WorkingPapersPage() {
           <DialogFooter>
             <Button
               variant="outline"
+              size="md"
               onClick={() => setCreateModalOpen(false)}
             >
               Batal
             </Button>
             <Button
+              size="md"
               onClick={() => {
                 setCreateModalOpen(false);
                 router.push(
@@ -1051,6 +1069,8 @@ export default function WorkingPapersPage() {
                 );
               }}
               disabled={!selectedSemester}
+              className="gap-2"
+              style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
             >
               Lanjutkan
             </Button>

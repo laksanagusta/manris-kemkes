@@ -38,7 +38,7 @@ func TestE2E_AllToolsAvailable(t *testing.T) {
 		{"list_risks", map[string]interface{}{}},
 		{"create_and_approve_risk", map[string]interface{}{"title": "Test", "category": "financial", "organizationId": "00000000-0000-0000-0000-000000000000", "probability": 1, "impact": 1}},
 		{"update_risk_draft", map[string]interface{}{"id": "00000000-0000-0000-0000-000000000000"}},
-		{"monitor_and_approve_risk", map[string]interface{}{"riskId": "00000000-0000-0000-0000-000000000000", "assessmentCycle": "Q1"}},
+		{"monitor_and_approve_risk", map[string]interface{}{"riskId": "00000000-0000-0000-0000-000000000000", "assessmentCycle": "H1"}},
 		{"update_monitoring_draft", map[string]interface{}{"id": "00000000-0000-0000-0000-000000000000"}},
 	}
 

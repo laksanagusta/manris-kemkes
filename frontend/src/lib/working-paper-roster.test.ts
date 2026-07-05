@@ -48,7 +48,7 @@ function makeEntry(
     organizationId: overrides.organizationId ?? "org-1",
     sourceRiskId: overrides.sourceRiskId ?? "risk-1",
     sourceVersionNumber: overrides.sourceVersionNumber ?? 1,
-    monitoringCycle: overrides.monitoringCycle ?? "2026-Q2",
+    monitoringCycle: overrides.monitoringCycle ?? "2026-H1",
     monitoringStatus: overrides.monitoringStatus ?? "",
     rosterStatus: overrides.rosterStatus ?? "draft_will_be_created",
   };
@@ -60,7 +60,7 @@ function makePreview(
   return {
     organizationId: "org-1",
     assessmentCycle: "2026-H1",
-    monitoringCycle: "2026-Q2",
+    monitoringCycle: "2026-H1",
     revision: "abc123",
     entries,
     summary: {

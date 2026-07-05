@@ -125,6 +125,9 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 	if input.AssessmentCycle == "" {
 		input.AssessmentCycle = currentAssessmentCycle()
 	}
+	if !IsValidSemesterFormat(input.AssessmentCycle) {
+		return nil, errors.ErrSemesterFormat
+	}
 
 	// 6. Create risk entity
 	risk := &entity.Risk{

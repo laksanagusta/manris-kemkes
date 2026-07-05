@@ -51,7 +51,7 @@ type CreateMonitoringBatchInput struct {
 // Execute processes all items and creates monitoring transactions.
 func (uc *CreateMonitoringBatchUseCase) Execute(ctx context.Context, input CreateMonitoringBatchInput) (*BulkMonitoringBatchOutput, error) {
 	if !IsValidCycleFormat(input.Cycle) {
-		return nil, apperrors.Wrap(apperrors.ErrInvalidInput, "assessment_cycle must be in YYYY-QN format (e.g. 2026-Q1)")
+		return nil, apperrors.Wrap(apperrors.ErrInvalidInput, "assessment_cycle must be in YYYY-HN format (e.g. 2026-H1)")
 	}
 
 	if input.CreatedBy == nil || *input.CreatedBy == uuid.Nil {

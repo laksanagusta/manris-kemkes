@@ -19,7 +19,6 @@ import {
   summarizeRosterDecisions,
   validateRosterDecisions,
   ROSTER_STATUS_LABELS,
-  ROSTER_STATUS_BADGE_CLASSES,
   type RosterDecision,
 } from "@/lib/working-paper-roster";
 import type {
@@ -55,6 +54,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 import { Loader2, Save, FileSearch, X } from "lucide-react";
 
 const formSchema = z.object({
@@ -88,6 +88,12 @@ function toUserPickerOption(user: UserListItem): UserPickerOption {
     orgName: user.orgName,
   };
 }
+
+const ROSTER_STATUS_TO_TONE: Record<string, string> = {
+  finalized_result: "completed",
+  existing_draft: "draft",
+  draft_will_be_created: "pending",
+};
 
 export default function CreateWorkingPaperPage() {
   const router = useRouter();
@@ -356,11 +362,9 @@ export default function CreateWorkingPaperPage() {
 
   if (!organizationId) {
     return (
-      <FormPage className="max-w-7xl">
+      <FormPage className="space-y-4 pb-0">
         <FormHeader
           title="Buat Kertas Kerja Baru"
-          backLabel="Kembali ke Kertas Kerja"
-          onBack={() => router.push("/risk/working-papers")}
         />
         <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
           <p className="text-sm text-muted-foreground">
@@ -376,7 +380,7 @@ export default function CreateWorkingPaperPage() {
     : null;
 
   return (
-    <FormPage className="max-w-7xl">
+    <FormPage className="space-y-4 pb-0">
       <FormHeader
         title="Buat Kertas Kerja Baru"
         description={
@@ -399,6 +403,7 @@ export default function CreateWorkingPaperPage() {
           <Button
             onClick={handleConfirmOpen}
             disabled={isSubmitting || loadingPreview}
+            style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
           >
             {isSubmitting ? (
               <>
@@ -413,8 +418,6 @@ export default function CreateWorkingPaperPage() {
             )}
           </Button>
         }
-        backLabel="Kembali ke Kertas Kerja"
-        onBack={() => router.push("/risk/working-papers")}
       />
 
       <form
@@ -431,6 +434,7 @@ export default function CreateWorkingPaperPage() {
               {decisions.length} risiko
             </Badge>
           }
+          className="rounded-lg ring-1 ring-inset ring-border border-0"
           contentClassName="space-y-4"
         >
           <div className="flex items-center gap-2 max-w-sm">
@@ -474,7 +478,7 @@ export default function CreateWorkingPaperPage() {
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-border/70 bg-card">
+            <div className="overflow-hidden rounded-lg ring-1 ring-inset ring-border bg-card">
               <div className="relative w-full overflow-x-auto">
                 <Table className="w-full caption-bottom text-sm">
                   <TableHeader className="sticky top-0 z-10 bg-muted [&_tr]:border-b">
@@ -571,8 +575,7 @@ export default function CreateWorkingPaperPage() {
                           </TableCell>
                           <TableCell className="p-2 text-center">
                             <Badge
-                              variant="outline"
-                              className={ROSTER_STATUS_BADGE_CLASSES[entry.rosterStatus]}
+                              className={getLinearStatusBadgeClass(ROSTER_STATUS_TO_TONE[entry.rosterStatus] ?? "neutral")}
                             >
                               {ROSTER_STATUS_LABELS[entry.rosterStatus]}
                             </Badge>
@@ -621,6 +624,7 @@ export default function CreateWorkingPaperPage() {
               {signatoryFields.length} penandatangan
             </Badge>
           }
+          className="rounded-lg ring-1 ring-inset ring-border border-0"
         >
           <div className="space-y-3">
             {errors.signatories &&

@@ -158,11 +158,7 @@ func workingPaperMonitoringExpr() string {
 		FROM risk_monitorings rm
 		JOIN risks monitoring_source ON monitoring_source.id = rm.source_risk_id
 		WHERE monitoring_source.version_group_id = risk.version_group_id
-		  AND rm.assessment_cycle = CASE
-		    WHEN RIGHT(wp.assessment_cycle, 2) = 'H1' THEN LEFT(wp.assessment_cycle, 4) || '-Q2'
-		    WHEN RIGHT(wp.assessment_cycle, 2) = 'H2' THEN LEFT(wp.assessment_cycle, 4) || '-Q4'
-		    ELSE ''
-		  END
+		  AND rm.assessment_cycle = wp.assessment_cycle
 		  AND rm.status IN ('draft', 'finalized')
 		ORDER BY CASE rm.status WHEN 'finalized' THEN 0 ELSE 1 END, rm.updated_at DESC, rm.id DESC
 		LIMIT 1
@@ -178,6 +174,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 	// Prefer the latest approved risk from the previous semester.
 	// If none exists, fall back to the latest approved version below the active one.
 	query := fmt.Sprintf(`SELECT wpr.id, wpr.working_paper_id, wpr.risk_id, wpr.sort_order, wpr.source_mode, wpr.created_at,
+		       COALESCE(wpr.version_group_id, risk.version_group_id), COALESCE(wpr.source_risk_id, wpr.risk_id), wpr.monitoring_id, wpr.result_risk_id,
 		       risk.id, risk.code, risk.title, risk.description, risk.category, risk.status,
 		       COALESCE(org.name, ''),
 		       %s AS probability,
@@ -216,7 +213,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(risk.target_score, 0),
 		       COALESCE(risk.assessment_cycle, ''),
 		       risk.version_number,
-		       COALESCE(risk.review_schedule_text, ''),
+		       COALESCE(source_risk.next_review_date::text, ''),
 		       COALESCE((SELECT string_agg(CONCAT(u.name, ' (', u.role, ')'), ', ' ORDER BY m.sort_order) FROM mitigations m JOIN users u ON u.id = m.owner_user_id WHERE m.risk_id = risk.id AND m.owner_user_id IS NOT NULL), ''),
 		       -- Previous semester snapshot
 		       prev_risk.id AS prev_id,
@@ -283,6 +280,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		FROM working_paper_risks wpr
 		INNER JOIN working_papers wp ON wp.id = wpr.working_paper_id
 		INNER JOIN risks risk ON risk.id = wpr.risk_id
+		LEFT JOIN risks source_risk ON source_risk.id = COALESCE(wpr.source_risk_id, wpr.risk_id)
 		LEFT JOIN organizations org ON org.id = risk.organization_id
 		%s
 		%s
@@ -337,6 +335,10 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&link.SortOrder,
 			&link.SourceMode,
 			&link.CreatedAt,
+			&link.VersionGroupID,
+			&link.SourceRiskID,
+			&link.MonitoringID,
+			&link.ResultRiskID,
 			&link.Risk.ID,
 			&link.Risk.Code,
 			&link.Risk.Title,

@@ -162,7 +162,7 @@ func TestRiskMonitoringRepositoryRejectsInvalidCycleDraftQuery(t *testing.T) {
 	repo := postgres.NewRiskMonitoringRepository(pool)
 	ctx := context.Background()
 
-	got, err := repo.GetDraftBySourceAndCycle(ctx, uuid.New(), "2026-Q1")
+	got, err := repo.GetDraftBySourceAndCycle(ctx, uuid.New(), "2026-H1")
 	if err != nil {
 		t.Fatalf("GetDraftBySourceAndCycle: %v", err)
 	}

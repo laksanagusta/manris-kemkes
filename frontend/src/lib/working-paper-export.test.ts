@@ -51,7 +51,7 @@ function makeWorkingPaper(): WorkingPaper {
           target_tingkat_risiko: "sedang",
           target_tingkat_risiko_display: "Sedang",
           assessment_cycle: "2026-H1",
-          jadwal_pelaksanaan: "Maret 2026",
+          jadwal_pelaksanaan: "2026-07-01",
           penanggung_jawab: "Tim SKI",
         },
       },
@@ -107,4 +107,14 @@ test("createWorkingPaperWorkbookBuffer adds attachment-style metadata to the fir
     assert.equal(sheet.getCell("K10").value, "Maret s/d Juni 2026 * :");
     assert.equal(sheet.getCell("K11").value, "- * :");
   }
+
+  const profileSchedule = workbook.getWorksheet("Profil Risiko")?.getCell("M16");
+  assert.equal(profileSchedule?.value, "2026-07-01");
+  assert.equal(profileSchedule?.numFmt, "@");
+
+  const monitoringSchedule = workbook
+    .getWorksheet("KK Pemantauan Reviu")
+    ?.getCell("L16");
+  assert.equal(monitoringSchedule?.value, "2026-07-01");
+  assert.equal(monitoringSchedule?.numFmt, "@");
 });

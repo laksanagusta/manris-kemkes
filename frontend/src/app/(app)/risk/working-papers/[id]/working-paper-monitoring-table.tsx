@@ -43,13 +43,13 @@ const levelBadgeVariant: Record<string, string> = {
 
 function NarrativeCell({ value }: { value: string }) {
   if (value === "-") {
-    return <span className="text-zinc-400">-</span>;
+    return     <span className="text-muted-foreground">-</span>;
   }
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="block max-w-[220px] whitespace-pre-line line-clamp-2 text-xs leading-5 text-zinc-600">
+        <span className="block max-w-[220px] whitespace-pre-line line-clamp-2 text-xs leading-5 text-muted-foreground">
           {value}
         </span>
       </TooltipTrigger>
@@ -71,7 +71,7 @@ function MonitoringActionMenu({
         <Button
           variant="ghost"
           size="icon-xs"
-          className="text-zinc-500"
+          className="text-muted-foreground"
           aria-label={`Aksi risiko ${row.code}`}
         >
           <MoreHorizontal className="size-3.5" />
@@ -101,7 +101,7 @@ function TrendCell({ trend }: { trend: "up" | "down" | "stable" | null }) {
   const label = trend === "up" ? "Meningkat" : trend === "down" ? "Menurun" : trend === "stable" ? "Tetap" : "-";
 
   return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-zinc-600">
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
       {Icon ? <Icon className="size-3.5" aria-hidden="true" /> : null}
       {label}
     </span>
@@ -116,15 +116,15 @@ export function WorkingPaperMonitoringTable({
   const rows = links.map((link) => buildWorkingPaperMonitoringRowFromLink(link));
 
   return (
-    <div>
+    <div className="-mx-4 overflow-x-auto [&::-webkit-scrollbar]:hidden">
       <Table>
         <TableHeader>
-          <TableRow className="border-zinc-200/80 hover:bg-transparent">
+          <TableRow className="border-border hover:bg-transparent">
             {WORKING_PAPER_MONITORING_COLUMNS.map((column, index) => (
               <TableHead
                 key={column.key}
                 className={cn(
-                  "whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500",
+                  "whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground",
                   index === 0 && "w-40 min-w-40 max-w-40",
                   index === 1 && "w-[320px] min-w-[320px] max-w-[320px] overflow-hidden",
                 )}
@@ -152,13 +152,13 @@ export function WorkingPaperMonitoringTable({
             rows.map((row) => (
               <TableRow
                 key={row.id}
-                className="group border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
+                className="group border-border transition-colors hover:bg-muted/50"
               >
-                <TableCell className="w-40 min-w-40 max-w-40 px-2.5 font-mono text-xs text-zinc-600">
+                <TableCell className="w-40 min-w-40 max-w-40 px-2.5 font-mono text-xs text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     {row.code}
                     {row.sourceVersionNumber != null ? (
-                      <Badge className="h-5 border-zinc-200 bg-zinc-50 px-1.5 text-[10px] text-zinc-600">
+                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                         Sumber v{row.sourceVersionNumber}
                       </Badge>
                     ) : null}
@@ -167,7 +167,7 @@ export function WorkingPaperMonitoringTable({
                         Hasil v{row.resultVersionNumber}
                       </Badge>
                     ) : row.versionNumber != null && row.versionNumber > 1 ? (
-                      <Badge className="h-5 border-zinc-200 bg-zinc-50 px-1.5 text-[10px] text-zinc-600">
+                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                         v{row.versionNumber}
                       </Badge>
                     ) : null}
@@ -180,7 +180,7 @@ export function WorkingPaperMonitoringTable({
                 </TableCell>
                 <TableCell className="px-2.5">
                   <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <span className="font-mono text-xs font-semibold text-zinc-900">
+                    <span className="font-mono text-xs font-semibold text-foreground">
                       {row.sourceScore}
                       {row.observedScore == null ? "" : ` -> ${row.observedScore}`}
                     </span>
@@ -201,7 +201,7 @@ export function WorkingPaperMonitoringTable({
                   <TrendCell trend={row.trend} />
                 </TableCell>
                 <TableCell className="px-2.5">
-                  <span className="block max-w-[200px] truncate text-xs text-zinc-600">
+                  <span className="block max-w-[200px] truncate text-xs text-muted-foreground">
                     {row.effectiveness}
                   </span>
                 </TableCell>
@@ -221,8 +221,8 @@ export function WorkingPaperMonitoringTable({
                       row.status === "draft"
                         ? getLinearStatusBadgeClass("draft")
                         : row.status === "finalized"
-                          ? getLinearStatusBadgeClass("completed")
-                          : "border-zinc-200 bg-zinc-50 text-zinc-600",
+                        ? getLinearStatusBadgeClass("completed")
+                        : "border-border bg-muted text-muted-foreground",
                     )}
                   >
                     {row.statusLabel}

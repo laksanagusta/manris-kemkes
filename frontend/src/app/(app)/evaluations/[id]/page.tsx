@@ -586,7 +586,7 @@ export default function EvaluationDetailPage() {
 
   if (!evaluation) {
     return (
-      <Card className="font-display border-border/50 bg-card/90 shadow-sm">
+      <Card className="font-display ring-1 ring-inset ring-border border-0 bg-card shadow-none">
         <CardContent className="space-y-3 px-6 py-10 text-center">
           <p className="text-sm font-medium">Evaluasi tidak ditemukan</p>
           <p className="text-sm text-muted-foreground">
@@ -744,7 +744,7 @@ export default function EvaluationDetailPage() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
         <div className="space-y-6">
-          <Card className="border-border/50 bg-card/90 shadow-sm">
+          <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
             <CardHeader className="border-b border-border/40 pb-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="space-y-1">
@@ -946,7 +946,7 @@ export default function EvaluationDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-card/90 shadow-sm">
+          <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
             <CardHeader className="border-b border-border/40 pb-3">
               <div className="space-y-1">
                 <CardTitle className="text-sm font-semibold">
@@ -1216,7 +1216,7 @@ export default function EvaluationDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <Card className="border-border/50 bg-card/90 shadow-sm">
+          <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
             <CardHeader className="border-b border-border/40 pb-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">

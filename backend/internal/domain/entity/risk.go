@@ -105,24 +105,22 @@ type Risk struct {
 	DraftApprovalLine        []ApprovalLineMember `json:"draftApprovalLine,omitempty"`
 
 	// Ongoing draft tracking (for list views)
-	DraftID               *uuid.UUID `json:"draftId,omitempty"`
-	DraftStatus           *string    `json:"draftStatus,omitempty"`
-	HasOngoing            bool       `json:"hasOngoing"`
-	MonitoringStatus      *string    `json:"monitoringStatus,omitempty"`
-	LastMonitoredAt       *time.Time `json:"lastMonitoredAt,omitempty"`
-	BeforeMonitoringNilai *float64   `json:"beforeMonitoringNilai,omitempty"`
-	MonitoringResultNilai *float64   `json:"monitoringResultNilai,omitempty"`
-	QuarterlyMonitoring   *QuarterlyMonitoringStatus `json:"quarterlyMonitoring,omitempty"`
+	DraftID               *uuid.UUID                `json:"draftId,omitempty"`
+	DraftStatus           *string                   `json:"draftStatus,omitempty"`
+	HasOngoing            bool                      `json:"hasOngoing"`
+	MonitoringStatus      *string                   `json:"monitoringStatus,omitempty"`
+	LastMonitoredAt       *time.Time                `json:"lastMonitoredAt,omitempty"`
+	BeforeMonitoringNilai *float64                  `json:"beforeMonitoringNilai,omitempty"`
+	MonitoringResultNilai *float64                  `json:"monitoringResultNilai,omitempty"`
+	SemesterMonitoring    *SemesterMonitoringStatus `json:"semesterMonitoring,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-type QuarterlyMonitoringStatus struct {
-	Q1 *string `json:"q1"`
-	Q2 *string `json:"q2"`
-	Q3 *string `json:"q3"`
-	Q4 *string `json:"q4"`
+type SemesterMonitoringStatus struct {
+	H1 *string `json:"h1"`
+	H2 *string `json:"h2"`
 }
 
 type ApprovalLineMember struct {
@@ -174,6 +172,11 @@ func (r *Risk) Validate() error {
 	}
 	if r.Impact < 1 || r.Impact > 5 {
 		return errors.ErrInvalidImpact
+	}
+	for i := range r.Mitigations {
+		if err := r.Mitigations[i].Validate(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

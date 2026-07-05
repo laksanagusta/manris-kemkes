@@ -4,23 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
-  ClipboardCheck,
-  FileBarChart,
   Minus,
-  MoreHorizontal,
 } from "lucide-react";
-import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import { MultiPhaseHeatmapCompareCard } from "../compliance/_components/multi-phase-heatmap-compare";
+import { RiskCategoryPieChart } from "./_components/risk-category-pie-chart";
 import { UnitTotalRiskScoreChart } from "./_components/unit-total-risk-score-chart";
-import type { Risk } from "@/types/risk";
+import { TopRisksPanel } from "./_components/top-risks-panel";
+import type { Risk, DashboardRiskCategoryItem, TopRiskItem } from "@/types/risk";
 import { api } from "@/lib/api";
 import {
+  buildDashboardRiskCategoryData,
   buildUnitTotalRiskScoreData,
   levelFromScore,
+  selectEffectiveRiskVersions,
   weightFor,
 } from "@/lib/dashboard-insights";
 import { resolveRiskScoreSemantics } from "@/lib/risk";
@@ -47,11 +44,6 @@ function currentGlobalCycle() {
   return `${year}-${half}`;
 }
 
-function resolveRiskCycleKey(risk: Pick<Risk, "assessmentCycle">) {
-  if (risk.assessmentCycle?.trim()) return risk.assessmentCycle.trim();
-  return null;
-}
-
 export default function DashboardPage() {
   const { token } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -59,6 +51,13 @@ export default function DashboardPage() {
   const [trendRisks, setTrendRisks] = useState<Risk[]>([]);
   const [loading, setLoading] = useState(true);
   const [exposureScore, setExposureScore] = useState(0);
+  const [riskCategoryData, setRiskCategoryData] = useState<
+    ReturnType<typeof buildDashboardRiskCategoryData>
+  >([]);
+  const [riskCategoryLoading, setRiskCategoryLoading] = useState(true);
+  const [riskCategoryError, setRiskCategoryError] = useState(false);
+  const [topRisks, setTopRisks] = useState<TopRiskItem[]>([]);
+  const [topRisksLoading, setTopRisksLoading] = useState(true);
 
   const currentCycle = useMemo(() => currentGlobalCycle(), []);
   const previousCycle = useMemo(() => {
@@ -68,8 +67,9 @@ export default function DashboardPage() {
     return `${year}-H1`;
   }, [currentCycle]);
   const unitTotalRiskScoreData = useMemo(() => {
-    const currentCycleRisks = trendRisks.filter(
-      (risk) => resolveRiskCycleKey(risk) === currentCycle,
+    const currentCycleRisks = selectEffectiveRiskVersions(
+      trendRisks,
+      currentCycle,
     );
     return buildUnitTotalRiskScoreData(currentCycleRisks);
   }, [trendRisks, currentCycle]);
@@ -87,7 +87,15 @@ export default function DashboardPage() {
         token,
       ),
       api.get<Risk[]>("/risks/trend", token),
-    ]).then(([summaryResult, prevSummaryResult, risksResult]) => {
+      api.get<DashboardRiskCategoryItem[]>(
+        `/dashboard/risk-categories?cycle=${currentCycle}`,
+        token,
+      ),
+      api.get<TopRiskItem[]>(
+        `/dashboard/top-risks?cycle=${currentCycle}`,
+        token,
+      ),
+    ]).then(([summaryResult, prevSummaryResult, risksResult, categoryResult, topRisksResult]) => {
       if (summaryResult.status === "fulfilled") setSummary(summaryResult.value);
       else console.error(summaryResult.reason);
 
@@ -110,6 +118,26 @@ export default function DashboardPage() {
         setTrendRisks([]);
       }
 
+      if (categoryResult.status === "fulfilled") {
+        setRiskCategoryData(
+          buildDashboardRiskCategoryData(categoryResult.value),
+        );
+        setRiskCategoryError(false);
+      } else {
+        console.error(categoryResult.reason);
+        setRiskCategoryData([]);
+        setRiskCategoryError(true);
+      }
+      setRiskCategoryLoading(false);
+
+      if (topRisksResult.status === "fulfilled") {
+        setTopRisks(topRisksResult.value);
+      } else {
+        console.error(topRisksResult.reason);
+        setTopRisks([]);
+      }
+      setTopRisksLoading(false);
+
       setLoading(false);
     });
   }, [token, currentCycle, previousCycle]);
@@ -129,38 +157,39 @@ export default function DashboardPage() {
     return { trend, change: percent === 0 ? "0%" : `${absPercent}%` };
   };
 
-  const kpiCards: KpiCard[] = summary
-    ? [
-        {
-          title: "Total Risiko",
-          value: summary.totalRisks,
-          ...calculateTrend(summary.totalRisks, prevSummary?.totalRisks),
-          description: "risiko terdaftar",
-        },
-        {
-          title: "Risiko Tinggi & Sangat Tinggi",
-          value: summary.highExtreme,
-          ...calculateTrend(summary.highExtreme, prevSummary?.highExtreme),
-          description: "memerlukan perhatian",
-        },
-        {
-          title: "Penanganan Overdue",
-          value: summary.overdueMitigations,
-          ...calculateTrend(
-            summary.overdueMitigations,
-            prevSummary?.overdueMitigations,
-          ),
-          description: "melewati tenggat",
-        },
-        {
-          title: "Risk Exposure",
-          value: exposureScore,
-          change: "0%",
-          trend: "stable",
-          description: "skor eksposur tertimbang",
-        },
-      ]
-    : [];
+  const totalRisks = summary?.totalRisks ?? 0;
+  const highExtreme = summary?.highExtreme ?? 0;
+  const overdueMitigations = summary?.overdueMitigations ?? 0;
+  const kpiCards: KpiCard[] = [
+    {
+      title: "Total Risiko",
+      value: totalRisks,
+      ...calculateTrend(totalRisks, prevSummary?.totalRisks),
+      description: "risiko terdaftar",
+    },
+    {
+      title: "Risiko Tinggi & Sangat Tinggi",
+      value: highExtreme,
+      ...calculateTrend(highExtreme, prevSummary?.highExtreme),
+      description: "memerlukan perhatian",
+    },
+    {
+      title: "Penanganan Overdue",
+      value: overdueMitigations,
+      ...calculateTrend(
+        overdueMitigations,
+        prevSummary?.overdueMitigations,
+      ),
+      description: "melewati tenggat",
+    },
+    {
+      title: "Risk Exposure",
+      value: exposureScore,
+      change: "0%",
+      trend: "stable",
+      description: "skor eksposur tertimbang",
+    },
+  ];
 
   if (loading) {
     return (
@@ -171,57 +200,28 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Gambaran keseluruhan kondisi risiko organisasi
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1.5 text-xs">
-            <span className="size-1.5 rounded-full bg-success animate-pulse" />
-            Live
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            Terakhir diperbarui: 10 Mar 2026, 23:45
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-6 flex overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)]">
-        {kpiCards.map((kpi, index) => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpiCards.map((kpi) => (
           <div
             key={kpi.title}
-            className={cn(
-              "flex flex-1 flex-col justify-between px-5 py-5",
-              index !== kpiCards.length - 1 && "border-r border-zinc-100",
-            )}
+            className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border bg-card p-4"
           >
-            <div className="flex items-center justify-between">
-              <p className="text-[13px] font-medium text-zinc-500">
-                {kpi.title}
-              </p>
-              <button className="text-zinc-400 hover:text-zinc-600 transition-colors">
-                <MoreHorizontal className="size-4" />
-              </button>
-            </div>
-
-            <div className="mt-3">
-              <span className="text-[32px] font-bold tracking-tight text-zinc-900 leading-none">
+            <p className="text-sm font-medium capitalize tracking-normal text-muted-foreground">
+              {kpi.title}
+            </p>
+            <div className="mt-auto flex items-end gap-2 pt-3">
+              <span className="text-2xl font-medium tracking-tight text-foreground tabular-nums">
                 {kpi.value}
               </span>
-            </div>
-
-            <div className="mt-4 flex items-center gap-2">
               {kpi.change !== "--" && (
                 <div
+                  title="Dibandingkan dengan siklus sebelumnya"
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                    kpi.trend === "up" && "bg-emerald-50 text-emerald-700",
-                    kpi.trend === "down" && "bg-red-50 text-red-700",
-                    kpi.trend === "stable" && "bg-zinc-100 text-zinc-600",
+                    "mb-0.5 inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-medium",
+                    kpi.trend === "up" && "bg-success/10 text-success",
+                    kpi.trend === "down" && "bg-destructive/10 text-destructive",
+                    kpi.trend === "stable" && "bg-muted text-muted-foreground",
                   )}
                 >
                   {kpi.trend === "up" && <ArrowUp className="size-3" />}
@@ -230,53 +230,29 @@ export default function DashboardPage() {
                   {kpi.change}
                 </div>
               )}
-              <span className="text-[13px] text-zinc-500">
-                vs siklus sebelumnya
-              </span>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-5">
+      <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
         <MultiPhaseHeatmapCompareCard />
+        <RiskCategoryPieChart
+          data={riskCategoryData}
+          loading={riskCategoryLoading}
+          error={riskCategoryError}
+          cycle={currentCycle}
+        />
       </div>
 
-      <div className="mt-5">
+      <div className="grid gap-4 lg:grid-cols-2">
         <UnitTotalRiskScoreChart
           data={unitTotalRiskScoreData}
           cycle={currentCycle}
           loading={loading}
         />
+        <TopRisksPanel risks={topRisks} loading={topRisksLoading} className="lg:col-span-1" />
       </div>
-
-      <Card className="mt-12 border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">
-              Lanjutkan ke Halaman Detail
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Pindah ke monitoring lanjutan atau ekspor laporan jika perlu
-              analisis lebih dalam.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button asChild variant="outline" className="gap-2">
-              <Link href="/compliance/monitoring">
-                <ClipboardCheck className="size-4" />
-                Buka Monitoring &amp; Updates
-              </Link>
-            </Button>
-            <Button asChild className="gap-2">
-              <Link href="/reports">
-                <FileBarChart className="size-4" />
-                Buka Reports &amp; Export
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

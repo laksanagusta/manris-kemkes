@@ -213,7 +213,7 @@ test("buildWorkingPaperDetailViewModel blocks signing when monitoring is still d
             monitoring: {
               id: "mon-1",
               status: "draft",
-              assessmentCycle: "2026-Q2",
+              assessmentCycle: "2026-H1",
               sourceProbability: 4,
               sourceImpact: 4,
               sourceWeight: 1,

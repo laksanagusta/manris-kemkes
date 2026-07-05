@@ -117,9 +117,10 @@ export function buildWorkingPaperMonitoringRowFromLink(
 }
 
 function buildActionItems(risk: WorkingPaperRiskData, link?: WorkingPaperRiskLink): WorkingPaperMonitoringAction[] {
+  const monitoringId = link?.monitoring_id || risk.monitoring?.id;
   const monitoringHref =
-    risk.monitoring?.status === "finalized"
-      ? `/risk/assessment/${risk.monitoring.id}`
+    risk.monitoring?.status === "finalized" && monitoringId
+      ? `/risk/monitoring/${monitoringId}`
       : null;
   const sourceRiskId = link?.source_risk_id || risk.previousRiskId;
   return [

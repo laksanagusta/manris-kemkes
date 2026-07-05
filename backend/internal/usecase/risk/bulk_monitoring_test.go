@@ -136,7 +136,7 @@ func TestPreview_PositionBasedParsing(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -212,7 +212,7 @@ func TestPreview_CodeNotFound(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -278,7 +278,7 @@ func TestPreview_EmptyPAndD(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -345,7 +345,7 @@ func TestPreview_InvalidPAndD(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -395,7 +395,7 @@ func TestPreview_ExistingDraftWarning(t *testing.T) {
 		risks: map[uuid.UUID]*entity.Risk{risk1ID: risk1},
 		versions: []*entity.Risk{
 			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
-			{ID: existingDraftID, VersionGroupID: vg1ID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-Q1"},
+			{ID: existingDraftID, VersionGroupID: vg1ID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-H1"},
 		},
 	}
 
@@ -411,7 +411,7 @@ func TestPreview_ExistingDraftWarning(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -426,7 +426,7 @@ func TestPreview_ExistingDraftWarning(t *testing.T) {
 	}
 	found := false
 	for _, w := range item.Warnings {
-		if w == "Risiko 'R-001' sudah memiliki draf pemantauan untuk siklus 2026-Q1." {
+		if w == "Risiko 'R-001' sudah memiliki draf pemantauan untuk siklus 2026-H1." {
 			found = true
 		}
 	}
@@ -488,7 +488,7 @@ func TestPreview_SimpulanAndEfektivitas(t *testing.T) {
 				Content:        makeMonitoringWorkbook(t, rows),
 				UploaderID:     uploaderID,
 				OrganizationID: orgID,
-				Cycle:          "2026-Q1",
+				Cycle:          "2026-H1",
 			})
 			if err != nil {
 				t.Fatalf("preview err: %v", err)
@@ -529,7 +529,7 @@ func TestPreview_EmptyCodeError(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -589,7 +589,7 @@ func TestPreview_TargetValuesComputedWhenMissing(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -645,7 +645,7 @@ func TestPreview_CsvParsing(t *testing.T) {
 		Content:        csvContent,
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -720,7 +720,7 @@ func TestPreview_MultipleRows(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -773,7 +773,7 @@ func TestPreview_TemplateRoundTrip(t *testing.T) {
 		riskRepo,
 	)
 
-	content, _, err := templateUC.Template(context.Background(), orgID, "2026-Q1")
+	content, _, err := templateUC.Template(context.Background(), orgID, "2026-H1")
 	if err != nil {
 		t.Fatalf("template err: %v", err)
 	}
@@ -827,7 +827,7 @@ func TestPreview_TemplateRoundTrip(t *testing.T) {
 		Content:        content,
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -939,7 +939,7 @@ func TestPreview_AliasBasedHeaderDetection(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -997,7 +997,7 @@ func BenchmarkPreview_PositionBasedParsing(b *testing.B) {
 			Content:        content,
 			UploaderID:     uploaderID,
 			OrganizationID: orgID,
-			Cycle:          "2026-Q1",
+			Cycle:          "2026-H1",
 		})
 	}
 }

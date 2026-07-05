@@ -129,6 +129,26 @@ func TestWorkingPaperRiskQueryCastsMitigationDueDatesToTextArray(t *testing.T) {
 	}
 }
 
+func TestWorkingPaperRiskQueryUsesSourceRiskNextReviewDateForSchedule(t *testing.T) {
+	source, err := os.ReadFile("working_paper.go")
+	if err != nil {
+		t.Fatalf("read working_paper.go: %v", err)
+	}
+	querySource := string(source)
+
+	for _, snippet := range []string{
+		"LEFT JOIN risks source_risk ON source_risk.id = COALESCE(wpr.source_risk_id, wpr.risk_id)",
+		"COALESCE(source_risk.next_review_date::text, '')",
+	} {
+		if !strings.Contains(querySource, snippet) {
+			t.Fatalf("working paper query missing %q", snippet)
+		}
+	}
+	if strings.Contains(querySource, "COALESCE(risk.review_schedule_text, '')") {
+		t.Fatal("working paper export schedule must not use review_schedule_text")
+	}
+}
+
 func TestWorkingPaperRepositoryCreateAssignsSequenceCodePerOrganization(t *testing.T) {
 	pool := setupWorkingPaperPool(t)
 	repo := NewWorkingPaperRepository(pool)
@@ -243,17 +263,14 @@ func TestPreviousApprovedWorkingPaperRiskExprPrefersPreviousSemesterBeforeFallba
 	}
 }
 
-func TestWorkingPaperMonitoringExprPrefersFinalizedAndTargetQuarter(t *testing.T) {
+func TestWorkingPaperMonitoringExprPrefersFinalizedInSameSemester(t *testing.T) {
 	expr := workingPaperMonitoringExpr()
 
 	expectedSnippets := []string{
 		"LEFT JOIN LATERAL (",
 		"JOIN risks monitoring_source ON monitoring_source.id = rm.source_risk_id",
 		"monitoring_source.version_group_id = risk.version_group_id",
-		"RIGHT(wp.assessment_cycle, 2) = 'H1'",
-		"THEN LEFT(wp.assessment_cycle, 4) || '-Q2'",
-		"RIGHT(wp.assessment_cycle, 2) = 'H2'",
-		"THEN LEFT(wp.assessment_cycle, 4) || '-Q4'",
+		"rm.assessment_cycle = wp.assessment_cycle",
 		"rm.status IN ('draft', 'finalized')",
 		"CASE rm.status WHEN 'finalized' THEN 0 ELSE 1 END",
 		"rm.updated_at DESC",
@@ -354,7 +371,7 @@ func TestWorkingPaperRepositoryHydratesMonitoringSelection(t *testing.T) {
 	}
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM risks WHERE id = $1`, voidSource.ID) })
 
-	finalMonitoring := entity.NewRiskMonitoringDraft(sourceRisk, "2026-Q2", userID)
+	finalMonitoring := entity.NewRiskMonitoringDraft(sourceRisk, "2026-H1", userID)
 	finalMonitoring.Status = entity.RiskMonitoringStatusFinalized
 	finalMonitoring.ObservedProbability = 2
 	finalMonitoring.ObservedImpact = 3
@@ -375,7 +392,7 @@ func TestWorkingPaperRepositoryHydratesMonitoringSelection(t *testing.T) {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM risk_monitorings WHERE id = $1`, finalMonitoring.ID)
 	})
 
-	draftMonitoring := entity.NewRiskMonitoringDraft(draftSource, "2026-Q2", userID)
+	draftMonitoring := entity.NewRiskMonitoringDraft(draftSource, "2026-H1", userID)
 	draftMonitoring.ObservedProbability = 4
 	draftMonitoring.ObservedImpact = 4
 	draftMonitoring.CalculateObservedScore()
@@ -390,7 +407,7 @@ func TestWorkingPaperRepositoryHydratesMonitoringSelection(t *testing.T) {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM risk_monitorings WHERE id = $1`, draftMonitoring.ID)
 	})
 
-	voidMonitoring := entity.NewRiskMonitoringDraft(voidSource, "2026-Q2", userID)
+	voidMonitoring := entity.NewRiskMonitoringDraft(voidSource, "2026-H1", userID)
 	voidMonitoring.Status = entity.RiskMonitoringStatusVoid
 	voidMonitoring.ObservedProbability = 5
 	voidMonitoring.ObservedImpact = 5
@@ -452,8 +469,8 @@ func TestWorkingPaperRepositoryHydratesMonitoringSelection(t *testing.T) {
 	if monitoring.Status != entity.RiskMonitoringStatusFinalized {
 		t.Fatalf("expected finalized status, got %q", monitoring.Status)
 	}
-	if monitoring.AssessmentCycle != "2026-Q2" {
-		t.Fatalf("expected target quarter 2026-Q2, got %q", monitoring.AssessmentCycle)
+	if monitoring.AssessmentCycle != "2026-H1" {
+		t.Fatalf("expected target quarter 2026-H1, got %q", monitoring.AssessmentCycle)
 	}
 	if monitoring.Trend != "down" {
 		t.Fatalf("expected trend down, got %q", monitoring.Trend)

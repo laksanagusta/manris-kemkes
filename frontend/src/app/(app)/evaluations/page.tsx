@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useSetHeaderActions } from "@/lib/header-actions-context";
 import { useAuth } from "@/contexts/auth-context";
 import {
   listOrganizationGroups,
@@ -31,19 +32,14 @@ import {
 } from "@/lib/api/organizations";
 import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/ui/kpi-card";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,6 +78,7 @@ import {
   resolveDefaultReportOrgId,
 } from "@/lib/report-scope";
 import { evaluationStatusLabel, filterEvaluations } from "@/lib/evaluations";
+import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 import {
   currentAssessmentCycle,
   getSelectableAssessmentCycles,
@@ -99,9 +96,8 @@ function formatDateTime(value?: string | null) {
 }
 
 const statusStyles: Record<EvaluationStatus, string> = {
-  draft: "border-border/60 bg-muted/40 text-muted-foreground",
-  final:
-    "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  draft: getLinearStatusBadgeClass("draft"),
+  final: getLinearStatusBadgeClass("finalized"),
 };
 
 type EvaluationFiltersSidebarProps = {
@@ -138,102 +134,105 @@ function EvaluationFiltersSidebar({
   onReset,
 }: EvaluationFiltersSidebarProps) {
   return (
-    <Sheet modal={false} open={open} onOpenChange={onOpenChange}>
-      <SheetTrigger asChild>
-        <Button variant="outline" className="h-8 gap-2">
-          <Filter className="size-3.5" />
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="md" className="gap-2 shadow-none">
+          <Filter className="size-3.5" strokeWidth={2.5} />
           Filter
         </Button>
-      </SheetTrigger>
-
-      <SheetContent
-        side="right"
-        className="data-[side=right]:w-full data-[side=right]:sm:max-w-[22rem]"
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="w-[22rem] rounded-2xl p-4"
       >
-        <SheetHeader>
-          <SheetTitle>Filter Evaluasi</SheetTitle>
-          <SheetDescription>
-            Atur organisasi, periode, dan status. Search tetap tersedia di
-            bawah KPI cards.
-          </SheetDescription>
-        </SheetHeader>
-
-        <Separator />
-
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Organisasi
-            </Label>
-            <ReportScopePicker
-              organizationId={organizationId}
-              onOrganizationChange={onOrganizationIdChange}
-              organizations={organizations}
-              organizationGroupId={organizationGroupId}
-              onOrganizationGroupChange={onOrganizationGroupIdChange}
-              organizationGroups={organizationGroups}
-              organizationPlaceholder="Semua organisasi"
-              organizationGroupPlaceholder="Semua group"
-              allowAllOrganizations
-              allOrganizationLabel="Semua organisasi"
-              allOrganizationValue="all"
-              allowAllOrganizationGroups
-              allOrganizationGroupLabel="Semua group"
-              allOrganizationGroupValue="all"
-              orientation="vertical"
-            />
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-sm font-medium">Filter Evaluasi</h4>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Atur organisasi, periode, dan status.
+            </p>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Periode
-            </Label>
-            <Select value={periodFilter} onValueChange={onPeriodFilterChange}>
-              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
-                <SelectValue placeholder="Periode" />
-              </SelectTrigger>
-              <SelectContent>
-                {periodOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">
+                Organisasi
+              </Label>
+              <ReportScopePicker
+                organizationId={organizationId}
+                onOrganizationChange={onOrganizationIdChange}
+                organizations={organizations}
+                organizationGroupId={organizationGroupId}
+                onOrganizationGroupChange={onOrganizationGroupIdChange}
+                organizationGroups={organizationGroups}
+                organizationPlaceholder="Semua organisasi"
+                organizationGroupPlaceholder="Semua group"
+                allowAllOrganizations
+                allOrganizationLabel="Semua organisasi"
+                allOrganizationValue="all"
+                allowAllOrganizationGroups
+                allOrganizationGroupLabel="Semua group"
+                allOrganizationGroupValue="all"
+                orientation="vertical"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium text-foreground">
+                Periode
+              </Label>
+              <Select value={periodFilter} onValueChange={onPeriodFilterChange}>
+                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                  <SelectValue placeholder="Periode" />
+                </SelectTrigger>
+                <SelectContent>
+                  {periodOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium text-foreground">
+                Status
+              </Label>
+              <Select
+                value={status}
+                onValueChange={(value) => onStatusChange(value as EvaluationStatus | "all")}
+              >
+                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua status</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="final">Final</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Status
-            </Label>
-            <Select
-              value={status}
-              onValueChange={(value) => onStatusChange(value as EvaluationStatus | "all")}
+          <div className="flex items-center justify-between pt-4">
+            <Button type="button" variant="ghost" size="md" onClick={onReset} className="shadow-none">
+              Reset
+            </Button>
+            <Button
+              type="button"
+              size="md"
+              className="gap-1.5"
+              style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
+              onClick={() => onOpenChange(false)}
             >
-              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua status</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="final">Final</SelectItem>
-              </SelectContent>
-            </Select>
+              Terapkan
+            </Button>
           </div>
         </div>
-
-        <Separator />
-
-        <SheetFooter className="sm:flex-row sm:justify-between">
-          <Button type="button" variant="ghost" onClick={onReset}>
-            Reset
-          </Button>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Tutup
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -279,16 +278,16 @@ function EvaluationFiltersToolbar({
   onReset,
 }: EvaluationFiltersToolbarProps) {
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-      <div className="min-w-0 flex-1 md:max-w-md">
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
+      <div className="min-w-0 flex-1 sm:w-64 md:flex-none">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+          <Search className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+          <SearchInput
+            placeholder={queryPlaceholder}
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
-            placeholder={queryPlaceholder}
             aria-label={queryAriaLabel}
-            className="h-8 border border-zinc-200 bg-white pl-9 text-sm shadow-none"
+            className="bg-muted pl-10 text-sm"
           />
         </div>
       </div>
@@ -341,6 +340,25 @@ export default function EvaluationsPage() {
   const [createPeriod, setCreatePeriod] = useState(currentAssessmentCycle());
   const [creatingEvaluation, setCreatingEvaluation] = useState(false);
   const organizationFilterInitialized = useRef(false);
+
+  const setHeaderActions = useSetHeaderActions();
+
+  useEffect(() => {
+    if (!token) return;
+    setHeaderActions(
+      <Button
+        type="button"
+        size="md"
+        className="gap-2"
+        style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
+        onClick={() => handleCreateDialogOpenChange(true)}
+      >
+        <FilePlus2 className="size-3.5" strokeWidth={2.5} />
+        Buat Evaluasi
+      </Button>,
+    );
+    return () => setHeaderActions(null);
+  }, [token, setHeaderActions]);
 
   const handleResetFilters = () => {
     setOrganizationId("all");
@@ -634,38 +652,18 @@ export default function EvaluationsPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <section className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-        <div className="max-w-2xl space-y-1.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
-            Daftar evaluasi
-          </p>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Evaluasi</h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Buat, isi, finalisasi, dan unduh laporan evaluasi per organisasi
-              dan periode dari satu halaman kerja.
-            </p>
-          </div>
-        </div>
-        <Button
-          type="button"
-          className="gap-2 self-start"
-          onClick={() => handleCreateDialogOpenChange(true)}
-        >
-          <FilePlus2 className="size-4" />
-          Buat Evaluasi
-        </Button>
-      </section>
-
+    <div className="space-y-4 animate-fade-in">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {evaluationSummaryCards.map((card) => (
           <KpiCard
             key={card.label}
             label={card.label}
             value={card.value}
-            tone={card.tone}
-            description={card.description}
+            tone="white"
+            className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border border-0 p-4"
+            labelClassName="capitalize tracking-normal"
+            valueClassName="font-medium"
+            valueWrapClassName="mt-auto"
           />
         ))}
       </div>
@@ -712,72 +710,112 @@ export default function EvaluationsPage() {
         onReset={handleResetFilters}
       />
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
-        <div className="flex flex-col gap-3 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:flex-row md:items-start md:justify-between md:px-6">
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            <div className="min-w-0">
-              <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900 text-balance">
-                Daftar evaluasi
-              </h2>
-              <p className="mt-1 text-xs text-zinc-500 text-pretty">
-                {loading
-                  ? "Memuat data evaluasi..."
-                  : `${visibleEvaluations.length} evaluasi pada filter aktif`}
-              </p>
-            </div>
+      <div className="rounded-lg gap-0 overflow-hidden ring-1 ring-inset ring-border bg-card p-4 shadow-none">
+        <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
+              Daftar evaluasi
+            </h2>
+            <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
+              {loading
+                ? "Memuat data evaluasi..."
+                : `${visibleEvaluations.length} evaluasi pada filter aktif`}
+            </p>
           </div>
-          <div className="flex flex-col gap-2 md:items-end">
-            <div className="flex flex-wrap items-center gap-2 md:justify-end">
-              <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
-                {total} evaluasi
-              </span>
-            </div>
-          </div>
+          <EvaluationFiltersToolbar
+            query={query}
+            onQueryChange={(value) => {
+              setQuery(value);
+              setPage(1);
+            }}
+            queryPlaceholder="Cari evaluasi..."
+            queryAriaLabel="Cari evaluasi"
+            filterOpen={filterOpen}
+            onFilterOpenChange={setFilterOpen}
+            organizationId={organizationId}
+            onOrganizationIdChange={(value) => {
+              setOrganizationId(value);
+              if (value !== "all") {
+                setOrganizationGroupId("all");
+              }
+              setPage(1);
+            }}
+            organizationGroupId={organizationGroupId}
+            onOrganizationGroupIdChange={(value) => {
+              setOrganizationGroupId(value);
+              if (value !== "all") {
+                setOrganizationId("all");
+              }
+              setPage(1);
+            }}
+            organizations={organizations}
+            organizationGroups={organizationGroups}
+            periodOptions={periodOptions}
+            periodFilter={periodFilter}
+            onPeriodFilterChange={(value) => {
+              setPeriodFilter(value);
+              setPage(1);
+            }}
+            status={status}
+            onStatusChange={(value) => {
+              setStatus(value);
+              setPage(1);
+            }}
+            onReset={handleResetFilters}
+          />
         </div>
 
-        <div className="relative w-full overflow-x-auto">
-          <Table className="min-w-[1240px]">
-            <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
-              <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
-                <TableHead className="w-28 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
+        <div className="-mx-4 overflow-x-auto">
+          <Table className="min-w-[1020px] table-fixed">
+            <colgroup>
+              <col className="w-[10%]" />
+              <col className="w-[12%]" />
+              <col className="w-[26%]" />
+              <col className="w-[14%]" />
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
+              <col className="w-[12%]" />
+            </colgroup>
+            <TableHeader className="[&_tr]:border-b [&_tr]:border-border">
+              <TableRow className="h-9 hover:bg-transparent">
+                <TableHead className="whitespace-nowrap pl-4 pr-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                   Kode
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                   Periode
                 </TableHead>
-                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                   Organisasi
                 </TableHead>
-                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                   Template
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                   Status
                 </TableHead>
-                <TableHead className="w-32 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                   Diperbarui
                 </TableHead>
-                <TableHead className="w-32 whitespace-nowrap px-2.5 text-right align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 md:pr-6">
+                <TableHead className="whitespace-nowrap pl-3 pr-4 text-right align-middle text-xs font-medium capitalize text-muted-foreground">
                   Aksi
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="[&_tr:last-child]:border-0">
+            <TableBody>
               {loading ? (
-                <TableRow className="border-b border-zinc-200/80 transition-colors hover:bg-zinc-50/70">
+                <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="py-12 text-center text-sm text-zinc-500"
+                    className="py-8 text-left text-xs text-muted-foreground"
                   >
-                    <Loader2 className="mx-auto mb-2 size-4 animate-spin" />
                     Memuat evaluasi...
                   </TableCell>
                 </TableRow>
               ) : visibleEvaluations.length === 0 ? (
-                <TableRow className="border-b border-zinc-200/80 transition-colors hover:bg-zinc-50/70">
+                <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="py-12 text-center text-sm text-zinc-500"
+                    className="py-8 text-left text-xs text-muted-foreground"
                   >
                     Belum ada evaluasi untuk filter yang dipilih.
                   </TableCell>
@@ -792,44 +830,37 @@ export default function EvaluationsPage() {
                   return (
                     <TableRow
                       key={evaluation.id}
-                      className="border-b border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
+                      className="border-b border-border hover:bg-muted/50"
                     >
-                      <TableCell className="whitespace-nowrap px-2.5 font-mono text-zinc-600 pl-4 md:pl-6">
+                      <TableCell className="py-2 pl-4 pr-3 text-foreground">
                         <Link
                           href={`/evaluations/${evaluation.id}`}
-                          className="inline-flex items-center rounded-md font-semibold text-zinc-700 transition-colors hover:text-primary"
+                          className="font-medium transition-colors hover:text-primary"
                           aria-label={`Buka detail evaluasi ${evaluation.code}`}
                         >
                           {evaluation.code}
                         </Link>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap px-2.5 text-zinc-600">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-zinc-900">
-                            {evaluation.period}
-                          </span>
-                        </div>
+                      <TableCell className="px-3 py-2 text-muted-foreground">
+                        {evaluation.period}
                       </TableCell>
-                      <TableCell className="max-w-[300px] px-2.5">
-                        <div className="truncate font-medium text-zinc-900">
+                      <TableCell className="px-3 py-2">
+                        <span className="text-sm font-medium text-foreground">
                           {orgName}
-                        </div>
+                        </span>
                       </TableCell>
-                      <TableCell className="max-w-[300px] px-2.5 text-zinc-600">
+                      <TableCell className="px-3 py-2 text-muted-foreground">
                         {evaluation.templateName || evaluation.templateId}
                       </TableCell>
-                      <TableCell className="px-2.5">
-                        <Badge
-                          variant="outline"
-                          className={statusStyles[evaluation.status]}
-                        >
+                      <TableCell className="px-3 py-2">
+                        <Badge className={statusStyles[evaluation.status]}>
                           {evaluationStatusLabel[evaluation.status]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap px-2.5 text-xs text-zinc-600">
+                      <TableCell className="px-3 py-2 text-muted-foreground">
                         {formatDateTime(evaluation.updatedAt)}
                       </TableCell>
-                      <TableCell className="px-2.5 align-middle text-right md:pr-6">
+                      <TableCell className="py-2 pl-3 pr-4 text-right">
                         <div className="flex items-center justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -866,7 +897,7 @@ export default function EvaluationsPage() {
           </Table>
         </div>
 
-        <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3">
+        <div className="-mx-4 -mb-4 flex items-center justify-between border-t border-border/50 px-4 py-3">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">
@@ -879,7 +910,7 @@ export default function EvaluationsPage() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-7 w-[65px] border-none bg-muted/30 px-2.5 text-xs shadow-none">
+                <SelectTrigger className="h-7 w-[65px] border-border bg-card text-xs text-muted-foreground">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

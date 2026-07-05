@@ -4,7 +4,7 @@ import { MonitoringLatestProgressChart } from "../_components/monitoring-latest-
 
 export default function MonitoringPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <MonitoringReportingWorkspace />
       <MonitoringLatestProgressChart />
       <MonitoringOperationalPanel />

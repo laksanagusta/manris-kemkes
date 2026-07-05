@@ -92,15 +92,10 @@ export type SemesterScoreTargetDatum = {
 
 function normalizeSemesterKey(value?: string) {
   if (!value) return null;
-  const match = value.trim().match(/^(\d{4})-(H[12]|Q[1-4])$/i);
+  const match = value.trim().match(/^(\d{4})-(H[12])$/i);
   if (!match) return null;
   const year = match[1];
-  const suffix = match[2].toUpperCase();
-  if (suffix.startsWith("H")) {
-    return `${year}-${suffix}`;
-  }
-  const quarter = Number(suffix.slice(1));
-  return `${year}-${quarter <= 2 ? "H1" : "H2"}`;
+  return `${year}-${match[2].toUpperCase()}`;
 }
 
 function deriveSemester(createdAt?: string) {
@@ -114,6 +109,49 @@ function deriveSemester(createdAt?: string) {
 function semesterSortValue(period: string) {
   const [yearText, half] = period.split("-");
   return Number(yearText) * 2 + (half === "H2" ? 1 : 0);
+}
+
+export function selectEffectiveRiskVersions<T extends RiskLike>(
+  risks: T[],
+  targetCycle: string,
+): T[] {
+  const normalizedTarget = normalizeSemesterKey(targetCycle);
+  if (!normalizedTarget) return [];
+
+  const targetSortValue = semesterSortValue(normalizedTarget);
+  const latestByGroup = new Map<string, T>();
+
+  for (const risk of risks) {
+    const cycle = normalizeSemesterKey(risk.assessmentCycle);
+    if (!cycle || semesterSortValue(cycle) > targetSortValue) continue;
+
+    const groupKey =
+      risk.versionGroupId?.trim() ||
+      risk.code?.trim() ||
+      risk.id?.trim();
+    if (!groupKey) continue;
+
+    const current = latestByGroup.get(groupKey);
+    if (!current) {
+      latestByGroup.set(groupKey, risk);
+      continue;
+    }
+
+    const currentCycle = normalizeSemesterKey(current.assessmentCycle);
+    const currentCycleValue = currentCycle
+      ? semesterSortValue(currentCycle)
+      : Number.NEGATIVE_INFINITY;
+    const candidateCycleValue = semesterSortValue(cycle);
+    if (
+      candidateCycleValue > currentCycleValue ||
+      (candidateCycleValue === currentCycleValue &&
+        (risk.versionNumber ?? 0) > (current.versionNumber ?? 0))
+    ) {
+      latestByGroup.set(groupKey, risk);
+    }
+  }
+
+  return [...latestByGroup.values()];
 }
 
 export function levelFromScore(inherentScore?: number): Severity {

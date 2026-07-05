@@ -39,7 +39,7 @@ func TestToCreateRiskInput_Happy(t *testing.T) {
 		"targetProbability":    2,
 		"targetImpact":         2,
 		"targetWeight":         0.3,
-		"assessmentCycle":      "Q1",
+		"assessmentCycle":      "H1",
 		"reviewType":           "periodic",
 	}
 
