@@ -15,19 +15,20 @@ import type { TopRiskItem } from "@/types/risk";
 interface TopRisksPanelProps {
   risks: TopRiskItem[];
   loading?: boolean;
+  className?: string;
 }
 
-export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
+export function TopRisksPanel({ risks, loading, className }: TopRisksPanelProps) {
   if (loading) {
     return (
       <Card
-        className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2"
+        className={cn("gap-4 rounded-lg border-0 bg-card py-0 shadow-none ring-1 ring-inset ring-border lg:col-span-2", className)}
         data-testid="top-risks-panel"
       >
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Top Risks</CardTitle>
+        <CardHeader className="pb-4 pt-4">
+          <CardTitle className="text-base font-medium">Top Risks</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-4">
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div
@@ -43,16 +44,16 @@ export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
 
   return (
     <Card
-      className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2"
+      className={cn("gap-4 rounded-lg border-0 bg-card py-0 shadow-none ring-1 ring-inset ring-border lg:col-span-2", className)}
       data-testid="top-risks-panel"
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-3">
+      <CardHeader className="pb-4 pt-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="text-base font-semibold">
+            <CardTitle className="text-base font-medium">
               Risiko Teratas
             </CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Risiko dengan skor tertinggi pada cycle ini.
             </p>
           </div>
@@ -61,7 +62,7 @@ export function TopRisksPanel({ risks, loading }: TopRisksPanelProps) {
           </Badge>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pb-4">
         {risks.length === 0 ? (
           <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
             Belum ada data risiko.

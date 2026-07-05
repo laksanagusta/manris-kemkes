@@ -58,6 +58,19 @@ func TestRiskCategoryRejectsUnknownKeys(t *testing.T) {
 	}
 }
 
+func TestRiskValidateValidatesMitigations(t *testing.T) {
+	risk := makeValidRiskForCategoryValidation(RiskCategoryOperasional)
+	risk.Mitigations = []Mitigation{{
+		Action:         "Kurangi frekuensi review",
+		Owner:          "PIC",
+		MitigationType: "unknown",
+	}}
+
+	if err := risk.Validate(); err != domainErrors.ErrInvalidMitigationType {
+		t.Fatalf("expected ErrInvalidMitigationType, got %v", err)
+	}
+}
+
 func TestRiskCategoryAllowsLegacyBlankForReadOnlyRollout(t *testing.T) {
 	risk := makeValidRiskForCategoryValidation("")
 

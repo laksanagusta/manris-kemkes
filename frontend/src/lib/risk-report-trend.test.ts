@@ -36,17 +36,17 @@ test("buildRiskTrendData groups risks by semester assessment cycle instead of cr
   ]);
 });
 
-test("buildRiskTrendData normalizes quarterly assessment cycles into semester buckets", () => {
+test("buildRiskTrendData groups semester assessment cycles", () => {
   const risks: RiskTrendSourceItem[] = [
     {
-      assessmentCycle: "2026-Q2",
+      assessmentCycle: "2026-H1",
       createdAt: "2026-04-01T13:02:24.774Z",
       probability: 3,
       impact: 3,
       inherentScore: 9,
     },
     {
-      assessmentCycle: "2026-Q4",
+      assessmentCycle: "2026-H2",
       createdAt: "2026-10-01T13:02:24.774Z",
       probability: 3,
       impact: 4,

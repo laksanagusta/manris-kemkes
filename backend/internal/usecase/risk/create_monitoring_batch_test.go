@@ -187,7 +187,7 @@ func TestCreateMonitoringBatchUseCase_ExecuteCreatesDrafts(t *testing.T) {
 		Items: []BulkMonitoringBatchItemInput{
 			{ClientKey: "row-1", Code: "R-001", RealisasiP: 3, RealisasiD: 3},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &createdBy,
 	})
@@ -216,7 +216,7 @@ func TestCreateMonitoringBatchUseCase_ExecuteCreatesDrafts(t *testing.T) {
 	if draft.Weight != expectedWeight {
 		t.Fatalf("expected draft Weight %f, got %f", expectedWeight, draft.Weight)
 	}
-	if draft.AssessmentCycle != "2026-Q1" {
+	if draft.AssessmentCycle != "2026-H1" {
 		t.Fatalf("expected AssessmentCycle 2026-H1, got %q", draft.AssessmentCycle)
 	}
 	if draft.ReviewType != "periodic" {
@@ -255,7 +255,7 @@ func TestCreateMonitoringBatchUseCase_RejectsNilCreatedBy(t *testing.T) {
 
 	_, err := uc.Execute(context.Background(), CreateMonitoringBatchInput{
 		Items:          []BulkMonitoringBatchItemInput{},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      nil,
 	})
@@ -277,7 +277,7 @@ func TestCreateMonitoringBatchUseCase_FailsForUnknownCode(t *testing.T) {
 		Items: []BulkMonitoringBatchItemInput{
 			{ClientKey: "row-1", Code: "R-999", RealisasiP: 3, RealisasiD: 3},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &createdBy,
 	})
@@ -319,7 +319,7 @@ func TestCreateMonitoringBatchUseCase_FailsForNonApprovedRisk(t *testing.T) {
 		Items: []BulkMonitoringBatchItemInput{
 			{ClientKey: "row-1", Code: "R-001", RealisasiP: 3, RealisasiD: 3},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &createdBy,
 	})
@@ -358,7 +358,7 @@ func TestCreateMonitoringBatchUseCase_FailsForExistingDraft(t *testing.T) {
 		},
 		versions: []*entity.Risk{
 			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
-			{ID: existingDraftID, VersionGroupID: vg1ID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-Q1"},
+			{ID: existingDraftID, VersionGroupID: vg1ID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-H1"},
 		},
 	}
 
@@ -368,7 +368,7 @@ func TestCreateMonitoringBatchUseCase_FailsForExistingDraft(t *testing.T) {
 		Items: []BulkMonitoringBatchItemInput{
 			{ClientKey: "row-1", Code: "R-001", RealisasiP: 3, RealisasiD: 3},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &createdBy,
 	})
@@ -420,7 +420,7 @@ func TestCreateMonitoringBatchUseCase_PartialSuccess(t *testing.T) {
 			{ClientKey: "row-1", Code: "R-001", RealisasiP: 3, RealisasiD: 3},
 			{ClientKey: "row-2", Code: "R-999", RealisasiP: 2, RealisasiD: 2},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &createdBy,
 	})
@@ -477,7 +477,7 @@ func TestCreateMonitoringBatchUseCase_ComputesWeightAndNilai(t *testing.T) {
 		Items: []BulkMonitoringBatchItemInput{
 			{ClientKey: "row-1", Code: "R-050", RealisasiP: 2, RealisasiD: 3},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &createdBy,
 	})
@@ -546,7 +546,7 @@ func TestCreateMonitoringBatchUseCase_PreservesSourceRiskFields(t *testing.T) {
 		Items: []BulkMonitoringBatchItemInput{
 			{ClientKey: "row-1", Code: "R-100", RealisasiP: 3, RealisasiD: 2},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &createdBy,
 	})
@@ -631,7 +631,7 @@ func TestCreateMonitoringBatchUseCase_UsesFullRiskDetailsForMitigations(t *testi
 		Items: []BulkMonitoringBatchItemInput{
 			{ClientKey: "row-1", Code: "R-101", RealisasiP: 3, RealisasiD: 3},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &createdBy,
 	})
@@ -725,7 +725,7 @@ func TestCreateMonitoringBatchUseCase_RepoCreateFailure(t *testing.T) {
 		Items: []BulkMonitoringBatchItemInput{
 			{ClientKey: "row-1", Code: "R-200", RealisasiP: 2, RealisasiD: 2},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &createdBy,
 	})
@@ -788,7 +788,7 @@ func TestIntegration_TemplatePreviewBatchCreate(t *testing.T) {
 
 	// Step 1: Generate template
 	monitoringUC := NewBulkMonitoringSpreadsheetUseCase(orgRepo, userRepo, riskRepo)
-	templateContent, _, err := monitoringUC.Template(context.Background(), orgID, "2026-Q1")
+	templateContent, _, err := monitoringUC.Template(context.Background(), orgID, "2026-H1")
 	if err != nil {
 		t.Fatalf("step 1 - template generation failed: %v", err)
 	}
@@ -802,7 +802,7 @@ func TestIntegration_TemplatePreviewBatchCreate(t *testing.T) {
 		Content:        templateContent,
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("step 2 - preview failed: %v", err)
@@ -827,7 +827,7 @@ func TestIntegration_TemplatePreviewBatchCreate(t *testing.T) {
 		Items: []BulkMonitoringBatchItemInput{
 			{ClientKey: "row-1", Code: "R-001", RealisasiP: 3, RealisasiD: 3},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &uploaderID,
 	})
@@ -849,7 +849,7 @@ func TestIntegration_TemplatePreviewBatchCreate(t *testing.T) {
 	if draft.Impact != 3 {
 		t.Fatalf("step 3 - expected draft Impact 3, got %d", draft.Impact)
 	}
-	if draft.AssessmentCycle != "2026-Q1" {
+	if draft.AssessmentCycle != "2026-H1" {
 		t.Fatalf("step 3 - expected AssessmentCycle 2026-H1, got %q", draft.AssessmentCycle)
 	}
 	if draft.ReviewType != "periodic" {
@@ -889,7 +889,7 @@ func TestIntegration_MonitoringPreviewThenBatchWithInvalidCode(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -914,7 +914,7 @@ func TestIntegration_MonitoringPreviewThenBatchWithInvalidCode(t *testing.T) {
 		Items: []BulkMonitoringBatchItemInput{
 			{ClientKey: "row-1", Code: "R-999", RealisasiP: 3, RealisasiD: 3},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &uploaderID,
 	})
@@ -953,7 +953,7 @@ func TestIntegration_MonitoringPreviewThenBatchWithExistingDraft(t *testing.T) {
 		risks: map[uuid.UUID]*entity.Risk{risk1ID: risk1},
 		versions: []*entity.Risk{
 			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
-			{ID: existingDraftID, VersionGroupID: vg1ID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-Q1"},
+			{ID: existingDraftID, VersionGroupID: vg1ID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-H1"},
 		},
 	}
 
@@ -972,7 +972,7 @@ func TestIntegration_MonitoringPreviewThenBatchWithExistingDraft(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -987,7 +987,7 @@ func TestIntegration_MonitoringPreviewThenBatchWithExistingDraft(t *testing.T) {
 		Items: []BulkMonitoringBatchItemInput{
 			{ClientKey: "row-1", Code: "R-001", RealisasiP: 3, RealisasiD: 3},
 		},
-		Cycle:          "2026-Q1",
+		Cycle:          "2026-H1",
 		OrganizationID: orgID,
 		CreatedBy:      &uploaderID,
 	})

@@ -394,13 +394,17 @@ export function RiskReviewPanel({
             value={metric.value}
             tone={metric.tone}
             icon={<metric.icon className="size-5 text-muted-foreground" />}
+            className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+            labelClassName="capitalize tracking-normal"
+            valueClassName="font-medium"
+            valueWrapClassName="mt-auto"
           />
         ))}
       </div>
 
       {children}
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+      <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
         <CardHeader className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
           <div className="space-y-1">
             <CardTitle className="text-base font-semibold text-foreground">
@@ -421,7 +425,7 @@ export function RiskReviewPanel({
               Memuat completion rate...
             </div>
           ) : (
-            <div className="max-h-[300px] overflow-y-auto rounded-md border border-border/50">
+            <div className="max-h-[300px] overflow-y-auto rounded-md ring-1 ring-inset ring-border">
               <Table>
                 <TableHeader>
                   <TableRow className="h-11">
@@ -500,7 +504,7 @@ export function RiskReviewPanel({
         </CardContent>
       </Card>
 
-      <Card className="border-border/50 bg-card/80">
+      <Card className="ring-1 ring-inset ring-border border-0 bg-card">
         <CardHeader className="space-y-1">
           <CardTitle className="text-base font-semibold text-foreground">
             Perbandingan Semester {previousCycle} ke {cycle}
@@ -516,18 +520,30 @@ export function RiskReviewPanel({
               value={movementSummary.up}
               tone="rose"
               icon={<TrendingUp className="size-4 text-destructive" />}
+              className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+              labelClassName="capitalize tracking-normal"
+              valueClassName="font-medium"
+              valueWrapClassName="mt-auto"
             />
             <KpiCard
               label="Turun"
               value={movementSummary.down}
               tone="emerald"
               icon={<TrendingDown className="size-4 text-success" />}
+              className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+              labelClassName="capitalize tracking-normal"
+              valueClassName="font-medium"
+              valueWrapClassName="mt-auto"
             />
             <KpiCard
               label="Tetap"
               value={movementSummary.stable}
               tone="zinc"
               icon={<Minus className="size-4 text-muted-foreground" />}
+              className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+              labelClassName="capitalize tracking-normal"
+              valueClassName="font-medium"
+              valueWrapClassName="mt-auto"
             />
           </div>
 

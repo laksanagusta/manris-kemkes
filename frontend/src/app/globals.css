@@ -58,7 +58,7 @@
 
 /* MANRIS v2 — Teal professional theme (inspired by DefaultTaste) */
 :root {
-  --background: oklch(0.985 0.003 170);
+  --background: oklch(1 0 0);
   --foreground: oklch(0.18 0.02 170);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.18 0.02 170);
@@ -163,6 +163,23 @@
   font-family: var(--font-display);
 }
 
+/* Radius XS with Apple-style 60% corner smoothing. */
+.corner-xs-smooth {
+  border-radius: 0.125rem;
+}
+
+.corner-s-smooth {
+  border-radius: var(--radius-sm);
+}
+
+.corner-xl-smooth {
+  border-radius: var(--radius-xl);
+}
+
+.corner-2xl-smooth {
+  border-radius: var(--radius-2xl);
+}
+
 /* Custom scrollbar */
 @layer base {
   ::-webkit-scrollbar {
@@ -222,3 +239,9 @@
 .dark .heatmap-sedang { background: oklch(0.55 0.14 85 / 25%); color: oklch(0.95 0.05 85); }
 .dark .heatmap-tinggi { background: oklch(0.55 0.16 40 / 25%); color: oklch(0.98 0.04 40); }
 .dark .heatmap-sangat-tinggi { background: oklch(0.55 0.20 27 / 25%); color: oklch(0.98 0.02 27); }
+
+/* Button CTA — override --primary on element level for Tambah Risiko CTAs */
+.button-cta {
+  --primary: #00b9ad !important;
+  --primary-foreground: #ffffff !important;
+}

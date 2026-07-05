@@ -67,6 +67,14 @@ func (m *Mitigation) Validate() error {
 	m.Action = strings.TrimSpace(m.Action)
 	m.Owner = strings.TrimSpace(m.Owner)
 	m.MitigationType = strings.TrimSpace(m.MitigationType)
+	if m.DueDate != nil {
+		dueDate := strings.TrimSpace(*m.DueDate)
+		if dueDate == "" {
+			m.DueDate = nil
+		} else {
+			m.DueDate = &dueDate
+		}
+	}
 	if m.Action == "" {
 		return errors.Wrap(errors.ErrInvalidInput, "mitigation action is required")
 	}

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
-import { Inter, DM_Sans, Geist_Mono } from "next/font/google";
+import { Agentation } from "agentation";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { SuppressRadixWarnings } from "@/components/suppress-radix-warnings";
+import { SmoothCorners } from "@/components/smooth-corners";
 import "./globals.css";
 
 const inter = Inter({
@@ -12,25 +14,19 @@ const inter = Inter({
   display: "swap",
 });
 
-const dmSans = DM_Sans({
+const jetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-dm-sans",
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
+  variable: "--font-jetbrains-mono",
   display: "swap",
 });
 
 const fontVariables = {
   "--font-sans":
-    "var(--font-inter), var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   "--font-display":
-    "var(--font-dm-sans), var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   "--font-mono":
-    "var(--font-geist-mono), ui-monospace, 'SFMono-Regular', 'SF Mono', Consolas, 'Liberation Mono', monospace",
+    "var(--font-jetbrains-mono), ui-monospace, 'SFMono-Regular', 'SF Mono', Consolas, 'Liberation Mono', monospace",
 } as CSSProperties;
 
 export const metadata: Metadata = {
@@ -51,13 +47,15 @@ export default function RootLayout({
     <html
       lang="id"
       style={fontVariables}
-      className={`${inter.variable} ${dmSans.variable} ${geistMono.variable}`}
+      className={`${inter.variable} ${jetBrainsMono.variable}`}
     >
       <body className="antialiased">
         <AuthProvider>
           {children}
           <Toaster />
           <SuppressRadixWarnings />
+          <SmoothCorners />
+          {process.env.NODE_ENV === "development" && <Agentation />}
         </AuthProvider>
       </body>
     </html>

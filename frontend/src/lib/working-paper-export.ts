@@ -190,6 +190,11 @@ function safeNum(value: number | undefined | null): number | string {
   return value ?? "";
 }
 
+function setTextCell(cell: ExcelJS.Cell, value: string | undefined | null) {
+  cell.numFmt = "@";
+  cell.value = safeStr(value);
+}
+
 function formatDate(dateStr: string | undefined | null): string {
   if (!dateStr) return "";
   try {
@@ -553,7 +558,7 @@ function buildProfilRisikoSheet(
     dataRow.getCell(c + 8).value = safeStr(tingkatRisiko);
     dataRow.getCell(c + 9).value = safeNum(risk.prioritas_risiko);
     dataRow.getCell(c + 10).value = safeStr(risk.existing_control);
-    dataRow.getCell(c + 11).value = safeStr(risk.jadwal_pelaksanaan);
+    setTextCell(dataRow.getCell(c + 11), risk.jadwal_pelaksanaan);
     dataRow.getCell(c + 12).value = safeStr(risk.penanggung_jawab);
     dataRow.getCell(c + 13).value = safeNum(risk.target_probability);
     dataRow.getCell(c + 14).value = safeNum(risk.target_impact);
@@ -889,7 +894,7 @@ function buildPemantauanReviuSheet(
     dataRow.getCell(C + 7).value = safeStr(prev?.tingkat_risiko_display ?? prev?.tingkat_risiko ?? risk.tingkat_risiko_display ?? risk.tingkat_risiko);
     dataRow.getCell(C + 8).value = safeNum(prev?.prioritas_risiko ?? risk.prioritas_risiko);
     dataRow.getCell(C + 9).value = safeStr(prev?.existing_control ?? risk.existing_control);
-    dataRow.getCell(C + 10).value = safeStr(risk.jadwal_pelaksanaan);
+    setTextCell(dataRow.getCell(C + 10), risk.jadwal_pelaksanaan);
 
     // Monitoring data (cols 12-16)
     const monNilai = risk.monitoring_inherent_score ?? risk.monitoring_nilai;

@@ -28,12 +28,14 @@ import type { RiskVersionTimelineItem } from "@/types/risk";
 import type { RiskMonitoringDetail } from "@/types/risk-monitoring";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { toast } from "sonner";
+import { useSetHeaderActions } from "@/lib/header-actions-context";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -61,15 +63,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -97,10 +94,6 @@ import {
   riskCategoryLabels,
 } from "@/lib/risk";
 import { buildVersionHistoryItem } from "@/lib/risk-history";
-import {
-  getRiskRegisterMonitoringStatusLabel,
-  getRiskRegisterMonitoringStatusTone,
-} from "@/lib/risk-register-monitoring";
 import {
   buildRiskRegisterQueryString,
   parseRiskRegisterQueryState,
@@ -228,16 +221,16 @@ function RiskRegisterFilterToolbar({
   onReset,
 }: RiskRegisterFilterToolbarProps) {
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-      <div className="min-w-0 flex-1 md:max-w-md">
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
+      <div className="min-w-0 flex-1 sm:w-64 md:flex-none">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+          <Search className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+          <SearchInput
             placeholder={searchPlaceholder}
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             aria-label={searchAriaLabel}
-            className="h-8 pl-9 text-xs bg-background/80 border border-border/50"
+            className="bg-muted pl-10 text-sm"
           />
         </div>
       </div>
@@ -293,156 +286,155 @@ function RiskRegisterFiltersSidebar({
   onReset,
 }: RiskRegisterFiltersSidebarProps) {
   return (
-    <Sheet modal={false} open={open} onOpenChange={onOpenChange}>
-      <SheetTrigger asChild>
-        <Button variant="outline" className="h-8 gap-2">
-          <Filter className="size-3.5" />
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+              <Button variant="outline" size="md" className="gap-2 shadow-none">
+          <Filter className="size-3.5" strokeWidth={2.5} />
           Filter
         </Button>
-      </SheetTrigger>
-
-      <SheetContent
-        side="right"
-        className="data-[side=right]:w-full data-[side=right]:sm:max-w-[22rem]"
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="w-[22rem] rounded-2xl p-4"
       >
-        <SheetHeader>
-          <SheetTitle>Filter Daftar Risiko</SheetTitle>
-          <SheetDescription>
-            Atur filter untuk daftar risiko dan transaksi pemantauan. Search
-            tetap tersedia di luar sidebar.
-          </SheetDescription>
-        </SheetHeader>
-
-        <Separator />
-
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Semester
-            </Label>
-            <Input
-              placeholder="Semester"
-              value={assessmentCycleFilter}
-              onChange={(event) =>
-                onAssessmentCycleFilterChange(event.target.value)
-              }
-              className="h-8 border border-border/50 bg-background/80 text-xs"
-            />
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-sm font-medium">Filter Daftar Risiko</h4>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Atur filter untuk daftar risiko dan transaksi pemantauan.
+            </p>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Tanggal Dibuat
-            </Label>
-            <Input
-              type="date"
-              value={createdAtFilter}
-              onChange={(event) => onCreatedAtFilterChange(event.target.value)}
-              className="h-8 border border-border/50 bg-background/80 text-xs"
-            />
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium text-foreground">
+                Semester
+              </Label>
+              <Input
+                placeholder="Semester"
+                value={assessmentCycleFilter}
+                onChange={(event) =>
+                  onAssessmentCycleFilterChange(event.target.value)
+                }
+                className="h-9 border-0 bg-muted/50 text-sm"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium text-foreground">
+                Tanggal Dibuat
+              </Label>
+              <Input
+                type="date"
+                value={createdAtFilter}
+                onChange={(event) => onCreatedAtFilterChange(event.target.value)}
+                className="h-9 border-0 bg-muted/50 text-sm"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium text-foreground">
+                Lifecycle
+              </Label>
+              <Select
+                value={lifecycleFilter}
+                onValueChange={(value) =>
+                  onLifecycleFilterChange(value as RiskRegisterLifecycleFilter)
+                }
+              >
+                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                  <SelectValue placeholder="Lifecycle" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Aktif</SelectItem>
+                  <SelectItem value="archived">Arsip</SelectItem>
+                  <SelectItem value="all">Semua</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium text-foreground">
+                Status
+              </Label>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) =>
+                  onStatusFilterChange(value as RiskRegisterStatusFilter)
+                }
+              >
+                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="assessment_draft">
+                    Draf Risiko
+                  </SelectItem>
+                  <SelectItem value="assessment_in_review">
+                    Dalam Review
+                  </SelectItem>
+                  <SelectItem value="approved">Disetujui</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium text-foreground">
+                Kategori
+              </Label>
+              <Select
+                value={categoryFilter}
+                onValueChange={(value) =>
+                  onCategoryFilterChange(value as RiskRegisterCategoryFilter)
+                }
+              >
+                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                  <SelectValue placeholder="Kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Kategori</SelectItem>
+                  <SelectItem value="kebijakan">
+                    {riskCategoryLabels.kebijakan}
+                  </SelectItem>
+                  <SelectItem value="reputasi">
+                    {riskCategoryLabels.reputasi}
+                  </SelectItem>
+                  <SelectItem value="fraud_korupsi">
+                    {riskCategoryLabels.fraud_korupsi}
+                  </SelectItem>
+                  <SelectItem value="legal">
+                    {riskCategoryLabels.legal}
+                  </SelectItem>
+                  <SelectItem value="kepatuhan">
+                    {riskCategoryLabels.kepatuhan}
+                  </SelectItem>
+                  <SelectItem value="operasional">
+                    {riskCategoryLabels.operasional}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Lifecycle
-            </Label>
-            <Select
-              value={lifecycleFilter}
-              onValueChange={(value) =>
-                onLifecycleFilterChange(value as RiskRegisterLifecycleFilter)
-              }
+          <div className="flex items-center justify-between pt-4">
+            <Button type="button" variant="ghost" size="md" onClick={onReset} className="shadow-none">
+              Reset
+            </Button>
+            <Button
+              type="button"
+              size="md"
+              className="gap-1.5"
+              style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
+              onClick={() => onOpenChange(false)}
             >
-              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
-                <SelectValue placeholder="Lifecycle" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Aktif</SelectItem>
-                <SelectItem value="archived">Arsip</SelectItem>
-                <SelectItem value="all">Semua</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Status
-            </Label>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) =>
-                onStatusFilterChange(value as RiskRegisterStatusFilter)
-              }
-            >
-              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="assessment_draft">
-                  Draf Risiko
-                </SelectItem>
-                <SelectItem value="assessment_in_review">
-                  Dalam Review
-                </SelectItem>
-                <SelectItem value="approved">Disetujui</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Kategori
-            </Label>
-            <Select
-              value={categoryFilter}
-              onValueChange={(value) =>
-                onCategoryFilterChange(value as RiskRegisterCategoryFilter)
-              }
-            >
-              <SelectTrigger className="h-8 border border-border/50 bg-background/80 text-xs">
-                <SelectValue placeholder="Kategori" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Kategori</SelectItem>
-                <SelectItem value="kebijakan">
-                  {riskCategoryLabels.kebijakan}
-                </SelectItem>
-                <SelectItem value="reputasi">
-                  {riskCategoryLabels.reputasi}
-                </SelectItem>
-                <SelectItem value="fraud_korupsi">
-                  {riskCategoryLabels.fraud_korupsi}
-                </SelectItem>
-                <SelectItem value="legal">
-                  {riskCategoryLabels.legal}
-                </SelectItem>
-                <SelectItem value="kepatuhan">
-                  {riskCategoryLabels.kepatuhan}
-                </SelectItem>
-                <SelectItem value="operasional">
-                  {riskCategoryLabels.operasional}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              Terapkan
+            </Button>
           </div>
         </div>
-
-        <Separator />
-
-        <SheetFooter className="sm:flex-row sm:justify-between">
-          <Button type="button" variant="ghost" onClick={onReset}>
-            Reset
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Tutup
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -501,48 +493,45 @@ function formatLocalDateTime(value?: string | null) {
   });
 }
 
-function getQuarterColor(
+function getSemesterColor(
   status: string | null | undefined,
-  quarter: number,
+  half: number,
   year: number,
 ): string {
   if (status === "finalized") return "bg-emerald-100 text-emerald-700";
   if (status === "draft") return "bg-amber-100 text-amber-700";
 
   const now = new Date();
-  const quarterEndMonth = quarter * 3 - 1;
-  const quarterEnd = new Date(year, quarterEndMonth, 0);
+  const semesterEnd = new Date(year, half === 1 ? 6 : 12, 0);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  if (today > quarterEnd) return "bg-red-100 text-red-500";
-  return "bg-zinc-100 text-zinc-400";
+  if (today > semesterEnd) return "bg-red-100 text-red-500";
+  return "bg-muted text-muted-foreground";
 }
 
-function QuarterlyIndicator({
+function SemesterIndicator({
   data,
 }: {
-  data: { q1?: string | null; q2?: string | null; q3?: string | null; q4?: string | null } | null | undefined;
+  data: { h1?: string | null; h2?: string | null } | null | undefined;
 }) {
   const year = new Date().getFullYear();
-  const quarters = [
-    { key: "q1", label: "Q1", value: data?.q1 },
-    { key: "q2", label: "Q2", value: data?.q2 },
-    { key: "q3", label: "Q3", value: data?.q3 },
-    { key: "q4", label: "Q4", value: data?.q4 },
+  const semesters = [
+    { key: "h1", label: "H1", value: data?.h1 },
+    { key: "h2", label: "H2", value: data?.h2 },
   ];
 
   return (
-    <div className="flex items-center gap-1">
-      {quarters.map((q, i) => (
+    <div className="flex items-center justify-start gap-1">
+      {semesters.map((semester, i) => (
         <div
-          key={q.key}
+          key={semester.key}
           className={cn(
-            "size-5 rounded text-[9px] font-semibold flex items-center justify-center",
-            getQuarterColor(q.value, i + 1, year),
+            "flex size-6 items-center justify-center rounded-full ring-1 ring-inset ring-border/50 text-[10px] font-semibold",
+            getSemesterColor(semester.value, i + 1, year),
           )}
-          title={`${q.label}: ${q.value === "finalized" ? "Selesai" : q.value === "draft" ? "Draf" : q.value ? q.value : "-"}`}
+          title={`${semester.label}: ${semester.value === "finalized" ? "Selesai" : semester.value === "draft" ? "Draf" : semester.value ? semester.value : "-"}`}
         >
-          {q.label}
+          {semester.label}
         </div>
       ))}
     </div>
@@ -641,6 +630,7 @@ export default function RiskRegisterPage() {
   const { token, user } = useAuth();
   const [isPending, startTransition] = useTransition();
   const isApplyingSearchParamsRef = useRef(false);
+  const tambahRisikoRef = useRef<HTMLButtonElement>(null);
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
   const [monitoringTransactions, setMonitoringTransactions] = useState<
@@ -718,6 +708,7 @@ export default function RiskRegisterPage() {
   const [riskToArchive, setRiskToArchive] = useState<RiskListItem | null>(null);
   const [archiveReason, setArchiveReason] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
+  const setHeaderActions = useSetHeaderActions();
 
   const handleRegisterSearchChange = (value: string) => {
     setSearch(value);
@@ -1074,6 +1065,32 @@ export default function RiskRegisterPage() {
     fetchVersions();
   }, [historyRiskId, token]);
 
+  useEffect(() => {
+    if (!token) return;
+    setHeaderActions(
+      <div className="flex items-center gap-2">
+        <Link href="/risk/register/bulk">
+          <Button variant="outline" size="md" className="gap-2 shadow-none">
+            <Upload className="size-3.5" strokeWidth={2.5} />
+            Import Risiko
+          </Button>
+        </Link>
+        <Link href="/risk/register/new">
+          <Button
+            ref={tambahRisikoRef}
+            size="md"
+            className="gap-2 border-0"
+            style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
+          >
+            <Plus className="size-3.5" strokeWidth={2.5} />
+            Tambah Risiko
+          </Button>
+        </Link>
+      </div>,
+    );
+    return () => setHeaderActions(null);
+  }, [token, setHeaderActions]);
+
   const riskLevelCounts = useMemo(() => {
     return risks.reduce<Record<string, number>>((counts, risk) => {
       const level = resolveListItemScoreSemantics(risk).effective.level;
@@ -1086,21 +1103,22 @@ export default function RiskRegisterPage() {
     {
       label: "Total Risiko",
       value: registerTotal,
+      textTone: undefined,
     },
     {
       label: "Sangat Tinggi",
       value: riskLevelCounts.sangat_tinggi ?? 0,
-      tone: "border-risk-extreme/20 bg-risk-extreme/10 text-risk-extreme",
+      textTone: "text-risk-extreme",
     },
     {
       label: "Tinggi",
       value: riskLevelCounts.tinggi ?? 0,
-      tone: "border-risk-high/20 bg-risk-high/10 text-risk-high",
+      textTone: "text-risk-extreme/70",
     },
     {
       label: "Sedang",
       value: riskLevelCounts.sedang ?? 0,
-      tone: "border-border/60 bg-background/60 text-foreground",
+      textTone: undefined,
     },
   ];
   const visibleRiskCount = risks.length;
@@ -1266,6 +1284,34 @@ export default function RiskRegisterPage() {
     (history) => history.id === selectedVersion,
   );
 
+  useEffect(() => {
+    if (tambahRisikoRef.current) {
+      const btn = tambahRisikoRef.current;
+      const { width, height } = btn.getBoundingClientRect();
+      if (width > 0 && height > 0) {
+        const radius = height / 2;
+        const d = appleCornerPath({ width, height, radius, smoothing: 60 });
+        btn.style.clipPath = `path("${d}")`;
+        btn.style.borderRadius = "0";
+        btn.style.border = "none";
+      }
+    }
+
+    const smoothElements = document.querySelectorAll("[data-smooth]");
+    smoothElements.forEach((el) => {
+      const htmlEl = el as HTMLElement;
+      const { width, height } = htmlEl.getBoundingClientRect();
+      if (width === 0 || height === 0) return;
+      const rawRadius = htmlEl.getAttribute("data-smooth-radius");
+      const radius = rawRadius
+        ? Math.min(parseInt(rawRadius, 10), height / 2)
+        : height / 2;
+      const d = appleCornerPath({ width, height, radius, smoothing: 60 });
+      htmlEl.style.clipPath = `path("${d}")`;
+      htmlEl.style.borderRadius = "0";
+    });
+  }, []);
+
   if (
     loading &&
     risks.length === 0 &&
@@ -1273,7 +1319,7 @@ export default function RiskRegisterPage() {
     historyRisks.length === 0
   ) {
     return (
-      <div className="p-8 text-center text-muted-foreground animate-pulse">
+      <div className="p-8 text-center text-muted-foreground">
         Memuat daftar risiko...
       </div>
     );
@@ -1301,137 +1347,105 @@ export default function RiskRegisterPage() {
     );
   }
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Risiko</h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola seluruh risiko organisasi
-          </p>
-        </div>
-        {(!token || user?.isGlobal || !!user?.organizationId) && (
-          <div className="flex flex-wrap gap-2">
-            {/*<Link href="/risk/cascading">
-              <Button variant="outline" className="gap-2">
-                <GitBranch className="size-4" />
-                Eskalasi Risiko
-              </Button>
-            </Link>*/}
-            <Link href="/risk/register/bulk">
-              <Button variant="outline" className="gap-2">
-                <Upload className="size-4" />
-                Import Risiko
-              </Button>
-            </Link>
-            <Link href="/risk/register/new">
-              <Button className="gap-2 shadow-lg shadow-primary/20">
-                <Plus className="size-4" />
-                Tambah Risiko
-              </Button>
-            </Link>
-          </div>
-        )}
-      </div>
-
+    <div className="space-y-4">
       {/* Tabs */}
       <Tabs
         defaultValue="all-risks"
         value={activeTab}
         onValueChange={(value) => setActiveTab(value as RiskRegisterTab)}
       >
-        <TabsList className="bg-muted/40 border border-border/50">
-          <TabsTrigger value="all-risks" className="gap-2">
-            <GitBranch className="size-3.5" />
+        <TabsList className="rounded-lg ring-1 ring-inset ring-border/50 bg-muted/50 p-0.5" style={{ height: '36px' }}>
+          <TabsTrigger value="all-risks" className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200">
+            <GitBranch className="size-3.5" strokeWidth={2.5} />
             Risiko
           </TabsTrigger>
-          <TabsTrigger value="monitoring-transactions" className="gap-2">
-            <RefreshCcw className="size-3.5" />
+          <TabsTrigger
+            value="monitoring-transactions"
+            className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200"
+          >
+            <RefreshCcw className="size-3.5" strokeWidth={2.5} />
             Pemantauan
             {monitoringDraftCount > 0 && (
-              <Badge className="ml-1 bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1">
+              <Badge className="ml-1 h-4 border border-primary/20 bg-primary/20 px-1 text-[9px] text-primary">
                 {monitoringDraftCount}
               </Badge>
             )}
           </TabsTrigger>
         </TabsList>
-
-        {/* TAB 1: ALL RISKS */}
-        <TabsContent value="all-risks" className="space-y-6 mt-6">
-          <div className="grid gap-3 grid-cols-4">
+        <TabsContent value="all-risks" className="mt-3 space-y-4">
+          <div className="grid grid-cols-4 gap-4">
             {riskSummaryCards.map((card) => (
               <KpiCard
                 key={card.label}
                 label={card.label}
                 value={card.value}
-                tone={
-                  card.label === "Total Risiko"
-                    ? "white"
-                    : card.label === "Sedang"
-                      ? "zinc"
-                      : "rose"
-                }
+                tone="white"
+                className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+                labelClassName="capitalize tracking-normal"
+                valueClassName={cn("font-medium", card.textTone)}
+                valueWrapClassName="mt-auto"
               />
             ))}
           </div>
 
-          <RiskRegisterFilterToolbar
-            search={search}
-            onSearchChange={handleRegisterSearchChange}
-            searchPlaceholder="Cari risiko..."
-            searchAriaLabel="Cari risiko"
-            filterOpen={filterOpen}
-            onFilterOpenChange={setFilterOpen}
-            assessmentCycleFilter={assessmentCycleFilter}
-            onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
-            createdAtFilter={createdAtFilter}
-            onCreatedAtFilterChange={handleRegisterCreatedAtChange}
-            lifecycleFilter={lifecycleFilter}
-            onLifecycleFilterChange={handleRegisterLifecycleChange}
-            statusFilter={statusFilter}
-            onStatusFilterChange={handleRegisterStatusChange}
-            categoryFilter={categoryFilter}
-            onCategoryFilterChange={handleRegisterCategoryChange}
-            onReset={handleResetRegisterFilters}
-          />
-
           {/* Table */}
-          <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
-            <div className="flex flex-col gap-3 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:flex-row md:items-start md:justify-between md:px-6">
-              <div className="flex min-w-0 flex-1 items-start gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900 text-balance">
-                    Daftar risiko
-                  </h2>
-                  <p className="mt-1 text-xs text-zinc-500 text-pretty">
-                    {lifecycleFilter === "archived"
-                      ? "Lihat risiko yang sudah diarsipkan dan pulihkan bila perlu."
-                      : "Pantau risiko aktif, status penilaian terbaru, dan tindak lanjut pemantauan pada satu tabel kerja."}
-                  </p>
-                </div>
+          <Card className="rounded-lg gap-0 overflow-hidden ring-1 ring-inset ring-border bg-card p-4 shadow-none">
+            <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0">
+                <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
+                  Daftar Risiko
+                </h2>
+                <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
+                  Buat dan pantau risiko
+                </p>
               </div>
-              <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
-                  {visibleRiskCount} risiko
-                </span>
-              </div>
+              <RiskRegisterFilterToolbar
+                search={search}
+                onSearchChange={handleRegisterSearchChange}
+                searchPlaceholder="Cari risiko..."
+                searchAriaLabel="Cari risiko"
+                filterOpen={filterOpen}
+                onFilterOpenChange={setFilterOpen}
+                assessmentCycleFilter={assessmentCycleFilter}
+                onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
+                createdAtFilter={createdAtFilter}
+                onCreatedAtFilterChange={handleRegisterCreatedAtChange}
+                lifecycleFilter={lifecycleFilter}
+                onLifecycleFilterChange={handleRegisterLifecycleChange}
+                statusFilter={statusFilter}
+                onStatusFilterChange={handleRegisterStatusChange}
+                categoryFilter={categoryFilter}
+                onCategoryFilterChange={handleRegisterCategoryChange}
+                onReset={handleResetRegisterFilters}
+              />
             </div>
 
-            <div className="relative w-full overflow-x-auto">
-              <Table className="min-w-[1280px]">
-                <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
-                  <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
-                    <TableHead className="w-20 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
-                      Kode
-                    </TableHead>
-                    <TableHead className="w-72 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Risiko
-                    </TableHead>
-                    <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Kategori
-                    </TableHead>
-                    <TableHead
-                      className="w-28 cursor-pointer select-none whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500"
+            <div className="-mx-4 overflow-x-auto">
+              <Table className="min-w-[1120px] table-fixed">
+                <colgroup>
+                  <col className="w-[9%]" />
+                  <col className="w-[24%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[5%]" />
+                </colgroup>
+                <TableHeader className="[&_tr]:border-b [&_tr]:border-border">
+                  <TableRow className="h-9 hover:bg-transparent">
+                  <TableHead className="whitespace-nowrap pl-4 pr-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                    Kode
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                    Risiko
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                    Kategori
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer select-none whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground"
                       onClick={() => {
                         if (sortBy === "nilai") {
                           setSortOrder((prev) =>
@@ -1444,7 +1458,7 @@ export default function RiskRegisterPage() {
                       }}
                     >
                       <div className="flex items-center gap-1">
-                        Skor/Level
+                        Skor
                         {sortBy === "nilai" &&
                           (sortOrder === "desc" ? (
                             <ChevronDown className="size-3" />
@@ -1453,19 +1467,19 @@ export default function RiskRegisterPage() {
                           ))}
                       </div>
                     </TableHead>
-                    <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                      Level
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                       Status Risiko
                     </TableHead>
-                    <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      Status Pemantauan
-                    </TableHead>
-                    <TableHead className="w-40 whitespace-nowrap px-2.5 text-center align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                       Pemantauan {new Date().getFullYear()}
                     </TableHead>
-                    <TableHead className="w-36 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
                       Terakhir Dipantau
                     </TableHead>
-                    <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                    <TableHead className="whitespace-nowrap px-3 text-center align-middle text-xs font-medium capitalize text-muted-foreground">
                       Aksi
                     </TableHead>
                   </TableRow>
@@ -1475,7 +1489,7 @@ export default function RiskRegisterPage() {
                     <TableRow>
                       <TableCell
                         colSpan={9}
-                        className="py-8 text-left text-xs text-zinc-500"
+                        className="py-8 text-left text-xs text-muted-foreground"
                       >
                         Tidak ada risiko yang ditemukan
                       </TableCell>
@@ -1512,75 +1526,49 @@ export default function RiskRegisterPage() {
                             : statusLabel[risk.status || ""] ||
                               risk.status ||
                               "-";
-                      const monitoringEligible =
-                        risk.status === "approved" &&
-                        !risk.archivedAt &&
-                        !!risk.assessmentCycle;
-                      const monitoringStatusText =
-                        getRiskRegisterMonitoringStatusLabel(
-                          risk.monitoringStatus,
-                          monitoringEligible,
-                        );
-                      const monitoringTone =
-                        getRiskRegisterMonitoringStatusTone(
-                          risk.monitoringStatus,
-                          monitoringEligible,
-                        );
-                      const monitoringStatusClass =
-                        monitoringTone === "neutral"
-                          ? getLinearToneBadgeClass("neutral")
-                          : monitoringTone === "warning"
-                            ? getLinearToneBadgeClass("warning")
-                            : monitoringTone === "success"
-                              ? getLinearToneBadgeClass("success")
-                              : getLinearToneBadgeClass("danger");
                       const monitoringLastText = formatLocalDateTime(
                         risk.lastMonitoredAt,
                       );
                       return (
                         <TableRow
                           key={risk.id}
-                          className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
+                          className="border-b border-border hover:bg-muted/50"
                         >
-                          <TableCell className="font-mono text-zinc-600 pl-4 pr-2 md:pl-6">
+                          <TableCell className="py-2 pl-4 pr-3 text-foreground">
                             {risk.code || "-"}
                           </TableCell>
-                          <TableCell className="max-w-[260px] px-2.5">
+                          <TableCell className="px-3 py-2">
                             <div className="flex min-w-0 items-center gap-1.5">
                               <Link
                                 href={`/risk/register/${risk.id}`}
-                                className="min-w-0 flex-1 truncate text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary"
+                                className="min-w-0 flex-1 truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
                                 title={risk.title || "-"}
                               >
                                 {risk.title || "-"}
                               </Link>
-                              {risk.versionNumber != null ? (
-                                <Badge className="h-4 shrink-0 border border-zinc-200 bg-zinc-50 px-1 text-[9px] font-semibold text-zinc-600">
-                                  v{risk.versionNumber}
-                                </Badge>
-                              ) : null}
                             </div>
                           </TableCell>
-                          <TableCell className="px-2.5 whitespace-nowrap text-zinc-600">
+                          <TableCell className="whitespace-nowrap px-3 py-2 text-foreground">
                             {riskCategoryLabels[risk.category ?? ""] ||
                               risk.category ||
                               "-"}
                           </TableCell>
-                          <TableCell className="px-2.5">
-                            <div className="flex items-center gap-1.5 whitespace-nowrap">
-                              <span className="font-mono text-xs font-semibold text-zinc-900">
-                                {scoreSemantics.effective.score}
-                              </span>
+                          <TableCell className="px-3 py-2">
+                            <span className="font-mono text-xs font-semibold text-foreground">
+                              {scoreSemantics.effective.score}
+                            </span>
+                          </TableCell>
+                            <TableCell className="px-3 py-2">
                               <Badge
-                                className={getLinearRiskLevelBadgeClass(
-                                  levelLabel,
+                                className={cn(
+                                  getLinearRiskLevelBadgeClass(levelLabel),
+                                  "h-6 rounded-full px-2.5 justify-start text-[11px]",
                                 )}
                               >
                                 {levelLabel}
                               </Badge>
-                            </div>
                           </TableCell>
-                          <TableCell className="px-2.5">
+                          <TableCell className="px-3 py-2">
                             <div className="flex items-center gap-1.5 whitespace-nowrap">
                               <Badge
                                 className={cn(
@@ -1589,29 +1577,23 @@ export default function RiskRegisterPage() {
                                     : risk.status
                                       ? statusVariant[risk.status]
                                     : getLinearToneBadgeClass("neutral"),
+                                  "h-6 rounded-full px-2.5 justify-start text-[11px]",
                                 )}
                               >
                                 {statusText}
                               </Badge>
                             </div>
                           </TableCell>
-                          <TableCell className="px-2.5 whitespace-nowrap text-zinc-600">
-                            <div className="flex items-center gap-1.5 whitespace-nowrap">
-                              <Badge className={monitoringStatusClass}>
-                                {monitoringStatusText}
-                              </Badge>
-                            </div>
+                          <TableCell className="px-3 py-2">
+                            <SemesterIndicator data={risk.semesterMonitoring} />
                           </TableCell>
-                          <TableCell className="px-2.5">
-                            <QuarterlyIndicator data={risk.quarterlyMonitoring} />
-                          </TableCell>
-                          <TableCell className="px-2.5 whitespace-nowrap text-xs text-zinc-600">
-                            <span className="block truncate" title={monitoringLastText}>
+                          <TableCell className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                            <span className="block truncate text-sm" title={monitoringLastText}>
                               {monitoringLastText}
                             </span>
                           </TableCell>
-                          <TableCell className="px-2.5">
-                            <div className="flex">
+                          <TableCell className="px-3 py-2">
+                            <div className="flex justify-center">
                               <RiskRowActions
                                 risk={risk}
                                 isReadOnly={isReadOnly}
@@ -1666,11 +1648,11 @@ export default function RiskRegisterPage() {
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3">
-              <div className="flex items-center gap-4">
+            <div className="-mx-4 -mb-4 flex items-center justify-between border-t border-border/50 px-4 py-3">
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    Baris per halaman:
+                  <span className="text-[11px] text-muted-foreground">
+                    Baris:
                   </span>
                   <Select
                     value={limit.toString()}
@@ -1679,7 +1661,7 @@ export default function RiskRegisterPage() {
                       setPage(1);
                     }}
                   >
-                    <SelectTrigger className="h-7 w-[65px] text-xs bg-muted/30 border-none">
+                    <SelectTrigger className="h-6 w-[56px] rounded-md border-0 bg-transparent text-[11px] shadow-none">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1691,13 +1673,13 @@ export default function RiskRegisterPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Menampilkan {registerTotal === 0 ? 0 : (page - 1) * limit + 1}{" "}
-                  - {Math.min(page * limit, registerTotal)} dari {registerTotal}{" "}
-                  risiko
+                <p className="text-[11px] text-muted-foreground">
+                  {registerTotal === 0 ? 0 : (page - 1) * limit + 1}
+                  &ndash;{Math.min(page * limit, registerTotal)} dari{" "}
+                  {registerTotal}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <Button
                   variant="ghost"
                   size="icon-xs"
@@ -1710,13 +1692,13 @@ export default function RiskRegisterPage() {
                 <Button
                   variant="ghost"
                   size="xs"
-                  className="text-xs font-medium bg-primary/10 text-primary"
+                  className="bg-muted text-[11px] font-medium text-foreground"
                   disabled
                 >
                   {page}
                 </Button>
-                <span className="px-1 text-xs text-muted-foreground">
-                  dari {totalPages}
+                <span className="px-0.5 text-[11px] text-muted-foreground">
+                  / {totalPages}
                 </span>
                 <Button
                   variant="ghost"
@@ -1736,19 +1718,19 @@ export default function RiskRegisterPage() {
                 </Button>
               </div>
             </div>
-          </div>
+          </Card>
         </TabsContent>
 
         {/* TAB 2: MONITORING TRANSACTIONS */}
-        <TabsContent value="monitoring-transactions" className="space-y-6 mt-6">
-          <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
-            <div className="flex flex-col gap-3 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:flex-row md:items-start md:justify-between md:px-6">
+        <TabsContent value="monitoring-transactions" className="mt-3 space-y-4">
+          <Card className="gap-0 overflow-hidden rounded-lg ring-1 ring-inset ring-border bg-card p-4 shadow-none">
+            <div className="flex flex-col gap-3 pb-4 md:flex-row md:items-start md:justify-between">
               <div className="flex min-w-0 flex-1 items-start gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900 text-balance">
+                  <h2 className="text-sm font-semibold tracking-tight text-foreground text-balance">
                     Transaksi Pemantauan
                   </h2>
-                  <p className="mt-1 text-xs text-zinc-500 text-pretty">
+                  <p className="mt-1 text-xs text-muted-foreground text-pretty">
                     Pantau versi hasil mulai pemantauan, bandingkan nilai
                     sebelum dan hasil pemantauan, lalu lanjutkan draf yang
                     masih berjalan.
@@ -1756,13 +1738,13 @@ export default function RiskRegisterPage() {
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground tabular-nums">
                   {activeTotal} transaksi
                 </span>
               </div>
             </div>
 
-            <div className="relative w-full overflow-x-auto">
+            <div className="-mx-4 overflow-x-auto">
               <MonitoringTransactionsTable
                 items={monitoringTransactions}
                 levelBadgeVariant={levelBadgeVariant}
@@ -1772,11 +1754,11 @@ export default function RiskRegisterPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3">
-              <div className="flex items-center gap-4">
+            <div className="-mx-4 -mb-4 flex items-center justify-between border-t border-border/50 px-4 py-3">
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    Baris per halaman:
+                  <span className="text-[11px] text-muted-foreground">
+                    Baris:
                   </span>
                   <Select
                     value={limit.toString()}
@@ -1785,7 +1767,7 @@ export default function RiskRegisterPage() {
                       setPage(1);
                     }}
                   >
-                    <SelectTrigger className="h-7 w-[65px] text-xs bg-muted/30 border-none">
+                    <SelectTrigger className="h-6 w-[56px] rounded-md border-0 bg-transparent text-[11px] shadow-none">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1797,13 +1779,13 @@ export default function RiskRegisterPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Menampilkan {activeTotal === 0 ? 0 : (page - 1) * limit + 1}{" "}
-                  - {Math.min(page * limit, activeTotal)} dari {activeTotal}{" "}
-                  transaksi pemantauan
+                <p className="text-[11px] text-muted-foreground">
+                  {activeTotal === 0 ? 0 : (page - 1) * limit + 1}
+                  &ndash;{Math.min(page * limit, activeTotal)} dari{" "}
+                  {activeTotal}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <Button
                   variant="ghost"
                   size="icon-xs"
@@ -1816,13 +1798,13 @@ export default function RiskRegisterPage() {
                 <Button
                   variant="ghost"
                   size="xs"
-                  className="text-xs font-medium bg-primary/10 text-primary"
+                  className="bg-muted text-[11px] font-medium text-foreground"
                   disabled
                 >
                   {page}
                 </Button>
-                <span className="px-1 text-xs text-muted-foreground">
-                  dari {totalPages}
+                <span className="px-0.5 text-[11px] text-muted-foreground">
+                  / {totalPages}
                 </span>
                 <Button
                   variant="ghost"
@@ -1842,15 +1824,15 @@ export default function RiskRegisterPage() {
                 </Button>
               </div>
             </div>
-          </div>
+          </Card>
         </TabsContent>
 
         {/* TAB 3: MY DRAFTS */}
-        <TabsContent value="my-drafts" className="space-y-6 mt-6">
-          <Card className="border-border/50 bg-card/80 overflow-hidden">
+        <TabsContent value="my-drafts" className="mt-3 space-y-4">
+          <Card className="overflow-hidden rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
             <Table>
               <TableHeader>
-                <TableRow className="border-border/50 hover:bg-transparent">
+                <TableRow className="h-9 border-b border-border hover:bg-transparent">
                   <TableHead className="w-20 text-xs whitespace-nowrap">
                     ID
                   </TableHead>
@@ -1894,7 +1876,7 @@ export default function RiskRegisterPage() {
                     return (
                       <TableRow
                         key={draft.id}
-                        className="border-border/30 hover:bg-muted/30"
+                        className="border-b border-border hover:bg-muted/50"
                       >
                         <TableCell className="text-xs font-mono text-muted-foreground">
                           {draft.code ||
@@ -1904,7 +1886,7 @@ export default function RiskRegisterPage() {
                           <div className="flex items-center gap-2">
                             <Link
                               href={`/risk/register/${draft.id}`}
-                              className="block truncate text-xs font-medium leading-relaxed text-primary transition-colors hover:text-primary/80"
+                              className="block truncate text-xs font-medium leading-relaxed text-primary hover:text-primary/80"
                             >
                               {draft.title || "Tanpa Judul"}
                             </Link>
@@ -1993,8 +1975,8 @@ export default function RiskRegisterPage() {
         </TabsContent>
 
         {/* TAB 4: HISTORY */}
-        <TabsContent value="history" className="space-y-6 mt-6">
-          <Card className="border-border/50 bg-card/80">
+        <TabsContent value="history" className="mt-3 space-y-4">
+          <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
             <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -2022,9 +2004,9 @@ export default function RiskRegisterPage() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-6 lg:grid-cols-4">
+          <div className="grid gap-2 lg:grid-cols-4">
             {/* Timeline Version Selector */}
-            <div className="lg:col-span-1 border-r border-border/50 pr-4">
+            <div className="lg:col-span-1 border-r border-border pr-4">
               <h3 className="text-xs font-semibold mb-4 uppercase tracking-wider text-muted-foreground">
                 Timeline Snapshot
               </h3>
@@ -2034,10 +2016,10 @@ export default function RiskRegisterPage() {
                     key={ver.id}
                     onClick={() => setSelectedVersion(ver.id)}
                     className={cn(
-                      "relative flex items-center justify-between w-full p-3 rounded-lg border text-left transition-all z-10",
+                      "relative z-10 flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
                       selectedVersion === ver.id
-                        ? "bg-primary/10 border-primary/30 shadow-sm"
-                        : "bg-card/80 border-border/50 hover:bg-muted/50",
+                        ? "border border-primary/30 bg-accent"
+                        : "ring-1 ring-inset ring-border bg-card hover:bg-muted",
                       ver.isCurrent && "ring-1 ring-primary/50",
                     )}
                   >
@@ -2050,7 +2032,7 @@ export default function RiskRegisterPage() {
                           {ver.name}
                         </span>
                         {ver.isCurrent && (
-                          <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5 ml-1">
+                          <Badge className="ml-1 h-4 border border-primary/20 bg-primary/20 px-1.5 text-[9px] text-primary">
                             Current
                           </Badge>
                         )}
@@ -2067,7 +2049,7 @@ export default function RiskRegisterPage() {
 
             {/* Change Comparison */}
             <div className="lg:col-span-3 space-y-4">
-              <Card className="border-border/50 bg-card/80">
+          <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
                 <CardHeader className="pb-3 flex flex-row items-center justify-between">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <GitBranch className="size-4" />
@@ -2079,7 +2061,7 @@ export default function RiskRegisterPage() {
                 <CardContent>
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border/50 hover:bg-transparent">
+                <TableRow className="h-9 border-b border-border hover:bg-transparent">
                         <TableHead className="w-20 text-xs whitespace-nowrap">
                           Kode
                         </TableHead>
@@ -2113,7 +2095,7 @@ export default function RiskRegisterPage() {
                       ) : (
                         <TableRow
                           key={selectedHistory.id}
-                          className="border-border/30 hover:bg-muted/30"
+                          className="border-b border-border hover:bg-muted/50"
                         >
                           <TableCell className="text-xs font-mono text-muted-foreground">
                             {selectedHistory.riskId || "-"}
@@ -2181,14 +2163,14 @@ export default function RiskRegisterPage() {
         open={!!draftToDelete}
         onOpenChange={(open) => !open && setDraftToDelete(null)}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-2xl p-6 shadow-2xl">
           <DialogHeader>
             <DialogTitle>Hapus Draft Risiko?</DialogTitle>
             <DialogDescription>
               Draft yang dihapus tidak bisa dikembalikan.
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+          <div className="rounded-2xl ring-1 ring-inset ring-border bg-muted px-3 py-2 text-sm">
             <p className="font-medium">
               {draftToDelete?.title || "Tanpa judul"}
             </p>
@@ -2225,7 +2207,7 @@ export default function RiskRegisterPage() {
           }
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-2xl p-6 shadow-2xl">
           <DialogHeader>
             <DialogTitle>Arsipkan Risiko?</DialogTitle>
             <DialogDescription>
@@ -2234,7 +2216,7 @@ export default function RiskRegisterPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+            <div className="rounded-2xl ring-1 ring-inset ring-border bg-muted px-3 py-2 text-sm">
               <p className="font-medium">
                 {riskToArchive?.title || "Tanpa judul"}
               </p>
@@ -2251,7 +2233,7 @@ export default function RiskRegisterPage() {
               value={archiveNote}
               onChange={(event) => setArchiveNote(event.target.value)}
               placeholder="Catatan tambahan (opsional)"
-              className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="min-h-24 w-full rounded-md ring-1 ring-inset ring-border bg-card px-3 py-2 text-sm"
             />
           </div>
           <DialogFooter>
@@ -2259,7 +2241,7 @@ export default function RiskRegisterPage() {
               Batal
             </Button>
             <Button
-              className="bg-amber-600 text-white hover:bg-amber-700"
+              className="bg-warning text-warning-foreground hover:bg-warning/90"
               onClick={handleArchiveRisk}
             >
               Arsipkan
@@ -2269,7 +2251,7 @@ export default function RiskRegisterPage() {
       </Dialog>
 
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
             <AlertDialogDescription>
@@ -2278,7 +2260,7 @@ export default function RiskRegisterPage() {
               sebelum finalisasi.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+          <div className="space-y-2 rounded-2xl ring-1 ring-inset ring-border bg-muted p-3">
             <div className="text-sm">
               <span className="font-medium text-foreground">Kode: </span>
               <span className="font-mono text-xs text-muted-foreground">
@@ -2305,7 +2287,7 @@ export default function RiskRegisterPage() {
                 value={selectedAssessmentCycle}
                 onValueChange={setSelectedAssessmentCycle}
               >
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-9 ring-1 ring-inset ring-border">
                   <SelectValue placeholder="Pilih kuartal" />
                 </SelectTrigger>
                 <SelectContent>
@@ -2343,7 +2325,7 @@ export default function RiskRegisterPage() {
         open={!!riskToRestore}
         onOpenChange={(open) => !open && setRiskToRestore(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Pulihkan Risiko?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -2351,7 +2333,7 @@ export default function RiskRegisterPage() {
               terakhirnya.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+          <div className="rounded-2xl ring-1 ring-inset ring-border bg-muted px-3 py-2 text-sm">
             <p className="font-medium">
               {riskToRestore?.title || "Tanpa judul"}
             </p>
@@ -2376,4 +2358,52 @@ export default function RiskRegisterPage() {
       </AlertDialog>
     </div>
   );
+}
+
+function appleCornerPath({ width, height, radius, smoothing = 60 }: { width: number; height: number; radius: number; smoothing?: number }) {
+  const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+  const w = Math.max(0, width);
+  const h = Math.max(0, height);
+  const r = clamp(radius, 0, Math.min(w, h) / 2);
+  const s = clamp(smoothing, 0, 100) / 100;
+
+  if (!w || !h) return "";
+  if (!r) return `M0 0H${w}V${h}H0Z`;
+
+  if (s <= 0.001) {
+    const c = r * 0.5522847498307936;
+    return `M${r} 0H${w - r}C${w - r + c} 0 ${w} ${r - c} ${w} ${r}V${h - r}C${w} ${h - r + c} ${w - r + c} ${h} ${w - r} ${h}H${r}C${r - c} ${h} 0 ${h - r + c} 0 ${h - r}V${r}C0 ${r - c} ${r - c} 0 ${r} 0Z`;
+  }
+
+  const exponent = 2 + s * 3.35;
+  const steps = 22;
+  const points: [number, number][] = [];
+
+  const corner = (cx: number, cy: number, a0: number, a1: number) => {
+    for (let i = 0; i <= steps; i += 1) {
+      const a = a0 + (a1 - a0) * (i / steps);
+      const cos = Math.cos(a);
+      const sin = Math.sin(a);
+      const x = cx + r * Math.sign(cos) * Math.abs(cos) ** (2 / exponent);
+      const y = cy + r * Math.sign(sin) * Math.abs(sin) ** (2 / exponent);
+      points.push([+x.toFixed(3), +y.toFixed(3)]);
+    }
+  };
+
+  points.push([r, 0], [w - r, 0]);
+  corner(w - r, r, -Math.PI / 2, 0);
+  points.push([w, h - r]);
+  corner(w - r, h - r, 0, Math.PI / 2);
+  points.push([r, h]);
+  corner(r, h - r, Math.PI / 2, Math.PI);
+  points.push([0, r]);
+  corner(r, r, Math.PI, Math.PI * 1.5);
+
+  const deduped = points.filter((point, index, all) => {
+    if (index === 0) return true;
+    const prev = all[index - 1];
+    return point[0] !== prev[0] || point[1] !== prev[1];
+  });
+
+  return `M${deduped.map(([x, y]) => `${x} ${y}`).join("L")}Z`;
 }

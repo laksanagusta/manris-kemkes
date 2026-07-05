@@ -49,33 +49,33 @@ export function UnitTotalRiskScoreChart({
 
   if (loading) {
     return (
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">
+      <Card className="gap-4 rounded-lg border-0 bg-card py-0 shadow-none ring-1 ring-inset ring-border">
+        <CardHeader className="pb-4 pt-4">
+          <CardTitle className="text-base font-medium">
             Total Skor Risiko per Unit
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-80 animate-pulse rounded-lg bg-muted/40" />
+        <CardContent className="pb-4">
+          <div className="h-80 animate-pulse rounded-xl bg-muted/40" />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-      <CardHeader className="pb-3">
+    <Card className="gap-4 rounded-lg border-0 bg-card py-0 shadow-none ring-1 ring-inset ring-border">
+      <CardHeader className="pb-4 pt-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="text-base font-semibold">
+            <CardTitle className="text-base font-medium">
               Total Skor Risiko per Unit
             </CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-0.5 text-sm text-muted-foreground">
               Ranking unit berdasarkan penjumlahan skor risiko.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="text-[10px] shadow-none">
               {data.length} unit
             </Badge>
             {hasOverflow ? (
@@ -83,7 +83,7 @@ export function UnitTotalRiskScoreChart({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 px-2 text-[10px]"
+                className="h-7 px-2 text-[10px] shadow-none"
                 onClick={() => setExpanded((current) => !current)}
               >
                 {expanded ? "Top 10" : "Semua"}
@@ -92,9 +92,9 @@ export function UnitTotalRiskScoreChart({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pb-4">
         {data.length === 0 ? (
-          <div className="flex h-80 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+          <div className="flex h-80 items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 px-6 text-center text-sm text-muted-foreground">
             Belum ada data risiko pada cycle ini untuk menyusun ranking unit.
           </div>
         ) : (
@@ -147,7 +147,6 @@ export function UnitTotalRiskScoreChart({
                         borderRadius: "8px",
                         fontSize: "11px",
                         color: "var(--popover-foreground)",
-                        backdropFilter: "blur(8px)",
                       }}
                     />
                     <Bar

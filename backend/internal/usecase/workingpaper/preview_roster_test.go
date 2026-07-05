@@ -59,7 +59,7 @@ func TestPreviewRosterRejectsEmptyCycle(t *testing.T) {
 
 func TestPreviewRosterRejectsInvalidCycle(t *testing.T) {
 	uc := &UseCase{wpRepo: &fakeRosterWPRepo{}}
-	_, err := uc.PreviewRoster(context.Background(), uuid.New(), "2026-Q1", nil, false)
+	_, err := uc.PreviewRoster(context.Background(), uuid.New(), "2026-H1", nil, false)
 	if err == nil {
 		t.Fatal("expected error for invalid cycle")
 	}
@@ -89,7 +89,7 @@ func TestPreviewRosterAllowsOrgInScope(t *testing.T) {
 	expected := &entity.WorkingPaperRosterPreview{
 		OrganizationID:  orgID,
 		AssessmentCycle: "2026-H1",
-		MonitoringCycle: "2026-Q2",
+		MonitoringCycle: "2026-H1",
 		Revision:        "abc123",
 	}
 	repo := &fakeRosterWPRepo{preview: expected}

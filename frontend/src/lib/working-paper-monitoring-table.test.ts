@@ -58,7 +58,7 @@ test("buildWorkingPaperMonitoringRow maps a final monitoring evaluation", () => 
       monitoring: {
         id: "monitoring-1",
         status: "finalized",
-        assessmentCycle: "2026-Q2",
+        assessmentCycle: "2026-H1",
         sourceProbability: 4,
         sourceImpact: 4,
         sourceWeight: 1,
@@ -97,7 +97,46 @@ test("buildWorkingPaperMonitoringRow maps a final monitoring evaluation", () => 
   );
   assert.deepEqual(
     row.actionItems.map((item) => item.href),
-    ["/risk/register/risk-prev", "/risk/assessment/monitoring-1"],
+    ["/risk/register/risk-prev", "/risk/monitoring/monitoring-1"],
+  );
+});
+
+test("buildWorkingPaperMonitoringRowFromLink uses persisted source and monitoring ids", () => {
+  const row = tableLib.buildWorkingPaperMonitoringRowFromLink({
+    id: "link-1",
+    working_paper_id: "wp-1",
+    risk_id: "risk-fallback",
+    sort_order: 1,
+    source_mode: "roster",
+    created_at: "2026-07-01T00:00:00Z",
+    source_risk_id: "risk-source",
+    monitoring_id: "monitoring-1",
+    result_risk_id: "risk-result",
+    roster_status: "finalized_result",
+    risk: makeRisk({
+      monitoring: {
+        id: "monitoring-1",
+        status: "finalized",
+        assessmentCycle: "2026-H1",
+        sourceProbability: 4,
+        sourceImpact: 4,
+        sourceWeight: 1,
+        sourceNilai: 16,
+        sourceLevel: "tinggi",
+        observedProbability: 3,
+        observedImpact: 4,
+        observedWeight: 1,
+        observedNilai: 12,
+        observedLevel: "tinggi",
+        startedAt: "2026-06-01T08:00:00Z",
+        updatedAt: "2026-06-10T08:00:00Z",
+      },
+    }),
+  });
+
+  assert.deepEqual(
+    row.actionItems.map((item) => item.href),
+    ["/risk/register/risk-source", "/risk/monitoring/monitoring-1"],
   );
 });
 
@@ -107,7 +146,7 @@ test("buildWorkingPaperMonitoringRow hides progress for draft monitoring", () =>
       monitoring: {
         id: "monitoring-1",
         status: "draft",
-        assessmentCycle: "2026-Q2",
+        assessmentCycle: "2026-H1",
         sourceProbability: 4,
         sourceImpact: 4,
         sourceWeight: 1,
@@ -162,7 +201,7 @@ test("buildWorkingPaperMonitoringRow uses general follow-up as fallback", () => 
       monitoring: {
         id: "monitoring-2",
         status: "finalized",
-        assessmentCycle: "2026-Q2",
+        assessmentCycle: "2026-H1",
         sourceProbability: 4,
         sourceImpact: 4,
         sourceWeight: 1,

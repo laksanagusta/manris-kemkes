@@ -265,7 +265,7 @@ export function KRIMonitorPanel() {
         </div>
       )}
 
-      <Card className="border-border/50 bg-card/80">
+      <Card className="ring-1 ring-inset ring-border border-0 bg-card">
         <CardContent className="space-y-4 p-4 md:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -311,10 +311,10 @@ export function KRIMonitorPanel() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border/50">
+          <div className="overflow-hidden rounded-xl ring-1 ring-inset ring-border">
             <Table>
               <TableHeader>
-                <TableRow className="border-border/50 bg-muted/20 hover:bg-muted/20">
+                <TableRow className="border-border bg-muted/20 hover:bg-muted/20">
                   <TableHead className="w-24 text-xs whitespace-nowrap">Kode</TableHead>
                   <TableHead className="text-xs whitespace-nowrap">Indikator</TableHead>
                   <TableHead className="w-28 text-xs whitespace-nowrap">Unit</TableHead>

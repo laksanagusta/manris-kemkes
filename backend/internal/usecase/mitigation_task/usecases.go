@@ -25,50 +25,53 @@ func mitigationTaskPeriodLabel(assessmentCycle string) string {
 	return singleMitigationTaskPeriodLabel
 }
 
-// QuarterStart returns the start date of a quarter, e.g. Q1 = Jan 1
-func QuarterStart(year int, quarter int) time.Time {
-	month := (quarter-1)*3 + 1
+// SemesterStart returns the first day of a semester.
+func SemesterStart(year int, half int) time.Time {
+	month := 1
+	if half == 2 {
+		month = 7
+	}
 	return time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 }
 
-// QuarterEnd returns the last day of a quarter, e.g. Q1 = Mar 31
-func QuarterEnd(year int, quarter int) time.Time {
-	start := QuarterStart(year, quarter)
-	return start.AddDate(0, 3, -1)
+// SemesterEnd returns the last day of a semester.
+func SemesterEnd(year int, half int) time.Time {
+	return SemesterStart(year, half).AddDate(0, 6, -1)
 }
 
-// CurrentQuarter returns the current year and quarter (1-4)
-func CurrentQuarter(now time.Time) (int, int) {
+// CurrentSemester returns the current year and semester (1-2).
+func CurrentSemester(now time.Time) (int, int) {
 	year := now.Year()
-	quarter := (int(now.Month())-1)/3 + 1
-	return year, quarter
+	half := 1
+	if now.Month() >= time.July {
+		half = 2
+	}
+	return year, half
 }
 
-// ParseQuarterCycle parses "2026-Q1" into year and quarter
-func ParseQuarterCycle(cycle string) (int, int, error) {
-	parts := strings.Split(cycle, "-Q")
+// ParseSemesterCycle parses "2026-H1" into year and semester.
+func ParseSemesterCycle(cycle string) (int, int, error) {
+	parts := strings.Split(cycle, "-H")
 	if len(parts) != 2 {
-		return 0, 0, fmt.Errorf("format siklus kuartal tidak valid: %s", cycle)
+		return 0, 0, fmt.Errorf("format siklus semester tidak valid: %s", cycle)
 	}
 	year, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return 0, 0, fmt.Errorf("tahun tidak valid dalam siklus: %s", cycle)
 	}
-	quarter, err := strconv.Atoi(parts[1])
-	if err != nil || quarter < 1 || quarter > 4 {
-		return 0, 0, fmt.Errorf("kuartal tidak valid dalam siklus: %s", cycle)
+	half, err := strconv.Atoi(parts[1])
+	if err != nil || half < 1 || half > 2 {
+		return 0, 0, fmt.Errorf("semester tidak valid dalam siklus: %s", cycle)
 	}
-	return year, quarter, nil
+	return year, half, nil
 }
 
-// QuarterDueDate returns the due date string for a quarter, e.g. "2026-03-31"
-func QuarterDueDate(year int, quarter int) string {
-	return QuarterEnd(year, quarter).Format("2006-01-02")
+func SemesterDueDate(year int, half int) string {
+	return SemesterEnd(year, half).Format("2006-01-02")
 }
 
-// QuarterPeriodStart returns the start date string for a quarter
-func QuarterPeriodStart(year int, quarter int) string {
-	return QuarterStart(year, quarter).Format("2006-01-02")
+func SemesterPeriodStart(year int, half int) string {
+	return SemesterStart(year, half).Format("2006-01-02")
 }
 
 // ListTasksUseCase lists mitigation tasks for a risk

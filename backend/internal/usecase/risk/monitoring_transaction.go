@@ -139,7 +139,7 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 		return nil, errors.ErrOnlyApprovedCurrentMonitored
 	}
 
-	if err := uc.validateNoNewerQuarter(ctx, sourceRisk.VersionGroupID, input.Cycle); err != nil {
+	if err := uc.validateNoNewerCycle(ctx, sourceRisk.VersionGroupID, input.Cycle); err != nil {
 		return nil, err
 	}
 
@@ -310,7 +310,10 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 
 	if uc.fullRiskRepo != nil && uc.taskRepo != nil {
 		ensureUC := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.taskRepo, uc.fullRiskRepo)
-		nextCycle := nextQuarterCycle(monitoring.AssessmentCycle)
+		nextCycle, cycleErr := NextSemesterCycle(monitoring.AssessmentCycle)
+		if cycleErr != nil {
+			return nil, cycleErr
+		}
 		if _, err := ensureUC.Execute(ctx, resultRisk.ID, nextCycle, input.OrgIDs); err != nil {
 			log.Printf("[WARN] ensure mitigation tasks after finalize for next cycle %s: %v", nextCycle, err)
 		}
@@ -322,7 +325,7 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 	}, nil
 }
 
-func (uc *StartMonitoringUseCase) validateNoNewerQuarter(ctx context.Context, versionGroupID uuid.UUID, requestedCycle string) error {
+func (uc *StartMonitoringUseCase) validateNoNewerCycle(ctx context.Context, versionGroupID uuid.UUID, requestedCycle string) error {
 	list, err := uc.monitoringRepo.ListByVersionGroup(ctx, versionGroupID)
 	if err != nil {
 		return errors.Wrap(err, "failed to check existing monitorings")
@@ -339,24 +342,11 @@ func (uc *StartMonitoringUseCase) validateNoNewerQuarter(ctx context.Context, ve
 		}
 
 		if cmp > 0 {
-			return errors.ErrBackQuarterMsg(requestedCycle, m.AssessmentCycle)
+			return errors.ErrBackCycleMsg(requestedCycle, m.AssessmentCycle)
 		}
 	}
 
 	return nil
-}
-
-func nextQuarterCycle(cycle string) string {
-	year, quarter, err := mtuc.ParseQuarterCycle(cycle)
-	if err != nil {
-		return cycle
-	}
-	quarter++
-	if quarter > 4 {
-		quarter = 1
-		year++
-	}
-	return fmt.Sprintf("%d-Q%d", year, quarter)
 }
 
 func buildRiskVersionFromMonitoring(source *entity.Risk, monitoring *entity.RiskMonitoring, finalizedBy uuid.UUID) (*entity.Risk, error) {
@@ -367,11 +357,7 @@ func buildRiskVersionFromMonitoring(source *entity.Risk, monitoring *entity.Risk
 	clone.IsCurrent = true
 	clone.IsCycleCurrent = true
 	clone.Status = entity.RiskStatusApproved
-	assessmentCycle, err := QuarterToAssessmentSemester(monitoring.AssessmentCycle)
-	if err != nil {
-		return nil, err
-	}
-	clone.AssessmentCycle = assessmentCycle
+	clone.AssessmentCycle = monitoring.AssessmentCycle
 	clone.ReviewType = "periodic"
 	clone.ReviewSummary = monitoring.Conclusion
 	clone.ReviewStartedAt = timePtr(monitoring.StartedAt.UTC().Round(time.Second))

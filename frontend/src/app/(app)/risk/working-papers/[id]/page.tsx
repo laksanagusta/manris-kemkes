@@ -43,6 +43,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
+import { useSetHeaderActions } from "@/lib/header-actions-context";
 import {
   AlertCircle,
   CheckCircle2,
@@ -218,6 +219,60 @@ export default function WorkingPaperDetailPage(props: {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  const setHeaderActions = useSetHeaderActions();
+
+  const handleExport = async () => {
+    if (!data) return;
+    try {
+      const { exportWorkingPaper } =
+        await import("@/lib/working-paper-export").catch(() => {
+          throw new Error("Fitur ekspor Excel belum tersedia.");
+        });
+      await exportWorkingPaper(data);
+      toast.success("Kertas kerja berhasil diekspor.");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Gagal mengekspor kertas kerja.",
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (!token || !data) return;
+    const vm = buildWorkingPaperDetailViewModel(data, user?.id);
+    setHeaderActions(
+      <div className="flex items-center gap-2">
+        <WorkingPaperStatusActions
+          canStartSigning={vm.canStartSigning}
+          canSkipTTE={vm.canSkipTTE}
+          canCancel={vm.canCancel}
+          canDelete={vm.canDelete}
+          onStartSigning={() => setStartSigningDialogOpen(true)}
+          onSkipTTE={() => setSkipDialogOpen(true)}
+          onCancel={() => setCancelDialogOpen(true)}
+          onDelete={() => setDeleteDialogOpen(true)}
+        />
+        {vm.canStartSigning && (
+          <Button size="sm" style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties} onClick={() => setStartSigningDialogOpen(true)}>
+            <Pen className="w-4 h-4 mr-2" />
+            Mulai Proses TTE
+          </Button>
+        )}
+        {vm.canSign && (
+          <Button size="sm" style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties} onClick={() => setSignDialogOpen(true)}>
+            <Pen className="w-4 h-4 mr-2" />
+            Tanda Tangani
+          </Button>
+        )}
+        <Button variant="outline" size="sm" onClick={handleExport}>
+          <Download className="w-4 h-4 mr-2" />
+          Ekspor Excel
+        </Button>
+      </div>,
+    );
+    return () => setHeaderActions(null);
+  }, [token, setHeaderActions, data, user?.id, handleExport, setStartSigningDialogOpen, setSignDialogOpen, setSkipDialogOpen, setCancelDialogOpen, setDeleteDialogOpen]);
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -239,22 +294,6 @@ export default function WorkingPaperDetailPage(props: {
     if (!token) return;
     loadData();
   }, [loadData, token]);
-
-  const handleExport = async () => {
-    if (!data) return;
-    try {
-      const { exportWorkingPaper } =
-        await import("@/lib/working-paper-export").catch(() => {
-          throw new Error("Fitur ekspor Excel belum tersedia.");
-        });
-      await exportWorkingPaper(data);
-      toast.success("Kertas kerja berhasil diekspor.");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Gagal mengekspor kertas kerja.",
-      );
-    }
-  };
 
   const handleSign = async () => {
     if (!token || !data) return;
@@ -322,15 +361,13 @@ export default function WorkingPaperDetailPage(props: {
 
   if (loading) {
     return (
-      <FormPage className="max-w-7xl">
+      <FormPage className="space-y-4 pb-0">
         <FormHeader
           title="Memuat detail kertas kerja"
           description="Sistem sedang menyiapkan ringkasan dokumen, status tanda tangan, dan daftar risiko."
-          backLabel="Kembali ke kertas kerja"
-          onBack={() => router.push("/risk/working-papers")}
         />
 
-        <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-xl border border-border/50 bg-muted/20 px-6 py-12 text-center">
+        <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-lg ring-1 ring-inset ring-border bg-muted/20 px-6 py-12 text-center">
           <Loader2 className="size-6 animate-spin text-primary" />
           <p className="text-sm font-medium text-foreground">
             Memuat detail kertas kerja...
@@ -342,15 +379,13 @@ export default function WorkingPaperDetailPage(props: {
 
   if (error) {
     return (
-      <FormPage className="max-w-7xl">
+      <FormPage className="space-y-4 pb-0">
         <FormHeader
           title="Detail kertas kerja belum tersedia"
           description="Halaman ini membutuhkan data dokumen yang valid sebelum Anda bisa meninjau tindakan penandatanganan."
-          backLabel="Kembali ke kertas kerja"
-          onBack={() => router.push("/risk/working-papers")}
         />
 
-        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-xl border border-destructive/20 bg-destructive/5 px-6 py-12 text-center">
+        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-12 text-center">
           <div className="inline-flex size-12 items-center justify-center rounded-full bg-destructive/10">
             <ShieldAlert className="size-6 text-destructive" />
           </div>
@@ -378,15 +413,13 @@ export default function WorkingPaperDetailPage(props: {
 
   if (!data) {
     return (
-      <FormPage className="max-w-7xl">
+      <FormPage className="space-y-4 pb-0">
         <FormHeader
           title="Kertas kerja tidak ditemukan"
           description="Dokumen yang Anda cari mungkin sudah dipindahkan, tidak lagi tersedia, atau Anda tidak memiliki akses untuk melihatnya."
-          backLabel="Kembali ke kertas kerja"
-          onBack={() => router.push("/risk/working-papers")}
         />
 
-        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-xl border border-border/50 bg-muted/20 px-6 py-12 text-center">
+        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-lg ring-1 ring-inset ring-border bg-muted/20 px-6 py-12 text-center">
           <AlertCircle className="size-10 text-muted-foreground" />
           <div className="space-y-1.5">
             <h2 className="text-lg font-semibold">Dokumen tidak ditemukan</h2>
@@ -452,52 +485,9 @@ export default function WorkingPaperDetailPage(props: {
   ];
 
   return (
-    <FormPage className="max-w-7xl">
-      <FormHeader
-        title={data.title}
-        backLabel="Kembali ke kertas kerja"
-        onBack={() => router.back()}
-        badges={
-          <Badge
-            className={cn("capitalize px-2 py-0.5", statusVariant[status])}
-          >
-            {statusLabel[status]}
-          </Badge>
-        }
-        actions={
-          <>
-            <WorkingPaperStatusActions
-              canStartSigning={viewModel.canStartSigning}
-              canSkipTTE={viewModel.canSkipTTE}
-              canCancel={viewModel.canCancel}
-              canDelete={viewModel.canDelete}
-              onStartSigning={() => setStartSigningDialogOpen(true)}
-              onSkipTTE={() => setSkipDialogOpen(true)}
-              onCancel={() => setCancelDialogOpen(true)}
-              onDelete={() => setDeleteDialogOpen(true)}
-            />
-            {viewModel.canStartSigning && (
-              <Button size="sm" onClick={() => setStartSigningDialogOpen(true)}>
-                <Pen className="w-4 h-4 mr-2" />
-                Mulai Proses TTE
-              </Button>
-            )}
-            {viewModel.canSign && (
-              <Button size="sm" onClick={() => setSignDialogOpen(true)}>
-                <Pen className="w-4 h-4 mr-2" />
-                Tanda Tangani
-              </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
-              Ekspor Excel
-            </Button>
-          </>
-        }
-      />
-
+    <FormPage className="space-y-4 pb-0">
       {viewModel.monitoringBlockers.length > 0 ? (
-        <section className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+        <section className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">
             Finalisasi monitoring terlebih dahulu
           </p>
@@ -515,15 +505,15 @@ export default function WorkingPaperDetailPage(props: {
         </section>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="min-w-0 space-y-6">
+      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+        <div className="min-w-0 space-y-4">
           <FormSection
             title="Ringkasan dokumen"
-            className="border-zinc-200/80 bg-gradient-to-b from-zinc-50 to-zinc-100/60 shadow-sm"
+            className="rounded-lg ring-1 ring-inset ring-border border-0 overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-100/60"
             action={
               <Badge
                 variant="secondary"
-                className="border-zinc-200 bg-zinc-100 text-zinc-700 font-mono"
+                className="font-mono"
               >
                 {signedCount} dari {signatories.length || 0} ditandatangani
               </Badge>
@@ -533,29 +523,27 @@ export default function WorkingPaperDetailPage(props: {
               {summaryItems.map((item) => (
                 <div
                   key={item.label}
-                  className="space-y-1 rounded-xl border border-zinc-200/80 bg-white/75 px-4 py-3 shadow-sm shadow-zinc-950/[0.03]"
+                  className="space-y-1 rounded-lg ring-1 ring-inset ring-border bg-card px-4 py-3"
                 >
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     {item.label}
                   </dt>
-                  <dd className="text-sm font-medium text-zinc-900">
-                    {item.value}
+                  <dd>
+                    <Badge variant="outline" className="font-mono text-sm font-medium px-2.5 py-1">
+                      {item.value}
+                    </Badge>
                   </dd>
                 </div>
               ))}
             </dl>
           </FormSection>
           <FormSection
-            title="Risiko dalam Kertas Kerja"
-            action={
-              <Badge variant="secondary" className="font-mono">
-                {data.risks?.length || 0} Risiko
-              </Badge>
-            }
-            contentClassName="p-0 sm:p-0"
+            title="Monitoring Final"
+            description={`Status finalisasi monitoring risiko`}
+            className="rounded-lg ring-1 ring-inset ring-border border-0 overflow-hidden"
           >
             {totalRiskCount > 0 && (
-              <div className="flex flex-col gap-3 px-4 py-4">
+              <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
                     {isAllMonitoringFinal ? (
@@ -588,6 +576,17 @@ export default function WorkingPaperDetailPage(props: {
                 </div>
               </div>
             )}
+          </FormSection>
+          <FormSection
+            title="Risiko dalam Kertas Kerja"
+            action={
+              <Badge variant="secondary" className="font-mono">
+                {data.risks?.length || 0} Risiko
+              </Badge>
+            }
+            className="rounded-lg ring-1 ring-inset ring-border border-0 overflow-hidden"
+            contentClassName="p-0 sm:p-0"
+          >
             <WorkingPaperMonitoringTable links={data.risks ?? []} />
           </FormSection>
         </div>
@@ -600,10 +599,10 @@ export default function WorkingPaperDetailPage(props: {
                 {signedCount}/{signatories.length || 0}
               </Badge>
             }
-            className="sticky top-6"
+            className="rounded-lg ring-1 ring-inset ring-border border-0 overflow-hidden sticky top-6"
           >
             {signatories.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-center">
+              <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-center">
                 <p className="text-sm text-muted-foreground">
                   Belum ada penandatangan
                 </p>

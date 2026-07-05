@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -16,31 +15,14 @@ import (
 )
 
 type rosterPeriod struct {
-	SemesterStart time.Time
-	SemesterEnd   time.Time
-	QuarterStart  time.Time
-	QuarterCycle  string
+	MonitoringCycle string
 }
 
 func resolveRosterPeriod(cycle string) (rosterPeriod, error) {
-	year, half, err := parseSemester(cycle)
-	if err != nil {
+	if _, _, err := parseSemester(cycle); err != nil {
 		return rosterPeriod{}, err
 	}
-	if half == 1 {
-		return rosterPeriod{
-			SemesterStart: time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC),
-			SemesterEnd:   time.Date(year, 7, 1, 0, 0, 0, 0, time.UTC),
-			QuarterStart:  time.Date(year, 4, 1, 0, 0, 0, 0, time.UTC),
-			QuarterCycle:  fmt.Sprintf("%d-Q2", year),
-		}, nil
-	}
-	return rosterPeriod{
-		SemesterStart: time.Date(year, 7, 1, 0, 0, 0, 0, time.UTC),
-		SemesterEnd:   time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC),
-		QuarterStart:  time.Date(year, 10, 1, 0, 0, 0, 0, time.UTC),
-		QuarterCycle:  fmt.Sprintf("%d-Q4", year),
-	}, nil
+	return rosterPeriod{MonitoringCycle: cycle}, nil
 }
 
 func parseSemester(cycle string) (int, int, error) {
@@ -68,7 +50,7 @@ func omitemptyUUID(id uuid.UUID) string {
 	return id.String()
 }
 
-func computeRosterRevision(entries []entity.WorkingPaperRosterEntry, quarterCycle string) string {
+func computeRosterRevision(entries []entity.WorkingPaperRosterEntry, monitoringCycle string) string {
 	h := sha256.New()
 	for _, entry := range entries {
 		fmt.Fprintf(h, "%s|%s|%s|%s|%s\n",
@@ -79,7 +61,7 @@ func computeRosterRevision(entries []entity.WorkingPaperRosterEntry, quarterCycl
 			entry.RosterStatus,
 		)
 	}
-	fmt.Fprintf(h, "%s\n", quarterCycle)
+	fmt.Fprintf(h, "%s\n", monitoringCycle)
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -98,9 +80,7 @@ func (r *workingPaperRepository) PreviewPeriodRoster(ctx context.Context, orgID 
 
 	rows, err := r.pool.Query(ctx, rosterPreviewQuery(),
 		orgID,
-		period.SemesterStart,
-		period.SemesterEnd,
-		period.QuarterCycle,
+		period.MonitoringCycle,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("preview period roster: %w", err)
@@ -132,7 +112,7 @@ func (r *workingPaperRepository) PreviewPeriodRoster(ctx context.Context, orgID 
 		}
 
 		entry.OrganizationID = orgID
-		entry.MonitoringCycle = period.QuarterCycle
+		entry.MonitoringCycle = period.MonitoringCycle
 
 		if monitoringID.Valid {
 			entry.MonitoringID = &monitoringID.UUID
@@ -168,12 +148,12 @@ func (r *workingPaperRepository) PreviewPeriodRoster(ctx context.Context, orgID 
 		return nil, fmt.Errorf("roster preview rows: %w", err)
 	}
 
-	revision := computeRosterRevision(entries, period.QuarterCycle)
+	revision := computeRosterRevision(entries, period.MonitoringCycle)
 
 	return &entity.WorkingPaperRosterPreview{
 		OrganizationID:  orgID,
 		AssessmentCycle: assessmentCycle,
-		MonitoringCycle: period.QuarterCycle,
+		MonitoringCycle: period.MonitoringCycle,
 		Revision:        revision,
 		Entries:         entries,
 		Summary:         summary,
@@ -202,14 +182,11 @@ func rosterPreviewQuery() string {
 				r.id AS risk_id,
 				r.code,
 				r.title,
-				r.version_number,
-				COALESCE(r.review_approved_at, r.created_at) AS effective_from,
-				r.archived_at AS effective_to
+				r.version_number
 			FROM risks r
 			WHERE r.organization_id = $1
 			  AND r.status = 'approved'
-			  AND COALESCE(r.review_approved_at, r.created_at) < $3::timestamptz
-			  AND (r.archived_at IS NULL OR r.archived_at >= $2::timestamptz)
+			  AND r.assessment_cycle = $2
 			ORDER BY r.version_group_id, r.version_number DESC
 		),
 		monitoring_lookup AS (
@@ -222,7 +199,7 @@ func rosterPreviewQuery() string {
 				rm.result_risk_id
 			FROM risk_monitorings rm
 			JOIN eligible_versions ev ON ev.version_group_id = rm.version_group_id
-			WHERE rm.assessment_cycle = $4
+			WHERE rm.assessment_cycle = $2
 			  AND rm.status IN ('draft', 'finalized')
 		),
 		result_versions AS (
@@ -287,7 +264,7 @@ func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp 
 		return fmt.Errorf("recompute roster preview: %w", err)
 	}
 
-	currentRevision := computeRosterRevision(entries, period.QuarterCycle)
+	currentRevision := computeRosterRevision(entries, period.MonitoringCycle)
 	if currentRevision != revision {
 		return &domainerrors.AppError{
 			Code:    "ROSTER_STALE",
@@ -335,7 +312,7 @@ func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp 
 			if _, err := tx.Exec(ctx, `
 				INSERT INTO working_paper_risk_exclusions (working_paper_id, version_group_id, assessment_cycle, reason, excluded_by)
 				VALUES ($1,$2,$3,$4,$5)
-			`, wp.ID, entry.VersionGroupID, period.QuarterCycle, decision.ExclusionReason, wp.CreatedBy); err != nil {
+			`, wp.ID, entry.VersionGroupID, period.MonitoringCycle, decision.ExclusionReason, wp.CreatedBy); err != nil {
 				return fmt.Errorf("insert exclusion: %w", err)
 			}
 			continue
@@ -347,7 +324,7 @@ func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp 
 			if err != nil {
 				return fmt.Errorf("resolve source risk for monitoring draft: %w", err)
 			}
-			draft := entity.NewRiskMonitoringDraft(sourceRisk, period.QuarterCycle, wp.CreatedBy)
+			draft := entity.NewRiskMonitoringDraft(sourceRisk, period.MonitoringCycle, wp.CreatedBy)
 			if err := insertRiskMonitoring(ctx, tx, draft); err != nil {
 				return fmt.Errorf("create monitoring draft: %w", err)
 			}
@@ -387,9 +364,7 @@ type rosterQuerier interface {
 func scanRosterPreview(ctx context.Context, q rosterQuerier, orgID uuid.UUID, period rosterPeriod) ([]entity.WorkingPaperRosterEntry, entity.WorkingPaperRosterSummary, error) {
 	rows, err := q.Query(ctx, rosterPreviewQuery(),
 		orgID,
-		period.SemesterStart,
-		period.SemesterEnd,
-		period.QuarterCycle,
+		period.MonitoringCycle,
 	)
 	if err != nil {
 		return nil, entity.WorkingPaperRosterSummary{}, err
@@ -421,7 +396,7 @@ func scanRosterPreview(ctx context.Context, q rosterQuerier, orgID uuid.UUID, pe
 		}
 
 		entry.OrganizationID = orgID
-		entry.MonitoringCycle = period.QuarterCycle
+		entry.MonitoringCycle = period.MonitoringCycle
 
 		if monitoringID.Valid {
 			entry.MonitoringID = &monitoringID.UUID

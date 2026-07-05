@@ -108,10 +108,10 @@ export function MonitoringOperationalPanel() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <RiskMovementSnapshot data={movementSnapshot} loading={loading} />
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+      <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
         <CardHeader>
           <div>
             <CardTitle className="text-base font-semibold">
@@ -201,7 +201,7 @@ export function MonitoringOperationalPanel() {
                   />
                 </div>
 
-                <div className="rounded-xl border border-border/50 bg-background/70 px-4 py-3">
+                <div className="rounded-xl ring-1 ring-inset ring-border bg-background/70 px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">

@@ -16,6 +16,7 @@ const {
   buildTopRiskBadgeMap,
   buildUnitTotalRiskScoreData,
   buildUnitExposureData,
+  selectEffectiveRiskVersions,
 } = dashboardInsightsLib as typeof import("./dashboard-insights");
 
 type DashboardRiskInput = Parameters<typeof buildUnitExposureData>[0][number] & {
@@ -390,6 +391,37 @@ test("buildUnitTotalRiskScoreData applies limit and returns empty-friendly array
     { orgName: "Direktorat A", totalScore: 20, riskCount: 1 },
   ]);
   assert.deepEqual(buildUnitTotalRiskScoreData([]), []);
+});
+
+test("selectEffectiveRiskVersions carries the latest H1 version into an H2 dashboard", () => {
+  const risks = [
+    makeDashboardRisk({
+      id: "risk-h1",
+      code: "R-001",
+      versionGroupId: "group-1",
+      versionNumber: 2,
+      assessmentCycle: "2026-H1",
+    }),
+    makeDashboardRisk({
+      id: "risk-old",
+      code: "R-001",
+      versionGroupId: "group-1",
+      versionNumber: 1,
+      assessmentCycle: "2025-H2",
+    }),
+    makeDashboardRisk({
+      id: "risk-future",
+      code: "R-002",
+      versionGroupId: "group-2",
+      versionNumber: 1,
+      assessmentCycle: "2027-H1",
+    }),
+  ];
+
+  assert.deepEqual(
+    selectEffectiveRiskVersions(risks, "2026-H2").map((risk) => risk.id),
+    ["risk-h1"],
+  );
 });
 
 test("buildExecutiveTrendData sorts semester output chronologically for overview charts", () => {

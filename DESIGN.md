@@ -1,69 +1,72 @@
 ---
+version: alpha
 name: Manris
-description: Light-first operational design system for risk and incident management.
+description: macOS-inspired operational design system for risk and incident management. Neutral-first, blue-accented, desktop-density controls with SF Pro system typography.
 colors:
-  background: "oklch(0.985 0.003 170)"
-  foreground: "oklch(0.18 0.02 170)"
+  background: "oklch(0.985 0 0)"
+  foreground: "oklch(0.15 0 0)"
   card: "oklch(1 0 0)"
-  card-foreground: "oklch(0.18 0.02 170)"
-  popover: "oklch(1 0 0)"
-  popover-foreground: "oklch(0.18 0.02 170)"
-  primary: "oklch(0.48 0.12 175)"
+  card-foreground: "oklch(0.15 0 0)"
+  popover: "oklch(1 0 0 / 0.95)"
+  popover-foreground: "oklch(0.15 0 0)"
+  primary: "oklch(0.62 0.19 240)"
   primary-foreground: "oklch(0.99 0 0)"
-  secondary: "oklch(0.955 0.01 170)"
-  secondary-foreground: "oklch(0.30 0.06 175)"
-  muted: "oklch(0.96 0.006 170)"
-  muted-foreground: "oklch(0.50 0.015 170)"
-  accent: "oklch(0.94 0.018 175)"
-  accent-foreground: "oklch(0.30 0.06 175)"
-  destructive: "oklch(0.58 0.22 27)"
-  border: "oklch(0.91 0.008 170)"
-  input: "oklch(0.91 0.008 170)"
-  ring: "oklch(0.50 0.10 175)"
-  sidebar: "oklch(0.975 0.004 170)"
-  sidebar-foreground: "oklch(0.25 0.02 170)"
-  sidebar-primary: "oklch(0.48 0.12 175)"
+  secondary: "oklch(0.97 0 0)"
+  secondary-foreground: "oklch(0.4 0 0)"
+  muted: "oklch(0 0 0 / 0.03)"
+  muted-foreground: "oklch(0 0 0 / 0.5)"
+  accent: "oklch(0.62 0.19 240 / 0.1)"
+  accent-foreground: "oklch(0.62 0.19 240)"
+  destructive: "oklch(0.64 0.21 27)"
+  border: "oklch(0 0 0 / 0.1)"
+  input: "oklch(0 0 0 / 0.1)"
+  ring: "oklch(0.62 0.19 240 / 0.25)"
+  sidebar: "oklch(0.97 0 0 / 0.7)"
+  sidebar-foreground: "oklch(0.15 0 0)"
+  sidebar-primary: "oklch(0.62 0.19 240)"
   sidebar-primary-foreground: "oklch(0.99 0 0)"
-  sidebar-accent: "oklch(0.94 0.015 175)"
-  sidebar-accent-foreground: "oklch(0.22 0.03 175)"
-  sidebar-border: "oklch(0.91 0.008 170)"
-  sidebar-ring: "oklch(0.50 0.10 175)"
+  sidebar-accent: "oklch(0 0 0 / 0.05)"
+  sidebar-accent-foreground: "oklch(0.15 0 0)"
+  sidebar-border: "oklch(0 0 0 / 0.1)"
+  sidebar-ring: "oklch(0.62 0.19 240 / 0.25)"
   transparent: "#00000000"
-  chart-1: "oklch(0.48 0.12 175)"
-  chart-2: "oklch(0.60 0.10 200)"
-  chart-3: "oklch(0.70 0.15 50)"
-  chart-4: "oklch(0.55 0.12 150)"
-  chart-5: "oklch(0.65 0.08 220)"
+  chart-1: "oklch(0.62 0.19 240)"
+  chart-2: "oklch(0.72 0.17 155)"
+  chart-3: "oklch(0.78 0.12 85)"
+  chart-4: "oklch(0.64 0.21 27)"
+  chart-5: "oklch(0.55 0.15 270)"
   risk-low: "oklch(0.72 0.17 155)"
-  risk-medium: "oklch(0.78 0.16 85)"
+  risk-medium: "oklch(0.78 0.12 85)"
   risk-high: "oklch(0.70 0.18 40)"
-  risk-extreme: "oklch(0.58 0.22 27)"
+  risk-extreme: "oklch(0.64 0.21 27)"
   success: "oklch(0.72 0.17 155)"
-  warning: "oklch(0.78 0.16 85)"
+  warning: "oklch(0.78 0.12 85)"
 typography:
   display:
-    fontFamily: "DM Sans, Manrope, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-    fontSize: "1rem"
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, SF Pro Display, Segoe UI, sans-serif"
+    fontSize: "0.875rem"
     fontWeight: 600
     lineHeight: 1.2
     letterSpacing: "-0.01em"
   body:
-    fontFamily: "Manrope, DM Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-    fontSize: "1rem"
-    fontWeight: 400
-    lineHeight: 1.5
-    letterSpacing: "0"
-  mono:
-    fontFamily: "Geist Mono, ui-monospace, 'SFMono-Regular', 'SF Mono', Consolas, 'Liberation Mono', monospace"
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, SF Pro Display, Segoe UI, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.5
-    letterSpacing: "0"
+    letterSpacing: "0px"
+  mono:
+    fontFamily: "SF Mono, ui-monospace, SFMono-Regular, SF Mono, Consolas, Liberation Mono, monospace"
+    fontSize: "0.8125rem"
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: "0px"
 rounded:
-  sm: "7px"
-  md: "10px"
-  lg: "12px"
-  xl: "16px"
+  full: "9999px"
+  md: "6px"
+  lg: "8px"
+  xl: "12px"
+  2xl: "16px"
+  3xl: "24px"
 spacing:
   xs: "4px"
   sm: "8px"
@@ -74,28 +77,115 @@ components:
   button-primary:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.lg}"
-    padding: "8px 12px"
+    rounded: "{rounded.md}"
+    height: "36px"
+    padding: "0 14px"
+    fontSize: "0.875rem"
+    fontWeight: 500
+  button-cta:
+    backgroundColor: "#00b9ad"
+    textColor: "{colors.primary-foreground}"
+    rounded: "{rounded.md}"
+    height: "36px"
+    padding: "0 14px"
+    fontSize: "0.875rem"
+    fontWeight: 600
+  button-premium:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.primary-foreground}"
+    rounded: "{rounded.md}"
+    height: "40px"
+    padding: "0 16px"
+    fontSize: "0.875rem"
+    fontWeight: 500
   button-outline:
     backgroundColor: "{colors.card}"
     textColor: "{colors.foreground}"
     rounded: "{rounded.lg}"
-    padding: "8px 12px"
+    height: "36px"
+    padding: "0 14px"
+    fontSize: "0.875rem"
+    fontWeight: 500
   button-ghost:
-    backgroundColor: "{colors.transparent}"
+    backgroundColor: "transparent"
     textColor: "{colors.foreground}"
     rounded: "{rounded.lg}"
-    padding: "8px 12px"
+    height: "36px"
+    padding: "0 14px"
+    fontSize: "0.875rem"
+    fontWeight: 500
+  button-icon:
+    rounded: "{rounded.lg}"
+    height: "36px"
+    width: "36px"
+    fontSize: "0.875rem"
+    fontWeight: 500
+  button-icon-large:
+    rounded: "{rounded.lg}"
+    height: "40px"
+    width: "40px"
+    fontSize: "0.875rem"
+    fontWeight: 500
   card-default:
     backgroundColor: "{colors.card}"
     textColor: "{colors.card-foreground}"
-    rounded: "{rounded.xl}"
+    rounded: "{rounded.lg}"
     padding: "16px"
+  card-large:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.card-foreground}"
+    rounded: "{rounded.lg}"
+    padding: "24px"
   input-default:
-    backgroundColor: "{colors.transparent}"
+    backgroundColor: "{colors.card}"
     textColor: "{colors.foreground}"
+    rounded: "{rounded.lg}"
+    height: "36px"
+    padding: "0 12px"
+  search-input:
+    backgroundColor: "{colors.muted}"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.lg}"
+    height: "36px"
+    padding: "0 12px"
+  modal:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.card-foreground}"
+    rounded: "{rounded.2xl}"
+    padding: "24px"
+  bottom-sheet:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.card-foreground}"
+    rounded: "{rounded.2xl}"
+    padding: "20px"
+  list-group:
+    rounded: "{rounded.2xl}"
+  segmented-control:
     rounded: "{rounded.md}"
-    padding: "8px 10px"
+    padding: "4px"
+  chip-default:
+    rounded: "{rounded.full}"
+    height: "32px"
+    padding: "0 12px"
+  icon-tile:
+    rounded: "{rounded.lg}"
+    height: "36px"
+    width: "36px"
+  app-icon-tile:
+    rounded: "{rounded.2xl}"
+    height: "56px"
+    width: "56px"
+  toast:
+    rounded: "{rounded.2xl}"
+    padding: "10px 14px"
+  dropdown:
+    backgroundColor: "{colors.popover}"
+    textColor: "{colors.popover-foreground}"
+    rounded: "{rounded.2xl}"
+  popover:
+    backgroundColor: "{colors.popover}"
+    textColor: "{colors.popover-foreground}"
+    rounded: "{rounded.2xl}"
 ---
 
 # Design System: Manris
@@ -104,119 +194,165 @@ components:
 
 **Creative North Star: "The Operational Ledger"**
 
-Manris is a light-first operational interface for ministry teams handling risk and incident management under pressure. The visual language should feel like a well-kept briefing room, not a startup dashboard: calm, precise, credible, and ready for daily use. The current system leans on restrained teal accents, clean cards, compact controls, and strong editorial hierarchy to keep attention on the task.
+Manris is a macOS-inspired operational interface for ministry teams handling risk and incident management under pressure. The visual language feels like a well-kept briefing room — calm, precise, credible, and ready for daily use. The system uses restrained neutrals, blue accent for primary actions, compact desktop-density controls, soft rounded corners, and SF Pro system typography to keep attention on the task.
 
-This system should stay institutionally grounded without becoming stiff. It should reduce panic, surface the next action quickly, and keep high-stakes workflows legible when information is incomplete. The product explicitly rejects decorative AI chrome, noisy card repetition, flashy gradients, and “analytics theater.” Public entry screens may use a limited branded flourish, but the core authenticated surface should remain quiet and dependable.
+This system should stay institutionally grounded without becoming stiff. It should reduce panic, surface the next action quickly, and keep high-stakes workflows legible when information is incomplete. The product explicitly rejects decorative chrome, noisy card repetition, flashy gradients, and analytics theater. The authenticated surface should remain quiet and dependable.
 
 **Key Characteristics:**
-- Light-first, with dark mode as a functional inversion rather than the default mood.
-- Restrained color, with teal as the primary operational accent.
-- Compact, familiar controls that read like trusted enterprise software.
-- Editorial spacing and hierarchy over decoration.
-- Exceptions for brand expression are narrow and intentional.
+- Neutral-first palette with blue as the operational accent.
+- Desktop-density spacing — compact but never cramped.
+- SF Pro system typography with text-sm as the workhorse size.
+- Soft borders and restrained shadows over heavy decoration.
+- Translucent materials reserved for chrome (sidebar, toolbar), solid surfaces for content.
 
 ## Colors
 
-The palette is restrained and institutional, with teal carrying the main system voice and semantic colors reserved for meaning.
+The palette is neutral-first with blue as the primary system accent. Color is used for status and emphasis, not decoration.
 
 ### Primary
-- **Operational Teal** (`oklch(0.48 0.12 175)`): Main action color, active states, focus ring alignment, sidebar primary, and chart emphasis.
+- **Accent Blue** (`oklch(0.62 0.19 240)`): System accent, active selection, focus ring.
+- **Teal Action** (`#00b9ad`): Primary CTA color — used for key create/add actions (e.g., "Tambah Risiko").
 
-### Secondary
-- **Pale Teal Wash** (`oklch(0.955 0.01 170)`): Secondary surfaces, subtle panel fills, and quiet supporting states.
-- **Teal Accent Wash** (`oklch(0.94 0.018 175)`): Hover and selection surfaces when the UI needs a soft active cue.
+### Neutral Palette
+- **Background** (`oklch(0.985 0 0)`): Main page background — subtle paper tone.
+- **Card Surface** (`oklch(1 0 0)`): Card, panel, and window surfaces.
+- **Subtle Surface** (`oklch(0 0 0 / 0.03)`): Muted fills, table stripe, hover backdrop.
+- **Ink** (`oklch(0.15 0 0)`): Primary text color.
+- **Muted Ink** (`oklch(0 0 0 / 0.5)`): Secondary text, helper copy, metadata.
+- **Border** (`oklch(0 0 0 / 0.1)`): Subtle strokes and dividers.
 
 ### Semantic
-- **Risk Low Green** (`oklch(0.72 0.17 155)`): Low risk indicators, success states, and positive status chips.
-- **Risk Medium Amber** (`oklch(0.78 0.16 85)`): Caution states and moderate risk markers.
-- **Risk High Orange** (`oklch(0.70 0.18 40)`): Elevated risk markers and strong warning states.
-- **Risk Extreme Red** (`oklch(0.58 0.22 27)`): Destructive, critical, and urgent conditions.
-
-### Neutral
-- **Paper Background** (`oklch(0.985 0.003 170)`): Main page background.
-- **Card White** (`oklch(1 0 0)`): Card and popover surfaces.
-- **Ink** (`oklch(0.18 0.02 170)`): Primary text.
-- **Muted Ink** (`oklch(0.50 0.015 170)`): Secondary text, helper copy, and metadata.
-- **Border Mist** (`oklch(0.91 0.008 170)`): Borders, input strokes, dividers.
+- **Risk Low / Success** (`oklch(0.72 0.17 155)`): Low risk, positive states.
+- **Risk Medium / Warning** (`oklch(0.78 0.12 85)`): Caution states.
+- **Risk High** (`oklch(0.70 0.18 40)`): Elevated risk markers.
+- **Risk Extreme / Destructive** (`oklch(0.64 0.21 27)`): Critical conditions.
 
 ### Named Rules
-**The One Accent Rule.** Teal is the primary system voice. Use it for primary actions, active navigation, focus, and meaningful status only, not decoration.
+**The Neutral-First Rule.** Blue is the primary system accent. Teal (`#00b9ad`) is reserved for key create/add CTAs. Use blue for primary actions, active selection, and focus only — never as decoration. Let neutrals carry the interface.
 
 ## Typography
 
-**Display Font:** DM Sans, with Manrope and system sans fallbacks.  
-**Body Font:** Manrope, with DM Sans and system sans fallbacks.  
-**Mono Font:** Geist Mono for code, IDs, and technical values.
+**Primary Font:** SF Pro Text / SF Pro Display via system font stack (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif`).
+**Mono Font:** SF Mono for code, IDs, and technical values.
 
-The typography should feel modern, legible, and slightly editorial without becoming theatrical. Headings use DM Sans to create a clean institutional voice, while body text stays neutral and highly readable for task work.
+Typography should feel crisp and legible at desktop densities. SF Pro provides one coherent voice across headings and body copy. Text-sm (14px) is the default workhorse size.
 
 ### Hierarchy
-- **Display** (600, 1rem base in system tokens, used as the branded UI face): Section titles, nav labels, and compact emphasized labels.
-- **Headline** (600, larger than body by at least 1.25x in screen components): Page titles and primary screen headers.
-- **Title** (600, slightly smaller than headline): Card titles, panel labels, and form section headings.
-- **Body** (400, 1rem, 1.5 line-height): Form copy, helper text, and task instructions. Keep prose around 65 to 75ch when possible.
-- **Label** (600, compact size, tight tracking): Field labels, button text, and navigation items.
+- **Display** (600, 0.875rem): Section titles, nav labels, compact emphasized labels.
+- **Headline** (600, larger than body by at least 1.25x): Page titles and primary screen headers.
+- **Title** (600, slightly smaller than headline): Card titles, panel labels, form section headings.
+- **Body** (400, 0.875rem, 1.5 line-height): Form copy, helper text, task instructions. Keep prose around 65–75ch when possible.
+- **Label** (500, 0.875rem): Button text, field labels, sidebar items, compact tags.
 
 ### Named Rules
 **The Plain Voice Rule.** Labels and actions should read like trusted workplace software, not marketing copy. Avoid ornament in UI text.
 
-## Elevation
+## Layout
 
-The system uses subtle layered depth rather than dramatic shadows. Surfaces are mostly flat and light, with shadow acting as a small separation cue for cards, popovers, and dropdowns. Depth should come primarily from background tint, border, and spacing, not blur or heavy glow.
+Authenticated screens use a sidebar shell, toolbar header, and content region with desktop-density spacing. Standard control height is 36px (h-9). Dense controls (sidebar items, menu items) use 32px (h-8). Content uses 16px or 24px padding depending on context.
+
+Responsive overlays remain edge-aware: sheets attach to the viewport edge. Translucent materials (backdrop-blur) are used for chrome surfaces: sidebar, toolbar, titlebar. Content surfaces remain solid.
+
+## Elevation & Depth
+
+The system uses subtle layered depth rather than dramatic shadows. Depth comes from background tint, border separation, and spacing — not blur or heavy glow.
 
 ### Shadow Vocabulary
-- **Card Lift** (`0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(24,24,27,0.05)`): Default card elevation for content panels.
+- **Card Lift** (`0 1px 2px rgba(0,0,0,0.06)`): Default card elevation for content panels.
 - **Control Lift** (`0 1px 1px rgba(0,0,0,0.04)`): Buttons and small interactive controls.
-- **Popover Lift** (`0 4px 24px rgba(0,0,0,0.08)`): Menus and transient overlays.
+- **Popover Lift** (`0 12px 40px rgba(0,0,0,0.14)`): Menus, dropdowns, and transient overlays.
+- **Dialog Lift** (`0 24px 80px rgba(0,0,0,0.20)`): Modal dialogs and windows.
+
+### Materials
+- **Sidebar / Toolbar / Titlebar**: `bg-card/70 backdrop-blur-xl` — translucent chrome.
+- **Content / Cards / Panels**: Solid white surface — no blur.
+- **Popovers / Menus**: `bg-card/95 backdrop-blur-xl` — nearly opaque with slight translucency.
 
 ### Named Rules
 **The Flat-First Rule.** Do not add shadow for decoration. If a surface needs emphasis, use hierarchy, spacing, or border before shadow.
 
+## Shapes
+
+The system uses Tailwind-native circular border radii.
+
+- `rounded-md` (6px): Tab button radius.
+- `rounded-md` (6px): Button radius — all button sizes and variants.
+- `rounded-lg` (8px): Inputs, sidebar items, toolbar buttons, default control radius.
+- `rounded-xl` (12px): Premium controls, large action zones.
+- `rounded-2xl` (16px): Card, panel, dialog, modal, popover, sheet radius.
+- `rounded-3xl` (24px): Reserved for special cases.
+- `rounded-full`: Pills, chips, status badges, and circular icon buttons.
+
+Use the documented radius directly. Do not fake smoothing by increasing the radius, and do not add SVG paths, masks, or runtime clipping to shared DOM controls.
+
 ## Components
 
-Components should feel familiar, compact, and sturdy. They should disappear into the workflow and only become visible when their state changes.
+Components should feel compact, familiar, and sturdy. They should disappear into the workflow and only become visible when their state changes.
 
 ### Buttons
-- **Shape:** Rounded medium corners, currently 12px.
-- **Primary:** Teal fill with light text, compact 8 to 12px padding, used for the main action in a task flow.
-- **Hover / Focus:** Slight color shift and visible ring; no bounce, no motion flourish.
-- **Secondary / Outline / Ghost:** Use neutral surfaces and subtle hover fills for supporting or low-priority actions.
+- **All buttons:** `rounded-md` (6px) — unified button radius across all sizes and variants.
+- **Default size:** 36px high (h-9), 14px horizontal padding, text-sm font-medium.
+- **Premium size:** 40px high (h-10), 16px horizontal padding.
+- **Icon actions:** 36px by default or 40px when large.
+- **Tab buttons:** `rounded-md` (6px) inside a `rounded-lg` container.
+- **Primary:** Blue fill with white text, used for the main action in a task flow.
+- **Secondary / Outline:** Neutral surface with border, used for supporting actions.
+- **Ghost / Subtle:** Transparent background with hover fill, used for low-priority actions.
+- **Hover / Focus:** Light background shift and visible blue focus ring; no bounce, no motion flourish.
 
 ### Cards
-- **Corner Style:** 16px outer radius, with rounded internal header and footer treatment.
-- **Background:** White card surface on a light paper background.
-- **Shadow Strategy:** Small lift only, enough to distinguish content planes.
-- **Border:** Thin mist border or inset ring for structure.
-- **Internal Padding:** 16px standard, 12px for compact variants.
+- **Default:** `rounded-lg` with 16px padding, white surface, subtle border.
+- **Large:** `rounded-lg` with 24px padding.
+- **Shadow Strategy:** Small lift only (`shadow-sm`).
+- **Border:** Subtle border (`border-black/10`).
 
 ### Inputs / Fields
-- **Style:** Compact 8px-high control feel with rounded corners, thin border, and transparent or lightly tinted fill.
-- **Focus:** Teal ring and border reinforcement.
-- **Error / Disabled:** Use semantic red for invalid state and lower-opacity neutral fills for disabled state.
+- **Input:** 36px high (h-9), `rounded-lg` (8px), 12px horizontal padding, text-sm.
+- **Search:** 36px high (h-9), `rounded-lg` (8px), 12px horizontal padding, muted fill.
+- **Focus:** Blue ring (`ring-blue-500/25`).
+- **Error / Disabled:** Use semantic red for invalid state and lower-opacity neutral fills for disabled.
+
+### Overlays and Groups
+- **Modal:** `rounded-2xl` with 24px padding, `shadow-2xl`.
+- **Bottom sheet:** `rounded-t-2xl` with 20px padding.
+- **Dropdown:** `rounded-2xl` with translucent backdrop.
+- **Popover:** `rounded-2xl` with translucent backdrop.
+- **Toast:** `rounded-2xl` with 10px vertical and 14px horizontal padding.
+- **List group:** `rounded-2xl` with clipped overflow.
+- **Segmented control (TabsList):** `rounded-lg` with 4px internal padding, tab buttons `rounded-md`.
+
+### Chips and Icon Tiles
+- **Chip:** 32px high, pill-shaped (`rounded-full`), with 12px horizontal padding.
+- **Icon tile:** 36px square with `rounded-lg`.
+- **App icon tile:** 56px square with `rounded-2xl`.
 
 ### Navigation
-- **Style:** Sidebar and header use familiar enterprise patterns, with compact rows, muted inactive state, and teal-backed active state.
-- **Typography:** Small, legible labels with icon support.
-- **Default / Hover / Active:** Inactive is muted, hover is softly tinted, active is filled or strongly accented.
-- **Mobile Treatment:** Keep navigation structural and predictable rather than inventive.
+- **Style:** Sidebar and toolbar use translucent material (`bg-card/70 backdrop-blur-xl`) with compact rows (32px), muted inactive state, and blue-backed active state.
+- **Typography:** text-sm font-medium for items, text-[11px] font-semibold uppercase tracking-wide for section labels.
+- **Hover:** Subtle background shift — no bounce, no motion flourish.
+- **Mobile Treatment:** Collapse sidebar to icon-only or bottom tab bar.
 
 ### Dropdowns and Popovers
-- **Style:** Compact white surfaces with rounded corners, small offset from trigger, and enough collision padding to keep away from screen edges.
+- **Style:** Compact white/translucent surfaces with `rounded-2xl`, small offset from trigger, `shadow-xl`. Nearly opaque (`bg-card/95`) with slight backdrop blur.
 - **Behavior:** Overlays should open near the trigger, remain readable, and never feel clipped or cramped.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** keep the interface light-first and use teal as the primary operational accent.
-- **Do** preserve compact, familiar controls for forms, menus, and navigation.
-- **Do** use subtle shadows and borders for separation, not decoration.
-- **Do** keep text plain and directive, especially in high-pressure flows.
-- **Do** let cards, popovers, and dropdowns breathe with enough edge padding and collision space.
+- **Do** keep the interface neutral-first with blue as the primary operational accent.
+- **Do** use text-sm (14px) as the default font size for controls, labels, and body copy.
+- **Do** use subtle borders (`border-black/10`) and separators over heavy shadows.
+- **Do** use translucent materials (`bg-card/70 backdrop-blur-xl`) for chrome surfaces only.
+- **Do** keep hover states quiet and focus states visible.
+- **Do** use rounded-lg for controls, rounded-2xl for cards and dialogs, rounded-md for tab buttons.
+- **Do** let cards, popovers, and dropdowns breathe with enough edge padding.
 
 ### Don't:
-- **Don't** default to dark mode as the main personality.
+- **Don't** use saturated backgrounds or heavy gradients.
 - **Don't** use `#000` or `#fff` as neutrals.
-- **Don't** use gradient text, glassmorphism, or decorative blur as a system default.
-- **Don't** make every surface the same card weight or repeat identical card grids across a page.
-- **Don't** use side-stripe accent borders greater than 1px.
-- **Don't** invent non-standard affordances where standard product patterns already solve the task.
+- **Don't** make every surface glassy or translucent — content should be solid.
+- **Don't** use oversized mobile-style controls in desktop layouts.
+- **Don't** use rounded-full for every button unless intentionally using pills.
+- **Don't** use font-bold excessively — prefer font-medium and font-semibold.
+- **Don't** rely only on color for interactive state — use borders, background shift, and focus rings.
+- **Don't** use runtime SVG clip-path or JS-based corner smoothing on shared DOM controls.

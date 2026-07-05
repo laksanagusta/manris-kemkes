@@ -2,7 +2,6 @@ package riskcascade
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
-	"github.com/manris/backend/internal/timeutil"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
@@ -125,10 +123,7 @@ func (uc *DecideUseCase) Execute(ctx context.Context, input DecideInput) (*Decid
 		return nil, errors.Wrap(err, "failed to activate cascaded risk")
 	}
 	if uc.mitigationTaskRepo != nil {
-		now := time.Now().In(timeutil.JakartaLocation())
-		year, quarter := mtuc.CurrentQuarter(now)
-		cycle := fmt.Sprintf("%d-Q%d", year, quarter)
-		if _, err := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.mitigationTaskRepo, uc.riskRepo).Execute(ctx, newRisk.ID, cycle, []uuid.UUID{cascade.TargetOrgID}); err != nil {
+		if _, err := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.mitigationTaskRepo, uc.riskRepo).Execute(ctx, newRisk.ID, newRisk.AssessmentCycle, []uuid.UUID{cascade.TargetOrgID}); err != nil {
 			return nil, errors.Wrap(err, "failed to create mitigation tasks")
 		}
 	}

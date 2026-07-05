@@ -116,7 +116,7 @@ export function MonitoringLatestProgressChart({
     : "bg-muted/40 text-muted-foreground";
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+    <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="p-0">
           <CollapsibleTrigger className="group w-full text-left transition-colors hover:no-underline hover:bg-muted/30">
@@ -155,7 +155,7 @@ export function MonitoringLatestProgressChart({
                 Belum ada data progress organisasi untuk ditampilkan.
               </div>
             ) : (
-              <div className="max-h-[300px] overflow-y-auto rounded-md border border-border/50">
+              <div className="max-h-[300px] overflow-y-auto rounded-md ring-1 ring-inset ring-border">
                 <Table>
                   <TableHeader>
                     <TableRow className="h-11">

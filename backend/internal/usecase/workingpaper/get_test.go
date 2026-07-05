@@ -130,7 +130,7 @@ func TestWorkingPaperRiskDataMarshalsMonitoringSnapshot(t *testing.T) {
 		Monitoring: &entity.WorkingPaperRiskMonitoring{
 			ID:                          uuid.New(),
 			Status:                      entity.RiskMonitoringStatusFinalized,
-			AssessmentCycle:             "2026-Q2",
+			AssessmentCycle:             "2026-H1",
 			SourceNilai:                 16,
 			ObservedNilai:               12,
 			ObservedLevel:               entity.RiskLevelTinggi,
@@ -164,8 +164,8 @@ func TestWorkingPaperRiskDataMarshalsMonitoringSnapshot(t *testing.T) {
 	if monitoring["status"] != entity.RiskMonitoringStatusFinalized {
 		t.Fatalf("expected finalized monitoring, got %#v", monitoring["status"])
 	}
-	if monitoring["assessmentCycle"] != "2026-Q2" {
-		t.Fatalf("expected 2026-Q2, got %#v", monitoring["assessmentCycle"])
+	if monitoring["assessmentCycle"] != "2026-H1" {
+		t.Fatalf("expected 2026-H1, got %#v", monitoring["assessmentCycle"])
 	}
 	if monitoring["mitigationCompletionPercent"] != float64(75) {
 		t.Fatalf("expected 75 percent, got %#v", monitoring["mitigationCompletionPercent"])

@@ -29,10 +29,10 @@ import { useAuth } from "@/contexts/auth-context";
 import { buildApprovedRiskHistoryItem } from "@/lib/risk-history";
 
 const versions = [
-  { id: "v4", name: "Q1 2026 Snapshot", date: "2026-03-01", isCurrent: true },
-  { id: "v3", name: "Q4 2025 Snapshot", date: "2025-12-01", isCurrent: false },
-  { id: "v2", name: "Q3 2025 Snapshot", date: "2025-09-01", isCurrent: false },
-  { id: "v1", name: "Q2 2025 Snapshot", date: "2025-06-01", isCurrent: false },
+  { id: "v4", name: "H2 2026 Snapshot", date: "2026-12-01", isCurrent: true },
+  { id: "v3", name: "H1 2026 Snapshot", date: "2026-06-01", isCurrent: false },
+  { id: "v2", name: "H2 2025 Snapshot", date: "2025-12-01", isCurrent: false },
+  { id: "v1", name: "H1 2025 Snapshot", date: "2025-06-01", isCurrent: false },
 ];
 export default function RiskHistoryPage() {
   const { token } = useAuth();

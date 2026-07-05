@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
@@ -96,27 +95,26 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
   }, [token, year]);
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-col gap-4 space-y-0 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
+    <Card className="w-full gap-4 rounded-lg border-0 bg-card py-0 shadow-none ring-1 ring-inset ring-border">
+      <CardHeader className="flex flex-col gap-4 space-y-0 pb-4 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <CardTitle className="text-base font-medium">
             Heatmap Compare Multi-Fase
           </CardTitle>
-          <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <p className="mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
             Distribusi risiko lintas fase lifecycle dalam tahun {year}.
             {error && (
-              <span className="text-destructive text-xs ml-2">({error})</span>
+              <span className="ml-2 text-xs text-destructive">({error})</span>
             )}
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+        <div className="flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
           <Select
             value={year.toString()}
             onValueChange={(val) => setYear(parseInt(val, 10))}
           >
-            <SelectTrigger className="w-full sm:w-[120px]">
+            <SelectTrigger className="w-full bg-background/80 shadow-none sm:w-[120px]">
               <SelectValue placeholder="Pilih Tahun" />
             </SelectTrigger>
             <SelectContent>
@@ -131,7 +129,7 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
         </div>
       </CardHeader>
 
-      <CardContent className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      <CardContent className="grid grid-cols-1 gap-4 pb-4 md:grid-cols-2 lg:grid-cols-4">
         {(Object.keys(labelMap) as PhaseKey[]).map((phase) => {
           const gridData = data[phase];
           return (
@@ -145,7 +143,7 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {labelMap[phase]}
               </p>
-              <div className="grid grid-cols-5 gap-1 relative">
+              <div className="relative grid grid-cols-5 gap-1">
                 {[...gridData].reverse().flatMap((row, rowIndex) =>
                   row.map((count, colIndex) => (
                     <div

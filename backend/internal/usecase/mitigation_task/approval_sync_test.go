@@ -151,7 +151,7 @@ func TestEnsureTasksForApprovedRiskUseCase_ExecuteCreatesOneTaskPerMitigation(t 
 	taskRepo := &fakeApprovalSyncTaskRepo{}
 	uc := NewEnsureTasksForRiskVersionUseCase(taskRepo, riskRepo)
 
-	created, err := uc.Execute(context.Background(), riskID, "2026-Q2", nil)
+	created, err := uc.Execute(context.Background(), riskID, "2026-H1", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -161,8 +161,8 @@ func TestEnsureTasksForApprovedRiskUseCase_ExecuteCreatesOneTaskPerMitigation(t 
 	if len(taskRepo.created) != 2 {
 		t.Fatalf("expected 2 persisted tasks, got %d", len(taskRepo.created))
 	}
-	if taskRepo.created[0].DueDate != firstDueDate || taskRepo.created[0].PeriodStart != firstDueDate || taskRepo.created[0].PeriodEnd != firstDueDate {
-		t.Fatalf("expected first task due/period to use mitigation due date, got %+v", taskRepo.created[0])
+	if taskRepo.created[0].DueDate != "2026-06-30" || taskRepo.created[0].PeriodStart != "2026-01-01" || taskRepo.created[0].PeriodEnd != "2026-06-30" {
+		t.Fatalf("expected first task to use H1 boundaries, got %+v", taskRepo.created[0])
 	}
 	if taskRepo.created[0].PeriodLabel != "2026-H1" {
 		t.Fatalf("expected period label to follow assessment cycle, got %q", taskRepo.created[0].PeriodLabel)
@@ -185,12 +185,12 @@ func TestEnsureTasksForApprovedRiskUseCase_ExecuteSkipsExistingTask(t *testing.T
 	}
 	taskRepo := &fakeApprovalSyncTaskRepo{
 		exists: map[string]bool{
-			mitigationID.String() + ":" + dueDate + ":" + dueDate: true,
+			mitigationID.String() + ":2026-01-01:2026-06-30": true,
 		},
 	}
 	uc := NewEnsureTasksForRiskVersionUseCase(taskRepo, riskRepo)
 
-	created, err := uc.Execute(context.Background(), riskID, "2026-Q2", nil)
+	created, err := uc.Execute(context.Background(), riskID, "2026-H1", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -199,6 +199,32 @@ func TestEnsureTasksForApprovedRiskUseCase_ExecuteSkipsExistingTask(t *testing.T
 	}
 	if len(taskRepo.created) != 0 {
 		t.Fatalf("expected no persisted tasks, got %d", len(taskRepo.created))
+	}
+}
+
+func TestSemesterDates(t *testing.T) {
+	tests := []struct {
+		cycle      string
+		periodFrom string
+		periodTo   string
+	}{
+		{cycle: "2026-H1", periodFrom: "2026-01-01", periodTo: "2026-06-30"},
+		{cycle: "2026-H2", periodFrom: "2026-07-01", periodTo: "2026-12-31"},
+	}
+	for _, tt := range tests {
+		year, half, err := ParseSemesterCycle(tt.cycle)
+		if err != nil {
+			t.Fatalf("ParseSemesterCycle(%q): %v", tt.cycle, err)
+		}
+		if got := SemesterPeriodStart(year, half); got != tt.periodFrom {
+			t.Fatalf("SemesterPeriodStart(%q) = %q", tt.cycle, got)
+		}
+		if got := SemesterDueDate(year, half); got != tt.periodTo {
+			t.Fatalf("SemesterDueDate(%q) = %q", tt.cycle, got)
+		}
+	}
+	if _, _, err := ParseSemesterCycle("2026-Q2"); err == nil {
+		t.Fatal("expected quarter cycle to be rejected")
 	}
 }
 
@@ -221,7 +247,7 @@ func TestEnsureTasksForApprovedRiskUseCase_ExecuteSkipsExistingControls(t *testi
 	taskRepo := &fakeApprovalSyncTaskRepo{}
 	uc := NewEnsureTasksForRiskVersionUseCase(taskRepo, riskRepo)
 
-	created, err := uc.Execute(context.Background(), riskID, "2026-Q2", nil)
+	created, err := uc.Execute(context.Background(), riskID, "2026-H1", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

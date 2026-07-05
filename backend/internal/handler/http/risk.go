@@ -664,7 +664,7 @@ func (h *RiskHandler) DownloadMonitoringTemplate(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-HN (contoh: 2026-H1)")
 	}
 
 	content, filename, err := h.monitoringSpreadsheetUC.Template(c.Context(), orgID, cycle)
@@ -717,7 +717,7 @@ func (h *RiskHandler) PreviewMonitoringBatchUpload(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-HN (contoh: 2026-H1)")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
@@ -756,7 +756,7 @@ func (h *RiskHandler) CreateMonitoringBatch(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-HN (contoh: 2026-H1)")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
