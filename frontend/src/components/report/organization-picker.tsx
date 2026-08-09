@@ -29,6 +29,7 @@ type PickerOption = {
 };
 
 interface OrganizationPickerProps {
+  id?: string;
   value: string;
   organizations: OrganizationListItem[];
   onChange: (organizationId: string) => void;
@@ -40,6 +41,9 @@ interface OrganizationPickerProps {
   emptyMessage?: string;
   className?: string;
   disabled?: boolean;
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean | "false" | "true";
+  "aria-required"?: boolean | "false" | "true";
   allowAllOption?: boolean;
   allOptionLabel?: string;
   allOptionValue?: string;
@@ -60,6 +64,7 @@ function useDebouncedValue<T>(value: T, delay: number) {
 }
 
 export function OrganizationPicker({
+  id,
   value,
   organizations,
   onChange,
@@ -71,6 +76,9 @@ export function OrganizationPicker({
   emptyMessage = "Tidak ada unit ditemukan.",
   className,
   disabled,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
+  "aria-required": ariaRequired,
   allowAllOption = false,
   allOptionLabel = "Semua unit",
   allOptionValue = "all",
@@ -188,9 +196,13 @@ export function OrganizationPicker({
     >
       <PopoverTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-describedby={ariaDescribedby}
+          aria-invalid={ariaInvalid}
+          aria-required={ariaRequired}
           disabled={disabled}
           className={cn(
             "h-8 w-full min-w-0 justify-between overflow-hidden border-border/50 bg-background/80 px-3 text-xs font-normal shadow-none",

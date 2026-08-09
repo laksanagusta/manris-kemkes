@@ -6,28 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-import { RiskMovementSnapshot } from "../../overview/_components/risk-movement-snapshot";
 import type {
   DashboardActionPressurePoint,
-  Risk,
-  RiskCycleComparisonItem,
 } from "@/types/risk";
-import { buildMovementSnapshotData, type MovementSnapshotDatum } from "@/lib/dashboard-insights";
 import { buildMonitoringMitigationSummary } from "@/lib/monitoring-mitigation-summary";
-
-function currentGlobalCycle() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const half = now.getMonth() < 6 ? "H1" : "H2";
-  return `${year}-${half}`;
-}
-
-function previousGlobalCycle(cycle: string) {
-  const [yearPart, half] = cycle.split("-");
-  const year = Number(yearPart);
-  if (half === "H1") return `${year - 1}-H2`;
-  return `${year}-H1`;
-}
 
 function formatMonthPeriod(period: string) {
   const [year, month] = period.split("-");
@@ -38,68 +20,25 @@ function formatMonthPeriod(period: string) {
 
 export function MonitoringOperationalPanel() {
   const { token } = useAuth();
-  const [movementSnapshot, setMovementSnapshot] = useState<
-    MovementSnapshotDatum[]
-  >([]);
   const [actionPressureData, setActionPressureData] = useState<
     DashboardActionPressurePoint[]
   >([]);
-  const [loading, setLoading] = useState(true);
-
-  const cycle = useMemo(() => currentGlobalCycle(), []);
-  const previousCycle = useMemo(() => previousGlobalCycle(cycle), [cycle]);
 
   useEffect(() => {
     if (!token) return;
 
-    Promise.allSettled([
-      api.get<RiskCycleComparisonItem[]>(
-        `/risks/compare?from=${previousCycle}&to=${cycle}`,
-        token,
-      ),
-      api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${cycle}`, token),
-      api.get<Risk[]>(`/risks/cycle-snapshot?cycle=${previousCycle}`, token),
-      api.get<DashboardActionPressurePoint[]>(
-        "/dashboard/action-pressure?interval=month&window=6",
-        token,
-      ),
-    ]).then(
-      ([
-        comparisonsResult,
-        currentRisksResult,
-        previousRisksResult,
-        actionPressureResult,
-      ]) => {
-        if (
-          comparisonsResult.status === "fulfilled" &&
-          currentRisksResult.status === "fulfilled" &&
-          previousRisksResult.status === "fulfilled"
-        ) {
-          setMovementSnapshot(
-            buildMovementSnapshotData({
-              currentRisks: currentRisksResult.value,
-              previousRisks: previousRisksResult.value,
-              comparisons: comparisonsResult.value,
-            }),
-          );
-        } else {
-          if (comparisonsResult.status === "rejected") console.error(comparisonsResult.reason);
-          if (currentRisksResult.status === "rejected") console.error(currentRisksResult.reason);
-          if (previousRisksResult.status === "rejected") console.error(previousRisksResult.reason);
-          setMovementSnapshot([]);
-        }
-
-        if (actionPressureResult.status === "fulfilled") {
-          setActionPressureData(actionPressureResult.value);
-        } else {
-          console.error(actionPressureResult.reason);
-          setActionPressureData([]);
-        }
-
-        setLoading(false);
-      },
-    );
-  }, [token, cycle, previousCycle]);
+    api.get<DashboardActionPressurePoint[]>(
+      "/dashboard/action-pressure?interval=month&window=6",
+      token,
+    )
+      .then((data) => {
+        setActionPressureData(data);
+      })
+      .catch((error) => {
+        console.error(error);
+        setActionPressureData([]);
+      });
+  }, [token]);
 
   const hasActionPressureData = actionPressureData.length > 0;
   const mitigationSummary = useMemo(
@@ -109,8 +48,6 @@ export function MonitoringOperationalPanel() {
 
   return (
     <div className="space-y-4">
-      <RiskMovementSnapshot data={movementSnapshot} loading={loading} />
-
       <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
         <CardHeader>
           <div>

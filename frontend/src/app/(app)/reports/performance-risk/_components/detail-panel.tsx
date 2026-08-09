@@ -14,7 +14,7 @@ type Props = {
 export function PerformanceRiskDetailPanel({ detail, loading }: Props) {
   if (loading) {
     return (
-      <Card className="border-border/60 bg-card/95 shadow-sm">
+      <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
         <CardContent className="flex min-h-40 items-center justify-center">
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
         </CardContent>
@@ -24,7 +24,7 @@ export function PerformanceRiskDetailPanel({ detail, loading }: Props) {
 
   if (!detail) {
     return (
-      <Card className="border-border/60 bg-card/95 shadow-sm">
+      <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
         <CardContent className="flex min-h-40 items-center justify-center text-sm text-muted-foreground">
           Pilih RO untuk melihat detail risiko dan mitigasi.
         </CardContent>
@@ -35,7 +35,7 @@ export function PerformanceRiskDetailPanel({ detail, loading }: Props) {
   const { node } = detail;
 
   return (
-    <Card className="border-border/60 bg-card/95 shadow-sm">
+    <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
       <CardHeader className="space-y-2 border-b border-border/60 pb-4">
         <div className="flex flex-wrap items-center gap-2">
           <CardTitle className="text-sm font-semibold leading-6 md:text-base">{node.roTitle}</CardTitle>

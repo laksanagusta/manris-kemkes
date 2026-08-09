@@ -19,7 +19,7 @@ import { listTMPMRAssessments } from "@/lib/api/tmpmr";
 import type { TMPMRAssessment, TMPMRStatus } from "@/types/tmpmr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import {
@@ -220,7 +220,7 @@ export default function TMPMRListPage() {
         <CardHeader className="border-b border-border/40 pb-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-[15px] font-semibold">Daftar TMPMR</CardTitle>
+
               <p className="text-xs text-muted-foreground">
                 Filter berdasarkan periode dan status, lalu buka detail untuk mengisi skor, evidence, dan review.
               </p>

@@ -16,7 +16,7 @@ The palette should resemble the reference rather than using Tailwind's very ligh
 
 ## Geometry and Typography
 
-- Default badges remain 32px high, fully rounded, and use 14px medium text.
+- Default badges remain 32px high, fully rounded, and use 14px semibold text.
 - Compact badges remain suitable for dense tables but increase to 12px text and at least 24px height.
 - Micro badges increase to 11px text and at least 20px height.
 - All variants and tones remove their visible border.

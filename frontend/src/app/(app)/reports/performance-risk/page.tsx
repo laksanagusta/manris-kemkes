@@ -345,19 +345,19 @@ export default function PerformanceRiskPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-4">
       <section className="max-w-3xl space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">
+        <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
           Analisis Kinerja & Risiko
-        </h1>
-        <p className="text-sm leading-6 text-muted-foreground">
+        </h2>
+        <p className="text-sm text-muted-foreground text-pretty">
           Memetakan paparan risiko inherent terhadap sasaran, IKU, program,
           kegiatan, dan RO.
         </p>
       </section>
 
       {requiresScopeSelection ? (
-        <Card className="border-border/50 bg-card/90 shadow-sm">
+        <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
           <CardContent className="flex min-h-40 items-center justify-center px-6 py-8 text-center">
             <div className="max-w-sm space-y-2">
               <p className="text-sm font-medium text-foreground">
@@ -395,7 +395,7 @@ export default function PerformanceRiskPage() {
       />
 
       {emptyState === "no_planning" ? (
-        <Card className="border-border/50 bg-card/90 shadow-sm">
+        <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
           <CardContent className="flex min-h-40 items-center justify-center px-6 py-8 text-center text-sm text-muted-foreground">
             Struktur RO belum tersedia untuk periode ini.
           </CardContent>
@@ -403,7 +403,7 @@ export default function PerformanceRiskPage() {
       ) : null}
 
       {emptyState === "no_linked_risk" ? (
-        <Card className="border-border/50 bg-card/90 shadow-sm">
+        <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
           <CardContent className="flex min-h-40 items-center justify-center px-6 py-8 text-center text-sm text-muted-foreground">
             Belum ada risiko approved yang terhubung ke RO pada periode ini.
           </CardContent>
@@ -411,7 +411,7 @@ export default function PerformanceRiskPage() {
       ) : null}
 
       {summary?.unlinkedRisks ? (
-        <Card className="border-amber-200 bg-amber-50/70 shadow-sm">
+        <Card className="rounded-lg ring-1 ring-inset ring-amber-200 bg-amber-50/70 shadow-none">
           <CardContent className="space-y-4 px-6 py-5">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -431,22 +431,22 @@ export default function PerformanceRiskPage() {
               <Table className="text-sm">
                 <TableHeader className="[&_tr]:border-amber-200">
                   <TableRow className="border-amber-200 bg-amber-100/50 hover:bg-amber-100/50">
-                    <TableHead className="w-24 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="w-24 px-3 py-2 text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
                       Kode
                     </TableHead>
-                    <TableHead className="px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="px-3 py-2 text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
                       Judul Risiko
                     </TableHead>
-                    <TableHead className="w-56 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="w-56 px-3 py-2 text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
                       Unit
                     </TableHead>
-                    <TableHead className="w-32 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="w-32 px-3 py-2 text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
                       Kategori
                     </TableHead>
-                    <TableHead className="w-28 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="w-28 px-3 py-2 text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
                       Cycle
                     </TableHead>
-                    <TableHead className="w-24 px-3 py-2 text-right text-xs font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="w-24 px-3 py-2 text-right text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
                       Skor
                     </TableHead>
                   </TableRow>
@@ -490,7 +490,7 @@ export default function PerformanceRiskPage() {
 
       <section className="space-y-4">
         {loading ? (
-          <Card className="border-border/50 bg-card/90 shadow-sm">
+          <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
             <CardContent className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
               Memuat analisis...
             </CardContent>
@@ -502,7 +502,7 @@ export default function PerformanceRiskPage() {
             onSelect={handleSelectNode}
           />
         ) : (
-          <Card className="border-border/50 bg-card/90 shadow-sm">
+          <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
             <CardContent className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
               Tidak ada RO yang cocok dengan filter aktif.
             </CardContent>

@@ -10,7 +10,6 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -19,10 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { MovementByOrgDatum, MovementByOrgSortKey } from "@/lib/dashboard-insights";
+import { StandardCard } from "@/components/shared/design-system";
 
-const COLOR_NAIK = "oklch(0.70 0.18 40)";
-const COLOR_TURUN = "oklch(0.72 0.17 155)";
-const COLOR_STABIL = "oklch(0.60 0.02 265 / 55%)";
+const COLOR_NAIK = "oklch(0.72 0.13 190)";
+const COLOR_TURUN = "oklch(0.82 0.08 190)";
+const COLOR_STABIL = "oklch(0.65 0.05 190 / 50%)";
 
 export interface RiskMovementByOrgProps {
   data: MovementByOrgDatum[];
@@ -46,35 +46,31 @@ export function RiskMovementByOrg({
   const containerHeight = Math.max(300, chartData.length * 28);
 
   return (
-    <Card className="h-full border-border/50 bg-card/80 backdrop-blur-sm" data-testid="risk-movement-by-org">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <CardTitle className="text-base font-semibold">Pergerakan Risiko per Organisasi</CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Jumlah risiko naik, turun, dan stabil per unit kerja.
-            </p>
-          </div>
-          {hasData && (
-            <Select
-              value={currentSort}
-              onValueChange={(value) => onSortChange?.(value as MovementByOrgSortKey)}
-            >
-              <SelectTrigger className="h-8 w-[120px] text-xs">
-                <SelectValue placeholder="Urutkan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="total" className="text-xs">Total</SelectItem>
-                <SelectItem value="naik" className="text-xs">Naik</SelectItem>
-                <SelectItem value="turun" className="text-xs">Turun</SelectItem>
-                <SelectItem value="stabil" className="text-xs">Stabil</SelectItem>
-                <SelectItem value="orgName" className="text-xs">A-Z</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
+    <StandardCard
+      title="Pergerakan Risiko per Organisasi"
+      action={
+        hasData ? (
+          <Select
+            value={currentSort}
+            onValueChange={(value) => onSortChange?.(value as MovementByOrgSortKey)}
+          >
+            <SelectTrigger className="h-8 w-[120px] text-xs">
+              <SelectValue placeholder="Urutkan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="total" className="text-xs">Total</SelectItem>
+              <SelectItem value="naik" className="text-xs">Naik</SelectItem>
+              <SelectItem value="turun" className="text-xs">Turun</SelectItem>
+              <SelectItem value="stabil" className="text-xs">Stabil</SelectItem>
+              <SelectItem value="orgName" className="text-xs">A-Z</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : null
+      }
+      className="h-full"
+      contentClassName="space-y-4"
+    >
+      <div data-testid="risk-movement-by-org">
         {!hasData ? (
           <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
             Belum ada data perbandingan risiko antar-cycle.
@@ -147,7 +143,7 @@ export function RiskMovementByOrg({
             </div>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </StandardCard>
   );
 }

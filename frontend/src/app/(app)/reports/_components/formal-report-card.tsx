@@ -45,11 +45,11 @@ export function FormalReportCard({
   const subtitle = summary?.headline || "";
 
   return (
-    <Card className="group flex h-full flex-col border-border/50 bg-card/90 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-lg hover:shadow-primary/5">
+    <Card className="group flex h-full flex-col rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1.5">
-            <CardTitle className="text-[15px] font-semibold leading-5 text-balance">
+            <CardTitle className="text-sm font-semibold leading-5 text-balance">
               {title}
             </CardTitle>
             <p className="text-sm leading-6 text-muted-foreground">
@@ -94,7 +94,7 @@ export function FormalReportCard({
         </p>
         <Button
           size="sm"
-          className="gap-2 shadow-sm"
+          className="gap-2 shadow-none"
           onClick={() => onGenerate(reportType)}
           disabled={disabled || isGenerating}
         >

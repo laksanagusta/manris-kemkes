@@ -88,9 +88,7 @@ export function AiSuggestionModal({
         <div className="flex min-h-0 flex-col max-h-[60vh] min-h-[300px] bg-background">
           {isLoading ? (
             <div className="flex flex-1 flex-col items-center justify-center py-12 px-4 text-center">
-              <div className="flex size-12 items-center justify-center rounded-full bg-primary/5 text-primary mb-4">
-                <Loader2 className="size-6 animate-spin" />
-              </div>
+              <Loader2 className="size-6 animate-spin text-muted-foreground mb-3" />
               <h3 className="text-sm font-medium text-foreground">AI sedang menganalisis...</h3>
               <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
                 Mohon tunggu sebentar, kami sedang menyusun rekomendasi terbaik untuk Anda.
@@ -98,10 +96,7 @@ export function AiSuggestionModal({
             </div>
           ) : suggestions.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center py-12 px-4 text-center">
-              <div className="flex size-12 items-center justify-center rounded-full bg-muted/50 text-muted-foreground mb-4">
-                <Sparkles className="size-6 opacity-20" />
-              </div>
-              <h3 className="text-sm font-medium text-foreground">Belum ada saran</h3>
+              <p className="text-sm font-medium text-foreground">Belum ada saran</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
                 Pastikan Anda sudah melengkapi informasi yang dibutuhkan sebelum meminta saran AI.
               </p>
@@ -116,9 +111,9 @@ export function AiSuggestionModal({
                       key={suggestion.id}
                       onClick={() => toggleSelection(suggestion.id)}
                       className={cn(
-                        "group relative flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-all duration-200",
+                        "group relative flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-all duration-200",
                         isSelected
-                          ? "border-primary bg-primary/[0.03] shadow-sm ring-1 ring-primary/20"
+                          ? "border-primary bg-primary/[0.03] ring-1 ring-primary/20"
                           : "border-border/50 bg-card hover:border-primary/30 hover:bg-muted/50"
                       )}
                     >

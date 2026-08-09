@@ -14,8 +14,6 @@ import {
 } from "next/navigation";
 import {
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   Loader2,
   MinusCircle,
@@ -29,15 +27,10 @@ import {
 import { toast } from "sonner";
 
 import { AdminOnlyState } from "@/components/admin/admin-only-state";
+import { CollectionPagination } from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import {
@@ -316,8 +309,6 @@ export default function UsersManagementPage() {
     return <AdminOnlyState />;
   }
 
-  const totalPages = Math.ceil(total / limit) || 1;
-
   const handleRegistrationAction = async (
     managedUser: UserListItem,
     action: "approve" | "reject",
@@ -476,27 +467,19 @@ export default function UsersManagementPage() {
       </div>
 
       <Card className="overflow-hidden border-border/50 bg-card/80">
-        <CardHeader>
-          <CardTitle className="text-base">Daftar pengguna</CardTitle>
-          <CardDescription>
-            Status <span className="font-medium text-foreground">Menunggu
-            aktivasi</span> berarti akun sudah dibuat, tetapi pengguna masih
-            harus mengganti password sementara saat login pertama.
-          </CardDescription>
-        </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-xs whitespace-nowrap">User</TableHead>
-                <TableHead className="w-32 text-xs whitespace-nowrap">Phone</TableHead>
-                <TableHead className="w-32 text-xs whitespace-nowrap">NIP</TableHead>
-                <TableHead className="w-28 text-xs whitespace-nowrap">Role</TableHead>
-                <TableHead className="w-36 text-xs whitespace-nowrap">Jabatan</TableHead>
-                <TableHead className="w-28 text-xs whitespace-nowrap">Pangkat</TableHead>
-                <TableHead className="w-40 text-xs whitespace-nowrap">Organisasi</TableHead>
-                <TableHead className="w-40 text-xs whitespace-nowrap">Status</TableHead>
-                <TableHead className="w-16 text-xs whitespace-nowrap">Aksi</TableHead>
+                <TableHead className="text-sm whitespace-nowrap">User</TableHead>
+                <TableHead className="w-32 text-sm whitespace-nowrap">Phone</TableHead>
+                <TableHead className="w-32 text-sm whitespace-nowrap">NIP</TableHead>
+                <TableHead className="w-28 text-sm whitespace-nowrap">Role</TableHead>
+                <TableHead className="w-36 text-sm whitespace-nowrap">Jabatan</TableHead>
+                <TableHead className="w-28 text-sm whitespace-nowrap">Pangkat</TableHead>
+                <TableHead className="w-40 text-sm whitespace-nowrap">Organisasi</TableHead>
+                <TableHead className="w-40 text-sm whitespace-nowrap">Status</TableHead>
+                <TableHead className="w-16 text-sm whitespace-nowrap">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -641,68 +624,18 @@ export default function UsersManagementPage() {
             </TableBody>
           </Table>
 
-          <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Baris per halaman:</span>
-                <Select
-                  value={limit.toString()}
-                  onValueChange={(val) => {
-                    setLimit(Number(val));
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-7 w-[65px] text-xs bg-muted/30 border-none">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[10, 20, 50, 100].map((pageSize) => (
-                      <SelectItem key={pageSize} value={pageSize.toString()}>
-                        {pageSize}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
-                {Math.min(page * limit, total)} dari {total} pengguna
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="text-muted-foreground"
-                disabled={page === 1 || isPending}
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-              >
-                <ChevronLeft className="size-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="xs"
-                className="text-xs font-medium bg-primary/10 text-primary"
-                disabled
-              >
-                {page}
-              </Button>
-              <span className="px-1 text-xs text-muted-foreground">
-                dari {totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="text-muted-foreground"
-                disabled={page === totalPages || total === 0 || isPending}
-                onClick={() =>
-                  setPage((current) => Math.min(totalPages, current + 1))
-                }
-              >
-                <ChevronRight className="size-3.5" />
-              </Button>
-            </div>
-          </div>
+          <CollectionPagination
+            itemLabel="pengguna"
+            page={page}
+            pageSize={limit}
+            total={total}
+            disabled={isPending}
+            onPageChange={setPage}
+            onPageSizeChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
+          />
         </CardContent>
       </Card>
     </div>

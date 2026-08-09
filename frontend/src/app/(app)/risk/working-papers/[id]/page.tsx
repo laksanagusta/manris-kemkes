@@ -4,7 +4,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
-import { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
+import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 import {
   getWorkingPaper,
   startSigningWorkingPaper,
@@ -15,12 +15,17 @@ import {
 } from "@/lib/api/working-papers";
 import { buildWorkingPaperDetailViewModel } from "@/lib/working-paper-detail-view-model";
 import { WorkingPaperMonitoringTable } from "./working-paper-monitoring-table";
-import { Badge } from "@/components/ui/badge";
+import { WorkingPaperStatusActions } from "./working-paper-status-actions";
+import { WorkingPaperSignatureTimeline } from "./working-paper-signature-timeline";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import {
+  InlineCard,
+  StandardCard,
+} from "@/components/shared/design-system";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -28,35 +33,26 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   FormPage,
   FormHeader,
-  FormSection,
 } from "@/components/shared/form-shell";
+import {
+  CollectionDialogCancel,
+  CollectionEmptyState,
+  CollectionErrorState,
+  CollectionLoadingState,
+  CollectionTableCard,
+} from "@/components/shared/design-system";
 
 import { cn } from "@/lib/utils";
-import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 import { useSetHeaderActions } from "@/lib/header-actions-context";
 import {
   AlertCircle,
   CheckCircle2,
-  Circle,
   Download,
-  Loader2,
-  MoreHorizontal,
   Pen,
-  SkipForward,
-  ShieldAlert,
-  Trash2,
-  XCircle,
 } from "lucide-react";
+
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
   year: "numeric",
@@ -72,13 +68,6 @@ const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
   minute: "2-digit",
 });
 
-const statusVariant: Record<WorkingPaperStatus, string> = {
-  draft: getLinearStatusBadgeClass("draft"),
-  signing: getLinearStatusBadgeClass("signing"),
-  completed: getLinearStatusBadgeClass("completed"),
-  cancelled: getLinearStatusBadgeClass("cancelled"),
-};
-
 const statusLabel: Record<WorkingPaperStatus, string> = {
   draft: "Draft",
   signing: "Proses Tanda Tangan",
@@ -86,97 +75,14 @@ const statusLabel: Record<WorkingPaperStatus, string> = {
   cancelled: "Dibatalkan",
 };
 
-const timelineStatusClassName = {
-  signed: "border-success/20 bg-success/10 text-success",
-  current: "border-primary/20 bg-primary/[0.06] text-primary",
-  upcoming: "border-border bg-muted/40 text-muted-foreground",
-  skipped: "border-amber-200 bg-amber-50 text-amber-700",
-} as const;
-
 function formatDate(value?: string) {
   if (!value) return "-";
-
   return dateFormatter.format(new Date(value));
 }
 
 function formatDateTime(value?: string) {
   if (!value) return "-";
-
   return dateTimeFormatter.format(new Date(value));
-}
-
-function WorkingPaperStatusActions({
-  canStartSigning,
-  canSkipTTE,
-  canCancel,
-  canDelete,
-  onStartSigning,
-  onSkipTTE,
-  onCancel,
-  onDelete,
-}: {
-  canStartSigning: boolean;
-  canSkipTTE: boolean;
-  canCancel: boolean;
-  canDelete: boolean;
-  onStartSigning: () => void;
-  onSkipTTE: () => void;
-  onCancel: () => void;
-  onDelete: () => void;
-}) {
-  const hasActions = canStartSigning || canSkipTTE || canCancel || canDelete;
-
-  if (!hasActions) {
-    return null;
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2 border-border/70 bg-background/90"
-        >
-          <MoreHorizontal className="size-4" />
-          Tindakan
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Pilih tindakan</DropdownMenuLabel>
-        {canStartSigning ? (
-          <DropdownMenuItem className="gap-2" onClick={onStartSigning}>
-            <ShieldAlert className="size-3.5" />
-            Mulai proses TTE
-          </DropdownMenuItem>
-        ) : null}
-        {canSkipTTE || canCancel || canDelete ? (
-          <DropdownMenuSeparator />
-        ) : null}
-        {canSkipTTE ? (
-          <DropdownMenuItem className="gap-2" onClick={onSkipTTE}>
-            <SkipForward className="size-3.5" />
-            Lewati tanda tangan elektronik
-          </DropdownMenuItem>
-        ) : null}
-        {canCancel ? (
-          <DropdownMenuItem className="gap-2" onClick={onCancel}>
-            <XCircle className="size-3.5" />
-            Batalkan dokumen
-          </DropdownMenuItem>
-        ) : null}
-        {canDelete ? (
-          <DropdownMenuItem
-            className="gap-2 text-destructive focus:text-destructive"
-            onClick={onDelete}
-          >
-            <Trash2 className="size-3.5" />
-            Hapus kertas kerja
-          </DropdownMenuItem>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
 }
 
 interface SigningBlocker {
@@ -366,13 +272,7 @@ export default function WorkingPaperDetailPage(props: {
           title="Memuat detail kertas kerja"
           description="Sistem sedang menyiapkan ringkasan dokumen, status tanda tangan, dan daftar risiko."
         />
-
-        <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-lg ring-1 ring-inset ring-border bg-muted/20 px-6 py-12 text-center">
-          <Loader2 className="size-6 animate-spin text-primary" />
-          <p className="text-sm font-medium text-foreground">
-            Memuat detail kertas kerja...
-          </p>
-        </div>
+        <CollectionLoadingState message="Memuat detail kertas kerja..." />
       </FormPage>
     );
   }
@@ -384,29 +284,11 @@ export default function WorkingPaperDetailPage(props: {
           title="Detail kertas kerja belum tersedia"
           description="Halaman ini membutuhkan data dokumen yang valid sebelum Anda bisa meninjau tindakan penandatanganan."
         />
-
-        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-12 text-center">
-          <div className="inline-flex size-12 items-center justify-center rounded-full bg-destructive/10">
-            <ShieldAlert className="size-6 text-destructive" />
-          </div>
-          <div className="space-y-1.5">
-            <h2 className="text-lg font-semibold">Gagal memuat kertas kerja</h2>
-            <p className="max-w-md text-sm leading-6 text-muted-foreground">
-              {error}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <Button variant="outline" onClick={() => loadData()}>
-              Coba lagi
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => router.push("/risk/working-papers")}
-            >
-              Kembali ke daftar
-            </Button>
-          </div>
-        </div>
+        <CollectionErrorState
+          title="Gagal memuat kertas kerja"
+          message={error}
+          onReload={() => loadData()}
+        />
       </FormPage>
     );
   }
@@ -418,22 +300,10 @@ export default function WorkingPaperDetailPage(props: {
           title="Kertas kerja tidak ditemukan"
           description="Dokumen yang Anda cari mungkin sudah dipindahkan, tidak lagi tersedia, atau Anda tidak memiliki akses untuk melihatnya."
         />
-
-        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-lg ring-1 ring-inset ring-border bg-muted/20 px-6 py-12 text-center">
-          <AlertCircle className="size-10 text-muted-foreground" />
-          <div className="space-y-1.5">
-            <h2 className="text-lg font-semibold">Dokumen tidak ditemukan</h2>
-            <p className="max-w-md text-sm leading-6 text-muted-foreground">
-              Kertas kerja mungkin sudah dihapus atau Anda tidak memiliki akses.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => router.push("/risk/working-papers")}
-          >
-            Kembali ke daftar
-          </Button>
-        </div>
+        <CollectionEmptyState
+          title="Dokumen tidak ditemukan"
+          description="Kertas kerja mungkin sudah dihapus atau Anda tidak memiliki akses."
+        />
       </FormPage>
     );
   }
@@ -487,61 +357,41 @@ export default function WorkingPaperDetailPage(props: {
   return (
     <FormPage className="space-y-4 pb-0">
       {viewModel.monitoringBlockers.length > 0 ? (
-        <section className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">
-            Finalisasi monitoring terlebih dahulu
-          </p>
-          <p className="mt-1 text-sm leading-5">
-            Berikut risiko yang masih memiliki monitoring draft atau belum
-            memiliki monitoring final:
-          </p>
-          <ul className="mt-2 space-y-1 text-sm">
-            {viewModel.monitoringBlockers.map((item) => (
-              <li key={item} className="font-medium">
-                {item}
-              </li>
-            ))}
-          </ul>
-        </section>
+        <Card className="rounded-2xl bg-amber-50/80 ring-1 ring-inset ring-amber-200">
+          <CardContent className="space-y-1 p-4 text-sm text-amber-900">
+            <p className="font-semibold">Finalisasi monitoring terlebih dahulu</p>
+            <p>
+              Berikut risiko yang masih memiliki monitoring draft atau belum
+              memiliki monitoring final:
+            </p>
+            <ul className="mt-2 space-y-1 text-sm">
+              {viewModel.monitoringBlockers.map((item) => (
+                <li key={item} className="font-medium">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-4">
-          <FormSection
-            title="Ringkasan dokumen"
-            className="rounded-lg ring-1 ring-inset ring-border border-0 overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-100/60"
-            action={
-              <Badge
-                variant="secondary"
-                className="font-mono"
-              >
-                {signedCount} dari {signatories.length || 0} ditandatangani
-              </Badge>
-            }
-          >
-            <dl className="grid gap-4 sm:grid-cols-2">
+          <StandardCard title="Ringkasan dokumen">
+            <div className="grid gap-4 sm:grid-cols-2">
               {summaryItems.map((item) => (
-                <div
-                  key={item.label}
-                  className="space-y-1 rounded-lg ring-1 ring-inset ring-border bg-card px-4 py-3"
-                >
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <InlineCard key={item.label}>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     {item.label}
-                  </dt>
-                  <dd>
-                    <Badge variant="outline" className="font-mono text-sm font-medium px-2.5 py-1">
-                      {item.value}
-                    </Badge>
-                  </dd>
-                </div>
+                  </p>
+                  <p className="mt-1 font-mono text-sm font-medium text-foreground">
+                    {item.value}
+                  </p>
+                </InlineCard>
               ))}
-            </dl>
-          </FormSection>
-          <FormSection
-            title="Monitoring Final"
-            description={`Status finalisasi monitoring risiko`}
-            className="rounded-lg ring-1 ring-inset ring-border border-0 overflow-hidden"
-          >
+            </div>
+          </StandardCard>
+          <StandardCard title="Monitoring Final">
             {totalRiskCount > 0 && (
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-4">
@@ -563,140 +413,28 @@ export default function WorkingPaperDetailPage(props: {
                     %
                   </span>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-500",
-                      isAllMonitoringFinal ? "bg-success" : "bg-primary",
-                    )}
-                    style={{
-                      width: `${(finalizedMonitoringCount / totalRiskCount) * 100}%`,
-                    }}
-                  />
-                </div>
+                <Progress
+                  value={(finalizedMonitoringCount / totalRiskCount) * 100}
+                  className={cn(
+                    "h-1.5",
+                    isAllMonitoringFinal && "[&>[data-slot=progress-indicator]]:bg-success",
+                  )}
+                />
               </div>
             )}
-          </FormSection>
-          <FormSection
-            title="Risiko dalam Kertas Kerja"
-            action={
-              <Badge variant="secondary" className="font-mono">
-                {data.risks?.length || 0} Risiko
-              </Badge>
-            }
-            className="rounded-lg ring-1 ring-inset ring-border border-0 overflow-hidden"
-            contentClassName="p-0 sm:p-0"
-          >
+          </StandardCard>
+          <CollectionTableCard>
             <WorkingPaperMonitoringTable links={data.risks ?? []} />
-          </FormSection>
+          </CollectionTableCard>
         </div>
 
         <div>
-          <FormSection
+          <StandardCard
             title="Status Tanda Tangan"
-            action={
-              <Badge variant="secondary" className="font-mono">
-                {signedCount}/{signatories.length || 0}
-              </Badge>
-            }
-            className="rounded-lg ring-1 ring-inset ring-border border-0 overflow-hidden sticky top-6"
+            className="sticky top-6"
           >
-            {signatories.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Belum ada penandatangan
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-0">
-                {viewModel.timeline.map((item, index) => {
-                  const isLast = index === viewModel.timeline.length - 1;
-                  const isSigned = item.state === "signed";
-                  const isCurrent = item.state === "current";
-                  const isFuture = item.state === "upcoming";
-                  const sig = item.signatory;
-
-                  return (
-                    <div
-                      key={sig.id}
-                      className={cn("flex gap-3", isFuture && "opacity-75")}
-                    >
-                      <div className="flex flex-col items-center">
-                        <div className="mt-1 shrink-0">
-                          {isSigned ? (
-                            <div className="flex size-6 items-center justify-center rounded-full border border-success/30 bg-success/20">
-                              <CheckCircle2 className="size-4 text-success" />
-                            </div>
-                          ) : isCurrent ? (
-                            <div className="flex size-6 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
-                              <div className="size-2.5 rounded-full bg-primary animate-pulse" />
-                            </div>
-                          ) : (
-                            <div className="flex size-6 items-center justify-center rounded-full border border-border bg-muted">
-                              <Circle className="size-3 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-                        {!isLast && (
-                          <div
-                            className={cn(
-                              "w-0.5 flex-1 min-h-4",
-                              isSigned
-                                ? "bg-success"
-                                : isCurrent
-                                  ? "bg-primary/30"
-                                  : "bg-border",
-                            )}
-                          />
-                        )}
-                      </div>
-
-                      <div
-                        className={cn(
-                          "min-w-0 flex-1",
-                          !isLast ? "pb-6" : "pb-0",
-                        )}
-                      >
-                        <div className="space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate text-sm font-semibold leading-none">
-                              {sig.signer_name}
-                            </p>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "h-5 px-2 text-[10px] font-semibold",
-                                timelineStatusClassName[item.state],
-                              )}
-                            >
-                              {item.label}
-                            </Badge>
-                          </div>
-
-                          <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
-                            {[sig.signer_jabatan, sig.signer_pangkat]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </p>
-
-                          <p className="text-xs leading-5 text-muted-foreground">
-                            {item.description}
-                          </p>
-                        </div>
-
-                        {sig.signed_at ? (
-                          <div className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-md border border-success/20 bg-success/10 px-2 py-1 text-xs font-medium text-success">
-                            <CheckCircle2 className="size-3.5" />
-                            Tercatat pada {formatDateTime(sig.signed_at)}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </FormSection>
+            <WorkingPaperSignatureTimeline timeline={viewModel.timeline} />
+          </StandardCard>
         </div>
       </div>
 
@@ -705,97 +443,117 @@ export default function WorkingPaperDetailPage(props: {
         open={startSigningDialogOpen}
         onOpenChange={setStartSigningDialogOpen}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Mulai proses TTE</AlertDialogTitle>
-            <AlertDialogDescription>
-              Status akan diubah dari draft menjadi proses tanda tangan.
-              Setelah itu, para penandatangan bisa mulai menandatangani
-              dokumen ini.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleStartSigning}>
+        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
+          <AlertDialogHeader className="items-start gap-0 border-b border-border/60 px-4 py-6 text-left">
+            <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
               Mulai proses TTE
-            </AlertDialogAction>
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogDescription className="px-4 py-3 text-sm leading-6 text-muted-foreground">
+            Status akan diubah dari draft menjadi proses tanda tangan.
+            Setelah itu, para penandatangan bisa mulai menandatangani
+            dokumen ini.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <CollectionDialogCancel onClick={() => setStartSigningDialogOpen(false)}>
+              Batal
+            </CollectionDialogCancel>
+            <Button size="sm" onClick={handleStartSigning}>
+              Mulai proses TTE
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={signDialogOpen} onOpenChange={setSignDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Tanda tangani kertas kerja</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menandatangani dokumen ini? Tindakan ini
-              akan menyimpan data Anda sebagai penandatangan sah.
-            </AlertDialogDescription>
+        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
+          <AlertDialogHeader className="items-start gap-0 border-b border-border/60 px-4 py-6 text-left">
+            <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+              Tanda tangani kertas kerja
+            </AlertDialogTitle>
           </AlertDialogHeader>
+          <AlertDialogDescription className="px-4 py-3 text-sm leading-6 text-muted-foreground">
+            Apakah Anda yakin ingin menandatangani dokumen ini? Tindakan ini
+            akan menyimpan data Anda sebagai penandatangan sah.
+          </AlertDialogDescription>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSign}>
+            <CollectionDialogCancel onClick={() => setSignDialogOpen(false)}>
+              Batal
+            </CollectionDialogCancel>
+            <Button size="sm" onClick={handleSign}>
               Tanda Tangani
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Batalkan kertas kerja</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin membatalkan kertas kerja ini? Dokumen
-              yang dibatalkan tidak dapat ditandatangani lagi.
-            </AlertDialogDescription>
+        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
+          <AlertDialogHeader className="items-start gap-0 border-b border-border/60 px-4 py-6 text-left">
+            <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+              Batalkan kertas kerja
+            </AlertDialogTitle>
           </AlertDialogHeader>
+          <AlertDialogDescription className="px-4 py-3 text-sm leading-6 text-muted-foreground">
+            Apakah Anda yakin ingin membatalkan kertas kerja ini? Dokumen
+            yang dibatalkan tidak dapat ditandatangani lagi.
+          </AlertDialogDescription>
           <AlertDialogFooter>
-            <AlertDialogCancel>Kembali</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
+            <CollectionDialogCancel onClick={() => setCancelDialogOpen(false)}>
+              Kembali
+            </CollectionDialogCancel>
+            <Button
+              size="sm"
               onClick={handleCancel}
-              className="bg-amber-600 hover:bg-amber-700 focus:ring-amber-600"
+              className="bg-amber-600 hover:bg-amber-700"
             >
               Batalkan Dokumen
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={skipDialogOpen} onOpenChange={setSkipDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Lewati tanda tangan elektronik</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tindakan ini akan menyelesaikan kertas kerja tanpa tanda tangan
-              elektronik dan langsung mengunci versi risiko terkait. Pastikan
-              semua risiko di dalam dokumen sudah selesai diproses.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSkipTTE}>
+        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
+          <AlertDialogHeader className="items-start gap-0 border-b border-border/60 px-4 py-6 text-left">
+            <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
               Lewati tanda tangan elektronik
-            </AlertDialogAction>
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogDescription className="px-4 py-3 text-sm leading-6 text-muted-foreground">
+            Tindakan ini akan menyelesaikan kertas kerja tanpa tanda tangan
+            elektronik dan langsung mengunci versi risiko terkait. Pastikan
+            semua risiko di dalam dokumen sudah selesai diproses.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <CollectionDialogCancel onClick={() => setSkipDialogOpen(false)}>
+              Batal
+            </CollectionDialogCancel>
+            <Button size="sm" onClick={handleSkipTTE}>
+              Lewati tanda tangan elektronik
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus kertas kerja</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus kertas kerja ini? Tindakan ini
-              tidak dapat dibatalkan.
-            </AlertDialogDescription>
+        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
+          <AlertDialogHeader className="items-start gap-0 border-b border-border/60 px-4 py-6 text-left">
+            <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+              Hapus kertas kerja
+            </AlertDialogTitle>
           </AlertDialogHeader>
+          <AlertDialogDescription className="px-4 py-3 text-sm leading-6 text-muted-foreground">
+            Apakah Anda yakin ingin menghapus kertas kerja ini? Tindakan ini
+            tidak dapat dibatalkan.
+          </AlertDialogDescription>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDelete}>
+            <CollectionDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+              Batal
+            </CollectionDialogCancel>
+            <Button size="sm" variant="destructive" onClick={handleDelete}>
               Ya, hapus
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

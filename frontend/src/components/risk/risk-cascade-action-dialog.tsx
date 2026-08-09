@@ -495,7 +495,7 @@ export function RiskCascadeActionDialog({
             <div className="space-y-4">
               <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
+                  <Badge variant="outline" className="-primary/20 bg-primary/10 text-primary">
                     {cascade?.cascadeType ? cascadeTypeLabels[cascade.cascadeType] : "Eskalasi"}
                   </Badge>
                   <Badge variant="outline" className="capitalize">

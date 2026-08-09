@@ -14,10 +14,13 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
+} from "@/components/shared/design-system";
 import {
   formatMonitoringScoreChange,
   getMonitoringTransactionActionLabel,
@@ -28,7 +31,7 @@ import type { RiskMonitoringDetail } from "@/types/risk-monitoring";
 import type { RiskCategory, RiskLevel } from "@/types/risk";
 import { cn } from "@/lib/utils";
 import { riskCategoryLabels } from "@/lib/risk";
-import { MoreHorizontal } from "lucide-react";
+import { ActionIconButton } from "@/components/shared/design-system";
 
 type MonitoringTransactionsTableProps = {
   items: RiskMonitoringDetail[];
@@ -46,44 +49,51 @@ export function MonitoringTransactionsTable({
   formatLocalDateTime,
 }: MonitoringTransactionsTableProps) {
   return (
-    <Table className="min-w-[1320px]">
-      <TableHeader>
-        <TableRow className="border-zinc-200 transition-colors hover:bg-transparent">
-          <TableHead className="w-20 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
+    <Table className="min-w-[1160px] table-fixed">
+      <colgroup>
+        <col className="w-[8%]" />
+        <col className="w-[26%]" />
+        <col className="w-[10%]" />
+        <col className="w-[9%]" />
+        <col className="w-[16%]" />
+        <col className="w-[10%]" />
+        <col className="w-[12%]" />
+        <col className="w-[10%]" />
+      </colgroup>
+      <CollectionTableHeader>
+        <CollectionTableHeaderRow>
+          <CollectionTableHead className="w-20 pl-4 pr-2.5 md:pl-6">
             Kode
-          </TableHead>
-          <TableHead className="w-72 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+          </CollectionTableHead>
+          <CollectionTableHead className="w-72 px-2.5">
             Risiko
-          </TableHead>
-          <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+          </CollectionTableHead>
+          <CollectionTableHead className="w-28 px-2.5">
             Kategori
-          </TableHead>
-          <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+          </CollectionTableHead>
+          <CollectionTableHead className="w-24 px-2.5">
             Periode
-          </TableHead>
-          <TableHead className="w-44 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+          </CollectionTableHead>
+          <CollectionTableHead className="w-44 px-2.5">
             Perubahan Skor
-          </TableHead>
-          <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-            Status Pemantauan
-          </TableHead>
-          <TableHead className="w-40 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-            Efektivitas
-          </TableHead>
-          <TableHead className="w-32 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+          </CollectionTableHead>
+          <CollectionTableHead className="w-28 px-2.5">
+            Status
+          </CollectionTableHead>
+          <CollectionTableHead className="w-32 px-2.5">
             Update Terakhir
-          </TableHead>
-          <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+          </CollectionTableHead>
+          <CollectionTableHead className="w-28 px-2.5">
             Aksi
-          </TableHead>
-        </TableRow>
-      </TableHeader>
+          </CollectionTableHead>
+        </CollectionTableHeaderRow>
+      </CollectionTableHeader>
       <TableBody>
         {items.length === 0 ? (
           <TableRow>
             <TableCell
-              colSpan={9}
-              className="py-8 text-left text-xs text-zinc-500"
+              colSpan={8}
+              className="py-8 text-left text-xs text-muted-foreground"
             >
               Tidak ada transaksi pemantauan yang ditemukan.
             </TableCell>
@@ -106,90 +116,71 @@ export function MonitoringTransactionsTable({
             return (
               <TableRow
                 key={item.id}
-                className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
+                className="border-0 transition-colors hover:bg-muted/50"
               >
-                <TableCell className="font-mono text-zinc-600 pl-4 pr-2 md:pl-6">
+                <TableCell className="py-2 font-mono text-foreground pl-4 pr-2 md:pl-6">
                   {sourceRisk?.code || "-"}
                 </TableCell>
-                <TableCell className="max-w-[260px] px-2.5">
+                <TableCell className="max-w-[260px] px-2.5 py-2">
                   <div className="flex min-w-0 items-center gap-1.5">
                     <Link
                       href={href}
-                      className="min-w-0 flex-1 truncate text-sm font-semibold leading-relaxed text-zinc-900 transition-colors hover:text-primary"
+                      className="min-w-0 flex-1 truncate text-sm font-normal leading-relaxed text-foreground transition-colors hover:text-primary"
                       title={sourceRisk?.title || item.draftTitle || "-"}
                     >
                       {sourceRisk?.title || item.draftTitle || "-"}
                     </Link>
                     {sourceRisk?.versionNumber != null ? (
-                      <Badge className="h-4 shrink-0 border border-zinc-200 bg-zinc-50 px-1 text-[9px] font-semibold text-zinc-600">
+                      <Badge className="h-4 shrink-0 bg-zinc-50 px-1 text-[9px] font-semibold text-muted-foreground">
                         v{sourceRisk.versionNumber}
                       </Badge>
                     ) : null}
                   </div>
                 </TableCell>
-                <TableCell className="px-2.5 whitespace-nowrap text-zinc-600">
+                <TableCell className="px-2.5 py-2 whitespace-nowrap text-foreground">
                   {riskCategoryLabels[(sourceRisk?.category ?? item.draftCategory ?? "") as RiskCategory] ||
                     sourceRisk?.category ||
                     item.draftCategory ||
                     "-"}
                 </TableCell>
-                <TableCell className="px-2.5 whitespace-nowrap text-zinc-600">
+                <TableCell className="px-2.5 py-2 whitespace-nowrap text-foreground">
                   {item.assessmentCycle || "-"}
                 </TableCell>
-                <TableCell className="px-2.5">
+                <TableCell className="px-2.5 py-2">
                   <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <span className="font-mono text-xs font-semibold text-zinc-900">
+                    <span className="font-mono text-sm font-medium text-foreground">
                       {scoreChange}
                     </span>
-                    <span className="text-[10px] text-zinc-500">{trendIcon}</span>
+                    <span className="text-[10px] text-muted-foreground">{trendIcon}</span>
                     <Badge
-                      className={cn(
-                        "text-[10px] font-semibold border h-5 px-1.5",
-                        levelBadgeVariant[levelLabel] || levelBadgeVariant.Rendah,
-                      )}
+  className={cn(
+  "text-[10px] font-semibold h-5 px-1.5",
+  levelBadgeVariant[levelLabel] || levelBadgeVariant.Rendah,
+  )}
                     >
                       {levelLabel}
                     </Badge>
                   </div>
                 </TableCell>
-                <TableCell className="px-2.5">
+                <TableCell className="px-2.5 py-2">
                   <Badge
-                    className={cn(
-                      "text-[10px] font-medium border h-5 px-1.5",
-                      item.status ? statusVariant[item.status] : undefined,
-                    )}
+  className={cn(
+  "text-[10px] font-medium h-5 px-1.5",
+  item.status ? statusVariant[item.status] : undefined,
+  )}
                   >
                     {statusText}
                   </Badge>
                 </TableCell>
-                <TableCell className="px-2.5 text-zinc-600">
-                  <span
-                    className="block truncate"
-                    title={
-                      item.effectivenessConclusion ||
-                      item.mitigationProgressSummary ||
-                      "-"
-                    }
-                  >
-                    {item.effectivenessConclusion ||
-                      item.mitigationProgressSummary ||
-                      "-"}
-                  </span>
-                </TableCell>
-                <TableCell className="px-2.5 whitespace-nowrap text-xs text-zinc-600">
+                <TableCell className="px-2.5 py-2 whitespace-nowrap text-xs text-muted-foreground">
                   {updateText}
                 </TableCell>
-                <TableCell className="px-2.5">
+                <TableCell className="px-2.5 py-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        className="text-zinc-500"
+                      <ActionIconButton
                         aria-label={`Aksi transaksi pemantauan ${sourceRisk?.code || sourceRisk?.title || item.id}`}
-                      >
-                        <MoreHorizontal className="size-3.5" />
-                      </Button>
+                      />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-44">
                       <DropdownMenuItem asChild>

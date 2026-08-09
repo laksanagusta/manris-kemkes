@@ -315,12 +315,9 @@ export function RiskAnalysisTab({
         </Card>
 
         <Card className="border-border/50 bg-card/80">
-          <CardHeader className="space-y-1.5">
+          <div className="space-y-1.5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-sm font-semibold">
-                  Ringkasan versi
-                </CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Lihat setiap versi risiko, kapan dibuat, nilai target, dan
                   alasan perubahannya.
@@ -330,7 +327,7 @@ export function RiskAnalysisTab({
                 {rows.length} versi
               </Badge>
             </div>
-          </CardHeader>
+          </div>
           <CardContent className="pt-0">
             <div className="overflow-hidden rounded-lg border border-border/70 bg-card">
               <div className="relative w-full overflow-x-auto">

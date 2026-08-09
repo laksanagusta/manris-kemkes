@@ -72,9 +72,3 @@ export async function cancelWorkingPaper(id: string, token: string): Promise<voi
 export async function skipTTEWorkingPaper(id: string, token: string): Promise<WorkingPaper> {
   return api.post<WorkingPaper>(`/working-papers/${id}/skip-tte`, {}, token);
 }
-
-export async function getPendingSigningCount(
-  token: string,
-): Promise<{ count: number }> {
-  return api.get<{ count: number }>("/working-papers/pending-count", token);
-}

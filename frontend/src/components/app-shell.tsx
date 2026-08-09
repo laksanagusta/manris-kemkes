@@ -45,11 +45,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <TooltipProvider delayDuration={200}>
       <SidebarProvider>
         <AppSidebar inboxBadge={hasFullSession ? inboxCount : 0} />
-        <SidebarInset className="bg-white p-4 md:p-6">
+        <SidebarInset className="min-w-0 overflow-x-hidden bg-main-content p-4 md:p-6">
           <HeaderActionsProvider>
             <AppHeader />
-            <main className="flex flex-1 flex-col gap-4">
-              {children}
+            <main className="flex min-w-0 flex-1 flex-col gap-4">
+              <div className="mx-auto w-full max-w-[1200px] py-8">{children}</div>
             </main>
           </HeaderActionsProvider>
         </SidebarInset>

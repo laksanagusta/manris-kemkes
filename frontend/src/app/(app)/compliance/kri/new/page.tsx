@@ -157,7 +157,7 @@ export default function NewKRIPage() {
         title="Tambah indikator KRI"
         description="Tambahkan indikator pemantauan untuk satu risiko, lalu tetapkan batas aman yang akan dipantau."
         badges={
-          <Badge variant="outline" className="border-primary/15 bg-primary/[0.04] text-primary">
+          <Badge variant="outline" className="-primary/15 bg-primary/[0.04] text-primary">
             Monitoring risiko
           </Badge>
         }

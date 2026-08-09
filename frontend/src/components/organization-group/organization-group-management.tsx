@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   Pencil,
   Plus,
@@ -15,6 +13,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CollectionPagination } from "@/components/shared/design-system";
 import {
   Dialog,
   DialogContent,
@@ -35,13 +34,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { Organization } from "@/lib/organization";
@@ -349,19 +341,19 @@ export function OrganizationGroupManagement({
           <Table className="min-w-[920px]">
             <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
               <TableRow className="border-b border-zinc-200 transition-colors hover:bg-transparent">
-                <TableHead className="w-[30%] whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
+                <TableHead className="w-[30%] whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
                   Nama Grup
                 </TableHead>
-                <TableHead className="w-[30%] whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                <TableHead className="w-[30%] whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-zinc-500">
                   Pemilik
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-zinc-500">
                   Anggota
                 </TableHead>
-                <TableHead className="w-32 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                <TableHead className="w-32 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-zinc-500">
                   Diperbarui
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-zinc-500">
                   Aksi
                 </TableHead>
               </TableRow>
@@ -403,7 +395,7 @@ export function OrganizationGroupManagement({
                       </div>
                     </TableCell>
                     <TableCell className="px-2.5 align-middle">
-                      <Badge className="inline-flex h-5 w-fit items-center justify-center gap-1 overflow-hidden rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0 text-[10px] font-medium whitespace-nowrap tracking-tight text-zinc-700">
+                      <Badge className="inline-flex h-5 w-fit items-center justify-center gap-1 overflow-hidden rounded-full bg-zinc-50 px-2 py-0 text-[10px] font-medium whitespace-nowrap tracking-tight text-zinc-700">
                         <Users className="size-3" />
                         {group.memberCount}
                       </Badge>
@@ -445,66 +437,18 @@ export function OrganizationGroupManagement({
           </Table>
         </div>
 
-        <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Baris per halaman:</span>
-              <Select
-                value={limit.toString()}
-                onValueChange={(value) => {
-                  setLimit(Number(value));
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="h-7 w-[65px] bg-muted/30 border-none px-2.5 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[10, 20, 50, 100].map((pageSize) => (
-                    <SelectItem key={pageSize} value={pageSize.toString()}>
-                      {pageSize}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Menampilkan {totalGroups === 0 ? 0 : (currentPage - 1) * limit + 1} -{" "}
-              {Math.min(currentPage * limit, totalGroups)} dari {totalGroups} grup
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="text-muted-foreground"
-              disabled={currentPage === 1 || loading}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              <ChevronLeft className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="xs"
-              className="bg-primary/10 text-xs font-medium text-primary"
-              disabled
-            >
-              {currentPage}
-            </Button>
-            <span className="px-1 text-xs text-muted-foreground">
-              dari {totalPages}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="text-muted-foreground"
-              disabled={currentPage === totalPages || totalGroups === 0 || loading}
-              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-            >
-              <ChevronRight className="size-3.5" />
-            </Button>
-          </div>
-        </div>
+        <CollectionPagination
+          itemLabel="grup"
+          page={currentPage}
+          pageSize={limit}
+          total={totalGroups}
+          disabled={loading}
+          onPageChange={setPage}
+          onPageSizeChange={(nextLimit) => {
+            setLimit(nextLimit);
+            setPage(1);
+          }}
+        />
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>

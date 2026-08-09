@@ -16,7 +16,7 @@ export interface RiskAssessmentSummaryMetric {
   value: ReactNode;
 }
 
-interface RiskAssessmentSummaryStripProps {
+export interface RiskAssessmentSummaryStripProps {
   title: string;
   score: number;
   level: RiskLevel;
@@ -78,14 +78,14 @@ export function RiskAssessmentSummaryStrip({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm",
+        "overflow-hidden rounded-xl border border-border/60 bg-card",
         className,
       )}
     >
-      <div className="border-b border-border/60 px-3 py-2.5">
+      <div className="px-3 py-2.5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               {title}
             </p>
             {helperText ? (

@@ -6,24 +6,31 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Calendar,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
   Loader2,
   Plus,
-  Search,
   Trash2,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
+import {
+  AccentButton,
+  CollectionEmptyState,
+  ExpandableSearchField,
+  CollectionLoadingState,
+  CollectionPagination,
+  CollectionTableCard,
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
+  CollectionToolbar,
+  PageStack,
+} from "@/components/shared/design-system";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { deleteMeetingMinute, listMeetingMinutes } from "@/lib/meeting-minutes";
 import type { MeetingMinute } from "@/types/meeting-minute";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -34,18 +41,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 
@@ -96,8 +94,6 @@ function MinutesPageContent() {
     null,
   );
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const totalPages = Math.ceil(total / limit) || 1;
 
   const filteredItems = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -224,224 +220,148 @@ function MinutesPageContent() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-2">
-          <Badge
-            variant="outline"
-            className="border-border/70 text-[10px] uppercase tracking-[0.18em]"
-          >
-            Meeting
-          </Badge>
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-              Daftar Notulen
-            </h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Kelola hasil notulen rapat yang sudah disimpan, lalu buka detail
-              atau buat notulen baru dari transkrip rapat.
-            </p>
-          </div>
-        </div>
-
-        <Button
-          className="gap-2 text-xs"
-          onClick={() => router.push("/minutes/new")}
-        >
-          <Plus className="size-3.5" /> Buat dari Transkrip
-        </Button>
-      </div>
-
-      <Card className="border-border/50 bg-card/80">
-        <CardHeader className="border-b border-border/50 pb-3">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <FileText className="size-4" /> Notulen Tersimpan
-            </CardTitle>
-            <div className="relative w-full md:w-72">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Cari judul, ringkasan, peserta..."
-                className="pl-9"
-              />
-            </div>
-            <div className="relative w-full md:w-52">
-              <Calendar className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+    <PageStack>
+      <CollectionToolbar
+        title="Meeting"
+        description="Kelola notulen rapat yang tersimpan dan buka briefing untuk ditinjau."
+        actions={
+          <>
+            <ExpandableSearchField
+              value={query}
+              onChange={setQuery}
+              placeholder="Cari judul, ringkasan, peserta..."
+              ariaLabel="Cari notulen"
+            />
+            <div className="relative w-full sm:w-40">
+              <Calendar className="pointer-events-none absolute left-3 top-1/2 z-10 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="date"
                 value={createdAtFilter}
                 onChange={(event) => setCreatedAtFilter(event.target.value)}
-                className="pl-9"
+                aria-label="Filter tanggal dibuat"
+                className="h-9 bg-card pl-9 text-sm ring-1 ring-inset ring-border/40"
               />
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex min-h-[220px] items-center justify-center">
-              <Loader2 className="size-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : total === 0 && !query.trim() && !createdAtFilter.trim() ? (
-            <div className="rounded-2xl border border-dashed border-border/60 bg-muted/[0.12] px-6 py-12">
-              <div className="flex flex-col gap-1 text-left">
-                <p className="text-sm font-medium text-muted-foreground">Belum ada notulen tersimpan</p>
-                <p className="text-xs text-muted-foreground/70">Mulai dari transkrip rapat lalu simpan hasil notulennya agar muncul di daftar ini.</p>
-              </div>
-              <Button
-                className="mt-5 gap-2 text-xs"
+            <AccentButton
+              icon={<Plus className="size-3.5" />}
+              onClick={() => router.push("/minutes/new")}
+            >
+              Buat dari Transkrip
+            </AccentButton>
+          </>
+        }
+      />
+
+      <CollectionTableCard>
+        {loading ? (
+          <CollectionLoadingState message="Memuat daftar notulen..." />
+        ) : total === 0 && !query.trim() && !createdAtFilter.trim() ? (
+          <>
+            <CollectionEmptyState
+              title="Belum ada notulen tersimpan"
+              description="Mulai dari transkrip rapat lalu simpan hasil notulennya agar muncul di daftar ini."
+            />
+            <div className="px-4 pb-4">
+              <AccentButton
+                icon={<Plus className="size-3.5" />}
                 onClick={() => router.push("/minutes/new")}
               >
-                <Plus className="size-3.5" /> Buat Notulen
-              </Button>
+                Buat Notulen
+              </AccentButton>
             </div>
-          ) : filteredItems.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border/60 bg-muted/[0.12] px-6 py-12">
-              <div className="flex flex-col gap-1 text-left">
-                <p className="text-sm font-medium text-muted-foreground">Tidak ada notulen yang cocok</p>
-                <p className="text-xs text-muted-foreground/70">Coba kata kunci lain atau kosongkan pencarian untuk melihat semua notulen.</p>
-              </div>
-            </div>
-          ) : (
-             <Table>
-               <TableHeader>
-                 <TableRow className="border-border/50 hover:bg-transparent">
-                   <TableHead className="w-24 whitespace-nowrap">Kode</TableHead>
-                   <TableHead className="whitespace-nowrap">Judul Notulen</TableHead>
-                   <TableHead className="w-32 whitespace-nowrap">Tanggal</TableHead>
-                   <TableHead className="w-20 text-center whitespace-nowrap">
-                     Peserta
-                   </TableHead>
-                   <TableHead className="w-36 whitespace-nowrap">Dibuat Oleh</TableHead>
-                   <TableHead className="w-20 text-right whitespace-nowrap">
-                     Aksi
-                   </TableHead>
-                 </TableRow>
-               </TableHeader>
-              <TableBody>
-                {filteredItems.map((minute) => (
-                  <TableRow
-                    key={minute.id}
-                    className="border-border/30 hover:bg-muted/30 transition-colors"
-                  >
-                    <TableCell className="font-mono text-muted-foreground">
-                      {minute.id.slice(0, 8)}
-                    </TableCell>
-                    <TableCell className="max-w-[300px]">
-                       <Link
-                         href={`/minutes/${minute.id}`}
-                         className="block truncate text-sm font-medium leading-relaxed text-primary transition-colors hover:text-primary/80"
-                       >
-                         {minute.title || "-"}
-                       </Link>
-                      <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                        {minute.summary || "Belum ada ringkasan"}
-                      </p>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(minute.date).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </TableCell>
-                    <TableCell className="text-center text-muted-foreground">
-                      {minute.participants?.length || 0}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {minute.createdByName || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end">
-                        {!isReadOnlyForOrg(
-                          user,
-                          minute.organizationId || "",
-                        ) && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            onClick={() => setMinuteToDelete(minute)}
-                          >
-                            <Trash2 className="size-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          </>
+        ) : filteredItems.length === 0 ? (
+          <CollectionEmptyState
+            title="Tidak ada notulen yang cocok"
+            description="Coba kata kunci lain atau kosongkan pencarian untuk melihat semua notulen."
+          />
+        ) : (
+          <Table className="min-w-[760px] table-fixed">
+            <colgroup>
+              <col className="w-[12%]" />
+              <col className="w-[37%]" />
+              <col className="w-[15%]" />
+              <col className="w-[10%]" />
+              <col className="w-[18%]" />
+              <col className="w-[8%]" />
+            </colgroup>
+            <CollectionTableHeader>
+              <CollectionTableHeaderRow>
+                <CollectionTableHead className="pl-4 pr-3">Kode</CollectionTableHead>
+                <CollectionTableHead className="px-3">Judul Notulen</CollectionTableHead>
+                <CollectionTableHead className="px-3">Tanggal</CollectionTableHead>
+                <CollectionTableHead className="px-3 text-center">Peserta</CollectionTableHead>
+                <CollectionTableHead className="px-3">Dibuat Oleh</CollectionTableHead>
+                <CollectionTableHead className="px-3 text-center">Aksi</CollectionTableHead>
+              </CollectionTableHeaderRow>
+            </CollectionTableHeader>
+            <TableBody>
+              {filteredItems.map((minute) => (
+                <TableRow key={minute.id} className="border-0 hover:bg-muted/50">
+                  <TableCell className="py-2 pl-4 pr-3 text-sm text-muted-foreground">
+                    {minute.id.slice(0, 8)}
+                  </TableCell>
+                  <TableCell className="max-w-[320px] px-3 py-2">
+                    <Link
+                      href={`/minutes/${minute.id}`}
+                      className="block truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
+                    >
+                      {minute.title || "-"}
+                    </Link>
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                      {minute.summary || "Belum ada ringkasan"}
+                    </p>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap px-3 py-2 text-sm text-muted-foreground">
+                    {new Date(minute.date).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </TableCell>
+                  <TableCell className="px-3 py-2 text-center text-sm tabular-nums text-muted-foreground">
+                    {minute.participants?.length || 0}
+                  </TableCell>
+                  <TableCell className="truncate px-3 py-2 text-sm text-muted-foreground">
+                    {minute.createdByName || "-"}
+                  </TableCell>
+                  <TableCell className="sticky right-0 bg-background px-3 py-2">
+                    <div className="flex justify-center">
+                      {!isReadOnlyForOrg(user, minute.organizationId || "") && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Hapus notulen ${minute.title || minute.id}`}
+                          className="h-7 w-7 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => setMinuteToDelete(minute)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
 
-          {total > 0 && (
-            <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Baris per halaman:</span>
-                  <Select
-                    value={limit.toString()}
-                    onValueChange={(val) => {
-                      setLimit(Number(val));
-                      setPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="h-7 w-[65px] text-xs bg-muted/30 border-none">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[10, 20, 50, 100].map((pageSize) => (
-                        <SelectItem key={pageSize} value={pageSize.toString()}>
-                          {pageSize}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Menampilkan{" "}
-                  {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
-                  {Math.min(page * limit, total)} dari {total} notulen
-                </p>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-muted-foreground"
-                  disabled={page === 1 || loading || isPending}
-                  onClick={() =>
-                    setPage((current) => Math.max(1, current - 1))
-                  }
-                >
-                  <ChevronLeft className="size-3.5" />
-                </Button>
-                <span className="px-2 text-xs font-medium text-primary">
-                  {page}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  dari {totalPages}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-muted-foreground"
-                  disabled={
-                    page === totalPages || total === 0 || loading || isPending
-                  }
-                  onClick={() =>
-                    setPage((current) => Math.min(totalPages, current + 1))
-                  }
-                >
-                  <ChevronRight className="size-3.5" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {total > 0 && (
+          <CollectionPagination
+            itemLabel="notulen"
+            page={page}
+            pageSize={limit}
+            total={total}
+            disabled={loading || isPending}
+            onPageChange={setPage}
+            onPageSizeChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
+          />
+        )}
+      </CollectionTableCard>
 
       <Dialog
         open={!!minuteToDelete}
@@ -486,6 +406,6 @@ function MinutesPageContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageStack>
   );
 }

@@ -147,10 +147,10 @@ export function KRIReportsList({ kriId, metric, organizationId }: { kriId: strin
                   <div className="space-y-1 mb-3 sm:mb-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-sm">{report.periodLabel}</p>
-                      {report.status === "pending" && <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-200 bg-yellow-50"><Clock className="size-3 mr-1"/> Pending</Badge>}
-                      {report.status === "overdue" && <Badge variant="outline" className="text-xs text-destructive border-destructive/20 bg-destructive/10"><AlertCircle className="size-3 mr-1"/> Terlambat</Badge>}
-                      {report.status === "submitted" && <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50"><Clock className="size-3 mr-1"/> Menunggu Persetujuan</Badge>}
-                      {report.status === "accepted" && <Badge variant="outline" className="text-xs text-success border-success/20 bg-success/10"><CheckCircle className="size-3 mr-1"/> Diterima</Badge>}
+                      {report.status === "pending" && <Badge variant="outline" className="text-xs text-yellow-600 bg-yellow-50"><Clock className="size-3 mr-1"/> Pending</Badge>}
+                      {report.status === "overdue" && <Badge variant="outline" className="text-xs text-destructive bg-destructive/10"><AlertCircle className="size-3 mr-1"/> Terlambat</Badge>}
+                      {report.status === "submitted" && <Badge variant="outline" className="text-xs text-amber-600 bg-amber-50"><Clock className="size-3 mr-1"/> Menunggu Persetujuan</Badge>}
+                      {report.status === "accepted" && <Badge variant="outline" className="text-xs text-success bg-success/10"><CheckCircle className="size-3 mr-1"/> Diterima</Badge>}
                     </div>
                     <div className="text-xs text-muted-foreground flex gap-3">
                       <span>Tenggat: <strong className={report.status === "overdue" ? "text-destructive" : ""}>{new Date(report.dueDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric'})}</strong></span>

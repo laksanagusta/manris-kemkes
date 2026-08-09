@@ -8,19 +8,11 @@ import {
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  listWorkingPapers,
-  deleteWorkingPaper,
-  cancelWorkingPaper,
-} from "@/lib/api/working-papers";
+import { listWorkingPapers } from "@/lib/api/working-papers";
 import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { KpiCard, type KpiCardTone } from "@/components/ui/kpi-card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -31,54 +23,42 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
-import {
-  Filter,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle,
-  ArrowUpRight,
-  Search,
-} from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
-import { SearchInput } from "@/components/ui/search-input";
 import { useSetHeaderActions } from "@/lib/header-actions-context";
+import {
+  CollectionEmptyState,
+  CollectionErrorState,
+  CollectionFilterInput,
+  CollectionFilterTrigger,
+  CollectionLoadingState,
+  CollectionPagination,
+  CollectionSearchField,
+  CollectionStatusBadge,
+  CollectionTableCard,
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
+  CollectionToolbar,
+} from "@/components/shared/design-system";
+import {
+  AccentButton,
+  PageStack,
+} from "@/components/shared/design-system";
+import {
+  WorkingPaperCreateButton,
+  WorkingPaperCreateDialog,
+} from "@/components/shared/working-paper-create-dialog";
 
 type WorkingPaperStatusFilter = "all" | WorkingPaperStatus;
 
@@ -107,24 +87,11 @@ function parsePositiveInt(value: string | null, fallback: number): number {
   return Math.floor(parsed);
 }
 
-const statusVariant: Record<WorkingPaperStatus, string> = {
-  draft: getLinearStatusBadgeClass("draft"),
-  signing: getLinearStatusBadgeClass("signing"),
-  completed: getLinearStatusBadgeClass("completed"),
-  cancelled: getLinearStatusBadgeClass("cancelled"),
-};
-
 const statusLabels: Record<WorkingPaperStatus, string> = {
   draft: "Draft",
   signing: "Proses TTE",
   completed: "Selesai",
   cancelled: "Dibatalkan",
-};
-
-type WorkingPaperSummaryCard = {
-  label: string;
-  value: number;
-  tone: KpiCardTone;
 };
 
 type WorkingPaperFiltersSidebarProps = {
@@ -151,97 +118,93 @@ function WorkingPaperFiltersSidebar({
   onReset,
 }: WorkingPaperFiltersSidebarProps) {
   return (
-    <Sheet modal={false} open={open} onOpenChange={onOpenChange}>
-      <SheetTrigger asChild>
-        <Button variant="outline" size="md" className="gap-2 shadow-none">
-          <Filter className="size-3.5" strokeWidth={2.5} />
-          Filter
-        </Button>
-      </SheetTrigger>
-
-      <SheetContent
-        side="right"
-        className="data-[side=right]:w-full data-[side=right]:sm:max-w-[22rem] rounded-2xl"
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <CollectionFilterTrigger />
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="w-[22rem] rounded-2xl p-4"
       >
-        <SheetHeader>
-          <SheetTitle>Filter Kertas Kerja</SheetTitle>
-          <SheetDescription>
-            Atur status, siklus asesmen, dan tanggal dibuat. Search tetap
-            tersedia di bawah KPI cards.
-          </SheetDescription>
-        </SheetHeader>
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-sm font-medium">Filter Kertas Kerja</h4>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Atur status, siklus asesmen, dan tanggal dibuat.
+            </p>
+          </div>
 
-        <Separator />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">
+                Status
+              </Label>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) =>
+                  onStatusFilterChange(value as WorkingPaperStatusFilter)
+                }
+              >
+                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                  <SelectValue placeholder="Semua status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua status</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="signing">Proses TTE</SelectItem>
+                  <SelectItem value="completed">Selesai</SelectItem>
+                  <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Status
-            </Label>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) =>
-                onStatusFilterChange(value as WorkingPaperStatusFilter)
-              }
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">
+                Siklus Asesmen
+              </Label>
+              <CollectionFilterInput
+                value={assessmentCycleFilter}
+                onChange={(event) =>
+                  onAssessmentCycleFilterChange(event.target.value)
+                }
+                placeholder="Filter siklus asesmen"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">
+                Tanggal Dibuat
+              </Label>
+              <CollectionFilterInput
+                type="date"
+                value={createdAtFilter}
+                onChange={(event) => onCreatedAtFilterChange(event.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              size="md"
+              onClick={onReset}
+              className="shadow-none"
             >
-              <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
-                <SelectValue placeholder="Semua status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua status</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="signing">Proses TTE</SelectItem>
-                <SelectItem value="completed">Selesai</SelectItem>
-                <SelectItem value="cancelled">Dibatalkan</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Siklus Asesmen
-            </Label>
-            <Input
-              value={assessmentCycleFilter}
-              onChange={(event) =>
-                onAssessmentCycleFilterChange(event.target.value)
-              }
-              placeholder="Filter siklus asesmen"
-              className="h-9 border-0 bg-muted/50 text-sm"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Tanggal Dibuat
-            </Label>
-            <Input
-              type="date"
-              value={createdAtFilter}
-              onChange={(event) => onCreatedAtFilterChange(event.target.value)}
-              className="h-9 border-0 bg-muted/50 text-sm"
-            />
+              Reset
+            </Button>
+            <AccentButton
+              type="button"
+              size="md"
+              onClick={() => onOpenChange(false)}
+            >
+              Terapkan
+            </AccentButton>
           </div>
         </div>
-
-        <Separator />
-
-        <SheetFooter className="sm:flex-row sm:justify-between">
-          <Button type="button" variant="ghost" size="md" onClick={onReset} className="shadow-none">
-            Reset
-          </Button>
-          <Button
-            type="button"
-            size="md"
-            className="gap-1.5"
-            style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
-            onClick={() => onOpenChange(false)}
-          >
-            Terapkan
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -278,18 +241,12 @@ function WorkingPaperFiltersToolbar({
 }: WorkingPaperFiltersToolbarProps) {
   return (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
-      <div className="min-w-0 flex-1 sm:w-64 md:flex-none">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
-          <SearchInput
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder={searchPlaceholder}
-            aria-label={searchAriaLabel}
-            className="bg-muted pl-10 text-sm"
-          />
-        </div>
-      </div>
+      <CollectionSearchField
+        value={search}
+        onChange={(event) => onSearchChange(event.target.value)}
+        placeholder={searchPlaceholder}
+        aria-label={searchAriaLabel}
+      />
 
       <WorkingPaperFiltersSidebar
         open={filterOpen}
@@ -333,6 +290,133 @@ function useDebouncedValue<T>(value: T, delay: number) {
   return debouncedValue;
 }
 
+function getWorkingPaperSigningProgress(paper: WorkingPaper) {
+  const signedCount =
+    paper.signatories?.filter((signatory) => signatory.status === "signed")
+      .length || 0;
+  const totalSignatories = paper.signatories?.length || 0;
+
+  return {
+    totalSignatories,
+    progressPercent:
+      totalSignatories > 0 ? (signedCount / totalSignatories) * 100 : 0,
+    progressText:
+      totalSignatories > 0 ? `${signedCount}/${totalSignatories}` : "-",
+  };
+}
+
+type WorkingPaperCardProps = {
+  paper: WorkingPaper;
+};
+
+function WorkingPaperCode({ code }: { code: string }) {
+  return (
+    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+      {code}
+    </span>
+  );
+}
+
+function WorkingPaperSigningProgress({
+  totalSignatories,
+  progressPercent,
+  progressText,
+}: {
+  totalSignatories: number;
+  progressPercent: number;
+  progressText: string;
+}) {
+  if (totalSignatories === 0) return null;
+
+  return (
+    <div className="mt-3 flex items-center gap-3">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-emerald-500 transition-all"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+      <span className="text-xs font-medium tabular-nums text-muted-foreground">
+        {progressText} TTE
+      </span>
+    </div>
+  );
+}
+
+function WorkingPaperMobileCard({
+  paper,
+  totalSignatories,
+  progressPercent,
+  progressText,
+  createdDate,
+}: WorkingPaperCardProps & {
+  totalSignatories: number;
+  progressPercent: number;
+  progressText: string;
+  createdDate: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background px-4 py-3 transition-colors hover:bg-muted/50">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <WorkingPaperCode code={paper.code} />
+            <CollectionStatusBadge
+              className={getLinearStatusBadgeClass(paper.status)}
+            >
+              {statusLabels[paper.status] || paper.status}
+            </CollectionStatusBadge>
+          </div>
+          <Link
+            href={`/risk/working-papers/${paper.id}`}
+            className="mt-1 line-clamp-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
+          >
+            {paper.title || "Tanpa Judul"}
+          </Link>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span>{paper.assessment_cycle || "Tanpa siklus"}</span>
+            <span className="text-border">|</span>
+            <span>{paper.risks?.length || 0} risiko</span>
+            <span className="text-border">|</span>
+            <span>{createdDate}</span>
+          </div>
+        </div>
+        <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
+      </div>
+      <WorkingPaperSigningProgress
+        totalSignatories={totalSignatories}
+        progressPercent={progressPercent}
+        progressText={progressText}
+      />
+    </div>
+  );
+}
+
+function WorkingPaperDesktopSigningProgress({
+  totalSignatories,
+  progressPercent,
+  progressText,
+}: {
+  totalSignatories: number;
+  progressPercent: number;
+  progressText: string;
+}) {
+  if (totalSignatories === 0) {
+    return <span className="text-sm text-muted-foreground">-</span>;
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium text-foreground">
+          {progressText}
+        </span>
+      </div>
+      <Progress value={progressPercent} className="h-2 bg-muted" />
+    </div>
+  );
+}
+
 export default function WorkingPapersPage() {
   const pathname = usePathname();
   const router = useRouter();
@@ -364,10 +448,11 @@ export default function WorkingPapersPage() {
   const [total, setTotal] = useState(0);
 
   const debouncedSearch = useDebouncedValue(search, 500);
-  const deferredAssessmentCycleFilter = useDebouncedValue(assessmentCycleFilter, 500);
+  const deferredAssessmentCycleFilter = useDebouncedValue(
+    assessmentCycleFilter,
+    500,
+  );
 
-  const [paperToDelete, setPaperToDelete] = useState<WorkingPaper | null>(null);
-  const [paperToCancel, setPaperToCancel] = useState<WorkingPaper | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState("");
   const setHeaderActions = useSetHeaderActions();
@@ -396,6 +481,7 @@ export default function WorkingPapersPage() {
 
   const handleResetFilters = () => {
     setStatusFilter("all");
+    setSearch("");
     setAssessmentCycleFilter("");
     setCreatedAtFilter("");
     setPage(1);
@@ -443,21 +529,13 @@ export default function WorkingPapersPage() {
     if (token) {
       fetchWorkingPapers(token);
     }
-  }, [
-    fetchWorkingPapers,
-    token,
-    statusFilter,
-    debouncedSearch,
-    deferredAssessmentCycleFilter,
-    createdAtFilter,
-    page,
-    limit,
-  ]);
+  }, [fetchWorkingPapers, token]);
 
   useEffect(() => {
     const nextStatusFilter = getWorkingPaperStatusFilter(
       searchParams.get("status"),
     );
+    const nextSearch = searchParams.get("q") ?? "";
     const nextAssessmentCycleFilter =
       searchParams.get("assessment_cycle") ?? "";
     const nextCreatedAtFilter = searchParams.get("created_at") ?? "";
@@ -467,6 +545,7 @@ export default function WorkingPapersPage() {
     setStatusFilter((current) =>
       current === nextStatusFilter ? current : nextStatusFilter,
     );
+    setSearch((current) => (current === nextSearch ? current : nextSearch));
     setAssessmentCycleFilter((current) =>
       current === nextAssessmentCycleFilter
         ? current
@@ -481,6 +560,7 @@ export default function WorkingPapersPage() {
 
   useEffect(() => {
     const nextParams = new URLSearchParams(searchParams.toString());
+    const normalizedSearch = debouncedSearch.trim();
     const normalizedAssessmentCycle = assessmentCycleFilter.trim();
     const normalizedCreatedAt = createdAtFilter.trim();
 
@@ -488,6 +568,12 @@ export default function WorkingPapersPage() {
       nextParams.delete("status");
     } else {
       nextParams.set("status", statusFilter);
+    }
+
+    if (normalizedSearch) {
+      nextParams.set("q", normalizedSearch);
+    } else {
+      nextParams.delete("q");
     }
 
     if (normalizedAssessmentCycle) {
@@ -531,6 +617,7 @@ export default function WorkingPapersPage() {
   }, [
     assessmentCycleFilter,
     createdAtFilter,
+    debouncedSearch,
     limit,
     page,
     pathname,
@@ -540,543 +627,210 @@ export default function WorkingPapersPage() {
     statusFilter,
   ]);
 
-  const handleDelete = async () => {
-    if (!paperToDelete || !token) return;
-    toast.promise(
-      (async () => {
-        await deleteWorkingPaper(paperToDelete.id, token);
-        await fetchWorkingPapers(token);
-        setPaperToDelete(null);
-      })(),
-      {
-        loading: "Menghapus kertas kerja...",
-        success: "Kertas kerja berhasil dihapus.",
-        error: (err) =>
-          err instanceof Error ? err.message : "Gagal menghapus kertas kerja.",
-      },
-    );
-  };
-
-  const handleCancel = async () => {
-    if (!paperToCancel || !token) return;
-    toast.promise(
-      (async () => {
-        await cancelWorkingPaper(paperToCancel.id, token);
-        await fetchWorkingPapers(token);
-        setPaperToCancel(null);
-      })(),
-      {
-        loading: "Membatalkan kertas kerja...",
-        success: "Kertas kerja berhasil dibatalkan.",
-        error: (err) =>
-          err instanceof Error
-            ? err.message
-            : "Gagal membatalkan kertas kerja.",
-      },
-    );
-  };
-
-  const totalPages = Math.ceil(total / limit) || 1;
   const showInitialLoading = loading && papers.length === 0;
-
-  const draftCount = papers.filter((p) => p.status === "draft").length;
-  const signingCount = papers.filter((p) => p.status === "signing").length;
-  const completedCount = papers.filter((p) => p.status === "completed").length;
-  const cancelledCount = papers.filter((p) => p.status === "cancelled").length;
-
-  const summaryCards: WorkingPaperSummaryCard[] = [
-    {
-      label: "Total",
-      value: total,
-      tone: "white" as const,
-    },
-    {
-      label: "Draft",
-      value: draftCount,
-      tone: "zinc" as const,
-    },
-    {
-      label: "Proses TTE",
-      value: signingCount,
-      tone: "zinc" as const,
-    },
-    {
-      label: "Selesai",
-      value: completedCount,
-      tone: "emerald" as const,
-    },
-    {
-      label: "Dibatalkan",
-      value: cancelledCount,
-      tone: "rose" as const,
-    },
-  ];
-  const visiblePaperCount = papers.length;
 
   useEffect(() => {
     if (!token) return;
+
     setHeaderActions(
-      <div className="flex items-center gap-2">
-        <Button
-          size="md"
-          className="gap-2 border-0"
-          style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
+      <WorkingPaperCreateButton
           onClick={() => {
             setSelectedSemester(currentSemester);
             setCreateModalOpen(true);
           }}
-        >
-          <Plus className="size-3.5" strokeWidth={2.5} />
-          Buat Kertas Kerja
-        </Button>
-      </div>,
+      />,
     );
+
     return () => setHeaderActions(null);
-  }, [token, setHeaderActions]);
+  }, [currentSemester, setHeaderActions, token]);
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {summaryCards.map((card) => (
-          <KpiCard
-            key={card.label}
-            label={card.label}
-            value={card.value}
-            tone="white"
-            className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
-            labelClassName="capitalize tracking-normal"
-            valueClassName="font-medium"
-            valueWrapClassName="mt-auto"
-          />
-        ))}
-      </div>
-
-      <div className="space-y-4">
+    <PageStack>
         {error ? (
-          <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-4 text-sm text-destructive">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 size-4 shrink-0" />
-              <div className="space-y-1">
-                <p className="font-semibold">Gagal Memuat Data</p>
-                <p className="text-sm text-destructive/80">{error}</p>
-                <Button
-                  onClick={() => window.location.reload()}
-                  variant="outline"
-                  className="mt-2 gap-2 border-destructive/20 bg-background text-destructive shadow-none hover:bg-destructive/5"
-                >
-                  <ArrowUpRight className="size-4" />
-                  Muat Ulang Halaman
-                </Button>
-              </div>
-            </div>
-          </div>
+          <CollectionErrorState
+            title="Gagal Memuat Data"
+            message={error}
+            onReload={() => window.location.reload()}
+          />
         ) : null}
 
-        <div className="rounded-lg gap-0 overflow-hidden ring-1 ring-inset ring-border bg-card p-4">
-      <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
-        <div className="min-w-0">
-          <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
-            Daftar Kertas Kerja
-          </h2>
-          <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
-            Dokumen risiko dan progres penandatanganan
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <WorkingPaperFiltersToolbar
-                search={search}
-                onSearchChange={(value) => {
-                  setSearch(value);
-                  setPage(1);
-                }}
-                searchPlaceholder="Cari judul kertas kerja..."
-                searchAriaLabel="Cari judul kertas kerja"
-                filterOpen={filterOpen}
-                onFilterOpenChange={setFilterOpen}
-                statusFilter={statusFilter}
-                onStatusFilterChange={(value) => {
-                  setStatusFilter(value);
-                  setPage(1);
-                }}
-                assessmentCycleFilter={assessmentCycleFilter}
-                onAssessmentCycleFilterChange={(value) => {
-                  setAssessmentCycleFilter(value);
-                  setPage(1);
-                }}
-                createdAtFilter={createdAtFilter}
-                onCreatedAtFilterChange={(value) => {
-                  setCreatedAtFilter(value);
-                  setPage(1);
-                }}
-                onReset={handleResetFilters}
-              />
-            </div>
-          </div>
+        <CollectionToolbar
+          actions={<WorkingPaperFiltersToolbar
+            search={search}
+            onSearchChange={(value) => {
+              setSearch(value);
+              setPage(1);
+            }}
+            searchPlaceholder="Cari judul kertas kerja..."
+            searchAriaLabel="Cari judul kertas kerja"
+            filterOpen={filterOpen}
+            onFilterOpenChange={setFilterOpen}
+            statusFilter={statusFilter}
+            onStatusFilterChange={(value) => {
+              setStatusFilter(value);
+              setPage(1);
+            }}
+            assessmentCycleFilter={assessmentCycleFilter}
+            onAssessmentCycleFilterChange={(value) => {
+              setAssessmentCycleFilter(value);
+              setPage(1);
+            }}
+            createdAtFilter={createdAtFilter}
+            onCreatedAtFilterChange={(value) => {
+              setCreatedAtFilter(value);
+              setPage(1);
+            }}
+            onReset={handleResetFilters}
+          />}
+        />
+
+        <CollectionTableCard>
 
           {showInitialLoading ? (
-            <div className="p-4">
-              <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-8 text-left">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Search className="size-4 animate-pulse" />
-                  Memuat daftar kertas kerja...
-                </div>
-              </div>
-            </div>
+            <CollectionLoadingState message="Memuat daftar kertas kerja..." />
           ) : papers.length === 0 ? (
-            <div className="p-4">
-              <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-8 text-left">
-                <p className="text-sm font-medium text-foreground">
-                  Belum ada kertas kerja yang sesuai filter
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Ubah filter pencarian atau tab status untuk melihat data lain.
-                </p>
-              </div>
-            </div>
+            <CollectionEmptyState
+              title="Belum ada kertas kerja yang sesuai filter"
+              description="Ubah filter pencarian atau tab status untuk melihat data lain."
+            />
           ) : (
             <>
               <div className="space-y-2 p-4 md:hidden">
-                {papers.map((wp) => {
-                  const signedCount =
-                    wp.signatories?.filter((s) => s.status === "signed")
-                      .length || 0;
-                  const totalSignatories = wp.signatories?.length || 0;
-                  const progressPercent =
-                    totalSignatories > 0
-                      ? (signedCount / totalSignatories) * 100
-                      : 0;
-                  const progressText =
-                    totalSignatories > 0
-                      ? `${signedCount}/${totalSignatories}`
-                      : "-";
-                  const createdDate = formatWorkingPaperDate(wp.created_at, {
+                {papers.map((paper) => {
+                  const { totalSignatories, progressPercent, progressText } =
+                    getWorkingPaperSigningProgress(paper);
+                  const createdDate = formatWorkingPaperDate(paper.created_at, {
                     year: "numeric",
                     month: "short",
                     day: "numeric",
                   });
 
                   return (
-                    <div
-                      key={wp.id}
-                      className="rounded-lg border border-border bg-background px-4 py-3 transition-colors hover:bg-muted/50"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                              {wp.code}
-                            </span>
-                            <Badge
-                              className={getLinearStatusBadgeClass(wp.status)}
-                            >
-                              {statusLabels[wp.status] || wp.status}
-                            </Badge>
-                          </div>
-                          <Link
-                            href={`/risk/working-papers/${wp.id}`}
-                            className="mt-1 line-clamp-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
-                          >
-                            {wp.title || "Tanpa Judul"}
-                          </Link>
-                          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                            <span>{wp.assessment_cycle || "Tanpa siklus"}</span>
-                            <span className="text-border">|</span>
-                            <span>{wp.risks?.length || 0} risiko</span>
-                            <span className="text-border">|</span>
-                            <span>{createdDate}</span>
-                          </div>
-                        </div>
-                        <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
-                      </div>
-
-                      {totalSignatories > 0 && (
-                        <div className="mt-3 flex items-center gap-3">
-                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                            <div
-                              className="h-full rounded-full bg-emerald-500 transition-all"
-                              style={{ width: `${progressPercent}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-medium tabular-nums text-muted-foreground">
-                            {progressText} TTE
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    <WorkingPaperMobileCard
+                      key={paper.id}
+                      paper={paper}
+                      totalSignatories={totalSignatories}
+                      progressPercent={progressPercent}
+                      progressText={progressText}
+                      createdDate={createdDate}
+                    />
                   );
                 })}
               </div>
 
-            <div className="-mx-4 overflow-x-auto hidden md:block">
-              <Table className="min-w-[980px]">
-                <TableHeader className="[&_tr]:border-b [&_tr]:border-border">
-                  <TableRow className="h-9 hover:bg-transparent">
-                    <TableHead className="h-9 whitespace-nowrap pl-4 pr-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Judul
-                    </TableHead>
-                    <TableHead className="h-9 whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Siklus
-                    </TableHead>
-                    <TableHead className="h-9 whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Status
-                    </TableHead>
-                    <TableHead className="h-9 whitespace-nowrap px-3 text-center align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Risiko
-                    </TableHead>
-                    <TableHead className="h-9 whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Progres TTE
-                    </TableHead>
-                    <TableHead className="h-9 whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Dibuat
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {papers.map((wp) => {
-                    const signedCount =
-                      wp.signatories?.filter((s) => s.status === "signed")
-                        .length || 0;
-                    const totalSignatories = wp.signatories?.length || 0;
-                    const progressPercent =
-                      totalSignatories > 0
-                        ? (signedCount / totalSignatories) * 100
-                        : 0;
-                    const progressText =
-                      totalSignatories > 0
-                        ? `${signedCount}/${totalSignatories}`
-                        : "-";
-                    const createdDate = formatWorkingPaperDate(wp.created_at, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    });
+              <div className="hidden md:block">
+                <Table className="min-w-[980px] table-fixed">
+                  <colgroup>
+                    <col className="w-[32%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[20%]" />
+                    <col className="w-[14%]" />
+                  </colgroup>
+                  <CollectionTableHeader>
+                    <CollectionTableHeaderRow>
+                      <CollectionTableHead className="pl-4 pr-3">
+                        Judul
+                      </CollectionTableHead>
+                      <CollectionTableHead className="px-3">
+                        Siklus
+                      </CollectionTableHead>
+                      <CollectionTableHead className="px-3">
+                        Status
+                      </CollectionTableHead>
+                      <CollectionTableHead className="px-3 text-center">
+                        Risiko
+                      </CollectionTableHead>
+                      <CollectionTableHead className="px-3">
+                        Progres TTE
+                      </CollectionTableHead>
+                      <CollectionTableHead className="px-3">
+                        Dibuat
+                      </CollectionTableHead>
+                    </CollectionTableHeaderRow>
+                  </CollectionTableHeader>
+                  <TableBody>
+                    {papers.map((paper) => {
+                      const { totalSignatories, progressPercent, progressText } =
+                        getWorkingPaperSigningProgress(paper);
+                      const createdDate = formatWorkingPaperDate(
+                        paper.created_at,
+                        {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        },
+                      );
 
-                    return (
-                      <TableRow
-                        key={wp.id}
-                        className="border-b border-border hover:bg-muted/50"
-                      >
-                        <TableCell className="min-w-[320px] py-2 pl-4 pr-3 align-middle">
-                          <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                            {wp.code}
-                          </div>
-                          <Link
-                            href={`/risk/working-papers/${wp.id}`}
-                            className="block text-sm font-normal leading-relaxed text-foreground transition-colors hover:text-primary"
-                            title={wp.title}
-                          >
-                            {wp.title || "Tanpa Judul"}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-muted-foreground">
-                          {wp.assessment_cycle || "-"}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap px-3 py-2 align-middle">
-                          <Badge
-                            className={cn(
-                              "h-6 rounded-lg border-0 px-2.5 text-xs",
-                              statusVariant[wp.status],
-                            )}
-                          >
-                            {statusLabels[wp.status] || wp.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap px-3 py-2 text-center align-middle text-sm font-medium tabular-nums text-foreground">
-                          {wp.risks?.length || 0}
-                        </TableCell>
-                        <TableCell className="min-w-[180px] px-3 py-2 align-middle">
-                          {totalSignatories > 0 ? (
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="text-sm font-medium text-foreground">
-                                  {progressText}
-                                </span>
-                              </div>
-                              <Progress value={progressPercent} className="h-2 bg-muted" />
+                      return (
+                        <TableRow
+                          key={paper.id}
+                          className="border-0 hover:bg-muted/50"
+                        >
+                          <TableCell className="min-w-[320px] py-2 pl-4 pr-3 align-middle">
+                            <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                              {paper.code}
                             </div>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-muted-foreground">
-                          {createdDate}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                            <Link
+                              href={`/risk/working-papers/${paper.id}`}
+                              className="block text-sm font-normal leading-relaxed text-foreground transition-colors hover:text-primary"
+                              title={paper.title}
+                            >
+                              {paper.title || "Tanpa Judul"}
+                            </Link>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-muted-foreground">
+                            {paper.assessment_cycle || "-"}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap px-3 py-2 align-middle">
+                            <CollectionStatusBadge
+                              className={getLinearStatusBadgeClass(paper.status)}
+                            >
+                              {statusLabels[paper.status] || paper.status}
+                            </CollectionStatusBadge>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap px-3 py-2 text-center align-middle text-sm font-medium tabular-nums text-foreground">
+                            {paper.risks?.length || 0}
+                          </TableCell>
+                          <TableCell className="min-w-[180px] px-3 py-2 align-middle">
+                            <WorkingPaperDesktopSigningProgress
+                              totalSignatories={totalSignatories}
+                              progressPercent={progressPercent}
+                              progressText={progressText}
+                            />
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-muted-foreground">
+                            {createdDate}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </>
           )}
-
-          <div className="-mx-4 -mb-4 flex items-center justify-between border-t border-border/50 px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground">
-                  Baris:
-                </span>
-                <Select
-                  value={limit.toString()}
-                  onValueChange={(val) => {
-                    setLimit(Number(val));
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-6 w-[56px] rounded-md border-0 bg-transparent text-[11px] shadow-none">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[10, 20, 50, 100].map((pageSize) => (
-                      <SelectItem key={pageSize} value={pageSize.toString()}>
-                        {pageSize}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                {total === 0 ? 0 : (page - 1) * limit + 1}
-                &ndash;{Math.min(page * limit, total)} dari{" "}
-                {total}
-              </p>
-            </div>
-            <div className="flex items-center gap-0.5">
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="text-muted-foreground shadow-none"
-                disabled={page === 1 || loading || isPending}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                <ChevronLeft className="size-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="xs"
-                className="bg-muted text-[11px] font-medium text-foreground shadow-none"
-                disabled
-              >
-                {page}
-              </Button>
-              <span className="px-0.5 text-[11px] text-muted-foreground">
-                / {totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="text-muted-foreground shadow-none"
-                disabled={
-                  page === totalPages || total === 0 || loading || isPending
-                }
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              >
-                <ChevronRight className="size-3.5" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <AlertDialog
-        open={!!paperToDelete}
-        onOpenChange={(open) => !open && setPaperToDelete(null)}
-      >
-        <AlertDialogContent className="sm:max-w-md rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Kertas Kerja?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus draft kertas kerja &quot;
-              {paperToDelete?.title}&quot;? Tindakan ini tidak dapat dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Kembali</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Hapus
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={!!paperToCancel}
-        onOpenChange={(open) => !open && setPaperToCancel(null)}
-      >
-        <AlertDialogContent className="sm:max-w-md rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Batalkan Kertas Kerja?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin membatalkan kertas kerja &quot;
-              {paperToCancel?.title}&quot;? Kertas kerja yang dibatalkan tidak
-              dapat dilanjutkan proses TTE-nya.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Kembali</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancel}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Batalkan
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="sm:max-w-sm rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Pilih Periode Semester</DialogTitle>
-            <DialogDescription>
-              Tentukan semester untuk kertas kerja yang akan dibuat.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Select
-              value={selectedSemester}
-              onValueChange={setSelectedSemester}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Pilih semester" />
-              </SelectTrigger>
-              <SelectContent>
-                {semesterOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => setCreateModalOpen(false)}
-            >
-              Batal
-            </Button>
-            <Button
-              size="md"
-              onClick={() => {
-                setCreateModalOpen(false);
-                router.push(
-                  `/risk/working-papers/new?cycle=${selectedSemester}`,
-                );
-              }}
-              disabled={!selectedSemester}
-              className="gap-2"
-              style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
-            >
-              Lanjutkan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          <CollectionPagination
+            itemLabel="kertas kerja"
+            page={page}
+            pageSize={limit}
+            total={total}
+            disabled={loading || isPending}
+            onPageChange={setPage}
+            onPageSizeChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
+          />
+        </CollectionTableCard>
+      <WorkingPaperCreateDialog
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        selectedSemester={selectedSemester}
+        onSelectedSemesterChange={setSelectedSemester}
+        semesterOptions={semesterOptions}
+      />
+    </PageStack>
   );
 }

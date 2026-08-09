@@ -226,22 +226,22 @@ export function MitigationTable({
             <Table className="min-w-[1120px]">
               <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
                 <TableRow className="border-border/50 transition-colors hover:bg-transparent">
-                <TableHead className="w-16 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-16 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   No
                 </TableHead>
-                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   Rencana Mitigasi
                 </TableHead>
-                <TableHead className="w-56 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-56 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   PIC
                 </TableHead>
-                <TableHead className="w-44 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-44 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   Tipe
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   Detail
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   Aksi
                 </TableHead>
               </TableRow>
@@ -253,8 +253,9 @@ export function MitigationTable({
                 return (
                   <Fragment key={item.id ?? `mitigation-${index}`}>
                     <TableRow
+                      style={{ animationDelay: `${index * 30}ms` }}
                       className={cn(
-                        "border-border/30 transition-colors hover:bg-muted/30",
+                        "animate-in fade-in slide-in-from-top-2 duration-200 ease-out motion-reduce:animate-none border-border/30 transition-colors hover:bg-muted/30",
                         expanded && "bg-muted/20",
                       )}
                     >
@@ -368,7 +369,7 @@ export function MitigationTable({
                     </TableRow>
 
                     {expanded ? (
-                      <TableRow className="border-border/30 bg-muted/15">
+                      <TableRow className="animate-in fade-in slide-in-from-top-2 duration-200 ease-out motion-reduce:animate-none border-border/30 bg-muted/15">
                         <TableCell colSpan={7} className="p-0">
                           <div className="border-t border-border/50 px-4 py-4">
                             {disabled ? (

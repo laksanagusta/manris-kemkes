@@ -94,36 +94,35 @@ export function CommunicationLogDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-base">Tambah Log Komunikasi</DialogTitle>
-          <DialogDescription className="text-xs">
+          <DialogTitle>Tambah Log Komunikasi</DialogTitle>
+          <DialogDescription>
             Catat komunikasi dengan stakeholder terkait risiko ini.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label className="text-xs">
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
               Tanggal<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="text-xs"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
               Metode<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Select value={method} onValueChange={(v) => setMethod(v as CommunicationMethod)}>
-              <SelectTrigger className="text-xs">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {COMMUNICATION_METHODS.map((m) => (
-                  <SelectItem key={m} value={m} className="text-xs">
+                  <SelectItem key={m} value={m}>
                     {COMMUNICATION_METHOD_LABELS[m]}
                   </SelectItem>
                 ))}
@@ -131,42 +130,40 @@ export function CommunicationLogDialog({
             </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
               Stakeholder<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Input
               value={stakeholder}
               onChange={(e) => setStakeholder(e.target.value)}
-              className="text-xs"
               placeholder="Nama stakeholder atau unit"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
               Catatan<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="text-xs min-h-[100px]"
+              className="min-h-[100px]"
               placeholder="Ringkasan komunikasi atau hasil diskusi..."
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={handleClose} className="text-xs">
+          <Button variant="outline" onClick={handleClose}>
             Batal
           </Button>
           <Button
-            size="sm"
             onClick={handleSubmit}
             disabled={submitting || !date || !stakeholder.trim() || !notes.trim()}
-            className="gap-2 text-xs"
+            className="gap-2"
           >
-            {submitting ? <Loader2 className="size-3 animate-spin" /> : null}
+            {submitting ? <Loader2 className="size-3.5 animate-spin" /> : null}
             Simpan
           </Button>
         </DialogFooter>

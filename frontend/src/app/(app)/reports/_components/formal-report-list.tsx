@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -80,27 +80,22 @@ export function FormalReportList({
   };
 
   return (
-    <Card className="border-border/50 bg-card/90 shadow-sm">
-      <CardHeader className="border-b border-border/40 pb-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="space-y-1">
-            <CardTitle className="text-[15px] font-semibold">
-              Daftar Laporan Monitoring & Evaluasi
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Histori semua laporan Monitoring & Evaluasi yang sudah dibuat dari
-              data sistem.
-            </p>
-          </div>
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-primary/20 bg-primary/[0.06] text-[10px] text-primary"
-          >
-            <FileText className="size-3.5" />
-            PDF
-          </Badge>
+    <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+      <div className="flex items-center justify-between gap-3 border-b border-border/40 px-6 py-4">
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">
+            Histori semua laporan Monitoring & Evaluasi yang sudah dibuat dari
+            data sistem.
+          </p>
         </div>
-      </CardHeader>
+        <Badge
+          variant="outline"
+          className="gap-1.5 border-primary/20 bg-primary/[0.06] text-[10px] text-primary"
+        >
+          <FileText className="size-3.5" />
+          PDF
+        </Badge>
+      </div>
       <CardContent className="p-0">
         <Table>
           <TableHeader className="bg-muted/30">

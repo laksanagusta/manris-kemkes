@@ -15,8 +15,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import {
@@ -24,6 +22,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  CollectionEmptyState,
+  CollectionStatusBadge,
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
+} from "@/components/shared/design-system";
 import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 import {
   WORKING_PAPER_MONITORING_COLUMNS,
@@ -116,126 +121,120 @@ export function WorkingPaperMonitoringTable({
   const rows = links.map((link) => buildWorkingPaperMonitoringRowFromLink(link));
 
   return (
-    <div className="-mx-4 overflow-x-auto [&::-webkit-scrollbar]:hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="border-border hover:bg-transparent">
-            {WORKING_PAPER_MONITORING_COLUMNS.map((column, index) => (
-              <TableHead
-                key={column.key}
-                className={cn(
-                  "whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground",
-                  index === 0 && "w-40 min-w-40 max-w-40",
-                  index === 1 && "w-[320px] min-w-[320px] max-w-[320px] overflow-hidden",
-                )}
-              >
-                {column.label}
-              </TableHead>
-            ))}
+    <Table>
+      <CollectionTableHeader>
+        <CollectionTableHeaderRow>
+          {WORKING_PAPER_MONITORING_COLUMNS.map((column, index) => (
+            <CollectionTableHead
+              key={column.key}
+              className={cn(
+                "whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground",
+                index === 0 && "w-40 min-w-40 max-w-40",
+                index === 1 && "w-[320px] min-w-[320px] max-w-[320px] overflow-hidden",
+              )}
+            >
+              {column.label}
+            </CollectionTableHead>
+          ))}
+        </CollectionTableHeaderRow>
+      </CollectionTableHeader>
+      <TableBody>
+        {rows.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={10} className="h-24 px-4">
+              <CollectionEmptyState
+                title="Belum ada risiko"
+                description="Dokumen ini belum memuat risiko apa pun"
+              />
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={10} className="h-24">
-                <div className="flex flex-col gap-1 text-left">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Belum ada risiko
-                  </p>
-                  <p className="text-xs text-muted-foreground/70">
-                    Dokumen ini belum memuat risiko apa pun
-                  </p>
+        ) : (
+          rows.map((row) => (
+            <TableRow
+              key={row.id}
+              className="group border-border transition-colors hover:bg-muted/50"
+            >
+              <TableCell className="w-40 min-w-40 max-w-40 px-2.5 font-mono text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  {row.code}
+                  {row.sourceVersionNumber != null ? (
+                    <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                      Sumber v{row.sourceVersionNumber}
+                    </Badge>
+                  ) : null}
+                  {row.resultVersionNumber != null ? (
+                    <Badge className="h-5 -blue-200 bg-blue-50 px-1.5 text-[10px] text-blue-700">
+                      Hasil v{row.resultVersionNumber}
+                    </Badge>
+                  ) : row.versionNumber != null && row.versionNumber > 1 ? (
+                    <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                      v{row.versionNumber}
+                    </Badge>
+                  ) : null}
+                </span>
+              </TableCell>
+              <TableCell className="w-[320px] min-w-[320px] max-w-[320px] overflow-hidden px-2.5">
+                <span className="line-clamp-2 text-xs font-medium text-foreground">
+                  {row.title}
+                </span>
+              </TableCell>
+              <TableCell className="px-2.5">
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="font-mono text-xs font-semibold text-foreground">
+                    {row.sourceScore}
+                    {row.observedScore == null ? "" : ` -> ${row.observedScore}`}
+                  </span>
+                  {row.observedScore != null ? (
+                    <Badge
+                      className={cn(
+                        "h-5 px-1.5 text-[10px] font-semibold",
+                        levelBadgeVariant[row.observedLevelLabel] ||
+                          levelBadgeVariant.Rendah,
+                      )}
+                    >
+                      {row.observedLevelLabel}
+                    </Badge>
+                  ) : null}
                 </div>
               </TableCell>
-            </TableRow>
-          ) : (
-            rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className="group border-border transition-colors hover:bg-muted/50"
-              >
-                <TableCell className="w-40 min-w-40 max-w-40 px-2.5 font-mono text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    {row.code}
-                    {row.sourceVersionNumber != null ? (
-                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                        Sumber v{row.sourceVersionNumber}
-                      </Badge>
-                    ) : null}
-                    {row.resultVersionNumber != null ? (
-                      <Badge className="h-5 border-blue-200 bg-blue-50 px-1.5 text-[10px] text-blue-700">
-                        Hasil v{row.resultVersionNumber}
-                      </Badge>
-                    ) : row.versionNumber != null && row.versionNumber > 1 ? (
-                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                        v{row.versionNumber}
-                      </Badge>
-                    ) : null}
-                  </span>
-                </TableCell>
-                <TableCell className="w-[320px] min-w-[320px] max-w-[320px] overflow-hidden px-2.5">
-                  <span className="line-clamp-2 text-xs font-medium text-foreground">
-                    {row.title}
-                  </span>
-                </TableCell>
-                <TableCell className="px-2.5">
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <span className="font-mono text-xs font-semibold text-foreground">
-                      {row.sourceScore}
-                      {row.observedScore == null ? "" : ` -> ${row.observedScore}`}
-                    </span>
-                    {row.observedScore != null ? (
-                      <Badge
-                        className={cn(
-                          "h-5 border px-1.5 text-[10px] font-semibold",
-                          levelBadgeVariant[row.observedLevelLabel] ||
-                            levelBadgeVariant.Rendah,
-                        )}
-                      >
-                        {row.observedLevelLabel}
-                      </Badge>
-                    ) : null}
-                  </div>
-                </TableCell>
-                <TableCell className="px-2.5">
-                  <TrendCell trend={row.trend} />
-                </TableCell>
-                <TableCell className="px-2.5">
-                  <span className="block max-w-[200px] truncate text-xs text-muted-foreground">
-                    {row.effectiveness}
-                  </span>
-                </TableCell>
-                <TableCell className="px-2.5">
-                  <NarrativeCell value={row.condition} />
-                </TableCell>
-                <TableCell className="px-2.5">
-                  <NarrativeCell value={row.obstacles} />
-                </TableCell>
-                <TableCell className="px-2.5">
-                  <NarrativeCell value={row.followUp} />
-                </TableCell>
-                <TableCell className="px-2.5">
-                  <Badge
-                    className={cn(
-                      "h-5 border px-1.5 text-[10px] font-medium",
-                      row.status === "draft"
-                        ? getLinearStatusBadgeClass("draft")
-                        : row.status === "finalized"
+              <TableCell className="px-2.5">
+                <TrendCell trend={row.trend} />
+              </TableCell>
+              <TableCell className="px-2.5">
+                <span className="block max-w-[200px] truncate text-xs text-muted-foreground">
+                  {row.effectiveness}
+                </span>
+              </TableCell>
+              <TableCell className="px-2.5">
+                <NarrativeCell value={row.condition} />
+              </TableCell>
+              <TableCell className="px-2.5">
+                <NarrativeCell value={row.obstacles} />
+              </TableCell>
+              <TableCell className="px-2.5">
+                <NarrativeCell value={row.followUp} />
+              </TableCell>
+              <TableCell className="px-2.5">
+                <CollectionStatusBadge
+                  className={cn(
+                    "h-5 px-1.5 text-[10px] font-medium",
+                    row.status === "draft"
+                      ? getLinearStatusBadgeClass("draft")
+                      : row.status === "finalized"
                         ? getLinearStatusBadgeClass("completed")
-                        : "border-border bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {row.statusLabel}
-                  </Badge>
-                </TableCell>
-                <TableCell className="px-2.5 text-right">
-                  <MonitoringActionMenu row={row} />
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+                        : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {row.statusLabel}
+                </CollectionStatusBadge>
+              </TableCell>
+              <TableCell className="px-2.5 text-right">
+                <MonitoringActionMenu row={row} />
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
   );
 }

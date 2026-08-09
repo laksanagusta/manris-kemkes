@@ -17,15 +17,9 @@ import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CollectionPagination } from "@/components/shared/design-system";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -39,8 +33,6 @@ import {
   Search,
   Building2,
   Loader2,
-  ChevronRight,
-  ChevronLeft,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -335,7 +327,6 @@ export default function OrganizationsManagementPage() {
     return map;
   }, [allOrganizations]);
 
-  const totalPages = Math.ceil(total / limit) || 1;
   const rootUnits = organizations.filter((o) => !o.parentId).length;
   const subUnits = organizations.length - rootUnits;
 
@@ -389,11 +380,11 @@ export default function OrganizationsManagementPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-xs w-[220px] whitespace-nowrap">Nama Organisasi</TableHead>
-                <TableHead className="text-xs w-40 whitespace-nowrap">Parent Unit</TableHead>
-                <TableHead className="text-xs w-28 whitespace-nowrap">UPR Level</TableHead>
-                <TableHead className="text-xs w-32 whitespace-nowrap">Dibuat</TableHead>
-                <TableHead className="text-xs w-10 whitespace-nowrap">
+                <TableHead className="text-sm w-[220px] whitespace-nowrap">Nama Organisasi</TableHead>
+                <TableHead className="text-sm w-40 whitespace-nowrap">Parent Unit</TableHead>
+                <TableHead className="text-sm w-28 whitespace-nowrap">UPR Level</TableHead>
+                <TableHead className="text-sm w-32 whitespace-nowrap">Dibuat</TableHead>
+                <TableHead className="text-sm w-10 whitespace-nowrap">
                   <span className="sr-only">Aksi</span>
                 </TableHead>
               </TableRow>
@@ -428,68 +419,18 @@ export default function OrganizationsManagementPage() {
             </TableBody>
           </Table>
 
-          <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Baris per halaman:</span>
-                <Select
-                  value={limit.toString()}
-                  onValueChange={(val) => {
-                    setLimit(Number(val));
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-7 w-[65px] text-xs bg-muted/30 border-none">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[10, 20, 50, 100].map((pageSize) => (
-                      <SelectItem key={pageSize} value={pageSize.toString()}>
-                        {pageSize}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
-                {Math.min(page * limit, total)} dari {total} organisasi
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="text-muted-foreground"
-                disabled={page === 1 || isPending}
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-              >
-                <ChevronLeft className="size-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="xs"
-                className="text-xs font-medium bg-primary/10 text-primary"
-                disabled
-              >
-                {page}
-              </Button>
-              <span className="px-1 text-xs text-muted-foreground">
-                dari {totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="text-muted-foreground"
-                disabled={page === totalPages || total === 0 || isPending}
-                onClick={() =>
-                  setPage((current) => Math.min(totalPages, current + 1))
-                }
-              >
-                <ChevronRight className="size-3.5" />
-              </Button>
-            </div>
-          </div>
+          <CollectionPagination
+            itemLabel="organisasi"
+            page={page}
+            pageSize={limit}
+            total={total}
+            disabled={isPending}
+            onPageChange={setPage}
+            onPageSizeChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
+          />
         </Card>
 
         <OrganizationFormDialog

@@ -7,21 +7,34 @@ import {
   AlertCircle,
   BarChart3,
   Check,
-  ChevronLeft,
-  ChevronRight,
   ClipboardCheck,
   Clock,
   FileSignature,
   FileText,
-  Loader2,
-  Search,
   X,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  CollectionPagination,
+  CollectionEmptyState,
+  CollectionErrorState,
+  CollectionLoadingState,
+  CollectionSearchField,
+  CollectionTableCard,
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
+  CollectionTabsList,
+  CollectionTabsTrigger,
+  CollectionToolbar,
+} from "@/components/shared/design-system";
+import {
+  ActionButton,
+  MetricGrid,
+  PageStack,
+} from "@/components/shared/design-system";
 import { KpiCard } from "@/components/ui/kpi-card";
-import { SearchInput } from "@/components/ui/search-input";
 import {
   Select,
   SelectContent,
@@ -33,11 +46,9 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -714,32 +725,26 @@ export default function InboxPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Memuat daftar persetujuan...
-      </div>
+      <PageStack>
+        <CollectionLoadingState message="Memuat daftar persetujuan..." />
+      </PageStack>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 p-8">
-        <div className="text-center">
-          <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-destructive/10">
-            <AlertCircle className="size-6 text-destructive" />
-          </div>
-          <h2 className="text-lg font-semibold">Gagal Memuat Data</h2>
-          <p className="mt-2 max-w-md text-sm text-muted-foreground">{error}</p>
-        </div>
-        <Button variant="outline" onClick={() => refreshRequests()}>
-          Coba Lagi
-        </Button>
-      </div>
+      <PageStack>
+        <CollectionErrorState
+          title="Gagal Memuat Data"
+          message={error}
+          onReload={refreshRequests}
+        />
+      </PageStack>
     );
   }
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <PageStack>
       <Tabs
         value={filter}
         onValueChange={(value) => {
@@ -747,28 +752,28 @@ export default function InboxPage() {
           setPage(1);
         }}
       >
-        <TabsList className="rounded-lg ring-1 ring-inset ring-border/50 bg-muted/50 p-0.5" style={{ height: '36px' }}>
-          <TabsTrigger value="all" className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200">
+        <CollectionTabsList>
+          <CollectionTabsTrigger value="all">
             Semua
-          </TabsTrigger>
-          <TabsTrigger value="my_approvals" className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200 gap-2">
+          </CollectionTabsTrigger>
+          <CollectionTabsTrigger value="my_approvals">
             Persetujuan Saya
             {counts.myApprovals > 0 && (
-              <Badge className="ml-1 h-4 border border-primary/20 bg-primary/20 px-1 text-[9px] text-primary">
+              <Badge className="ml-1 h-4 bg-primary/20 px-1 text-[9px] text-primary">
                 {counts.myApprovals}
               </Badge>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="approved" className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200">
+          </CollectionTabsTrigger>
+          <CollectionTabsTrigger value="approved">
             Disetujui
-          </TabsTrigger>
-          <TabsTrigger value="rejected" className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200">
+          </CollectionTabsTrigger>
+          <CollectionTabsTrigger value="rejected">
             Ditolak
-          </TabsTrigger>
-        </TabsList>
+          </CollectionTabsTrigger>
+        </CollectionTabsList>
       </Tabs>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <MetricGrid>
         {summaryCards.map((card) => (
           <KpiCard
             key={card.label}
@@ -781,52 +786,46 @@ export default function InboxPage() {
             valueWrapClassName="mt-auto"
           />
         ))}
-      </div>
+      </MetricGrid>
 
-      <div className="rounded-lg gap-0 overflow-hidden ring-1 ring-inset ring-border bg-card p-4 shadow-none">
-        <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0">
-            <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
-              Daftar Persetujuan
-            </h2>
-            <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
-              Tinjau permintaan persetujuan & tanda tangan.
-            </p>
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
-            <div className="min-w-0 flex-1 sm:w-64 md:flex-none">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
-                <SearchInput
-                  placeholder="Cari kode, judul, unit, atau pemohon..."
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  aria-label="Cari permintaan persetujuan"
-                  className="bg-muted pl-10 text-sm"
-                />
-              </div>
-            </div>
-            <Select
-              value={typeFilter}
-              onValueChange={(value) => {
-                setTypeFilter(value as typeof typeFilter);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-40 text-sm bg-muted/50 border-0">
-                <SelectValue placeholder="Jenis Permintaan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Jenis</SelectItem>
-                <SelectItem value="risk">Risiko</SelectItem>
-                <SelectItem value="kri_report">Laporan KRI</SelectItem>
-                <SelectItem value="working_paper">Kertas Kerja</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+      <CollectionToolbar
+        title="Daftar Persetujuan"
+        actions={
+          <>
+          <CollectionSearchField
+            placeholder="Cari kode, judul, unit, atau pemohon..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            aria-label="Cari permintaan persetujuan"
+          />
+          <Select
+            value={typeFilter}
+            onValueChange={(value) => {
+              setTypeFilter(value as typeof typeFilter);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-9 w-40 border-0 bg-muted/50 text-sm">
+              <SelectValue placeholder="Jenis Permintaan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Jenis</SelectItem>
+              <SelectItem value="risk">Risiko</SelectItem>
+              <SelectItem value="kri_report">Laporan KRI</SelectItem>
+              <SelectItem value="working_paper">Kertas Kerja</SelectItem>
+            </SelectContent>
+          </Select>
+          </>
+        }
+      />
 
-        <div className="-mx-4 overflow-x-auto">
+      <CollectionTableCard>
+        {filteredRequests.length === 0 ? (
+          <CollectionEmptyState
+            title="Belum ada permintaan persetujuan yang sesuai filter"
+            description="Ubah filter pencarian atau jenis permintaan untuk melihat data lain."
+          />
+        ) : (
           <Table className="min-w-[1120px] table-fixed">
             <colgroup>
               <col className="w-[10%]" />
@@ -838,46 +837,36 @@ export default function InboxPage() {
               <col className="w-[10%]" />
               <col className="w-[8%]" />
             </colgroup>
-            <TableHeader className="[&_tr]:border-b [&_tr]:border-border">
-              <TableRow className="h-9 hover:bg-transparent">
-                <TableHead className="whitespace-nowrap pl-4 pr-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+            <CollectionTableHeader>
+              <CollectionTableHeaderRow>
+                <CollectionTableHead className="pl-4 pr-3">
                   Kode
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Entitas
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Unit Kerja
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Jenis
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Pemohon
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Tanggal
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Status
-                </TableHead>
-                <TableHead className="whitespace-nowrap pl-3 pr-4 text-right align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3 text-right">
                   Tindakan
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+                </CollectionTableHead>
+              </CollectionTableHeaderRow>
+            </CollectionTableHeader>
             <TableBody>
-              {filteredRequests.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={8}
-                    className="py-8 text-left text-xs text-muted-foreground"
-                  >
-                    Belum ada permintaan persetujuan yang sesuai filter
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredRequests.map((item) => {
+              {filteredRequests.map((item) => {
                 const typeConfig =
                   requestTypeConfig[item.requestType] ?? requestTypeConfig.risk;
                 const Icon = typeConfig.icon;
@@ -992,7 +981,7 @@ export default function InboxPage() {
                     <TableCell className="px-3 py-2">
                       <Badge
                         className={cn(
-                          "h-5 px-1.5 text-[10px] font-medium border",
+                          "h-5 px-1.5 text-[10px] font-medium",
                           statusVariant[status],
                         )}
                       >
@@ -1001,156 +990,100 @@ export default function InboxPage() {
                     </TableCell>
                     <TableCell className="py-2 pl-3 pr-4 text-right">
                       {isWorkingPaper ? (
-                          <Button
-                            size="sm"
-                            asChild
-                            className="h-7 gap-1.5 px-2 text-xs"
+                        <ActionButton
+                          size="sm"
+                          asChild
+                          className="h-7 px-2 text-xs"
+                        >
+                          <Link
+                            href={`/risk/working-papers/${wpItem!.workingPaperId}`}
                           >
-                            <Link
-                              href={`/risk/working-papers/${wpItem!.workingPaperId}`}
-                            >
-                              <FileSignature className="size-3" />
-                              Tanda Tangan
-                            </Link>
-                          </Button>
-                        ) : canAction ? (
-                          isKRIReport ? (
-                            <div className="inline-flex gap-1">
-                              <Button
-                                size="sm"
-                                onClick={() =>
-                                  openKRIReportModal(
-                                    kriItem!.id,
-                                    kriItem!.kriName,
-                                    "accept",
-                                  )
-                                }
-                                className="h-7 gap-1.5 px-2 text-xs"
-                              >
-                                <Check className="size-3" />
-                                Setujui
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  openKRIReportModal(
-                                    kriItem!.id,
-                                    kriItem!.kriName,
-                                    "revision",
-                                  )
-                                }
-                                className="h-7 gap-1.5 px-2 text-xs text-orange-600 hover:bg-orange-50 hover:text-orange-700"
-                              >
-                                <AlertCircle className="size-3" />
-                                Revisi
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button
+                            <FileSignature className="size-3" />
+                            Tanda Tangan
+                          </Link>
+                        </ActionButton>
+                      ) : canAction ? (
+                        isKRIReport ? (
+                          <div className="inline-flex gap-1">
+                            <ActionButton
                               size="sm"
-                              variant="outline"
                               onClick={() =>
-                                openApprovalModal(
-                                  item.id,
-                                  displayTitle || "Tanpa judul",
-                                  "approve",
-                                  item.requestType,
-                                  approvalItem!.currentApproverRole,
+                                openKRIReportModal(
+                                  kriItem!.id,
+                                  kriItem!.kriName,
+                                  "accept",
                                 )
                               }
-                              className="h-7 gap-1.5 px-2.5 text-xs"
+                              className="h-7 px-2 text-xs"
+                              icon={<Check className="size-3" />}
                             >
-                              <ClipboardCheck className="size-3" />
-                              Tinjau
-                            </Button>
-                          )
+                              Setujui
+                            </ActionButton>
+                            <ActionButton
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                openKRIReportModal(
+                                  kriItem!.id,
+                                  kriItem!.kriName,
+                                  "revision",
+                                )
+                              }
+                              className="h-7 px-2 text-xs text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+                              icon={<AlertCircle className="size-3" />}
+                            >
+                              Revisi
+                            </ActionButton>
+                          </div>
                         ) : (
-                          <span className="px-2 text-[10px] text-muted-foreground">
-                            {isKRIReport
-                              ? "Menunggu review"
-                              : isRisk
-                                ? "Klik judul untuk review"
-                                : "Tidak ada aksi"}
-                          </span>
-                        )}
+                          <ActionButton
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              openApprovalModal(
+                                item.id,
+                                displayTitle || "Tanpa judul",
+                                "approve",
+                                item.requestType,
+                                approvalItem!.currentApproverRole,
+                              )
+                            }
+                            className="h-7 px-2.5 text-xs"
+                            icon={<ClipboardCheck className="size-3" />}
+                          >
+                            Tinjau
+                          </ActionButton>
+                        )
+                      ) : (
+                        <span className="px-2 text-[10px] text-muted-foreground">
+                          {isKRIReport
+                            ? "Menunggu review"
+                            : isRisk
+                              ? "Klik judul untuk review"
+                              : "Tidak ada aksi"}
+                        </span>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
-              })
-            )}
-          </TableBody>
-        </Table>
-        </div>
+              })}
+            </TableBody>
+          </Table>
+        )}
 
-        <div className="-mx-4 -mb-4 flex items-center justify-between border-t border-border/50 px-4 py-3">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                Baris per halaman:
-              </span>
-              <Select
-                value={limit.toString()}
-                onValueChange={(val) => {
-                  setLimit(Number(val));
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="h-7 w-[65px] border-border bg-card text-xs text-muted-foreground">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[10, 20, 50, 100].map((pageSize) => (
-                    <SelectItem key={pageSize} value={pageSize.toString()}>
-                      {pageSize}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Menampilkan {approvalTotal === 0 ? 0 : (page - 1) * limit + 1} -{" "}
-              {Math.min(page * limit, approvalTotal)} dari {approvalTotal}{" "}
-              permintaan persetujuan
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
-              disabled={page === 1 || loading || isPending}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              <ChevronLeft className="size-3.5" />
-            </Button>
-            <span className="px-2 text-xs font-medium text-primary">
-              {page}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              dari {Math.ceil(approvalTotal / limit) || 1}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
-              disabled={
-                page >= (Math.ceil(approvalTotal / limit) || 1) ||
-                approvalTotal === 0 ||
-                loading ||
-                isPending
-              }
-              onClick={() =>
-                setPage((current) =>
-                  Math.min(Math.ceil(approvalTotal / limit) || 1, current + 1),
-                )
-              }
-            >
-              <ChevronRight className="size-3.5" />
-            </Button>
-          </div>
-        </div>
-      </div>
+          <CollectionPagination
+            itemLabel="permintaan persetujuan"
+            page={page}
+            pageSize={limit}
+            total={approvalTotal}
+            disabled={loading || isPending}
+            onPageChange={setPage}
+            onPageSizeChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
+          />
+      </CollectionTableCard>
 
       <Dialog open={kriModalOpen} onOpenChange={setKriModalOpen}>
         <DialogContent className="sm:max-w-md">
@@ -1196,28 +1129,27 @@ export default function InboxPage() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setKriModalOpen(false)}>
+            <ActionButton variant="outline" onClick={() => setKriModalOpen(false)}>
               Batal
-            </Button>
-            <Button
+            </ActionButton>
+            <ActionButton
               onClick={handleKRIReportAction}
               disabled={
                 kriSubmitting ||
                 (kriModalAction === "revision" && !kriNote.trim())
               }
+              variant={kriModalAction === "revision" ? "outline" : "default"}
               className={
                 kriModalAction === "revision"
-                  ? "bg-orange-600 text-white hover:bg-orange-700"
+                  ? "border-orange-500/20 bg-orange-600 text-white hover:bg-orange-700"
                   : ""
               }
+              loading={kriSubmitting}
             >
-              {kriSubmitting && (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              )}
               {kriModalAction === "accept"
                 ? "Setujui"
                 : "Kirim Permintaan Revisi"}
-            </Button>
+            </ActionButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1243,35 +1175,29 @@ export default function InboxPage() {
               className="min-h-[80px] resize-none"
             />
             <div className="flex gap-2 pt-2">
-              <Button
+              <ActionButton
                 variant="outline"
                 onClick={() => handleReviewAction("reject")}
                 disabled={reviewSubmitting}
                 className="flex-1 border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20"
+                icon={reviewSubmitting ? undefined : <X className="size-4" />}
+                loading={reviewSubmitting}
               >
-                {reviewSubmitting ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <X className="size-4" />
-                )}
                 Tolak
-              </Button>
-              <Button
+              </ActionButton>
+              <ActionButton
                 onClick={() => handleReviewAction("approve")}
                 disabled={reviewSubmitting}
                 className="flex-1"
+                loading={reviewSubmitting}
+                icon={reviewSubmitting ? undefined : <Check className="size-4" />}
               >
-                {reviewSubmitting ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Check className="size-4" />
-                )}
                 Setujui
-              </Button>
+              </ActionButton>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageStack>
   );
 }

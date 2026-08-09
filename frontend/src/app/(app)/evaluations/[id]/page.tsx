@@ -615,18 +615,17 @@ export default function EvaluationDetailPage() {
         badges={
           <>
             <Badge
-              variant="outline"
-              className={cn(
-                "h-5 px-1.5 text-[10px] font-medium",
-                statusStyles[evaluation.status],
-              )}
+ variant="outline"
+ className={cn(
+ "h-5 px-1.5 text-[10px] font-medium",
+ statusStyles[evaluation.status],
+ )}
             >
               {formatStatus(evaluation.status)}
             </Badge>
             <Badge
               variant="outline"
-              className="h-5 max-w-[220px] truncate border-zinc-200 bg-zinc-50 px-1.5 text-[10px] font-medium text-zinc-700"
-            >
+              className="h-5 max-w-[220px] truncate -zinc-200 bg-zinc-50 px-1.5 text-[10px] font-medium text-zinc-700">
               {orgName}
             </Badge>
           </>
@@ -754,12 +753,12 @@ export default function EvaluationDetailPage() {
                   </p>
                 </div>
                 {!editable ? (
-                  <Badge variant="outline" className="gap-1.5 border-amber-500/20 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-300">
+                  <Badge variant="outline" className="gap-1.5 -amber-500/20 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-300">
                     <Lock className="size-3.5" />
                     Terkunci
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="gap-1.5 border-primary/20 bg-primary/[0.06] text-[10px] text-primary">
+                  <Badge variant="outline" className="gap-1.5 -primary/20 bg-primary/[0.06] text-[10px] text-primary">
                     <PencilLine className="size-3.5" />
                     Draft
                   </Badge>
@@ -991,8 +990,7 @@ export default function EvaluationDetailPage() {
                       </div>
                       <Badge
                         variant="outline"
-                        className="h-5 whitespace-nowrap border-zinc-200 bg-zinc-50 px-1.5 text-[10px] font-medium text-zinc-700"
-                      >
+                        className="h-5 whitespace-nowrap -zinc-200 bg-zinc-50 px-1.5 text-[10px] font-medium text-zinc-700">
                         {sectionItems.length} poin
                       </Badge>
                     </div>
@@ -1010,11 +1008,11 @@ export default function EvaluationDetailPage() {
                                   {item.itemNo}
                                 </span>
                                 <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "h-5 px-1.5 text-[10px] font-medium",
-                                    getAnswerTone(item.answer),
-                                  )}
+ variant="outline"
+ className={cn(
+ "h-5 px-1.5 text-[10px] font-medium",
+ getAnswerTone(item.answer),
+ )}
                                 >
                                   {getAnswerLabel(item.answer)}
                                 </Badge>
@@ -1226,11 +1224,11 @@ export default function EvaluationDetailPage() {
                   </p>
                 </div>
                 <Badge
-                  variant="outline"
-                  className={cn(
-                    "h-5 px-1.5 text-[10px] font-medium",
-                    statusStyles[evaluation.status],
-                  )}
+ variant="outline"
+ className={cn(
+ "h-5 px-1.5 text-[10px] font-medium",
+ statusStyles[evaluation.status],
+ )}
                 >
                   {formatStatus(evaluation.status)}
                 </Badge>

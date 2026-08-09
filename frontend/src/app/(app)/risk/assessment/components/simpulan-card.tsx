@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RiskAssessmentSummaryStrip } from "@/components/shared/risk-assessment-summary-strip";
+import { RiskAssessmentSummaryStrip } from "@/components/shared/design-system";
 import {
   getBobot,
   getSimpulanEfektifitasColor,

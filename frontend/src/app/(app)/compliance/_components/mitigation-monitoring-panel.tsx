@@ -4,27 +4,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { SearchInput } from "@/components/ui/search-input";
-import { Label } from "@/components/ui/label";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
+  CollectionDialogCancel,
+  CollectionEmptyState,
+  CollectionLoadingState,
+  CollectionPagination,
+  CollectionTableCard,
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
+  ExpandableSearchField,
+} from "@/components/shared/design-system";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -44,36 +35,25 @@ import { toast } from "sonner";
 import {
   Clock,
   AlertTriangle,
-  Bell,
-  ShieldAlert,
   CheckCircle2,
   Loader2,
-  Search,
   Send,
   ExternalLink,
-  ChevronLeft,
-  ChevronRight,
-  X,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import {
+  ActionButton,
+  AccentButton,
+  MitigationProgressDialog,
+} from "@/components/shared/design-system";
 import { validateMitigationReportForm } from "@/lib/validation/reporting";
 import { getMitigationSubmissionActionState } from "@/lib/kri-reporting";
-import {
-  getLinearStatusBadgeClass,
-  getLinearToneBadgeClass,
-} from "@/lib/linear-status-badge";
 import {
   buildMitigationMonitoringQueryString,
   parseMitigationMonitoringQueryState,
 } from "@/lib/mitigation-monitoring-query";
 import type { MitigationTask } from "@/types/risk";
-
-const levelBadgeVariant: Record<string, string> = {
-  Pending: getLinearStatusBadgeClass("pending"),
-  Overdue: getLinearStatusBadgeClass("overdue"),
-  Selesai: getLinearStatusBadgeClass("completed"),
-};
 
 const tierConfig: Record<string, { label: string; color: string }> = {
   upcoming: { label: "Akan Datang", color: "text-muted-foreground" },
@@ -82,19 +62,25 @@ const tierConfig: Record<string, { label: string; color: string }> = {
   heavy: { label: "Overdue Berat", color: "text-rose-700" },
 };
 
-const doneBadgeClass = cn(
-  "border-success/20 bg-success/10 text-success hover:bg-success/10",
-);
-
 type MitigationTaskRow = MitigationTask & {
   tier: keyof typeof tierConfig;
-  level: keyof typeof levelBadgeVariant;
   unit: string;
-  pic: string;
   daysOverdue: number;
   mitigationAction: string;
   title: string;
 };
+
+function getMitigationStatusTone(status: MitigationTaskRow["status"]) {
+  if (status === "done") return "success";
+  if (status === "overdue") return "danger";
+  return "progress";
+}
+
+function getMitigationStatusLabel(status: MitigationTaskRow["status"]) {
+  if (status === "done") return "Selesai";
+  if (status === "overdue") return "Overdue";
+  return "Pending";
+}
 
 function useDebouncedValue<T>(value: T, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -225,14 +211,7 @@ export function MitigationMonitoringPanel() {
           riskCode: m.riskCode || "—",
           title: m.riskTitle || "—",
           unit: m.mitigationOwner || "—",
-          pic: m.mitigationOwner || "—",
           daysOverdue,
-          level:
-            backendStatus === "done"
-              ? "Selesai"
-              : backendStatus === "overdue"
-                ? "Overdue"
-                : "Pending",
           tier,
           mitigationAction: m.mitigationAction || "—",
           status: backendStatus,
@@ -337,8 +316,6 @@ export function MitigationMonitoringPanel() {
   ).length;
   const overdueCount = heavyCount + lightCount;
 
-  const totalPages = Math.ceil(total / limit) || 1;
-
   const formatDate = (value?: string | null) => {
     if (!value) return "-";
     const parsed = new Date(value);
@@ -372,13 +349,13 @@ export function MitigationMonitoringPanel() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="grid gap-4 md:grid-cols-4">
         <KpiCard
           label="Total Penanganan"
           value={mitigations.length}
           tone="white"
-          className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border border-0 p-4"
+          className="flex min-h-[96px] flex-col rounded-lg border-0 p-4 ring-1 ring-inset ring-border"
           labelClassName="capitalize tracking-normal"
           valueClassName="font-medium"
           valueWrapClassName="mt-auto"
@@ -387,7 +364,7 @@ export function MitigationMonitoringPanel() {
           label="Overdue"
           value={overdueCount}
           tone="rose"
-          className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border border-0 p-4"
+          className="flex min-h-[96px] flex-col rounded-lg border-0 p-4 ring-1 ring-inset ring-border"
           labelClassName="capitalize tracking-normal"
           valueClassName="font-medium"
           valueWrapClassName="mt-auto"
@@ -396,7 +373,7 @@ export function MitigationMonitoringPanel() {
           label="Akan Datang"
           value={upcomingCount}
           tone="zinc"
-          className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border border-0 p-4"
+          className="flex min-h-[96px] flex-col rounded-lg border-0 p-4 ring-1 ring-inset ring-border"
           labelClassName="capitalize tracking-normal"
           valueClassName="font-medium"
           valueWrapClassName="mt-auto"
@@ -405,283 +382,200 @@ export function MitigationMonitoringPanel() {
           label="Selesai"
           value={completedCount}
           tone="emerald"
-          className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border border-0 p-4"
+          className="flex min-h-[96px] flex-col rounded-lg border-0 p-4 ring-1 ring-inset ring-border"
           labelClassName="capitalize tracking-normal"
           valueClassName="font-medium"
           valueWrapClassName="mt-auto"
         />
       </div>
 
-      <div className="overflow-hidden rounded-lg ring-1 ring-inset ring-border bg-card p-4 shadow-none">
-        <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0">
-            <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
-              Daftar mitigasi
-            </h2>
-            <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
-              Tinjau rencana penanganan yang mendekati tenggat, lalu buka
-              detail atau kirim progress langsung dari daftar ini.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="min-w-0 flex-1 sm:w-64 md:flex-none">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
-                <SearchInput
-                  placeholder="Cari mitigasi..."
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  aria-label="Cari mitigasi"
-                  className="bg-muted pl-10 text-sm"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto md:ml-auto">
+          <ExpandableSearchField
+            value={search}
+            onChange={setSearch}
+            placeholder="Cari mitigasi..."
+            ariaLabel="Cari mitigasi"
+          />
+      </div>
 
-        {loading ? (
-          <div className="p-4">
-            <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-8 text-left">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Loader2 className="size-4 animate-spin" />
-                Memuat data mitigasi...
-              </div>
-            </div>
-          </div>
-        ) : mitigations.length === 0 ? (
-          <div className="p-4">
-            <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-8 text-left">
-              <p className="text-sm font-medium text-foreground">
-                Belum ada rencana mitigasi yang sesuai filter
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Ubah filter pencarian atau periode untuk melihat data lain.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="-mx-4 overflow-x-auto">
-              <Table className="min-w-[980px] table-fixed">
-                <colgroup>
-                  <col className="w-[8%]" />
-                  <col className="w-[28%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[23%]" />
-                </colgroup>
-                <TableHeader className="[&_tr]:border-b [&_tr]:border-border">
-                  <TableRow className="h-9 hover:bg-transparent">
-                    <TableHead className="whitespace-nowrap pl-4 pr-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Kode
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Rencana Penanganan
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Unit / PIC
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Jatuh Tempo
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Status
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap pl-3 pr-4 text-right align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Aksi
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mitigations.map((item) => {
-                    const tier = tierConfig[item.tier];
-                    const submissionState =
-                      getMitigationSubmissionActionState(
-                        item.periodEnd,
-                        item.dueDate,
-                      );
+      {loading ? (
+        <CollectionLoadingState message="Memuat data mitigasi..." />
+      ) : mitigations.length === 0 ? (
+        <CollectionEmptyState
+          title="Belum ada rencana mitigasi yang sesuai filter"
+          description="Ubah filter pencarian atau periode untuk melihat data lain."
+        />
+      ) : (
+        <CollectionTableCard>
+          <Table className="min-w-[980px] table-fixed">
+            <colgroup>
+              <col className="w-[8%]" />
+              <col className="w-[28%]" />
+              <col className="w-[15%]" />
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
+              <col className="w-[23%]" />
+            </colgroup>
+            <CollectionTableHeader>
+              <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
+                <CollectionTableHead className="pl-4 pr-3">
+                  Kode
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
+                  Rencana Penanganan
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">Unit</CollectionTableHead>
+                <CollectionTableHead className="px-3">
+                  Jatuh Tempo
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">Status</CollectionTableHead>
+                <CollectionTableHead className="pl-3 pr-4 text-right">
+                  Aksi
+                </CollectionTableHead>
+              </CollectionTableHeaderRow>
+            </CollectionTableHeader>
+            <TableBody>
+              {mitigations.map((item) => {
+                const tier = tierConfig[item.tier];
+                const submissionState =
+                  getMitigationSubmissionActionState(
+                    item.periodEnd,
+                    item.dueDate,
+                  );
 
-                    return (
-                      <TableRow
-                        key={item.id}
-                        className="border-b border-border hover:bg-muted/50"
+                return (
+                  <TableRow
+                    key={item.id}
+                    className="group border-0 hover:bg-transparent"
+                  >
+                    <TableCell className="py-2 pl-4 pr-3 align-top text-sm text-foreground">
+                      <span className="font-mono text-xs font-medium tracking-wide text-muted-foreground">
+                        {item.riskCode}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 align-top">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDetail(item)}
+                        className="block min-w-0 text-left text-sm font-normal leading-5 text-foreground transition-colors hover:text-primary"
                       >
-                        <TableCell className="py-2 pl-4 pr-3 text-foreground">
-                          {item.riskCode}
-                        </TableCell>
-                        <TableCell className="px-3 py-2">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDetail(item)}
-                            className="block min-w-0 truncate text-left text-sm font-normal leading-relaxed text-foreground hover:text-primary"
-                          >
-                            {item.mitigationAction}
-                          </button>
-                        </TableCell>
-                        <TableCell className="px-3 py-2">
-                          <div className="space-y-0.5">
-                            <p className="truncate text-sm text-foreground">
-                              {item.unit}
-                            </p>
-                            <p className="truncate text-[10px] text-muted-foreground">
-                              {item.pic}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-3 py-2 text-muted-foreground">
+                        <span className="line-clamp-2">
+                          {item.mitigationAction}
+                        </span>
+                      </button>
+                      <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                        Risiko: {item.title}
+                      </p>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 align-top">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {item.unit}
+                      </p>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 align-top text-sm text-muted-foreground">
+                      <div className="space-y-1">
+                        <p>
                           {item.dueDate
                             ? new Date(item.dueDate).toLocaleDateString(
                                 "id-ID",
                               )
                             : "—"}
-                        </TableCell>
-                        <TableCell className="px-3 py-2">
-                          <Badge
-                            className={
-                              item.status === "done"
-                                ? doneBadgeClass
-                                : levelBadgeVariant[item.level] ||
-                                  getLinearToneBadgeClass("neutral")
-                            }
-                          >
-                            {item.status === "done" ? "Selesai" : item.level}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-2 pl-3 pr-4 text-right">
-                          {item.status === "done" ? (
-                            <span className="text-sm text-success">
-                              Selesai
-                            </span>
-                          ) : !submissionState.allowed ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="inline-block cursor-not-allowed">
-                                    <Button
-                                      size="sm"
-                                      variant={
-                                        submissionState.isOverdue
-                                          ? "destructive"
-                                          : "default"
-                                      }
-                                      disabled
-                                      className="pointer-events-none text-sm opacity-50"
-                                      onClick={(event) =>
-                                        event.stopPropagation()
-                                      }
-                                    >
-                                      <Send className="size-3" /> Lapor
-                                    </Button>
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  side="left"
-                                  className="max-w-[220px] text-xs"
+                        </p>
+                        <p className="text-xs text-muted-foreground/80">
+                          {tier.label}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 align-top">
+                      <Badge
+                        size="compact"
+                        tone={getMitigationStatusTone(item.status)}
+                      >
+                        {getMitigationStatusLabel(item.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-2 pl-3 pr-4 text-right">
+                      {item.status === "done" ? null : !submissionState.allowed ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-block cursor-not-allowed">
+                                <ActionButton
+                                  size="sm"
+                                  variant={
+                                    submissionState.isOverdue
+                                      ? "destructive"
+                                      : "default"
+                                  }
+                                  disabled
+                                  className="pointer-events-none text-xs opacity-50"
+                                  onClick={(event) =>
+                                    event.stopPropagation()
+                                  }
+                                  icon={<Send className="size-3" />}
                                 >
-                                  {submissionState.message}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant={
-                                submissionState.isOverdue
-                                  ? "destructive"
-                                  : "default"
-                              }
-                              style={submissionState.isOverdue ? undefined : { '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
-                              className="gap-1.5 text-xs h-8 shrink-0"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleOpenSubmit(item);
-                              }}
+                                  Lapor
+                                </ActionButton>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="left"
+                              className="max-w-[220px] text-xs"
                             >
-                              <Send className="size-3" /> Lapor
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="-mx-4 -mb-4 flex items-center justify-between border-t border-border/50 px-4 py-3">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    Baris per halaman:
-                  </span>
-                  <Select
-                    value={limit.toString()}
-                    onValueChange={(val) => {
-                      handleLimitChange(Number.parseInt(val, 10));
-                    }}
-                  >
-                    <SelectTrigger className="h-7 w-[65px] border-border bg-card text-xs text-muted-foreground">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[10, 20, 50, 100].map((pageSize) => (
-                        <SelectItem
-                          key={pageSize}
-                          value={pageSize.toString()}
+                              {submissionState.message}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : submissionState.isOverdue ? (
+                        <ActionButton
+                          size="sm"
+                          variant="destructive"
+                          className="h-8 shrink-0 gap-1.5 text-xs"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleOpenSubmit(item);
+                          }}
+                          icon={<Send className="size-3" />}
                         >
-                          {pageSize}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Menampilkan {total === 0 ? 0 : (page - 1) * limit + 1} -{" "}
-                  {Math.min(page * limit, total)} dari {total} mitigasi
-                </p>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  disabled={page === 1 || loading}
-                  onClick={() => handlePageChange(Math.max(1, page - 1))}
-                >
-                  <ChevronLeft className="size-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 bg-primary/10 text-xs font-medium text-primary"
-                  disabled
-                >
-                  {page}
-                </Button>
-                <span className="px-2 text-xs text-muted-foreground">
-                  dari {totalPages}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  disabled={page === totalPages || total === 0 || loading}
-                  onClick={() =>
-                    handlePageChange(Math.min(totalPages, page + 1))
-                  }
-                >
-                  <ChevronRight className="size-3.5" />
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+                          Lapor
+                        </ActionButton>
+                      ) : (
+                        <AccentButton
+                          size="sm"
+                          className="h-8 shrink-0 gap-1.5 text-xs"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleOpenSubmit(item);
+                          }}
+                          icon={<Send className="size-3" />}
+                        >
+                          Lapor
+                        </AccentButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+
+          <CollectionPagination
+            itemLabel="mitigasi"
+            page={page}
+            pageSize={limit}
+            total={total}
+            disabled={loading}
+            onPageChange={handlePageChange}
+            onPageSizeChange={(nextLimit) => {
+              handleLimitChange(nextLimit);
+            }}
+          />
+        </CollectionTableCard>
+      )}
 
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl rounded-2xl p-6 shadow-2xl">
+          <DialogHeader className="items-start gap-0 px-4 py-6 text-left">
             <DialogTitle className="text-base">
               Detail Laporan Penanganan
             </DialogTitle>
@@ -699,17 +593,8 @@ export function MitigationMonitoringPanel() {
                     Status
                   </p>
                   <Badge
-                    variant="outline"
-                    className={cn(
-                      "mt-2 text-[10px] gap-1",
-                      levelBadgeVariant[
-                        detailTask.status === "done"
-                          ? "Selesai"
-                          : detailTask.status === "overdue"
-                            ? "Overdue"
-                            : "Pending"
-                      ],
-                    )}
+                    size="compact"
+                    tone={getMitigationStatusTone(detailTask.status)}
                   >
                     {detailTask.status === "done" ? (
                       <CheckCircle2 className="size-3" />
@@ -718,11 +603,7 @@ export function MitigationMonitoringPanel() {
                     ) : (
                       <Clock className="size-3" />
                     )}
-                    {detailTask.status === "done"
-                      ? "Selesai"
-                      : detailTask.status === "overdue"
-                        ? "Overdue"
-                        : "Pending"}
+                    {getMitigationStatusLabel(detailTask.status)}
                   </Badge>
                 </div>
                 <div className="rounded-xl ring-1 ring-inset ring-border bg-card p-3 shadow-none">
@@ -744,9 +625,6 @@ export function MitigationMonitoringPanel() {
                 <div className="rounded-lg ring-1 ring-inset ring-border bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Laporan Oleh
-                  </p>
-                  <p className="mt-2 text-sm font-medium">
-                    {detailTask.reportedByName || "Belum ada laporan"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {formatDateTime(detailTask.reportedAt)}
@@ -801,121 +679,77 @@ export function MitigationMonitoringPanel() {
             {detailTask &&
               (detailTask.status === "pending" ||
                 detailTask.status === "overdue") && (
-                <Button
-                  size="sm"
-                  variant={
-                    detailTask.status === "overdue" ? "destructive" : "default"
-                  }
-                  onClick={() => {
-                    setShowDetailDialog(false);
-                    handleOpenSubmit(detailTask);
-                  }}
-                >
-                  <Send className="size-3" />
-                  Lapor Progress
-                </Button>
+                detailTask.status === "overdue" ? (
+                  <ActionButton
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      setShowDetailDialog(false);
+                      handleOpenSubmit(detailTask);
+                    }}
+                    icon={<Send className="size-3" />}
+                  >
+                    Lapor Progress
+                  </ActionButton>
+                ) : (
+                  <AccentButton
+                    size="sm"
+                    onClick={() => {
+                      setShowDetailDialog(false);
+                      handleOpenSubmit(detailTask);
+                    }}
+                    icon={<Send className="size-3" />}
+                  >
+                    Lapor Progress
+                  </AccentButton>
+                )
               )}
-            <Button
-              variant="outline"
+            <CollectionDialogCancel
               size="sm"
               onClick={() => setShowDetailDialog(false)}
             >
               Tutup
-            </Button>
+            </CollectionDialogCancel>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base">
-              Lapor Progress Penanganan
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              {selectedTask?.mitigationAction} - {selectedTask?.periodLabel}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                Link Bukti / Evidence
-              </Label>
-              <Input
-                value={evidenceUrl}
-                onChange={(e) => setEvidenceUrl(e.target.value)}
-                className="text-xs"
-                placeholder="https://drive.google.com/..."
-                aria-invalid={Boolean(
-                  showValidationErrors && formErrors.evidenceUrl,
-                )}
-                aria-describedby={
-                  showValidationErrors && formErrors.evidenceUrl
-                    ? "monitoring-evidence-error"
-                    : undefined
-                }
-              />
-              {showValidationErrors && formErrors.evidenceUrl && (
-                <p
-                  id="monitoring-evidence-error"
-                  className="text-[11px] text-destructive"
-                >
-                  {formErrors.evidenceUrl}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                Catatan Pelaksanaan
-                <span className="text-destructive ml-0.5">*</span>
-              </Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="min-h-[80px] text-xs"
-                placeholder="Jelaskan pencapaian atau kendala yang dihadapi..."
-                aria-invalid={Boolean(showValidationErrors && formErrors.notes)}
-                aria-describedby={
-                  showValidationErrors && formErrors.notes
-                    ? "monitoring-notes-error"
-                    : undefined
-                }
-              />
-              {showValidationErrors && formErrors.notes && (
-                <p
-                  id="monitoring-notes-error"
-                  className="text-[11px] text-destructive"
-                >
-                  {formErrors.notes}
-                </p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDialog(false)}
-              className="text-xs"
-            >
-              Batal
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSubmitProgress}
-              disabled={submitting || hasFormErrors}
-              className="gap-2 text-xs"
-            >
-              {submitting ? (
+      <MitigationProgressDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        title="Lapor Progress Penanganan"
+        description={
+          selectedTask
+            ? `${selectedTask.mitigationAction} - ${selectedTask.periodLabel}`
+            : undefined
+        }
+        evidenceUrl={evidenceUrl}
+        onEvidenceUrlChange={setEvidenceUrl}
+        notes={notes}
+        onNotesChange={setNotes}
+        showValidationErrors={showValidationErrors}
+        evidenceError={formErrors.evidenceUrl}
+        notesError={formErrors.notes}
+        footerActions={
+          <AccentButton
+            size="sm"
+            onClick={handleSubmitProgress}
+            disabled={submitting || hasFormErrors}
+            className="gap-2 text-xs"
+            icon={
+              submitting ? (
                 <Loader2 className="size-3 animate-spin" />
               ) : (
                 <Send className="size-3" />
-              )}
-              Kirim Laporan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              )
+            }
+          >
+            Kirim Laporan
+          </AccentButton>
+        }
+        evidenceId="monitoring-evidence-url"
+        notesId="monitoring-notes"
+      />
     </div>
   );
 }

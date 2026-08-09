@@ -10,11 +10,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { CriticalRiskRateDatum } from "@/lib/dashboard-insights";
+import { StandardCard } from "@/components/shared/design-system";
 
-const RATE_COLOR = "oklch(0.62 0.22 27)";
+const RATE_COLOR = "oklch(0.68 0.15 190)";
 
 interface CriticalRiskRateTrendProps {
   loading?: boolean;
@@ -30,48 +30,34 @@ export function CriticalRiskRateTrend({
 
   if (loading) {
     return (
-      <Card
-        className="h-full border-border/50 bg-card/80 backdrop-blur-sm"
-        data-testid="critical-risk-rate-trend"
+      <StandardCard
+        title="Tingkat Risiko Kritis"
+        className="h-full"
+        contentClassName="space-y-4"
       >
-        <CardHeader>
-          <CardTitle className="text-base font-semibold">
-            Tingkat Risiko Kritis
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+        <div data-testid="critical-risk-rate-trend">
           <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
             Memuat...
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </StandardCard>
     );
   }
 
   return (
-    <Card
-      className="h-full border-border/50 bg-card/80 backdrop-blur-sm"
-      data-testid="critical-risk-rate-trend"
+    <StandardCard
+      title="Tingkat Risiko Kritis"
+      action={
+        hasData ? (
+          <Badge variant="outline" className="h-5 px-2 text-[10px]">
+            {latestRate}%
+          </Badge>
+        ) : null
+      }
+      className="h-full"
+      contentClassName="space-y-4"
     >
-      <CardHeader>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <CardTitle className="text-base font-semibold">
-              Tingkat Risiko Kritis
-            </CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Persentase risiko Sedang + Tinggi + Sangat Tinggi dari total risiko per
-              semester
-            </p>
-          </div>
-          {hasData && (
-            <Badge variant="outline" className="h-5 px-2 text-[10px]">
-              {latestRate}%
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
+      <div data-testid="critical-risk-rate-trend">
         {!hasData ? (
           <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
             Belum ada data semester untuk menampilkan tren risiko kritis.
@@ -175,7 +161,7 @@ export function CriticalRiskRateTrend({
             </div>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </StandardCard>
   );
 }

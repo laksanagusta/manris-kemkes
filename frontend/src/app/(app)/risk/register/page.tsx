@@ -10,7 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ApiError, api } from "@/lib/api";
+import { api } from "@/lib/api";
 import {
   archiveRisk,
   listRiskRegister,
@@ -24,25 +24,25 @@ import {
   listRiskMonitorings,
 } from "@/lib/api/risk-monitoring";
 import { useAuth } from "@/contexts/auth-context";
-import type { RiskVersionTimelineItem } from "@/types/risk";
 import type { RiskMonitoringDetail } from "@/types/risk-monitoring";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { toast } from "sonner";
 import { useSetHeaderActions } from "@/lib/header-actions-context";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { KpiCard } from "@/components/ui/kpi-card";
+import {
+  AccentButton,
+  ActionButton,
+  ActionIconButton,
+  PageStack,
+} from "@/components/shared/design-system";
 import { Input } from "@/components/ui/input";
-import { SearchInput } from "@/components/ui/search-input";
 import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import {
@@ -85,7 +85,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   calculateRiskMetrics,
@@ -93,7 +93,6 @@ import {
   resolveRiskScoreSemantics,
   riskCategoryLabels,
 } from "@/lib/risk";
-import { buildVersionHistoryItem } from "@/lib/risk-history";
 import {
   buildRiskRegisterQueryString,
   parseRiskRegisterQueryState,
@@ -101,34 +100,40 @@ import {
 } from "@/lib/risk-register-query";
 import { MonitoringTransactionsTable } from "@/app/(app)/risk/components/monitoring-transactions-table";
 import {
+  CollectionPagination,
+  CollectionErrorState,
+  CollectionDialogCancel,
+  CollectionFilterInput,
+  CollectionFilterTrigger,
+  CollectionLoadingState,
+  CollectionToolbar,
+  CollectionTableCard,
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
+  ExpandableSearchField,
+  SidebarTabsList,
+} from "@/components/shared/design-system";
+import {
   Plus,
-  Search,
-  ArrowUpRight,
-  ChevronLeft,
-  ChevronRight,
   ChevronUp,
   ChevronDown,
   Trash2,
-  MoreHorizontal,
-  Clock,
-  Send,
-  GitBranch,
-  Calendar,
-  TrendingDown,
-  TrendingUp,
   Minus,
-  AlertCircle,
   Upload,
   RefreshCcw,
   Archive,
   RotateCcw,
-  Filter,
+  Check,
+  Pencil,
 } from "lucide-react";
 import {
   getLinearRiskLevelBadgeClass,
   getLinearStatusBadgeClass,
   getLinearToneBadgeClass,
 } from "@/lib/linear-status-badge";
+
+type BadgeTone = NonNullable<React.ComponentProps<typeof Badge>["tone"]>;
 
 const statusVariant: Record<string, string> = {
   assessment_draft: getLinearStatusBadgeClass("assessment_draft"),
@@ -137,6 +142,16 @@ const statusVariant: Record<string, string> = {
   draft: getLinearStatusBadgeClass("draft"),
   finalized: getLinearStatusBadgeClass("completed"),
   void: getLinearToneBadgeClass("danger"),
+};
+
+const registerStatusTone: Record<string, BadgeTone> = {
+  assessment_draft: "neutral",
+  assessment_in_review: "progress",
+  approved: "success",
+  draft: "neutral",
+  finalized: "success",
+  void: "danger",
+  archived: "neutral",
 };
 
 const levelBadgeVariant: Record<string, string> = {
@@ -157,27 +172,6 @@ const statusLabel: Record<string, string> = {
 };
 
 type RiskListItem = RiskRegisterListItem;
-
-type HistoryItem = {
-  id: string;
-  riskId: string;
-  title: string;
-  unit: string;
-  cycle: string;
-  currentLevel: string;
-  previousLevel: string;
-  trend: "up" | "down" | "stable";
-  changeReason: string;
-  isCurrent?: boolean;
-};
-
-type VersionOption = {
-  id: string;
-  name: string;
-  date: string;
-  isCurrent: boolean;
-  versionNumber?: number;
-};
 
 type RiskRegisterTab = "all-risks" | "monitoring-transactions";
 
@@ -222,18 +216,12 @@ function RiskRegisterFilterToolbar({
 }: RiskRegisterFilterToolbarProps) {
   return (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
-      <div className="min-w-0 flex-1 sm:w-64 md:flex-none">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
-          <SearchInput
-            placeholder={searchPlaceholder}
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            aria-label={searchAriaLabel}
-            className="bg-muted pl-10 text-sm"
-          />
-        </div>
-      </div>
+      <ExpandableSearchField
+        value={search}
+        onChange={onSearchChange}
+        placeholder={searchPlaceholder}
+        ariaLabel={searchAriaLabel}
+      />
 
       <RiskRegisterFiltersSidebar
         open={filterOpen}
@@ -288,10 +276,7 @@ function RiskRegisterFiltersSidebar({
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-              <Button variant="outline" size="md" className="gap-2 shadow-none">
-          <Filter className="size-3.5" strokeWidth={2.5} />
-          Filter
-        </Button>
+        <CollectionFilterTrigger />
       </PopoverTrigger>
       <PopoverContent
         align="end"
@@ -311,13 +296,12 @@ function RiskRegisterFiltersSidebar({
               <Label className="text-sm font-medium text-foreground">
                 Semester
               </Label>
-              <Input
+              <CollectionFilterInput
                 placeholder="Semester"
                 value={assessmentCycleFilter}
                 onChange={(event) =>
                   onAssessmentCycleFilterChange(event.target.value)
                 }
-                className="h-9 border-0 bg-muted/50 text-sm"
               />
             </div>
 
@@ -325,11 +309,10 @@ function RiskRegisterFiltersSidebar({
               <Label className="text-sm font-medium text-foreground">
                 Tanggal Dibuat
               </Label>
-              <Input
+              <CollectionFilterInput
                 type="date"
                 value={createdAtFilter}
                 onChange={(event) => onCreatedAtFilterChange(event.target.value)}
-                className="h-9 border-0 bg-muted/50 text-sm"
               />
             </div>
 
@@ -438,15 +421,6 @@ function RiskRegisterFiltersSidebar({
   );
 }
 
-function getRiskLevel(nilai: number | undefined): string {
-  if (nilai === undefined || isNaN(nilai)) return "Sangat Rendah";
-  if (nilai >= 20) return "Sangat Tinggi";
-  if (nilai >= 15) return "Tinggi";
-  if (nilai >= 10) return "Sedang";
-  if (nilai >= 5) return "Rendah";
-  return "Sangat Rendah";
-}
-
 function resolveListItemScoreSemantics(risk: RiskListItem) {
   const probability = risk.probability ?? 1;
   const impact = risk.impact ?? 1;
@@ -460,24 +434,6 @@ function resolveListItemScoreSemantics(risk: RiskListItem) {
     nilai: risk.nilai ?? fallbackMetrics.nilai,
     inherentScore: risk.inherentScore ?? fallbackMetrics.inherentScore,
   });
-}
-
-function computeCompleteness(draft: RiskListItem) {
-  let score = 0;
-  const total = 6;
-  if (draft.title && draft.description) score++;
-  if (draft.cause && draft.impactDesc) score++;
-  if (draft.existingControl && draft.probability && draft.impact) score++;
-  if (draft.treatmentOption) score++;
-  if (draft.targetProbability && draft.targetImpact) score++;
-  if (draft.nextReviewDate) score++;
-  return Math.round((score / total) * 100);
-}
-
-function formatCycleLabel(cycle?: string, createdAt?: string) {
-  if (cycle) return cycle;
-  if (!createdAt) return "Baseline";
-  return `Baseline ${new Date(createdAt).toLocaleDateString("id-ID", { year: "numeric", month: "short" })}`;
 }
 
 function formatLocalDateTime(value?: string | null) {
@@ -520,20 +476,35 @@ function SemesterIndicator({
     { key: "h2", label: "H2", value: data?.h2 },
   ];
 
+  const getStatusPresentation = (value?: string | null) => {
+    if (value === "finalized") {
+      return { label: "Selesai", Icon: Check };
+    }
+    if (value === "draft") {
+      return { label: "Draf", Icon: Pencil };
+    }
+    return { label: "Belum tersedia", Icon: Minus };
+  };
+
   return (
     <div className="flex items-center justify-start gap-1">
-      {semesters.map((semester, i) => (
-        <div
-          key={semester.key}
-          className={cn(
-            "flex size-6 items-center justify-center rounded-full ring-1 ring-inset ring-border/50 text-[10px] font-semibold",
-            getSemesterColor(semester.value, i + 1, year),
-          )}
-          title={`${semester.label}: ${semester.value === "finalized" ? "Selesai" : semester.value === "draft" ? "Draf" : semester.value ? semester.value : "-"}`}
-        >
-          {semester.label}
-        </div>
-      ))}
+      {semesters.map((semester, i) => {
+        const { label, Icon } = getStatusPresentation(semester.value);
+        return (
+          <span
+            key={semester.key}
+            className={cn(
+              "flex h-6 items-center justify-center gap-1 rounded-sm px-1.5 ring-1 ring-inset ring-border/50 text-[10px] font-semibold",
+              getSemesterColor(semester.value, i + 1, year),
+            )}
+            title={`${semester.label}: ${label}`}
+          >
+            <Icon aria-hidden="true" className="size-2.5" />
+            <span aria-hidden="true">{semester.label}</span>
+            <span className="sr-only">{semester.label}: {label}</span>
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -562,14 +533,9 @@ function RiskRowActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          className="text-muted-foreground"
+        <ActionIconButton
           aria-label={`Aksi risiko ${risk.code || risk.title || risk.id}`}
-        >
-          <MoreHorizontal className="size-3.5" />
-        </Button>
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         {onContinueMonitoring && (
@@ -630,16 +596,12 @@ export default function RiskRegisterPage() {
   const { token, user } = useAuth();
   const [isPending, startTransition] = useTransition();
   const isApplyingSearchParamsRef = useRef(false);
-  const tambahRisikoRef = useRef<HTMLButtonElement>(null);
+  const tambahRisikoRef = useRef<HTMLAnchorElement>(null);
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
   const [monitoringTransactions, setMonitoringTransactions] = useState<
     RiskMonitoringDetail[]
   >([]);
-  const [historyRisks, setHistoryRisks] = useState<RiskListItem[]>([]);
-  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
-  const [historyRiskId, setHistoryRiskId] = useState<string>("");
-  const [versions, setVersions] = useState<VersionOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState(
@@ -688,7 +650,6 @@ export default function RiskRegisterPage() {
   );
   const [registerTotal, setRegisterTotal] = useState(0);
   const [monitoringTotal, setMonitoringTotal] = useState(0);
-  const [selectedVersion, setSelectedVersion] = useState("");
   const [activeTab, setActiveTab] = useState<RiskRegisterTab>(
     () =>
       parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
@@ -704,7 +665,6 @@ export default function RiskRegisterPage() {
     () => getSelectableMonitoringCycles(currentMonitoringCycle()),
     [],
   );
-  const [draftToDelete, setDraftToDelete] = useState<RiskListItem | null>(null);
   const [riskToArchive, setRiskToArchive] = useState<RiskListItem | null>(null);
   const [archiveReason, setArchiveReason] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -790,7 +750,6 @@ export default function RiskRegisterPage() {
     const [
       allRisksResponse,
       draftRisks,
-      approvedRisks,
       monitoringTransactionsResponse,
     ] = await Promise.all([
       listRiskRegister(activeToken, {
@@ -806,7 +765,6 @@ export default function RiskRegisterPage() {
         limit,
       }),
       api.get<RiskListItem[]>("/risks?status=draft", activeToken),
-      api.get<RiskListItem[]>("/risks?status=approved", activeToken),
       listRiskMonitorings(activeToken, {
         q: normalizedSearch || undefined,
         lifecycle: lifecycleFilter,
@@ -821,35 +779,14 @@ export default function RiskRegisterPage() {
       }),
     ]);
 
-    const approvedCurrentRisks = approvedRisks.filter((risk) => risk.isCurrent);
-
     setDrafts(draftRisks);
     setMonitoringTransactions(monitoringTransactionsResponse.data ?? []);
-    setHistoryRisks(approvedCurrentRisks);
     setRisks(allRisksResponse.data ?? []);
     setRegisterTotal(allRisksResponse.total ?? 0);
     setMonitoringTotal(monitoringTransactionsResponse.total ?? 0);
     setPage(allRisksResponse.page ?? page);
     setLimit(allRisksResponse.limit ?? limit);
 
-    if (approvedCurrentRisks.length === 0) {
-      setHistoryRiskId("");
-      setVersions([]);
-      setSelectedVersion("");
-      setHistoryData([]);
-      return;
-    }
-
-    setHistoryRiskId((currentId) => {
-      if (
-        currentId &&
-        approvedCurrentRisks.some((risk) => risk.id === currentId)
-      ) {
-        return currentId;
-      }
-
-      return approvedCurrentRisks[0].id;
-    });
   };
 
   useEffect(() => {
@@ -997,179 +934,24 @@ export default function RiskRegisterPage() {
     sortOrder,
   ]);
 
-  useEffect(() => {
-    if (!token || !historyRiskId) return;
-
-    const fetchVersions = async () => {
-      try {
-        const versionItems = await api.get<RiskVersionTimelineItem[]>(
-          `/risks/${historyRiskId}/versions`,
-          token,
-        );
-        const currentVersion =
-          versionItems.find((item) => item.isCurrent) ?? versionItems[0];
-
-        if (!currentVersion) {
-          setVersions([]);
-          setSelectedVersion("");
-          setHistoryData([]);
-          return;
-        }
-
-        const versionOptions = versionItems.map((item) => ({
-          id: item.id,
-          name: formatCycleLabel(item.assessmentCycle, item.createdAt),
-          date: item.createdAt
-            ? new Date(item.createdAt).toLocaleDateString("id-ID")
-            : "-",
-          isCurrent: item.isCurrent,
-          versionNumber: item.versionNumber,
-        }));
-
-        setVersions(versionOptions);
-        setSelectedVersion((currentId) => {
-          if (
-            currentId &&
-            versionOptions.some((option) => option.id === currentId)
-          )
-            return currentId;
-          return (
-            versionOptions.find((option) => !option.isCurrent)?.id ||
-            currentVersion.id
-          );
-        });
-        setHistoryData(
-          versionItems.map((item) =>
-            buildVersionHistoryItem(item, currentVersion),
-          ),
-        );
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 404) {
-          setVersions([]);
-          setSelectedVersion("");
-          setHistoryData([]);
-          return;
-        }
-        console.error(err);
-        setVersions([]);
-        setSelectedVersion("");
-        setHistoryData([]);
-        toast.error(
-          err instanceof Error
-            ? err.message
-            : "Riwayat versi belum berhasil dimuat.",
-        );
-      }
-    };
-
-    fetchVersions();
-  }, [historyRiskId, token]);
 
   useEffect(() => {
     if (!token) return;
     setHeaderActions(
       <div className="flex items-center gap-2">
-        <Link href="/risk/register/bulk">
-          <Button variant="outline" size="md" className="gap-2 shadow-none">
-            <Upload className="size-3.5" strokeWidth={2.5} />
-            Import Risiko
-          </Button>
-        </Link>
-        <Link href="/risk/register/new">
-          <Button
-            ref={tambahRisikoRef}
-            size="md"
-            className="gap-2 border-0"
-            style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
-          >
-            <Plus className="size-3.5" strokeWidth={2.5} />
-            Tambah Risiko
-          </Button>
-        </Link>
+        <ActionButton asChild variant="outline" icon={<Upload className="size-3.5" strokeWidth={2.5} />}>
+          <Link href="/risk/register/bulk">Import Risiko</Link>
+        </ActionButton>
+        <AccentButton asChild icon={<Plus className="size-3.5" strokeWidth={2.5} />}>
+          <Link href="/risk/register/new" ref={tambahRisikoRef}>Tambah Risiko</Link>
+        </AccentButton>
       </div>,
     );
     return () => setHeaderActions(null);
   }, [token, setHeaderActions]);
 
-  const riskLevelCounts = useMemo(() => {
-    return risks.reduce<Record<string, number>>((counts, risk) => {
-      const level = resolveListItemScoreSemantics(risk).effective.level;
-      counts[level] = (counts[level] ?? 0) + 1;
-      return counts;
-    }, {});
-  }, [risks]);
-
-  const riskSummaryCards = [
-    {
-      label: "Total Risiko",
-      value: registerTotal,
-      textTone: undefined,
-    },
-    {
-      label: "Sangat Tinggi",
-      value: riskLevelCounts.sangat_tinggi ?? 0,
-      textTone: "text-risk-extreme",
-    },
-    {
-      label: "Tinggi",
-      value: riskLevelCounts.tinggi ?? 0,
-      textTone: "text-risk-extreme/70",
-    },
-    {
-      label: "Sedang",
-      value: riskLevelCounts.sedang ?? 0,
-      textTone: undefined,
-    },
-  ];
-  const visibleRiskCount = risks.length;
-
-  const monitoringDraftCount = useMemo(
-    () => drafts.filter((risk) => risk.status === "assessment_draft").length,
-    [drafts],
-  );
-
   const activeTotal =
     activeTab === "monitoring-transactions" ? monitoringTotal : registerTotal;
-  const totalPages = Math.ceil(activeTotal / limit) || 1;
-
-  const handleDeleteDraft = async (id: string) => {
-    toast.promise(
-      (async () => {
-        await api.delete(`/risks/${id}`, undefined, token || undefined);
-        if (token) await refreshRegisterData(token);
-      })(),
-      {
-        loading: "Menghapus draft...",
-        success: "Draft berhasil dihapus.",
-        error: (err) =>
-          err instanceof Error ? err.message : "Draft belum berhasil dihapus.",
-      },
-    );
-  };
-
-  const handleSubmitDraft = async (draft: RiskListItem) => {
-    toast.promise(
-      (async () => {
-        const fullRisk = await api.get<RiskListItem>(
-          `/risks/${draft.id}`,
-          token || undefined,
-        );
-        await api.put(
-          `/risks/${draft.id}`,
-          { ...fullRisk, status: "assessment_in_review" },
-          token || undefined,
-        );
-        if (token) await refreshRegisterData(token);
-      })(),
-      {
-        loading: "Mengajukan draft...",
-        success: "Draft berhasil diajukan menjadi ditinjau.",
-        error: (err) =>
-          err instanceof Error ? err.message : "Draft belum berhasil diajukan.",
-      },
-    );
-  };
-
   const handleArchiveRisk = async () => {
     if (!token || !riskToArchive) {
       toast.error("Sesi login tidak ditemukan.");
@@ -1277,13 +1059,6 @@ export default function RiskRegisterPage() {
     );
   };
 
-  const selectedVersionMeta = versions.find(
-    (version) => version.id === selectedVersion,
-  );
-  const selectedHistory = historyData.find(
-    (history) => history.id === selectedVersion,
-  );
-
   useEffect(() => {
     if (tambahRisikoRef.current) {
       const btn = tambahRisikoRef.current;
@@ -1315,137 +1090,96 @@ export default function RiskRegisterPage() {
   if (
     loading &&
     risks.length === 0 &&
-    drafts.length === 0 &&
-    historyRisks.length === 0
+    drafts.length === 0
   ) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        Memuat daftar risiko...
-      </div>
+      <PageStack>
+        <CollectionLoadingState message="Memuat daftar risiko..." />
+      </PageStack>
     );
   }
 
   if (error) {
     return (
-      <div className="p-8 flex flex-col items-center justify-center gap-4">
-        <div className="text-center max-w-md">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-destructive/10 mb-4">
-            <AlertCircle className="w-6 h-6 text-destructive" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">Gagal Memuat Data</h3>
-          <p className="text-sm text-muted-foreground mb-4">{error}</p>
-          <Button
-            onClick={() => window.location.reload()}
-            variant="outline"
-            className="gap-2"
-          >
-            <ArrowUpRight className="size-4" />
-            Muat Ulang Halaman
-          </Button>
-        </div>
-      </div>
+      <PageStack>
+        <CollectionErrorState
+          title="Gagal Memuat Data"
+          message={error}
+          onReload={() => window.location.reload()}
+        />
+      </PageStack>
     );
   }
+  const scoreAriaSort =
+    sortBy === "nilai"
+      ? sortOrder === "asc"
+        ? "ascending"
+        : "descending"
+      : "none";
   return (
-    <div className="space-y-4">
-      {/* Tabs */}
+    <PageStack>
       <Tabs
         defaultValue="all-risks"
         value={activeTab}
         onValueChange={(value) => setActiveTab(value as RiskRegisterTab)}
       >
-        <TabsList className="rounded-lg ring-1 ring-inset ring-border/50 bg-muted/50 p-0.5" style={{ height: '36px' }}>
-          <TabsTrigger value="all-risks" className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200">
-            <GitBranch className="size-3.5" strokeWidth={2.5} />
-            Risiko
-          </TabsTrigger>
-          <TabsTrigger
-            value="monitoring-transactions"
-            className="h-full rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200"
-          >
-            <RefreshCcw className="size-3.5" strokeWidth={2.5} />
-            Pemantauan
-            {monitoringDraftCount > 0 && (
-              <Badge className="ml-1 h-4 border border-primary/20 bg-primary/20 px-1 text-[9px] text-primary">
-                {monitoringDraftCount}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+        <CollectionToolbar
+          leading={
+            <SidebarTabsList>
+              <TabsTrigger value="all-risks">Daftar Risiko</TabsTrigger>
+              <TabsTrigger value="monitoring-transactions">Pemantauan</TabsTrigger>
+            </SidebarTabsList>
+          }
+          actions={<RiskRegisterFilterToolbar
+            search={search}
+            onSearchChange={handleRegisterSearchChange}
+            searchPlaceholder="Cari risiko..."
+            searchAriaLabel="Cari risiko"
+            filterOpen={filterOpen}
+            onFilterOpenChange={setFilterOpen}
+            assessmentCycleFilter={assessmentCycleFilter}
+            onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
+            createdAtFilter={createdAtFilter}
+            onCreatedAtFilterChange={handleRegisterCreatedAtChange}
+            lifecycleFilter={lifecycleFilter}
+            onLifecycleFilterChange={handleRegisterLifecycleChange}
+            statusFilter={statusFilter}
+            onStatusFilterChange={handleRegisterStatusChange}
+            categoryFilter={categoryFilter}
+            onCategoryFilterChange={handleRegisterCategoryChange}
+            onReset={handleResetRegisterFilters}
+          />}
+        />
         <TabsContent value="all-risks" className="mt-3 space-y-4">
-          <div className="grid grid-cols-4 gap-4">
-            {riskSummaryCards.map((card) => (
-              <KpiCard
-                key={card.label}
-                label={card.label}
-                value={card.value}
-                tone="white"
-                className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
-                labelClassName="capitalize tracking-normal"
-                valueClassName={cn("font-medium", card.textTone)}
-                valueWrapClassName="mt-auto"
-              />
-            ))}
-          </div>
-
-          {/* Table */}
-          <Card className="rounded-lg gap-0 overflow-hidden ring-1 ring-inset ring-border bg-card p-4 shadow-none">
-            <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
-              <div className="min-w-0">
-                <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
-                  Daftar Risiko
-                </h2>
-                <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
-                  Buat dan pantau risiko
-                </p>
-              </div>
-              <RiskRegisterFilterToolbar
-                search={search}
-                onSearchChange={handleRegisterSearchChange}
-                searchPlaceholder="Cari risiko..."
-                searchAriaLabel="Cari risiko"
-                filterOpen={filterOpen}
-                onFilterOpenChange={setFilterOpen}
-                assessmentCycleFilter={assessmentCycleFilter}
-                onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
-                createdAtFilter={createdAtFilter}
-                onCreatedAtFilterChange={handleRegisterCreatedAtChange}
-                lifecycleFilter={lifecycleFilter}
-                onLifecycleFilterChange={handleRegisterLifecycleChange}
-                statusFilter={statusFilter}
-                onStatusFilterChange={handleRegisterStatusChange}
-                categoryFilter={categoryFilter}
-                onCategoryFilterChange={handleRegisterCategoryChange}
-                onReset={handleResetRegisterFilters}
-              />
-            </div>
-
-            <div className="-mx-4 overflow-x-auto">
-              <Table className="min-w-[1120px] table-fixed">
-                <colgroup>
-                  <col className="w-[9%]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[6%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[11%]" />
-                  <col className="w-[13%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[5%]" />
-                </colgroup>
-                <TableHeader className="[&_tr]:border-b [&_tr]:border-border">
-                  <TableRow className="h-9 hover:bg-transparent">
-                  <TableHead className="whitespace-nowrap pl-4 pr-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+          <CollectionTableCard>
+            <Table className="min-w-[880px] table-fixed">
+              <colgroup>
+                <col className="w-[10%]" />
+                <col className="w-[29%]" />
+                <col className="w-[15%]" />
+                <col className="w-[7%]" />
+                <col className="w-[19%]" />
+                <col className="w-[10%]" />
+              </colgroup>
+              <CollectionTableHeader>
+                <CollectionTableHeaderRow>
+                  <CollectionTableHead className="pl-4 pr-3">
                     Kode
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                  </CollectionTableHead>
+                  <CollectionTableHead className="px-3">
                     Risiko
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                  </CollectionTableHead>
+                  <CollectionTableHead className="px-3">
                     Kategori
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer select-none whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground"
+                  </CollectionTableHead>
+                  <CollectionTableHead
+                    aria-sort={scoreAriaSort}
+                    className="px-0"
+                  >
+                    <button
+                      type="button"
+                      className="flex h-9 w-full items-center gap-1 px-3 text-left outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30 active:bg-muted/70"
+                      aria-label={`Urutkan berdasarkan skor, saat ini ${scoreAriaSort === "ascending" ? "menaik" : scoreAriaSort === "descending" ? "menurun" : "belum diurutkan"}`}
                       onClick={() => {
                         if (sortBy === "nilai") {
                           setSortOrder((prev) =>
@@ -1457,509 +1191,142 @@ export default function RiskRegisterPage() {
                         }
                       }}
                     >
-                      <div className="flex items-center gap-1">
-                        Skor
-                        {sortBy === "nilai" &&
-                          (sortOrder === "desc" ? (
-                            <ChevronDown className="size-3" />
-                          ) : (
-                            <ChevronUp className="size-3" />
-                          ))}
-                      </div>
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Level
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Status Risiko
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Pemantauan {new Date().getFullYear()}
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
-                      Terakhir Dipantau
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-3 text-center align-middle text-xs font-medium capitalize text-muted-foreground">
+                      Skor
+                      {sortBy === "nilai" &&
+                        (sortOrder === "desc" ? (
+                          <ChevronDown aria-hidden="true" className="size-3" />
+                        ) : (
+                          <ChevronUp aria-hidden="true" className="size-3" />
+                        ))}
+                    </button>
+                  </CollectionTableHead>
+                  <CollectionTableHead className="px-3">
+                    Status Risiko
+                  </CollectionTableHead>
+                  <CollectionTableHead className="sticky right-0 z-10 bg-white px-3 text-center">
                       Aksi
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {risks.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={9}
-                        className="py-8 text-left text-xs text-muted-foreground"
-                      >
-                        Tidak ada risiko yang ditemukan
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    risks.map((risk) => {
-                      const scoreSemantics =
-                        resolveListItemScoreSemantics(risk);
-                      const levelLabel = getRiskLevelLabel(
-                        scoreSemantics.effective.level,
-                      );
-                      const isReadOnly = isReadOnlyForOrg(
-                        user,
-                        risk.organizationId || "",
-                      );
-                      const canReassess =
-                        risk.status === "approved" &&
-                        risk.isCurrent &&
-                        !risk.archivedAt &&
-                        !isReadOnly;
-                      const canArchive =
-                        lifecycleFilter !== "archived" &&
-                        risk.status === "approved" &&
-                        risk.isCurrent &&
-                        !risk.archivedAt &&
-                        !isReadOnly;
-                      const canRestore = !!risk.archivedAt && !isReadOnly;
-                      const statusText =
-                        risk.archivedAt
-                          ? "Diarsipkan"
-                          : risk.status === "assessment_draft" &&
-                              risk.versionNumber == 1
-                            ? "Draft"
-                            : statusLabel[risk.status || ""] ||
-                              risk.status ||
-                              "-";
-                      const monitoringLastText = formatLocalDateTime(
-                        risk.lastMonitoredAt,
-                      );
-                      return (
-                        <TableRow
-                          key={risk.id}
-                          className="border-b border-border hover:bg-muted/50"
-                        >
-                          <TableCell className="py-2 pl-4 pr-3 text-foreground">
-                            {risk.code || "-"}
-                          </TableCell>
-                          <TableCell className="px-3 py-2">
-                            <div className="flex min-w-0 items-center gap-1.5">
-                              <Link
-                                href={`/risk/register/${risk.id}`}
-                                className="min-w-0 flex-1 truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
-                                title={risk.title || "-"}
-                              >
-                                {risk.title || "-"}
-                              </Link>
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap px-3 py-2 text-foreground">
-                            {riskCategoryLabels[risk.category ?? ""] ||
-                              risk.category ||
-                              "-"}
-                          </TableCell>
-                          <TableCell className="px-3 py-2">
-                            <span className="font-mono text-xs font-semibold text-foreground">
-                              {scoreSemantics.effective.score}
-                            </span>
-                          </TableCell>
-                            <TableCell className="px-3 py-2">
-                              <Badge
-                                className={cn(
-                                  getLinearRiskLevelBadgeClass(levelLabel),
-                                  "h-6 rounded-full px-2.5 justify-start text-[11px]",
-                                )}
-                              >
-                                {levelLabel}
-                              </Badge>
-                          </TableCell>
-                          <TableCell className="px-3 py-2">
-                            <div className="flex items-center gap-1.5 whitespace-nowrap">
-                              <Badge
-                                className={cn(
-                                  risk.archivedAt
-                                    ? getLinearStatusBadgeClass("archived")
-                                    : risk.status
-                                      ? statusVariant[risk.status]
-                                    : getLinearToneBadgeClass("neutral"),
-                                  "h-6 rounded-full px-2.5 justify-start text-[11px]",
-                                )}
-                              >
-                                {statusText}
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-3 py-2">
-                            <SemesterIndicator data={risk.semesterMonitoring} />
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap px-3 py-2 text-muted-foreground">
-                            <span className="block truncate text-sm" title={monitoringLastText}>
-                              {monitoringLastText}
-                            </span>
-                          </TableCell>
-                          <TableCell className="px-3 py-2">
-                            <div className="flex justify-center">
-                              <RiskRowActions
-                                risk={risk}
-                                isReadOnly={isReadOnly}
-                                onContinueMonitoring={
-                                  canReassess && risk.hasOngoing && risk.draftId
-                                    ? () =>
-                                        router.push(
-                                          `/risk/monitoring/${risk.draftId}`,
-                                        )
-                                    : undefined
-                                }
-                                onStartMonitoring={
-                                  canReassess && !risk.hasOngoing
-                                    ? () => handleOpenConfirmDialog(risk)
-                                    : undefined
-                                }
-                                onMandateCascade={() =>
-                                  router.push(
-                                    `/risk/cascading?sourceRiskId=${risk.id}&mode=mandatory`,
-                                  )
-                                }
-                                onEscalateCascade={() =>
-                                  router.push(
-                                    `/risk/cascading?sourceRiskId=${risk.id}&mode=bottom-up`,
-                                  )
-                                }
-                                onArchive={
-                                  canArchive
-                                    ? () => setRiskToArchive(risk)
-                                    : undefined
-                                }
-                                onRestore={
-                                  canRestore
-                                    ? () => setRiskToRestore(risk)
-                                    : undefined
-                                }
-                                onDeleteDraft={
-                                  risk.status === "assessment_draft" &&
-                                  !isReadOnly
-                                    ? () => setDraftToDelete(risk)
-                                    : undefined
-                                }
-                              />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Pagination */}
-            <div className="-mx-4 -mb-4 flex items-center justify-between border-t border-border/50 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground">
-                    Baris:
-                  </span>
-                  <Select
-                    value={limit.toString()}
-                    onValueChange={(val) => {
-                      setLimit(Number(val));
-                      setPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="h-6 w-[56px] rounded-md border-0 bg-transparent text-[11px] shadow-none">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[10, 20, 50, 100].map((pageSize) => (
-                        <SelectItem key={pageSize} value={pageSize.toString()}>
-                          {pageSize}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  {registerTotal === 0 ? 0 : (page - 1) * limit + 1}
-                  &ndash;{Math.min(page * limit, registerTotal)} dari{" "}
-                  {registerTotal}
-                </p>
-              </div>
-              <div className="flex items-center gap-0.5">
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="text-muted-foreground"
-                  disabled={page === 1 || loading || isPending}
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                >
-                  <ChevronLeft className="size-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  className="bg-muted text-[11px] font-medium text-foreground"
-                  disabled
-                >
-                  {page}
-                </Button>
-                <span className="px-0.5 text-[11px] text-muted-foreground">
-                  / {totalPages}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="text-muted-foreground"
-                  disabled={
-                    page === totalPages ||
-                    registerTotal === 0 ||
-                    loading ||
-                    isPending
-                  }
-                  onClick={() =>
-                    setPage((current) => Math.min(totalPages, current + 1))
-                  }
-                >
-                  <ChevronRight className="size-3.5" />
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* TAB 2: MONITORING TRANSACTIONS */}
-        <TabsContent value="monitoring-transactions" className="mt-3 space-y-4">
-          <Card className="gap-0 overflow-hidden rounded-lg ring-1 ring-inset ring-border bg-card p-4 shadow-none">
-            <div className="flex flex-col gap-3 pb-4 md:flex-row md:items-start md:justify-between">
-              <div className="flex min-w-0 flex-1 items-start gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-sm font-semibold tracking-tight text-foreground text-balance">
-                    Transaksi Pemantauan
-                  </h2>
-                  <p className="mt-1 text-xs text-muted-foreground text-pretty">
-                    Pantau versi hasil mulai pemantauan, bandingkan nilai
-                    sebelum dan hasil pemantauan, lalu lanjutkan draf yang
-                    masih berjalan.
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground tabular-nums">
-                  {activeTotal} transaksi
-                </span>
-              </div>
-            </div>
-
-            <div className="-mx-4 overflow-x-auto">
-              <MonitoringTransactionsTable
-                items={monitoringTransactions}
-                levelBadgeVariant={levelBadgeVariant}
-                statusVariant={statusVariant}
-                getRiskLevelLabel={getRiskLevelLabel}
-                formatLocalDateTime={formatLocalDateTime}
-              />
-            </div>
-
-            <div className="-mx-4 -mb-4 flex items-center justify-between border-t border-border/50 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground">
-                    Baris:
-                  </span>
-                  <Select
-                    value={limit.toString()}
-                    onValueChange={(val) => {
-                      setLimit(Number(val));
-                      setPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="h-6 w-[56px] rounded-md border-0 bg-transparent text-[11px] shadow-none">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[10, 20, 50, 100].map((pageSize) => (
-                        <SelectItem key={pageSize} value={pageSize.toString()}>
-                          {pageSize}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  {activeTotal === 0 ? 0 : (page - 1) * limit + 1}
-                  &ndash;{Math.min(page * limit, activeTotal)} dari{" "}
-                  {activeTotal}
-                </p>
-              </div>
-              <div className="flex items-center gap-0.5">
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="text-muted-foreground"
-                  disabled={page === 1 || loading || isPending}
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                >
-                  <ChevronLeft className="size-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  className="bg-muted text-[11px] font-medium text-foreground"
-                  disabled
-                >
-                  {page}
-                </Button>
-                <span className="px-0.5 text-[11px] text-muted-foreground">
-                  / {totalPages}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="text-muted-foreground"
-                  disabled={
-                    page === totalPages ||
-                    activeTotal === 0 ||
-                    loading ||
-                    isPending
-                  }
-                  onClick={() =>
-                    setPage((current) => Math.min(totalPages, current + 1))
-                  }
-                >
-                  <ChevronRight className="size-3.5" />
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* TAB 3: MY DRAFTS */}
-        <TabsContent value="my-drafts" className="mt-3 space-y-4">
-          <Card className="overflow-hidden rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
-            <Table>
-              <TableHeader>
-                <TableRow className="h-9 border-b border-border hover:bg-transparent">
-                  <TableHead className="w-20 text-xs whitespace-nowrap">
-                    ID
-                  </TableHead>
-                  <TableHead className="text-xs whitespace-nowrap">
-                    Judul Draf / Risiko
-                  </TableHead>
-                  <TableHead className="text-xs w-28 whitespace-nowrap">
-                    Periode
-                  </TableHead>
-                  <TableHead className="text-xs w-32 whitespace-nowrap">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-xs w-32 whitespace-nowrap">
-                    Pembaruan
-                  </TableHead>
-                  <TableHead className="text-xs w-28 whitespace-nowrap">
-                    Progres
-                  </TableHead>
-                  <TableHead className="text-xs w-24 whitespace-nowrap"></TableHead>
-                </TableRow>
-              </TableHeader>
+                  </CollectionTableHead>
+                </CollectionTableHeaderRow>
+              </CollectionTableHeader>
               <TableBody>
-                {drafts.length === 0 ? (
+                {risks.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={6}
                       className="py-8 text-left text-xs text-muted-foreground"
                     >
-                      Belum ada draft.
+                      Tidak ada risiko yang ditemukan
                     </TableCell>
                   </TableRow>
                 ) : (
-                  drafts.map((draft) => {
-                    const completeness = computeCompleteness(draft);
+                  risks.map((risk) => {
+                    const scoreSemantics =
+                      resolveListItemScoreSemantics(risk);
                     const isReadOnly = isReadOnlyForOrg(
                       user,
-                      draft.organizationId || "",
+                      risk.organizationId || "",
                     );
-                    const date = formatLocalDateTime(draft.updatedAt);
-
+                    const canReassess =
+                      risk.status === "approved" &&
+                      risk.isCurrent &&
+                      !risk.archivedAt &&
+                      !isReadOnly;
+                    const canArchive =
+                      lifecycleFilter !== "archived" &&
+                      risk.status === "approved" &&
+                      risk.isCurrent &&
+                      !risk.archivedAt &&
+                      !isReadOnly;
+                    const canRestore = !!risk.archivedAt && !isReadOnly;
+                    const statusText =
+                      risk.archivedAt
+                        ? "Diarsipkan"
+                        : risk.status === "assessment_draft" &&
+                            risk.versionNumber == 1
+                          ? "Draft"
+                          : statusLabel[risk.status || ""] ||
+                            risk.status ||
+                            "-";
                     return (
                       <TableRow
-                        key={draft.id}
-                        className="border-b border-border hover:bg-muted/50"
+                        key={risk.id}
+                        className="group border-0 hover:bg-muted/50"
                       >
-                        <TableCell className="text-xs font-mono text-muted-foreground">
-                          {draft.code ||
-                            (draft.id ? draft.id.substring(0, 8) : "-")}
+                        <TableCell className="py-2 pl-4 pr-3 text-foreground">
+                          {risk.code || "-"}
                         </TableCell>
-                        <TableCell className="max-w-[300px]">
-                          <div className="flex items-center gap-2">
+                        <TableCell className="px-3 py-2">
+                          <div className="flex min-w-0 items-center gap-1.5">
                             <Link
-                              href={`/risk/register/${draft.id}`}
-                              className="block truncate text-xs font-medium leading-relaxed text-primary hover:text-primary/80"
+                              href={`/risk/register/${risk.id}`}
+                              className="min-w-0 flex-1 truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
+                              title={risk.title || "-"}
                             >
-                              {draft.title || "Tanpa Judul"}
+                              {risk.title || "-"}
                             </Link>
-                            {isReadOnly && (
-                              <Badge
-                                variant="secondary"
-                                className="text-[9px] h-4 px-1"
-                                title="Read-only access"
-                              >
-                                RO
-                              </Badge>
-                            )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {formatCycleLabel(
-                            draft.assessmentCycle,
-                            draft.updatedAt,
-                          )}
+                        <TableCell className="whitespace-nowrap px-3 py-2 text-foreground">
+                          {riskCategoryLabels[risk.category ?? ""] ||
+                            risk.category ||
+                            "-"}
                         </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              draft.status === "assessment_draft"
-                                ? getLinearToneBadgeClass("neutral")
-                                : getLinearStatusBadgeClass("reviewed")
-                            }
-                          >
-                            Draft (WIP)
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1.5">
-                            <Clock className="size-3" /> {date}
+                        <TableCell className="px-3 py-2">
+                          <span className="text-sm font-medium tabular-nums text-foreground">
+                            {scoreSemantics.effective.score}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className={cn(
-                                  "h-full",
-                                  completeness === 100
-                                    ? "bg-success"
-                                    : "bg-primary",
-                                )}
-                                style={{ width: `${completeness}%` }}
-                              />
-                            </div>
-                            <span className="text-[10px] font-mono">
-                              {completeness}%
-                            </span>
+                        <TableCell className="px-3 py-2">
+                          <div className="flex items-center gap-1.5 whitespace-nowrap">
+                            <Badge
+                              size="compact"
+                              tone={
+                                risk.archivedAt
+                                  ? registerStatusTone.archived
+                                  : registerStatusTone[risk.status || ""] ||
+                                    "neutral"
+                              }
+                            >
+                              {statusText}
+                            </Badge>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex">
+                        <TableCell className="sticky right-0 bg-background px-3 py-2 transition-colors group-hover:bg-muted/50">
+                          <div className="flex justify-center">
                             <RiskRowActions
-                              risk={draft}
+                              risk={risk}
                               isReadOnly={isReadOnly}
+                              onContinueMonitoring={
+                                canReassess && risk.hasOngoing && risk.draftId
+                                  ? () =>
+                                      router.push(
+                                        `/risk/monitoring/${risk.draftId}`,
+                                      )
+                                  : undefined
+                              }
+                              onStartMonitoring={
+                                canReassess && !risk.hasOngoing
+                                  ? () => handleOpenConfirmDialog(risk)
+                                  : undefined
+                              }
                               onMandateCascade={() =>
                                 router.push(
-                                  `/risk/cascading?sourceRiskId=${draft.id}&mode=mandatory`,
+                                  `/risk/cascading?sourceRiskId=${risk.id}&mode=mandatory`,
                                 )
                               }
                               onEscalateCascade={() =>
                                 router.push(
-                                  `/risk/cascading?sourceRiskId=${draft.id}&mode=bottom-up`,
+                                  `/risk/cascading?sourceRiskId=${risk.id}&mode=bottom-up`,
                                 )
                               }
-                              onDeleteDraft={
-                                draft.status === "assessment_draft" &&
-                                !isReadOnly
-                                  ? () => setDraftToDelete(draft)
+                              onArchive={
+                                canArchive
+                                  ? () => setRiskToArchive(risk)
+                                  : undefined
+                              }
+                              onRestore={
+                                canRestore
+                                  ? () => setRiskToRestore(risk)
                                   : undefined
                               }
                             />
@@ -1969,233 +1336,48 @@ export default function RiskRegisterPage() {
                     );
                   })
                 )}
-              </TableBody>
-            </Table>
-          </Card>
-        </TabsContent>
+                  </TableBody>
+                </Table>
+                <CollectionPagination
+                  itemLabel="risiko"
+                  page={page}
+                  pageSize={limit}
+                  total={registerTotal}
+                  disabled={loading || isPending}
+                  onPageChange={setPage}
+                  onPageSizeChange={(nextLimit) => {
+                    setLimit(nextLimit);
+                    setPage(1);
+                  }}
+                />
+              </CollectionTableCard>
+          </TabsContent>
 
-        {/* TAB 4: HISTORY */}
-        <TabsContent value="history" className="mt-3 space-y-4">
-          <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
-            <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Riwayat Versi Live
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Pilih satu risiko current approved untuk melihat timeline
-                  pemantauan dan membandingkannya dengan versi aktif saat ini.
-                </p>
-              </div>
-              <Select value={historyRiskId} onValueChange={setHistoryRiskId}>
-                <SelectTrigger className="w-full md:w-[340px]">
-                  <SelectValue placeholder="Pilih risiko untuk history" />
-                </SelectTrigger>
-                <SelectContent>
-                  {historyRisks.map((risk) => (
-                    <SelectItem key={risk.id} value={risk.id}>
-                      {(risk.code || "Risk") +
-                        " • " +
-                        (risk.title || "Tanpa judul")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-2 lg:grid-cols-4">
-            {/* Timeline Version Selector */}
-            <div className="lg:col-span-1 border-r border-border pr-4">
-              <h3 className="text-xs font-semibold mb-4 uppercase tracking-wider text-muted-foreground">
-                Timeline Snapshot
-              </h3>
-              <div className="space-y-3 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
-                {versions.map((ver) => (
-                  <button
-                    key={ver.id}
-                    onClick={() => setSelectedVersion(ver.id)}
-                    className={cn(
-                      "relative z-10 flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
-                      selectedVersion === ver.id
-                        ? "border border-primary/30 bg-accent"
-                        : "ring-1 ring-inset ring-border bg-card hover:bg-muted",
-                      ver.isCurrent && "ring-1 ring-primary/50",
-                    )}
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">
-                          {ver.versionNumber != null && ver.versionNumber > 0
-                            ? `v${ver.versionNumber} — `
-                            : ""}
-                          {ver.name}
-                        </span>
-                        {ver.isCurrent && (
-                          <Badge className="ml-1 h-4 border border-primary/20 bg-primary/20 px-1.5 text-[9px] text-primary">
-                            Current
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
-                        <Calendar className="size-3" />
-                        <span>{ver.date}</span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Change Comparison */}
-            <div className="lg:col-span-3 space-y-4">
-          <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
-                <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <GitBranch className="size-4" />
-                    Perbandingan: {selectedVersionMeta?.name ||
-                      "Pilih versi"}{" "}
-                    vs Current
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                <TableRow className="h-9 border-b border-border hover:bg-transparent">
-                        <TableHead className="w-20 text-xs whitespace-nowrap">
-                          Kode
-                        </TableHead>
-                        <TableHead className="text-xs whitespace-nowrap">
-                          Risiko & Alasan Perubahan
-                        </TableHead>
-                        <TableHead className="text-xs w-28 whitespace-nowrap">
-                          Versi Lama
-                        </TableHead>
-                        <TableHead className="text-xs w-12 whitespace-nowrap">
-                          →
-                        </TableHead>
-                        <TableHead className="text-xs w-28 whitespace-nowrap">
-                          Versi Current
-                        </TableHead>
-                        <TableHead className="text-xs w-16 whitespace-nowrap">
-                          Tren
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {!selectedHistory ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={6}
-                            className="h-24 text-left text-muted-foreground"
-                          >
-                            Belum ada history untuk risiko ini.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        <TableRow
-                          key={selectedHistory.id}
-                          className="border-b border-border hover:bg-muted/50"
-                        >
-                          <TableCell className="text-xs font-mono text-muted-foreground">
-                            {selectedHistory.riskId || "-"}
-                          </TableCell>
-                          <TableCell className="max-w-[300px]">
-                            <p className="truncate text-xs font-medium leading-relaxed">
-                              {selectedHistory.title || "-"}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              {selectedHistory.cycle}
-                            </p>
-                            <p className="truncate text-[10px] text-muted-foreground mt-0.5 italic text-primary/70">
-                              {selectedHistory.changeReason || "-"}
-                            </p>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                levelBadgeVariant[
-                                  selectedHistory.previousLevel
-                                ] || levelBadgeVariant.Rendah
-                              }
-                            >
-                              {selectedHistory.previousLevel || "Rendah"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            →
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                levelBadgeVariant[
-                                  selectedHistory.currentLevel
-                                ] || levelBadgeVariant.Rendah
-                              }
-                            >
-                              {selectedHistory.currentLevel || "Rendah"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {selectedHistory.trend === "up" && (
-                              <TrendingUp className="size-4 text-risk-extreme" />
-                            )}
-                            {selectedHistory.trend === "down" && (
-                              <TrendingDown className="size-4 text-success" />
-                            )}
-                            {(selectedHistory.trend === "stable" ||
-                              !selectedHistory.trend) && (
-                              <Minus className="size-4 text-muted-foreground" />
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+        {/* TAB 2: MONITORING TRANSACTIONS */}
+        <TabsContent value="monitoring-transactions" className="mt-3 space-y-4">
+          <CollectionTableCard>
+            <MonitoringTransactionsTable
+              items={monitoringTransactions}
+              levelBadgeVariant={levelBadgeVariant}
+              statusVariant={statusVariant}
+              getRiskLevelLabel={getRiskLevelLabel}
+              formatLocalDateTime={formatLocalDateTime}
+            />
+            <CollectionPagination
+              itemLabel="transaksi"
+              page={page}
+              pageSize={limit}
+              total={activeTotal}
+              disabled={loading || isPending}
+              onPageChange={setPage}
+              onPageSizeChange={(nextLimit) => {
+                setLimit(nextLimit);
+                setPage(1);
+              }}
+            />
+          </CollectionTableCard>
         </TabsContent>
       </Tabs>
-
-      <Dialog
-        open={!!draftToDelete}
-        onOpenChange={(open) => !open && setDraftToDelete(null)}
-      >
-        <DialogContent className="max-w-md rounded-2xl p-6 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle>Hapus Draft Risiko?</DialogTitle>
-            <DialogDescription>
-              Draft yang dihapus tidak bisa dikembalikan.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="rounded-2xl ring-1 ring-inset ring-border bg-muted px-3 py-2 text-sm">
-            <p className="font-medium">
-              {draftToDelete?.title || "Tanpa judul"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {draftToDelete?.code || draftToDelete?.id}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDraftToDelete(null)}>
-              Batal
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                if (!draftToDelete) return;
-                const current = draftToDelete;
-                setDraftToDelete(null);
-                await handleDeleteDraft(current.id);
-              }}
-            >
-              Hapus Draft
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={!!riskToArchive}
@@ -2237,9 +1419,9 @@ export default function RiskRegisterPage() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRiskToArchive(null)}>
+            <CollectionDialogCancel onClick={() => setRiskToArchive(null)}>
               Batal
-            </Button>
+            </CollectionDialogCancel>
             <Button
               className="bg-warning text-warning-foreground hover:bg-warning/90"
               onClick={handleArchiveRisk}
@@ -2356,7 +1538,7 @@ export default function RiskRegisterPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageStack>
   );
 }
 

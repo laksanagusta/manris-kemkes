@@ -855,7 +855,7 @@ function CBAPageContent() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-xs font-medium truncate">{v.name}</span>
-                          <Badge variant="outline" className="text-[8px] h-3.5 px-1 font-normal text-muted-foreground border-border/50 bg-muted/30">
+                          <Badge variant="outline" className="text-[8px] h-3.5 px-1 font-normal text-muted-foreground -/50 bg-muted/30">
                             {getMultiplierLabel(v.multiplierType)}
                           </Badge>
                           <Tooltip>
@@ -911,11 +911,11 @@ function CBAPageContent() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-xs font-medium truncate">{v.name}</span>
-                      <Badge variant="outline" className="text-[8px] h-3.5 px-1 font-normal text-muted-foreground border-border/50 bg-muted/30">
+                      <Badge variant="outline" className="text-[8px] h-3.5 px-1 font-normal text-muted-foreground -/50 bg-muted/30">
                         {getMultiplierLabel(v.multiplierType)}
                       </Badge>
                       {!v.isManual && (
-                        <Badge variant="outline" className="text-[8px] h-3.5 px-1 border-sky-400/30 text-sky-400">
+                        <Badge variant="outline" className="text-[8px] h-3.5 px-1 -sky-400/30 text-sky-400">
                           AI
                         </Badge>
                       )}

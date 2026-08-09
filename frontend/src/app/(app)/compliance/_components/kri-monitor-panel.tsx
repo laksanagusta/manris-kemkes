@@ -315,14 +315,14 @@ export function KRIMonitorPanel() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border bg-muted/20 hover:bg-muted/20">
-                  <TableHead className="w-24 text-xs whitespace-nowrap">Kode</TableHead>
-                  <TableHead className="text-xs whitespace-nowrap">Indikator</TableHead>
-                  <TableHead className="w-28 text-xs whitespace-nowrap">Unit</TableHead>
-                  <TableHead className="w-36 text-xs whitespace-nowrap">Frekuensi</TableHead>
-                  <TableHead className="w-28 text-xs whitespace-nowrap">Nilai</TableHead>
-                  <TableHead className="w-28 text-xs whitespace-nowrap">Threshold</TableHead>
-                  <TableHead className="w-24 text-xs whitespace-nowrap">Tren</TableHead>
-                  <TableHead className="w-28 text-xs whitespace-nowrap">Diperbarui</TableHead>
+                  <TableHead className="w-24 text-sm whitespace-nowrap">Kode</TableHead>
+                  <TableHead className="text-sm whitespace-nowrap">Indikator</TableHead>
+                  <TableHead className="w-28 text-sm whitespace-nowrap">Unit</TableHead>
+                  <TableHead className="w-36 text-sm whitespace-nowrap">Frekuensi</TableHead>
+                  <TableHead className="w-28 text-sm whitespace-nowrap">Nilai</TableHead>
+                  <TableHead className="w-28 text-sm whitespace-nowrap">Threshold</TableHead>
+                  <TableHead className="w-24 text-sm whitespace-nowrap">Tren</TableHead>
+                  <TableHead className="w-28 text-sm whitespace-nowrap">Diperbarui</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

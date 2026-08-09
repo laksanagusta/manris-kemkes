@@ -142,7 +142,7 @@ export default function KRIDetailPage() {
         badges={
           <>
             <Badge variant="outline" className="font-mono text-[10px]">{kri.id.substring(0,8)}</Badge>
-            <Badge variant="outline" className={cn("gap-1 bg-transparent border-current", statusConfig.color)}>
+            <Badge variant="outline" className={cn("gap-1 bg-transparent", statusConfig.color)}>
               <StatusIcon className="size-3" />
               {statusConfig.label}
             </Badge>
@@ -273,7 +273,7 @@ export default function KRIDetailPage() {
                <Link href={`/risk/register/${kri.riskId}`}>
                  <div className="group p-3 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer">
                    <div className="flex items-center justify-between mb-2">
-                     <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary bg-background">
+                     <Badge variant="outline" className="text-[10px] font-mono -primary/30 text-primary bg-background">
                        {kri.riskCode}
                      </Badge>
                      <ArrowLeft className="size-3.5 text-primary rotate-135 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />

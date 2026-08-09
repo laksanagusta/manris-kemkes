@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
+import { StandardCard } from "@/components/shared/design-system";
+import { OverviewPanelState } from "@/components/shared/design-system";
 import {
   getBobot,
   getRiskLevelFromNilai,
@@ -15,61 +17,37 @@ import type { TopRiskItem } from "@/types/risk";
 interface TopRisksPanelProps {
   risks: TopRiskItem[];
   loading?: boolean;
+  error?: boolean;
   className?: string;
 }
 
-export function TopRisksPanel({ risks, loading, className }: TopRisksPanelProps) {
-  if (loading) {
-    return (
-      <Card
-        className={cn("gap-4 rounded-lg border-0 bg-card py-0 shadow-none ring-1 ring-inset ring-border lg:col-span-2", className)}
-        data-testid="top-risks-panel"
-      >
-        <CardHeader className="pb-4 pt-4">
-          <CardTitle className="text-base font-medium">Top Risks</CardTitle>
-        </CardHeader>
-        <CardContent className="pb-4">
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-16 animate-pulse rounded-lg bg-muted/40"
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+export function TopRisksPanel({
+  risks,
+  loading,
+  error,
+  className,
+}: TopRisksPanelProps) {
   return (
-    <Card
-      className={cn("gap-4 rounded-lg border-0 bg-card py-0 shadow-none ring-1 ring-inset ring-border lg:col-span-2", className)}
-      data-testid="top-risks-panel"
+    <StandardCard
+      title="Risiko Teratas"
+      className={cn("lg:col-span-2", className)}
+      contentClassName="px-4 pb-4 pt-0"
     >
-      <CardHeader className="pb-4 pt-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <CardTitle className="text-base font-medium">
-              Risiko Teratas
-            </CardTitle>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Risiko dengan skor tertinggi pada cycle ini.
-            </p>
-          </div>
-          <Badge variant="outline" className="text-[10px]">
-            {risks.length} risiko
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="pb-4">
-        {risks.length === 0 ? (
-          <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-            Belum ada data risiko.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {risks.slice(0, 7).map((risk) => {
+      {loading ? (
+        <OverviewPanelState
+          state="loading"
+          message="Memuat risiko teratas..."
+        />
+      ) : error ? (
+        <OverviewPanelState
+          state="error"
+          message="Risiko teratas tidak dapat dimuat."
+        />
+      ) : risks.length === 0 ? (
+        <OverviewPanelState state="empty" message="Belum ada data risiko." />
+      ) : (
+        <div className="-mx-4 divide-y divide-border/40">
+            {risks.slice(0, 5).map((risk) => {
               const scoreSemantics = resolveRiskScoreSemantics({
                 status: risk.status,
                 probability: risk.probability,
@@ -83,10 +61,11 @@ export function TopRisksPanel({ risks, loading, className }: TopRisksPanelProps)
               const level = getRiskLevelFromNilai(scoreSemantics.primary.nilai);
 
               return (
-                <div
+                <Link
                   key={risk.id}
+                  href={`/risk/register/${risk.id}`}
                   data-testid="risk-row"
-                  className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 p-3 transition-colors hover:bg-muted/30"
+                  className="group/risk flex min-h-14 items-center justify-between gap-3 px-4 py-2.5 outline-none transition-[background-color,transform] duration-150 hover:bg-muted/30 active:scale-[0.995] focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transform-none motion-reduce:transition-none"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -111,13 +90,15 @@ export function TopRisksPanel({ risks, loading, className }: TopRisksPanelProps)
                       </p>
                     )}
                   </div>
-                  <ChevronRight className="ml-2 size-4 shrink-0 text-muted-foreground" />
-                </div>
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="size-4 shrink-0 text-muted-foreground/60 transition-transform duration-150 group-hover/risk:translate-x-0.5 motion-reduce:transition-none"
+                  />
+                </Link>
               );
             })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </StandardCard>
   );
 }

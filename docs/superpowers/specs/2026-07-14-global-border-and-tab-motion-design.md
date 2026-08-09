@@ -5,7 +5,7 @@
 Update the existing MANRIS design system in two tightly scoped ways:
 
 1. Make neutral component borders use the same gray boundary treatment as collection tables.
-2. Add smooth directional motion when switching tabs.
+2. Add a smooth sliding active indicator when switching tabs.
 
 Semantic borders such as destructive, warning, success, risk-level, and focus-ring states are not neutral borders and must retain their semantic colors.
 
@@ -19,15 +19,16 @@ The `/design-system` table remains the visual reference for boundary weight: a s
 
 ## Tab Motion
 
-Tab content uses a **direction-aware transition**. Moving to a tab later in the tab order makes the incoming content translate slightly from the right; moving earlier makes it enter from the left. The transition combines a short horizontal `transform` with opacity over 200–240ms using the shared `ease-in-out` token.
+The default tab list uses a **layout animation / shared element transition**. One white active indicator with a subtle `shadow-sm` measures the selected trigger and slides beneath it when selection changes. Tab content itself changes without directional motion. The indicator uses the shared `ease-in-out` token over 300ms.
 
 The motion must:
 
 - preserve Radix Tabs keyboard behavior and ARIA semantics;
-- avoid animating layout properties;
+- follow active-trigger position and width, including after resizing;
 - remain interruptible during quick tab changes;
-- suppress translation when `prefers-reduced-motion: reduce` is active;
-- avoid changing the dimensions or border treatment of the tab list.
+- suppress the transition when `prefers-reduced-motion: reduce` is active;
+- avoid changing the dimensions or border treatment of the tab list;
+- retain the underline treatment for line-variant tabs.
 
 The shared Tabs component owns the behavior so every consumer receives consistent motion. The `/design-system` Tabs preview demonstrates the canonical result.
 

@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CollectionPagination } from "@/components/shared/design-system";
 import {
   Collapsible,
   CollapsibleContent,
@@ -46,14 +47,15 @@ export function PerformanceRiskNodeRankingTable({
   onSelect,
 }: Props) {
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(PAGE_SIZE);
   const [open, setOpen] = useState(true);
 
-  const totalPages = Math.max(1, Math.ceil(nodes.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(nodes.length / limit));
   const safePage = Math.min(page, totalPages);
 
   const visibleNodes = useMemo(
-    () => nodes.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
-    [nodes, safePage],
+    () => nodes.slice((safePage - 1) * limit, safePage * limit),
+    [nodes, safePage, limit],
   );
 
   const getMitigationProgress = (node: PerformanceRiskNode) => {
@@ -77,7 +79,7 @@ export function PerformanceRiskNodeRankingTable({
   return (
     <TooltipProvider delayDuration={150}>
       <div
-        className="overflow-x-auto rounded-2xl bg-card ring-1 ring-inset ring-zinc-200/80"
+        className="overflow-x-auto rounded-lg bg-card ring-1 ring-inset ring-border"
         data-open={open}
       >
         <Collapsible open={open} onOpenChange={setOpen}>
@@ -129,31 +131,31 @@ export function PerformanceRiskNodeRankingTable({
                 <Table className="min-w-[1280px]">
                   <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
                     <TableRow className="border-border/50 transition-colors hover:bg-transparent">
-                    <TableHead className="h-10 w-16 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-xs font-medium leading-none text-muted-foreground md:pl-6">
+                    <TableHead className="h-10 w-16 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground md:pl-6">
                         No
                       </TableHead>
-                      <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
                         Rincian Output
                       </TableHead>
-                      <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
                         Konteks
                       </TableHead>
-                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
                         Jumlah Risiko
                       </TableHead>
-                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
                         Total Nilai
                       </TableHead>
-                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
                         Overdue
                       </TableHead>
-                      <TableHead className="h-10 w-56 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-56 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
                         Progres Mitigasi
                       </TableHead>
-                      <TableHead className="h-10 w-32 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-32 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
                         Status
                       </TableHead>
-                      <TableHead className="h-10 w-24 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-24 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
                         Aksi
                       </TableHead>
                     </TableRow>
@@ -284,52 +286,18 @@ export function PerformanceRiskNodeRankingTable({
                 </Table>
               </div>
 
-              {nodes.length > PAGE_SIZE ? (
-                <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-3 md:px-6">
-                  <p className="text-xs text-muted-foreground">
-                    Menampilkan {(safePage - 1) * PAGE_SIZE + 1}-
-                    {Math.min(safePage * PAGE_SIZE, nodes.length)} dari{" "}
-                    {nodes.length} RO
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-xs"
-                      className="text-muted-foreground"
-                      disabled={safePage === 1}
-                      onClick={() =>
-                        setPage((current) => Math.max(1, current - 1))
-                      }
-                    >
-                      <ChevronLeft className="size-3.5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="xs"
-                      className="cursor-default bg-primary/10 text-xs font-medium text-primary hover:bg-primary/10 hover:text-primary"
-                      disabled
-                    >
-                      {safePage}
-                    </Button>
-                    <span className="px-1 text-xs text-muted-foreground">
-                      dari {totalPages}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-xs"
-                      className="text-muted-foreground"
-                      disabled={safePage === totalPages}
-                      onClick={() =>
-                        setPage((current) => Math.min(totalPages, current + 1))
-                      }
-                    >
-                      <ChevronRight className="size-3.5" />
-                    </Button>
-                  </div>
-                </div>
+              {nodes.length > limit ? (
+                <CollectionPagination
+                  itemLabel="RO"
+                  page={safePage}
+                  pageSize={limit}
+                  total={nodes.length}
+                  onPageChange={setPage}
+                  onPageSizeChange={(nextLimit) => {
+                    setLimit(nextLimit);
+                    setPage(1);
+                  }}
+                />
               ) : null}
             </div>
           </CollapsibleContent>
