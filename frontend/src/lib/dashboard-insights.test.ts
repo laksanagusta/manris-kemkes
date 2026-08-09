@@ -19,6 +19,20 @@ const {
   selectEffectiveRiskVersions,
 } = dashboardInsightsLib as typeof import("./dashboard-insights");
 
+const dashboardOverviewLib = dashboardInsightsLib as typeof dashboardInsightsLib & {
+  calculateDashboardTrend?: (
+    current: number | undefined,
+    previous: number | undefined,
+  ) => {
+    trend: "up" | "down" | "stable" | "unavailable";
+    change: string;
+  };
+  calculateRiskExposureScore?: (
+    risks: DashboardRiskInput[],
+    targetCycle: string,
+  ) => number;
+};
+
 type DashboardRiskInput = Parameters<typeof buildUnitExposureData>[0][number] & {
   id?: string;
   versionGroupId?: string;
@@ -74,6 +88,57 @@ function makeWorkingPaper(
     ...overrides,
   } as LatestOrganizationProgressInput;
 }
+
+test("overview trend never presents a missing or zero baseline as zero percent", () => {
+  assert.equal(typeof dashboardOverviewLib.calculateDashboardTrend, "function");
+  if (!dashboardOverviewLib.calculateDashboardTrend) return;
+
+  assert.deepEqual(
+    dashboardOverviewLib.calculateDashboardTrend(4, undefined),
+    { trend: "unavailable", change: "—" },
+  );
+  assert.deepEqual(
+    dashboardOverviewLib.calculateDashboardTrend(4, 0),
+    { trend: "unavailable", change: "Baru" },
+  );
+  assert.deepEqual(
+    dashboardOverviewLib.calculateDashboardTrend(0, 0),
+    { trend: "stable", change: "0%" },
+  );
+  assert.deepEqual(
+    dashboardOverviewLib.calculateDashboardTrend(8, 10),
+    { trend: "down", change: "20%" },
+  );
+});
+
+test("overview exposure score uses the effective risk versions for each cycle", () => {
+  assert.equal(typeof dashboardOverviewLib.calculateRiskExposureScore, "function");
+  if (!dashboardOverviewLib.calculateRiskExposureScore) return;
+
+  const risks = [
+    makeDashboardRisk({
+      id: "risk-h1",
+      versionGroupId: "risk-a",
+      assessmentCycle: "2026-H1",
+      inherentScore: 20,
+    }),
+    makeDashboardRisk({
+      id: "risk-h2",
+      versionGroupId: "risk-a",
+      assessmentCycle: "2026-H2",
+      inherentScore: 6,
+    }),
+  ];
+
+  assert.equal(
+    dashboardOverviewLib.calculateRiskExposureScore(risks, "2026-H1"),
+    5,
+  );
+  assert.equal(
+    dashboardOverviewLib.calculateRiskExposureScore(risks, "2026-H2"),
+    1,
+  );
+});
 
 test("buildUnitExposureData ranks units by weighted exposure score", () => {
   const result = buildUnitExposureData([

@@ -1,6 +1,16 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -11,13 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ReportScopePicker } from "@/components/report/report-scope-picker";
 import {
   Download,
   FileSpreadsheet,
   FileText,
+  Filter,
   Loader2,
   TrendingUp,
   ArrowUpRight,
+  ChevronDown,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -31,7 +44,6 @@ import {
 } from "recharts";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -45,7 +57,6 @@ import {
 import { SemesterTargetTrend } from "./_components/inherent-residual-trend";
 import { CriticalRiskRateTrend } from "./_components/critical-risk-rate-trend";
 import { RiskMovementByOrg } from "./_components/risk-movement-by-org";
-import { RiskCategoryDistributionCard } from "./_components/risk-category-distribution-card";
 import { cn } from "@/lib/utils";
 import {
   exportRiskBulkCSV,
@@ -58,7 +69,6 @@ import {
   buildMovementChartData,
   buildMovementSnapshotData,
   buildUnitExposureData,
-  buildDashboardRiskCategoryData,
   buildSemesterScoreTargetTrendData,
   buildCriticalRiskRateTrendData,
   buildMovementByOrgData,
@@ -75,17 +85,27 @@ import {
   buildSelectableReportOrganizationGroups,
   needsExplicitReportOrgSelection,
 } from "@/lib/report-scope";
-import { ReportsFilterSheet } from "./_components/report-filter-sheet";
 import {
   copyReportsFilterScope,
   resolveDefaultReportsFilterScope,
   type ReportsFilterScope,
 } from "@/lib/reports-filter-sheet";
 import type {
-  DashboardRiskCategoryItem,
   Risk,
   RiskCycleComparisonItem,
 } from "@/types/risk";
+import { CollectionToolbar } from "@/components/shared/design-system";
+import {
+  AccentButton,
+  ActionButton,
+  PageStack,
+} from "@/components/shared/design-system";
+import {
+  ReportDrilldownSummary,
+  ReportEmptyState,
+  ReportLinkGrid,
+  ReportPanel,
+} from "@/components/shared/design-system";
 
 type RiskCycleSnapshotItem = RiskExportItem & {
   assessmentCycle?: string;
@@ -93,10 +113,10 @@ type RiskCycleSnapshotItem = RiskExportItem & {
 };
 
 const trendColors: Record<string, string> = {
-  Rendah: "oklch(0.72 0.17 155)",
-  Sedang: "oklch(0.78 0.16 85)",
-  Tinggi: "oklch(0.70 0.18 40)",
-  "Sangat Tinggi": "oklch(0.62 0.22 27)",
+  Rendah: "oklch(0.85 0.07 190)",
+  Sedang: "oklch(0.78 0.10 190)",
+  Tinggi: "oklch(0.72 0.13 190)",
+  "Sangat Tinggi": "oklch(0.62 0.17 190)",
 };
 
 const EMPTY_REPORT_SCOPE: ReportsFilterScope = {
@@ -178,11 +198,6 @@ export default function ReportsPage() {
   const [selectedMovement, setSelectedMovement] = useState<
     MovementSnapshotDatum["key"] | null
   >(null);
-  const [riskCategoryData, setRiskCategoryData] = useState<
-    ReturnType<typeof buildDashboardRiskCategoryData>
-  >([]);
-  const [riskCategoryLoading, setRiskCategoryLoading] = useState(true);
-  const [riskCategoryError, setRiskCategoryError] = useState(false);
   const [movementByOrgSort, setMovementByOrgSort] =
     useState<MovementByOrgSortKey>("total");
 
@@ -311,11 +326,6 @@ export default function ReportsPage() {
     }
   };
 
-  const handleCancelReportFilter = () => {
-    setDraftReportScope(copyReportsFilterScope(appliedReportScope));
-    setReportFilterOpen(false);
-  };
-
   const handleResetReportFilter = () => {
     setDraftReportScope(
       resolveDefaultReportsFilterScope(user, reportOrganizations),
@@ -329,7 +339,6 @@ export default function ReportsPage() {
 
   useEffect(() => {
     if (!token) {
-      setRiskCategoryLoading(false);
       return;
     }
 
@@ -338,18 +347,12 @@ export default function ReportsPage() {
       setCycleRisks([]);
       setPreviousCycleRisks([]);
       setComparisons([]);
-      setRiskCategoryData([]);
-      setRiskCategoryLoading(false);
       return;
     }
 
     Promise.allSettled([
       api.get<RiskTrendSourceItem[]>(
         `/risks/trend${reportScopeQuery ? `?${reportScopeQuery.slice(1)}` : ""}`,
-        token,
-      ),
-      api.get<DashboardRiskCategoryItem[]>(
-        `/dashboard/risk-categories?cycle=${exportCycle}${reportScopeQuery}`,
         token,
       ),
       api.get<Risk[]>(
@@ -367,7 +370,6 @@ export default function ReportsPage() {
     ]).then(
       ([
         riskResult,
-        riskCategoryResult,
         cycleRiskResult,
         previousCycleRiskResult,
         comparisonResult,
@@ -378,18 +380,6 @@ export default function ReportsPage() {
           console.error(riskResult.reason);
           setTrendRisks([]);
         }
-
-        if (riskCategoryResult.status === "fulfilled") {
-          setRiskCategoryData(
-            buildDashboardRiskCategoryData(riskCategoryResult.value),
-          );
-          setRiskCategoryError(false);
-        } else {
-          console.error(riskCategoryResult.reason);
-          setRiskCategoryData([]);
-          setRiskCategoryError(true);
-        }
-        setRiskCategoryLoading(false);
 
         if (cycleRiskResult.status === "fulfilled") {
           setCycleRisks(cycleRiskResult.value);
@@ -543,142 +533,116 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Analisis Risiko</h1>
-        <p className="text-sm text-muted-foreground">
-          Untuk telaah analitis, perbandingan antar siklus, dan ekspor formal.
-          Pembaruan operasional mitigasi/KRI tetap dilakukan di Monitoring.
-        </p>
-      </div>
-
-      <ReportsFilterSheet
-        open={reportFilterOpen}
-        onOpenChange={handleReportFilterOpenChange}
-        activeUnitCount={reportOrgIds.length}
-        disabled={
-          reportOrganizations.length === 0 && reportOrganizationGroups.length === 0
-        }
-        draftScope={draftReportScope}
-        onDraftScopeChange={setDraftReportScope}
-        organizations={reportOrganizations}
-        organizationGroups={reportOrganizationGroups}
-        onReset={handleResetReportFilter}
-        onCancel={handleCancelReportFilter}
-        onApply={handleApplyReportFilter}
-      />
-
-      {/* Export Section */}
-      <Card className="border-border/50 bg-card/80">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Download className="size-4" />
-                Export Data
-              </CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Unduh ringkasan laporan sesuai organisasi atau group yang dipilih.
-              </p>
+    <PageStack>
+      <CollectionToolbar
+        actions={
+          <>
+        <Popover open={reportFilterOpen} onOpenChange={handleReportFilterOpenChange}>
+          <PopoverTrigger asChild>
+            <ActionButton variant="outline" size="md"
+              disabled={reportOrganizations.length === 0 && reportOrganizationGroups.length === 0}>
+              <Filter className="size-3.5" strokeWidth={2.5} />
+              Filter
+            </ActionButton>
+          </PopoverTrigger>
+          <PopoverContent
+            side="right"
+            align="start"
+            sideOffset={8}
+            className="w-[22rem] rounded-2xl p-4"
+          >
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium">Filter Laporan</h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Atur group dan unit. Perubahan baru diterapkan setelah menekan Terapkan.
+                </p>
+              </div>
+              <ReportScopePicker
+                organizationId={draftReportScope.organizationId}
+                onOrganizationChange={(organizationId) =>
+                  setDraftReportScope((current) => ({
+                    ...current,
+                    organizationId,
+                  }))
+                }
+                selectedOrganizationIds={draftReportScope.organizationIds}
+                onSelectedOrganizationIdsChange={(organizationIds) =>
+                  setDraftReportScope((current) => ({
+                    ...current,
+                    organizationIds,
+                  }))
+                }
+                organizations={reportOrganizations}
+                organizationGroups={reportOrganizationGroups}
+                organizationGroupId={draftReportScope.organizationGroupId}
+                onOrganizationGroupChange={(organizationGroupId) =>
+                  setDraftReportScope((current) => ({
+                    ...current,
+                    organizationGroupId,
+                  }))
+                }
+                organizationPlaceholder="Pilih unit"
+                organizationGroupPlaceholder="Pilih grup"
+                orientation="vertical"
+              />
+              <div className="flex items-center justify-between pt-4">
+                <ActionButton type="button" variant="ghost" size="md" onClick={handleResetReportFilter}>
+                  Reset
+                </ActionButton>
+                <AccentButton
+                  type="button"
+                  size="md"
+                  onClick={handleApplyReportFilter}
+                >
+                  Terapkan
+                </AccentButton>
+              </div>
             </div>
-            <Badge
-              variant="outline"
-              className="h-6 px-2 text-[10px] font-medium text-muted-foreground"
-            >
-              Periode {exportCycle}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col">
-          <div className="grid flex-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          </PopoverContent>
+        </Popover>
+
+        {/* Export Section */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <ActionButton variant="outline" size="md">
+              <Download className="size-3.5" strokeWidth={2.5} />
+              Export Data
+              <ChevronDown className="size-3.5 text-muted-foreground" />
+            </ActionButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
             {exportOptions.map((opt) => (
-              <button
-                key={opt.title}
+              <DropdownMenuItem
+                key={opt.key}
                 onClick={() => handleExport(opt.key)}
                 disabled={!opt.isEnabled || isExporting !== null}
-                className={cn(
-                  "flex items-stretch gap-3 rounded-lg border border-border/50 p-3 text-left transition-all group h-full",
-                  opt.isEnabled
-                    ? "hover:bg-muted/30 hover:border-primary/30"
-                    : "cursor-not-allowed opacity-65",
-                )}
               >
-                <div
-                  className={cn(
-                    "flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors",
-                    opt.isEnabled
-                      ? "bg-primary/10 group-hover:bg-primary/15"
-                      : "bg-muted/60",
-                  )}
-                >
-                  {isExporting === opt.key ? (
-                    <Loader2 className="size-4 text-primary animate-spin" />
-                  ) : (
-                    <opt.icon className="size-4 text-primary" />
-                  )}
-                </div>
-                <div className="flex flex-col justify-between flex-1 min-w-0">
-                  <div>
-                    <p
-                      className={cn(
-                        "text-xs font-semibold transition-colors",
-                        opt.isEnabled && "group-hover:text-primary",
-                      )}
-                    >
-                      {opt.title}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
-                      {opt.description}
-                    </p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="text-[8px] h-4 px-1 mt-2 self-start"
-                  >
-                    {isExporting === opt.key
-                      ? opt.key === "risk-pdf"
-                        ? "Downloading..."
-                        : "Exporting..."
-                      : opt.isEnabled
-                        ? opt.format
-                        : "Disabled"}
-                  </Badge>
-                </div>
-              </button>
+                {isExporting === opt.key ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <opt.icon className="size-3.5" />
+                )}
+                <span>{opt.title}</span>
+              </DropdownMenuItem>
             ))}
-          </div>
-        </CardContent>
-      </Card>
+          </DropdownMenuContent>
+        </DropdownMenu>
+          </>
+        }
+      />
 
       <section id="risk-analytics" className="space-y-4 scroll-mt-24">
         <div className="grid gap-6 xl:grid-cols-12">
-          <div className="xl:col-span-12">
-            <RiskCategoryDistributionCard
-              data={riskCategoryData}
-              loading={riskCategoryLoading}
-              error={riskCategoryError}
-              cycle={exportCycle}
-            />
-          </div>
-
-          <Card className="h-full border-border/50 bg-card/80 xl:col-span-7">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-sm font-semibold">
-                    Laporan Pergerakan Risiko
-                  </CardTitle>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Perbandingan pergerakan dari {previousCycle} ke {exportCycle}.
-                  </p>
-                </div>
+          <ReportPanel
+            className="xl:col-span-7"
+            title="Laporan Pergerakan Risiko"
+            actions={
                 <Badge variant="outline" className="h-5 px-2 text-[10px]">
                   {`${previousCycle} ke ${exportCycle}`}
                 </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
+            }
+          >
               {hasMovementData ? (
                 <>
                   <div className="grid gap-3 pb-4 md:grid-cols-5">
@@ -692,17 +656,10 @@ export default function ReportsPage() {
                         <KpiCard
                           label={item.label}
                           value={item.value}
-                          tone={
-                            item.key === "up"
-                              ? "rose"
-                              : item.key === "down"
-                                ? "emerald"
-                                : item.key === "removed"
-                                  ? "rose"
-                                  : item.key === "new"
-                                    ? "white"
-                                    : "zinc"
-                          }
+                          tone="white"
+                          className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+                          labelClassName="capitalize tracking-normal"
+                          valueClassName="font-medium"
                           description={
                             selectedMovement === item.key ? (
                               <Badge
@@ -762,12 +719,12 @@ export default function ReportsPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                  Perbandingan Semester belum tersedia
-                </div>
+                <ReportEmptyState
+                  className="h-56"
+                  description="Perbandingan Semester belum tersedia"
+                />
               )}
-            </CardContent>
-          </Card>
+          </ReportPanel>
 
           <div className="xl:col-span-5">
             <RiskMovementByOrg
@@ -781,24 +738,15 @@ export default function ReportsPage() {
 
       <section id="risk-exposure-trend" className="space-y-6 scroll-mt-24">
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-12">
-          <Card className="h-full border-border/50 bg-card/80 xl:col-span-4">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-sm font-semibold">
-                    Paparan Risiko
-                  </CardTitle>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Peringkat unit berdasarkan skor paparan berbobot untuk
-                    siklus {exportCycle}.
-                  </p>
-                </div>
+          <ReportPanel
+            className="xl:col-span-4"
+            title="Paparan Risiko"
+            actions={
                 <Badge variant="outline" className="h-5 px-2 text-[10px]">
                   {exportCycle}
                 </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
+            }
+          >
               {hasExposureData ? (
                 <>
                   <div className="h-48">
@@ -841,7 +789,7 @@ export default function ReportsPage() {
                         />
                         <Bar
                           dataKey="exposureScore"
-                          fill="oklch(0.68 0.17 35)"
+                          fill="oklch(0.72 0.13 190)"
                           radius={[6, 6, 0, 0]}
                         />
                       </BarChart>
@@ -877,20 +825,22 @@ export default function ReportsPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                  Belum ada data risiko untuk menyusun ranking unit prioritas.
-                </div>
+                <ReportEmptyState
+                  className="h-48"
+                  description="Belum ada data risiko untuk menyusun ranking unit prioritas."
+                />
               )}
-            </CardContent>
-          </Card>
+          </ReportPanel>
 
-          <Card className="h-full border-border/50 bg-card/80 xl:col-span-4">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <ReportPanel
+            className="xl:col-span-4"
+            title={
+              <span className="flex items-center gap-2">
                   <TrendingUp className="size-4" />
                   Tren Risiko
-                </CardTitle>
+              </span>
+            }
+            actions={
                 <Select
                   value={trendWindow}
                   onValueChange={(value) =>
@@ -906,9 +856,8 @@ export default function ReportsPage() {
                     <SelectItem value="all">Semua</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
+            }
+          >
               {hasTrendData ? (
                 <>
                   <div className="h-48">
@@ -948,11 +897,7 @@ export default function ReportsPage() {
                             dataKey={key}
                             stackId="risk"
                             fill={color}
-                            radius={
-                              key === "Sangat Tinggi"
-                                ? [3, 3, 0, 0]
-                                : [0, 0, 0, 0]
-                            }
+                            radius={[3, 3, 0, 0]}
                           />
                         ))}
                       </BarChart>
@@ -973,12 +918,12 @@ export default function ReportsPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                  Belum ada data semester untuk menampilkan tren risiko.
-                </div>
+                <ReportEmptyState
+                  className="h-48"
+                  description="Belum ada data semester untuk menampilkan tren risiko."
+                />
               )}
-            </CardContent>
-          </Card>
+          </ReportPanel>
           <div className="xl:col-span-4">
             <CriticalRiskRateTrend data={criticalRiskRateData} />
           </div>
@@ -990,77 +935,37 @@ export default function ReportsPage() {
       </section>
 
       {selectedUnit || selectedMovement ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Drilldown aktif:</span>
+        <ReportDrilldownSummary
+          onReset={() => {
+            setSelectedUnit(null);
+            setSelectedMovement(null);
+          }}
+        >
           {selectedUnit ? (
             <Badge variant="outline">Unit: {selectedUnit}</Badge>
           ) : null}
           {selectedMovement ? (
             <Badge variant="outline">Movement: {selectedMovement}</Badge>
           ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedUnit(null);
-              setSelectedMovement(null);
-            }}
-            className="ml-auto text-[11px] font-medium text-primary hover:underline"
-          >
-            Reset filter
-          </button>
-        </div>
+        </ReportDrilldownSummary>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <Link
-          href="/reports/compliance-monitoring"
-          className="group rounded-2xl border border-border/60 bg-card/70 p-5 transition-colors hover:border-primary/30 hover:bg-primary/5"
-        >
-          <p className="text-sm font-semibold text-foreground">
-            Monitoring Kepatuhan
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Buka overdue mitigasi, breach KRI, dan waktu respons unit.
-          </p>
-          <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary">
-            Buka halaman
-            <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </span>
-        </Link>
-
-        <Link
-          href="/reports/performance-risk"
-          className="group rounded-2xl border border-border/60 bg-card/70 p-5 transition-colors hover:border-primary/30 hover:bg-primary/5"
-        >
-          <p className="text-sm font-semibold text-foreground">
-            Analisis Kinerja & Risiko
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Lihat ranking RO, detail inherent exposure, dan data kualitas risiko
-            tanpa RO.
-          </p>
-          <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary">
-            Buka halaman
-            <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </span>
-        </Link>
-
-        <Link
-          href="/reports/cycle-detail"
-          className="group rounded-2xl border border-border/60 bg-card/70 p-5 transition-colors hover:border-primary/30 hover:bg-primary/5"
-        >
-          <p className="text-sm font-semibold text-foreground">
-            Detail Siklus Risiko
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Telusuri perubahan risiko antar periode secara rinci.
-          </p>
-          <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary">
-            Buka halaman
-            <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </span>
-        </Link>
-      </section>
-    </div>
+      <ReportLinkGrid
+        items={[
+          {
+            href: "/reports/compliance-monitoring",
+            title: "Monitoring Kepatuhan",
+          },
+          {
+            href: "/reports/performance-risk",
+            title: "Analisis Kinerja & Risiko",
+          },
+          {
+            href: "/reports/cycle-detail",
+            title: "Detail Siklus Risiko",
+          },
+        ]}
+      />
+    </PageStack>
   );
 }

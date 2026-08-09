@@ -743,7 +743,7 @@ function MeetingIntelligenceWorkspaceContent({
   return (
     <div className="space-y-6 animate-fade-in">
       <section className="space-y-2">
-        <Badge variant="outline" className="border-border/70 text-[10px] uppercase tracking-[0.18em]">
+        <Badge variant="outline" className="text-[10px] uppercase tracking-[0.18em]">
           Briefing
         </Badge>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -850,11 +850,11 @@ function MeetingIntelligenceWorkspaceContent({
           {mode === "minutes" ? (
             generatedMinutes ? (
               <Card className="border-border/60 bg-card/90">
-                <CardHeader className="border-b border-border/50 pb-4">
+                <div className="border-b border-border/50 p-6">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Badge className={cn("w-fit border text-[10px] uppercase tracking-[0.18em]", modeConfig.minutes.chip)}>
+                        <Badge className={cn("w-fit text-[10px] uppercase tracking-[0.18em]", modeConfig.minutes.chip)}>
                           Draf Briefing
                         </Badge>
                         <Button
@@ -878,7 +878,6 @@ function MeetingIntelligenceWorkspaceContent({
                         </Button>
                       </div>
                       <div>
-                        <CardTitle className="text-lg">{generatedMinutes.title}</CardTitle>
                         <p className="mt-1 text-sm text-muted-foreground">
                           Tinjau briefing ini sebelum dibagikan ke peserta rapat.
                         </p>
@@ -895,7 +894,7 @@ function MeetingIntelligenceWorkspaceContent({
                       </span>
                     </div>
                   </div>
-                </CardHeader>
+                </div>
                 <CardContent className="space-y-6 p-5">
                   <section className="border border-border/50 bg-muted/[0.12] px-4 py-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -936,7 +935,7 @@ function MeetingIntelligenceWorkspaceContent({
                       <div className="mt-3 flex flex-wrap gap-2">
                         {generatedMinutes.participants.length > 0 ? (
                           generatedMinutes.participants.map((participant) => (
-                            <Badge key={participant} variant="outline" className="border-border/70 bg-background px-2.5 py-1 text-xs">
+                            <Badge key={participant} variant="outline" className="bg-background px-2.5 py-1 text-xs">
                               <Users className="mr-1 size-3" />
                               {participant}
                             </Badge>
@@ -1003,7 +1002,7 @@ function MeetingIntelligenceWorkspaceContent({
                         </p>
                       </div>
                       {generatedMinutes.nextCheckIn ? (
-                        <Badge variant="outline" className="w-fit border-border/70 bg-background px-3 py-1 text-xs">
+                        <Badge variant="outline" className="w-fit bg-background px-3 py-1 text-xs">
                           Review berikutnya: {generatedMinutes.nextCheckIn}
                         </Badge>
                       ) : null}
@@ -1015,11 +1014,11 @@ function MeetingIntelligenceWorkspaceContent({
                             <Table>
                               <TableHeader>
                                 <TableRow className="border-border/50 hover:bg-transparent">
-                                  <TableHead className="text-xs max-w-[280px]">Tindak lanjut</TableHead>
-                                  <TableHead className="text-xs max-w-[140px]">PIC</TableHead>
-                                  <TableHead className="text-xs max-w-[120px]">Deadline</TableHead>
-                                  <TableHead className="text-xs w-[100px]">Prioritas</TableHead>
-                                  <TableHead className="text-xs max-w-[200px]">Catatan</TableHead>
+                                  <TableHead className="text-sm max-w-[280px]">Tindak lanjut</TableHead>
+                                  <TableHead className="text-sm max-w-[140px]">PIC</TableHead>
+                                  <TableHead className="text-sm max-w-[120px]">Deadline</TableHead>
+                                  <TableHead className="text-sm w-[100px]">Prioritas</TableHead>
+                                  <TableHead className="text-sm max-w-[200px]">Catatan</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -1048,7 +1047,7 @@ function MeetingIntelligenceWorkspaceContent({
                                         ) : (
                                           <span className="text-muted-foreground">
                                             {missingPic ? (
-                                              <Badge variant="outline" className="border-amber-500/30 bg-amber-500/5 text-[9px] text-amber-700">
+                                              <Badge variant="outline" className="bg-amber-500/5 text-[9px] text-amber-700">
                                                 Perlu PIC
                                               </Badge>
                                             ) : (
@@ -1065,7 +1064,7 @@ function MeetingIntelligenceWorkspaceContent({
                                         ) : (
                                           <span className="text-muted-foreground">
                                             {missingDeadline ? (
-                                              <Badge variant="outline" className="border-amber-500/30 bg-amber-500/5 text-[9px] text-amber-700">
+                                              <Badge variant="outline" className="bg-amber-500/5 text-[9px] text-amber-700">
                                                 Perlu deadline
                                               </Badge>
                                             ) : (
@@ -1075,7 +1074,7 @@ function MeetingIntelligenceWorkspaceContent({
                                         )}
                                       </TableCell>
                                       <TableCell className="w-[100px] align-top text-center">
-                                        <Badge className={cn("w-fit border text-[9px]", priorityVariant[itemPriority])}>
+                                        <Badge className={cn("w-fit text-[9px]", priorityVariant[itemPriority])}>
                                           {itemPriority}
                                         </Badge>
                                       </TableCell>
@@ -1159,14 +1158,14 @@ function MeetingIntelligenceWorkspaceContent({
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Badge className="border border-primary/20 bg-primary/10 text-[10px] uppercase tracking-[0.12em] text-primary">
+                    <Badge className="bg-primary/10 text-[10px] uppercase tracking-[0.12em] text-primary">
                       Existing: {suggestionSummary.existing}
                     </Badge>
-                    <Badge className="border border-success/20 bg-success/10 text-[10px] uppercase tracking-[0.12em] text-success">
+                    <Badge className="bg-success/10 text-[10px] uppercase tracking-[0.12em] text-success">
                       Baru: {suggestionSummary.new}
                     </Badge>
                     {suggestionSummary.lowConfidence > 0 ? (
-                      <Badge className="border border-amber-500/20 bg-amber-500/10 text-[10px] uppercase tracking-[0.12em] text-amber-700">
+                      <Badge className="bg-amber-500/10 text-[10px] uppercase tracking-[0.12em] text-amber-700">
                         Keyakinan rendah: {suggestionSummary.lowConfidence}
                       </Badge>
                     ) : null}
@@ -1187,7 +1186,7 @@ function MeetingIntelligenceWorkspaceContent({
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                           <div className="min-w-0 flex-1 space-y-3">
                             <div className="flex flex-wrap items-center gap-2">
-                              <Badge className={cn("border text-[10px] uppercase tracking-[0.12em]", config.bg, config.color, config.border)}>
+                              <Badge className={cn("text-[10px] uppercase tracking-[0.12em]", config.bg, config.color)}>
                                 {config.label}
                               </Badge>
                               {suggestion.targetRiskCode ? (
@@ -1197,13 +1196,13 @@ function MeetingIntelligenceWorkspaceContent({
                               ) : null}
                               {suggestion.targetType === "existing" && suggestion.matchConfidence ? (
                                 <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "text-[10px]",
-                                    isLowConfidenceSuggestion(suggestion)
-                                      ? "border-amber-500/30 bg-amber-500/5 text-amber-700"
-                                      : "border-success/30 bg-success/5 text-success"
-                                  )}
+ variant="outline"
+ className={cn(
+ "text-[10px]",
+ isLowConfidenceSuggestion(suggestion)
+ ? "-amber-500/30 bg-amber-500/5 text-amber-700"
+ : "-success/30 bg-success/5 text-success"
+ )}
                                 >
                                   Tingkat keyakinan {suggestion.matchConfidence}%
                                 </Badge>
@@ -1713,8 +1712,7 @@ function MeetingIntelligenceWorkspaceContent({
                           <Badge
                             key={riskId}
                             variant="outline"
-                            className="max-w-[240px] gap-1 border-primary/30 bg-primary/5"
-                          >
+                            className="max-w-[240px] gap-1 -primary/30 bg-primary/5">
                             <span className="truncate">
                               {risk ? `${risk.code} • ${risk.title}` : riskId}
                             </span>
@@ -1745,12 +1743,12 @@ function MeetingIntelligenceWorkspaceContent({
                           const isSelected = selectedRiskIds.includes(riskId);
                           return (
                             <Badge
-                              key={riskId}
-                              variant={isSelected ? "default" : "outline"}
-                              className={cn(
-                                "cursor-pointer",
-                                isSelected && "bg-primary/10 border-primary/30"
-                              )}
+ key={riskId}
+ variant={isSelected ? "default" : "outline"}
+ className={cn(
+ "cursor-pointer",
+ isSelected && "bg-primary/10 -primary/30"
+ )}
                               onClick={() => handleToggleRisk(riskId)}
                             >
                               {s.targetRiskCode} • {s.targetRiskTitle}

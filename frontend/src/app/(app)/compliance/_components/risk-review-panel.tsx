@@ -34,9 +34,8 @@ import type {
   RiskReviewStatus,
   RiskReviewSummary,
 } from "@/types/risk";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -405,20 +404,6 @@ export function RiskReviewPanel({
       {children}
 
       <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
-        <CardHeader className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
-          <div className="space-y-1">
-            <CardTitle className="text-base font-semibold text-foreground">
-              Completion Rate per Unit
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Persentase risiko yang sudah selesai dinilai ulang dan approved
-              pada cycle {cycle}.
-            </p>
-          </div>
-          <Badge variant="outline" className="mt-0.5 shrink-0 text-[10px]">
-            {summaryData?.unitCompletion.length ?? 0} unit
-          </Badge>
-        </CardHeader>
         <CardContent>
           {summaryLoading ? (
             <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
@@ -505,14 +490,6 @@ export function RiskReviewPanel({
       </Card>
 
       <Card className="ring-1 ring-inset ring-border border-0 bg-card">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-base font-semibold text-foreground">
-            Perbandingan Semester {previousCycle} ke {cycle}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Fokus pada perubahan skor dan level antar semester.
-          </p>
-        </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
             <KpiCard

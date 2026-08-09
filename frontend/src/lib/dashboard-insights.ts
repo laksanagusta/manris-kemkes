@@ -1,6 +1,4 @@
-// @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
 import type { DashboardRiskCategoryItem } from "../types/risk";
-// @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
 import { dashboardCategoryLabels, getBobot, resolveRiskScoreSemantics } from "./risk.js";
 
 type Severity = "Sangat Rendah" | "Rendah" | "Sedang" | "Tinggi" | "Sangat Tinggi";
@@ -171,6 +169,52 @@ export function weightFor(level: Severity) {
   return 0;
 }
 
+export type DashboardTrend = {
+  trend: "up" | "down" | "stable" | "unavailable";
+  change: string;
+};
+
+export function calculateDashboardTrend(
+  current: number | undefined,
+  previous: number | undefined,
+): DashboardTrend {
+  if (current === undefined || previous === undefined) {
+    return { trend: "unavailable", change: "—" };
+  }
+
+  if (previous === 0) {
+    return current === 0
+      ? { trend: "stable", change: "0%" }
+      : { trend: "unavailable", change: "Baru" };
+  }
+
+  const percent = Math.round(((current - previous) / previous) * 100);
+  if (percent === 0) return { trend: "stable", change: "0%" };
+
+  return {
+    trend: percent > 0 ? "up" : "down",
+    change: `${Math.abs(percent)}%`,
+  };
+}
+
+export function calculateRiskExposureScore(
+  risks: RiskLike[],
+  targetCycle: string,
+) {
+  return selectEffectiveRiskVersions(risks, targetCycle).reduce((sum, risk) => {
+    const score = resolveRiskScoreSemantics({
+      status: risk.status ?? "assessment_draft",
+      probability: risk.probability ?? 1,
+      impact: risk.impact ?? 1,
+      weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
+      nilai: risk.nilai ?? undefined,
+      inherentScore: risk.inherentScore ?? 0,
+    }).effective.score;
+
+    return sum + weightFor(levelFromScore(score));
+  }, 0);
+}
+
 function isOverdue(dateText?: string | null, now = new Date()) {
   if (!dateText) return false;
   const date = new Date(`${dateText}T00:00:00`);
@@ -263,9 +307,9 @@ export function buildMovementChartData(comparisons: ComparisonLike[]): MovementC
   }
 
   return [
-    { label: "Naik", value: counts.up, fill: "oklch(0.70 0.18 40)" },
-    { label: "Turun", value: counts.down, fill: "oklch(0.72 0.17 155)" },
-    { label: "Stabil", value: counts.stable, fill: "oklch(0.60 0.02 265 / 55%)" },
+    { label: "Naik", value: counts.up, fill: "oklch(0.72 0.13 190)" },
+    { label: "Turun", value: counts.down, fill: "oklch(0.82 0.08 190)" },
+    { label: "Stabil", value: counts.stable, fill: "oklch(0.65 0.05 190 / 50%)" },
   ];
 }
 

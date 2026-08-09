@@ -41,9 +41,9 @@ export function KRIBreachSummary({ loading, data = [] }: KRIBreachSummaryProps) 
 
   if (loading) {
     return (
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="kri-breach-summary">
+      <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none" data-testid="kri-breach-summary">
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Ringkasan KRI Breach</CardTitle>
+          <CardTitle className="text-sm font-semibold">Ringkasan KRI Breach</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
@@ -55,11 +55,11 @@ export function KRIBreachSummary({ loading, data = [] }: KRIBreachSummaryProps) 
   }
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="kri-breach-summary">
+    <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none" data-testid="kri-breach-summary">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-base font-semibold">Ringkasan KRI Breach</CardTitle>
+            <CardTitle className="text-sm font-semibold">Ringkasan KRI Breach</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
               KRI yang mencapai ambang batas
             </p>

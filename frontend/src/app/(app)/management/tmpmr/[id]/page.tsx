@@ -397,7 +397,7 @@ export default function TMPMRDetailPage() {
 
   const statusBadges = (
     <>
-      <Badge className="gap-2 border-primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
+      <Badge className="gap-2 -primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
         <ClipboardList className="size-3.5" />
         Risk Governance
       </Badge>
@@ -405,7 +405,7 @@ export default function TMPMRDetailPage() {
         {status ? statusLabel[status] : "Draft"}
       </Badge>
       {isApproved ? (
-        <Badge variant="outline" className="gap-1.5 border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+        <Badge variant="outline" className="gap-1.5 -emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
           <CheckCircle2 className="size-3.5" />
           Read-only
         </Badge>
@@ -683,7 +683,7 @@ export default function TMPMRDetailPage() {
                     {status ? statusLabel[status] : "Draft"}
                   </Badge>
                   {isApproved ? (
-                    <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                    <Badge variant="outline" className="-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
                       Selesai
                     </Badge>
                   ) : null}

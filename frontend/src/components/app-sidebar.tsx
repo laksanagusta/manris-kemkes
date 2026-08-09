@@ -15,14 +15,12 @@ import {
   FileSearch,
   Users,
   Settings2,
-  ChevronDown,
   Calculator,
   Building2,
   FileSignature,
   ClipboardPenLine,
   Goal,
   GitBranch,
-  Plus,
   LogOut,
   User as UserIcon,
 } from "lucide-react";
@@ -47,7 +45,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
 } from "@/components/ui/sidebar";
 import { useEffect, useMemo, useState } from "react";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -130,6 +127,13 @@ const managementRiskNavigation: NavItem[] = (managementRiskGroup?.items ?? [])
   }));
 
 const navigation: NavGroup[] = [
+  {
+    title: "OPERASIONAL",
+    items: [
+      dashboardNavigation,
+      ...managementRiskNavigation,
+    ],
+  },
   ...mainMenuItems
     .filter((group) => group.title !== "MANAJEMEN RISIKO")
     .map((group) => {
@@ -198,9 +202,7 @@ const allNavHrefs = [
   ]),
 ];
 
-const defaultCollapsedNodes = new Set(
-  navigation.map((group) => `group:${group.title}`),
-);
+
 
 const utilityLinks: NavItem[] = [
   {
@@ -324,9 +326,6 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
   const normalizedScopeLabel = scopeLabel
     .replaceAll("_", " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
-  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(
-    () => new Set(defaultCollapsedNodes),
-  );
   const currentHash = useLocationHash();
   const aiFeaturesDisabled = isAIFeaturesDisabled();
   const visibleNavigation = useMemo(() => {
@@ -343,33 +342,23 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
     return baseNavigation.filter((group) => group.title !== "AI & Automation");
   }, [aiFeaturesDisabled, user]);
 
-  const toggleNode = (key: string) => {
-    setCollapsedNodes((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(key)) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
-      }
-      return newSet;
-    });
-  };
+
 
   return (
     <Sidebar
       className={cn(
-        "*:data-[slot=sidebar-inner]:bg-muted/60",
+        "*:data-[slot=sidebar-inner]:bg-sidebar",
         "**:data-[slot=sidebar-menu-button]:[&>span]:text-sidebar-foreground/75",
       )}
       collapsible="icon"
-      variant="floating"
+      variant="sidebar"
     >
       <SidebarHeader className="h-14 justify-center px-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg" tooltip="Manris">
               <Link href="/overview">
-                <span className="text-sm font-semibold tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+                <span className="text-sm font-semibold uppercase tracking-[2px] text-sidebar-foreground group-data-[collapsible=icon]:hidden">
                   manris
                 </span>
                 <span className="hidden font-semibold text-sidebar-foreground group-data-[collapsible=icon]:inline">
@@ -382,86 +371,29 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                className="h-9 rounded-md justify-center bg-primary font-semibold text-white hover:bg-primary/90 hover:text-white active:bg-primary/90 active:text-white [&_span]:text-white button-cta"
-                tooltip="Tambah Risiko"
-              >
-                <Link href="/risk/register/new">
-                  <Plus />
-                  <span style={{ color: 'white' }}>Tambah Risiko</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarMenu>
-              <NavLink
-                item={dashboardNavigation}
-                currentHash={currentHash}
-                badgeOverride={undefined}
-              />
-              {managementRiskNavigation.map((item) => (
-                <NavLink
-                  key={item.href}
-                  item={item}
-                  currentHash={currentHash}
-                  badgeOverride={
-                    item.href === "/inbox" ? inboxBadge : undefined
-                  }
-                />
-              ))}
-          </SidebarMenu>
-        </SidebarGroup>
-
         <ScrollArea className="min-h-0 flex-1">
-          <nav className="flex flex-col gap-2">
-              {visibleNavigation.map((group) => {
-                const groupKey = `group:${group.title}`;
-                const isGroupCollapsed = collapsedNodes.has(groupKey);
+          <div className="flex flex-col gap-2">
+            {visibleNavigation.map((group) => (
+              <SidebarGroup key={group.title}>
+                <SidebarGroupLabel>
+                  {group.title}
+                </SidebarGroupLabel>
 
-                return (
-                  <SidebarGroup key={group.title}>
-                    <SidebarGroupLabel asChild>
-                      <button
-                        type="button"
-                        onClick={() => toggleNode(groupKey)}
-                        className="justify-between text-xs uppercase tracking-[0.12em]"
-                        aria-expanded={!isGroupCollapsed}
-                      >
-                        <span>{group.title}</span>
-                        <ChevronDown
-                          className={cn(
-                            "transition-transform duration-200",
-                            isGroupCollapsed && "-rotate-90",
-                          )}
-                        />
-                      </button>
-                    </SidebarGroupLabel>
-
-                    {!isGroupCollapsed && (
-                      <SidebarMenu>
-                        {group.items?.map((item) => (
-                          <NavLink
-                            key={item.href}
-                            item={item}
-                            currentHash={currentHash}
-                            badgeOverride={
-                              item.href === "/inbox" ? inboxBadge : undefined
-                            }
-                          />
-                        ))}
-                      </SidebarMenu>
-                    )}
-                  </SidebarGroup>
-                );
-              })}
-          </nav>
+                <SidebarMenu>
+                  {group.items?.map((item) => (
+                    <NavLink
+                      key={item.href}
+                      item={item}
+                      currentHash={currentHash}
+                      badgeOverride={
+                        item.href === "/inbox" ? inboxBadge : undefined
+                      }
+                    />
+                  ))}
+                </SidebarMenu>
+              </SidebarGroup>
+            ))}
+          </div>
         </ScrollArea>
       </SidebarContent>
 
@@ -484,7 +416,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="rounded-lg border border-border/50 bg-white p-3 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none"
+                className="rounded-lg border border-zinc-200/80 bg-white p-3 text-left shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] transition-colors transition-transform duration-100 active:scale-[0.97] hover:bg-muted/30 focus-visible:outline-none"
                 aria-label="Open user menu"
               >
                 <div className="flex items-center gap-3">
@@ -540,7 +472,6 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
           </DropdownMenu>
         )}
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   );
 }

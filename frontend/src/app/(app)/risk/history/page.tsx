@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -89,7 +89,7 @@ export default function RiskHistoryPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm">{ver.name}</span>
                     {ver.isCurrent && (
-                      <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] h-4 px-1.5 ml-1">Current</Badge>
+                      <Badge className="bg-primary/20 text-primary -primary/20 text-[9px] h-4 px-1.5 ml-1">Current</Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
@@ -105,22 +105,16 @@ export default function RiskHistoryPage() {
         {/* Change Comparison */}
         <div className="lg:col-span-3 space-y-4">
           <Card className="border-border/50 bg-card/80">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <GitBranch className="size-4" />
-                Perbandingan: {versions.find(v => v.id === selectedVersion)?.name} vs Current
-              </CardTitle>
-            </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow className="border-border/50 hover:bg-transparent">
-                    <TableHead className="w-20 text-xs whitespace-nowrap">Kode</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Risiko & Alasan Perubahan</TableHead>
-                    <TableHead className="text-xs w-28 whitespace-nowrap">Versi Lama</TableHead>
-                    <TableHead className="text-xs text-center w-12 whitespace-nowrap">→</TableHead>
-                    <TableHead className="text-xs w-28 whitespace-nowrap">Versi Current</TableHead>
-                    <TableHead className="text-xs w-16 text-center whitespace-nowrap">Tren</TableHead>
+                    <TableHead className="w-20 text-sm whitespace-nowrap">Kode</TableHead>
+                    <TableHead className="text-sm whitespace-nowrap">Risiko & Alasan Perubahan</TableHead>
+                    <TableHead className="text-sm w-28 whitespace-nowrap">Versi Lama</TableHead>
+                    <TableHead className="text-sm text-center w-12 whitespace-nowrap">→</TableHead>
+                    <TableHead className="text-sm w-28 whitespace-nowrap">Versi Current</TableHead>
+                    <TableHead className="text-sm w-16 text-center whitespace-nowrap">Tren</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

@@ -21,8 +21,6 @@ import {
   AlertTriangle,
   UploadCloud,
   RotateCcw,
-  ClipboardCheck,
-  PanelTop,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -33,6 +31,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import {
+  AccentButton,
+  CollectionToolbar,
+  PageStack,
+} from "@/components/shared/design-system";
 import {
   analyzeDocumentIntelligence,
   type AnalyzeDocumentIntelligenceInput,
@@ -96,24 +99,6 @@ const modeOptions: ModeOption[] = [
     icon: Sparkles,
     useWhen: "Ketika Anda punya bukti pelaksanaan mitigasi atau laporan progres.",
     output: "Task mitigasi terbuka, progres, blocker, dan draft laporan.",
-  },
-];
-
-const workflowSteps = [
-  {
-    title: "1. Pilih dokumen",
-    description: "Unggah PDF atau XLSX yang sudah siap dibaca mesin.",
-    icon: UploadCloud,
-  },
-  {
-    title: "2. Tentukan mode",
-    description: "Pilih keluaran yang paling cocok untuk jenis dokumen.",
-    icon: ClipboardCheck,
-  },
-  {
-    title: "3. Review hasil",
-    description: "Tinjau draft, kutipan sumber, lalu lanjutkan ke form resmi.",
-    icon: PanelTop,
   },
 ];
 
@@ -330,54 +315,36 @@ export default function DocumentIntelligencePage() {
 
   const documentMeta = response?.document;
   const warningCount = documentMeta?.warnings?.length ?? 0;
-  const stepLabels = workflowSteps.map((step) => step.title);
   const fileLabel = file ? file.name : "Belum ada file";
 
   return (
-    <main className="mx-auto flex w-full max-w-[1680px] flex-col gap-8 px-4 py-6 md:px-6 lg:px-8">
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <Badge className="gap-2 border-primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
+    <PageStack>
+      <CollectionToolbar
+        leading={
+          <Badge className="mb-1 w-fit gap-2 border-primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
             <FileSearch className="size-3.5" />
             AI & Automation
           </Badge>
-          <Badge variant="outline" className="text-[11px]">
-            {fileLabel}
-          </Badge>
-          <Badge variant="outline" className="text-[11px]">
-            {activeMode.label}
-          </Badge>
-        </div>
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Document Intelligence
-            </h1>
-            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-              Unggah dokumen kerja, pilih mode yang tepat, lalu review draft
-              terstruktur yang bisa langsung diteruskan ke form risiko,
-              planning, atau laporan mitigasi.
-            </p>
-          </div>
+        }
+        title="Document Intelligence"
+        description="Unggah dokumen kerja, pilih mode yang tepat, lalu review draft terstruktur sebelum diteruskan ke workflow resmi."
+        actions={
           <div className="flex flex-wrap items-center gap-2 md:justify-end">
-            <Badge variant="secondary" className="text-[11px]">
-              {stepLabels[0]}
+            <Badge variant="outline" className="max-w-[220px] truncate text-[11px]">
+              {fileLabel}
             </Badge>
-            <Badge variant="secondary" className="text-[11px]">
-              {stepLabels[1]}
-            </Badge>
-            <Badge variant="secondary" className="text-[11px]">
-              {stepLabels[2]}
+            <Badge variant="outline" className="text-[11px]">
+              {activeMode.label}
             </Badge>
           </div>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="grid gap-6 xl:grid-cols-[390px_minmax(0,1fr)] xl:items-start">
+      <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-start">
         <aside className="space-y-4 xl:sticky xl:top-6">
           <form
             onSubmit={handleAnalyze}
-            className="space-y-4 rounded-[28px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60"
+            className="space-y-4 rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0"
           >
             <div className="space-y-1">
               <h2 className="text-sm font-semibold text-foreground">
@@ -515,7 +482,7 @@ export default function DocumentIntelligencePage() {
                         setResponse(null);
                       }}
                       className={cn(
-                        "flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition-colors",
+                        "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors",
                         active
                           ? "border-primary/25 bg-primary/[0.06] text-foreground"
                           : "border-border/70 bg-background hover:bg-muted/25",
@@ -568,7 +535,7 @@ export default function DocumentIntelligencePage() {
               </div>
             </div>
 
-            <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
               <p className="text-xs leading-5 text-muted-foreground">
                 Kosongkan organization ID untuk memakai organisasi aktif dari
                 sesi login.
@@ -582,18 +549,20 @@ export default function DocumentIntelligencePage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button
+              <AccentButton
                 type="submit"
                 disabled={loading || !token || !file}
                 className="flex-1 gap-2"
+                icon={
+                  loading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="size-4" />
+                  )
+                }
               >
-                {loading ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Sparkles className="size-4" />
-                )}
                 {loading ? "Menganalisis..." : "Analisis dokumen"}
-              </Button>
+              </AccentButton>
               <Button
                 type="button"
                 variant="outline"
@@ -606,7 +575,7 @@ export default function DocumentIntelligencePage() {
             </div>
           </form>
 
-          <div className="rounded-[28px] border border-border/70 bg-card p-5 ring-1 ring-inset ring-white/60">
+          <div className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-foreground">
@@ -621,7 +590,7 @@ export default function DocumentIntelligencePage() {
               </Badge>
             </div>
             <div className="mt-4 space-y-3">
-              <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
                 <div className="text-sm font-medium text-foreground">
                   {activeMode.title}
                 </div>
@@ -629,7 +598,7 @@ export default function DocumentIntelligencePage() {
                   {activeMode.description}
                 </p>
               </div>
-              <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
                 <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                   Output akan berisi
                 </div>
@@ -642,7 +611,7 @@ export default function DocumentIntelligencePage() {
         </aside>
 
         <section className="space-y-4">
-          <div className="rounded-[28px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60">
+          <div className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -680,7 +649,7 @@ export default function DocumentIntelligencePage() {
 
             {documentMeta ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                     File
                   </div>
@@ -688,7 +657,7 @@ export default function DocumentIntelligencePage() {
                     {documentMeta.filename}
                   </div>
                 </div>
-                <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                     Mode
                   </div>
@@ -696,7 +665,7 @@ export default function DocumentIntelligencePage() {
                     {activeMode.title}
                   </div>
                 </div>
-                <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                     Peringatan
                   </div>
@@ -704,7 +673,7 @@ export default function DocumentIntelligencePage() {
                     {warningCount ? `${warningCount} catatan` : "Tidak ada"}
                   </div>
                 </div>
-                <div className="rounded-2xl bg-muted/20 p-3 ring-1 ring-inset ring-border/70">
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
                   <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                     Context
                   </div>
@@ -715,7 +684,7 @@ export default function DocumentIntelligencePage() {
               </div>
             ) : (
               <div className="mt-4 grid gap-3 md:grid-cols-3">
-                <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
                   <div className="text-sm font-medium text-foreground">
                     1. Upload dokumen
                   </div>
@@ -724,7 +693,7 @@ export default function DocumentIntelligencePage() {
                     atau bukti mitigasi.
                   </p>
                 </div>
-                <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
                   <div className="text-sm font-medium text-foreground">
                     2. Pilih mode
                   </div>
@@ -733,7 +702,7 @@ export default function DocumentIntelligencePage() {
                     relevan.
                   </p>
                 </div>
-                <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
                   <div className="text-sm font-medium text-foreground">
                     3. Jalankan analisis
                   </div>
@@ -745,7 +714,7 @@ export default function DocumentIntelligencePage() {
             )}
 
             {documentMeta?.warnings?.length ? (
-              <div className="mt-4 space-y-2 rounded-2xl bg-amber-50/70 p-4 ring-1 ring-inset ring-amber-200">
+              <div className="mt-4 space-y-2 rounded-lg border border-amber-200 bg-amber-50/70 p-4">
                 {documentMeta.warnings.map((warning) => (
                   <div
                     key={warning}
@@ -760,7 +729,7 @@ export default function DocumentIntelligencePage() {
           </div>
 
           {!response ? (
-            <div className="rounded-[28px] border border-dashed border-border/70 bg-card p-8 ring-1 ring-inset ring-white/60">
+            <div className="rounded-2xl border border-dashed border-zinc-200/80 bg-card p-6 shadow-none ring-0">
               <div className="max-w-3xl space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <CheckCircle2 className="size-4 text-muted-foreground" />
@@ -772,7 +741,7 @@ export default function DocumentIntelligencePage() {
                   planning, atau laporan mitigasi.
                 </p>
                 <div className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                  <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
                     <div className="text-sm font-medium text-foreground">
                       Evidence first
                     </div>
@@ -780,7 +749,7 @@ export default function DocumentIntelligencePage() {
                       Kutipan sumber muncul dekat dengan hasil yang diusulkan.
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                  <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
                     <div className="text-sm font-medium text-foreground">
                       Manual review
                     </div>
@@ -788,7 +757,7 @@ export default function DocumentIntelligencePage() {
                       Draft selalu perlu divalidasi sebelum dipindahkan.
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-muted/20 p-4 ring-1 ring-inset ring-border/70">
+                  <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
                     <div className="text-sm font-medium text-foreground">
                       Next action
                     </div>
@@ -810,7 +779,7 @@ export default function DocumentIntelligencePage() {
           )}
         </section>
       </div>
-    </main>
+    </PageStack>
   );
 }
 
@@ -833,7 +802,7 @@ function DocumentResultPanel({
         {result.sop.processStages.map((stage) => (
           <section
             key={stage.clientKey}
-            className="rounded-[26px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60"
+            className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -842,11 +811,11 @@ function DocumentResultPanel({
                     {stage.stageName}
                   </h3>
                   <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-[11px]",
-                      confidenceBadgeClass(stage.confidence),
-                    )}
+ variant="outline"
+ className={cn(
+ "text-[11px]",
+ confidenceBadgeClass(stage.confidence),
+ )}
                   >
                     {stage.confidence}% yakin
                   </Badge>
@@ -894,11 +863,11 @@ function DocumentResultPanel({
                         </p>
                       </div>
                       <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[11px]",
-                          confidenceBadgeClass(risk.confidence),
-                        )}
+ variant="outline"
+ className={cn(
+ "text-[11px]",
+ confidenceBadgeClass(risk.confidence),
+ )}
                       >
                         {risk.confidence}%
                       </Badge>
@@ -940,7 +909,7 @@ function DocumentResultPanel({
         {result.audit.findings.map((finding) => (
           <section
             key={finding.clientKey}
-            className="rounded-[26px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60"
+            className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -950,16 +919,15 @@ function DocumentResultPanel({
                   </h3>
                   <Badge
                     variant="outline"
-                    className="text-[11px] border-border bg-muted/30 text-muted-foreground"
-                  >
+                    className="text-[11px] - bg-muted/30 text-muted-foreground">
                     {finding.mappingStatus}
                   </Badge>
                   <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-[11px]",
-                      confidenceBadgeClass(finding.confidence),
-                    )}
+ variant="outline"
+ className={cn(
+ "text-[11px]",
+ confidenceBadgeClass(finding.confidence),
+ )}
                   >
                     {finding.confidence}%
                   </Badge>
@@ -1057,7 +1025,7 @@ function DocumentResultPanel({
         {result.strategic.objectives.map((objective) => (
           <section
             key={objective.clientKey}
-            className="rounded-[26px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60"
+            className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -1066,11 +1034,11 @@ function DocumentResultPanel({
                     {objective.sasaran}
                   </h3>
                   <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-[11px]",
-                      confidenceBadgeClass(objective.confidence),
-                    )}
+ variant="outline"
+ className={cn(
+ "text-[11px]",
+ confidenceBadgeClass(objective.confidence),
+ )}
                   >
                     {objective.confidence}%
                   </Badge>
@@ -1143,11 +1111,11 @@ function DocumentResultPanel({
                         ) : null}
                       </div>
                       <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[11px]",
-                          confidenceBadgeClass(iku.confidence),
-                        )}
+ variant="outline"
+ className={cn(
+ "text-[11px]",
+ confidenceBadgeClass(iku.confidence),
+ )}
                       >
                         {iku.confidence}%
                       </Badge>
@@ -1180,11 +1148,11 @@ function DocumentResultPanel({
                                 </p>
                               </div>
                               <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[11px]",
-                                  confidenceBadgeClass(risk.confidence),
-                                )}
+ variant="outline"
+ className={cn(
+ "text-[11px]",
+ confidenceBadgeClass(risk.confidence),
+ )}
                               >
                                 {risk.confidence}%
                               </Badge>
@@ -1192,14 +1160,12 @@ function DocumentResultPanel({
                             <div className="mt-2 flex flex-wrap gap-2">
                               <Badge
                                 variant="secondary"
-                                className="text-[11px]"
-                              >
+                                className="text-[11px]">
                                 P {risk.probability}
                               </Badge>
                               <Badge
                                 variant="secondary"
-                                className="text-[11px]"
-                              >
+                                className="text-[11px]">
                                 D {risk.impact}
                               </Badge>
                             </div>
@@ -1235,7 +1201,7 @@ function DocumentResultPanel({
         {result.mitigation.taskMatches.map((task) => (
           <section
             key={task.clientKey}
-            className="rounded-[26px] border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_rgba(24,24,27,0.04)] ring-1 ring-inset ring-white/60"
+            className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -1244,11 +1210,11 @@ function DocumentResultPanel({
                     {task.riskCode} · {task.riskTitle}
                   </h3>
                   <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-[11px]",
-                      confidenceBadgeClass(task.confidence),
-                    )}
+ variant="outline"
+ className={cn(
+ "text-[11px]",
+ confidenceBadgeClass(task.confidence),
+ )}
                   >
                     {task.confidence}%
                   </Badge>
@@ -1341,7 +1307,7 @@ function DocumentResultPanel({
   }
 
   return (
-    <div className="rounded-[26px] border border-dashed border-border/70 bg-card p-8 ring-1 ring-inset ring-white/60">
+    <div className="rounded-2xl border border-dashed border-zinc-200/80 bg-card p-6 shadow-none ring-0">
       <div className="max-w-2xl space-y-3">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           <CheckCircle2 className="size-4 text-muted-foreground" />

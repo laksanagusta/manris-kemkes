@@ -8,7 +8,8 @@ import {
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StandardCard } from "@/components/shared/design-system";
+import { OverviewPanelState } from "@/components/shared/design-system";
 import { buildDashboardRiskCategoryData } from "@/lib/dashboard-insights";
 
 type RiskCategoryDatum = ReturnType<typeof buildDashboardRiskCategoryData>;
@@ -17,24 +18,22 @@ interface RiskCategoryPieChartProps {
   data: RiskCategoryDatum;
   loading?: boolean;
   error?: boolean;
-  cycle: string;
 }
 
 const COLORS = [
-  "oklch(0.65 0.18 200)",
-  "oklch(0.70 0.20 170)",
-  "oklch(0.72 0.22 80)",
-  "oklch(0.68 0.19 40)",
-  "oklch(0.62 0.17 350)",
-  "oklch(0.66 0.15 290)",
-  "oklch(0.60 0.10 0)",
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+  "oklch(0.62 0.14 230)",
+  "oklch(0.62 0.14 75)",
 ];
 
 export function RiskCategoryPieChart({
   data,
   loading,
   error,
-  cycle,
 }: RiskCategoryPieChartProps) {
   const chartData = useMemo(
     () =>
@@ -44,61 +43,55 @@ export function RiskCategoryPieChart({
       })),
     [data],
   );
-
-  if (loading) {
-    return (
-      <Card className="h-full gap-4 rounded-lg border-0 bg-card py-0 shadow-none ring-1 ring-inset ring-border">
-        <CardHeader className="pb-4 pt-4">
-          <CardTitle className="text-sm font-semibold">
-            Distribusi Kategori Risiko
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-            Memuat data kategori...
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const totalRisks = chartData.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <Card className="h-full gap-4 rounded-lg border-0 bg-card py-0 shadow-none ring-1 ring-inset ring-border">
-      <CardHeader className="pb-2 pt-4">
-        <CardTitle className="text-base font-medium">
-          Distribusi Kategori Risiko
-        </CardTitle>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          Jumlah risiko per kategori pada cycle {cycle}.
-        </p>
-      </CardHeader>
-      <CardContent>
-        {error ? (
-          <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-            Data kategori risiko tidak tersedia saat ini.
-          </div>
-        ) : chartData.length === 0 ? (
-          <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-            Belum ada data kategori risiko.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="h-56 shrink-0 sm:h-64">
-              <ResponsiveContainer width={260} height="100%">
+    <StandardCard
+      title="Distribusi Kategori Risiko"
+      className="h-full"
+      contentClassName="flex flex-1 flex-col p-4 pt-2"
+    >
+      {loading ? (
+        <OverviewPanelState
+          state="loading"
+          message="Memuat distribusi kategori..."
+          className="min-h-48"
+        />
+      ) : error ? (
+        <OverviewPanelState
+          state="error"
+          message="Distribusi kategori tidak dapat dimuat."
+          className="min-h-48"
+        />
+      ) : chartData.length === 0 ? (
+        <OverviewPanelState
+          state="empty"
+          message="Belum ada data kategori risiko."
+          className="min-h-48"
+        />
+      ) : (
+        <div className="flex h-full flex-col items-center gap-4 sm:flex-row sm:items-center">
+          <div className="flex min-h-0 flex-1 items-center justify-center self-stretch sm:self-auto">
+            <div
+              role="img"
+              aria-label={`Distribusi ${totalRisks} risiko dalam ${chartData.length} kategori`}
+              className="relative w-full max-w-[240px] aspect-square"
+            >
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={chartData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={48}
-                    outerRadius={88}
+                    innerRadius="42%"
+                    outerRadius="78%"
                     dataKey="value"
                     strokeWidth={0}
                   >
-                    {chartData.map((_, i) => (
+                    {chartData.map((item, index) => (
                       <Cell
-                        key={i}
-                        fill={COLORS[i % COLORS.length]}
+                        key={item.name}
+                        fill={COLORS[index % COLORS.length]}
                       />
                     ))}
                   </Pie>
@@ -114,24 +107,46 @@ export function RiskCategoryPieChart({
                   />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
-            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-              {chartData.map((d, i) => (
-                <div key={d.name} className="flex items-center gap-2">
-                  <span
-                    className="size-2.5 shrink-0 rounded-sm"
-                    style={{ backgroundColor: COLORS[i % COLORS.length] }}
-                  />
-                  <span className="text-muted-foreground">{d.name}</span>
-                  <span className="font-medium tabular-nums text-foreground">
-                    {d.value}
-                  </span>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 grid place-items-center"
+              >
+                <div className="text-center">
+                  <p className="text-2xl font-mono font-semibold tracking-tight text-foreground tabular-nums">
+                    {totalRisks}
+                  </p>
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    risiko
+                  </p>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <ul
+            aria-label="Legenda kategori risiko"
+            className="shrink-0 space-y-1.5"
+          >
+            {chartData.map((item, index) => (
+              <li
+                key={item.name}
+                className="flex items-center justify-between gap-3 text-xs"
+              >
+                <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                  <span
+                    aria-hidden="true"
+                    className="size-2.5 shrink-0 rounded-sm"
+                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                  />
+                  <span className="truncate">{item.name}</span>
+                </span>
+                <span className="font-mono font-semibold text-foreground tabular-nums">
+                  {item.value}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </StandardCard>
   );
 }

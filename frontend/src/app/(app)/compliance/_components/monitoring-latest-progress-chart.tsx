@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronDown, CircleDot } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronDown } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Collapsible,
   CollapsibleContent,
@@ -25,7 +24,7 @@ import { listWorkingPapers } from "@/lib/api/working-papers";
 import type { LatestOrganizationProgressDatum } from "@/lib/dashboard-insights";
 import type { WorkingPaper } from "@/types/working-paper";
 
-const PROGRESS_COLOR_CLASS = "[&>div]:bg-[oklch(0.72_0.17_155)]";
+const PROGRESS_COLOR_CLASS = "";
 const WORKING_PAPER_PAGE_SIZE = 100;
 
 async function listAllWorkingPapers(token: string): Promise<WorkingPaper[]> {
@@ -111,18 +110,14 @@ export function MonitoringLatestProgressChart({
   const sortedData = [...resolvedData].sort(
     (a, b) => b.progressPercent - a.progressPercent,
   );
-  const progressBadgeClass = hasData
-    ? "bg-success/10 text-success border-success/20"
-    : "bg-muted/40 text-muted-foreground";
 
   return (
     <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader className="p-0">
-          <CollapsibleTrigger className="group w-full text-left transition-colors hover:no-underline hover:bg-muted/30">
-            <div className="flex items-center justify-between gap-4 px-5 py-3">
+          <CollapsibleTrigger className="w-full text-left">
+            <div className="flex items-center justify-between gap-4 px-0 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-600 shadow-inner ring-1 ring-inset ring-zinc-200/80 transition-colors duration-150 ease-out group-hover:bg-white">
+                <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-600 shadow-inner ring-1 ring-inset ring-zinc-200/80">
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 transition-transform duration-200 ease-out",
@@ -132,9 +127,6 @@ export function MonitoringLatestProgressChart({
                   />
                 </span>
                 <div className="min-w-0">
-                  <CardTitle className="text-sm font-semibold text-foreground transition-colors md:text-base group-data-[state=open]:text-primary">
-                    Progress Kertas Kerja
-                  </CardTitle>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
                     Persentase risiko approved pada kertas kerja terbaru tiap
                     organisasi.
@@ -143,7 +135,6 @@ export function MonitoringLatestProgressChart({
               </div>
             </div>
           </CollapsibleTrigger>
-        </CardHeader>
         <CollapsibleContent>
           <CardContent className="space-y-4">
             {loading ? (

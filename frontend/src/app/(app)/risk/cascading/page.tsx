@@ -2,14 +2,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  Clock3,
-  GitBranch,
-  Plus,
-  Search,
-  ShieldAlert,
-  Trash2,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -20,27 +13,30 @@ import {
 } from "@/lib/api/risk-cascades";
 import type { RiskCascadeRecord, RiskCascadeType } from "@/types/risk-cascade";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { KpiCard } from "@/components/ui/kpi-card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { RiskCascadeActionDialog } from "@/components/risk/risk-cascade-action-dialog";
+import {
+  CollectionPagination,
+  CollectionErrorState,
+  CollectionTableCard,
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
+  CollectionToolbar,
+  DashboardKpiCard,
+  ExpandableSearchField,
+} from "@/components/shared/design-system";
+import {
+  AccentButton,
+  PageStack,
+} from "@/components/shared/design-system";
+import { RiskCascadeRowActions } from "@/components/shared/risk-cascade-row-actions";
 
 const cascadeTypeLabels: Record<RiskCascadeType, string> = {
   mandatory_top_down: "Top-down",
@@ -70,54 +66,6 @@ function formatCascadeTitle(item: RiskCascadeRecord) {
   return `${code} · ${title}`;
 }
 
-function RiskCascadeRowActions({
-  item,
-  onReview,
-  onDelete,
-}: {
-  item: RiskCascadeRecord;
-  onReview?: () => void;
-  onDelete?: () => void;
-}) {
-  const hasActions = Boolean(onReview || onDelete);
-  if (!hasActions) {
-    return null;
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2 text-muted-foreground"
-          aria-label={`Aksi eskalasi ${item.sourceRiskCode || item.sourceRiskTitle || item.id}`}
-        >
-          <GitBranch className="size-3.5" />
-          Aksi
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        {onReview && (
-          <DropdownMenuItem onClick={onReview}>
-            <ShieldAlert className="size-3.5" />
-            Tinjau eskalasi
-          </DropdownMenuItem>
-        )}
-        {onDelete && (
-          <DropdownMenuItem
-            onClick={onDelete}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash2 className="size-3.5" />
-            Hapus draft
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 export default function RiskCascadingPage() {
   const { token, user } = useAuth();
   const searchParams = useSearchParams();
@@ -125,6 +73,8 @@ export default function RiskCascadingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [createOpen, setCreateOpen] = useState(false);
   const [createCascadeType, setCreateCascadeType] =
     useState<RiskCascadeType>("mandatory_top_down");
@@ -189,6 +139,20 @@ export default function RiskCascadingPage() {
     );
   }, [deferredSearch, items]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const paginatedItems = useMemo(
+    () => filteredItems.slice((page - 1) * pageSize, page * pageSize),
+    [filteredItems, page, pageSize],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
   const canReviewCascade = (item: RiskCascadeRecord) => {
     if (!["proposed", "analyzed"].includes(item.status)) {
       return false;
@@ -217,6 +181,40 @@ export default function RiskCascadingPage() {
     ).length;
     return { total, pending, approved, bottomUp };
   }, [items]);
+
+  const kpiCards = useMemo(
+    () => [
+      {
+        title: "Total Eskalasi",
+        value: String(summary.total),
+        change: "Baru",
+        trend: "unavailable" as const,
+        tone: "neutral" as const,
+      },
+      {
+        title: "Menunggu Tinjauan",
+        value: String(summary.pending),
+        change: "Baru",
+        trend: "unavailable" as const,
+        tone: "warning" as const,
+      },
+      {
+        title: "Sudah Disetujui",
+        value: String(summary.approved),
+        change: "Baru",
+        trend: "unavailable" as const,
+        tone: "success" as const,
+      },
+      {
+        title: "Bottom-up",
+        value: String(summary.bottomUp),
+        change: "Baru",
+        trend: "unavailable" as const,
+        tone: "neutral" as const,
+      },
+    ],
+    [summary],
+  );
 
   const handleDelete = async (item: RiskCascadeRecord) => {
     if (!token) return;
@@ -247,110 +245,77 @@ export default function RiskCascadingPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
-            Risk Governance
-          </p>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Eskalasi Risiko
-            </h1>
-            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-              Pantau semua eskalasi dalam satu daftar. Alur dan bahasanya dibuat
-              lebih sederhana supaya mudah dibaca, mudah diputuskan, dan tetap
-              rapi untuk audit.
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            className="gap-2"
+    <PageStack>
+      <CollectionToolbar
+        actions={
+          <AccentButton
+            icon={<Plus className="size-4" />}
             onClick={() => {
               setCreateCascadeType("mandatory_top_down");
               setCreateOpen(true);
             }}
           >
-            <Plus className="size-4" />
             Eskalasi
-          </Button>
-        </div>
-      </div>
+          </AccentButton>
+        }
+      />
 
-      <div className="grid gap-3 md:grid-cols-4">
-        {[
-          { label: "Total Eskalasi", value: summary.total, tone: "white" as const },
-          { label: "Menunggu Tinjauan", value: summary.pending, tone: "zinc" as const },
-          { label: "Sudah Disetujui", value: summary.approved, tone: "emerald" as const },
-          { label: "Bottom-up", value: summary.bottomUp, tone: "zinc" as const },
-        ].map((card) => (
-          <KpiCard
-            key={card.label}
-            label={card.label}
-            value={card.value}
-            tone={card.tone}
-            icon={<GitBranch className="size-5 text-muted-foreground" />}
-          />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {kpiCards.map((card) => (
+          <DashboardKpiCard key={card.title} {...card} />
         ))}
       </div>
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="border-b border-border/40 pb-4">
-          <CardTitle className="text-[15px] font-semibold">
-            Daftar Eskalasi
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Semua top-down dan bottom-up tampil dalam satu tabel.
-            Eskalasi yang masih draft bisa dihapus.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
-            <div className="space-y-2">
-              <Label htmlFor="cascade-search">Cari eskalasi</Label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="cascade-search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Cari kode risiko, organisasi, status, atau catatan..."
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Catatan tampilan</Label>
-              <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                <Clock3 className="size-4" />
-                Status dan aksi dibuat lebih ringkas agar cepat dipindai.
-              </div>
-            </div>
+      <div className="space-y-5">
+          <div className="flex justify-end">
+            <ExpandableSearchField
+              value={search}
+              onChange={setSearch}
+              placeholder="Cari kode risiko, organisasi, status, atau catatan..."
+              ariaLabel="Cari eskalasi"
+            />
           </div>
 
-          {error && (
-            <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-              {error}
-            </div>
-          )}
+          {error ? <CollectionErrorState message={error} /> : null}
 
-          <div className="rounded-2xl border border-border/50 overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead>Risiko</TableHead>
-                  <TableHead>Organisasi</TableHead>
-                  <TableHead>Jenis</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Adopsi</TableHead>
-                  <TableHead>Catatan</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
+          <CollectionTableCard>
+            <Table className="min-w-[1120px] table-fixed">
+              <colgroup>
+                <col className="w-[22%]" />
+                <col className="w-[18%]" />
+                <col className="w-[11%]" />
+                <col className="w-[12%]" />
+                <col className="w-[11%]" />
+                <col className="w-[20%]" />
+                <col className="w-[6%]" />
+              </colgroup>
+              <CollectionTableHeader>
+                <CollectionTableHeaderRow>
+                  <CollectionTableHead className="pl-4 pr-3">
+                    Risiko
+                  </CollectionTableHead>
+                  <CollectionTableHead className="px-3">
+                    Organisasi
+                  </CollectionTableHead>
+                  <CollectionTableHead className="px-3">
+                    Jenis
+                  </CollectionTableHead>
+                  <CollectionTableHead className="px-3">
+                    Status
+                  </CollectionTableHead>
+                  <CollectionTableHead className="px-3">
+                    Adopsi
+                  </CollectionTableHead>
+                  <CollectionTableHead className="px-3">
+                    Catatan
+                  </CollectionTableHead>
+                  <CollectionTableHead className="px-3 text-right">
+                    Aksi
+                  </CollectionTableHead>
+                </CollectionTableHeaderRow>
+              </CollectionTableHeader>
               <TableBody>
-                {filteredItems.length === 0 ? (
+                {paginatedItems.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={7}
@@ -360,7 +325,7 @@ export default function RiskCascadingPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredItems.map((item) => {
+                  paginatedItems.map((item) => {
                     const canReview = canReviewCascade(item);
                     const canDelete = item.status === "proposed";
                     const statusLabel =
@@ -437,9 +402,20 @@ export default function RiskCascadingPage() {
                 )}
               </TableBody>
             </Table>
-          </div>
-        </CardContent>
-      </Card>
+            <CollectionPagination
+              itemLabel="eskalasi"
+              page={page}
+              pageSize={pageSize}
+              total={filteredItems.length}
+              disabled={loading}
+              onPageChange={setPage}
+              onPageSizeChange={(nextPageSize) => {
+                setPageSize(nextPageSize);
+                setPage(1);
+              }}
+            />
+          </CollectionTableCard>
+      </div>
 
       <RiskCascadeActionDialog
         open={createOpen}
@@ -458,6 +434,6 @@ export default function RiskCascadingPage() {
         cascade={decisionItem}
         onSaved={loadData}
       />
-    </div>
+    </PageStack>
   );
 }

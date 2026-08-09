@@ -931,7 +931,7 @@ export default function AssessmentFormPage() {
       : ["hasil-pemantauan"];
 
   return (
-    <FormPage className="max-w-none space-y-6 animate-fade-in">
+    <FormPage className="risk-form-filter-controls max-w-none space-y-6">
       <FormHeader
         title="Form Pemantauan Risiko"
         description={
@@ -944,7 +944,7 @@ export default function AssessmentFormPage() {
             <Badge
               variant="outline"
               className={cn(
-                "font-medium",
+                "h-5 border px-1.5 text-[10px] font-medium",
                 assessmentStatusBadgeClass[draftRisk.status] ??
                   "border-border bg-muted/40 text-muted-foreground",
               )}
@@ -953,11 +953,14 @@ export default function AssessmentFormPage() {
             </Badge>
             <Badge
               variant="outline"
-              className="border-primary/15 bg-primary/[0.06] text-primary"
+              className="h-5 border border-primary/15 bg-primary/[0.06] px-1.5 text-[10px] font-medium text-primary"
             >
               {sourceRisk.code || sourceRisk.riskCode}
             </Badge>
-            <Badge variant="secondary" className="font-medium">
+            <Badge
+              variant="secondary"
+              className="h-5 px-1.5 text-[10px] font-medium"
+            >
               Versi {draftRisk.versionNumber}
             </Badge>
           </>
@@ -965,12 +968,13 @@ export default function AssessmentFormPage() {
         backLabel={isMonitoringRoute ? "Kembali ke Pemantauan" : "Kembali"}
         onBack={() => router.push(backTarget)}
         actions={
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <TooltipProvider>
               {(draftRisk.status === "assessment_draft" || !id) && (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
+                    size="md"
                     className="gap-2 text-xs font-medium border-primary/20 hover:bg-primary/5 hover:text-primary"
                     onClick={handleSaveDraft}
                     disabled={isSaving || isAssessmentLocked}
@@ -983,7 +987,8 @@ export default function AssessmentFormPage() {
                     Simpan draft
                   </Button>
                   <Button
-                    className="gap-2 text-xs font-medium shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                    size="md"
+                    className="gap-2"
                     onClick={openSubmitReviewConfirm}
                     disabled={isSaving || isAssessmentLocked}
                   >
@@ -1001,7 +1006,7 @@ export default function AssessmentFormPage() {
         }
       />
       {/* Form Content */} {/* Form Content */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.85fr)_340px] 2xl:grid-cols-[minmax(0,1.95fr)_360px] xl:items-start">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_380px] 2xl:grid-cols-[minmax(0,1.75fr)_430px] xl:items-start">
         {/* Left Column */}
         <div className="space-y-6">
           <ProfilRisikoCard
@@ -1012,16 +1017,16 @@ export default function AssessmentFormPage() {
           <Accordion
             type="multiple"
             defaultValue={defaultAccordionSections}
-            className="space-y-4"
+            className="space-y-6"
           >
             <AccordionItem
               value="hasil-pemantauan"
-              className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 transition-all"
+              className="scroll-mt-28 overflow-hidden rounded-xl border border-border/40 bg-card shadow-none transition-all data-[state=open]:border-primary/20"
             >
               <AccordionTrigger className="group px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
                 <div className="flex flex-1 items-center justify-between gap-4 pr-2">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-600 shadow-inner ring-1 ring-inset ring-zinc-200/80 transition-colors duration-150 ease-out group-hover:bg-white">
+                    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-foreground transition-colors duration-150 ease-out group-hover:bg-muted/90">
                       <ChevronDown
                         className="h-4 w-4 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180"
                         aria-hidden="true"
@@ -1053,7 +1058,7 @@ export default function AssessmentFormPage() {
                   </Badge>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
+              <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
                 <div className="grid gap-6 min-w-0">
                   {(() => {
                     const mitigations =
@@ -1100,7 +1105,7 @@ export default function AssessmentFormPage() {
                         />
                       </div>
                     ) : (
-                      <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                      <div className="rounded-xl border border-border/40 bg-card p-5 shadow-none">
                         <Label className="text-sm font-medium text-foreground">
                           Rencana Penanganan
                         </Label>
@@ -1256,12 +1261,12 @@ export default function AssessmentFormPage() {
 
             <AccordionItem
               value="perubahan-substansi"
-              className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 transition-all"
+              className="scroll-mt-28 overflow-hidden rounded-xl border border-border/40 bg-card shadow-none transition-all data-[state=open]:border-primary/20"
             >
               <AccordionTrigger className="group px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
                 <div className="flex flex-1 items-center justify-between gap-4 pr-2">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-600 shadow-inner ring-1 ring-inset ring-zinc-200/80 transition-colors duration-150 ease-out group-hover:bg-white">
+                    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-foreground transition-colors duration-150 ease-out group-hover:bg-muted/90">
                       <ChevronDown
                         className="h-4 w-4 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180"
                         aria-hidden="true"
@@ -1297,8 +1302,8 @@ export default function AssessmentFormPage() {
                   </Badge>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
-                <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-4">
+              <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                <div className="rounded-xl border border-border/40 bg-card px-5 py-5 shadow-none">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="space-y-1">
                       <Label className="text-sm font-medium text-foreground">
@@ -1316,7 +1321,7 @@ export default function AssessmentFormPage() {
                   </div>
 
                   {substanceEditEnabled ? (
-                    <div className="mt-3 space-y-2 rounded-lg border border-dashed border-border/60 bg-background/80 px-3 py-3">
+                    <div className="mt-3 space-y-2 rounded-xl border border-dashed border-border/50 bg-muted/20 px-4 py-4">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge
                           variant="secondary"
@@ -1346,7 +1351,7 @@ export default function AssessmentFormPage() {
                   )}
                 </div>
 
-                <div className="rounded-xl border border-border/50 bg-background px-4 py-4">
+                <div className="rounded-xl border border-border/40 bg-card px-5 py-5 shadow-none">
                   <RiskSubstanceFields
                     value={substanceDraft}
                     onChange={setSubstanceDraft}
@@ -1364,7 +1369,7 @@ export default function AssessmentFormPage() {
                 <AccordionItem
                   value="approval-line"
                   id="approval-line"
-                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 transition-all"
+                  className="scroll-mt-28 overflow-hidden rounded-xl border border-border/40 bg-card shadow-none transition-all data-[state=open]:border-primary/20"
                 >
                   <AccordionTrigger className="group px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
                     <div className="flex flex-1 items-center justify-between gap-4 pr-2">
@@ -1394,8 +1399,8 @@ export default function AssessmentFormPage() {
                       </Badge>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
-                    <div className="rounded-xl border border-border/60 bg-white p-5 space-y-3">
+                  <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                    <div className="rounded-xl border border-border/40 bg-card p-5 space-y-3 shadow-none">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
                           Reviewer (Pemeriksa)
@@ -1420,7 +1425,7 @@ export default function AssessmentFormPage() {
                       />
                     </div>
 
-                    <div className="rounded-xl border border-primary/10 bg-white p-5 space-y-4">
+                    <div className="rounded-xl border border-primary/10 bg-card p-5 space-y-4 shadow-none">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
                           Rantai Persetujuan (Pimpinan)
@@ -1458,7 +1463,7 @@ export default function AssessmentFormPage() {
 
         {/* Right Column / Side Panel */}
         <div className="space-y-4 xl:sticky xl:top-24">
-          <div className="rounded-xl border border-border/40 bg-card shadow-sm overflow-hidden">
+          <div className="overflow-hidden rounded-xl border border-border/40 bg-card shadow-none">
             <div className="border-b border-border/40 px-4 py-3">
               <p className="text-sm font-semibold text-foreground">
                 Simpulan Pemantauan
@@ -1515,7 +1520,7 @@ export default function AssessmentFormPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
-            <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+            <div className="space-y-2 rounded-xl border border-border/40 bg-muted/20 p-4 text-sm">
               <div>
                 <span className="font-medium text-foreground">Reviewer: </span>
                 <span className="text-muted-foreground">
@@ -1533,7 +1538,7 @@ export default function AssessmentFormPage() {
             </div>
           )}
           {substanceEditEnabled && substanceDiffs.length > 0 && (
-            <div className="space-y-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm">
+            <div className="space-y-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm">
               <div>
                 <span className="font-medium text-foreground">
                   Perubahan substansi:{" "}

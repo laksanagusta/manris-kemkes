@@ -8,17 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function FormalReportsPage() {
   return (
-    <div className="space-y-8 animate-fade-in">
-      <section className="max-w-3xl space-y-3">
-        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          <span>Laporan Formal</span>
-          <span className="h-px w-6 bg-border" />
-          <span>Handoff</span>
-        </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-balance">
+    <div className="space-y-4">
+      <section className="max-w-3xl space-y-2">
+        <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
           Laporan Monitoring & Evaluasi dipindahkan ke Evaluasi
-        </h1>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+        </h2>
+        <p className="text-sm text-muted-foreground text-pretty">
           Mulai sekarang, proses isi, finalisasi, dan ekspor PDF dilakukan dari
           modul Evaluasi. Halaman ini dipertahankan sebagai pengarah agar alur
           lama tidak dipakai lagi sebagai titik input utama.
@@ -26,7 +21,7 @@ export default function FormalReportsPage() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-border/50 bg-card/90 shadow-sm">
+        <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
           <CardHeader className="border-b border-border/40 pb-4">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <ClipboardList className="size-4" />
@@ -47,7 +42,7 @@ export default function FormalReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 bg-card/90 shadow-sm">
+        <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
           <CardHeader className="border-b border-border/40 pb-4">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <FileText className="size-4" />

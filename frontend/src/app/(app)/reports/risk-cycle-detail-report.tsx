@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -581,13 +581,10 @@ export function RiskCycleDetailReport({
   };
 
   return (
-    <Card className="border-border/50 bg-card/80">
-      <CardHeader className="space-y-3">
+    <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+      <div className="space-y-3">
         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-              Report Perubahan Risiko Antar Periode
-            </CardTitle>
             <p className="text-sm text-muted-foreground">
               Bandingkan snapshot risiko approved antar dua cycle sampai ke
               level kolom dan mitigasi.
@@ -706,7 +703,7 @@ export function RiskCycleDetailReport({
             ) : null}
           </div>
         ) : null}
-      </CardHeader>
+      </div>
       {requiresScopeSelection ? (
         <div className="mx-6 mt-0 rounded-lg border border-dashed border-border/50 bg-muted/20 px-4 py-5 text-center text-sm text-muted-foreground">
           Pilih grup atau unit untuk melihat laporan perubahan risiko.
@@ -719,40 +716,40 @@ export function RiskCycleDetailReport({
           </div>
         ) : null}
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            {
-              label: "Changed",
-              value: report?.summary.changedCount ?? 0,
-              className: "border-primary/20 bg-primary/10 text-primary",
-            },
-            {
-              label: "Added",
-              value: report?.summary.addedCount ?? 0,
-              className: "border-success/20 bg-success/10 text-success",
-            },
-            {
-              label: "Removed",
-              value: report?.summary.removedCount ?? 0,
-              className:
-                "border-destructive/20 bg-destructive/10 text-destructive",
-            },
-            {
-              label: "Stable",
-              value: report?.summary.stableCount ?? 0,
-              className: "border-border bg-muted/40 text-foreground",
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className={cn("rounded-lg border p-4", item.className)}
-            >
-              <p className="text-xs uppercase tracking-wider opacity-80">
-                {item.label}
-              </p>
-              <p className="mt-2 text-2xl font-semibold">{item.value}</p>
-            </div>
-          ))}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                label: "Changed",
+                value: report?.summary.changedCount ?? 0,
+                className: "border-primary/20 bg-primary/10 text-primary",
+              },
+              {
+                label: "Added",
+                value: report?.summary.addedCount ?? 0,
+                className: "border-success/20 bg-success/10 text-success",
+              },
+              {
+                label: "Removed",
+                value: report?.summary.removedCount ?? 0,
+                className:
+                  "border-destructive/20 bg-destructive/10 text-destructive",
+              },
+              {
+                label: "Stable",
+                value: report?.summary.stableCount ?? 0,
+                className: "border-border bg-muted/40 text-foreground",
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className={cn("flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4", item.className)}
+              >
+                <p className="text-xs uppercase tracking-wider opacity-80 mb-1">
+                  {item.label}
+                </p>
+                <p className="mt-auto text-2xl font-semibold">{item.value}</p>
+              </div>
+            ))}
         </div>
 
         {loading ? (

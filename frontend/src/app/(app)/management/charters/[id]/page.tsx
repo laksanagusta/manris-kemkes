@@ -294,16 +294,16 @@ export default function RiskCharterDetailPage() {
         backLabel="Kembali ke Piagam"
         badges={
           <>
-            <Badge className="gap-2 border-primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
+            <Badge className="gap-2 -primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
               <ClipboardPenLine className="size-3.5" />
               Risk Governance
             </Badge>
             <Badge
-              variant="outline"
-              className={cn(
-                "gap-2 px-2.5 py-0.5 text-[11px]",
-                getCharterStatusBadgeClass(currentStatus),
-              )}
+ variant="outline"
+ className={cn(
+ "gap-2 px-2.5 py-0.5 text-[11px]",
+ getCharterStatusBadgeClass(currentStatus),
+ )}
             >
               {charterStatusLabel[currentStatus] ?? currentStatus}
             </Badge>

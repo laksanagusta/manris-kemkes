@@ -13,9 +13,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
@@ -47,6 +44,7 @@ import {
 } from "@/lib/validation/reporting";
 import { isWithinMitigationSubmissionWindow } from "@/lib/kri-reporting";
 import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
+import { MitigationProgressDialog } from "@/components/shared/design-system";
 
 export interface MitigationProgressDraft {
   taskId: string;
@@ -620,96 +618,40 @@ export function MitigationProgressTab({
       </Dialog>
 
       {/* Submit Progress Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base">
-              Lapor Progress Penanganan
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              {selectedTask?.mitigationAction} — {selectedTask?.periodLabel}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                Link Bukti / Evidence
-              </Label>
-              <Input
-                value={evidenceUrl}
-                onChange={(e) => setEvidenceUrl(e.target.value)}
-                className="text-xs"
-                placeholder="https://drive.google.com/..."
-                aria-invalid={Boolean(
-                  showValidationErrors && formErrors.evidenceUrl,
-                )}
-                aria-describedby={
-                  showValidationErrors && formErrors.evidenceUrl
-                    ? "mitigation-evidence-error"
-                    : undefined
-                }
-              />
-              {showValidationErrors && formErrors.evidenceUrl && (
-                <p
-                  id="mitigation-evidence-error"
-                  className="text-[11px] text-destructive"
-                >
-                  {formErrors.evidenceUrl}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                Catatan Pelaksanaan
-                <span className="text-destructive ml-0.5">*</span>
-              </Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="text-xs min-h-[80px]"
-                placeholder="Jelaskan pencapaian atau kendala yang dihadapi..."
-                aria-invalid={Boolean(showValidationErrors && formErrors.notes)}
-                aria-describedby={
-                  showValidationErrors && formErrors.notes
-                    ? "mitigation-notes-error"
-                    : undefined
-                }
-              />
-              {showValidationErrors && formErrors.notes && (
-                <p
-                  id="mitigation-notes-error"
-                  className="text-[11px] text-destructive"
-                >
-                  {formErrors.notes}
-                </p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDialog(false)}
-              className="text-xs"
-            >
-              Batal
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSubmitProgress}
-              disabled={submitting || hasFormErrors}
-              className="gap-2 text-xs"
-            >
-              {submitting ? (
-                <Loader2 className="size-3 animate-spin" />
-              ) : (
-                <Send className="size-3" />
-              )}
-              Kirim Laporan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <MitigationProgressDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        title="Lapor Progress Penanganan"
+        description={
+          selectedTask
+            ? `${selectedTask.mitigationAction} — ${selectedTask.periodLabel}`
+            : undefined
+        }
+        evidenceUrl={evidenceUrl}
+        onEvidenceUrlChange={setEvidenceUrl}
+        notes={notes}
+        onNotesChange={setNotes}
+        showValidationErrors={showValidationErrors}
+        evidenceError={formErrors.evidenceUrl}
+        notesError={formErrors.notes}
+        evidenceId="mitigation-evidence-url"
+        notesId="mitigation-notes"
+        footerActions={
+          <Button
+            size="sm"
+            onClick={handleSubmitProgress}
+            disabled={submitting || hasFormErrors}
+            className="gap-2 text-xs"
+          >
+            {submitting ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <Send className="size-3" />
+            )}
+            Kirim Laporan
+          </Button>
+        }
+      />
     </>
   );
 }

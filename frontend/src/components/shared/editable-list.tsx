@@ -16,7 +16,7 @@ export function EditableList({ value, onChange, placeholder, disabled }: Editabl
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className="min-h-[80px] text-xs bg-muted/20 border-border/50 resize-none font-mono leading-relaxed"
+      className="min-h-[80px] text-xs bg-muted/20 border-border/50 resize-none leading-relaxed"
     />
   );
 }

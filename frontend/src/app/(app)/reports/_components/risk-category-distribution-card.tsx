@@ -29,7 +29,7 @@ export function RiskCategoryDistributionCard({
 }: RiskCategoryDistributionCardProps) {
   if (loading) {
     return (
-      <Card className="h-full border-border/50 bg-card/80">
+      <Card className="h-full rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">
             Distribusi Kategori Risiko
@@ -45,7 +45,7 @@ export function RiskCategoryDistributionCard({
   }
 
   return (
-    <Card className="h-full border-border/50 bg-card/80">
+    <Card className="h-full rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -110,31 +110,35 @@ export function RiskCategoryDistributionCard({
                 <Bar
                   dataKey="sangatRendah"
                   stackId="a"
-                  fill="oklch(0.72 0.17 155)"
+                  fill="oklch(0.92 0.04 190)"
                   name="Sangat Rendah"
+                  radius={[0, 4, 4, 0]}
                 />
                 <Bar
                   dataKey="rendah"
                   stackId="a"
-                  fill="oklch(0.72 0.14 210)"
+                  fill="oklch(0.85 0.07 190)"
                   name="Rendah"
+                  radius={[0, 4, 4, 0]}
                 />
                 <Bar
                   dataKey="sedang"
                   stackId="a"
-                  fill="oklch(0.75 0.15 75)"
+                  fill="oklch(0.78 0.10 190)"
                   name="Sedang"
+                  radius={[0, 4, 4, 0]}
                 />
                 <Bar
                   dataKey="tinggi"
                   stackId="a"
-                  fill="oklch(0.70 0.18 40)"
+                  fill="oklch(0.72 0.13 190)"
                   name="Tinggi"
+                  radius={[0, 4, 4, 0]}
                 />
                 <Bar
                   dataKey="ekstrem"
                   stackId="a"
-                  fill="oklch(0.62 0.22 27)"
+                  fill="oklch(0.62 0.17 190)"
                   name="Sangat Tinggi"
                   radius={[0, 4, 4, 0]}
                 />

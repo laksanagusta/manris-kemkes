@@ -185,6 +185,17 @@ export function levelToColor(level: RiskLevel): string {
   return colors[level] || "";
 }
 
+export function levelToFillColor(level: RiskLevel): string {
+  const colors: Record<RiskLevel, string> = {
+    sangat_rendah: "rgb(74 222 128)",
+    rendah: "var(--color-risk-low)",
+    sedang: "var(--color-risk-medium)",
+    tinggi: "var(--color-risk-high)",
+    sangat_tinggi: "var(--color-risk-extreme)",
+  };
+  return colors[level] || "var(--color-risk-low)";
+}
+
 export function getRiskLevelDisplayLabel(level: RiskLevel): string {
   const labels: Record<RiskLevel, string> = {
     sangat_tinggi: "Sangat Tinggi",

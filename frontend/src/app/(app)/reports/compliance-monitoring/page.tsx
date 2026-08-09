@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Card, CardContent } from "@/components/ui/card";
 import {
   listOrganizationGroups,
   type OrganizationGroupListItem,
@@ -32,6 +31,12 @@ import type {
   OverdueMitigationTimelineItem,
   UnitResponseTime,
 } from "@/types/risk";
+import { CollectionToolbar } from "@/components/shared/design-system";
+import { PageStack } from "@/components/shared/design-system";
+import {
+  ReportEmptyState,
+  ReportGrid,
+} from "@/components/shared/design-system";
 
 const EMPTY_REPORT_SCOPE: ReportsFilterScope = {
   organizationId: "",
@@ -181,53 +186,40 @@ export default function ComplianceMonitoringPage() {
   }, [requiresScopeSelection, token]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Monitoring Kepatuhan
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Ringkasan overdue mitigasi dan waktu respons unit dalam satu halaman.
-          </p>
-        </div>
-
-        <ReportsFilterSheet
-          open={filterOpen}
-          onOpenChange={handleFilterOpenChange}
-          activeUnitCount={appliedScopeOrgIds.length}
-          disabled={organizations.length === 0 && organizationGroups.length === 0}
-          title="Filter Monitoring"
-          description="Atur group dan unit untuk membatasi data monitoring. Perubahan baru diterapkan setelah menekan Terapkan Filter."
-          draftScope={draftScope}
-          onDraftScopeChange={setDraftScope}
-          organizations={organizations}
-          organizationGroups={organizationGroups}
-          onReset={handleResetFilter}
-          onCancel={handleCancelFilter}
-          onApply={handleApplyFilter}
-        />
-      </div>
+    <PageStack>
+      <CollectionToolbar
+        title="Monitoring Kepatuhan"
+        description="Ringkasan overdue mitigasi dan waktu respons unit dalam satu halaman."
+        actions={
+          <ReportsFilterSheet
+            open={filterOpen}
+            onOpenChange={handleFilterOpenChange}
+            activeUnitCount={appliedScopeOrgIds.length}
+            disabled={organizations.length === 0 && organizationGroups.length === 0}
+            title="Filter Monitoring"
+            description="Atur group dan unit untuk membatasi data monitoring. Perubahan baru diterapkan setelah menekan Terapkan Filter."
+            draftScope={draftScope}
+            onDraftScopeChange={setDraftScope}
+            organizations={organizations}
+            organizationGroups={organizationGroups}
+            onReset={handleResetFilter}
+            onCancel={handleCancelFilter}
+            onApply={handleApplyFilter}
+          />
+        }
+      />
 
       {requiresScopeSelection ? (
-        <Card className="border-border/50 bg-card/90 shadow-sm">
-          <CardContent className="flex min-h-40 items-center justify-center px-6 py-8 text-center">
-            <div className="max-w-sm space-y-2">
-              <p className="text-sm font-medium text-foreground">
-                Pilih grup atau unit terlebih dahulu.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Monitoring kepatuhan akan mengikuti scope yang Anda pilih pada filter.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <ReportEmptyState
+          title="Pilih grup atau unit terlebih dahulu."
+          description="Monitoring kepatuhan akan mengikuti scope yang Anda pilih pada filter."
+        />
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <ReportGrid>
         <OverdueMitigationTimeline data={filteredOverdueTimelineData} />
         <UnitResponseTimeChart data={filteredResponseTimeData} />
-      </div>
-    </div>
+      </ReportGrid>
+    </PageStack>
   );
 }

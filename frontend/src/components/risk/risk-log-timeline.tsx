@@ -295,12 +295,10 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
         </CardHeader>
         <CardContent className="pt-4">
           {timelineItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center border-2 border-dashed border-border/60 rounded-lg bg-muted/10">
-              <MessageSquare className="size-8 text-muted-foreground/50 mb-3" />
-              <p className="text-sm font-medium">Belum Ada Log Komunikasi</p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                Tambahkan log komunikasi untuk mencatat interaksi dengan
-                stakeholder terkait risiko ini.
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <p className="text-sm font-medium text-foreground">Belum Ada Log Komunikasi</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                Tambahkan log komunikasi untuk mencatat interaksi dengan stakeholder terkait risiko ini.
               </p>
               <Button
                 variant="outline"
@@ -317,17 +315,21 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
               <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border/50" />
 
               {/* Timeline items */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {timelineItems.map((item) => (
                   <div key={item.id} className="flex gap-3 relative">
                     {/* Icon */}
-                    <div className="shrink-0 w-6 h-6 rounded-full bg-background border border-border/50 flex items-center justify-center z-10">
+                    <div className={"shrink-0 w-6 h-6 rounded-full flex items-center justify-center z-10 " + (
+                      item.type === "approval" ? "bg-emerald-500/10 text-emerald-600" :
+                      item.type === "meeting_minute" ? "bg-primary/10 text-primary" :
+                      "bg-blue-500/10 text-blue-600"
+                    )}>
                       {item.type === "approval" ? (
-                        <CheckCircle2 className="size-3.5 text-emerald-600" />
+                        <CheckCircle2 className="size-3.5" />
                       ) : item.type === "meeting_minute" ? (
-                        <CalendarDays className="size-3.5 text-primary" />
+                        <CalendarDays className="size-3.5" />
                       ) : (
-                        <MessageSquare className="size-3.5 text-blue-600" />
+                        <MessageSquare className="size-3.5" />
                       )}
                     </div>
 
@@ -338,33 +340,33 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
                           {item.title}
                         </span>
                         {item.type === "approval" && (
-                          <Badge variant="outline" className="text-[10px]">
+                          <Badge variant="outline" className="text-[11px] h-5">
                             Approval
                           </Badge>
                         )}
                         {item.type === "communication" && (
                           <Badge
                             variant="outline"
-                            className="text-[10px] gap-1"
+                            className="text-[11px] h-5 gap-1"
                           >
                             {METHOD_ICONS[item.metadata?.method || "Meeting"]}
                             {item.metadata?.method || "Komunikasi"}
                           </Badge>
                         )}
                         {item.type === "meeting_minute" && (
-                          <Badge variant="outline" className="text-[10px]">
+                          <Badge variant="outline" className="text-[11px] h-5">
                             Notulen
                           </Badge>
                         )}
                       </div>
 
-                      {item.description && (
+                      {item.description && item.description !== "-" && (
                         <p className="text-xs text-muted-foreground mb-2">
                           {item.description}
                         </p>
                       )}
 
-                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                         <span>{formatDateTime(item.date)}</span>
                         {item.metadata?.oleh && (
                           <span>Oleh: {item.metadata.oleh}</span>
@@ -372,7 +374,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
                         {item.metadata?.role && (
                           <Badge
                             variant="outline"
-                            className="text-[10px] h-4 px-1.5"
+                            className="text-[11px] h-5"
                           >
                             {item.metadata.role}
                           </Badge>

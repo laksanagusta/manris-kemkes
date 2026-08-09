@@ -54,14 +54,14 @@ export function PerformanceRiskFilterBar({
     <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div className="min-w-0 flex-1 md:max-w-md">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="performance-risk-search"
             value={searchText}
             onChange={(event) => onSearchTextChange(event.target.value)}
             placeholder="Ketik kata kunci"
             aria-label="Cari RO / program / kegiatan"
-            className="pl-9"
+            className="bg-muted pl-10 text-sm"
           />
         </div>
       </div>
@@ -87,7 +87,7 @@ export function PerformanceRiskFilterBar({
           onApply={onApplyFilter}
         />
 
-        <label className="flex h-8 items-center gap-2 rounded-[12px] border border-zinc-200 bg-white px-3 text-sm text-zinc-700 shadow-[0_1px_1px_rgba(0,0,0,0.04)] transition-colors hover:bg-zinc-50">
+        <label className="flex h-8 items-center gap-2 rounded-lg text-sm text-muted-foreground transition-colors">
           <Switch checked={showNoRisk} onCheckedChange={onShowNoRiskChange} />
           <span className="whitespace-nowrap">Tampilkan RO tanpa risiko</span>
         </label>

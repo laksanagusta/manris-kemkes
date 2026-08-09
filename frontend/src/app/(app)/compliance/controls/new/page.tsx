@@ -67,7 +67,7 @@ export default function NewControlPage() {
         title="Tambah kontrol"
         description="Catat kontrol baru agar bisa dipakai di register risiko dan monitoring."
         badges={
-          <Badge variant="outline" className="border-primary/15 bg-primary/[0.04] text-primary">
+          <Badge variant="outline" className="-primary/15 bg-primary/[0.04] text-primary">
             Pustaka kontrol
           </Badge>
         }

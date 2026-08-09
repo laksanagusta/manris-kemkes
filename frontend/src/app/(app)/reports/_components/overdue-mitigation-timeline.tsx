@@ -14,10 +14,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OverdueMitigationTimelineItem } from "@/types/risk";
 
 const COLORS = {
-  onTime: "oklch(0.72 0.17 155)",
-  overdue7: "oklch(0.78 0.16 85)",
-  overdue30: "oklch(0.70 0.18 40)",
-  overdue30Plus: "oklch(0.62 0.22 27)",
+  onTime: "oklch(0.90 0.05 190)",
+  overdue7: "oklch(0.82 0.08 190)",
+  overdue30: "oklch(0.72 0.13 190)",
+  overdue30Plus: "oklch(0.60 0.17 190)",
 };
 
 const LEGEND = [
@@ -51,9 +51,9 @@ export function OverdueMitigationTimeline({ loading, data = [] }: OverdueMitigat
 
   if (loading) {
     return (
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="overdue-mitigation-timeline">
+      <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none" data-testid="overdue-mitigation-timeline">
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Timeline Penanganan Overdue</CardTitle>
+          <CardTitle className="text-sm font-semibold">Timeline Penanganan Overdue</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
@@ -65,11 +65,11 @@ export function OverdueMitigationTimeline({ loading, data = [] }: OverdueMitigat
   }
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm" data-testid="overdue-mitigation-timeline">
+    <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none" data-testid="overdue-mitigation-timeline">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-base font-semibold">Timeline Penanganan Overdue</CardTitle>
+            <CardTitle className="text-sm font-semibold">Timeline Penanganan Overdue</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
               Jumlah mitigasi per organisasi berdasarkan kedatanggal pengaporan
             </p>
@@ -112,9 +112,9 @@ export function OverdueMitigationTimeline({ loading, data = [] }: OverdueMitigat
                     }}
                     labelFormatter={(label) => chartData.find((d) => d.orgName === label)?.fullOrgName ?? label}
                   />
-                  <Bar dataKey="onTimeCount" stackId="a" fill={COLORS.onTime} radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="overdue7Count" stackId="a" fill={COLORS.overdue7} radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="overdue30Count" stackId="a" fill={COLORS.overdue30} radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="onTimeCount" stackId="a" fill={COLORS.onTime} radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="overdue7Count" stackId="a" fill={COLORS.overdue7} radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="overdue30Count" stackId="a" fill={COLORS.overdue30} radius={[0, 3, 3, 0]} />
                   <Bar dataKey="overdue30PlusCount" stackId="a" fill={COLORS.overdue30Plus} radius={[0, 3, 3, 0]} />
                 </BarChart>
               </ResponsiveContainer>

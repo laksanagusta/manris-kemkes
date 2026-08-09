@@ -169,10 +169,11 @@ export function ROPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
+          size="md"
           role="combobox"
           aria-expanded={open}
-          className="w-full min-w-0 max-w-full shrink justify-between overflow-hidden font-normal"
+          className="w-full justify-between overflow-hidden rounded-lg px-2.5 text-sm font-normal shadow-none bg-muted/50"
         >
           {selected ? (
             <span className="min-w-0 flex-1 truncate text-left">

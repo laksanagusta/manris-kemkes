@@ -56,7 +56,7 @@ export function EditableItemsTable({
           <table className="w-full">
             <tbody className="divide-y divide-border/50">
               {items.map((item, index) => (
-                <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                <tr key={item.id} className="animate-in fade-in slide-in-from-top-2 duration-200 ease-out motion-reduce:animate-none hover:bg-muted/30 transition-colors" style={{ animationDelay: `${index * 30}ms` }}>
                   <td className="w-8 px-2 py-2">
                     <div className="flex items-center justify-center text-muted-foreground">
                       <GripVertical className="size-3.5" />

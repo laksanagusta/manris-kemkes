@@ -77,16 +77,16 @@ export function MitigationStatusTable({ monitoringId }: MitigationStatusTablePro
           <Table>
             <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
               <TableRow className="border-border/50 transition-colors hover:bg-transparent">
-                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   Rencana Mitigasi
                 </TableHead>
-                <TableHead className="w-56 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-56 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   PIC
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   Status
                 </TableHead>
-                <TableHead className="w-40 whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-40 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   Dilaporkan
                 </TableHead>
               </TableRow>

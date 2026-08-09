@@ -77,7 +77,7 @@ export function ReportsFilterSheet({
   return (
     <Sheet modal={false} open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
-        <Button variant="outline" disabled={disabled}>
+        <Button variant="outline" size="md" disabled={disabled} className="gap-2 shadow-none">
           <FilterIcon data-icon="inline-start" className="size-3.5" />
           Filter
           {showUnitCountBadge ? (
@@ -172,14 +172,15 @@ export function ReportsFilterSheet({
         <Separator />
 
         <SheetFooter className="sm:flex-row sm:justify-between">
-          <Button type="button" variant="ghost" onClick={onReset}>
+          <Button type="button" variant="ghost" size="md" onClick={onReset} className="shadow-none">
             Reset
           </Button>
           <div className="flex flex-col-reverse gap-2 sm:flex-row">
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="button" variant="outline" size="md" onClick={onCancel} className="shadow-none">
               Batal
             </Button>
-            <Button type="button" onClick={onApply}>
+            <Button type="button" size="md" onClick={onApply}
+              style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}>
               Terapkan Filter
             </Button>
           </div>

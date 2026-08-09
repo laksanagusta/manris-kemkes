@@ -4,12 +4,12 @@ import { RiskCycleDetailReport } from "../risk-cycle-detail-report";
 
 export default function CycleDetailPage() {
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">
+    <div className="space-y-4">
+      <div className="min-w-0">
+        <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
           Detail Siklus Risiko
-        </h1>
-        <p className="text-sm text-muted-foreground">
+        </h2>
+        <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
           Telusuri perubahan risiko antar siklus secara rinci, termasuk
           perubahan kolom dan mitigasi.
         </p>

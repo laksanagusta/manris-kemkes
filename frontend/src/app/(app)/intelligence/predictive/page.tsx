@@ -199,14 +199,14 @@ function PredictivePageContent() {
          <Table>
            <TableHeader>
              <TableRow className="border-border/50 hover:bg-transparent">
-               <TableHead className="w-20 text-xs whitespace-nowrap">Kode</TableHead>
-               <TableHead className="text-xs whitespace-nowrap">Risiko</TableHead>
-               <TableHead className="text-xs w-24 whitespace-nowrap">Level Saat Ini</TableHead>
-               <TableHead className="text-xs text-center w-12 whitespace-nowrap">→</TableHead>
-               <TableHead className="text-xs w-24 whitespace-nowrap">Prediksi Level</TableHead>
-               <TableHead className="text-xs w-16 whitespace-nowrap">Tren</TableHead>
-               <TableHead className="text-xs w-28 whitespace-nowrap">Confidence</TableHead>
-               <TableHead className="text-xs whitespace-nowrap">Reasoning</TableHead>
+               <TableHead className="w-20 text-sm whitespace-nowrap">Kode</TableHead>
+               <TableHead className="text-sm whitespace-nowrap">Risiko</TableHead>
+               <TableHead className="text-sm w-24 whitespace-nowrap">Level Saat Ini</TableHead>
+               <TableHead className="text-sm text-center w-12 whitespace-nowrap">→</TableHead>
+               <TableHead className="text-sm w-24 whitespace-nowrap">Prediksi Level</TableHead>
+               <TableHead className="text-sm w-16 whitespace-nowrap">Tren</TableHead>
+               <TableHead className="text-sm w-28 whitespace-nowrap">Confidence</TableHead>
+               <TableHead className="text-sm whitespace-nowrap">Reasoning</TableHead>
              </TableRow>
            </TableHeader>
           <TableBody>

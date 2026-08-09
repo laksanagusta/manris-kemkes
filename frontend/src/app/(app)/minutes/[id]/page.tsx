@@ -267,11 +267,11 @@ function MeetingMinuteDetailContent() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border/50 hover:bg-transparent">
-                        <TableHead className="min-w-[260px] text-xs">Tindak Lanjut</TableHead>
-                        <TableHead className="min-w-[140px] text-xs">PIC</TableHead>
-                        <TableHead className="min-w-[120px] text-xs">Deadline</TableHead>
-                        <TableHead className="w-[110px] text-xs">Prioritas</TableHead>
-                        <TableHead className="min-w-[220px] text-xs">Catatan</TableHead>
+                        <TableHead className="min-w-[260px] text-sm">Tindak Lanjut</TableHead>
+                        <TableHead className="min-w-[140px] text-sm">PIC</TableHead>
+                        <TableHead className="min-w-[120px] text-sm">Deadline</TableHead>
+                        <TableHead className="w-[110px] text-sm">Prioritas</TableHead>
+                        <TableHead className="min-w-[220px] text-sm">Catatan</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

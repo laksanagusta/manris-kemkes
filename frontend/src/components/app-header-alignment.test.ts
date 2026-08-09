@@ -10,27 +10,25 @@ const source = readFileSync(
 test("uses inset shell header geometry", () => {
   assert.match(
     source,
-    /className="font-display mb-6 flex items-center justify-between gap-2 md:px-2"/,
+    /className="font-display mb-6 grid gap-3 md:grid-cols-\[minmax\(0,1fr\)_auto\] md:items-start"/,
   );
   assert.doesNotMatch(source, /sticky top-0/);
   assert.doesNotMatch(source, /border-b/);
 });
 
-test("removes the sidebar trigger and vertical separator", () => {
-  assert.doesNotMatch(source, /SidebarTrigger/);
-  assert.doesNotMatch(source, /<Separator/);
+test("derives the page title from the current route", () => {
+  assert.match(source, /const pageTitle = breadcrumbMap\[pathname\] \?\? "Manajemen Risiko";/);
 });
 
-test("uses a larger application section title", () => {
+test("keeps the application title compact", () => {
   assert.match(
     source,
-    /className="text-base font-semibold tracking-tight text-foreground"/,
+    /className="block truncate text-sm font-semibold tracking-tight text-foreground"/,
   );
 });
 
-test("keeps the Manris account menu behavior", () => {
-  assert.match(source, /const \{ logout, user \} = useAuth\(\)/);
-  assert.match(source, /router\.push\("\/account"\)/);
-  assert.match(source, /logout\(\)/);
-  assert.match(source, /router\.push\("\/login"\)/);
+test("keeps the optional actions slot", () => {
+  assert.match(source, /const actions = useHeaderActions\(\);/);
+  assert.match(source, /actions && \(/);
+  assert.match(source, /justify-end gap-2/);
 });

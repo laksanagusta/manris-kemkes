@@ -1,22 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { StandardCard } from "@/components/shared/design-system";
+import { OverviewPanelState } from "@/components/shared/design-system";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { getHeatmapCellClass, type HeatmapMode } from "@/lib/heatmap-utils";
+  calculateNilai,
+  getBobot,
+  getRiskLevelFromNilai,
+  getRiskLevelLabel,
+} from "@/lib/risk";
 
-interface Props {
-  defaultYear?: number;
-}
+import { getHeatmapCellClass, type HeatmapMode } from "@/lib/heatmap-utils";
 
 type PhaseKey = "initial" | "semester1" | "semester2" | "target";
 
@@ -33,11 +30,18 @@ const labelMap: Record<PhaseKey, string> = {
 
 const emptyHeatmap = Array(5).fill(Array(5).fill(0));
 
-export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
+const riskLevelLegend = [
+  { label: "Sangat Rendah", className: "heatmap-sangat-rendah" },
+  { label: "Rendah", className: "heatmap-rendah" },
+  { label: "Sedang", className: "heatmap-sedang" },
+  { label: "Tinggi", className: "heatmap-tinggi" },
+  { label: "Sangat Tinggi", className: "heatmap-sangat-tinggi" },
+] as const;
+
+export function MultiPhaseHeatmapCompareCard() {
   const { token } = useAuth();
 
   const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState<number>(defaultYear ?? currentYear);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const heatmapMode: HeatmapMode = "riskLevel";
@@ -49,16 +53,6 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
     target: emptyHeatmap,
   });
 
-  const uniqueYearOptions = Array.from(
-    new Set([
-      currentYear - 2,
-      currentYear - 1,
-      currentYear,
-      currentYear + 1,
-      year,
-    ]),
-  ).sort((a, b) => a - b);
-
   useEffect(() => {
     if (!token) return;
 
@@ -67,7 +61,7 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
       setError(null);
       try {
         const response = await api.get<MultiPhaseHeatmapResponse>(
-          `/dashboard/heatmap-multi?year=${year}`,
+          `/dashboard/heatmap-multi?year=${currentYear}`,
           token,
         );
 
@@ -80,94 +74,111 @@ export function MultiPhaseHeatmapCompareCard({ defaultYear }: Props) {
       } catch (err) {
         console.error("Failed to load multi-phase heatmap", err);
         setError("Gagal memuat data heatmap.");
-        setData({
-          initial: emptyHeatmap,
-          semester1: emptyHeatmap,
-          semester2: emptyHeatmap,
-          target: emptyHeatmap,
-        });
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [token, year]);
+  }, [token, currentYear]);
 
   return (
-    <Card className="w-full gap-4 rounded-lg border-0 bg-card py-0 shadow-none ring-1 ring-inset ring-border">
-      <CardHeader className="flex flex-col gap-4 space-y-0 pb-4 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <CardTitle className="text-base font-medium">
-            Heatmap Compare Multi-Fase
-          </CardTitle>
-          <p className="mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
-            Distribusi risiko lintas fase lifecycle dalam tahun {year}.
-            {error && (
-              <span className="ml-2 text-xs text-destructive">({error})</span>
-            )}
-          </p>
-        </div>
-
-        <div className="flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
-          <Select
-            value={year.toString()}
-            onValueChange={(val) => setYear(parseInt(val, 10))}
+    <StandardCard
+      title="Perbandingan Heatmap Multi-Fase"
+      className="w-full"
+      contentClassName="p-4 pt-2"
+    >
+      {error ? (
+        <OverviewPanelState
+          state="error"
+          message="Perbandingan heatmap tidak dapat dimuat."
+          className="min-h-64"
+        />
+      ) : (
+        <>
+          <div
+            aria-busy={loading}
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4"
           >
-            <SelectTrigger className="w-full bg-background/80 shadow-none sm:w-[120px]">
-              <SelectValue placeholder="Pilih Tahun" />
-            </SelectTrigger>
-            <SelectContent>
-              {uniqueYearOptions.map((y) => (
-                <SelectItem key={y} value={y.toString()}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-        </div>
-      </CardHeader>
-
-      <CardContent className="grid grid-cols-1 gap-4 pb-4 md:grid-cols-2 lg:grid-cols-4">
+        {loading ? <span className="sr-only">Memuat data heatmap.</span> : null}
         {(Object.keys(labelMap) as PhaseKey[]).map((phase) => {
           const gridData = data[phase];
           return (
             <div
               key={phase}
+              role="group"
+              aria-label={`Heatmap ${labelMap[phase]}`}
               className={cn(
                 "space-y-2",
-                loading && "opacity-50 transition-opacity",
+                loading && "opacity-50 transition-opacity motion-reduce:transition-none",
               )}
             >
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                 {labelMap[phase]}
               </p>
               <div className="relative grid grid-cols-5 gap-1">
                 {[...gridData].reverse().flatMap((row, rowIndex) =>
-                  row.map((count, colIndex) => (
-                    <div
-                      key={`${phase}-${rowIndex}-${colIndex}`}
-                      className={cn(
-                        "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
-                        getHeatmapCellClass(
-                          count,
-                          5 - rowIndex,
-                          colIndex + 1,
-                          heatmapMode,
+                  row.map((count, colIndex) => {
+                    const probability = 5 - rowIndex;
+                    const impact = colIndex + 1;
+                    const level = getRiskLevelLabel(
+                      getRiskLevelFromNilai(
+                        calculateNilai(
+                          probability,
+                          impact,
+                          getBobot(probability, impact),
                         ),
-                      )}
-                      title={`Probabilitas: ${5 - rowIndex}, Dampak: ${colIndex + 1}`}
-                    >
-                      {heatmapMode === "riskLevel" && count === 0 ? "" : count}
-                    </div>
-                  )),
+                      ),
+                    );
+
+                    return (
+                      <div
+                        key={`${phase}-${rowIndex}-${colIndex}`}
+                        role="img"
+                        aria-label={`Probabilitas ${probability}, dampak ${impact}, level ${level}, ${count} risiko`}
+                        className={cn(
+                          "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
+                          getHeatmapCellClass(
+                            count,
+                            probability,
+                            impact,
+                            heatmapMode,
+                          ),
+                        )}
+                      >
+                        <span aria-hidden="true">
+                          {heatmapMode === "riskLevel" && count === 0 ? "" : count}
+                        </span>
+                      </div>
+                    );
+                  }),
                 )}
               </div>
             </div>
           );
         })}
-      </CardContent>
-    </Card>
+          </div>
+          <div
+            role="list"
+            aria-label="Legenda level risiko"
+            className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-border/40 pt-3 text-[11px] text-muted-foreground"
+          >
+            {riskLevelLegend.map((item) => (
+              <span
+                key={item.label}
+                role="listitem"
+                className="inline-flex items-center gap-1.5"
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn("size-2.5 rounded-sm", item.className)}
+                />
+                {item.label}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </StandardCard>
   );
 }

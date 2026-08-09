@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
@@ -9,8 +10,8 @@ import { archiveRisk, restoreRisk } from "@/lib/api/risk-register";
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
-import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { useAuth } from "@/contexts/auth-context";
+import { useSetHeaderActions } from "@/lib/header-actions-context";
 import { ROPicker, type ROSelectionSummary } from "@/components/risk/ro-picker";
 import { ImpactCriteriaTooltip } from "@/components/shared/impact-criteria-tooltip";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
@@ -18,19 +19,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -49,21 +43,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
+
 import {
   Accordion,
   AccordionItem,
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
@@ -74,24 +65,22 @@ import {
 
 import { cn } from "@/lib/utils";
 import {
+  Check,
+  ChevronDown,
   Loader2,
-  Archive,
-  Download,
   Save,
-  MoreHorizontal,
   Send,
-  Radar,
   CheckCircle2,
   CircleDot,
   WandSparkles,
   Trash2,
-  RotateCcw,
-  GitBranch,
+  CheckSquare,
+  History,
 } from "lucide-react";
 
 import {
   getRiskLevelFromNilai,
-  levelToColor,
+  getRiskLevelLabel,
   riskCategoryLabels,
   getBobot,
   calculateNilai,
@@ -111,8 +100,9 @@ import {
 } from "@/lib/risk-approval-line";
 import { EditableList } from "@/components/shared/editable-list";
 import { EditableItemsTable } from "@/components/shared/editable-items-table";
-import { FormHeader } from "@/components/shared/form-shell";
-import { RiskAssessmentSummaryStrip } from "@/components/shared/risk-assessment-summary-strip";
+import { FormPage } from "@/components/shared/form-shell";
+import { RiskRatingSlider } from "@/components/risk/risk-rating-slider";
+import { RiskAssessmentSummaryStrip } from "@/components/shared/design-system";
 import {
   MitigationTable,
   type MitigationItem,
@@ -123,7 +113,6 @@ import {
   MitigationProgressTab,
   type MitigationProgressDraft,
 } from "@/components/shared/mitigation-progress-tab";
-import { RiskAnalysisTab } from "@/components/risk/risk-analysis-tab";
 import type {
   RiskCategory,
   RiskStatus,
@@ -160,8 +149,6 @@ import {
   getSelectableAssessmentCycles,
 } from "@/lib/risk-cycle-options";
 import { buildRiskRegisterPayload } from "@/lib/risk-register-payload";
-import { downloadRiskDetailPDF } from "@/lib/api/risk-export-pdf";
-import { buildRiskDetailPDFFilename } from "@/lib/risk-export-pdf-utils";
 
 const RiskLogTimeline = dynamic(
   () =>
@@ -171,7 +158,7 @@ const RiskLogTimeline = dynamic(
   {
     ssr: false,
     loading: () => (
-      <Card className="border-border/50">
+      <Card className="border-zinc-200/80">
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">
@@ -191,18 +178,6 @@ const CATEGORY_TITLES: Record<string, string> = {
   lingkungan: "Lingkungan",
 };
 
-const statusVariant: Record<string, string> = {
-  assessment_draft: "bg-muted text-muted-foreground border-border",
-  assessment_in_review: "bg-blue-500/15 text-blue-600 border-blue-500/20",
-  approved: "bg-success/15 text-success border-success/20",
-};
-
-const statusLabel: Record<string, string> = {
-  assessment_draft: "Draf Pemantauan",
-  assessment_in_review: "Dalam Review",
-  approved: "Disetujui",
-};
-
 const CATEGORY_ORDER: string[] = [
   "manusia",
   "metode",
@@ -218,7 +193,7 @@ type SectionId =
   | "evaluasi"
   | "penanganan"
   | "target";
-type WorkspaceView = "form" | "analysis" | "progress" | "log";
+type WorkspaceView = "form" | "progress" | "log";
 type CauseImpactItem = { id: string; text: string };
 type RiskSuggestion = {
   title: string;
@@ -226,6 +201,103 @@ type RiskSuggestion = {
   category?: RiskCategory | "" | null;
 };
 type ErrorWithMessage = { message?: string; error?: string };
+type PopoverSelectOption = {
+  value: string;
+  label: string;
+};
+
+interface PopoverSelectFieldProps {
+  value?: string;
+  onValueChange: (value: string) => void;
+  options: PopoverSelectOption[];
+  placeholder: string;
+  disabled?: boolean;
+  triggerClassName?: string;
+  contentClassName?: string;
+  emptyMessage?: string;
+}
+
+function PopoverSelectField({
+  value,
+  onValueChange,
+  options,
+  placeholder,
+  disabled = false,
+  triggerClassName,
+  contentClassName,
+  emptyMessage = "Tidak ada opsi.",
+}: PopoverSelectFieldProps) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn(
+            "h-9 w-full justify-between gap-2 px-3 text-sm font-normal shadow-none",
+            !selected && "text-muted-foreground",
+            triggerClassName,
+          )}
+        >
+          <span className="min-w-0 flex-1 truncate text-left">
+            {selected?.label ?? placeholder}
+          </span>
+          <ChevronDown className="size-4 shrink-0 opacity-60" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className={cn(
+          "w-[var(--radix-popover-trigger-width)] p-1",
+          contentClassName,
+        )}
+      >
+        <div className="max-h-60 overflow-y-auto p-1">
+          {options.length === 0 ? (
+            <div className="px-2 py-2 text-sm text-muted-foreground">
+              {emptyMessage}
+            </div>
+          ) : (
+            options.map((option) => {
+              const selectedOption = option.value === value;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground",
+                    selectedOption && "bg-accent text-accent-foreground",
+                  )}
+                  onClick={() => {
+                    onValueChange(option.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "size-4 shrink-0",
+                      selectedOption ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  <span className="min-w-0 flex-1 truncate">
+                    {option.label}
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 type RiskApiMitigation = MitigationItem & {
   ownerUserId?: string;
@@ -374,7 +446,7 @@ function AiFieldButton({
       size="xs"
       onClick={onClick}
       disabled={disabled || loading}
-      className="h-7 gap-2 border-primary/20 bg-primary/[0.03] px-2.5 text-xs text-primary hover:bg-primary/10 hover:text-primary"
+      className="h-7 gap-2 border-border/60 bg-muted/40 px-2.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
     >
       {loading ? (
         <Loader2 className="size-3 animate-spin" />
@@ -630,6 +702,7 @@ export default function RiskInputPage() {
   const aiFeaturesDisabled = isAIFeaturesDisabled();
   const router = useRouter();
   const { token, user } = useAuth();
+  const setHeaderActions = useSetHeaderActions();
   const riskApprovalCapabilityBehavior = useMemo(
     () => getRiskApprovalCapabilityBehavior(user?.capabilities),
     [user?.capabilities],
@@ -639,10 +712,6 @@ export default function RiskInputPage() {
   const [riskStatus, setRiskStatus] = useState<string>("assessment_draft");
   const [riskArchivedAt, setRiskArchivedAt] = useState<string | null>(null);
   const [riskArchivedReason, setRiskArchivedReason] = useState("");
-  const [isExportingPDF, setIsExportingPDF] = useState(false);
-  const [ongoingAssessmentId, setOngoingAssessmentId] = useState<string | null>(
-    null,
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<
     { id: string; name: string; uprLevel?: string }[]
@@ -674,10 +743,6 @@ export default function RiskInputPage() {
     }
     return options;
   }, [assessmentCycleDisplay]);
-  const planningPeriod = useMemo(() => {
-    const [year] = assessmentCycleDisplay.split("-");
-    return year || String(new Date().getFullYear());
-  }, [assessmentCycleDisplay]);
   const [selectedOrganizationUPRLevel, setSelectedOrganizationUPRLevel] =
     useState<string>("kementerian");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -690,6 +755,9 @@ export default function RiskInputPage() {
     [],
   );
   const [loadingVersions, setLoadingVersions] = useState(false);
+  const [ongoingAssessmentId, setOngoingAssessmentId] = useState<string | null>(
+    null,
+  );
   const submitTarget = useRef<"draft" | "review">("draft");
 
   const form = useForm<FormInput, unknown, FormValues>({
@@ -755,7 +823,6 @@ export default function RiskInputPage() {
   const controlEffectiveness = watch("controlEffectiveness") ?? "";
   const treatmentOption = watch("treatmentOption") ?? "";
   const nextReviewDate = watch("nextReviewDate") ?? "";
-  const riskCode = watch("riskCode") ?? "";
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
     selectedApprovalLine.length > 0 &&
@@ -1135,39 +1202,6 @@ export default function RiskInputPage() {
     [reset, token],
   );
 
-  const handleExportPDF = async () => {
-    if (!token || !riskId) {
-      toast.error("Risiko belum siap untuk diekspor.");
-      return;
-    }
-    if (riskStatus !== "approved") {
-      toast.error("Export PDF hanya tersedia untuk risiko final.");
-      return;
-    }
-
-    setIsExportingPDF(true);
-    try {
-      await downloadRiskDetailPDF(
-        token,
-        riskId,
-        buildRiskDetailPDFFilename({ code: riskCode, id: riskId }),
-      );
-      toast.success("PDF risiko berhasil diunduh.");
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        toast.error("Export PDF hanya tersedia untuk risiko final.");
-      } else if (error instanceof ApiError && error.status === 404) {
-        toast.error("Risiko tidak ditemukan.");
-      } else if (error instanceof ApiError && error.status === 403) {
-        toast.error("Anda tidak memiliki akses ke risiko ini.");
-      } else {
-        toast.error("PDF belum berhasil dibuat. Silakan coba lagi.");
-      }
-    } finally {
-      setIsExportingPDF(false);
-    }
-  };
-
   const currentOrganizationId = watch("organizationId");
 
   // Update UPR level when organization changes
@@ -1540,17 +1574,11 @@ export default function RiskInputPage() {
   ).length;
   const missingSections = sectionStatuses.filter((section) => !section.done);
   const lockedControlClass =
-    "disabled:!bg-background disabled:!text-foreground/90 disabled:!opacity-100 disabled:!cursor-not-allowed";
+    "disabled:!bg-muted/40 disabled:!text-foreground/90 disabled:!opacity-100 disabled:!cursor-not-allowed";
   const isRiskLocked =
     riskStatus === "assessment_in_review" ||
     riskStatus === "approved" ||
     !!riskArchivedAt;
-  const canManageArchive =
-    !!riskId &&
-    !isReadOnlyForOrg(user, currentOrganizationId || orgFilter || "") &&
-    (user?.role === "unit" ||
-      user?.role === "superadmin" ||
-      user?.role === "super_admin");
 
   const scrollToSection = (sectionId: SectionId) => {
     if (typeof document === "undefined") return;
@@ -1962,6 +1990,11 @@ export default function RiskInputPage() {
     void handleSubmit(onSubmit, onValidationError)();
   };
 
+  const handleSaveDraftHeaderRef = useRef(handleSaveDraft);
+  const openSubmitReviewConfirmHeaderRef = useRef(openSubmitReviewConfirm);
+  handleSaveDraftHeaderRef.current = handleSaveDraft;
+  openSubmitReviewConfirmHeaderRef.current = openSubmitReviewConfirm;
+
   const loadRiskVersions = useCallback(
     async (id: string) => {
       if (!token) return;
@@ -1984,7 +2017,7 @@ export default function RiskInputPage() {
   const handleViewChange = (nextView: WorkspaceView) => {
     if (nextView !== "form" && !riskId) {
       toast.info(
-        "Simpan draft terlebih dahulu untuk membuka analisa detail, progress mitigasi, riwayat versi, dan log komunikasi.",
+        "Simpan draft terlebih dahulu untuk membuka progress mitigasi, riwayat versi, dan log komunikasi.",
       );
       return;
     }
@@ -1999,13 +2032,15 @@ export default function RiskInputPage() {
 
   const FormErrorMessage = ({
     error,
+    className,
   }: {
     error?: string | { message?: string };
+    className?: string;
   }) => {
     const message = typeof error === "string" ? error : error?.message;
     if (!message) return null;
     return (
-      <span className="mt-1 text-xs font-medium text-destructive">
+      <span className={cn("mt-1 text-xs font-medium text-destructive", className)}>
         {message}
       </span>
     );
@@ -2162,170 +2197,57 @@ export default function RiskInputPage() {
     }
   };
 
+  useEffect(() => {
+    if (riskStatus !== "assessment_draft" && riskId) {
+      setHeaderActions(null);
+      return;
+    }
+
+    setHeaderActions(
+      <div className="flex items-center gap-4">
+        <Button
+          variant="outline"
+          size="md"
+          className="border-border/40 shadow-none"
+          onClick={() => handleSaveDraftHeaderRef.current()}
+          disabled={isSubmitting}
+        >
+          {isSubmitting && submitTarget.current === "draft" ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Save className="size-3.5" />
+          )}
+          Simpan draft
+        </Button>
+        <Button
+          size="md"
+          onClick={() => openSubmitReviewConfirmHeaderRef.current()}
+          disabled={isSubmitting}
+        >
+          {isSubmitting && submitTarget.current === "review" ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Send className="size-3.5" />
+          )}
+          {submitActionLabel}
+        </Button>
+      </div>,
+    );
+
+    return () => setHeaderActions(null);
+  }, [
+    isSubmitting,
+    riskId,
+    riskStatus,
+    setHeaderActions,
+    submitActionLabel,
+  ]);
+
   return (
     <TooltipProvider>
-      <div className="animate-fade-in pb-20">
-        <FormHeader
-          title="Form registrasi risiko"
-          description={
-            isRiskLocked
-              ? "Dokumen ini terkunci karena sudah final. Gunakan draft baru jika perlu perubahan."
-              : riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-                ? "Lengkapi identifikasi, analisis, dan rencana penanganan sebelum risiko difinalisasi langsung."
-                : "Lengkapi identifikasi, analisis, dan rencana penanganan sebelum diajukan untuk approval."
-          }
-          badges={
-            <>
-              <Badge
-                className={cn(
-                  "h-5 border px-1.5 text-[10px] font-medium",
-                  statusVariant[riskStatus] ??
-                    "bg-muted text-muted-foreground border-border",
-                )}
-              >
-                {riskStatus === "assessment_draft" && !riskId
-                  ? "Draft"
-                  : statusLabel[riskStatus] || riskStatus}
-              </Badge>
-            </>
-          }
-          backLabel="Kembali ke register risiko"
-          onBack={() => router.push("/risk/register")}
-          actions={
-            <div className="flex items-center gap-2 sm:gap-3">
-              {canManageArchive &&
-                !riskArchivedAt &&
-                riskStatus === "approved" && (
-                  <Button
-                    variant="outline"
-                    className="gap-2 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
-                    onClick={() => setShowArchiveDialog(true)}
-                  >
-                    <Trash2 className="size-4" />
-                    Arsipkan
-                  </Button>
-                )}
-              {canManageArchive && !!riskArchivedAt && (
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => setShowRestoreDialog(true)}
-                >
-                  <GitBranch className="size-4" />
-                  Pulihkan
-                </Button>
-              )}
-              {riskId && riskStatus === "approved" && (
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={handleExportPDF}
-                  disabled={isExportingPDF}
-                >
-                  {isExportingPDF ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Download className="size-4" />
-                  )}
-                  Export PDF
-                </Button>
-              )}
-
-              {riskId && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="gap-2 border-border/70 bg-background/90"
-                    >
-                      <MoreHorizontal className="size-4" />
-                      Aksi lainnya
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>Aksi dokumen</DropdownMenuLabel>
-                    {ongoingAssessmentId && (
-                      <DropdownMenuItem
-                        className="gap-2"
-                        onClick={() =>
-                          router.push(`/risk/assessment/${ongoingAssessmentId}`)
-                        }
-                      >
-                        <Radar className="size-3.5" />
-                        Lihat pemantauan
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    {canManageArchive &&
-                      !riskArchivedAt &&
-                      riskStatus === "approved" && (
-                        <DropdownMenuItem
-                          className="gap-2"
-                          onClick={() => setShowArchiveDialog(true)}
-                        >
-                          <Archive className="size-3.5" />
-                          Arsipkan
-                        </DropdownMenuItem>
-                      )}
-                    {canManageArchive && !!riskArchivedAt && (
-                      <DropdownMenuItem
-                        className="gap-2"
-                        onClick={() => setShowRestoreDialog(true)}
-                      >
-                        <RotateCcw className="size-3.5" />
-                        Pulihkan
-                      </DropdownMenuItem>
-                    )}
-                    {riskId && riskStatus === "assessment_draft" && (
-                      <DropdownMenuItem
-                        variant="destructive"
-                        className="gap-2"
-                        onClick={() => setShowDeleteConfirm(true)}
-                        disabled={isSubmitting}
-                      >
-                        <Trash2 className="size-3.5" />
-                        Hapus draft
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-
-              {(riskStatus === "assessment_draft" || !riskId) && (
-                <div className="flex items-center gap-2 border-l border-border/40 pl-2 sm:pl-3 ml-1 sm:ml-2">
-                  <Button
-                    variant="outline"
-                    className="gap-2 text-xs font-medium border-primary/20 hover:bg-primary/5 hover:text-primary"
-                    onClick={handleSaveDraft}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting && submitTarget.current === "draft" ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Save className="size-3.5" />
-                    )}{" "}
-                    Simpan draft
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={openSubmitReviewConfirm}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting && submitTarget.current === "review" ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Send className="size-3.5" />
-                    )}
-                    {submitActionLabel}
-                  </Button>
-                </div>
-              )}
-            </div>
-          }
-        />
-
+      <FormPage className="risk-form-filter-controls max-w-none space-y-6">
         {riskArchivedAt && (
-          <Card className="mb-4 border-amber-200 bg-amber-50/80">
+          <Card className="border-amber-200 bg-amber-50/80">
             <CardContent className="space-y-1 p-4 text-sm text-amber-900">
               <p className="font-semibold">
                 Risiko ini diarsipkan pada{" "}
@@ -2338,10 +2260,10 @@ export default function RiskInputPage() {
           </Card>
         )}
 
-        <div className="mb-6 w-full xl:w-2/3 space-y-3">
+        <div className="mb-6 w-full space-y-4 xl:hidden">
           <div className="space-y-1">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Ruang kerja
+              Navigasi
             </p>
           </div>
 
@@ -2349,45 +2271,37 @@ export default function RiskInputPage() {
             value={activeView}
             onValueChange={(value) => handleViewChange(value as WorkspaceView)}
           >
-            <TabsList className="flex h-auto w-fit flex-col gap-1 rounded-xl border border-border/50 bg-muted/40 p-1 sm:flex-row">
-              <TabsTrigger
-                value="form"
-                className="justify-start rounded-lg px-4 py-3 text-left text-sm font-medium data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
-              >
-                Form aktif
-              </TabsTrigger>
-              <TabsTrigger
-                value="analysis"
-                disabled={!riskId}
-                className="justify-start rounded-lg px-4 py-3 text-left text-sm font-medium data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
-              >
-                Analisa detail
-              </TabsTrigger>
+            <TabsList
+              className="rounded-lg ring-1 ring-inset ring-zinc-200/80 bg-muted/50 p-0.5"
+              style={{ height: "36px" }}
+            >
               <TabsTrigger
                 value="progress"
                 disabled={!riskId}
-                className="justify-start rounded-lg px-4 py-3 text-left text-sm font-medium data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+                className="h-full gap-1.5 rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200 motion-reduce:transition-none"
               >
-                Progress penanganan
+                <CheckSquare className="size-3.5 shrink-0" strokeWidth={2.5} />
+                Progres
               </TabsTrigger>
               <TabsTrigger
                 value="log"
                 disabled={!riskId}
-                className="justify-start rounded-lg px-4 py-3 text-left text-sm font-medium data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:ring-1 data-active:ring-border/60"
+                className="h-full gap-1.5 rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200 motion-reduce:transition-none"
               >
-                Activity log
+                <History className="size-3.5 shrink-0" strokeWidth={2.5} />
+                Log
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
-        {activeView === "analysis" && riskId && (
-          <RiskAnalysisTab versions={riskVersions} loading={loadingVersions} />
-        )}
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_380px] 2xl:grid-cols-[minmax(0,1.75fr)_430px] xl:items-start">
+          <div className="min-w-0 w-full">
 
-        {activeView === "form" && (
-          <div className="space-y-6">
-            <form onSubmit={(e) => e.preventDefault()} className="w-full">
+            <form
+                onSubmit={(e) => e.preventDefault()}
+                className="min-w-0 w-full"
+              >
               <Accordion
                 type="multiple"
                 value={[
@@ -2405,44 +2319,22 @@ export default function RiskInputPage() {
                 <AccordionItem
                   value="identifikasi"
                   id="identifikasi"
-                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
                 >
-                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                    <div className="flex flex-1 items-center justify-between pr-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                          1
-                        </div>
-                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
-                          Identifikasi Risiko
-                        </p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                          sectionStatuses[0].done
-                            ? "bg-success/10 text-success border-success/20"
-                            : "bg-muted/40 text-muted-foreground",
-                        )}
-                      >
-                        {sectionStatuses[0].done ? (
-                          <CheckCircle2 className="size-3.5" />
-                        ) : (
-                          <CircleDot className="size-3.5" />
-                        )}
-                        <span className="hidden sm:inline">
-                          {sectionStatuses[0].done
-                            ? "Lengkap"
-                            : "Perlu dilengkapi"}
-                        </span>
-                      </Badge>
+                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
+                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
+                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
+                        Identifikasi Risiko
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                        {sectionStatuses[0].description}
+                      </p>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                    <div className="relative space-y-1.5">
+                    <div className="relative">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <Label className="text-sm font-medium">
+                        <Label className="text-sm font-medium text-foreground">
                           Risiko
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
@@ -2455,32 +2347,34 @@ export default function RiskInputPage() {
                           />
                         ) : null}
                       </div>
-                      <Controller
-                        name="title"
-                        control={control}
-                        render={({ field }) => (
-                          <Input
-                            {...field}
-                            placeholder="Contoh: Terjadi kebakaran di gudang bahan baku"
-                            disabled={isRiskLocked}
-                            className={cn(
-                              "text-sm",
-                              lockedControlClass,
-                              errors.title && "border-destructive",
-                            )}
-                          />
-                        )}
-                      />
-                      <FormErrorMessage error={errors.title?.message} />
+                      <div className="mt-1.5">
+                        <Controller
+                          name="title"
+                          control={control}
+                          render={({ field }) => (
+                            <Input
+                              {...field}
+                              placeholder="Contoh: Terjadi kebakaran di gudang bahan baku"
+                              disabled={isRiskLocked}
+                              className={cn(
+                                "text-sm",
+                                lockedControlClass,
+                                errors.title && "border-destructive",
+                              )}
+                            />
+                          )}
+                        />
+                        <FormErrorMessage error={errors.title?.message} />
+                      </div>
 
                       {showRiskSuggestions && riskSuggestions.length > 0 && (
-                        <div className="absolute z-50 mt-2 w-full rounded-lg border border-border bg-background shadow-lg">
-                          <div className="border-b border-border/60 px-3 py-2">
+                        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl bg-background/95 shadow-lg shadow-black/5 ring-1 ring-border/60 backdrop-blur-md">
+                          <div className="px-3 py-2">
                             <p className="text-xs font-semibold text-foreground">
                               Saran AI untuk judul risiko
                             </p>
                           </div>
-                          <div className="max-h-[300px] overflow-y-auto">
+                          <div className="max-h-[300px] overflow-y-auto divide-y divide-border/40">
                             {riskSuggestions.map((suggestion, idx) => {
                               const resolvedCategory =
                                 resolveSuggestionCategory(suggestion);
@@ -2509,7 +2403,7 @@ export default function RiskInputPage() {
                                     }
                                     setShowRiskSuggestions(false);
                                   }}
-                                  className="w-full border-b border-border/50 p-3 text-left hover:bg-muted/30"
+                                  className="w-full p-3 text-left transition-colors hover:bg-muted/30"
                                 >
                                   <p className="text-sm font-medium text-foreground">
                                     {suggestion.title}
@@ -2531,32 +2425,33 @@ export default function RiskInputPage() {
                       )}
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-medium">
-                        Deskripsi Kejadian Risiko
-                        <span className="text-destructive ml-0.5">*</span>
-                      </Label>
-                      <Controller
-                        name="description"
-                        control={control}
-                        render={({ field }) => (
-                          <Textarea
-                            {...field}
-                            placeholder="Contoh: Mesin A mati secara tiba-tiba saat proses produksi berlangsung..."
-                            disabled={isRiskLocked}
-                            className={cn(
-                              "min-h-[120px] text-sm",
-                              lockedControlClass,
-                              errors.description && "border-destructive",
-                            )}
-                          />
-                        )}
-                      />
-                      <FormErrorMessage error={errors.description?.message} />
-                    </div>
+                    <Label className="text-sm font-medium text-foreground">
+                      Deskripsi Kejadian Risiko
+                      <span className="text-destructive ml-0.5">*</span>
+                    </Label>
+                    <Controller
+                      name="description"
+                      control={control}
+                      render={({ field }) => (
+                        <Textarea
+                          {...field}
+                          placeholder="Contoh: Mesin A mati secara tiba-tiba saat proses produksi berlangsung..."
+                          disabled={isRiskLocked}
+                          className={cn(
+                            "min-h-[120px] text-sm",
+                            lockedControlClass,
+                            errors.description && "border-destructive",
+                          )}
+                        />
+                      )}
+                    />
+                    <FormErrorMessage
+                      error={errors.description?.message}
+                      className="mt-0"
+                    />
 
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-medium">
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-sm font-medium text-foreground">
                         Kategori Risiko
                         <span className="text-destructive ml-0.5">*</span>
                       </Label>
@@ -2564,39 +2459,24 @@ export default function RiskInputPage() {
                         name="category"
                         control={control}
                         render={({ field }) => (
-                          <Select
+                          <PopoverSelectField
                             value={field.value}
                             onValueChange={field.onChange}
+                            options={riskCategoryOptions}
+                            placeholder="Pilih kategori risiko"
                             disabled={isRiskLocked}
-                          >
-                            <SelectTrigger
-                              className={cn(
-                                "h-9 text-sm",
-                                lockedControlClass,
-                                errors.category && "border-destructive",
-                              )}
-                            >
-                              <SelectValue placeholder="Pilih kategori risiko" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {riskCategoryOptions.map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                  className="text-sm"
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            triggerClassName={cn(
+                              lockedControlClass,
+                              errors.category && "border-destructive",
+                            )}
+                          />
                         )}
                       />
                       <FormErrorMessage error={errors.category?.message} />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-medium">RO</Label>
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-sm font-medium text-foreground">RO</Label>
                       <ROPicker
                         organizationId={currentOrganizationId}
                         value={watch("roId")}
@@ -2605,14 +2485,10 @@ export default function RiskInputPage() {
                           setObjectiveSummary(summary);
                         }}
                       />
-                      <p className="text-[11px] leading-[14px] text-muted-foreground">
-                        Pilih RO yang terdampak langsung oleh risiko ini sesuai
-                        scope satker dan perjanjian kinerja aktif.
-                      </p>
                     </div>
 
                     {objectiveSummary && (
-                      <div className="min-w-0 space-y-2 rounded-lg border border-border/50 bg-background p-4">
+                      <div className="min-w-0 space-y-2 rounded-xl border border-zinc-200/80 bg-card p-5 shadow-none">
                         <p className="text-xs font-semibold text-foreground">
                           Ringkasan Hirarki
                         </p>
@@ -2669,9 +2545,9 @@ export default function RiskInputPage() {
                       </div>
                     )}
 
-                    <div className="grid gap-5 md:grid-cols-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div className="flex flex-col gap-2">
+                        <Label className="text-sm font-medium text-foreground">
                           Kode Risiko
                         </Label>
                         <Controller
@@ -2687,73 +2563,21 @@ export default function RiskInputPage() {
                           )}
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">Periode</Label>
-                        <Select
+                      <div className="flex flex-col gap-2">
+                      <Label className="text-sm font-medium text-foreground">Periode</Label>
+                        <PopoverSelectField
                           value={assessmentCycleDisplay}
                           onValueChange={setAssessmentCycleDisplay}
-                        >
-                          <SelectTrigger
-                            className={cn("h-9 text-sm", lockedControlClass)}
-                          >
-                            <SelectValue placeholder="Pilih semester" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {assessmentCycleOptions.map((cycle) => (
-                              <SelectItem key={cycle.value} value={cycle.value}>
-                                {cycle.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Pilih semester yang dinilai. Riwayat periode lebih
-                          baru akan mengunci semester sebelumnya.
-                        </p>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
-                          Unit Kerja
-                        </Label>
-                        <Controller
-                          name="organizationId"
-                          control={control}
-                          render={({ field }) => (
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              disabled={true}
-                            >
-                              <SelectTrigger
-                                className={cn(
-                                  "h-9 text-sm",
-                                  lockedControlClass,
-                                )}
-                              >
-                                <SelectValue placeholder="Pilih Unit Kerja" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {organizations.map((u, idx) => (
-                                  <SelectItem
-                                    key={`${u.id}-${idx}`}
-                                    value={u.id}
-                                    className="text-sm"
-                                  >
-                                    {u.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
+                          options={assessmentCycleOptions}
+                          placeholder="Pilih semester"
+                          triggerClassName={lockedControlClass}
                         />
                       </div>
                     </div>
 
-                    <Separator />
-
-                    <div className="space-y-1.5">
+                    <div className="flex flex-col gap-2">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <Label className="text-sm font-medium">
+                        <Label className="text-sm font-medium text-foreground">
                           Sebab
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
@@ -2784,8 +2608,8 @@ export default function RiskInputPage() {
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
+                      <div className="flex flex-col gap-2">
+                      <Label className="text-sm font-medium text-foreground">
                           Sumber Risiko
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
@@ -2793,39 +2617,22 @@ export default function RiskInputPage() {
                           name="riskSource"
                           control={control}
                           render={({ field }) => (
-                            <Select
+                            <PopoverSelectField
                               value={field.value}
                               onValueChange={field.onChange}
+                              options={[
+                                { value: "internal", label: "Internal" },
+                                { value: "eksternal", label: "Eksternal" },
+                              ]}
+                              placeholder="Pilih sumber risiko"
                               disabled={isRiskLocked}
-                            >
-                              <SelectTrigger
-                                className={cn(
-                                  "h-9 text-sm",
-                                  lockedControlClass,
-                                )}
-                              >
-                                <SelectValue placeholder="Pilih sumber risiko" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem
-                                  value="internal"
-                                  className="text-sm"
-                                >
-                                  Internal
-                                </SelectItem>
-                                <SelectItem
-                                  value="eksternal"
-                                  className="text-sm"
-                                >
-                                  Eksternal
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
+                              triggerClassName={lockedControlClass}
+                            />
                           )}
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
+                      <div className="flex flex-col gap-2">
+                        <Label className="text-sm font-medium text-foreground">
                           Tingkat Kendali
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
@@ -2833,36 +2640,25 @@ export default function RiskInputPage() {
                           name="controllability"
                           control={control}
                           render={({ field }) => (
-                            <Select
+                            <PopoverSelectField
                               value={field.value}
                               onValueChange={field.onChange}
+                              options={[
+                                { value: "C", label: "Controllable" },
+                                { value: "UC", label: "Uncontrollable" },
+                              ]}
+                              placeholder="Pilih tingkat kendali"
                               disabled={isRiskLocked}
-                            >
-                              <SelectTrigger
-                                className={cn(
-                                  "h-9 text-sm",
-                                  lockedControlClass,
-                                )}
-                              >
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="C" className="text-sm">
-                                  Controllable
-                                </SelectItem>
-                                <SelectItem value="UC" className="text-sm">
-                                  Uncontrollable
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
+                              triggerClassName={lockedControlClass}
+                            />
                           )}
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="flex flex-col gap-2">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <Label className="text-sm font-medium">
+                        <Label className="text-sm font-medium text-foreground">
                           Dampak
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
@@ -2896,47 +2692,21 @@ export default function RiskInputPage() {
                 <AccordionItem
                   value="analisis"
                   id="analisis"
-                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
                 >
-                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                    <div className="flex flex-1 items-center justify-between pr-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                          2
-                        </div>
-                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
-                          Analisis Risiko
-                        </p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                          sectionStatuses[1].done
-                            ? "bg-success/10 text-success border-success/20"
-                            : "bg-muted/40 text-muted-foreground",
-                        )}
-                      >
-                        {sectionStatuses[1].done ? (
-                          <CheckCircle2 className="size-3.5" />
-                        ) : (
-                          <CircleDot className="size-3.5" />
-                        )}
-                        <span className="hidden sm:inline">
-                          {sectionStatuses[1].done
-                            ? "Lengkap"
-                            : "Perlu dilengkapi"}
-                        </span>
-                      </Badge>
+                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
+                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
+                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
+                        Analisis Risiko
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                        {sectionStatuses[1].description}
+                      </p>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                    <p className="text-sm text-muted-foreground bg-background p-3 rounded-md border border-border/50">
-                      Nilai probabilitas dan dampak sudah mempertimbangkan
-                      kontrol yang ada (residual risk).
-                    </p>
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-medium">
+                    <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-sm font-medium text-foreground">
                         Pengendalian yang Ada
                       </Label>
                       <Controller
@@ -2956,41 +2726,32 @@ export default function RiskInputPage() {
                       />
                     </div>
                     <div className="grid gap-5 md:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
+                      <div className="flex flex-col gap-2">
+                        <Label className="text-sm font-medium text-foreground">
                           Efektivitas Pengendalian
                         </Label>
                         <Controller
                           name="controlEffectiveness"
                           control={control}
                           render={({ field }) => (
-                            <Select
+                            <PopoverSelectField
                               value={field.value}
                               onValueChange={field.onChange}
+                              options={[
+                                { value: "efektif", label: "Efektif" },
+                                {
+                                  value: "tidak_efektif",
+                                  label: "Tidak efektif",
+                                },
+                              ]}
+                              placeholder="Belum dinilai"
                               disabled={isRiskLocked}
-                            >
-                              <SelectTrigger
-                                className={cn(
-                                  "h-9 text-sm",
-                                  lockedControlClass,
-                                  errors.controlEffectiveness &&
-                                    "border-destructive",
-                                )}
-                              >
-                                <SelectValue placeholder="Belum dinilai" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="efektif" className="text-sm">
-                                  Efektif
-                                </SelectItem>
-                                <SelectItem
-                                  value="tidak_efektif"
-                                  className="text-sm"
-                                >
-                                  Tidak efektif
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
+                              triggerClassName={cn(
+                                lockedControlClass,
+                                errors.controlEffectiveness &&
+                                  "border-destructive",
+                              )}
+                            />
                           )}
                         />
                         <FormErrorMessage
@@ -3000,44 +2761,29 @@ export default function RiskInputPage() {
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2">
-                      <div className="space-y-1.5">
+                      <div className="flex flex-col gap-2">
                         <ProbabilityCriteriaTooltip className="text-sm font-medium" />
-                        <div className="grid grid-cols-5 gap-1.5">
-                          {[1, 2, 3, 4, 5].map((val) => (
-                            <Tooltip key={val}>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  disabled={isRiskLocked}
-                                  onClick={() =>
-                                    setValue("probability", val, {
-                                      shouldValidate: true,
-                                    })
-                                  }
-                                  className={cn(
-                                    "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                    val === probability
-                                      ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, impact, getBobot(val, impact))))} ring-1 font-bold`
-                                      : "bg-muted/30 hover:bg-muted/50",
-                                    isRiskLocked &&
-                                      "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                                  )}
-                                >
-                                  {val}
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">
-                                {PROBABILITY_LABELS[val]}
-                              </TooltipContent>
-                            </Tooltip>
-                          ))}
-                        </div>
+                        <RiskRatingSlider
+                          value={probability}
+                          onChange={(val) =>
+                            setValue("probability", val, {
+                              shouldValidate: true,
+                            })
+                          }
+                          getLevel={(val) =>
+                            getRiskLevelFromNilai(
+                              calculateNilai(val, impact, getBobot(val, impact)),
+                            )
+                          }
+                          labels={PROBABILITY_LABELS}
+                          disabled={isRiskLocked}
+                        />
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="flex flex-col gap-2">
                         {category && selectedOrganizationUPRLevel ? (
                           <ImpactCriteriaTooltip
                             token={token || ""}
-                            label="Dampak (Residual)"
+                            label="Dampak"
                             category={
                               category as import("@/types/impact-criteria").ImpactCriteriaCategory
                             }
@@ -3048,39 +2794,24 @@ export default function RiskInputPage() {
                           />
                         ) : (
                           <Label className="flex h-6 items-center text-sm font-medium">
-                            Dampak (Residual)
+                            Dampak
                           </Label>
                         )}
-                        <div className="grid grid-cols-5 gap-1.5">
-                          {[1, 2, 3, 4, 5].map((val) => (
-                            <Tooltip key={val}>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  disabled={isRiskLocked}
-                                  onClick={() =>
-                                    setValue("impact", val, {
-                                      shouldValidate: true,
-                                    })
-                                  }
-                                  className={cn(
-                                    "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                    val === impact
-                                      ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(probability, val, getBobot(probability, val))))} ring-1 font-bold`
-                                      : "bg-muted/30 hover:bg-muted/50",
-                                    isRiskLocked &&
-                                      "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                                  )}
-                                >
-                                  {val}
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">
-                                {IMPACT_LABELS[val]}
-                              </TooltipContent>
-                            </Tooltip>
-                          ))}
-                        </div>
+                        <RiskRatingSlider
+                          value={impact}
+                          onChange={(val) =>
+                            setValue("impact", val, {
+                              shouldValidate: true,
+                            })
+                          }
+                          getLevel={(val) =>
+                            getRiskLevelFromNilai(
+                              calculateNilai(probability, val, getBobot(probability, val)),
+                            )
+                          }
+                          labels={IMPACT_LABELS}
+                          disabled={isRiskLocked}
+                        />
                       </div>
                     </div>
 
@@ -3130,44 +2861,22 @@ export default function RiskInputPage() {
                 <AccordionItem
                   value="evaluasi"
                   id="evaluasi"
-                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
                 >
-                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                    <div className="flex flex-1 items-center justify-between pr-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                          3
-                        </div>
-                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
-                          Evaluasi Risiko
-                        </p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                          sectionStatuses[2].done
-                            ? "bg-success/10 text-success border-success/20"
-                            : "bg-muted/40 text-muted-foreground",
-                        )}
-                      >
-                        {sectionStatuses[2].done ? (
-                          <CheckCircle2 className="size-3.5" />
-                        ) : (
-                          <CircleDot className="size-3.5" />
-                        )}
-                        <span className="hidden sm:inline">
-                          {sectionStatuses[2].done
-                            ? "Lengkap"
-                            : "Perlu dilengkapi"}
-                        </span>
-                      </Badge>
+                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
+                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
+                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
+                        Evaluasi Risiko
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                        {sectionStatuses[2].description}
+                      </p>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
                     <div className="grid gap-5 md:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
+                      <div className="flex flex-col gap-2">
+                        <Label className="text-sm font-medium text-foreground">
                           Prioritas Risiko
                         </Label>
                         <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3 text-sm">
@@ -3177,20 +2886,13 @@ export default function RiskInputPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
+                      <div className="flex flex-col gap-2">
+                        <Label className="text-sm font-medium text-foreground">
                           Selera Risiko
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
                         <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3 text-sm">
-                          <span
-                            className={cn(
-                              "font-semibold",
-                              advisoryAppetite === "di_atas_batas"
-                                ? "text-red-600"
-                                : "text-emerald-600",
-                            )}
-                          >
+                          <span className="font-normal text-foreground">
                             {advisoryAppetite === "di_atas_batas"
                               ? "Di atas batas selera risiko"
                               : "Dalam batas selera risiko"}
@@ -3201,8 +2903,8 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-medium">
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-sm font-medium text-foreground">
                         Pilihan Penanganan
                         <span className="text-destructive ml-0.5">*</span>
                       </Label>
@@ -3210,32 +2912,17 @@ export default function RiskInputPage() {
                         name="treatmentOption"
                         control={control}
                         render={({ field }) => (
-                          <Select
+                          <PopoverSelectField
                             value={field.value}
                             onValueChange={field.onChange}
+                            options={treatmentOptionOptions}
+                            placeholder="Pilih penanganan"
                             disabled={isRiskLocked}
-                          >
-                            <SelectTrigger
-                              className={cn(
-                                "h-9 text-sm",
-                                lockedControlClass,
-                                errors.treatmentOption && "border-destructive",
-                              )}
-                            >
-                              <SelectValue placeholder="Pilih penanganan" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {treatmentOptionOptions.map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                  className="text-sm"
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            triggerClassName={cn(
+                              lockedControlClass,
+                              errors.treatmentOption && "border-destructive",
+                            )}
+                          />
                         )}
                       />
                       <FormErrorMessage
@@ -3248,41 +2935,19 @@ export default function RiskInputPage() {
                 <AccordionItem
                   value="penanganan"
                   id="penanganan"
-                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
                 >
-                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                    <div className="flex flex-1 items-center justify-between pr-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                          4
-                        </div>
-                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
-                          Rencana Penanganan
-                        </p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                          sectionStatuses[3].done
-                            ? "bg-success/10 text-success border-success/20"
-                            : "bg-muted/40 text-muted-foreground",
-                        )}
-                      >
-                        {sectionStatuses[3].done ? (
-                          <CheckCircle2 className="size-3.5" />
-                        ) : (
-                          <CircleDot className="size-3.5" />
-                        )}
-                        <span className="hidden sm:inline">
-                          {sectionStatuses[3].done
-                            ? "Lengkap"
-                            : "Perlu dilengkapi"}
-                        </span>
-                      </Badge>
+                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
+                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
+                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
+                        Rencana Penanganan
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                        {sectionStatuses[3].description}
+                      </p>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
+                  <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
                     <Controller
                       name="mitigations"
                       control={control}
@@ -3360,8 +3025,8 @@ export default function RiskInputPage() {
                       />
                     ) : null}
 
-                    <div className="space-y-1.5 pt-1">
-                      <Label className="text-sm font-medium">
+                    <div className="flex flex-col gap-2 pt-1">
+                      <Label className="text-sm font-medium text-foreground">
                         Jadwal Pelaksanaan
                       </Label>
                       <Input
@@ -3376,9 +3041,6 @@ export default function RiskInputPage() {
                         disabled={isRiskLocked}
                         className={cn("h-9 text-sm", lockedControlClass)}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Isi bebas sesuai format jadwal yang dipakai tim.
-                      </p>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -3386,112 +3048,60 @@ export default function RiskInputPage() {
                 <AccordionItem
                   value="target"
                   id="target"
-                  className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
                 >
-                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                    <div className="flex flex-1 items-center justify-between pr-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                          5
-                        </div>
-                        <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
-                          Target Penurunan
-                        </p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                          sectionStatuses[4].done
-                            ? "bg-success/10 text-success border-success/20"
-                            : "bg-muted/40 text-muted-foreground",
-                        )}
-                      >
-                        {sectionStatuses[4].done ? (
-                          <CheckCircle2 className="size-3.5" />
-                        ) : (
-                          <CircleDot className="size-3.5" />
-                        )}
-                        <span className="hidden sm:inline">
-                          {sectionStatuses[4].done
-                            ? "Lengkap"
-                            : "Perlu dilengkapi"}
-                        </span>
-                      </Badge>
+                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
+                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
+                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
+                        Target Penurunan
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                        {sectionStatuses[4].description}
+                      </p>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
                     <div className="grid gap-5 md:grid-cols-2">
-                      <div className="space-y-1.5">
+                      <div className="flex flex-col gap-2">
                         <ProbabilityCriteriaTooltip className="text-sm font-medium" />
-                        <div className="grid grid-cols-5 gap-1.5">
-                          {[1, 2, 3, 4, 5].map((val) => (
-                            <Tooltip key={val}>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  disabled={isRiskLocked}
-                                  onClick={() =>
-                                    setValue("targetProbability", val, {
-                                      shouldValidate: true,
-                                    })
-                                  }
-                                  className={cn(
-                                    "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                    val === targetProbability
-                                      ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(val, targetImpact, getBobot(val, targetImpact))))} ring-1 font-bold`
-                                      : "bg-muted/30 hover:bg-muted/50",
-                                    isRiskLocked &&
-                                      "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                                  )}
-                                >
-                                  {val}
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">
-                                {PROBABILITY_LABELS[val]}
-                              </TooltipContent>
-                            </Tooltip>
-                          ))}
-                        </div>
+                        <RiskRatingSlider
+                          value={targetProbability}
+                          onChange={(val) =>
+                            setValue("targetProbability", val, {
+                              shouldValidate: true,
+                            })
+                          }
+                          getLevel={(val) =>
+                            getRiskLevelFromNilai(
+                              calculateNilai(val, targetImpact, getBobot(val, targetImpact)),
+                            )
+                          }
+                          labels={PROBABILITY_LABELS}
+                          disabled={isRiskLocked}
+                        />
                         <FormErrorMessage
                           error={errors.targetProbability?.message}
                         />
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="flex flex-col gap-2">
                         <Label className="flex h-6 items-center text-sm font-medium">
                           Dampak
                         </Label>
-                        <div className="grid grid-cols-5 gap-1.5">
-                          {[1, 2, 3, 4, 5].map((val) => (
-                            <Tooltip key={val}>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  disabled={isRiskLocked}
-                                  onClick={() =>
-                                    setValue("targetImpact", val, {
-                                      shouldValidate: true,
-                                    })
-                                  }
-                                  className={cn(
-                                    "h-10 rounded-lg border text-sm font-semibold transition-colors",
-                                    val === targetImpact
-                                      ? `${levelToColor(getRiskLevelFromNilai(calculateNilai(targetProbability, val, getBobot(targetProbability, val))))} ring-1 font-bold`
-                                      : "bg-muted/30 hover:bg-muted/50",
-                                    isRiskLocked &&
-                                      "cursor-not-allowed opacity-70 hover:bg-muted/30",
-                                  )}
-                                >
-                                  {val}
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">
-                                {IMPACT_LABELS[val]}
-                              </TooltipContent>
-                            </Tooltip>
-                          ))}
-                        </div>
+                        <RiskRatingSlider
+                          value={targetImpact}
+                          onChange={(val) =>
+                            setValue("targetImpact", val, {
+                              shouldValidate: true,
+                            })
+                          }
+                          getLevel={(val) =>
+                            getRiskLevelFromNilai(
+                              calculateNilai(targetProbability, val, getBobot(targetProbability, val)),
+                            )
+                          }
+                          labels={IMPACT_LABELS}
+                          disabled={isRiskLocked}
+                        />
                         <FormErrorMessage
                           error={errors.targetImpact?.message}
                         />
@@ -3529,43 +3139,21 @@ export default function RiskInputPage() {
                   <AccordionItem
                     value="approval-line"
                     id="approval-line"
-                    className="scroll-mt-28 rounded-xl border border-border/40 bg-card shadow-sm data-[state=open]:border-primary/20 overflow-hidden transition-all"
+                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
                   >
-                    <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
-                      <div className="flex flex-1 items-center justify-between pr-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-xs font-bold text-foreground">
-                            5
-                          </div>
-                          <p className="text-sm md:text-base font-semibold text-foreground transition-colors">
-                            Approval Line
-                          </p>
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
-                            isApprovalLineReady
-                              ? "bg-success/10 text-success border-success/20"
-                              : "bg-muted/40 text-muted-foreground",
-                          )}
-                        >
-                          {isApprovalLineReady ? (
-                            <CheckCircle2 className="size-3.5" />
-                          ) : (
-                            <CircleDot className="size-3.5" />
-                          )}
-                          <span className="hidden sm:inline">
-                            {isApprovalLineReady
-                              ? "Lengkap"
-                              : "Perlu dilengkapi"}
-                          </span>
-                        </Badge>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="space-y-4 px-5 pb-6 pt-2">
-                      <div className="rounded-xl border border-border/60 bg-white p-5 space-y-3">
-                        <div className="space-y-1.5">
+                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
+                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
+                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
+                        Approval Line
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                        Susun reviewer dan rantai persetujuan pimpinan
+                      </p>
+                    </div>
+                  </AccordionTrigger>
+                    <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                      <div className="rounded-xl border border-zinc-200/80 bg-card p-5 space-y-3 shadow-none">
+                        <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
                             1. Reviewer (Pemeriksa)
                             <span className="text-destructive ml-0.5">*</span>
@@ -3589,8 +3177,8 @@ export default function RiskInputPage() {
                         />
                       </div>
 
-                      <div className="rounded-xl border border-primary/10 bg-white p-5 space-y-4">
-                        <div className="space-y-1.5">
+                      <div className="rounded-xl border border-zinc-200/80 bg-card p-5 space-y-4 shadow-none">
+                        <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
                             2. Approval Line (Pimpinan)
                             <span className="text-destructive ml-0.5">*</span>
@@ -3626,76 +3214,78 @@ export default function RiskInputPage() {
               </Accordion>
             </form>
 
-            <div className="hidden w-full space-y-4 xl:w-1/3">
-              <Card className="border-border/20 bg-card">
-                <CardContent className="pt-5 pb-4">
-                  <div className="mb-4 flex items-start justify-between gap-3">
-                    <h3 className="text-sm font-semibold">
-                      Kesiapan Finalisasi
-                    </h3>
-                    <Badge
-                      variant="outline"
-                      className="border-primary/20 bg-primary/[0.04] text-primary"
-                    >
-                      {completedSectionCount}/{sectionStatuses.length}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {sectionStatuses.map((section) => (
-                      <button
-                        key={section.id}
-                        type="button"
-                        onClick={() => scrollToSection(section.id)}
-                        className={cn(
-                          "rounded-xl border px-3 py-3 text-left transition-colors",
-                          section.done
-                            ? "border-success/20 bg-success/10"
-                            : "border-border/60 bg-muted/20 hover:bg-muted/40",
-                        )}
-                      >
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          {section.done ? (
-                            <CheckCircle2 className="size-4 text-success" />
-                          ) : (
-                            <CircleDot className="size-4 text-muted-foreground" />
-                          )}
-                          {section.step}. {section.title}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+          </div>
 
-              <ReviewSidePanel
-                approvalId={approvalId}
-                approvalWorkflow={approvalWorkflow}
-                currentUserId={user?.id}
-                riskStatus={riskStatus}
-                userRole={user?.role || ""}
-                inherentScore={Math.round(nilai)}
-                token={token || undefined}
-                onActionComplete={() => riskId && loadRiskData(riskId)}
-                onNavigateToLog={() => setActiveView("log")}
-              />
+          <div className="hidden xl:block">
+            <div className="space-y-6 xl:sticky xl:top-24">
+            <Card className="gap-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-card/80 backdrop-blur-lg p-0 shadow-sm ring-0 transition-colors duration-300 motion-reduce:backdrop-blur-none">
+              <CardHeader className="px-5 pt-4 pb-2">
+                <CardTitle className="text-sm font-semibold">Navigasi</CardTitle>
+              </CardHeader>
+              <CardContent className="px-5 pb-4 pt-3">
+                {riskId ? (
+                  <Tabs
+                    value={activeView}
+                    onValueChange={(value) =>
+                      handleViewChange(value as WorkspaceView)
+                    }
+                  >
+                    <TabsList className="rounded-lg ring-1 ring-inset ring-border/50 bg-muted/50 p-0.5" style={{ height: '36px' }}>
+                      <TabsTrigger
+                        value="progress"
+                        disabled={!riskId}
+                        className="h-full flex-1 rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200 motion-reduce:transition-none"
+                      >
+                        <CheckSquare className="size-3.5 shrink-0" strokeWidth={2.5} />
+                        Progres
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="log"
+                        disabled={!riskId}
+                        className="h-full flex-1 rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200 motion-reduce:transition-none"
+                      >
+                        <History className="size-3.5 shrink-0" strokeWidth={2.5} />
+                        Log
+                      </TabsTrigger>
+                    </TabsList>
+                    {activeView === "progress" && riskId && (
+                      <div className="mt-3">
+                        <MitigationProgressTab
+                          riskId={riskId}
+                          token={token || ""}
+                          aiDraft={mitigationProgressDraft}
+                          onAiDraftConsumed={() => setMitigationProgressDraft(null)}
+                        />
+                      </div>
+                    )}
+                    {activeView === "log" && riskId && (
+                      <div className="mt-3">
+                        <RiskLogTimeline riskId={riskId} token={token || ""} />
+                      </div>
+                    )}
+                  </Tabs>
+                ) : (
+                  <div className="flex min-h-[36px] items-center justify-center rounded-md border border-dashed border-border/40 bg-muted/10 px-3 text-center text-xs text-muted-foreground">
+                    Simpan draft untuk mengakses navigasi
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <ReviewSidePanel
+              approvalId={approvalId}
+              approvalWorkflow={approvalWorkflow}
+              currentUserId={user?.id}
+              riskStatus={riskStatus}
+              userRole={user?.role || ""}
+              inherentScore={Math.round(nilai)}
+              token={token || undefined}
+              onActionComplete={() => riskId && loadRiskData(riskId)}
+              onNavigateToLog={() => setActiveView("log")}
+            />
             </div>
           </div>
-        )}
-
-        {activeView === "progress" && riskId && (
-          <div className="space-y-6">
-            <MitigationProgressTab
-              riskId={riskId}
-              token={token || ""}
-              aiDraft={mitigationProgressDraft}
-              onAiDraftConsumed={() => setMitigationProgressDraft(null)}
-            />
-          </div>
-        )}
-
-        {activeView === "log" && riskId && (
-          <RiskLogTimeline riskId={riskId} token={token || ""} />
-        )}
+        </div>
 
         <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
           <DialogContent className="max-w-md">
@@ -3705,9 +3295,9 @@ export default function RiskInputPage() {
                 Draft yang dihapus tidak bisa dikembalikan.
               </DialogDescription>
             </DialogHeader>
-            <div className="rounded-lg border bg-background px-3 py-2 text-sm">
-              <p className="font-medium">{title || "Tanpa judul"}</p>
-              <p className="text-xs text-muted-foreground">
+            <div className="px-1">
+              <p className="text-sm font-medium">{title || "Tanpa judul"}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {riskId || "Belum tersimpan"}
               </p>
             </div>
@@ -3814,7 +3404,7 @@ export default function RiskInputPage() {
                   : "Risiko akan disimpan lalu dikirim ke reviewer dan approval line yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan."}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="space-y-2 rounded-lg border border-border bg-background p-3 text-sm">
+            <div className="space-y-2 text-sm">
               {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
                 <>
                   <div>
@@ -3896,7 +3486,7 @@ export default function RiskInputPage() {
             });
           }}
         />
-      </div>
+      </FormPage>
     </TooltipProvider>
   );
 }

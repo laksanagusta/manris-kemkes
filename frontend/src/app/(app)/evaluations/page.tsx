@@ -1,17 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Download,
   FilePlus2,
   Loader2,
-  ChevronLeft,
-  ChevronRight,
   MoreHorizontal,
-  Search,
-  Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,9 +26,23 @@ import {
   listAllOrganizations,
   type OrganizationListItem,
 } from "@/lib/api/organizations";
-import { Button } from "@/components/ui/button";
+import {
+  CollectionPagination,
+  CollectionFilterTrigger,
+  CollectionSearchField,
+  CollectionTableCard,
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
+  CollectionToolbar,
+} from "@/components/shared/design-system";
+import {
+  AccentButton,
+  ActionButton,
+  MetricGrid,
+  PageStack,
+} from "@/components/shared/design-system";
 import { KpiCard } from "@/components/ui/kpi-card";
-import { SearchInput } from "@/components/ui/search-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -61,14 +71,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { OrganizationPicker } from "@/components/report/organization-picker";
 import { ReportScopePicker } from "@/components/report/report-scope-picker";
 import {
@@ -136,10 +139,7 @@ function EvaluationFiltersSidebar({
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="md" className="gap-2 shadow-none">
-          <Filter className="size-3.5" strokeWidth={2.5} />
-          Filter
-        </Button>
+        <CollectionFilterTrigger />
       </PopoverTrigger>
       <PopoverContent
         align="end"
@@ -217,18 +217,12 @@ function EvaluationFiltersSidebar({
           </div>
 
           <div className="flex items-center justify-between pt-4">
-            <Button type="button" variant="ghost" size="md" onClick={onReset} className="shadow-none">
+            <ActionButton type="button" variant="ghost" onClick={onReset}>
               Reset
-            </Button>
-            <Button
-              type="button"
-              size="md"
-              className="gap-1.5"
-              style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
-              onClick={() => onOpenChange(false)}
-            >
+            </ActionButton>
+            <AccentButton type="button" onClick={() => onOpenChange(false)}>
               Terapkan
-            </Button>
+            </AccentButton>
           </div>
         </div>
       </PopoverContent>
@@ -279,18 +273,12 @@ function EvaluationFiltersToolbar({
 }: EvaluationFiltersToolbarProps) {
   return (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
-      <div className="min-w-0 flex-1 sm:w-64 md:flex-none">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
-          <SearchInput
-            placeholder={queryPlaceholder}
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            aria-label={queryAriaLabel}
-            className="bg-muted pl-10 text-sm"
-          />
-        </div>
-      </div>
+      <CollectionSearchField
+        placeholder={queryPlaceholder}
+        value={query}
+        onChange={(event) => onQueryChange(event.target.value)}
+        aria-label={queryAriaLabel}
+      />
 
       <EvaluationFiltersSidebar
         open={filterOpen}
@@ -339,26 +327,38 @@ export default function EvaluationsPage() {
   const [createOrganizationId, setCreateOrganizationId] = useState("");
   const [createPeriod, setCreatePeriod] = useState(currentAssessmentCycle());
   const [creatingEvaluation, setCreatingEvaluation] = useState(false);
+  const [createFieldErrors, setCreateFieldErrors] = useState<{
+    organization?: string;
+    period?: string;
+  }>({});
   const organizationFilterInitialized = useRef(false);
 
   const setHeaderActions = useSetHeaderActions();
 
+  const handleCreateDialogOpenChange = useCallback(
+    (open: boolean) => {
+      setCreateDialogOpen(open);
+      if (!open) {
+        setCreateFieldErrors({});
+      }
+      router.replace(open ? "/evaluations?create=1" : "/evaluations");
+    },
+    [router],
+  );
+
   useEffect(() => {
     if (!token) return;
     setHeaderActions(
-      <Button
+      <AccentButton
         type="button"
-        size="md"
-        className="gap-2"
-        style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
         onClick={() => handleCreateDialogOpenChange(true)}
+        icon={<FilePlus2 className="size-3.5" strokeWidth={2.5} />}
       >
-        <FilePlus2 className="size-3.5" strokeWidth={2.5} />
         Buat Evaluasi
-      </Button>,
+      </AccentButton>,
     );
     return () => setHeaderActions(null);
-  }, [token, setHeaderActions]);
+  }, [token, setHeaderActions, handleCreateDialogOpenChange]);
 
   const handleResetFilters = () => {
     setOrganizationId("all");
@@ -572,9 +572,6 @@ export default function EvaluationsPage() {
     },
   ];
 
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  const pageStart = total === 0 ? 0 : (page - 1) * limit + 1;
-  const pageEnd = total === 0 ? 0 : Math.min(page * limit, total);
   const periodOptions = useMemo(
     () => [
       { value: "all", label: "Semua periode" },
@@ -613,25 +610,30 @@ export default function EvaluationsPage() {
     }
   };
 
-  const handleCreateDialogOpenChange = (open: boolean) => {
-    setCreateDialogOpen(open);
-    router.replace(open ? "/evaluations?create=1" : "/evaluations");
-  };
-
   const handleCreateEvaluation = async () => {
     if (!token) {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
+    const nextErrors: typeof createFieldErrors = {};
     if (!createOrganizationId) {
-      toast.error("Pilih organisasi terlebih dahulu.");
-      return;
+      nextErrors.organization = "Pilih organisasi untuk membuat evaluasi.";
     }
     if (!createPeriod.trim()) {
-      toast.error("Isi periode terlebih dahulu.");
+      nextErrors.period = "Pilih periode evaluasi.";
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setCreateFieldErrors(nextErrors);
+      const firstInvalidId = nextErrors.organization
+        ? "create-organization"
+        : "create-period";
+      window.requestAnimationFrame(() => {
+        document.getElementById(firstInvalidId)?.focus();
+      });
       return;
     }
 
+    setCreateFieldErrors({});
     setCreatingEvaluation(true);
     try {
       const evaluation = await createEvaluation(token, {
@@ -652,8 +654,8 @@ export default function EvaluationsPage() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <PageStack>
+      <MetricGrid>
         {evaluationSummaryCards.map((card) => (
           <KpiCard
             key={card.label}
@@ -666,62 +668,16 @@ export default function EvaluationsPage() {
             valueWrapClassName="mt-auto"
           />
         ))}
-      </div>
+      </MetricGrid>
 
-      <EvaluationFiltersToolbar
-        query={query}
-        onQueryChange={(value) => {
-          setQuery(value);
-          setPage(1);
-        }}
-        queryPlaceholder="Cari evaluasi..."
-        queryAriaLabel="Cari evaluasi"
-        filterOpen={filterOpen}
-        onFilterOpenChange={setFilterOpen}
-        organizationId={organizationId}
-        onOrganizationIdChange={(value) => {
-          setOrganizationId(value);
-          if (value !== "all") {
-            setOrganizationGroupId("all");
-          }
-          setPage(1);
-        }}
-        organizationGroupId={organizationGroupId}
-        onOrganizationGroupIdChange={(value) => {
-          setOrganizationGroupId(value);
-          if (value !== "all") {
-            setOrganizationId("all");
-          }
-          setPage(1);
-        }}
-        organizations={organizations}
-        organizationGroups={organizationGroups}
-        periodOptions={periodOptions}
-        periodFilter={periodFilter}
-        onPeriodFilterChange={(value) => {
-          setPeriodFilter(value);
-          setPage(1);
-        }}
-        status={status}
-        onStatusChange={(value) => {
-          setStatus(value);
-          setPage(1);
-        }}
-        onReset={handleResetFilters}
-      />
-
-      <div className="rounded-lg gap-0 overflow-hidden ring-1 ring-inset ring-border bg-card p-4 shadow-none">
-        <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0">
-            <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
-              Daftar evaluasi
-            </h2>
-            <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
-              {loading
-                ? "Memuat data evaluasi..."
-                : `${visibleEvaluations.length} evaluasi pada filter aktif`}
-            </p>
-          </div>
+      <CollectionToolbar
+        title="Daftar evaluasi"
+        description={
+          loading
+            ? "Memuat data evaluasi..."
+            : `${visibleEvaluations.length} evaluasi pada filter aktif`
+        }
+        actions={
           <EvaluationFiltersToolbar
             query={query}
             onQueryChange={(value) => {
@@ -763,9 +719,10 @@ export default function EvaluationsPage() {
             }}
             onReset={handleResetFilters}
           />
-        </div>
+        }
+      />
 
-        <div className="-mx-4 overflow-x-auto">
+      <CollectionTableCard>
           <Table className="min-w-[1020px] table-fixed">
             <colgroup>
               <col className="w-[10%]" />
@@ -776,31 +733,31 @@ export default function EvaluationsPage() {
               <col className="w-[14%]" />
               <col className="w-[12%]" />
             </colgroup>
-            <TableHeader className="[&_tr]:border-b [&_tr]:border-border">
-              <TableRow className="h-9 hover:bg-transparent">
-                <TableHead className="whitespace-nowrap pl-4 pr-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+            <CollectionTableHeader>
+              <CollectionTableHeaderRow>
+                <CollectionTableHead className="pl-4 pr-3">
                   Kode
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Periode
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Organisasi
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Template
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Status
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-3 text-left align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Diperbarui
-                </TableHead>
-                <TableHead className="whitespace-nowrap pl-3 pr-4 text-right align-middle text-xs font-medium capitalize text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3 text-right">
                   Aksi
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+                </CollectionTableHead>
+              </CollectionTableHeaderRow>
+            </CollectionTableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
@@ -864,14 +821,14 @@ export default function EvaluationsPage() {
                         <div className="flex items-center justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button
+                              <ActionButton
                                 variant="ghost"
                                 size="icon-xs"
-                                className="flex items-center justify-center text-muted-foreground"
+                                className="text-muted-foreground"
+                                icon={<MoreHorizontal className="size-3.5" />}
                                 aria-label={`Aksi evaluasi ${evaluation.period}`}
                               >
-                                <MoreHorizontal className="size-3.5" />
-                              </Button>
+                              </ActionButton>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-44">
                               <DropdownMenuItem
@@ -895,148 +852,149 @@ export default function EvaluationsPage() {
               )}
             </TableBody>
           </Table>
-        </div>
-
-        <div className="-mx-4 -mb-4 flex items-center justify-between border-t border-border/50 px-4 py-3">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                Baris per halaman:
-              </span>
-              <Select
-                value={limit.toString()}
-                onValueChange={(val) => {
-                  setLimit(Number(val));
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="h-7 w-[65px] border-border bg-card text-xs text-muted-foreground">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Menampilkan {pageStart} - {pageEnd} dari {total} evaluasi
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              className="text-muted-foreground"
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              disabled={page <= 1 || loading}
-            >
-              <ChevronLeft className="size-3.5" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              className="bg-primary/10 text-xs font-medium text-primary"
-              disabled
-            >
-              {page}
-            </Button>
-            <span className="px-1 text-xs text-muted-foreground">
-              dari {totalPages}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              className="text-muted-foreground"
-              onClick={() =>
-                setPage((current) => Math.min(totalPages, current + 1))
-              }
-              disabled={page >= totalPages || loading || total === 0}
-            >
-              <ChevronRight className="size-3.5" />
-            </Button>
-          </div>
-        </div>
-      </div>
+          <CollectionPagination
+            itemLabel="evaluasi"
+            page={page}
+            pageSize={limit}
+            total={total}
+            disabled={loading}
+            onPageChange={setPage}
+            onPageSizeChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
+          />
+      </CollectionTableCard>
 
       <Dialog
         open={createDialogOpen}
         onOpenChange={handleCreateDialogOpenChange}
       >
-        <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:max-w-2xl">
-          <DialogHeader className="shrink-0 border-b border-border/60 bg-background px-6 py-4">
-            <DialogTitle className="text-[15px] font-semibold tracking-tight text-zinc-900 text-balance">
-              Evaluasi
-            </DialogTitle>
-            <DialogDescription className="mt-1 text-xs text-zinc-500 text-pretty">
-              Buat draft evaluasi untuk organisasi dan periode yang dipilih.
-              Data detail bisa diisi setelah draft dibuat.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="flex max-h-[90vh] min-h-0 flex-col gap-0 overflow-hidden overscroll-contain rounded-2xl p-0 shadow-2xl sm:max-h-[88vh] sm:max-w-md">
+          <form
+            className="flex min-h-0 flex-col"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleCreateEvaluation();
+            }}
+            aria-busy={creatingEvaluation}
+          >
+            <DialogHeader className="!-mx-0 !-mt-0 shrink-0 border-b border-border/60 bg-background px-6 py-5">
+              <DialogTitle className="text-base font-semibold leading-tight tracking-tight text-foreground text-balance">
+                Buat evaluasi
+              </DialogTitle>
+              <DialogDescription className="mt-1 max-w-[38ch] text-sm leading-5 text-muted-foreground text-pretty">
+                Pilih organisasi dan periode untuk membuat draft evaluasi.
+                Detailnya dapat dilengkapi setelah draft dibuat.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-4 overflow-y-auto px-6 py-5">
-            <div className="space-y-2">
-              <Label>Organisasi</Label>
-              <OrganizationPicker
-                value={createOrganizationId}
-                organizations={organizations}
-                onChange={setCreateOrganizationId}
-                placeholder="Pilih organisasi"
-                searchPlaceholder="Cari organisasi..."
-                emptyMessage="Tidak ada organisasi ditemukan."
-                disabled={creatingEvaluation}
-              />
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 py-5">
+              <div className="space-y-2">
+                <Label htmlFor="create-organization">Organisasi</Label>
+                <OrganizationPicker
+                  id="create-organization"
+                  value={createOrganizationId}
+                  organizations={organizations}
+                  onChange={(value) => {
+                    setCreateOrganizationId(value);
+                    setCreateFieldErrors((current) => ({
+                      ...current,
+                      organization: undefined,
+                    }));
+                  }}
+                  placeholder="Pilih organisasi"
+                  searchPlaceholder="Cari organisasi..."
+                  emptyMessage="Tidak ada organisasi ditemukan."
+                  disabled={creatingEvaluation}
+                  aria-required="true"
+                  aria-invalid={Boolean(createFieldErrors.organization)}
+                  aria-describedby={
+                    createFieldErrors.organization
+                      ? "create-organization-error"
+                      : undefined
+                  }
+                  className="h-9 rounded-lg text-sm"
+                />
+                {createFieldErrors.organization ? (
+                  <p
+                    id="create-organization-error"
+                    className="text-xs text-destructive"
+                  >
+                    {createFieldErrors.organization}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="create-period">Periode</Label>
+                <Select
+                  value={createPeriod}
+                  onValueChange={(value) => {
+                    setCreatePeriod(value);
+                    setCreateFieldErrors((current) => ({
+                      ...current,
+                      period: undefined,
+                    }));
+                  }}
+                  disabled={creatingEvaluation}
+                >
+                  <SelectTrigger
+                    id="create-period"
+                    aria-required="true"
+                    aria-invalid={Boolean(createFieldErrors.period)}
+                    aria-describedby={
+                      createFieldErrors.period ? "create-period-error" : undefined
+                    }
+                    className="h-9 rounded-lg text-sm"
+                  >
+                    <SelectValue placeholder="Pilih periode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {createPeriodOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {createFieldErrors.period ? (
+                  <p id="create-period-error" className="text-xs text-destructive">
+                    {createFieldErrors.period}
+                  </p>
+                ) : null}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="create-period">Periode</Label>
-              <Select
-                value={createPeriod}
-                onValueChange={setCreatePeriod}
+
+            <DialogFooter className="!-mx-0 !-mb-0 shrink-0 border-t border-border/60 bg-muted/[0.18] px-6 py-4 sm:flex-row">
+              <ActionButton
+                type="button"
+                variant="outline"
+                onClick={() => handleCreateDialogOpenChange(false)}
                 disabled={creatingEvaluation}
+                className="w-full sm:w-auto"
               >
-                <SelectTrigger id="create-period">
-                  <SelectValue placeholder="Pilih periode" />
-                </SelectTrigger>
-                <SelectContent>
-                  {createPeriodOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter className="shrink-0 border-t border-border/60 bg-muted/[0.18] px-6 py-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleCreateDialogOpenChange(false)}
-              disabled={creatingEvaluation}
-            >
-              Batal
-            </Button>
-            <Button
-              type="button"
-              className="gap-2"
-              onClick={() => void handleCreateEvaluation()}
-              disabled={creatingEvaluation}
-            >
-              {creatingEvaluation ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <FilePlus2 className="size-4" />
-              )}
-              {creatingEvaluation ? "Membuat..." : "Buat Draft"}
-            </Button>
-          </DialogFooter>
+                Batal
+              </ActionButton>
+              <AccentButton
+                type="submit"
+                disabled={creatingEvaluation}
+                aria-busy={creatingEvaluation}
+                icon={
+                  creatingEvaluation ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <FilePlus2 className="size-4" aria-hidden="true" />
+                  )
+                }
+                className="w-full sm:w-auto"
+              >
+                Buat draft
+              </AccentButton>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageStack>
   );
 }

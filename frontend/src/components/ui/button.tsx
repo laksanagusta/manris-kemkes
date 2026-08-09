@@ -10,17 +10,17 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground hover:bg-primary/90 [a]:hover:bg-primary/90",
+          "bg-primary text-primary-foreground hover:bg-primary/90 [a]:hover:bg-primary/90 shadow-[0_1px_2px_-0.5px_rgba(0,0,0,0.08),inset_0_-0.5px_0_0_rgba(0,0,0,0.12)] bg-clip-border border-[rgba(10,10,10,0.16)] active:scale-[0.97]",
         success:
-          "bg-success text-white hover:bg-success/90 focus-visible:border-success/40 focus-visible:ring-success/20",
+          "bg-success text-white hover:bg-success/90 focus-visible:border-success/40 focus-visible:ring-success/20 active:scale-[0.97]",
         outline:
-          "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 aria-expanded:bg-zinc-50 aria-expanded:text-zinc-900 dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 aria-expanded:bg-zinc-50 aria-expanded:text-zinc-900 dark:border-input dark:bg-input/30 dark:hover:bg-input/50 active:scale-[0.97]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground active:scale-[0.97]",
         ghost:
           "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 aria-expanded:bg-zinc-100 aria-expanded:text-zinc-900 dark:hover:bg-muted/50",
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40 active:scale-[0.97]",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
@@ -42,7 +42,7 @@ const buttonVariants = cva(
     },
     defaultVariants: {
       variant: "default",
-      size: "default",
+      size: "md",
     },
   }
 )
