@@ -119,23 +119,26 @@ var (
 	ErrOnlyApprovedCurrentArchived     = newStatusError("RISK_NOT_ARCHIVABLE", "hanya risiko yang disetujui dan aktif yang dapat diarsipkan")
 	ErrOnlyActiveApprovedEscalated     = newStatusError("RISK_NOT_ESCALATABLE", "hanya risiko yang disetujui dan aktif yang dapat dieskalasi")
 	ErrOnlyDraftRisksDeleted           = newStatusError("RISK_NOT_DELETABLE", "hanya risiko draft yang dapat dihapus")
-	ErrCannotChangeStatusFromApproved  = newStatusError("RISK_STATUS_CHANGE_FORBIDDEN", "tidak dapat mengubah status dari disetujui kecuali ke draft")
+	ErrCannotChangeStatusFromApproved  = newStatusError("RISK_STATUS_CHANGE_FORBIDDEN", "risk final tidak dapat dikembalikan ke draft")
+	ErrFinalRiskReadOnly               = newStatusError("RISK_FINAL_READ_ONLY", "risk final tidak dapat diubah substansinya; buat revisi baru")
+	ErrRiskApprovalDisabled            = newStatusError("RISK_APPROVAL_DISABLED", "approval untuk risk/assessment sudah tidak digunakan; finalisasi langsung dari draft")
 	ErrRiskWithMonitoringDraftEscalate = newStatusError("RISK_MONITORING_DRAFT_ESCALATE", "risiko dengan draft pemantauan aktif tidak dapat dieskalasi")
 	ErrRiskArchived                    = newStatusError("RISK_ALREADY_ARCHIVED", "risiko sudah diarsipkan")
 	ErrRiskNotArchived                 = newStatusError("RISK_NOT_ARCHIVED", "risiko belum diarsipkan")
 	ErrSourceRiskNoLongerActive        = newStatusError("SOURCE_RISK_NOT_ACTIVE", "risiko sumber sudah tidak aktif")
 
 	// ── Cycle ──
-	ErrCycleFormat             = newValidationError("RISK_CYCLE_FORMAT", "format assessment_cycle harus YYYY-HN (contoh: 2026-H1)")
-	ErrSemesterFormat          = newValidationError("RISK_SEMESTER_FORMAT", "format assessment_cycle harus YYYY-HN (contoh: 2026-H1)")
-	ErrAnyCycleFormat          = newValidationError("RISK_ANY_CYCLE_FORMAT", "format assessment_cycle harus YYYY-HN (contoh: 2026-H1)")
+	ErrCycleFormat             = newValidationError("RISK_CYCLE_FORMAT", "format assessment_cycle harus YYYY-QN (contoh: 2026-Q1)")
+	ErrSemesterFormat          = newValidationError("RISK_SEMESTER_FORMAT", "format assessment_cycle harus YYYY-QN (contoh: 2026-Q1)")
+	ErrAnyCycleFormat          = newValidationError("RISK_ANY_CYCLE_FORMAT", "format assessment_cycle harus YYYY-QN (contoh: 2026-Q1)")
 	ErrAssessmentCycleRequired = newValidationError("ASSESSMENT_CYCLE_REQUIRED", "siklus penilaian wajib diisi")
 	ErrBackCycle               = newValidationError("MONITORING_BACK_CYCLE", "tidak dapat membuat pemantauan untuk semester lebih awal jika semester lebih baru sudah ada")
 
 	// ── Monitoring ──
-	ErrMonitoringNotDraft         = newStatusError("MONITORING_NOT_DRAFT", "hanya pemantauan draft yang dapat diperbarui")
-	ErrMonitoringNotFinalizable   = newStatusError("MONITORING_NOT_FINALIZABLE", "hanya pemantauan draft yang dapat difinalisasi")
-	ErrMonitoringAlreadyFinalized = newStatusError("MONITORING_ALREADY_FINALIZED", "pemantauan untuk siklus ini sudah difinalisasi")
+	ErrMonitoringNotDraft             = newStatusError("MONITORING_NOT_DRAFT", "hanya pemantauan draft yang dapat diperbarui")
+	ErrMonitoringNotFinalizable       = newStatusError("MONITORING_NOT_FINALIZABLE", "hanya pemantauan draft yang dapat difinalisasi")
+	ErrMonitoringAlreadyFinalized     = newStatusError("MONITORING_ALREADY_FINALIZED", "pemantauan untuk siklus ini sudah difinalisasi")
+	ErrPreviousMonitoringNotCompleted = newStatusError("PREVIOUS_MONITORING_NOT_COMPLETED", "pemantauan periode sebelumnya harus difinalisasi terlebih dahulu")
 
 	// ── Working Paper ──
 	ErrWorkingPaperLocked = newValidationError("WORKING_PAPER_LOCKED", "versi risiko dikunci oleh kertas kerja yang sedang ditandatangani atau sudah selesai")

@@ -21,7 +21,7 @@ export function StandardCard({
   return (
     <Card
       className={cn(
-        "gap-0 overflow-hidden rounded-2xl bg-card p-0 shadow-none ring-1 ring-inset ring-border",
+        "gap-0 overflow-hidden rounded-xl bg-card p-0",
         className,
       )}
     >

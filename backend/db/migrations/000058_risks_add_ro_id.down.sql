@@ -1,2 +1,0 @@
-DROP INDEX IF EXISTS idx_risks_ro_id;
-ALTER TABLE risks DROP COLUMN IF EXISTS ro_id;

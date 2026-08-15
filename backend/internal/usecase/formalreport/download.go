@@ -702,10 +702,18 @@ func previousFormalCycle(period string) string {
 			return ""
 		}
 		switch strings.ToUpper(strings.TrimSpace(parts[1])) {
+		case "Q1":
+			return fmt.Sprintf("%d-Q4", year-1)
+		case "Q2":
+			return fmt.Sprintf("%d-Q1", year)
+		case "Q3":
+			return fmt.Sprintf("%d-Q2", year)
+		case "Q4":
+			return fmt.Sprintf("%d-Q3", year)
 		case "H1":
-			return fmt.Sprintf("%d-H2", year-1)
+			return fmt.Sprintf("%d-Q1", year)
 		case "H2":
-			return fmt.Sprintf("%d-H1", year)
+			return fmt.Sprintf("%d-Q3", year)
 		default:
 			return fmt.Sprintf("%d", year-1)
 		}

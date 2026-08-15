@@ -313,7 +313,7 @@ export function resolveRiskScoreSemantics(risk: RiskScoreSemanticFields): Resolv
   return {
     source: "inherent",
     usesReviewed: false,
-    isFinalized: risk.status === "approved",
+    isFinalized: risk.status === "final",
     effective: inherent,
     primary: inherent,
     inherent,

@@ -9,10 +9,10 @@ func TestLoad_RiskApprovalWorkflowEnabled(t *testing.T) {
 		setValue bool
 		want     bool
 	}{
-		{name: "default true when unset", want: true},
+		{name: "default false when unset", want: false},
 		{name: "explicit false", value: "false", setValue: true, want: false},
 		{name: "explicit true", value: "true", setValue: true, want: true},
-		{name: "invalid falls back to true", value: "not-a-bool", setValue: true, want: true},
+		{name: "invalid falls back to false", value: "not-a-bool", setValue: true, want: false},
 	}
 
 	for _, tt := range tests {

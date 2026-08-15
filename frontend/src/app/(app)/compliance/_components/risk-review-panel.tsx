@@ -14,13 +14,12 @@ import {
   Minus,
   RefreshCcw,
   Search,
-  Send,
-  ShieldAlert,
   TrendingDown,
   TrendingUp,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { startMonitoring } from "@/lib/api/risk-monitoring";
 import {
   listAllOrganizations,
   type OrganizationListItem,
@@ -35,7 +34,7 @@ import type {
   RiskReviewSummary,
 } from "@/types/risk";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -64,6 +63,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { getVisibleRiskReviewItems } from "@/lib/risk-review-panel";
+import { currentAssessmentCycle, shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 
 type OrganizationOption = OrganizationListItem;
 
@@ -76,12 +76,8 @@ const reviewStatusMeta: Record<string, { label: string; className: string }> = {
     label: "In Draft",
     className: "bg-primary/15 text-primary border-primary/20",
   },
-  pending_approval: {
-    label: "Pending Approval (Legacy)",
-    className: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  },
-  approved: {
-    label: "Approved",
+  final: {
+    label: "Final",
     className: "bg-success/15 text-success border-success/20",
   },
   overdue: {
@@ -95,17 +91,11 @@ const reviewStatusMeta: Record<string, { label: string; className: string }> = {
 };
 
 function currentGlobalCycle() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const half = now.getMonth() < 6 ? "H1" : "H2";
-  return `${year}-${half}`;
+  return currentAssessmentCycle();
 }
 
 function previousGlobalCycle(cycle: string) {
-  const [yearPart, half] = cycle.split("-");
-  const year = Number(yearPart);
-  if (half === "H1") return `${year - 1}-H2`;
-  return `${year}-H1`;
+  return shiftAssessmentCycle(cycle, -1);
 }
 
 function formatRiskLevel(level?: string | null) {
@@ -156,7 +146,7 @@ export function RiskReviewPanel({
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [limit] = useState(20);
   const [total, setTotal] = useState(0);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState<RiskReviewQueueItem | null>(
@@ -248,7 +238,7 @@ export function RiskReviewPanel({
         toast.error(
           error instanceof Error
             ? error.message
-            : "Perbandingan semester belum berhasil dimuat.",
+            : "Perbandingan kuartal belum berhasil dimuat.",
         );
       } finally {
         setComparisonLoading(false);
@@ -277,7 +267,7 @@ export function RiskReviewPanel({
         toast.error(
           error instanceof Error
             ? error.message
-            : "Ringkasan semester belum berhasil dimuat.",
+            : "Ringkasan kuartal belum berhasil dimuat.",
         );
       } finally {
         setSummaryLoading(false);
@@ -291,8 +281,7 @@ export function RiskReviewPanel({
     const counts = {
       due: 0,
       in_draft: 0,
-      pending_approval: 0,
-      approved: 0,
+      final: 0,
       overdue: 0,
     };
     for (const item of items) {
@@ -331,13 +320,9 @@ export function RiskReviewPanel({
     setConfirmDialogOpen(false);
 
     try {
-      const result = await api.post<{ id: string }>(
-        `/risks/${selectedRisk.riskId}/reassess`,
-        { cycle },
-        token,
-      );
-      toast.success(`Draft reassessment ${cycle} berhasil dibuat.`);
-      router.push(`/risk/register/${result.id}`);
+      const result = await startMonitoring(token, selectedRisk.riskId, cycle);
+      toast.success(`Draft monitoring ${cycle} berhasil dibuat.`);
+      router.push(result.redirectUrl);
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         toast.error("Risiko tidak ditemukan atau sudah tidak dapat diakses.");
@@ -347,14 +332,14 @@ export function RiskReviewPanel({
       toast.error(
         error instanceof Error
           ? error.message
-          : "Draft reassessment belum berhasil dibuat.",
+          : "Draft monitoring belum berhasil dibuat.",
       );
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
           {
             label: "Due",
@@ -369,14 +354,8 @@ export function RiskReviewPanel({
             tone: "zinc" as const,
           },
           {
-            label: "Pending (Legacy)",
-            value: summary.pending_approval,
-            icon: Send,
-            tone: "zinc" as const,
-          },
-          {
-            label: "Approved",
-            value: summary.approved,
+            label: "Final",
+            value: summary.final,
             icon: CheckCircle2,
             tone: "emerald" as const,
           },
@@ -403,8 +382,181 @@ export function RiskReviewPanel({
 
       {children}
 
-      <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
-        <CardContent>
+      <section className="space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">
+                Kewajiban Monitoring {cycle}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Mulai monitoring dari risiko final. Draft dapat dihapus atau
+                dilanjutkan dari halaman monitoring.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative min-w-56">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Cari kode, risiko, atau unit"
+                  className="pl-9"
+                  aria-label="Cari risiko monitoring"
+                />
+              </div>
+              <Select value={status} onValueChange={(value) => setStatus(value as RiskReviewStatus | "all")}>
+                <SelectTrigger className="w-full sm:w-36" aria-label="Filter status monitoring">
+                  <SelectValue placeholder="Semua status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua status</SelectItem>
+                  <SelectItem value="due">Due</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="in_draft">In Draft</SelectItem>
+                  <SelectItem value="final">Final</SelectItem>
+                </SelectContent>
+              </Select>
+              {user?.isGlobal ? (
+                <Select value={orgFilter} onValueChange={setOrgFilter}>
+                  <SelectTrigger className="w-full sm:w-48" aria-label="Filter unit monitoring">
+                    <SelectValue placeholder="Semua unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua unit</SelectItem>
+                    {organizations.map((organization) => (
+                      <SelectItem key={organization.id} value={organization.id}>
+                        {organization.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex h-32 items-center justify-center rounded-md border border-dashed border-border/60 bg-muted/20 text-sm text-muted-foreground">
+              Memuat kewajiban monitoring...
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="flex h-32 items-center justify-center rounded-md border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+              Tidak ada kewajiban monitoring yang sesuai filter.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-md ring-1 ring-inset ring-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Kode</TableHead>
+                    <TableHead>Risiko</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-center">Skor</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredItems.map((item) => {
+                    const meta = reviewStatusMeta[item.reviewStatus] ?? reviewStatusMeta.due;
+                    const canStart = item.reviewStatus === "due" || item.reviewStatus === "overdue";
+                    return (
+                      <TableRow key={`${item.versionGroupId}-${item.assessmentCycle}`}>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {item.code}
+                        </TableCell>
+                        <TableCell className="min-w-64">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {item.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Jatuh tempo {item.nextReviewDate || "-"}
+                          </p>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {item.orgName || "-"}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            size="micro"
+                            className={meta.className}
+                          >
+                            {meta.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center text-sm tabular-nums">
+                          <span className="font-semibold">{item.currentScore}</span>
+                          {item.candidateScore !== null && item.candidateScore !== undefined ? (
+                            <span className="text-muted-foreground"> → {item.candidateScore}</span>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {canStart ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenConfirmDialog(item)}
+                            >
+                              <Clock3 className="size-3.5" />
+                              Mulai Monitoring
+                            </Button>
+                          ) : item.reviewStatus === "in_draft" ? (
+                            <Button size="sm" variant="ghost" asChild>
+                              <Link
+                                href={
+                                  item.monitoringId
+                                    ? `/risk/monitoring/${item.monitoringId}`
+                                    : "/risk/register"
+                                }
+                              >
+                                Lanjutkan Draft
+                              </Link>
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Sudah final</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span>
+              Menampilkan {filteredItems.length} dari {total} risiko
+            </span>
+            <div className="flex items-center gap-2">
+              <span>Halaman {page} dari {Math.max(1, Math.ceil(total / limit))}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="size-8"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={page <= 1 || loading}
+                aria-label="Halaman sebelumnya"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="size-8"
+                onClick={() => setPage((current) => current + 1)}
+                disabled={page >= Math.max(1, Math.ceil(total / limit)) || loading}
+                aria-label="Halaman berikutnya"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+      </section>
+
+      <section>
           {summaryLoading ? (
             <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
               Memuat completion rate...
@@ -486,11 +638,9 @@ export function RiskReviewPanel({
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </section>
 
-      <Card className="ring-1 ring-inset ring-border border-0 bg-card">
-        <CardContent className="space-y-4">
+      <section className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
             <KpiCard
               label="Naik"
@@ -526,7 +676,7 @@ export function RiskReviewPanel({
 
           {comparisonLoading ? (
             <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-              Memuat perbandingan semester...
+              Memuat perbandingan kuartal...
             </div>
           ) : (
             <Table>
@@ -556,12 +706,12 @@ export function RiskReviewPanel({
                     <TableCell colSpan={8} className="h-24">
                       <div className="flex flex-col gap-1 text-left">
                         <p className="text-sm font-medium text-muted-foreground">
-                          Belum ada pasangan data approved antara{" "}
+                          Belum ada pasangan data final antara{" "}
                           {previousCycle} dan {cycle}
                         </p>
                         <p className="text-xs text-muted-foreground/70">
-                          Data perbandingan akan muncul setelah ada risiko yang
-                          disetujui di kedua cycle
+                          Data perbandingan akan muncul setelah ada monitoring
+                          final di kedua kuartal
                         </p>
                       </div>
                     </TableCell>
@@ -623,13 +773,12 @@ export function RiskReviewPanel({
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+      </section>
 
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Reassessment</AlertDialogTitle>
+            <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
             <AlertDialogDescription>
               Anda akan memulai pemantauan untuk risiko berikut. Tindakan ini
               akan membuat draft pemantauan baru yang dapat Anda edit sebelum

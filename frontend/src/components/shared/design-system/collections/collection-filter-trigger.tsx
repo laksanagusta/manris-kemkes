@@ -1,4 +1,4 @@
-import { Filter } from "lucide-react";
+import { Filter } from "@/components/ui/icons";
 
 import { ActionButton } from "../actions/action-button";
 

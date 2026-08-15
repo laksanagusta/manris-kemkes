@@ -4,7 +4,7 @@ import {
   Link2,
   ShieldAlert,
   Target,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import { KpiCard } from "@/components/ui/kpi-card";
 import type { PerformanceRiskSummary } from "@/types/performance-risk";
@@ -21,7 +21,7 @@ export function PerformanceRiskSummaryCards({ summary }: Props) {
         value={summary?.totalRO ?? 0}
         icon={<Target className="size-5 text-zinc-500" />}
         tone="white"
-        className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+        className="flex min-h-[96px] flex-col rounded-lg p-4"
         labelClassName="capitalize tracking-normal"
         valueClassName="font-medium"
       />
@@ -30,7 +30,7 @@ export function PerformanceRiskSummaryCards({ summary }: Props) {
         value={summary?.linkedRO ?? 0}
         icon={<Link2 className="size-5 text-zinc-500" />}
         tone="white"
-        className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+        className="flex min-h-[96px] flex-col rounded-lg p-4"
         labelClassName="capitalize tracking-normal"
         valueClassName="font-medium"
       />
@@ -39,7 +39,7 @@ export function PerformanceRiskSummaryCards({ summary }: Props) {
         value={summary?.unlinkedRO ?? 0}
         icon={<ShieldAlert className="size-5 text-zinc-500" />}
         tone="white"
-        className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+        className="flex min-h-[96px] flex-col rounded-lg p-4"
         labelClassName="capitalize tracking-normal"
         valueClassName="font-medium"
       />
@@ -48,7 +48,7 @@ export function PerformanceRiskSummaryCards({ summary }: Props) {
         value={summary?.highOrExtremeRO ?? 0}
         icon={<AlertTriangle className="size-5 text-zinc-500" />}
         tone="white"
-        className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+        className="flex min-h-[96px] flex-col rounded-lg p-4"
         labelClassName="capitalize tracking-normal"
         valueClassName="font-medium"
       />
@@ -57,7 +57,7 @@ export function PerformanceRiskSummaryCards({ summary }: Props) {
         value={summary?.overdueMitigations ?? 0}
         icon={<ClipboardList className="size-5 text-zinc-500" />}
         tone="white"
-        className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+        className="flex min-h-[96px] flex-col rounded-lg p-4"
         labelClassName="capitalize tracking-normal"
         valueClassName="font-medium"
       />

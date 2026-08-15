@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { Download, FileText, Loader2 } from "@/components/ui/icons";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -80,7 +80,7 @@ export function FormalReportList({
   };
 
   return (
-    <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+    <Card className="rounded-lg bg-card">
       <div className="flex items-center justify-between gap-3 border-b border-border/40 px-6 py-4">
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">
@@ -98,7 +98,7 @@ export function FormalReportList({
       </div>
       <CardContent className="p-0">
         <Table>
-          <TableHeader className="bg-muted/30">
+          <TableHeader className="bg-table-header">
             <TableRow>
               <TableHead className="whitespace-nowrap">Periode</TableHead>
               <TableHead className="whitespace-nowrap">Organisasi</TableHead>

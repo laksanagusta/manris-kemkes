@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Minus, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Minus, Plus, Trash2 } from "@/components/ui/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { MovementSnapshotDatum } from "@/lib/dashboard-insights";
@@ -64,7 +64,7 @@ export function RiskMovementSnapshot({
   if (loading) {
     return (
       <Card
-        className="border-border/50 bg-card/80 backdrop-blur-sm"
+        className="bg-card/80 backdrop-blur-sm"
         data-testid="movement-snapshot"
       >
         <CardHeader className="pb-4">
@@ -93,7 +93,7 @@ export function RiskMovementSnapshot({
 
   return (
     <Card
-      className="border-border/50 bg-card/80 backdrop-blur-sm"
+      className="bg-card/80 backdrop-blur-sm"
       data-testid="movement-snapshot"
     >
       <CardHeader className="pb-4">
@@ -101,7 +101,7 @@ export function RiskMovementSnapshot({
           Perubahan Risiko
         </CardTitle>
         <p className="mt-1 text-xs text-muted-foreground">
-          Perubahan portofolio risiko vs semester sebelumnya.
+          Perubahan portofolio risiko vs kuartal sebelumnya.
         </p>
       </CardHeader>
       <CardContent>

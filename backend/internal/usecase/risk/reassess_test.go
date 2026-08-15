@@ -144,13 +144,13 @@ func TestListRiskReviewQueueUseCase_ExecuteReturnsReviewItems(t *testing.T) {
 		VersionGroupID:  uuid.New().String(),
 		Code:            "R-010",
 		Title:           "Keterlambatan logistik vaksin",
-		AssessmentCycle: "2026-H1",
+		AssessmentCycle: "2026-Q2",
 		ReviewStatus:    "due",
 	}}
 	repoList := want
 	repo.listReviewQueue = func(_ context.Context, cycle string, _ []uuid.UUID, status string, _ string, _ int, _ int) ([]*entity.RiskReviewQueueItem, int, error) {
-		if cycle != "2026-H1" {
-			t.Fatalf("expected cycle 2026-H1, got %q", cycle)
+		if cycle != "2026-Q2" {
+			t.Fatalf("expected cycle 2026-Q2, got %q", cycle)
 		}
 		if status != "all" {
 			t.Fatalf("expected status all, got %q", status)
@@ -159,7 +159,7 @@ func TestListRiskReviewQueueUseCase_ExecuteReturnsReviewItems(t *testing.T) {
 	}
 
 	uc := NewListRiskReviewQueueUseCase(repo, nil)
-	result, err := uc.Execute(context.Background(), ListRiskReviewQueueInput{Cycle: "2026-H1", Status: "all"})
+	result, err := uc.Execute(context.Background(), ListRiskReviewQueueInput{Cycle: "2026-Q2", Status: "all"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -174,11 +174,11 @@ func TestListRiskReviewQueueUseCase_ExecuteReturnsReviewItems(t *testing.T) {
 func TestCompareRiskCyclesUseCase_ExecuteReturnsMovement(t *testing.T) {
 	repo := &fakeReassessRiskRepo{}
 	repo.compareCycles = func(_ context.Context, fromCycle string, toCycle string, _ []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {
-		if fromCycle != "2025-H2" {
-			t.Fatalf("expected from cycle 2025-H2, got %q", fromCycle)
+		if fromCycle != "2025-Q4" {
+			t.Fatalf("expected from cycle 2025-Q4, got %q", fromCycle)
 		}
-		if toCycle != "2026-H1" {
-			t.Fatalf("expected to cycle 2026-H1, got %q", toCycle)
+		if toCycle != "2026-Q2" {
+			t.Fatalf("expected to cycle 2026-Q2, got %q", toCycle)
 		}
 		return []*entity.RiskCycleComparisonItem{{
 			VersionGroupID: uuid.New().String(),
@@ -194,7 +194,7 @@ func TestCompareRiskCyclesUseCase_ExecuteReturnsMovement(t *testing.T) {
 	}
 
 	uc := NewCompareRiskCyclesUseCase(repo, nil)
-	items, err := uc.Execute(context.Background(), CompareRiskCyclesInput{FromCycle: "2025-H2", ToCycle: "2026-H1"})
+	items, err := uc.Execute(context.Background(), CompareRiskCyclesInput{FromCycle: "2025-Q4", ToCycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -209,12 +209,12 @@ func TestCompareRiskCyclesUseCase_ExecuteReturnsMovement(t *testing.T) {
 func TestRiskReviewSummaryUseCase_ExecuteReturnsHeatmapAndCompletion(t *testing.T) {
 	repo := &fakeReassessRiskRepo{}
 	repo.riskReviewSummary = func(_ context.Context, cycle string, _ []uuid.UUID) (*entity.RiskReviewSummary, error) {
-		if cycle != "2026-H1" {
-			t.Fatalf("expected cycle 2026-H1, got %q", cycle)
+		if cycle != "2026-Q2" {
+			t.Fatalf("expected cycle 2026-Q2, got %q", cycle)
 		}
 		return &entity.RiskReviewSummary{
 			Cycle:         cycle,
-			PreviousCycle: "2025-H2",
+			PreviousCycle: "2025-Q4",
 			TotalDue:      10,
 			Completed:     6,
 			UnitCompletion: []*entity.RiskReviewUnitCompletion{{
@@ -228,7 +228,7 @@ func TestRiskReviewSummaryUseCase_ExecuteReturnsHeatmapAndCompletion(t *testing.
 	}
 
 	uc := NewRiskReviewSummaryUseCase(repo, nil)
-	summary, err := uc.Execute(context.Background(), RiskReviewSummaryInput{Cycle: "2026-H1"})
+	summary, err := uc.Execute(context.Background(), RiskReviewSummaryInput{Cycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -280,12 +280,12 @@ func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testi
 			ID:              sourceID,
 			VersionGroupID:  versionGroupID,
 			Status:          entity.RiskStatusApproved,
-			AssessmentCycle: "2025-H2",
+			AssessmentCycle: "2025-Q4",
 		}},
 	}
 
 	uc := NewCreateRiskReassessmentUseCase(repo, nil)
-	output, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
+	output, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -316,8 +316,8 @@ func TestCreateRiskReassessmentUseCase_ExecuteClonesCurrentApprovedRisk(t *testi
 	if repo.createdRisk.IsCycleCurrent {
 		t.Fatal("expected reassessment draft to have IsCycleCurrent=false until approval")
 	}
-	if repo.createdRisk.AssessmentCycle != "2026-H1" {
-		t.Fatalf("expected assessment cycle 2026-H1, got %q", repo.createdRisk.AssessmentCycle)
+	if repo.createdRisk.AssessmentCycle != "2026-Q2" {
+		t.Fatalf("expected assessment cycle 2026-Q2, got %q", repo.createdRisk.AssessmentCycle)
 	}
 	if repo.createdRisk.ReviewType != "periodic" {
 		t.Fatalf("expected periodic review type, got %q", repo.createdRisk.ReviewType)
@@ -350,12 +350,12 @@ func TestCreateRiskReassessmentUseCase_ExecuteRejectsDuplicateCycle(t *testing.T
 			ID:              uuid.New(),
 			VersionGroupID:  versionGroupID,
 			Status:          entity.RiskStatusDraft,
-			AssessmentCycle: "2026-H1",
+			AssessmentCycle: "2026-Q2",
 		}},
 	}
 
 	uc := NewCreateRiskReassessmentUseCase(repo, nil)
-	out, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
+	out, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("expected no error for in-progress reassessment, got %v", err)
 	}
@@ -382,7 +382,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved(t 
 				IsCycleCurrent:  true,
 				Probability:     3,
 				Impact:          4,
-				AssessmentCycle: "2026-H1",
+				AssessmentCycle: "2026-Q2",
 			},
 		},
 		versions: []*entity.Risk{
@@ -390,7 +390,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved(t 
 				ID:              sourceID,
 				VersionGroupID:  versionGroupID,
 				Status:          entity.RiskStatusApproved,
-				AssessmentCycle: "2026-H1",
+				AssessmentCycle: "2026-Q2",
 				IsCurrent:       true,
 				IsCycleCurrent:  true,
 			},
@@ -398,7 +398,7 @@ func TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved(t 
 	}
 
 	uc := NewCreateRiskReassessmentUseCase(repo, nil)
-	output, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
+	output, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("expected no error for reassessment after approved version, got %v", err)
 	}
@@ -408,8 +408,8 @@ func TestCreateRiskReassessmentUseCase_ExecuteAllowsReassessmentAfterApproved(t 
 	if repo.createdRisk == nil {
 		t.Fatal("expected a new reassessment draft to be created")
 	}
-	if repo.createdRisk.AssessmentCycle != "2026-H1" {
-		t.Fatalf("expected assessment cycle 2026-H1, got %q", repo.createdRisk.AssessmentCycle)
+	if repo.createdRisk.AssessmentCycle != "2026-Q2" {
+		t.Fatalf("expected assessment cycle 2026-Q2, got %q", repo.createdRisk.AssessmentCycle)
 	}
 }
 
@@ -438,14 +438,14 @@ func TestCreateRiskReassessmentUseCase_ExecuteKeepsDraftOnPreliminarySemanticsEv
 			ID:              sourceID,
 			VersionGroupID:  versionGroupID,
 			Status:          entity.RiskStatusApproved,
-			AssessmentCycle: "2025-H2",
+			AssessmentCycle: "2025-Q4",
 			IsCurrent:       true,
 			IsCycleCurrent:  true,
 		}},
 	}
 
 	uc := NewCreateRiskReassessmentUseCase(repo, nil)
-	_, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
+	_, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -479,12 +479,12 @@ func TestCreateRiskReassessmentUseCase_ExecuteUsesRepositoryManagedReservation(t
 			ID:              uuid.New(),
 			VersionGroupID:  versionGroupID,
 			Status:          entity.RiskStatusDraft,
-			AssessmentCycle: "2026-H1",
+			AssessmentCycle: "2026-Q2",
 		},
 	}
 
 	uc := NewCreateRiskReassessmentUseCase(repo, nil)
-	out, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-H1"})
+	out, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{RiskID: sourceID, Cycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("expected no error from repository-managed existing in-progress draft, got %v", err)
 	}
@@ -513,13 +513,13 @@ func TestListRiskVersionsUseCase_ExecuteReturnsCategory(t *testing.T) {
 			{
 				ID:              uuid.New(),
 				VersionGroupID:  versionGroupID,
-				AssessmentCycle: "2025-H2",
+				AssessmentCycle: "2025-Q4",
 				Category:        entity.RiskCategoryKebijakan,
 			},
 			{
 				ID:              uuid.New(),
 				VersionGroupID:  versionGroupID,
-				AssessmentCycle: "2026-H1",
+				AssessmentCycle: "2026-Q2",
 				Category:        entity.RiskCategoryOperasional,
 			},
 		},
@@ -544,12 +544,12 @@ func TestListRiskVersionsUseCase_ExecuteReturnsCategory(t *testing.T) {
 func TestFindInProgressReassessmentForCycleReturnsReusableDraft(t *testing.T) {
 	targetID := uuid.New()
 	versions := []*entity.Risk{
-		{ID: uuid.New(), Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
-		{ID: targetID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-H1"},
-		{ID: uuid.New(), Status: entity.RiskStatusInReview, AssessmentCycle: "2026-H1"},
+		{ID: uuid.New(), Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
+		{ID: targetID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-Q2"},
+		{ID: uuid.New(), Status: entity.RiskStatusInReview, AssessmentCycle: "2026-Q2"},
 	}
 
-	got := FindInProgressReassessmentForCycle(versions, "2026-H1")
+	got := FindInProgressReassessmentForCycle(versions, "2026-Q2")
 	if got == nil {
 		t.Fatal("expected reusable draft for cycle")
 	}
@@ -569,7 +569,7 @@ func TestBuildPeriodicReassessmentDraftClonesForTargetCycle(t *testing.T) {
 		VersionGroupID:    uuid.New(),
 		IsCurrent:         true,
 		IsCycleCurrent:    true,
-		AssessmentCycle:   "2025-H2",
+		AssessmentCycle:   "2025-Q4",
 		ReviewType:        "annual",
 		Probability:       4,
 		Impact:            4,
@@ -579,7 +579,7 @@ func TestBuildPeriodicReassessmentDraftClonesForTargetCycle(t *testing.T) {
 		ReviewSubmittedAt: &startedAt,
 	}
 
-	got := BuildPeriodicReassessmentDraft(source, "2026-H1", startedAt, uuid.New())
+	got := BuildPeriodicReassessmentDraft(source, "2026-Q2", startedAt, uuid.New())
 	if got == nil {
 		t.Fatal("expected draft")
 	}
@@ -592,8 +592,8 @@ func TestBuildPeriodicReassessmentDraftClonesForTargetCycle(t *testing.T) {
 	if got.Status != entity.RiskStatusDraft {
 		t.Fatalf("expected draft status, got %q", got.Status)
 	}
-	if got.AssessmentCycle != "2026-H1" {
-		t.Fatalf("expected cycle 2026-H1, got %q", got.AssessmentCycle)
+	if got.AssessmentCycle != "2026-Q2" {
+		t.Fatalf("expected cycle 2026-Q2, got %q", got.AssessmentCycle)
 	}
 	if got.ReviewType != "periodic" {
 		t.Fatalf("expected periodic review type, got %q", got.ReviewType)

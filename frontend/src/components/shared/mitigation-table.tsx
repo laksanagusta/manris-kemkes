@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Search, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Search, Trash2, X } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -167,7 +167,7 @@ export function MitigationTable({
   return (
     <div className="space-y-3">
       {items.length > 0 ? (
-        <div className="rounded-xl border border-border/50 bg-card/80 p-3 shadow-sm">
+        <div className="rounded-xl bg-card/80 p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="space-y-1">
               <Label htmlFor="mitigation-search" className="text-xs font-medium text-muted-foreground">
@@ -221,27 +221,27 @@ export function MitigationTable({
           </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border/50 bg-card/80 shadow-sm">
+        <div className="rounded-xl bg-card/80 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
           <div className="w-full max-w-full min-w-0 overflow-x-auto">
             <Table className="min-w-[1120px]">
               <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
                 <TableRow className="border-border/50 transition-colors hover:bg-transparent">
-                <TableHead className="w-16 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-16 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   No
                 </TableHead>
-                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Rencana Mitigasi
                 </TableHead>
-                <TableHead className="w-56 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-56 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   PIC
                 </TableHead>
-                <TableHead className="w-44 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-44 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Tipe
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Detail
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Aksi
                 </TableHead>
               </TableRow>

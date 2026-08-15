@@ -33,9 +33,11 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronRight } from "lucide-react";
-import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
-import { useSetHeaderActions } from "@/lib/header-actions-context";
+import { ChevronRight } from "@/components/ui/icons";
+import {
+  currentAssessmentCycle,
+  shiftAssessmentCycle,
+} from "@/lib/risk-cycle-options";
 import {
   CollectionEmptyState,
   CollectionErrorState,
@@ -43,6 +45,7 @@ import {
   CollectionFilterTrigger,
   CollectionLoadingState,
   CollectionPagination,
+  CollectionPageHeader,
   CollectionSearchField,
   CollectionStatusBadge,
   CollectionTableCard,
@@ -94,6 +97,13 @@ const statusLabels: Record<WorkingPaperStatus, string> = {
   cancelled: "Dibatalkan",
 };
 
+const statusTones = {
+  draft: "neutral",
+  signing: "progress",
+  completed: "success",
+  cancelled: "danger",
+} as const;
+
 type WorkingPaperFiltersSidebarProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -125,7 +135,7 @@ function WorkingPaperFiltersSidebar({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[22rem] rounded-2xl p-4"
+        className="w-[22rem] rounded-xl p-4"
       >
         <div className="space-y-4">
           <div>
@@ -146,7 +156,7 @@ function WorkingPaperFiltersSidebar({
                   onStatusFilterChange(value as WorkingPaperStatusFilter)
                 }
               >
-                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Semua status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -240,8 +250,9 @@ function WorkingPaperFiltersToolbar({
   onReset,
 }: WorkingPaperFiltersToolbarProps) {
   return (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
+    <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
       <CollectionSearchField
+        containerClassName="w-full sm:flex-1 sm:w-auto md:flex-1 md:w-auto"
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchPlaceholder}
@@ -362,7 +373,7 @@ function WorkingPaperMobileCard({
           <div className="flex items-center gap-2">
             <WorkingPaperCode code={paper.code} />
             <CollectionStatusBadge
-              className={getLinearStatusBadgeClass(paper.status)}
+              tone={statusTones[paper.status]}
             >
               {statusLabels[paper.status] || paper.status}
             </CollectionStatusBadge>
@@ -454,29 +465,14 @@ export default function WorkingPapersPage() {
   );
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [selectedSemester, setSelectedSemester] = useState("");
-  const setHeaderActions = useSetHeaderActions();
+  const [selectedPeriod, setSelectedPeriod] = useState("");
 
-  const semesterOptions: { value: string; label: string }[] = (() => {
-    const year = new Date().getFullYear();
-    const half = new Date().getMonth() < 6 ? 1 : 2;
-    if (half === 1) {
-      return [
-        { value: `${year - 1}-H2`, label: `${year - 1}-H2` },
-        { value: `${year}-H1`, label: `${year}-H1` },
-        { value: `${year}-H2`, label: `${year}-H2` },
-      ];
-    }
-    return [
-      { value: `${year}-H1`, label: `${year}-H1` },
-      { value: `${year}-H2`, label: `${year}-H2` },
-      { value: `${year + 1}-H1`, label: `${year + 1}-H1` },
-    ];
-  })();
-
-  const currentSemester = (() => {
-    const now = new Date();
-    return `${now.getFullYear()}-H${now.getMonth() < 6 ? 1 : 2}`;
+  const periodOptions: { value: string; label: string }[] = (() => {
+    const currentCycle = currentAssessmentCycle();
+    return [-1, 0, 1].map((delta) => {
+      const value = shiftAssessmentCycle(currentCycle, delta);
+      return { value, label: value };
+    });
   })();
 
   const handleResetFilters = () => {
@@ -629,33 +625,33 @@ export default function WorkingPapersPage() {
 
   const showInitialLoading = loading && papers.length === 0;
 
-  useEffect(() => {
-    if (!token) return;
-
-    setHeaderActions(
-      <WorkingPaperCreateButton
-          onClick={() => {
-            setSelectedSemester(currentSemester);
-            setCreateModalOpen(true);
-          }}
-      />,
-    );
-
-    return () => setHeaderActions(null);
-  }, [currentSemester, setHeaderActions, token]);
-
   return (
     <PageStack>
-        {error ? (
-          <CollectionErrorState
-            title="Gagal Memuat Data"
-            message={error}
-            onReload={() => window.location.reload()}
+      <CollectionPageHeader
+        title="Kertas Kerja"
+        description="Kelola dan pantau seluruh kertas kerja risiko organisasi."
+        actions={
+          <WorkingPaperCreateButton
+            onClick={() => {
+              setSelectedPeriod(currentAssessmentCycle());
+              setCreateModalOpen(true);
+            }}
           />
-        ) : null}
+        }
+      />
 
-        <CollectionToolbar
-          actions={<WorkingPaperFiltersToolbar
+      {error ? (
+        <CollectionErrorState
+          title="Gagal Memuat Data"
+          message={error}
+          onReload={() => window.location.reload()}
+        />
+      ) : null}
+
+      <CollectionToolbar
+        className="w-full [&>div]:w-full [&>div]:md:w-full"
+        actions={
+          <WorkingPaperFiltersToolbar
             search={search}
             onSearchChange={(value) => {
               setSearch(value);
@@ -681,8 +677,9 @@ export default function WorkingPapersPage() {
               setPage(1);
             }}
             onReset={handleResetFilters}
-          />}
-        />
+          />
+        }
+      />
 
         <CollectionTableCard>
 
@@ -728,7 +725,7 @@ export default function WorkingPapersPage() {
                     <col className="w-[20%]" />
                     <col className="w-[14%]" />
                   </colgroup>
-                  <CollectionTableHeader>
+                  <CollectionTableHeader density="compact">
                     <CollectionTableHeaderRow>
                       <CollectionTableHead className="pl-4 pr-3">
                         Judul
@@ -785,7 +782,7 @@ export default function WorkingPapersPage() {
                           </TableCell>
                           <TableCell className="whitespace-nowrap px-3 py-2 align-middle">
                             <CollectionStatusBadge
-                              className={getLinearStatusBadgeClass(paper.status)}
+                              tone={statusTones[paper.status]}
                             >
                               {statusLabels[paper.status] || paper.status}
                             </CollectionStatusBadge>
@@ -827,9 +824,9 @@ export default function WorkingPapersPage() {
       <WorkingPaperCreateDialog
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
-        selectedSemester={selectedSemester}
-        onSelectedSemesterChange={setSelectedSemester}
-        semesterOptions={semesterOptions}
+        selectedPeriod={selectedPeriod}
+        onSelectedPeriodChange={setSelectedPeriod}
+        periodOptions={periodOptions}
       />
     </PageStack>
   );

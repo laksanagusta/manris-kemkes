@@ -29,22 +29,25 @@ function deriveSemester(createdAt?: string) {
   if (!createdAt) return null;
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return null;
-  const half = date.getMonth() < 6 ? "H1" : "H2";
+  const quarter = Math.floor(date.getMonth() / 3) + 1;
+  const half = "Q" + quarter;
   return `${date.getFullYear()}-${half}`;
 }
 
 function normalizeSemesterKey(value?: string) {
   if (!value) return null;
-  const match = value.trim().match(/^(\d{4})-(H[12])$/i);
+  const match = value.trim().match(/^(\d{4})-(Q[1-4]|H[12])$/i);
   if (!match) return null;
   const year = match[1];
-  return `${year}-${match[2].toUpperCase()}`;
+  const period = match[2].toUpperCase();
+  const quarter = period === "H1" ? "Q2" : period === "H2" ? "Q4" : period;
+  return `${year}-${quarter}`;
 }
 
 function semesterSortValue(period: string) {
   const [yearText, half] = period.split("-");
   const year = Number(yearText);
-  return year * 2 + (half === "H2" ? 1 : 0);
+  return year * 4 + Number(half.slice(1));
 }
 
 function levelFromScore(score: number): RiskTrendLevel {

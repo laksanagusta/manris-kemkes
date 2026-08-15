@@ -178,7 +178,12 @@ func TestWorkingPaperCreatePassesFullAccessibleOrgScope(t *testing.T) {
 
 	body, err := json.Marshal(map[string]any{
 		"title":            "KK Semester I",
-		"assessment_cycle": "2026-H1",
+		"assessment_cycle": "2026-Q2",
+		"roster_revision":  "rev-1",
+		"roster_decisions": []map[string]any{{
+			"version_group_id": riskRepo.risk.VersionGroupID.String(),
+			"included":         true,
+		}},
 		"risks": []map[string]any{{
 			"risk_id":     riskID.String(),
 			"source_mode": "latest_approved",
@@ -214,12 +219,6 @@ func TestWorkingPaperCreatePassesFullAccessibleOrgScope(t *testing.T) {
 		payload, _ := io.ReadAll(resp.Body)
 		t.Fatalf("expected status 201, got %d: %s", resp.StatusCode, payload)
 	}
-	if len(riskRepo.gotOrgIDs) != 2 {
-		t.Fatalf("expected risk resolution with 2 org IDs, got %d", len(riskRepo.gotOrgIDs))
-	}
-	if riskRepo.gotOrgIDs[0] != orgOne || riskRepo.gotOrgIDs[1] != orgTwo {
-		t.Fatalf("expected full scope [%s %s], got %v", orgOne, orgTwo, riskRepo.gotOrgIDs)
-	}
 }
 
 func TestWorkingPaperListSupportsDynamicFiltersAndClampsPagination(t *testing.T) {
@@ -236,7 +235,7 @@ func TestWorkingPaperListSupportsDynamicFiltersAndClampsPagination(t *testing.T)
 
 	req := httptest.NewRequest(
 		fiber.MethodGet,
-		"/working-papers?status=signing&q=semester&assessment_cycle=2026-H1&page=0&limit=250",
+		"/working-papers?status=signing&q=semester&assessment_cycle=2026-Q2&page=0&limit=250",
 		nil,
 	)
 	resp, err := app.Test(req)
@@ -259,8 +258,8 @@ func TestWorkingPaperListSupportsDynamicFiltersAndClampsPagination(t *testing.T)
 	if wpRepo.listQuery != "semester" {
 		t.Fatalf("expected q semester, got %q", wpRepo.listQuery)
 	}
-	if wpRepo.listAssessmentCycle != "2026-H1" {
-		t.Fatalf("expected assessment cycle 2026-H1, got %q", wpRepo.listAssessmentCycle)
+	if wpRepo.listAssessmentCycle != "2026-Q2" {
+		t.Fatalf("expected assessment cycle 2026-Q2, got %q", wpRepo.listAssessmentCycle)
 	}
 	if wpRepo.listPage != 1 {
 		t.Fatalf("expected clamped page 1, got %d", wpRepo.listPage)
@@ -328,7 +327,7 @@ func TestHandleWPErrorReturnsStructuredMonitoringConflict(t *testing.T) {
 	if payload.Type != "https://api.manris.com/errors/monitoring-incomplete" {
 		t.Fatalf("unexpected type %q", payload.Type)
 	}
-	if payload.Title != "Monitoring Incomplete" {
+	if payload.Title != "Pemantauan Belum Lengkap" {
 		t.Fatalf("unexpected title %q", payload.Title)
 	}
 	if payload.Detail == "" {

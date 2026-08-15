@@ -31,6 +31,9 @@ func ToCreateRiskInput(args map[string]any, sess *session.Session) (risk.CreateR
 	if val, ok := args["description"].(string); ok {
 		input.Description = val
 	}
+	if val, ok := args["status"].(string); ok {
+		input.Status = val
+	}
 
 	if val, ok := args["category"].(string); ok && val != "" {
 		input.Category = val
@@ -143,6 +146,54 @@ func ToUpdateRiskInput(args map[string]any, sess *session.Session) (risk.UpdateR
 	input.ChangeReason = getStringField(args, "changeReason")
 	input.ReviewSummary = getStringField(args, "reviewSummary")
 	input.DraftApprovalLine = parseApprovalLine(args)
+
+	return input, nil
+}
+
+func ToUpdateMonitoringInput(args map[string]any, sess *session.Session) (risk.UpdateMonitoringInput, error) {
+	input := risk.UpdateMonitoringInput{}
+
+	monitoringID, ok := args["id"].(string)
+	if !ok || monitoringID == "" {
+		return input, fmt.Errorf("%w: id", ErrMissingField)
+	}
+	id, err := uuid.Parse(monitoringID)
+	if err != nil {
+		return input, fmt.Errorf("%w: id", ErrInvalidUUID)
+	}
+
+	input.MonitoringID = id
+	input.OrgIDs = sess.AccessibleOrgIDs
+	input.ObservedProbability = getIntField(args, "probability")
+	input.ObservedImpact = getIntField(args, "impact")
+	input.ConditionSummary = getStringField(args, "conditionSummary")
+	input.EventSummary = getStringField(args, "eventSummary")
+	input.Trend = getStringField(args, "trend")
+	input.EffectivenessConclusion = getStringField(args, "effectivenessConclusion")
+	input.FollowUpNote = getStringField(args, "followUpNote")
+	input.Conclusion = getStringField(args, "conclusion")
+	input.MitigationProgressSummary = getStringField(args, "mitigationProgressSummary")
+	input.MitigationCompletionPercent = getIntField(args, "mitigationCompletionPercent")
+	input.Values = entity.RiskMonitoringDraftValues{
+		Title:                getStringField(args, "title"),
+		Description:          getStringField(args, "description"),
+		Category:             getStringField(args, "category"),
+		Cause:                parseStringSlice(args, "cause"),
+		RiskSource:           getStringField(args, "riskSource"),
+		Controllability:      getStringField(args, "controllability"),
+		ImpactDesc:           parseStringSlice(args, "impactDesc"),
+		ExistingControl:      getStringField(args, "existingControl"),
+		ControlEffectiveness: getStringField(args, "controlEffectiveness"),
+		TreatmentOption:      getStringField(args, "treatmentOption"),
+		Mitigations:          parseMitigations(args),
+		Probability:          input.ObservedProbability,
+		Impact:               input.ObservedImpact,
+		ConditionSummary:     input.ConditionSummary,
+		EventSummary:         input.EventSummary,
+		Effectiveness:        input.EffectivenessConclusion,
+		Conclusion:           input.Conclusion,
+		ChangeReason:         getStringField(args, "changeReason"),
+	}
 
 	return input, nil
 }

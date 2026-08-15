@@ -3,7 +3,9 @@ package risk
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
@@ -43,6 +45,7 @@ func NewUpdateRiskUseCase(
 
 type UpdateRiskInput struct {
 	ID             uuid.UUID  `json:"-"`
+	FinalizedBy    uuid.UUID  `json:"-"`
 	Title          string     `json:"title"`
 	Description    string     `json:"description"`
 	Category       string     `json:"category"`
@@ -102,7 +105,9 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	if err != nil {
 		return nil, errors.ErrRiskNotFound
 	}
-	wasApproved := existingRisk.Status == entity.RiskStatusApproved
+	input.Status = canonicalRiskStatus(input.Status)
+	wasFinal := existingRisk.Status == entity.RiskStatusFinal
+	originalRisk := *existingRisk
 
 	// 2. Block updates when risk is locked by a signing/completed working paper
 	if uc.wpRepo != nil {
@@ -115,11 +120,11 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		}
 	}
 	// 3. Validate status transitions
-	if existingRisk.Status == entity.RiskStatusApproved && input.Status != entity.RiskStatusApproved && input.Status != entity.RiskStatusDraft {
+	if wasFinal && input.Status != entity.RiskStatusFinal {
 		return nil, errors.ErrCannotChangeStatusFromApproved
 	}
 	// 4. Validate organization if changed
-	if input.OrganizationID != nil && *input.OrganizationID != *existingRisk.OrganizationID {
+	if !uuidPtrEqual(input.OrganizationID, existingRisk.OrganizationID) && input.OrganizationID != nil {
 		_, err := uc.orgRepo.GetByID(ctx, *input.OrganizationID)
 		if err != nil {
 			return nil, errors.ErrOrganizationNotFound
@@ -153,7 +158,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 			input.AssessmentCycle = currentAssessmentCycle()
 		}
 	}
-	if !IsValidSemesterFormat(input.AssessmentCycle) {
+	if !IsValidQuarterFormat(input.AssessmentCycle) {
 		return nil, errors.ErrSemesterFormat
 	}
 
@@ -193,19 +198,19 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 
 	var warnings []string
 	if existingRisk.PreviousRiskID != nil {
-		previousRisk, err := uc.riskRepo.GetByID(ctx, *existingRisk.PreviousRiskID, orgIDs)
+		previousVersion, err := uc.riskRepo.GetByID(ctx, *existingRisk.PreviousRiskID, orgIDs)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to load previous risk version")
 		}
-		if previousRisk == nil {
+		if previousVersion == nil {
 			return nil, errors.ErrPreviousRiskVersionNotFound
 		}
 
-		substanceChanges := DetectSubstanceChanges(previousRisk, existingRisk)
+		substanceChanges := DetectSubstanceChanges(previousVersion, existingRisk)
 		if len(substanceChanges) > 0 && strings.TrimSpace(input.ChangeReason) == "" {
 			return nil, errors.ErrChangeReasonRequired
 		}
-		warnings = BuildSubstanceChangeWarnings(previousRisk, existingRisk)
+		warnings = BuildSubstanceChangeWarnings(previousVersion, existingRisk)
 	}
 
 	// Section 5
@@ -232,22 +237,40 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	if err := existingRisk.Validate(); err != nil {
 		return nil, err
 	}
+	if wasFinal {
+		if finalRiskFieldsChanged(&originalRisk, existingRisk) {
+			return nil, errors.ErrFinalRiskReadOnly
+		}
+	}
+	if input.Status == entity.RiskStatusFinal && !wasFinal {
+		now := time.Now().UTC()
+		existingRisk.ReviewSubmittedAt = &now
+		existingRisk.ReviewApprovedAt = &now
+		existingRisk.FinalizeRequested = true
+		existingRisk.FinalizedAt = &now
+		if input.FinalizedBy != uuid.Nil {
+			existingRisk.FinalizedBy = &input.FinalizedBy
+		}
+		effectiveFrom, cycleErr := CycleStartDate(existingRisk.AssessmentCycle)
+		if cycleErr != nil {
+			return nil, cycleErr
+		}
+		existingRisk.EffectiveFrom = &effectiveFrom
+	}
 
 	// 8. Save to database
 	if err := uc.riskRepo.Update(ctx, existingRisk); err != nil {
 		return nil, errors.Wrap(err, "failed to update risk")
 	}
-	if input.Status == entity.RiskStatusApproved && existingRisk.PreviousRiskID != nil && !wasApproved {
-		if err := uc.riskRepo.ActivateApprovedVersion(ctx, existingRisk.ID); err != nil {
-			return nil, errors.Wrap(err, "failed to activate approved risk version")
-		}
-	}
-	if input.Status == entity.RiskStatusApproved && !wasApproved && uc.taskRepo != nil {
+	if input.Status == entity.RiskStatusFinal && !wasFinal && uc.taskRepo != nil {
 		if _, err := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.taskRepo, uc.riskRepo).Execute(ctx, existingRisk.ID, existingRisk.AssessmentCycle, orgIDs); err != nil {
-			return nil, errors.Wrap(err, "failed to create mitigation tasks")
+			// Risk finalization is already committed atomically with version
+			// activation. Task generation is a post-commit side effect and is
+			// surfaced as a warning so callers do not retry finalization and hit
+			// a false failure.
+			warnings = append(warnings, fmt.Sprintf("mitigation tasks could not be generated: %v", err))
 		}
 	}
-
 	// 9. Return result
 	return &UpdateRiskOutput{
 		ID:        existingRisk.ID,
@@ -256,4 +279,60 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		UpdatedAt: existingRisk.UpdatedAt,
 		Warnings:  warnings,
 	}, nil
+}
+
+// finalRiskFieldsChanged is intentionally broader than DetectSubstanceChanges.
+// A final risk is an immutable business record: score, profile, ownership,
+// assessment metadata, and review metadata can only change through a new
+// monitoring transaction/version. A no-op PUT remains harmlessly allowed for
+// clients that resend the complete final payload.
+func finalRiskFieldsChanged(previous, candidate *entity.Risk) bool {
+	if previous == nil || candidate == nil {
+		return false
+	}
+	if len(DetectSubstanceChanges(previous, candidate)) > 0 {
+		return true
+	}
+	if !uuidPtrEqual(previous.OrganizationID, candidate.OrganizationID) ||
+		!uuidPtrEqual(previous.ObjectiveID, candidate.ObjectiveID) ||
+		!uuidPtrEqual(previous.ROID, candidate.ROID) {
+		return true
+	}
+	if previous.Probability != candidate.Probability ||
+		previous.Impact != candidate.Impact ||
+		previous.TargetProbability != candidate.TargetProbability ||
+		previous.TargetImpact != candidate.TargetImpact ||
+		previous.RiskPriority != candidate.RiskPriority ||
+		trim(previous.RiskAppetite) != trim(candidate.RiskAppetite) ||
+		!stringPtrEqual(previous.NextReviewDate, candidate.NextReviewDate) ||
+		trim(previous.ReviewScheduleText) != trim(candidate.ReviewScheduleText) ||
+		trim(previous.AssessmentCycle) != trim(candidate.AssessmentCycle) ||
+		trim(previous.ReviewType) != trim(candidate.ReviewType) ||
+		trim(previous.ChangeReason) != trim(candidate.ChangeReason) ||
+		trim(previous.ReviewSummary) != trim(candidate.ReviewSummary) ||
+		!reflect.DeepEqual(previous.DraftApprovalLine, candidate.DraftApprovalLine) {
+		return true
+	}
+	return false
+}
+
+func stringPtrEqual(a, b *string) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return trim(*a) == trim(*b)
+}
+
+func canonicalRiskStatus(status string) string {
+	switch strings.TrimSpace(status) {
+	case "approved", "reviewed":
+		return entity.RiskStatusFinal
+	case "assessment_draft", "assessment_in_review", "in_review", "in_approval":
+		return entity.RiskStatusDraft
+	default:
+		return status
+	}
 }

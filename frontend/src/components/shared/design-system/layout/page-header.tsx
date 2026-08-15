@@ -18,7 +18,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden rounded-2xl bg-card shadow-none ring-1 ring-inset ring-border",
+        "flex flex-col overflow-hidden rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
         className,
       )}
     >
@@ -31,7 +31,7 @@ export function PageHeader({
       ) : null}
       <div className="flex flex-col gap-4 px-4 pb-4 pt-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          <h1 className="page-title">
             {title}
           </h1>
           {description ? (

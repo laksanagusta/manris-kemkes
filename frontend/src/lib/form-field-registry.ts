@@ -1,4 +1,4 @@
-import { Type, AlignLeft, CheckSquare, Circle, ChevronDown } from "lucide-react";
+import { Type, AlignLeft, CheckSquare, Circle, ChevronDown } from "@/components/ui/icons";
 
 import type { FormFieldType } from "@/types/form";
 

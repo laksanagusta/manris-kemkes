@@ -52,11 +52,11 @@ func insertRiskMonitoring(
 			source_probability, source_impact, source_weight, source_nilai, source_level, source_version_number,
 			observed_probability, observed_impact, observed_weight, observed_nilai, observed_level,
 			condition_summary, event_summary, trend, effectiveness_conclusion, follow_up_note, conclusion,
-			mitigation_progress_summary, mitigation_completion_percent, mitigation_obstacles, mitigation_follow_up,
+			mitigation_progress_summary, mitigation_completion_percent,
 			draft_payload,
 			profile_change_summary, change_reason, started_by, started_at
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30)
 		RETURNING id, started_at, created_at, updated_at`,
 		monitoring.SourceRiskID,
 		monitoring.VersionGroupID,
@@ -83,8 +83,6 @@ func insertRiskMonitoring(
 		monitoring.Conclusion,
 		monitoring.MitigationProgressSummary,
 		monitoring.MitigationCompletionPercent,
-		monitoring.MitigationObstacles,
-		monitoring.MitigationFollowUp,
 		draftPayload,
 		profileChanges,
 		monitoring.ChangeReason,
@@ -131,7 +129,7 @@ func (r *riskMonitoringRepository) HasFinalizedForSourceAndCycle(ctx context.Con
 			FROM risk_monitorings
 			WHERE source_risk_id = $1
 			  AND assessment_cycle = $2
-			  AND status = 'finalized'
+			  AND status = 'final'
 		)
 	`, sourceRiskID, cycle).Scan(&exists); err != nil {
 		return false, fmt.Errorf("check finalized monitoring: %w", err)
@@ -143,6 +141,7 @@ func (r *riskMonitoringRepository) GetByVersionGroupAndCycle(ctx context.Context
 	monitoring, err := scanRiskMonitoring(r.pool.QueryRow(ctx, baseRiskMonitoringSelect()+`
 		JOIN risks rv ON rv.id = rm.source_risk_id
 		WHERE rv.version_group_id = $1 AND rm.assessment_cycle = $2
+		  AND rm.status IN ('draft', 'final')
 		ORDER BY rm.created_at DESC
 		LIMIT 1
 	`, versionGroupID, cycle))
@@ -159,7 +158,7 @@ func (r *riskMonitoringRepository) ListByVersionGroup(ctx context.Context, versi
 	rows, err := r.pool.Query(ctx, baseRiskMonitoringSelect()+`
 		JOIN risks rv ON rv.id = rm.source_risk_id
 		WHERE rv.version_group_id = $1
-		  AND rm.status IN ('draft', 'finalized')
+		  AND rm.status IN ('draft', 'final')
 		ORDER BY rm.assessment_cycle
 	`, versionGroupID)
 	if err != nil {
@@ -183,6 +182,9 @@ func (r *riskMonitoringRepository) ListByVersionGroup(ctx context.Context, versi
 }
 
 func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.RiskMonitoringListFilter) ([]*entity.RiskMonitoring, int, error) {
+	if filter.Status == "finalized" {
+		filter.Status = entity.RiskMonitoringStatusFinal
+	}
 	if filter.Page <= 0 {
 		filter.Page = 1
 	}
@@ -336,11 +338,9 @@ func (r *riskMonitoringRepository) UpdateDraft(ctx context.Context, monitoring *
 		    conclusion = $13,
 		    mitigation_progress_summary = $14,
 		    mitigation_completion_percent = $15,
-		    mitigation_obstacles = $16,
-		    mitigation_follow_up = $17,
-		    draft_payload = $18,
-		    profile_change_summary = $19,
-		    change_reason = $20,
+		    draft_payload = $16,
+		    profile_change_summary = $17,
+		    change_reason = $18,
 		    updated_at = now()
 		WHERE id = $1 AND status = 'draft'
 	`,
@@ -359,8 +359,6 @@ func (r *riskMonitoringRepository) UpdateDraft(ctx context.Context, monitoring *
 		monitoring.Conclusion,
 		monitoring.MitigationProgressSummary,
 		monitoring.MitigationCompletionPercent,
-		monitoring.MitigationObstacles,
-		monitoring.MitigationFollowUp,
 		draftPayload,
 		profileChanges,
 		monitoring.ChangeReason,
@@ -388,6 +386,7 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 	if monitoring.Status != entity.RiskMonitoringStatusDraft {
 		return nil, domainerrors.ErrMonitoringNotFinalizable
 	}
+	now := time.Now().UTC()
 
 	source, err := getRiskByIDWithQueryer(ctx, tx, monitoring.SourceRiskID)
 	if err != nil {
@@ -397,53 +396,79 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		return nil, domainerrors.ErrSourceRiskNoLongerActive
 	}
 
-	_, err = tx.Exec(ctx, `
-		UPDATE risks
-		SET is_current = FALSE,
-		    is_cycle_current = FALSE,
-		    updated_at = now()
-		WHERE version_group_id = $1
-		  AND is_current = TRUE
-	`, source.VersionGroupID)
-	if err != nil {
-		return nil, fmt.Errorf("deactivate current risk versions: %w", err)
+	if resultRisk != nil {
+		_, err = tx.Exec(ctx, `
+			UPDATE risks
+			SET is_current = FALSE,
+			    is_cycle_current = FALSE,
+			    updated_at = now()
+			WHERE version_group_id = $1
+			  AND is_current = TRUE
+		`, source.VersionGroupID)
+		if err != nil {
+			return nil, fmt.Errorf("deactivate current risk versions: %w", err)
+		}
+
+		resultRisk.VersionGroupID = source.VersionGroupID
+		resultRisk.PreviousRiskID = &source.ID
+		resultRisk.OrganizationID = source.OrganizationID
+		if resultRisk.CreatedBy == nil && finalizedBy != uuid.Nil {
+			resultRisk.CreatedBy = &finalizedBy
+		}
+		resultRisk.IsCurrent = true
+		resultRisk.IsCycleCurrent = true
+		resultRisk.Status = entity.RiskStatusFinal
+		resultRisk.ReviewType = "periodic"
+		startedAt := monitoring.StartedAt.UTC().Round(time.Second)
+		resultRisk.ReviewStartedAt = &startedAt
+		if monitoring.FinalizedAt != nil {
+			resultRisk.ReviewSubmittedAt = monitoring.FinalizedAt
+			resultRisk.ReviewApprovedAt = monitoring.FinalizedAt
+		}
+		if err := insertRiskWithQueryer(ctx, tx, resultRisk); err != nil {
+			return nil, err
+		}
+		var actor any
+		if finalizedBy != uuid.Nil {
+			actor = finalizedBy
+		}
+		if _, err := tx.Exec(ctx, `
+			UPDATE risks
+			SET finalized_by = $2,
+			    finalized_at = $3,
+			    effective_from = $3::date,
+			    updated_at = now()
+			WHERE id = $1
+		`, resultRisk.ID, actor, now); err != nil {
+			return nil, fmt.Errorf("record monitoring result risk finalization: %w", err)
+		}
 	}
 
-	resultRisk.VersionGroupID = source.VersionGroupID
-	resultRisk.PreviousRiskID = &source.ID
-	resultRisk.OrganizationID = source.OrganizationID
-	if resultRisk.CreatedBy == nil && finalizedBy != uuid.Nil {
-		resultRisk.CreatedBy = &finalizedBy
+	var resultRiskID *uuid.UUID
+	if resultRisk != nil {
+		resultRiskID = &resultRisk.ID
 	}
-	resultRisk.IsCurrent = true
-	resultRisk.IsCycleCurrent = true
-	resultRisk.Status = entity.RiskStatusApproved
-	resultRisk.ReviewType = "periodic"
-	startedAt := monitoring.StartedAt.UTC().Round(time.Second)
-	resultRisk.ReviewStartedAt = &startedAt
-	if monitoring.FinalizedAt != nil {
-		resultRisk.ReviewSubmittedAt = monitoring.FinalizedAt
-		resultRisk.ReviewApprovedAt = monitoring.FinalizedAt
-	}
-	if err := insertRiskWithQueryer(ctx, tx, resultRisk); err != nil {
-		return nil, err
-	}
-
-	now := time.Now().UTC()
 	tag, err := tx.Exec(ctx, `
 		UPDATE risk_monitorings
-		SET status = 'finalized',
+		SET status = 'final',
 		    result_risk_id = $2,
 		    finalized_by = $3,
 		    finalized_at = $4,
 		    updated_at = now()
 		WHERE id = $1 AND status = 'draft'
-	`, monitoringID, resultRisk.ID, finalizedBy, now)
+	`, monitoringID, resultRiskID, finalizedBy, now)
 	if err != nil {
 		return nil, fmt.Errorf("mark monitoring finalized: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return nil, domainerrors.ErrMonitoringAlreadyFinalized
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE risk_monitoring_periods
+		SET status = 'completed', completed_monitoring_id = $3, completed_at = $4, updated_at = now()
+		WHERE version_group_id = $1 AND period_label = $2
+	`, source.VersionGroupID, monitoring.AssessmentCycle, monitoringID, now); err != nil {
+		return nil, fmt.Errorf("mark monitoring period completed: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -453,6 +478,70 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 	return r.GetByID(ctx, monitoringID, nil)
 }
 
+// VoidAndCreateCorrection preserves a finalized monitoring as an immutable
+// void record and opens a new draft for the same reporting period.
+func (r *riskMonitoringRepository) VoidAndCreateCorrection(ctx context.Context, monitoringID uuid.UUID, draft *entity.RiskMonitoring, voidedBy uuid.UUID, reason string) (*entity.RiskMonitoring, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin monitoring correction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var versionGroupID uuid.UUID
+	var cycle, status string
+	if err := tx.QueryRow(ctx, `
+		SELECT version_group_id, assessment_cycle, status
+		FROM risk_monitorings
+		WHERE id = $1
+		FOR UPDATE
+	`, monitoringID).Scan(&versionGroupID, &cycle, &status); err != nil {
+		return nil, fmt.Errorf("load monitoring for correction: %w", err)
+	}
+	if status != entity.RiskMonitoringStatusFinal {
+		return nil, domainerrors.ErrMonitoringNotFinalizable
+	}
+
+	now := time.Now().UTC()
+	if _, err := tx.Exec(ctx, `
+		UPDATE risk_monitorings
+		SET status = 'void', voided_by = $2, voided_at = $3, void_reason = $4, updated_at = now()
+		WHERE id = $1 AND status = 'final'
+	`, monitoringID, voidedBy, now, reason); err != nil {
+		return nil, fmt.Errorf("void finalized monitoring: %w", err)
+	}
+
+	draft.VersionGroupID = versionGroupID
+	draft.AssessmentCycle = cycle
+	draft.Status = entity.RiskMonitoringStatusDraft
+	if draft.StartedAt.IsZero() {
+		draft.StartedAt = now
+	}
+	if err := insertRiskMonitoring(ctx, tx, draft); err != nil {
+		return nil, fmt.Errorf("insert monitoring correction draft: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE mitigation_tasks
+		SET monitoring_id = $1, updated_at = now()
+		WHERE risk_id = $2 AND period_label = $3 AND status IN ('pending', 'overdue')
+	`, draft.ID, draft.SourceRiskID, cycle); err != nil {
+		return nil, fmt.Errorf("relink pending mitigation tasks to correction: %w", err)
+	}
+
+	if _, err := tx.Exec(ctx, `
+		UPDATE risk_monitoring_periods
+		SET status = CASE WHEN due_date < CURRENT_DATE THEN 'overdue' ELSE 'pending' END,
+		    completed_monitoring_id = NULL, completed_at = NULL, updated_at = now()
+		WHERE version_group_id = $1 AND period_label = $2
+	`, versionGroupID, cycle); err != nil {
+		return nil, fmt.Errorf("reopen monitoring period: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit monitoring correction: %w", err)
+	}
+	return r.GetByID(ctx, draft.ID, nil)
+}
+
 func baseRiskMonitoringSelect() string {
 	return `
 		SELECT
@@ -460,7 +549,7 @@ func baseRiskMonitoringSelect() string {
 			rm.source_probability, rm.source_impact, rm.source_weight, rm.source_nilai, rm.source_level, rm.source_version_number,
 			rm.observed_probability, rm.observed_impact, rm.observed_weight, rm.observed_nilai, rm.observed_level,
 			rm.condition_summary, rm.event_summary, rm.trend, rm.effectiveness_conclusion, rm.follow_up_note, rm.conclusion,
-			rm.mitigation_progress_summary, rm.mitigation_completion_percent, rm.mitigation_obstacles, rm.mitigation_follow_up,
+			rm.mitigation_progress_summary, rm.mitigation_completion_percent,
 			rm.draft_payload, rm.profile_change_summary, rm.change_reason,
 			rm.started_by, rm.started_at, rm.finalized_by, rm.finalized_at, rm.voided_by, rm.voided_at, rm.void_reason,
 			rm.created_at, rm.updated_at,
@@ -515,7 +604,7 @@ func scanRiskMonitoring(row pgx.Row) (*entity.RiskMonitoring, error) {
 		&monitoring.SourceProbability, &monitoring.SourceImpact, &monitoring.SourceWeight, &monitoring.SourceNilai, &monitoring.SourceLevel, &monitoring.SourceVersionNumber,
 		&monitoring.ObservedProbability, &monitoring.ObservedImpact, &monitoring.ObservedWeight, &monitoring.ObservedNilai, &monitoring.ObservedLevel,
 		&monitoring.ConditionSummary, &monitoring.EventSummary, &monitoring.Trend, &monitoring.EffectivenessConclusion, &monitoring.FollowUpNote, &monitoring.Conclusion,
-		&monitoring.MitigationProgressSummary, &monitoring.MitigationCompletionPercent, &monitoring.MitigationObstacles, &monitoring.MitigationFollowUp,
+		&monitoring.MitigationProgressSummary, &monitoring.MitigationCompletionPercent,
 		&draftPayloadRaw, &profileChangesRaw, &monitoring.ChangeReason,
 		&monitoring.StartedBy, &monitoring.StartedAt, &monitoring.FinalizedBy, &monitoring.FinalizedAt, &monitoring.VoidedBy, &monitoring.VoidedAt, &monitoring.VoidReason,
 		&monitoring.CreatedAt, &monitoring.UpdatedAt,
@@ -605,7 +694,7 @@ func getRiskByIDWithQueryer(ctx context.Context, q riskMonitoringQueryer, id uui
 			SELECT d.id, d.status
 			FROM risks d
 			WHERE d.code = r.code
-			  AND d.status IN ('assessment_draft', 'assessment_in_review')
+			  AND d.status = 'draft'
 			  AND d.created_at > r.created_at
 			  AND d.archived_at IS NULL
 			ORDER BY d.created_at DESC

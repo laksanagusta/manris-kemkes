@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { FormHeader } from "@/components/shared/form-shell";
+import { PageStack } from "@/components/shared/design-system";
 import {
   ArrowLeft,
   Activity,
@@ -26,7 +27,7 @@ import {
   Pencil,
   Trash2,
   TrendingUp,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface KRIReport {
   id: string;
@@ -134,7 +135,7 @@ export default function KRIDetailPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-6xl mx-auto pb-20">
+    <PageStack className="max-w-6xl pb-20">
       {/* Header */}
       <FormHeader
         title={kri.name}
@@ -197,7 +198,7 @@ export default function KRIDetailPage() {
       <div className="grid gap-6 md:grid-cols-4">
         {/* Main Stats */}
         <div className="md:col-span-3 space-y-6">
-          <Card className="border-border/50 bg-card/80">
+          <Card className="bg-card/80">
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
                 <div>
@@ -265,7 +266,7 @@ export default function KRIDetailPage() {
 
         {/* Sidebar Info */}
         <div className="space-y-6">
-          <Card className="border-border/50 bg-card/80">
+          <Card className="bg-card/80">
              <CardHeader className="pb-3">
                <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Terkait dengan Risiko</CardTitle>
              </CardHeader>
@@ -286,7 +287,7 @@ export default function KRIDetailPage() {
              </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-card/80">
+          <Card className="bg-card/80">
             <CardHeader className="pb-3 border-b border-border/50">
               <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Metadata KRI</CardTitle>
             </CardHeader>
@@ -311,6 +312,6 @@ export default function KRIDetailPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </PageStack>
   );
 }

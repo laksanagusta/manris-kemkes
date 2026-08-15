@@ -51,7 +51,7 @@ export function OverdueMitigationTimeline({ loading, data = [] }: OverdueMitigat
 
   if (loading) {
     return (
-      <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none" data-testid="overdue-mitigation-timeline">
+      <Card className="rounded-lg bg-card" data-testid="overdue-mitigation-timeline">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Timeline Penanganan Overdue</CardTitle>
         </CardHeader>
@@ -65,7 +65,7 @@ export function OverdueMitigationTimeline({ loading, data = [] }: OverdueMitigat
   }
 
   return (
-    <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none" data-testid="overdue-mitigation-timeline">
+    <Card className="rounded-lg bg-card" data-testid="overdue-mitigation-timeline">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>

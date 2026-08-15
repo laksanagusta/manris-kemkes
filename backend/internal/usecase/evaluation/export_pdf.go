@@ -290,6 +290,14 @@ func monitoringYearAndSemester(period string) (string, string) {
 	semester := ""
 	if len(parts) > 1 {
 		switch strings.ToUpper(parts[1]) {
+		case "Q1":
+			semester = "KUARTAL I"
+		case "Q2":
+			semester = "SEMESTER I"
+		case "Q3":
+			semester = "KUARTAL III"
+		case "Q4":
+			semester = "SEMESTER II"
 		case "H1", "1", "I":
 			semester = "SEMESTER I"
 		case "H2", "2", "II":

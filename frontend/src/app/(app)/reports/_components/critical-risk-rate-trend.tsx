@@ -60,7 +60,7 @@ export function CriticalRiskRateTrend({
       <div data-testid="critical-risk-rate-trend">
         {!hasData ? (
           <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-            Belum ada data semester untuk menampilkan tren risiko kritis.
+            Belum ada data kuartal untuk menampilkan tren risiko kritis.
           </div>
         ) : (
           <>

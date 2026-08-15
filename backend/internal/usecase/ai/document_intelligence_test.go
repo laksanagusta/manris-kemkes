@@ -13,10 +13,10 @@ import (
 )
 
 type fakeDocumentAIRepo struct {
-	lastReq       entity.DocumentAnalysisRequest
+	lastReq        entity.DocumentAnalysisRequest
 	lastOrgContext string
-	result        *entity.DocumentIntelligenceResult
-	err           error
+	result         *entity.DocumentIntelligenceResult
+	err            error
 }
 
 func (r *fakeDocumentAIRepo) AnalyzeDocument(_ context.Context, req entity.DocumentAnalysisRequest, orgContext string) (*entity.DocumentIntelligenceResult, error) {
@@ -29,11 +29,11 @@ func (r *fakeDocumentAIRepo) AnalyzeDocument(_ context.Context, req entity.Docum
 }
 
 type fakeDocumentRiskRepo struct {
-	risks         []*entity.Risk
-	lastOrgIDs    []uuid.UUID
-	lastStatus    string
-	lastCategory  string
-	err           error
+	risks        []*entity.Risk
+	lastOrgIDs   []uuid.UUID
+	lastStatus   string
+	lastCategory string
+	err          error
 }
 
 func (r *fakeDocumentRiskRepo) List(_ context.Context, orgIDs []uuid.UUID, status string, category string) ([]*entity.Risk, error) {
@@ -122,18 +122,18 @@ func TestAnalyzeDocumentIntelligenceFiltersOpenMitigationTasksAndNormalizesResul
 		result: &entity.DocumentIntelligenceResult{
 			Mitigation: &entity.MitigationReportMapperResult{
 				TaskMatches: []entity.MitigationTaskReportSuggestion{{
-					ClientKey:       "",
-					TaskID:          pendingTaskID.String(),
-					RiskCode:        "R-001",
-					RiskTitle:       "Terlambat laporan",
+					ClientKey:        "",
+					TaskID:           pendingTaskID.String(),
+					RiskCode:         "R-001",
+					RiskTitle:        "Terlambat laporan",
 					MitigationAction: "Susun checklist",
-					PeriodLabel:     "2026-H1",
-					SuggestedStatus: "something-else",
-					ProgressPct:     123,
-					ActualCost:      0,
-					ReportNotes:     "Ringkasan laporan",
-					Confidence:      180,
-					SourceRefs: []entity.DocumentSourceRef{{Quote: " checklist sudah dipakai ", Location: " Halaman 3 "}},
+					PeriodLabel:      "2026-H1",
+					SuggestedStatus:  "something-else",
+					ProgressPct:      123,
+					ActualCost:       0,
+					ReportNotes:      "Ringkasan laporan",
+					Confidence:       180,
+					SourceRefs:       []entity.DocumentSourceRef{{Quote: " checklist sudah dipakai ", Location: " Halaman 3 "}},
 				}},
 			},
 		},
@@ -149,7 +149,6 @@ func TestAnalyzeDocumentIntelligenceFiltersOpenMitigationTasksAndNormalizesResul
 				PeriodLabel:      "2026-H1",
 				DueDate:          "2026-05-30",
 				Status:           "pending",
-				ProgressPct:      0,
 			},
 			{
 				ID:               doneTaskID,
@@ -160,7 +159,6 @@ func TestAnalyzeDocumentIntelligenceFiltersOpenMitigationTasksAndNormalizesResul
 				PeriodLabel:      "2026-H1",
 				DueDate:          "2026-05-30",
 				Status:           "done",
-				ProgressPct:      100,
 			},
 		},
 	}

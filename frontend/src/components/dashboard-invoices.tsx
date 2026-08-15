@@ -17,7 +17,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { DashboardCard } from "@/components/dashboard-card";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon } from "@/components/ui/icons";
 import Link from "next/link";
 
 const invoices = [

@@ -41,7 +41,7 @@ export function KRIBreachSummary({ loading, data = [] }: KRIBreachSummaryProps) 
 
   if (loading) {
     return (
-      <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none" data-testid="kri-breach-summary">
+      <Card className="rounded-lg bg-card" data-testid="kri-breach-summary">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Ringkasan KRI Breach</CardTitle>
         </CardHeader>
@@ -55,7 +55,7 @@ export function KRIBreachSummary({ loading, data = [] }: KRIBreachSummaryProps) 
   }
 
   return (
-    <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none" data-testid="kri-breach-summary">
+    <Card className="rounded-lg bg-card" data-testid="kri-breach-summary">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>

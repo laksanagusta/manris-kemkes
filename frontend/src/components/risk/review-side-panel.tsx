@@ -21,7 +21,7 @@ import {
   Circle,
   XCircle,
   History,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import {
   shouldRenderReviewSidePanelWorkflow,
@@ -91,7 +91,7 @@ export function ReviewSidePanel({
     allowStatusFallbackWorkflowStage,
   });
   const isSubmitting = submittingStage !== null;
-  const isApproved = riskStatus === "approved";
+  const isApproved = riskStatus === "final";
   const workflowStage: WorkflowStage = (() => {
     if (
       workflowStatus === "approved" ||
@@ -116,7 +116,7 @@ export function ReviewSidePanel({
 
     if (
       allowStatusFallbackWorkflowStage &&
-      riskStatus === "assessment_in_review"
+      riskStatus === "draft"
     ) {
       return "review";
     }
@@ -289,7 +289,7 @@ export function ReviewSidePanel({
   return (
     <div className="space-y-4">
       {stepperNodes.length > 0 && (
-        <div className="rounded-xl border border-border/20 bg-card p-4">
+        <div className="rounded-xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
           <div className="space-y-0">
             {stepperNodes.map((node, index) => {
               const isLast = index === stepperNodes.length - 1;

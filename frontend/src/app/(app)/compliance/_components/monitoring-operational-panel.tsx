@@ -48,7 +48,7 @@ export function MonitoringOperationalPanel() {
 
   return (
     <div className="space-y-4">
-      <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
+      <Card className="bg-card">
         <CardHeader>
           <div>
             <CardTitle className="text-base font-semibold">
@@ -138,7 +138,7 @@ export function MonitoringOperationalPanel() {
                   />
                 </div>
 
-                <div className="rounded-xl ring-1 ring-inset ring-border bg-background/70 px-4 py-3">
+                <div className="rounded-xl bg-background/70 px-4 py-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">

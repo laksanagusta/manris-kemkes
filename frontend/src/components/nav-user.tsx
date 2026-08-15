@@ -14,7 +14,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserIcon, SettingsIcon, CreditCardIcon, LogOutIcon } from "lucide-react";
+import { UserIcon, SettingsIcon, CreditCardIcon, LogOutIcon } from "@/components/ui/icons";
 
 const user = {
 	name: "Shaban Haider",

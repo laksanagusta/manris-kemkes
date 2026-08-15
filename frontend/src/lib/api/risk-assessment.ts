@@ -4,6 +4,7 @@ import type {
   RiskMitigation,
   RiskStatus,
 } from "@/types/risk";
+import type { StartMonitoringResponse } from "@/lib/api/risk-monitoring";
 
 export interface RiskAssessmentUpdateData {
   title?: string;
@@ -74,14 +75,14 @@ export interface PaginatedRiskResponse {
 
 export function getCurrentCycle(): string {
   const month = new Date().getMonth() + 1;
-  const half = month <= 6 ? "H1" : "H2";
+  const quarter = Math.ceil(month / 3);
+  const half = "Q" + quarter;
   return `${new Date().getFullYear()}-${half}`;
 }
 
 export function formatCycleLabel(cycle: string): string {
-  const [year, half] = cycle.split("-");
-  const semester = half === "H1" ? "1" : "2";
-  return `Semester ${semester}, ${year}`;
+  const [year, quarter] = cycle.split("-");
+  return `Kuartal ${quarter?.replace("Q", "") ?? "-"}, ${year}`;
 }
 
 export async function listApprovedRisks(
@@ -110,13 +111,14 @@ export async function listApprovedRisks(
   return [];
 }
 
+/** @deprecated Profile revisions are created only inside monitoring. */
 export async function createReassessmentDraft(
   token: string,
   riskId: string,
   cycle: string,
-): Promise<Risk> {
-  return api.post<Risk>(
-    `/risks/${riskId}/reassess`,
+): Promise<StartMonitoringResponse> {
+  return api.post<StartMonitoringResponse>(
+    `/risks/${riskId}/monitorings`,
     { cycle },
     token,
   );

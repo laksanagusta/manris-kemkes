@@ -17,7 +17,7 @@ import {
   Circle,
   PlayCircle,
   RotateCcw,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 type RiskGuidePageProps = {
   content?: RiskGuideContent;
@@ -25,15 +25,15 @@ type RiskGuidePageProps = {
 };
 
 const STATUS_CONFIG = {
-  assessment_draft: {
+  draft: {
     label: "draft",
     icon: Circle,
     bg: "bg-yellow-500/10",
     border: "border-yellow-500/30",
     text: "text-yellow-400",
   },
-  approved: {
-    label: "approved",
+  final: {
+    label: "final",
     icon: CheckCircle2,
     bg: "bg-green-500/10",
     border: "border-green-500/30",
@@ -44,7 +44,7 @@ const STATUS_CONFIG = {
 function StatusPill({ status }: { status: string }) {
   const config =
     STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ||
-    STATUS_CONFIG.assessment_draft;
+    STATUS_CONFIG.draft;
   const Icon = config.icon;
 
   return (
@@ -75,7 +75,7 @@ function FlowNode({
 }) {
   const config =
     STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ||
-    STATUS_CONFIG.assessment_draft;
+  STATUS_CONFIG.draft;
   const Icon = config.icon;
 
   return (
@@ -153,7 +153,7 @@ function StepCard({
   const stepNum = String(index + 1).padStart(2, "0");
   const config =
     STATUS_CONFIG[step.status as keyof typeof STATUS_CONFIG] ||
-    STATUS_CONFIG.assessment_draft;
+    STATUS_CONFIG.draft;
   const Icon = config.icon;
 
   return (
@@ -166,7 +166,7 @@ function StepCard({
         {stepNum}
       </div>
 
-      <div className="ml-10 rounded-xl border border-border/50 bg-card/30 p-4 transition-colors hover:border-border/80 hover:bg-card/50">
+      <div className="ml-10 rounded-xl bg-card/30 p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors hover:bg-card/50">
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex items-center gap-3">
             <Icon className={cn("size-4", config.text)} />
@@ -221,7 +221,7 @@ export function RiskGuidePage({
 
           <h1
             id="risk-guide-title"
-            className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+            className="page-title"
           >
             {content.hero.title}
           </h1>
@@ -247,7 +247,7 @@ export function RiskGuidePage({
           <div className="h-px flex-1 bg-border/50" />
         </div>
 
-        <Card className="overflow-hidden border-border/50 bg-card/40">
+        <Card className="overflow-hidden bg-card/40">
           <CardHeader className="space-y-2 border-b border-border/40 pb-4">
             <div className="flex items-center gap-2">
               <PlayCircle className="size-4 text-primary" />
@@ -311,7 +311,7 @@ export function RiskGuidePage({
           {content.documents.items.map((document) => (
             <Card
               key={document.title}
-              className="overflow-hidden border-border/50 bg-card/40"
+              className="overflow-hidden bg-card/40"
             >
               <CardHeader className="space-y-2 border-b border-border/40 pb-4">
                 <CardTitle className="text-sm font-semibold">
@@ -352,13 +352,13 @@ export function RiskGuidePage({
           <div className="h-px flex-1 bg-border/50" />
         </div>
 
-        <div className="rounded-xl border border-border/50 bg-card/30 p-4 space-y-3">
+        <div className="rounded-xl bg-card/30 p-4 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
           <PhaseBlock
             phase={content.flow.phase1}
             steps={[
-              { label: "daftar", status: "assessment_draft" },
-              { label: "finalisasi", status: "approved" },
-              { label: "aktif", status: "approved" },
+              { label: "daftar", status: "draft" },
+              { label: "finalisasi", status: "final" },
+              { label: "aktif", status: "final" },
             ]}
             variant="blue"
           />
@@ -373,9 +373,9 @@ export function RiskGuidePage({
           <PhaseBlock
             phase={content.flow.phase2}
             steps={[
-              { label: "mulai", status: "assessment_draft" },
-              { label: "lanjutkan", status: "assessment_draft" },
-              { label: "selesai", status: "approved" },
+              { label: "mulai", status: "draft" },
+              { label: "lanjutkan", status: "draft" },
+              { label: "selesai", status: "final" },
             ]}
             variant="purple"
           />
@@ -411,7 +411,7 @@ export function RiskGuidePage({
           <div className="h-px flex-1 bg-border/50" />
         </div>
 
-        <div className="rounded-xl border border-border/50 bg-card/30 divide-y divide-border/30">
+        <div className="rounded-xl bg-card/30 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 divide-y divide-border/30">
           {content.faq.items.map((item) => (
             <div key={item.question} className="p-4 space-y-1.5">
               <dt className="text-xs font-mono font-semibold text-foreground">

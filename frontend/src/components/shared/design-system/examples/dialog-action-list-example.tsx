@@ -1,4 +1,4 @@
-import { Archive, RefreshCcw, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, RefreshCcw, RotateCcw, Trash2 } from "@/components/ui/icons";
 
 import { DialogActionList } from "@/components/shared/design-system";
 

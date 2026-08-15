@@ -14,7 +14,9 @@ export interface RiskApprovalCapabilityBehavior {
 export function getRiskApprovalCapabilityBehavior(
   capabilities: RiskApprovalCapabilities | null | undefined,
 ): RiskApprovalCapabilityBehavior {
-  const riskApprovalWorkflowEnabled = capabilities?.riskApprovalWorkflowEnabled === true;
+  // Risk profile approval is intentionally disabled for the current flow.
+  // Incident approval continues to use the separate approval module.
+  const riskApprovalWorkflowEnabled = false;
 
   return {
     riskApprovalWorkflowEnabled,

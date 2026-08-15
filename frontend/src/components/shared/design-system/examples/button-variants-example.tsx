@@ -1,13 +1,13 @@
 "use client";
 
-import { ChevronLeft, Filter, MoreHorizontal, Plus, Save, Send, Trash2, WandSparkles } from "lucide-react";
+import { ChevronLeft, Filter, MoreHorizontal, Plus, Save, Send, Trash2, WandSparkles } from "@/components/ui/icons";
 
 import { AccentButton, LoadingActionButton } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
 
 export function ButtonVariantsExample() {
   return (
-    <div className="space-y-4 rounded-2xl bg-card p-6 shadow-none">
+    <div className="space-y-4 rounded-2xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
       <div className="flex flex-wrap items-center gap-3">
         <AccentButton icon={<Plus className="size-3.5" strokeWidth={2.5} />}>
           Primary
@@ -54,6 +54,10 @@ export function ButtonVariantsExample() {
           Memproses...
         </LoadingActionButton>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Semua kontrol yang dapat diklik memakai cursor pointer; kontrol
+        disabled memakai cursor not-allowed.
+      </p>
     </div>
   );
 }

@@ -56,7 +56,7 @@ func Load() *Config {
 		JWTExpiry:                   expiry,
 		CORSOrigins:                 getEnv("CORS_ORIGINS", "http://localhost:3000"),
 		OpenAIKey:                   getEnv("OPENAI_API_KEY", ""),
-		RiskApprovalWorkflowEnabled: getEnvBool("RISK_APPROVAL_WORKFLOW_ENABLED", true),
+		RiskApprovalWorkflowEnabled: getEnvBool("RISK_APPROVAL_WORKFLOW_ENABLED", false),
 	}
 }
 

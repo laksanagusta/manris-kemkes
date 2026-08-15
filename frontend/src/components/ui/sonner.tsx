@@ -1,7 +1,7 @@
 "use client"
 
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "@/components/ui/icons"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
@@ -27,15 +27,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "cn-toast rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur-sm [&_[data-title]]:font-semibold [&_[data-description]]:text-xs [&_[data-description]]:leading-5",
+            "cn-toast rounded-2xl px-4 py-3 text-sm smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 backdrop-blur-sm [&_[data-title]]:font-semibold [&_[data-description]]:text-xs [&_[data-description]]:leading-5",
           success:
-            "bg-success/12 text-success border-success/25 [&_[data-description]]:text-muted-foreground",
+            "bg-success/12 text-success [&_[data-description]]:text-muted-foreground",
           error:
-            "bg-destructive/12 text-destructive border-destructive/25 [&_[data-description]]:text-muted-foreground",
+            "bg-destructive/12 text-destructive [&_[data-description]]:text-muted-foreground",
           warning:
-            "bg-warning/12 text-[color:var(--warning)] border-[color:color-mix(in_oklch,var(--warning)_35%,white)] [&_[data-description]]:text-muted-foreground",
+            "bg-warning/12 text-[color:var(--warning)] [&_[data-description]]:text-muted-foreground",
           info:
-            "bg-primary/10 text-primary border-primary/20 [&_[data-description]]:text-muted-foreground",
+            "bg-primary/10 text-primary [&_[data-description]]:text-muted-foreground",
         },
       }}
       theme={undefined}

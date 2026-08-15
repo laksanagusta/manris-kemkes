@@ -16,7 +16,7 @@ export function AiSuggestionDropdown({
   onSelect: (suggestion: AiSuggestion) => void;
 }) {
   return (
-    <div className="w-full max-w-md overflow-hidden rounded-2xl bg-background/95 shadow-lg shadow-black/5 ring-1 ring-border/60 backdrop-blur-md">
+    <div className="w-full max-w-md overflow-hidden rounded-2xl bg-background/95 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 backdrop-blur-md">
       <div className="flex items-center border-b border-border/60 px-4 py-6">
         <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           {label}

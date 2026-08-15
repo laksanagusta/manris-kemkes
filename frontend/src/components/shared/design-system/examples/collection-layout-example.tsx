@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Plus } from "lucide-react";
+import { Download, Plus } from "@/components/ui/icons";
 
 import { AccentButton } from "@/components/shared/design-system";
 import { KpiCard } from "@/components/ui/kpi-card";

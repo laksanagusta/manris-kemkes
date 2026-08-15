@@ -21,6 +21,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -44,8 +51,9 @@ import {
   Percent,
   Info,
   ListFilter,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import type { Risk } from "@/types/risk";
+import { PageStack } from "@/components/shared/design-system";
 import {
   BarChart,
   Bar,
@@ -420,10 +428,10 @@ function CBAPageContent() {
   }, [result]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageStack>
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="page-title flex items-center gap-2">
           <Calculator className="size-6 text-primary" />
           CBA Advokasi Ekonomi Kesehatan
         </h1>
@@ -472,7 +480,7 @@ function CBAPageContent() {
       {/* Step 1: Risk Description + AI Recommender */}
       {step === 1 && (
         <div className="space-y-4">
-          <Card className="border-border/50 bg-card/80">
+          <Card className="bg-card/80">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <ShieldAlert className="size-4 text-primary" />
@@ -487,18 +495,26 @@ function CBAPageContent() {
                     <ListFilter className="size-3" />
                     Pilih dari Risk Register
                   </Label>
-                  <select
-                    className="w-full h-9 rounded-md border border-input bg-muted/20 px-3 text-sm"
-                    value={selectedRiskId}
-                    onChange={(e) => handleSelectExistingRisk(e.target.value)}
+                  <Select
+                    value={selectedRiskId || "__none__"}
+                    onValueChange={(value) =>
+                      handleSelectExistingRisk(value === "__none__" ? "" : value)
+                    }
                   >
-                    <option value="">— Atau ketik manual di bawah —</option>
+                    <SelectTrigger className="h-9 w-full">
+                      <SelectValue placeholder="— Atau ketik manual di bawah —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">
+                        — Atau ketik manual di bawah —
+                      </SelectItem>
                     {existingRisks.map((r) => (
-                      <option key={r.id} value={r.id}>
+                      <SelectItem key={r.id} value={r.id}>
                         [{r.riskCode}] {r.title}
-                      </option>
+                      </SelectItem>
                     ))}
-                  </select>
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
@@ -557,7 +573,7 @@ function CBAPageContent() {
               {Object.entries(groupedVariables).map(([category, vars]) => {
                 if (vars.length === 0) return null;
                 return (
-                  <Card key={category} className="border-border/50 bg-card/80">
+                  <Card key={category} className="bg-card/80">
                     <CardHeader className="pb-2">
                       <CardTitle
                         className={cn(
@@ -639,7 +655,7 @@ function CBAPageContent() {
               })}
 
               {/* Add manual variable */}
-              <Card className="border-dashed border-border/50 bg-card/50">
+              <Card className="bg-card/50">
                 <CardContent className="p-4">
                   <p className="text-xs font-medium text-muted-foreground mb-3">
                     Tambah Variabel Manual (Cost of Inaction)
@@ -652,24 +668,30 @@ function CBAPageContent() {
                       onChange={(e) => setManualName(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && addManualVariable()}
                     />
-                    <select
-                      className="h-9 rounded-md border border-input bg-background px-3 text-xs min-w-[140px]"
-                      value={manualCategory}
-                      onChange={(e) => setManualCategory(e.target.value)}
-                    >
-                      <option value="biaya_medis">Biaya Medis</option>
-                      <option value="biaya_operasional">Biaya Operasional</option>
-                      <option value="biaya_produktivitas">Biaya Produktivitas</option>
-                    </select>
-                    <select
-                      className="h-9 rounded-md border border-input bg-background px-3 text-xs min-w-[120px]"
-                      value={manualMultiplier}
-                      onChange={(e) => setManualMultiplier(e.target.value)}
-                    >
-                      <option value="fixed">Biaya Tetap (Total)</option>
-                      <option value="per_case">Dikali Jml Kasus</option>
-                      <option value="per_population">Dikali Populasi</option>
-                    </select>
+                    <Select value={manualCategory} onValueChange={setManualCategory}>
+                      <SelectTrigger className="h-9 min-w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="biaya_medis">Biaya Medis</SelectItem>
+                        <SelectItem value="biaya_operasional">
+                          Biaya Operasional
+                        </SelectItem>
+                        <SelectItem value="biaya_produktivitas">
+                          Biaya Produktivitas
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={manualMultiplier} onValueChange={setManualMultiplier}>
+                      <SelectTrigger className="h-9 min-w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixed">Biaya Tetap (Total)</SelectItem>
+                        <SelectItem value="per_case">Dikali Jml Kasus</SelectItem>
+                        <SelectItem value="per_population">Dikali Populasi</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Button
                       size="sm"
                       variant="outline"
@@ -704,7 +726,7 @@ function CBAPageContent() {
       {step === 2 && (
         <div className="space-y-4">
           {/* Sensitivity sliders */}
-          <Card className="border-border/50 bg-card/80">
+          <Card className="bg-card/80">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Target className="size-4 text-primary" />
@@ -833,7 +855,7 @@ function CBAPageContent() {
           </Card>
 
           {/* Cost of Inaction variable values */}
-          <Card className="border-border/50 bg-card/80">
+          <Card className="bg-card/80">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2 text-red-400">
                 <TrendingDown className="size-4" />
@@ -892,7 +914,7 @@ function CBAPageContent() {
           </Card>
 
           {/* Cost of Action variables */}
-          <Card className="border-border/50 bg-card/80">
+          <Card className="bg-card/80">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2 text-blue-400">
                 <TrendingUp className="size-4" />
@@ -963,15 +985,16 @@ function CBAPageContent() {
                   onChange={(e) => setActionName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addActionVariable()}
                 />
-                <select
-                  className="h-9 rounded-md border border-input bg-background px-3 text-xs w-32 shrink-0"
-                  value={actionMultiplier}
-                  onChange={(e) => setActionMultiplier(e.target.value)}
-                >
-                  <option value="fixed">Biaya Tetap</option>
-                  <option value="per_case">Dikali Kasus</option>
-                  <option value="per_population">Dikali Populasi</option>
-                </select>
+                <Select value={actionMultiplier} onValueChange={setActionMultiplier}>
+                  <SelectTrigger className="h-9 w-32 shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed">Biaya Tetap</SelectItem>
+                    <SelectItem value="per_case">Dikali Kasus</SelectItem>
+                    <SelectItem value="per_population">Dikali Populasi</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button
                   size="sm"
                   variant="outline"
@@ -1063,7 +1086,7 @@ function CBAPageContent() {
           </div>
 
           {/* Comparative Bar Chart */}
-          <Card className="border-border/50 bg-card/80">
+          <Card className="bg-card/80">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <BarChart3 className="size-4 text-primary" />
@@ -1074,7 +1097,7 @@ function CBAPageContent() {
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} barSize={80}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
                     <XAxis
                       dataKey="name"
                       tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
@@ -1090,7 +1113,7 @@ function CBAPageContent() {
                       ]}
                       contentStyle={{
                         background: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
+                        border: "1px solid var(--border)",
                         borderRadius: "8px",
                         fontSize: "12px",
                       }}
@@ -1107,7 +1130,7 @@ function CBAPageContent() {
           </Card>
 
           {/* Sensitivity playback */}
-          <Card className="border-border/50 bg-card/80">
+          <Card className="bg-card/80">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Target className="size-4 text-primary" />
@@ -1180,7 +1203,7 @@ function CBAPageContent() {
           </Card>
 
           {/* Breakdown table */}
-          <Card className="border-border/50 bg-card/80">
+          <Card className="bg-card/80">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">
                 Rincian Biaya per Kategori
@@ -1237,7 +1260,7 @@ function CBAPageContent() {
           </div>
         </div>
       )}
-    </div>
+    </PageStack>
   );
 }
 

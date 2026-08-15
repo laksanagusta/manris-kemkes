@@ -48,12 +48,12 @@ function getMonitoringBlockers(workingPaper: WorkingPaper): string[] {
   }
 
   return risks
-    .filter((link) => !link.risk.monitoring || link.risk.monitoring.status !== "finalized")
+    .filter((link) => !link.risk.monitoring || link.risk.monitoring.status !== "final")
     .map((link) => {
       const status =
         link.risk.monitoring?.status === "draft"
           ? "Draft"
-          : link.risk.monitoring?.status === "finalized"
+          : link.risk.monitoring?.status === "final"
             ? "Final"
             : "Missing";
       return `${link.risk.code} (${status})`;
@@ -220,7 +220,7 @@ export function buildWorkingPaperDetailViewModel(
 ): WorkingPaperDetailViewModel {
   const nextSignatory = getNextSignatory(workingPaper);
   const risks = workingPaper.risks ?? [];
-  const allRisksApproved = risks.length > 0 && risks.every((link) => link.risk.status === "approved");
+  const allRisksApproved = risks.length > 0 && risks.every((link) => link.risk.status === "final");
   const monitoringBlockers = getMonitoringBlockers(workingPaper);
   const tteSkipped = workingPaper.tte_skipped;
   const canSign = Boolean(

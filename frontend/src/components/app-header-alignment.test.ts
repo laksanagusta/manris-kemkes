@@ -20,10 +20,10 @@ test("derives the page title from the current route", () => {
   assert.match(source, /const pageTitle = breadcrumbMap\[pathname\] \?\? "Manajemen Risiko";/);
 });
 
-test("keeps the application title compact", () => {
+test("uses the shared readable application title scale", () => {
   assert.match(
     source,
-    /className="block truncate text-sm font-semibold tracking-tight text-foreground"/,
+    /className="app-page-title block min-w-0"/,
   );
 });
 

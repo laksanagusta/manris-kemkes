@@ -1,4 +1,4 @@
-import { Check, Minus, Pencil } from "lucide-react";
+import { Check, Minus, Pencil } from "@/components/ui/icons";
 
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,7 @@ export function SemesterIndicator({
     <span
       aria-label={statusLabel}
       className={cn(
-        "flex h-6 items-center justify-center gap-1 rounded-sm px-1.5 text-[10px] font-semibold ring-1 ring-inset ring-border/50",
+        "flex h-6 items-center justify-center gap-1 rounded-full border-0 px-1.5 text-[10px] font-semibold",
         status === "complete" && "bg-emerald-100 text-emerald-700",
         status === "draft" && "bg-amber-100 text-amber-700",
         status === "empty" && "bg-muted text-muted-foreground",

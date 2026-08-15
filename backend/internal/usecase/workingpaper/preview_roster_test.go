@@ -10,9 +10,9 @@ import (
 )
 
 type fakeRosterWPRepo struct {
-	preview *entity.WorkingPaperRosterPreview
-	err     error
-	gotOrg  uuid.UUID
+	preview  *entity.WorkingPaperRosterPreview
+	err      error
+	gotOrg   uuid.UUID
 	gotCycle string
 }
 
@@ -22,8 +22,10 @@ func (r *fakeRosterWPRepo) PreviewPeriodRoster(_ context.Context, orgID uuid.UUI
 	return r.preview, r.err
 }
 
-func (r *fakeRosterWPRepo) Create(context.Context, *entity.WorkingPaper) error                   { return nil }
-func (r *fakeRosterWPRepo) GetByID(context.Context, uuid.UUID) (*entity.WorkingPaper, error)      { return nil, nil }
+func (r *fakeRosterWPRepo) Create(context.Context, *entity.WorkingPaper) error { return nil }
+func (r *fakeRosterWPRepo) GetByID(context.Context, uuid.UUID) (*entity.WorkingPaper, error) {
+	return nil, nil
+}
 func (r *fakeRosterWPRepo) List(context.Context, []uuid.UUID, string, string, string, string, int, int) ([]*entity.WorkingPaper, int, error) {
 	return nil, 0, nil
 }
@@ -35,13 +37,21 @@ func (r *fakeRosterWPRepo) MutateByIDForUpdate(context.Context, uuid.UUID, func(
 func (r *fakeRosterWPRepo) GetSignatoriesByWorkingPaperID(context.Context, uuid.UUID) ([]*entity.WorkingPaperSignatory, error) {
 	return nil, nil
 }
-func (r *fakeRosterWPRepo) UpdateSignatory(context.Context, *entity.WorkingPaperSignatory) error { return nil }
+func (r *fakeRosterWPRepo) UpdateSignatory(context.Context, *entity.WorkingPaperSignatory) error {
+	return nil
+}
 func (r *fakeRosterWPRepo) GetPendingSigningByUserID(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.WorkingPaper, error) {
 	return nil, nil
 }
-func (r *fakeRosterWPRepo) CountPendingSigningByUserID(context.Context, uuid.UUID) (int, error) { return 0, nil }
-func (r *fakeRosterWPRepo) HasBlockingDocumentLink(context.Context, uuid.UUID) (bool, error)    { return false, nil }
-func (r *fakeRosterWPRepo) CountByOrgAndCycle(context.Context, uuid.UUID, string) (int, error)  { return 0, nil }
+func (r *fakeRosterWPRepo) CountPendingSigningByUserID(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (r *fakeRosterWPRepo) HasBlockingDocumentLink(context.Context, uuid.UUID) (bool, error) {
+	return false, nil
+}
+func (r *fakeRosterWPRepo) CountByOrgAndCycle(context.Context, uuid.UUID, string) (int, error) {
+	return 0, nil
+}
 func (r *fakeRosterWPRepo) CreateWithPeriodRoster(context.Context, *entity.WorkingPaper, string, []entity.WorkingPaperRosterDecision) error {
 	return nil
 }
@@ -59,7 +69,7 @@ func TestPreviewRosterRejectsEmptyCycle(t *testing.T) {
 
 func TestPreviewRosterRejectsInvalidCycle(t *testing.T) {
 	uc := &UseCase{wpRepo: &fakeRosterWPRepo{}}
-	_, err := uc.PreviewRoster(context.Background(), uuid.New(), "2026-H1", nil, false)
+	_, err := uc.PreviewRoster(context.Background(), uuid.New(), "2026-S1", nil, false)
 	if err == nil {
 		t.Fatal("expected error for invalid cycle")
 	}
@@ -67,7 +77,7 @@ func TestPreviewRosterRejectsInvalidCycle(t *testing.T) {
 
 func TestPreviewRosterRejectsNilOrg(t *testing.T) {
 	uc := &UseCase{wpRepo: &fakeRosterWPRepo{}}
-	_, err := uc.PreviewRoster(context.Background(), uuid.Nil, "2026-H1", nil, false)
+	_, err := uc.PreviewRoster(context.Background(), uuid.Nil, "2026-Q1", nil, false)
 	if err == nil {
 		t.Fatal("expected error for nil org")
 	}
@@ -77,7 +87,7 @@ func TestPreviewRosterRejectsOrgOutsideScope(t *testing.T) {
 	uc := &UseCase{wpRepo: &fakeRosterWPRepo{}}
 	orgID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	accessible := []uuid.UUID{uuid.MustParse("22222222-2222-2222-2222-222222222222")}
-	_, err := uc.PreviewRoster(context.Background(), orgID, "2026-H1", accessible, false)
+	_, err := uc.PreviewRoster(context.Background(), orgID, "2026-Q1", accessible, false)
 	if err == nil {
 		t.Fatal("expected error for org outside scope")
 	}
@@ -88,14 +98,14 @@ func TestPreviewRosterAllowsOrgInScope(t *testing.T) {
 	accessible := []uuid.UUID{orgID, uuid.MustParse("22222222-2222-2222-2222-222222222222")}
 	expected := &entity.WorkingPaperRosterPreview{
 		OrganizationID:  orgID,
-		AssessmentCycle: "2026-H1",
-		MonitoringCycle: "2026-H1",
+		AssessmentCycle: "2026-Q1",
+		MonitoringCycle: "2026-Q1",
 		Revision:        "abc123",
 	}
 	repo := &fakeRosterWPRepo{preview: expected}
 	uc := &UseCase{wpRepo: repo}
 
-	preview, err := uc.PreviewRoster(context.Background(), orgID, "2026-H1", accessible, false)
+	preview, err := uc.PreviewRoster(context.Background(), orgID, "2026-Q1", accessible, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -113,7 +123,7 @@ func TestPreviewRosterAllowsGlobalUserAccess(t *testing.T) {
 	repo := &fakeRosterWPRepo{preview: expected}
 	uc := &UseCase{wpRepo: repo}
 
-	preview, err := uc.PreviewRoster(context.Background(), orgID, "2026-H2", nil, true)
+	preview, err := uc.PreviewRoster(context.Background(), orgID, "2026-Q2", nil, true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -122,23 +132,24 @@ func TestPreviewRosterAllowsGlobalUserAccess(t *testing.T) {
 	}
 }
 
-func TestPreviewRosterValidatesH1Semester(t *testing.T) {
+func TestPreviewRosterValidatesQ1Quarter(t *testing.T) {
 	uc := &UseCase{wpRepo: &fakeRosterWPRepo{preview: &entity.WorkingPaperRosterPreview{}}}
-	_, err := uc.PreviewRoster(context.Background(), uuid.New(), "2026-H1", nil, true)
+	_, err := uc.PreviewRoster(context.Background(), uuid.New(), "2026-Q1", nil, true)
 	if err != nil {
-		t.Fatalf("unexpected error for valid H1: %v", err)
+		t.Fatalf("unexpected error for valid Q1: %v", err)
 	}
 }
 
-func TestPreviewRosterValidatesH2Semester(t *testing.T) {
+func TestPreviewRosterValidatesQ2Quarter(t *testing.T) {
 	expected := &entity.WorkingPaperRosterPreview{OrganizationID: uuid.Nil}
 	repo := &fakeRosterWPRepo{preview: expected}
 	uc := &UseCase{wpRepo: repo}
-	_, err := uc.PreviewRoster(context.Background(), uuid.New(), "2026-H2", nil, true)
+	_, err := uc.PreviewRoster(context.Background(), uuid.New(), "2026-Q2", nil, true)
 	if err != nil {
-		t.Fatalf("unexpected error for valid H2: %v", err)
+		t.Fatalf("unexpected error for valid Q2: %v", err)
 	}
 }
 
 func (r *fakeRosterWPRepo) stubNoop() {}
+
 var _ = domainerrors.ErrRiskNotFound

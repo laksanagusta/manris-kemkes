@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/dom/sortable";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Plus, Trash2 } from "@/components/ui/icons";
 
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import { Button } from "@/components/ui/button";
@@ -232,9 +232,9 @@ export function OrderedUserSelectionTable({
 
   return (
     <DragDropProvider onDragEnd={handleDragEnd}>
-      <div className="overflow-hidden rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm">
+      <div className="overflow-hidden rounded-xl bg-card/80 backdrop-blur-sm smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
         <Table>
-          <TableHeader className="bg-muted/50">
+          <TableHeader className="bg-table-header">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-10">
                 <span className="sr-only">Pegangan drag</span>

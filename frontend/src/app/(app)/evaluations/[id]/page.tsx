@@ -13,7 +13,7 @@ import {
   RefreshCw,
   Save,
   Send,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -52,6 +52,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FormHeader } from "@/components/shared/form-shell";
+import { PageStack } from "@/components/shared/design-system";
 import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import { cn } from "@/lib/utils";
@@ -85,16 +86,24 @@ function formatMonitoringPeriodLabel(period: string) {
     return "";
   }
 
-  const [year, half] = trimmed.split("-");
-  if (!year || !half) {
+  const [year, cycle] = trimmed.split("-");
+  if (!year || !cycle) {
     return trimmed;
   }
 
-  if (half === "H1") {
+  if (cycle === "Q1") {
+    return `Kuartal I Tahun ${year}`;
+  }
+
+  if (cycle === "Q2" || cycle === "H1") {
     return `Semester I Tahun ${year}`;
   }
 
-  if (half === "H2") {
+  if (cycle === "Q3") {
+    return `Kuartal III Tahun ${year}`;
+  }
+
+  if (cycle === "Q4" || cycle === "H2") {
     return `Semester II Tahun ${year}`;
   }
 
@@ -586,7 +595,7 @@ export default function EvaluationDetailPage() {
 
   if (!evaluation) {
     return (
-      <Card className="font-display ring-1 ring-inset ring-border border-0 bg-card shadow-none">
+      <Card className="font-display bg-card">
         <CardContent className="space-y-3 px-6 py-10 text-center">
           <p className="text-sm font-medium">Evaluasi tidak ditemukan</p>
           <p className="text-sm text-muted-foreground">
@@ -604,7 +613,7 @@ export default function EvaluationDetailPage() {
     organizationNameById.get(evaluation.organizationId) ?? evaluation.organizationId;
 
   return (
-    <div className="font-display space-y-8 animate-fade-in">
+    <PageStack className="font-display space-y-8">
       <FormHeader
         title={`Form evaluasi ${evaluation.period}`}
         description={
@@ -625,7 +634,7 @@ export default function EvaluationDetailPage() {
             </Badge>
             <Badge
               variant="outline"
-              className="h-5 max-w-[220px] truncate -zinc-200 bg-zinc-50 px-1.5 text-[10px] font-medium text-zinc-700">
+              className="h-5 max-w-[220px] truncate bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
               {orgName}
             </Badge>
           </>
@@ -743,7 +752,7 @@ export default function EvaluationDetailPage() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
         <div className="space-y-6">
-          <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
+          <Card className="bg-card">
             <CardHeader className="border-b border-border/40 pb-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="space-y-1">
@@ -945,7 +954,7 @@ export default function EvaluationDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
+          <Card className="bg-card">
             <CardHeader className="border-b border-border/40 pb-3">
               <div className="space-y-1">
                 <CardTitle className="text-sm font-semibold">
@@ -958,7 +967,7 @@ export default function EvaluationDetailPage() {
             </CardHeader>
             <CardContent className="space-y-0 pt-4">
               {evaluationSections.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/70 px-4 py-8 text-sm text-zinc-500">
+                <div className="rounded-xl border border-dashed border-border bg-muted/70 px-4 py-8 text-sm text-muted-foreground">
                   Belum ada section evaluasi yang tersedia.
                 </div>
               ) : null}
@@ -990,7 +999,7 @@ export default function EvaluationDetailPage() {
                       </div>
                       <Badge
                         variant="outline"
-                        className="h-5 whitespace-nowrap -zinc-200 bg-zinc-50 px-1.5 text-[10px] font-medium text-zinc-700">
+                        className="h-5 whitespace-nowrap bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
                         {sectionItems.length} poin
                       </Badge>
                     </div>
@@ -999,7 +1008,7 @@ export default function EvaluationDetailPage() {
                       {sectionItems.map((item, itemIndex) => (
                         <div
                           key={item.id}
-                          className="rounded-xl bg-zinc-50/60 p-4 ring-1 ring-inset ring-zinc-200/70"
+                          className="rounded-xl bg-muted/60 p-4 ring-1 ring-inset ring-border/70"
                         >
                           <div className="flex flex-col gap-3">
                             <div className="min-w-0 space-y-2">
@@ -1056,7 +1065,7 @@ export default function EvaluationDetailPage() {
                                 }}
                                 disabled={!editable}
                               >
-                                <SelectTrigger className="h-8 border-zinc-200 bg-white text-sm shadow-none">
+                                <SelectTrigger className="h-8 border-border bg-card text-sm shadow-none">
                                   <SelectValue placeholder="Ya/Tidak" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1214,7 +1223,7 @@ export default function EvaluationDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
+          <Card className="bg-card">
             <CardHeader className="border-b border-border/40 pb-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -1289,7 +1298,7 @@ export default function EvaluationDetailPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 px-3 py-3 text-xs leading-5 text-zinc-500">
+              <div className="rounded-xl border border-border bg-muted/70 px-3 py-3 text-xs leading-5 text-muted-foreground">
                 Sebelum finalisasi, pastikan kesimpulan section dan permasalahan
                 sudah disesuaikan dengan isi poin. Setelah final, data terkunci
                 dan PDF diambil dari evaluasi tersimpan.
@@ -1298,6 +1307,6 @@ export default function EvaluationDetailPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </PageStack>
   );
 }

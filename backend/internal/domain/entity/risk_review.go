@@ -12,6 +12,7 @@ type RiskReviewQueueItem struct {
 	AssessmentCycle  string  `json:"assessmentCycle"`
 	CurrentScore     int     `json:"currentScore"`
 	CurrentLevel     string  `json:"currentLevel"`
+	MonitoringID     *string `json:"monitoringId,omitempty"`
 	CandidateRiskID  *string `json:"candidateRiskId,omitempty"`
 	CandidateStatus  *string `json:"candidateStatus,omitempty"`
 	CandidateScore   *int    `json:"candidateScore,omitempty"`

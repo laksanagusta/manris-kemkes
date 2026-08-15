@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2 } from "@/components/ui/icons";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";

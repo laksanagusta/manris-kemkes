@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Plus } from "@/components/ui/icons";
 
 const DecorIconVariants = cva(
 	"pointer-events-none absolute z-1 size-5 shrink-0 stroke-1 stroke-muted-foreground",
@@ -27,19 +28,10 @@ type DecorIconProps = React.ComponentProps<"svg"> &
 
 export function DecorIcon({ position, className, ...props }: DecorIconProps) {
 	return (
-		<svg
+		<Plus
 			aria-hidden="true"
 			className={cn(DecorIconVariants({ position, className }))}
-			fill="none"
-			stroke="currentColor"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-			viewBox="0 0 24 24"
-			xmlns="http://www.w3.org/2000/svg"
 			{...props}
-		>
-			<path d="M5 12h14" />
-			<path d="M12 5v14" />
-		</svg>
+		/>
 	);
 }

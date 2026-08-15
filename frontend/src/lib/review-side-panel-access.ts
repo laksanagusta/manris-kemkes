@@ -58,7 +58,7 @@ export function shouldRenderReviewSidePanelWorkflow({
     return true;
   }
 
-  return allowStatusFallbackWorkflowStage && riskStatus === "assessment_in_review";
+  return allowStatusFallbackWorkflowStage && riskStatus === "draft";
 }
 
 function isCurrentApprovalAssignee({

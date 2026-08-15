@@ -29,7 +29,7 @@ const toneStyles: Record<
 > = {
   white: {
     container:
-      "min-h-[108px] rounded-xl px-4 py-4 bg-white",
+      "min-h-[108px] rounded-xl bg-card px-4 py-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
     label:
       "text-xs font-medium uppercase tracking-[0.14em] text-zinc-500 text-pretty",
     value:
@@ -39,7 +39,7 @@ const toneStyles: Record<
   },
   zinc: {
     container:
-      "min-h-[108px] rounded-lg bg-zinc-50 px-4 py-4",
+      "min-h-[108px] rounded-lg bg-muted px-4 py-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
     label: "text-xs font-medium uppercase tracking-[0.14em] text-zinc-500",
     value: "mt-1 text-xl font-semibold tabular-nums text-zinc-900 leading-none",
     valueWrap: "mt-3 flex items-center justify-between gap-3",
@@ -47,7 +47,7 @@ const toneStyles: Record<
   },
   emerald: {
     container:
-      "min-h-[108px] rounded-lg bg-emerald-50/60 px-4 py-4",
+      "min-h-[108px] rounded-lg bg-emerald-50/60 px-4 py-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
     label: "text-xs font-medium uppercase tracking-[0.14em] text-emerald-700",
     value:
       "mt-1 text-xl font-semibold tabular-nums text-emerald-900 leading-none",
@@ -56,7 +56,7 @@ const toneStyles: Record<
   },
   rose: {
     container:
-      "min-h-[108px] rounded-lg bg-rose-50/60 px-4 py-4",
+      "min-h-[108px] rounded-lg bg-rose-50/60 px-4 py-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
     label: "text-xs font-medium uppercase tracking-[0.14em] text-rose-700",
     value: "mt-1 text-xl font-semibold tabular-nums text-rose-900 leading-none",
     valueWrap: "mt-3 flex items-center justify-between gap-3",

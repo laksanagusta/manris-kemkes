@@ -9,11 +9,8 @@ import (
 
 func currentAssessmentCycle() string {
 	now := time.Now().UTC()
-	half := "H1"
-	if now.Month() >= time.July {
-		half = "H2"
-	}
-	return fmt.Sprintf("%d-%s", now.Year(), half)
+	quarter := (int(now.Month())-1)/3 + 1
+	return fmt.Sprintf("%d-Q%d", now.Year(), quarter)
 }
 
 func isOrgAccessible(orgID uuid.UUID, allowed []uuid.UUID) bool {

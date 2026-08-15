@@ -1,6 +1,6 @@
 "use client";
 
-import { Info } from "lucide-react";
+import { Info } from "@/components/ui/icons";
 
 import { cn } from "@/lib/utils";
 import {
@@ -8,6 +8,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const criteriaRows = [
   {
@@ -65,7 +73,7 @@ export function ProbabilityCriteriaTooltip({
         <TooltipContent
           side="top"
           align="start"
-          className="w-[min(92vw,44rem)] max-w-[44rem] rounded-xl border border-border/70 bg-background p-0 text-foreground shadow-xl"
+          className="w-[min(92vw,44rem)] max-w-[44rem] rounded-xl bg-background p-0 text-foreground"
         >
           <div className="max-h-[70vh] overflow-auto">
             <div className="border-b border-border/60 px-4 py-3">
@@ -74,42 +82,42 @@ export function ProbabilityCriteriaTooltip({
                 Panduan nilai probabilitas untuk penilaian risiko.
               </p>
             </div>
-            <table className="w-full border-collapse text-left text-xs">
-              <thead className="bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="border-b border-r border-border/60 px-3 py-2 font-semibold">
+            <Table className="w-full border-collapse text-left text-xs">
+              <TableHeader className="bg-table-header text-[11px] uppercase tracking-wide text-muted-foreground">
+                <TableRow className="h-auto">
+                  <TableHead className="border-b border-r border-border/60 px-3 py-2 font-semibold">
                     Level Kemungkinan
-                  </th>
-                  <th className="border-b border-r border-border/60 px-3 py-2 font-semibold">
+                  </TableHead>
+                  <TableHead className="border-b border-r border-border/60 px-3 py-2 font-semibold">
                     Probabilitas
-                  </th>
-                  <th className="border-b border-r border-border/60 px-3 py-2 font-semibold">
+                  </TableHead>
+                  <TableHead className="border-b border-r border-border/60 px-3 py-2 font-semibold">
                     Jumlah frekuensi
-                  </th>
-                  <th className="border-b border-border/60 px-3 py-2 font-semibold">
+                  </TableHead>
+                  <TableHead className="border-b border-border/60 px-3 py-2 font-semibold">
                     Low Frequency Event
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {criteriaRows.map((row) => (
-                  <tr key={row.level} className="align-top">
-                    <td className="border-b border-r border-border/60 px-3 py-3 font-medium">
+                  <TableRow key={row.level} className="h-auto border-t-0 align-top">
+                    <TableCell className="border-b border-r border-border/60 px-3 py-3 font-medium">
                       {row.level}
-                    </td>
-                    <td className="border-b border-r border-border/60 px-3 py-3">
+                    </TableCell>
+                    <TableCell className="border-b border-r border-border/60 px-3 py-3">
                       {row.probability}
-                    </td>
-                    <td className="border-b border-r border-border/60 px-3 py-3">
+                    </TableCell>
+                    <TableCell className="border-b border-r border-border/60 px-3 py-3">
                       {row.nonLowFrequency}
-                    </td>
-                    <td className="border-b border-border/60 px-3 py-3">
+                    </TableCell>
+                    <TableCell className="border-b border-border/60 px-3 py-3">
                       {row.lowFrequency}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </TooltipContent>
       </Tooltip>

@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search } from "@/components/ui/icons";
 
 export function CollectionLoadingState({
   message = "Memuat data...",

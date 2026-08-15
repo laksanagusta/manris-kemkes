@@ -10,8 +10,10 @@ import (
 )
 
 const (
-	RiskMonitoringStatusDraft     = "draft"
-	RiskMonitoringStatusFinalized = "finalized"
+	RiskMonitoringStatusDraft = "draft"
+	RiskMonitoringStatusFinal = "final"
+	// Deprecated alias kept for callers that still use the old name.
+	RiskMonitoringStatusFinalized = RiskMonitoringStatusFinal
 	RiskMonitoringStatusVoid      = "void"
 
 	RiskMonitoringModeScoreOnly           = "score_only"
@@ -45,10 +47,9 @@ type RiskMonitoring struct {
 	Conclusion                  string                      `json:"conclusion"`
 	MitigationProgressSummary   string                      `json:"mitigationProgressSummary"`
 	MitigationCompletionPercent int                         `json:"mitigationCompletionPercent"`
-	MitigationObstacles         string                      `json:"mitigationObstacles"`
-	MitigationFollowUp          string                      `json:"mitigationFollowUp"`
 	DraftPayload                *RiskMonitoringDraftPayload `json:"-"`
 	DraftTitle                  string                      `json:"draftTitle"`
+	DraftDescription            string                      `json:"draftDescription"`
 	DraftCategory               string                      `json:"draftCategory"`
 	DraftCause                  []string                    `json:"draftCause"`
 	DraftRiskSource             string                      `json:"draftRiskSource"`
@@ -75,6 +76,7 @@ type RiskMonitoring struct {
 
 type RiskMonitoringDraftPayload struct {
 	Title                string       `json:"title"`
+	Description          string       `json:"description"`
 	Category             string       `json:"category"`
 	Cause                []string     `json:"cause"`
 	RiskSource           string       `json:"riskSource"`
@@ -88,6 +90,7 @@ type RiskMonitoringDraftPayload struct {
 
 type RiskMonitoringDraftValues struct {
 	Title                string
+	Description          string
 	Category             string
 	Cause                []string
 	RiskSource           string
@@ -143,6 +146,7 @@ func NewRiskMonitoringDraftPayloadFromRisk(source *Risk) *RiskMonitoringDraftPay
 	}
 	return &RiskMonitoringDraftPayload{
 		Title:                source.Title,
+		Description:          source.Description,
 		Category:             source.Category,
 		Cause:                append([]string(nil), source.Cause...),
 		RiskSource:           source.RiskSource,
@@ -158,6 +162,7 @@ func NewRiskMonitoringDraftPayloadFromRisk(source *Risk) *RiskMonitoringDraftPay
 func NewRiskMonitoringDraftPayloadFromValues(values RiskMonitoringDraftValues) *RiskMonitoringDraftPayload {
 	return &RiskMonitoringDraftPayload{
 		Title:                values.Title,
+		Description:          values.Description,
 		Category:             values.Category,
 		Cause:                append([]string(nil), values.Cause...),
 		RiskSource:           values.RiskSource,
@@ -174,6 +179,7 @@ func (m *RiskMonitoring) SetDraftPayload(payload *RiskMonitoringDraftPayload) {
 	if payload == nil {
 		m.DraftPayload = nil
 		m.DraftTitle = ""
+		m.DraftDescription = ""
 		m.DraftCategory = ""
 		m.DraftCause = nil
 		m.DraftRiskSource = ""
@@ -198,6 +204,7 @@ func (m *RiskMonitoring) DraftPayloadSnapshot() *RiskMonitoringDraftPayload {
 	}
 	return &RiskMonitoringDraftPayload{
 		Title:                m.DraftTitle,
+		Description:          m.DraftDescription,
 		Category:             m.DraftCategory,
 		Cause:                append([]string(nil), m.DraftCause...),
 		RiskSource:           m.DraftRiskSource,
@@ -215,6 +222,7 @@ func (m *RiskMonitoring) syncDraftFieldsFromPayload() {
 		return
 	}
 	m.DraftTitle = m.DraftPayload.Title
+	m.DraftDescription = m.DraftPayload.Description
 	m.DraftCategory = m.DraftPayload.Category
 	m.DraftCause = append([]string(nil), m.DraftPayload.Cause...)
 	m.DraftRiskSource = m.DraftPayload.RiskSource
@@ -255,6 +263,9 @@ func DetectRiskMonitoringMode(source *Risk, values *RiskMonitoringDraftValues) (
 	changed := make([]string, 0)
 	if source.Title != values.Title {
 		changed = append(changed, "title")
+	}
+	if source.Description != values.Description {
+		changed = append(changed, "description")
 	}
 	if source.Category != values.Category {
 		changed = append(changed, "category")
@@ -315,6 +326,9 @@ func (m *RiskMonitoring) Validate() error {
 	}
 	if m.Status == "" {
 		return errors.Wrap(errors.ErrInvalidInput, "status is required")
+	}
+	if m.Status != RiskMonitoringStatusDraft && m.Status != RiskMonitoringStatusFinal && m.Status != RiskMonitoringStatusVoid {
+		return errors.Wrap(errors.ErrInvalidInput, "status pemantauan tidak valid")
 	}
 	if m.Mode == "" {
 		return errors.Wrap(errors.ErrInvalidInput, "mode is required")

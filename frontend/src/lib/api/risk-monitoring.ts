@@ -12,7 +12,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v
 
 /**
  * Download monitoring template XLSX
- * GET /risks/batch/monitoring/template?organization_id=X&cycle=YYYY-HN
+ * GET /risks/batch/monitoring/template?organization_id=X&cycle=YYYY-QN
  */
 export async function downloadMonitoringTemplate(
   token: string,
@@ -37,7 +37,7 @@ export async function downloadMonitoringTemplate(
 
 /**
  * Upload and preview monitoring template
- * POST /risks/batch/monitoring/preview?organization_id=X&cycle=YYYY-HN
+ * POST /risks/batch/monitoring/preview?organization_id=X&cycle=YYYY-QN
  */
 export async function previewMonitoringUpload(
   file: File,
@@ -80,6 +80,25 @@ export async function getMonitoringDetail(
   id: string
 ): Promise<RiskMonitoringDetail> {
   return api.get<RiskMonitoringDetail>(`/risk-monitorings/${id}`, token);
+}
+
+export interface StartMonitoringResponse {
+  monitoring: RiskMonitoringDetail;
+  message: string;
+  redirectUrl: string;
+  existingDraft: boolean;
+}
+
+export async function startMonitoring(
+  token: string,
+  riskId: string,
+  cycle: string,
+): Promise<StartMonitoringResponse> {
+  return api.post<StartMonitoringResponse>(
+    `/risks/${riskId}/monitorings`,
+    { cycle },
+    token,
+  );
 }
 
 export async function listRiskMonitorings(
@@ -130,5 +149,17 @@ export async function finalizeMonitoring(
     `/risk-monitorings/${id}/finalize`,
     {},
     token
+  );
+}
+
+export async function correctMonitoring(
+  token: string,
+  id: string,
+  reason: string,
+): Promise<{ monitoring: RiskMonitoringDetail }> {
+  return api.post<{ monitoring: RiskMonitoringDetail }>(
+    `/risk-monitorings/${id}/correct`,
+    { reason },
+    token,
   );
 }

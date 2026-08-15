@@ -19,28 +19,27 @@ type rosterPeriod struct {
 }
 
 func resolveRosterPeriod(cycle string) (rosterPeriod, error) {
-	if _, _, err := parseSemester(cycle); err != nil {
+	if _, _, err := parseQuarter(cycle); err != nil {
 		return rosterPeriod{}, err
 	}
 	return rosterPeriod{MonitoringCycle: cycle}, nil
 }
 
-func parseSemester(cycle string) (int, int, error) {
+func parseQuarter(cycle string) (int, int, error) {
 	parts := strings.SplitN(cycle, "-", 2)
-	if len(parts) != 2 || (parts[1] != "H1" && parts[1] != "H2") {
-		return 0, 0, domainerrors.ErrSemesterFormat
+	if len(parts) != 2 || (parts[1] != "Q1" && parts[1] != "Q2" && parts[1] != "Q3" && parts[1] != "Q4") {
+		return 0, 0, domainerrors.ErrCycleFormat
 	}
 	year, err := strconv.Atoi(parts[0])
 	if err != nil || year < 2000 || year > 2100 {
 		return 0, 0, fmt.Errorf("tahun tidak valid dalam siklus %q", cycle)
 	}
-	var half int
-	if parts[1] == "H1" {
-		half = 1
-	} else {
-		half = 2
+	periodCode := strings.TrimPrefix(parts[1], "Q")
+	quarter, err := strconv.Atoi(periodCode)
+	if err != nil || quarter < 1 || quarter > 4 {
+		return 0, 0, domainerrors.ErrCycleFormat
 	}
-	return year, half, nil
+	return year, quarter, nil
 }
 
 func omitemptyUUID(id uuid.UUID) string {
@@ -185,7 +184,7 @@ func rosterPreviewQuery() string {
 				r.version_number
 			FROM risks r
 			WHERE r.organization_id = $1
-			  AND r.status = 'approved'
+			  AND r.status = 'final'
 			  AND r.assessment_cycle = $2
 			ORDER BY r.version_group_id, r.version_number DESC
 		),
@@ -200,7 +199,7 @@ func rosterPreviewQuery() string {
 			FROM risk_monitorings rm
 			JOIN eligible_versions ev ON ev.version_group_id = rm.version_group_id
 			WHERE rm.assessment_cycle = $2
-			  AND rm.status IN ('draft', 'finalized')
+			  AND rm.status IN ('draft', 'final')
 		),
 		result_versions AS (
 			SELECT
@@ -250,7 +249,7 @@ func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp 
 	if existingCount > 0 {
 		return &domainerrors.AppError{
 			Code:    "SEMESTER_CONFLICT",
-			Message: fmt.Sprintf("Kertas kerja untuk semester %s sudah ada (tidak termasuk yang dibatalkan). Batalkan kertas kerja yang ada terlebih dahulu atau gunakan semester lain.", wp.AssessmentCycle),
+			Message: fmt.Sprintf("Kertas kerja untuk kuartal %s sudah ada (tidak termasuk yang dibatalkan). Batalkan kertas kerja yang ada terlebih dahulu atau gunakan kuartal lain.", wp.AssessmentCycle),
 		}
 	}
 
@@ -445,7 +444,7 @@ func (r *workingPaperRepository) ListSigningBlockers(ctx context.Context, workin
 		LEFT JOIN risk_monitorings rm ON rm.id = wpr.monitoring_id
 		WHERE wpr.working_paper_id = $1
 		  AND wpr.version_group_id IS NOT NULL
-		  AND (rm.id IS NULL OR rm.status <> 'finalized')
+		  AND (rm.id IS NULL OR rm.status <> 'final')
 		ORDER BY wpr.sort_order
 	`, workingPaperID)
 	if err != nil {

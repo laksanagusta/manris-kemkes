@@ -16,7 +16,7 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { listRiskCharters } from "@/lib/api/risk-charters";
@@ -48,12 +48,12 @@ import { cn } from "@/lib/utils";
 import {
   CollectionPagination,
   CollectionFilterGrid,
+  CollectionPageHeader,
   CollectionSearchField,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
-  CollectionToolbar,
 } from "@/components/shared/design-system";
 import {
   AccentButton,
@@ -81,7 +81,7 @@ function getCharterStatusBadgeClass(status?: string) {
     case "in_review":
       return "border-amber-200 bg-amber-50 text-amber-700";
     case "archived":
-      return "border-slate-200 bg-slate-50 text-slate-600";
+      return "border-border bg-muted text-muted-foreground";
     default:
       return "border-border bg-muted/40 text-muted-foreground";
   }
@@ -223,12 +223,7 @@ export default function RiskChartersPage() {
 
   return (
     <PageStack>
-      <CollectionToolbar
-        leading={
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
-            Risk Governance
-          </p>
-        }
+      <CollectionPageHeader
         title="Piagam Manris"
         description="Kelola piagam manajemen risiko untuk menetapkan konteks, ruang lingkup, dan struktur UPR secara konsisten antar unit kerja."
         actions={

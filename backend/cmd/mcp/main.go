@@ -84,11 +84,7 @@ func main() {
 
 	cfg := config.Load()
 
-	if cfg.RiskApprovalWorkflowEnabled {
-		log.Println("mcp: WARNING — RISK_APPROVAL_WORKFLOW_ENABLED=true, but MVP iteration assumes false (auto-approve)")
-	} else {
-		log.Println("mcp: approval workflow disabled (MVP)")
-	}
+	log.Println("mcp: risk approval workflow disabled; risk creation finalizes directly and monitoring uses transactions")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

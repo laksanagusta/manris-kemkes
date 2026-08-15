@@ -100,6 +100,14 @@ func formatMonitoringDateRange(period string) string {
 	half := strings.ToUpper(strings.TrimSpace(parts[1]))
 
 	switch half {
+	case "Q1":
+		return "Kuartal I Tahun " + year
+	case "Q2":
+		return "Semester I Tahun " + year
+	case "Q3":
+		return "Kuartal III Tahun " + year
+	case "Q4":
+		return "Semester II Tahun " + year
 	case "H1":
 		return "Semester I Tahun " + year
 	case "H2":

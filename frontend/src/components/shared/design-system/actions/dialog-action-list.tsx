@@ -23,7 +23,7 @@ export function DialogActionList({
   return (
     <div
       className={cn(
-        "w-52 rounded-2xl border border-border/60 bg-popover p-1 shadow-none",
+        "w-52 rounded-xl bg-popover p-1 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
         className,
       )}
     >

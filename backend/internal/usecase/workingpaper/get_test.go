@@ -140,8 +140,6 @@ func TestWorkingPaperRiskDataMarshalsMonitoringSnapshot(t *testing.T) {
 			EffectivenessConclusion:     "Kontrol cukup efektif",
 			ConditionSummary:            "Gangguan menurun",
 			EventSummary:                "Satu insiden minor",
-			MitigationObstacles:         "Pengadaan terlambat",
-			MitigationFollowUp:          "Selesaikan pengadaan",
 			FollowUpNote:                "Pantau mingguan",
 			UpdatedAt:                   finalizedAt,
 			FinalizedAt:                 &finalizedAt,

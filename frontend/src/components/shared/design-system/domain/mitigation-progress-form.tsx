@@ -1,5 +1,7 @@
 "use client";
 
+import type { RefObject } from "react";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +16,8 @@ export type MitigationProgressFormProps = {
   showValidationErrors?: boolean;
   evidenceError?: string;
   notesError?: string;
+  evidenceInputRef?: RefObject<HTMLInputElement | null>;
+  notesInputRef?: RefObject<HTMLTextAreaElement | null>;
   evidenceId?: string;
   notesId?: string;
   evidencePlaceholder?: string;
@@ -28,6 +32,8 @@ export function MitigationProgressForm({
   showValidationErrors,
   evidenceError,
   notesError,
+  evidenceInputRef,
+  notesInputRef,
   evidenceId = "mitigation-evidence-url",
   notesId = "mitigation-notes",
   evidencePlaceholder = "https://drive.google.com/...",
@@ -35,15 +41,16 @@ export function MitigationProgressForm({
 }: MitigationProgressFormProps) {
   return (
     <MitigationProgressFormShell>
-      <div className="space-y-1.5">
-        <Label className="text-xs" htmlFor={evidenceId}>
+      <div className="flex flex-col gap-2">
+        <Label className="text-sm" htmlFor={evidenceId}>
           Link Bukti / Evidence
         </Label>
         <Input
           id={evidenceId}
+          ref={evidenceInputRef}
           value={evidenceUrl}
           onChange={(event) => onEvidenceUrlChange(event.target.value)}
-          className="text-xs"
+          className="text-base sm:text-sm"
           placeholder={evidencePlaceholder}
           aria-invalid={Boolean(showValidationErrors && evidenceError)}
           aria-describedby={
@@ -53,22 +60,23 @@ export function MitigationProgressForm({
           }
         />
         {showValidationErrors && evidenceError ? (
-          <p id={`${evidenceId}-error`} className="text-[11px] text-destructive">
+          <p id={`${evidenceId}-error`} className="text-xs leading-5 text-destructive">
             {evidenceError}
           </p>
         ) : null}
       </div>
 
-      <div className="space-y-1.5">
-        <Label className="text-xs" htmlFor={notesId}>
+      <div className="flex flex-col gap-2">
+        <Label className="text-sm" htmlFor={notesId}>
           Catatan Pelaksanaan
           <span className="text-destructive ml-0.5">*</span>
         </Label>
         <Textarea
           id={notesId}
+          ref={notesInputRef}
           value={notes}
           onChange={(event) => onNotesChange(event.target.value)}
-          className="min-h-[80px] text-xs"
+          className="min-h-[80px] text-base sm:text-sm"
           placeholder={notesPlaceholder}
           aria-invalid={Boolean(showValidationErrors && notesError)}
           aria-describedby={
@@ -76,7 +84,7 @@ export function MitigationProgressForm({
           }
         />
         {showValidationErrors && notesError ? (
-          <p id={`${notesId}-error`} className="text-[11px] text-destructive">
+          <p id={`${notesId}-error`} className="text-xs leading-5 text-destructive">
             {notesError}
           </p>
         ) : null}

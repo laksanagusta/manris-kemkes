@@ -31,7 +31,7 @@ import {
   TrendingUp,
   ArrowUpRight,
   ChevronDown,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   ResponsiveContainer,
   BarChart,
@@ -94,7 +94,11 @@ import type {
   Risk,
   RiskCycleComparisonItem,
 } from "@/types/risk";
-import { CollectionToolbar } from "@/components/shared/design-system";
+import { currentAssessmentCycle, shiftAssessmentCycle } from "@/lib/risk-cycle-options";
+import {
+  CollectionPageHeader,
+  CollectionToolbar,
+} from "@/components/shared/design-system";
 import {
   AccentButton,
   ActionButton,
@@ -160,17 +164,11 @@ const exportOptions = [
 ];
 
 function currentGlobalCycle() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const half = now.getMonth() < 6 ? "H1" : "H2";
-  return `${year}-${half}`;
+  return currentAssessmentCycle();
 }
 
 function previousGlobalCycle(cycle: string) {
-  const [yearPart, half] = cycle.split("-");
-  const year = Number(yearPart);
-  if (half === "H1") return `${year - 1}-H2`;
-  return `${year}-H1`;
+  return shiftAssessmentCycle(cycle, -1);
 }
 
 export default function ReportsPage() {
@@ -502,17 +500,17 @@ export default function ReportsPage() {
           throw error;
         }
 
-        const approvedRisks = await api.get<RiskCycleSnapshotItem[]>(
-          `/risks?status=approved${reportScopeQuery}`,
+        const finalRisks = await api.get<RiskCycleSnapshotItem[]>(
+          `/risks?status=final${reportScopeQuery}`,
           token,
         );
-        risks = approvedRisks.filter(
+        risks = finalRisks.filter(
           (risk) => risk.assessmentCycle === exportCycle,
         );
       }
 
       if (!risks || risks.length === 0) {
-        toast.error(`Belum ada risk approved untuk cycle ${exportCycle}.`);
+          toast.error(`Belum ada risk final untuk cycle ${exportCycle}.`);
         return;
       }
 
@@ -534,6 +532,11 @@ export default function ReportsPage() {
 
   return (
     <PageStack>
+      <CollectionPageHeader
+        title="Laporan"
+        description="Ringkasan analitik risiko, monitoring, dan kinerja organisasi."
+      />
+
       <CollectionToolbar
         actions={
           <>
@@ -549,7 +552,7 @@ export default function ReportsPage() {
             side="right"
             align="start"
             sideOffset={8}
-            className="w-[22rem] rounded-2xl p-4"
+            className="w-[22rem] rounded-xl p-4"
           >
             <div className="space-y-4">
               <div>
@@ -657,7 +660,7 @@ export default function ReportsPage() {
                           label={item.label}
                           value={item.value}
                           tone="white"
-                          className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
+                          className="flex min-h-[96px] flex-col rounded-lg p-4"
                           labelClassName="capitalize tracking-normal"
                           valueClassName="font-medium"
                           description={
@@ -721,7 +724,7 @@ export default function ReportsPage() {
               ) : (
                 <ReportEmptyState
                   className="h-56"
-                  description="Perbandingan Semester belum tersedia"
+                  description="Perbandingan kuartal belum tersedia"
                 />
               )}
           </ReportPanel>
@@ -851,8 +854,8 @@ export default function ReportsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="2s">2 Semester</SelectItem>
-                    <SelectItem value="4s">4 Semester</SelectItem>
+                    <SelectItem value="2s">2 Kuartal</SelectItem>
+                    <SelectItem value="4s">4 Kuartal</SelectItem>
                     <SelectItem value="all">Semua</SelectItem>
                   </SelectContent>
                 </Select>
@@ -920,7 +923,7 @@ export default function ReportsPage() {
               ) : (
                 <ReportEmptyState
                   className="h-48"
-                  description="Belum ada data semester untuk menampilkan tren risiko."
+                  description="Belum ada data kuartal untuk menampilkan tren risiko."
                 />
               )}
           </ReportPanel>

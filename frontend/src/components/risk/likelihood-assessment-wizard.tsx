@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Info, X } from "lucide-react";
+import { CheckCircle2, Info, X } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
@@ -379,7 +381,7 @@ export function LikelihoodAssessmentWizard({
                         <span className="text-destructive ml-0.5">*</span>
                       </label>
                       <div className="relative">
-                        <input
+                        <Input
                           type="number"
                           min={1}
                           max={120}
@@ -398,7 +400,7 @@ export function LikelihoodAssessmentWizard({
                             );
                           }}
                           disabled={disabled}
-                          className="h-9 w-full rounded-lg border border-input bg-background px-3 pr-10 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                          className="pr-10 ring-offset-background"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                           bulan
@@ -410,7 +412,7 @@ export function LikelihoodAssessmentWizard({
                         Jumlah Kejadian
                         <span className="text-destructive ml-0.5">*</span>
                       </label>
-                      <input
+                      <Input
                         type="number"
                         min={0}
                         value={eventCount}
@@ -428,7 +430,7 @@ export function LikelihoodAssessmentWizard({
                           );
                         }}
                         disabled={disabled}
-                        className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        className="ring-offset-background"
                         placeholder="Jumlah kejadian"
                       />
                     </div>
@@ -440,7 +442,7 @@ export function LikelihoodAssessmentWizard({
                         Total Populasi
                         <span className="text-destructive ml-0.5">*</span>
                       </label>
-                      <input
+                      <Input
                         type="number"
                         min={1}
                         value={populationCount || ""}
@@ -458,7 +460,7 @@ export function LikelihoodAssessmentWizard({
                           );
                         }}
                         disabled={disabled}
-                        className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        className="ring-offset-background"
                         placeholder="Total populasi yang berisiko"
                       />
                       <p className="text-[11px] text-muted-foreground">
@@ -473,12 +475,12 @@ export function LikelihoodAssessmentWizard({
                     <label className="text-xs font-medium text-muted-foreground">
                       Sumber Data
                     </label>
-                    <input
+                    <Input
                       type="text"
                       value={dataSource}
                       onChange={(e) => setDataSource(e.target.value)}
                       disabled={disabled}
-                      className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      className="ring-offset-background"
                       placeholder="Contoh: Sistem pelaporan insiden 2024-2025"
                     />
                   </div>
@@ -496,12 +498,12 @@ export function LikelihoodAssessmentWizard({
                       Justifikasi
                       <span className="text-destructive ml-0.5">*</span>
                     </label>
-                    <textarea
+                    <Textarea
                       value={justification}
                       onChange={(e) => setJustification(e.target.value)}
                       disabled={disabled}
                       rows={3}
-                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                      className="min-h-20 resize-none ring-offset-background"
                       placeholder="Jelaskan dasar penilaian level kemungkinan..."
                     />
                   </div>

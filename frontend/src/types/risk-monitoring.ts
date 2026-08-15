@@ -1,11 +1,13 @@
 import type { Risk, RiskMitigation } from "./risk";
 
+export type RiskMonitoringStatus = "draft" | "final" | "void";
+
 export interface RiskMonitoringDetail {
   id: string;
   sourceRiskId: string;
   resultRiskId?: string | null;
   assessmentCycle: string;
-  status: string;
+  status: RiskMonitoringStatus;
   mode: string;
   sourceProbability: number;
   sourceImpact: number;
@@ -26,9 +28,8 @@ export interface RiskMonitoringDetail {
   conclusion: string;
   mitigationProgressSummary: string;
   mitigationCompletionPercent: number;
-  mitigationObstacles: string;
-  mitigationFollowUp: string;
   draftTitle: string;
+  draftDescription: string;
   draftCategory: string;
   draftCause: string[];
   draftRiskSource: string;

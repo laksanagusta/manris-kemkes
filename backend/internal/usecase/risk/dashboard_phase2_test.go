@@ -152,12 +152,12 @@ func TestExecutiveAlertsUseCase_ExecuteBuildsRankedAlerts(t *testing.T) {
 		},
 		listCycleSnapshot: func(_ context.Context, cycle string, _ []uuid.UUID) ([]*entity.Risk, error) {
 			switch cycle {
-			case "2026-H1":
+			case "2026-Q2":
 				return []*entity.Risk{
 					{ID: riskExtremeID, Code: "R-001", Title: "Lonjakan kasus", Probability: 5, Impact: 4, OrgName: "Direktorat A"},
 					{ID: riskUpID, Code: "R-002", Title: "Keterlambatan inspeksi", Probability: 4, Impact: 3, OrgName: "Direktorat A"},
 				}, nil
-			case "2025-H2":
+			case "2026-Q1":
 				return []*entity.Risk{
 					{Code: "R-002", Title: "Keterlambatan inspeksi", OrgName: "Direktorat A"},
 					{Code: "R-100", Title: "Dokumentasi belum lengkap", OrgName: "Direktorat B"},
@@ -167,7 +167,7 @@ func TestExecutiveAlertsUseCase_ExecuteBuildsRankedAlerts(t *testing.T) {
 			}
 		},
 		compareCycles: func(_ context.Context, fromCycle string, toCycle string, _ []uuid.UUID) ([]*entity.RiskCycleComparisonItem, error) {
-			if fromCycle != "2025-H2" || toCycle != "2026-H1" {
+			if fromCycle != "2026-Q1" || toCycle != "2026-Q2" {
 				t.Fatalf("unexpected cycle comparison %s -> %s", fromCycle, toCycle)
 			}
 			return []*entity.RiskCycleComparisonItem{{
@@ -196,7 +196,7 @@ func TestExecutiveAlertsUseCase_ExecuteBuildsRankedAlerts(t *testing.T) {
 	uc := NewExecutiveAlertsUseCase(riskRepo, taskRepo)
 	uc.now = func() time.Time { return now }
 
-	alerts, err := uc.Execute(context.Background(), ExecutiveAlertsInput{Cycle: "2026-H1", Limit: 10})
+	alerts, err := uc.Execute(context.Background(), ExecutiveAlertsInput{Cycle: "2026-Q2", Limit: 10})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

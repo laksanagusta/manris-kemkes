@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, ArrowUpRight } from "lucide-react";
+import { AlertCircle, ArrowUpRight } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 

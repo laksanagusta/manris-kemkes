@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -56,6 +57,12 @@ func (r *reviewScheduleTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, 
 }
 func (r *reviewScheduleTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID, string, string) (bool, error) {
 	return false, nil
+}
+func (r *reviewScheduleTaskRepo) ListByMonitoring(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, nil
+}
+func (r *reviewScheduleTaskRepo) CountByMonitoringAndStatus(context.Context, uuid.UUID, []uuid.UUID) (*repository.MonitoringTaskCounts, error) {
+	return &repository.MonitoringTaskCounts{}, nil
 }
 
 func (r *reviewScheduleRiskRepo) Create(_ context.Context, risk *entity.Risk) error {
@@ -351,7 +358,7 @@ func TestUpdateRiskUseCase_ExecuteRequiresChangeReasonForSubstanceChangeInReasse
 	if err == nil {
 		t.Fatal("expected error for missing change reason")
 	}
-	if !strings.Contains(err.Error(), "changeReason is required") {
+	if !strings.Contains(err.Error(), domainerrors.ErrChangeReasonRequired.Error()) {
 		t.Fatalf("expected changeReason validation error, got %v", err)
 	}
 	if repo.updated != nil {
@@ -465,11 +472,11 @@ func TestUpdateRiskUseCase_ExecuteActivatesApprovedReassessmentVersion(t *testin
 	if repo.updated == nil {
 		t.Fatal("expected risk to be updated before activation")
 	}
-	if repo.activateCount != 1 {
-		t.Fatalf("expected ActivateApprovedVersion to be called once, got %d", repo.activateCount)
+	if repo.activateCount != 0 {
+		t.Fatalf("expected activation to be part of repository transaction, got %d direct calls", repo.activateCount)
 	}
-	if repo.activatedRiskID != riskID {
-		t.Fatalf("expected ActivateApprovedVersion risk %s, got %s", riskID, repo.activatedRiskID)
+	if repo.activatedRiskID != uuid.Nil {
+		t.Fatalf("expected no direct activation call, got %s", repo.activatedRiskID)
 	}
 }
 

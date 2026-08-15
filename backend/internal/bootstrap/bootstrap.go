@@ -98,7 +98,6 @@ type Container struct {
 	RiskSpreadsheetUC           *riskuc.BulkRiskSpreadsheetUseCase
 	RiskGetUC                   *riskuc.GetRiskUseCase
 	RiskExportPDFUC             *riskuc.ExportRiskPDFUseCase
-	RiskReassessUC              *riskuc.CreateRiskReassessmentUseCase
 	RiskArchiveUC               *riskuc.ArchiveRiskUseCase
 	RiskRestoreUC               *riskuc.RestoreRiskUseCase
 	RiskUpdateUC                *riskuc.UpdateRiskUseCase
@@ -130,6 +129,7 @@ type Container struct {
 	RiskMonitoringGetUC         *riskuc.GetMonitoringUseCase
 	RiskMonitoringUpdateUC      *riskuc.UpdateMonitoringUseCase
 	RiskMonitoringFinalizeUC    *riskuc.FinalizeMonitoringUseCase
+	RiskMonitoringCorrectUC     *riskuc.CorrectMonitoringUseCase
 
 	// Risk Cascade UseCases
 	RiskCascadeCreateMandatoryUC *riskcascadeuc.CreateMandatoryUseCase
@@ -261,12 +261,12 @@ type Container struct {
 	SystemSlowQueriesUC *systemuc.GetSlowQueriesUseCase
 
 	// Mitigation Task UseCases
-	MTListUC     *mtuc.ListTasksUseCase
-	MTSubmitUC   *mtuc.SubmitProgressUseCase
+	MTListUC         *mtuc.ListTasksUseCase
+	MTSubmitUC       *mtuc.SubmitProgressUseCase
 	MTSubmitReportUC *mtuc.SubmitMonitoringReportUseCase
-	MTEnsureUC   *mtuc.EnsureTasksForRiskVersionUseCase
-	MTGenerateUC *mtuc.GenerateTasksUseCase
-	MTOverdueUC  *mtuc.MarkOverdueUseCase
+	MTEnsureUC       *mtuc.EnsureTasksForRiskVersionUseCase
+	MTGenerateUC     *mtuc.GenerateTasksUseCase
+	MTOverdueUC      *mtuc.MarkOverdueUseCase
 
 	// KRI Report UseCases
 	KRIReportListUC     *krireportuc.ListReportsUseCase
@@ -385,7 +385,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskSpreadsheetUC = riskuc.NewBulkRiskSpreadsheetUseCase(c.OrgRepository, c.UserRepository)
 	c.RiskGetUC = riskuc.NewGetRiskUseCase(c.RiskRepository)
 	c.RiskExportPDFUC = riskuc.NewExportRiskPDFUseCase(c.RiskRepository, renderer)
-	c.RiskReassessUC = riskuc.NewCreateRiskReassessmentUseCase(c.RiskRepository, c.MTEnsureUC)
 	c.RiskArchiveUC = riskuc.NewArchiveRiskUseCase(c.RiskRepository, c.WPRepository)
 	c.RiskRestoreUC = riskuc.NewRestoreRiskUseCase(c.RiskRepository)
 	c.RiskUpdateUC = riskuc.NewUpdateRiskUseCase(c.RiskRepository, c.UserRepository, c.OrgRepository, c.WPRepository, c.MitigationTaskRepository)
@@ -412,11 +411,16 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskUnitResponseUC = riskuc.NewUnitResponseTimeUseCase(c.RiskRepository)
 	c.RiskListCycleSnapshotUC = riskuc.NewListRiskCycleSnapshotUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskMonitoringSpreadsheetUC = riskuc.NewBulkMonitoringSpreadsheetUseCase(c.OrgRepository, c.UserRepository, c.RiskRepository)
-	c.RiskCreateMonitoringBatchUC = riskuc.NewCreateMonitoringBatchUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.UserRepository)
-	c.RiskMonitoringStartUC = riskuc.NewStartMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.RiskRepository, c.MitigationTaskRepository)
+	periodRepo, ok := c.RiskRepository.(riskuc.MonitoringPeriodRepository)
+	if !ok {
+		return nil, fmt.Errorf("risk repository does not implement monitoring period policy")
+	}
+	c.RiskMonitoringStartUC = riskuc.NewStartMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.RiskRepository, c.MitigationTaskRepository, periodRepo)
+	c.RiskCreateMonitoringBatchUC = riskuc.NewCreateMonitoringBatchUseCase(c.RiskRepository, c.RiskMonitoringStartUC)
 	c.RiskMonitoringGetUC = riskuc.NewGetMonitoringUseCase(c.RiskMonitoringRepository)
 	c.RiskMonitoringUpdateUC = riskuc.NewUpdateMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
 	c.RiskMonitoringFinalizeUC = riskuc.NewFinalizeMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.MitigationTaskRepository, c.RiskRepository)
+	c.RiskMonitoringCorrectUC = riskuc.NewCorrectMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
 
 	c.RiskCascadeCreateMandatoryUC = riskcascadeuc.NewCreateMandatoryUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)
 	c.RiskCascadeCreateBottomUpUC = riskcascadeuc.NewCreateBottomUpUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)

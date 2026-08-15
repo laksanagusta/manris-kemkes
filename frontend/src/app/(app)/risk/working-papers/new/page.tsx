@@ -54,8 +54,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
-import { Loader2, Save, FileSearch, X } from "lucide-react";
+import { Loader2, Save, FileSearch, X } from "@/components/ui/icons";
 
 const formSchema = z.object({
   assessment_cycle: z.string().optional(),
@@ -74,6 +73,14 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+function normalizeAssessmentCycle(cycle: string) {
+  const match = cycle.trim().match(/^(\d{4})-(H[12]|Q[1-4])$/i);
+  if (!match) return cycle;
+  const legacy = match[2].toUpperCase();
+  const quarter = legacy === "H1" ? "Q2" : legacy === "H2" ? "Q4" : legacy;
+  return `${match[1]}-${quarter}`;
+}
+
 function toUserPickerOption(user: UserListItem): UserPickerOption {
   return {
     id: user.id,
@@ -89,19 +96,21 @@ function toUserPickerOption(user: UserListItem): UserPickerOption {
   };
 }
 
-const ROSTER_STATUS_TO_TONE: Record<string, string> = {
-  finalized_result: "completed",
-  existing_draft: "draft",
-  draft_will_be_created: "pending",
-};
+const ROSTER_STATUS_TO_TONE = {
+  finalized_result: "success",
+  existing_draft: "neutral",
+  draft_will_be_created: "info",
+} as const;
 
 export default function CreateWorkingPaperPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
 
-  const assessmentCycle = searchParams.get("cycle") ??
-    `${new Date().getFullYear()}-H${new Date().getMonth() < 6 ? 1 : 2}`;
+  const assessmentCycle = normalizeAssessmentCycle(
+    searchParams.get("cycle") ??
+      `${new Date().getFullYear()}-Q${Math.floor(new Date().getMonth() / 3) + 1}`,
+  );
 
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [preview, setPreview] =
@@ -362,7 +371,7 @@ export default function CreateWorkingPaperPage() {
 
   if (!organizationId) {
     return (
-      <FormPage className="space-y-4 pb-0">
+      <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Buat Kertas Kerja Baru"
         />
@@ -380,15 +389,16 @@ export default function CreateWorkingPaperPage() {
     : null;
 
   return (
-    <FormPage className="space-y-4 pb-0">
+    <FormPage className="space-y-6 pb-0">
       <FormHeader
         title="Buat Kertas Kerja Baru"
         description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            Roster risiko semester{" "}
+            Roster risiko kuartal{" "}
             <Badge
-              variant="secondary"
-              className="font-mono text-[11px]"
+              tone="info"
+              size="micro"
+              className="font-mono"
             >
               {assessmentCycle}
             </Badge>
@@ -403,7 +413,6 @@ export default function CreateWorkingPaperPage() {
           <Button
             onClick={handleConfirmOpen}
             disabled={isSubmitting || loadingPreview}
-            style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
           >
             {isSubmitting ? (
               <>
@@ -427,9 +436,9 @@ export default function CreateWorkingPaperPage() {
       >
         <FormSection
           title="Daftar Risiko"
-          description={`Risiko yang aktif pada semester ${assessmentCycle}. Semua risiko otomatis dipilih. Risiko yang dikecualikan wajib diberi alasan.`}
+          description={`Risiko yang aktif pada kuartal ${assessmentCycle}. Semua risiko otomatis dipilih. Risiko yang dikecualikan wajib diberi alasan.`}
           action={
-            <Badge variant="outline" className="h-5 px-2 text-[10px]">
+            <Badge tone="neutral" size="micro">
               {decisions.filter((d) => d.included).length} dipilih dari{" "}
               {decisions.length} risiko
             </Badge>
@@ -469,19 +478,19 @@ export default function CreateWorkingPaperPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-sm font-medium text-foreground">
-                  Belum ada risiko aktif untuk semester ini
+                  Belum ada risiko aktif untuk kuartal ini
                 </p>
                 <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-                  Tidak ada risiko yang disetujui dalam rentang semester{" "}
+                  Tidak ada risiko final dalam periode kuartal{" "}
                   {assessmentCycle} untuk unit kerja ini.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg ring-1 ring-inset ring-border bg-card">
+            <div className="overflow-hidden rounded-lg bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
               <div className="relative w-full overflow-x-auto">
                 <Table className="w-full caption-bottom text-sm">
-                  <TableHeader className="sticky top-0 z-10 bg-muted [&_tr]:border-b">
+                  <TableHeader className="sticky top-0 z-10 bg-table-header [&_tr]:border-b">
                     <TableRow>
                       <TableHead className="h-10 px-2 text-center w-[50px]">
                         <Checkbox
@@ -548,15 +557,16 @@ export default function CreateWorkingPaperPage() {
                           </TableCell>
                           <TableCell className="p-2 whitespace-nowrap text-center">
                             <Badge
-                              variant="outline"
-                              className="h-5 px-2 text-[10px]"
+                              tone="neutral"
+                              size="micro"
                             >
                               v{entry.sourceVersionNumber}
                             </Badge>
                             {entry.resultVersionNumber && (
                               <Badge
-                                variant="secondary"
-                                className="ml-1 h-5 px-2 text-[10px]"
+                                tone="info"
+                                size="micro"
+                                className="ml-1"
                               >
                                 Hasil: v{entry.resultVersionNumber}
                               </Badge>
@@ -575,7 +585,8 @@ export default function CreateWorkingPaperPage() {
                           </TableCell>
                           <TableCell className="p-2 text-center">
                             <Badge
-                              className={getLinearStatusBadgeClass(ROSTER_STATUS_TO_TONE[entry.rosterStatus] ?? "neutral")}
+                              tone={ROSTER_STATUS_TO_TONE[entry.rosterStatus] ?? "neutral"}
+                              size="micro"
                             >
                               {ROSTER_STATUS_LABELS[entry.rosterStatus]}
                             </Badge>
@@ -620,7 +631,7 @@ export default function CreateWorkingPaperPage() {
           title="Konfigurasi Penandatangan"
           description="Tambah penandatangan dan atur urutan dengan drag handle."
           action={
-            <Badge variant="secondary" className="px-2.5 py-0.5">
+            <Badge tone="neutral" size="compact">
               {signatoryFields.length} penandatangan
             </Badge>
           }

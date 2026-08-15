@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
-import { MinusIcon, TrendingUpIcon, ArrowUpIcon, ChevronUpIcon, TrendingDownIcon, ArrowDownIcon, ChevronDownIcon } from "lucide-react";
+import { MinusIcon, TrendingUpIcon, ArrowUpIcon, ChevronUpIcon, TrendingDownIcon, ArrowDownIcon, ChevronDownIcon } from "@/components/ui/icons";
 
 type DeltaIconVariant = "default" | "trend" | "arrow";
 type DeltaVariant = "default" | "badge";

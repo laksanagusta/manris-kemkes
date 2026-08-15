@@ -45,7 +45,7 @@ export function SemesterTargetTrend({
 
   if (loading) {
     return (
-      <StandardCard title="Tren Skor Semester vs Target" className="h-full">
+      <StandardCard title="Tren Skor Kuartal vs Target" className="h-full">
         <div className="flex h-[420px] items-center justify-center text-sm text-muted-foreground">
           Memuat...
         </div>
@@ -55,7 +55,7 @@ export function SemesterTargetTrend({
 
   return (
     <StandardCard
-      title="Tren Skor Semester vs Target"
+      title="Tren Skor Kuartal vs Target"
       action={
         latest ? (
           <Badge variant="outline" className="h-5 px-2 text-[10px]">
@@ -68,7 +68,7 @@ export function SemesterTargetTrend({
     >
       {!hasData ? (
         <div className="flex h-[420px] items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-          Belum ada data semester untuk menampilkan skor aktual dan target.
+          Belum ada data kuartal untuk menampilkan skor aktual dan target.
         </div>
       ) : (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(260px,0.95fr)]">
@@ -161,7 +161,7 @@ export function SemesterTargetTrend({
             </p>
             {latest ? (
               <div className="mt-4 space-y-3">
-                <div className="rounded-lg ring-1 ring-inset ring-border bg-card p-3">
+                <div className="rounded-lg bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                     Skor aktual
                   </p>
@@ -173,7 +173,7 @@ export function SemesterTargetTrend({
                   </p>
                 </div>
 
-                <div className="rounded-lg ring-1 ring-inset ring-border bg-card p-3">
+                <div className="rounded-lg bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                     Target
                   </p>
@@ -185,7 +185,7 @@ export function SemesterTargetTrend({
                   </p>
                 </div>
 
-                <div className="rounded-lg ring-1 ring-inset ring-border bg-card p-3">
+                <div className="rounded-lg bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                     Gap
                   </p>

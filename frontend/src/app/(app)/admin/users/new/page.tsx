@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save } from "@/components/ui/icons";
 import { toast } from "sonner";
 
 import { AdminOnlyState } from "@/components/admin/admin-only-state";
@@ -160,7 +160,7 @@ export default function NewUserPage() {
   }
 
   return (
-    <FormPage className="max-w-4xl">
+    <FormPage className="max-w-5xl">
       <FormHeader
         title="Tambah pengguna"
         description="Buat akun baru, tetapkan peran, lalu sampaikan NIP dan password sementara secara manual. Akun akan berstatus menunggu aktivasi sampai pengguna mengganti password saat login pertama."

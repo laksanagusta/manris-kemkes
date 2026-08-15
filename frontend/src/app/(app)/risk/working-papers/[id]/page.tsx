@@ -51,7 +51,7 @@ import {
   CheckCircle2,
   Download,
   Pen,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -159,13 +159,13 @@ export default function WorkingPaperDetailPage(props: {
           onDelete={() => setDeleteDialogOpen(true)}
         />
         {vm.canStartSigning && (
-          <Button size="sm" style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties} onClick={() => setStartSigningDialogOpen(true)}>
+          <Button size="sm" onClick={() => setStartSigningDialogOpen(true)}>
             <Pen className="w-4 h-4 mr-2" />
             Mulai Proses TTE
           </Button>
         )}
         {vm.canSign && (
-          <Button size="sm" style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties} onClick={() => setSignDialogOpen(true)}>
+          <Button size="sm" onClick={() => setSignDialogOpen(true)}>
             <Pen className="w-4 h-4 mr-2" />
             Tanda Tangani
           </Button>
@@ -267,7 +267,7 @@ export default function WorkingPaperDetailPage(props: {
 
   if (loading) {
     return (
-      <FormPage className="space-y-4 pb-0">
+      <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Memuat detail kertas kerja"
           description="Sistem sedang menyiapkan ringkasan dokumen, status tanda tangan, dan daftar risiko."
@@ -279,7 +279,7 @@ export default function WorkingPaperDetailPage(props: {
 
   if (error) {
     return (
-      <FormPage className="space-y-4 pb-0">
+      <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Detail kertas kerja belum tersedia"
           description="Halaman ini membutuhkan data dokumen yang valid sebelum Anda bisa meninjau tindakan penandatanganan."
@@ -295,7 +295,7 @@ export default function WorkingPaperDetailPage(props: {
 
   if (!data) {
     return (
-      <FormPage className="space-y-4 pb-0">
+      <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Kertas kerja tidak ditemukan"
           description="Dokumen yang Anda cari mungkin sudah dipindahkan, tidak lagi tersedia, atau Anda tidak memiliki akses untuk melihatnya."
@@ -316,7 +316,7 @@ export default function WorkingPaperDetailPage(props: {
 
   const totalRiskCount = data.risks?.length || 0;
   const finalizedMonitoringCount =
-    data.risks?.filter((link) => link.risk.monitoring?.status === "finalized")
+    data.risks?.filter((link) => link.risk.monitoring?.status === "final")
       .length || 0;
   const isAllMonitoringFinal =
     totalRiskCount > 0 && finalizedMonitoringCount === totalRiskCount;
@@ -355,9 +355,9 @@ export default function WorkingPaperDetailPage(props: {
   ];
 
   return (
-    <FormPage className="space-y-4 pb-0">
+    <FormPage className="space-y-6 pb-0">
       {viewModel.monitoringBlockers.length > 0 ? (
-        <Card className="rounded-2xl bg-amber-50/80 ring-1 ring-inset ring-amber-200">
+        <Card className="rounded-2xl bg-amber-50/80">
           <CardContent className="space-y-1 p-4 text-sm text-amber-900">
             <p className="font-semibold">Finalisasi monitoring terlebih dahulu</p>
             <p>
@@ -443,13 +443,13 @@ export default function WorkingPaperDetailPage(props: {
         open={startSigningDialogOpen}
         onOpenChange={setStartSigningDialogOpen}
       >
-        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
-          <AlertDialogHeader className="items-start gap-0 border-b border-border/60 px-4 py-6 text-left">
+        <AlertDialogContent>
+          <AlertDialogHeader>
             <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
               Mulai proses TTE
             </AlertDialogTitle>
           </AlertDialogHeader>
-          <AlertDialogDescription className="px-4 py-3 text-sm leading-6 text-muted-foreground">
+          <AlertDialogDescription>
             Status akan diubah dari draft menjadi proses tanda tangan.
             Setelah itu, para penandatangan bisa mulai menandatangani
             dokumen ini.
@@ -466,13 +466,13 @@ export default function WorkingPaperDetailPage(props: {
       </AlertDialog>
 
       <AlertDialog open={signDialogOpen} onOpenChange={setSignDialogOpen}>
-        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
-          <AlertDialogHeader className="items-start gap-0 border-b border-border/60 px-4 py-6 text-left">
+        <AlertDialogContent>
+          <AlertDialogHeader>
             <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
               Tanda tangani kertas kerja
             </AlertDialogTitle>
           </AlertDialogHeader>
-          <AlertDialogDescription className="px-4 py-3 text-sm leading-6 text-muted-foreground">
+          <AlertDialogDescription>
             Apakah Anda yakin ingin menandatangani dokumen ini? Tindakan ini
             akan menyimpan data Anda sebagai penandatangan sah.
           </AlertDialogDescription>
@@ -488,13 +488,13 @@ export default function WorkingPaperDetailPage(props: {
       </AlertDialog>
 
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
-          <AlertDialogHeader className="items-start gap-0 border-b border-border/60 px-4 py-6 text-left">
+        <AlertDialogContent>
+          <AlertDialogHeader>
             <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
               Batalkan kertas kerja
             </AlertDialogTitle>
           </AlertDialogHeader>
-          <AlertDialogDescription className="px-4 py-3 text-sm leading-6 text-muted-foreground">
+          <AlertDialogDescription>
             Apakah Anda yakin ingin membatalkan kertas kerja ini? Dokumen
             yang dibatalkan tidak dapat ditandatangani lagi.
           </AlertDialogDescription>
@@ -514,13 +514,13 @@ export default function WorkingPaperDetailPage(props: {
       </AlertDialog>
 
       <AlertDialog open={skipDialogOpen} onOpenChange={setSkipDialogOpen}>
-        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
-          <AlertDialogHeader className="items-start gap-0 border-b border-border/60 px-4 py-6 text-left">
+        <AlertDialogContent>
+          <AlertDialogHeader>
             <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
               Lewati tanda tangan elektronik
             </AlertDialogTitle>
           </AlertDialogHeader>
-          <AlertDialogDescription className="px-4 py-3 text-sm leading-6 text-muted-foreground">
+          <AlertDialogDescription>
             Tindakan ini akan menyelesaikan kertas kerja tanpa tanda tangan
             elektronik dan langsung mengunci versi risiko terkait. Pastikan
             semua risiko di dalam dokumen sudah selesai diproses.
@@ -537,13 +537,13 @@ export default function WorkingPaperDetailPage(props: {
       </AlertDialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
-          <AlertDialogHeader className="items-start gap-0 border-b border-border/60 px-4 py-6 text-left">
+        <AlertDialogContent>
+          <AlertDialogHeader>
             <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
               Hapus kertas kerja
             </AlertDialogTitle>
           </AlertDialogHeader>
-          <AlertDialogDescription className="px-4 py-3 text-sm leading-6 text-muted-foreground">
+          <AlertDialogDescription>
             Apakah Anda yakin ingin menghapus kertas kerja ini? Tindakan ini
             tidak dapat dibatalkan.
           </AlertDialogDescription>

@@ -21,15 +21,16 @@ func NewApprovalRepository(pool *pgxpool.Pool) repository.ApprovalRepository {
 }
 
 func (r *approvalRepository) List(ctx context.Context, status string, approverRole string, approverUserID *uuid.UUID, orgIDs []uuid.UUID, page int, limit int) ([]*entity.ApprovalRequest, int, error) {
-	whereClause := " WHERE 1=1"
+	// The approval module now serves risk and assessment workflows only.
+	// Incidents were removed from the current schema, so historical incident
+	// approval rows must not make the list query depend on that table.
+	whereClause := " WHERE ar.request_type IN ('risk', 'assessment')"
 	args := []interface{}{}
 	argIdx := 1
 
 	if len(orgIDs) > 0 {
 		whereClause += fmt.Sprintf(` AND (
-			(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($1)))
-			OR 
-			(ar.request_type NOT IN ('risk', 'assessment', 'incident'))
+			EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($1))
 		)`)
 		args = append(args, uuidArrayToStrings(orgIDs))
 		argIdx++
@@ -125,10 +126,8 @@ func (r *approvalRepository) FindByID(ctx context.Context, id uuid.UUID, orgIDs 
 		LEFT JOIN users u ON ar.requested_by = u.id
 		LEFT JOIN users cu ON ar.current_approver_user_id = cu.id
 		WHERE ar.id = $1 AND (cardinality($2::uuid[]) = 0 OR (
-			(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($2::uuid[])))
-			OR
-			(ar.request_type NOT IN ('risk', 'assessment', 'incident'))
-		))`, id, orgIDs,
+			EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($2::uuid[]))
+		)) AND ar.request_type IN ('risk', 'assessment')`, id, orgIDs,
 	).Scan(
 		&req.ID, &req.RequestType, &req.EntityID, &req.RequestedBy, &req.RequestedAt,
 		&req.CurrentStatus, &req.CurrentApproverRole, &req.CurrentApproverUserID, &req.Notes,
@@ -171,11 +170,9 @@ func (r *approvalRepository) FindByEntity(ctx context.Context, requestType strin
 		FROM approval_requests ar
 		LEFT JOIN users u ON ar.requested_by = u.id
 		LEFT JOIN users cu ON ar.current_approver_user_id = cu.id
-		WHERE ar.request_type = $1 AND ar.entity_id = $2
+		WHERE ar.request_type = $1 AND ar.request_type IN ('risk', 'assessment') AND ar.entity_id = $2
 		  AND (cardinality($3::uuid[]) = 0 OR (
-			(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($3::uuid[])))
-			OR
-			(ar.request_type NOT IN ('risk', 'assessment', 'incident'))
+			EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($3::uuid[]))
 		  ))
 		ORDER BY ar.requested_at DESC, ar.created_at DESC
 		LIMIT 1`, requestType, entityID, orgIDs,
@@ -413,19 +410,18 @@ func (r *approvalRepository) RejectCurrentStep(ctx context.Context, approvalRequ
 // GetPendingCount returns the count of pending approval requests for a role/user.
 func (r *approvalRepository) GetPendingCount(ctx context.Context, approverRole string, approverUserID *uuid.UUID, orgIDs []uuid.UUID) (int, error) {
 	var count int
-	query := `SELECT COUNT(*) FROM approval_requests ar WHERE ar.current_status='pending'`
+	query := `SELECT COUNT(*) FROM approval_requests ar WHERE ar.current_status='pending' AND ar.request_type IN ('risk', 'assessment')`
 	args := make([]interface{}, 0)
 	if approverRole != "" {
 		query += fmt.Sprintf(" AND ar.current_approver_role=$%d", len(args)+1)
 		args = append(args, approverRole)
 	}
-		if len(orgIDs) > 0 {
-			query += fmt.Sprintf(" AND (\n"+
-				"(ar.request_type IN ('risk', 'assessment') AND EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($%d)))\n"+
-				"OR (ar.request_type NOT IN ('risk', 'assessment', 'incident'))\n"+
-				")", len(args)+1)
-			args = append(args, uuidArrayToStrings(orgIDs))
-		}
+	if len(orgIDs) > 0 {
+		query += fmt.Sprintf(" AND (\n"+
+			"EXISTS (SELECT 1 FROM risks r WHERE r.id = ar.entity_id AND r.organization_id = ANY($%d))\n"+
+			")", len(args)+1)
+		args = append(args, uuidArrayToStrings(orgIDs))
+	}
 
 	if approverUserID != nil {
 		query += fmt.Sprintf(" AND ar.current_approver_user_id=$%d", len(args)+1)

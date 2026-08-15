@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,10 @@ export function ActionIconButton({
     <Button
       variant="ghost"
       size="icon-xs"
-      className={cn("text-muted-foreground", className)}
+      className={cn(
+        "border-0 bg-card text-muted-foreground shadow-none",
+        className,
+      )}
       aria-label={ariaLabel}
       {...props}
     >

@@ -130,6 +130,14 @@ func (r *fakeApprovalSyncTaskRepo) TaskExistsForPeriod(_ context.Context, mitiga
 	return r.exists[mitigationID.String()+":"+periodStart+":"+periodEnd], nil
 }
 
+func (r *fakeApprovalSyncTaskRepo) ListByMonitoring(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, nil
+}
+
+func (r *fakeApprovalSyncTaskRepo) CountByMonitoringAndStatus(context.Context, uuid.UUID, []uuid.UUID) (*repository.MonitoringTaskCounts, error) {
+	return &repository.MonitoringTaskCounts{}, nil
+}
+
 func TestEnsureTasksForApprovedRiskUseCase_ExecuteCreatesOneTaskPerMitigation(t *testing.T) {
 	riskID := uuid.New()
 	firstMitigationID := uuid.New()

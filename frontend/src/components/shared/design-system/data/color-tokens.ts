@@ -6,7 +6,7 @@ export const designSystemColorTokens = [
   { name: "card-foreground", value: "var(--card-foreground)" },
   { name: "popover", value: "var(--popover)" },
   { name: "popover-foreground", value: "var(--popover-foreground)" },
-  { name: "primary", value: "#00b9ad" },
+  { name: "primary", value: "#090909" },
   { name: "primary-foreground", value: "var(--primary-foreground)" },
   { name: "secondary", value: "var(--secondary)" },
   { name: "secondary-foreground", value: "var(--secondary-foreground)" },

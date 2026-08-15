@@ -31,7 +31,10 @@ import type {
   OverdueMitigationTimelineItem,
   UnitResponseTime,
 } from "@/types/risk";
-import { CollectionToolbar } from "@/components/shared/design-system";
+import {
+  CollectionPageHeader,
+  CollectionToolbar,
+} from "@/components/shared/design-system";
 import { PageStack } from "@/components/shared/design-system";
 import {
   ReportEmptyState,
@@ -187,9 +190,12 @@ export default function ComplianceMonitoringPage() {
 
   return (
     <PageStack>
-      <CollectionToolbar
+      <CollectionPageHeader
         title="Monitoring Kepatuhan"
         description="Ringkasan overdue mitigasi dan waktu respons unit dalam satu halaman."
+      />
+
+      <CollectionToolbar
         actions={
           <ReportsFilterSheet
             open={filterOpen}

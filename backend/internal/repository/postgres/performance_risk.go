@@ -123,7 +123,7 @@ func (r *performanceRiskRepository) ListRiskRows(ctx context.Context, filter ent
 		JOIN planning_goals goal ON goal.id = obj.goal_id
 		JOIN planning plan ON plan.id = goal.planning_id
 		LEFT JOIN mitigation_tasks mt ON mt.risk_id = r.id
-		WHERE r.status = 'approved'
+		WHERE r.status = 'final'
 		  AND r.archived_at IS NULL
 		  AND r.ro_id IS NOT NULL
 	`
@@ -138,6 +138,12 @@ func (r *performanceRiskRepository) ListRiskRows(ctx context.Context, filter ent
 		query += fmt.Sprintf(" AND r.assessment_cycle = $%d", argPos)
 		args = append(args, strings.TrimSpace(filter.Period))
 		argPos++
+	} else if filter.PlanningID != nil {
+		query += ` AND r.assessment_cycle = CASE
+			WHEN plan.period ~ '^[0-9]{4}-H1$' THEN LEFT(plan.period, 4) || '-Q2'
+			WHEN plan.period ~ '^[0-9]{4}-H2$' THEN LEFT(plan.period, 4) || '-Q4'
+			ELSE plan.period
+		END`
 	}
 	if len(filter.OrgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d::uuid[])", argPos)
@@ -186,7 +192,7 @@ func (r *performanceRiskRepository) ListMitigationRowsByROID(ctx context.Context
 		LEFT JOIN mitigations m ON m.id = mt.mitigation_id
 		LEFT JOIN organizations o ON o.id = r.organization_id
 		WHERE r.ro_id = $1
-		  AND r.status = 'approved'
+		  AND r.status = 'final'
 		  AND r.archived_at IS NULL
 		  AND mt.status IN ('pending', 'overdue')
 	`
@@ -201,6 +207,12 @@ func (r *performanceRiskRepository) ListMitigationRowsByROID(ctx context.Context
 		query += fmt.Sprintf(" AND r.assessment_cycle = $%d", argPos)
 		args = append(args, strings.TrimSpace(filter.Period))
 		argPos++
+	} else if filter.PlanningID != nil {
+		query += ` AND r.assessment_cycle = CASE
+			WHEN plan.period ~ '^[0-9]{4}-H1$' THEN LEFT(plan.period, 4) || '-Q2'
+			WHEN plan.period ~ '^[0-9]{4}-H2$' THEN LEFT(plan.period, 4) || '-Q4'
+			ELSE plan.period
+		END`
 	}
 	if len(filter.OrgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d::uuid[])", argPos)
@@ -236,13 +248,20 @@ func (r *performanceRiskRepository) ListUnlinkedRiskRows(ctx context.Context, fi
 		       '{}'::text[] AS mitigation_due_dates
 		FROM risks r
 		LEFT JOIN organizations o ON o.id = r.organization_id
-		WHERE r.status = 'approved'
+		WHERE r.status = 'final'
 		  AND r.archived_at IS NULL
 		  AND r.ro_id IS NULL
 	`
 	args := []any{}
 	if filter.PlanningID != nil {
-		query += " AND r.assessment_cycle = (SELECT period FROM planning WHERE id = $1)"
+		query += ` AND r.assessment_cycle = (
+			SELECT CASE
+				WHEN period ~ '^[0-9]{4}-H1$' THEN LEFT(period, 4) || '-Q2'
+				WHEN period ~ '^[0-9]{4}-H2$' THEN LEFT(period, 4) || '-Q4'
+				ELSE period
+			END
+			FROM planning WHERE id = $1
+		)`
 		args = append(args, *filter.PlanningID)
 	} else {
 		query += " AND r.assessment_cycle = $1"

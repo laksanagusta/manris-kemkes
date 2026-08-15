@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2 } from "@/components/ui/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -27,9 +27,9 @@ func (r *fakeCycleSnapshotRiskRepo) List(context.Context, []uuid.UUID, string, s
 func (r *fakeCycleSnapshotRiskRepo) ListRegister(context.Context, repo.RiskRegisterFilter) ([]*entity.Risk, int, error) {
 	return nil, 0, nil
 }
-func (r *fakeCycleSnapshotRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) { 
+func (r *fakeCycleSnapshotRiskRepo) ListApprovedRisks(context.Context, []uuid.UUID, string) ([]*entity.Risk, error) {
 	return nil, nil
- }
+}
 func (r *fakeCycleSnapshotRiskRepo) ListMitigations(context.Context, []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	return nil, nil
 }
@@ -96,12 +96,12 @@ func TestListCycleSnapshotUseCase_ReturnsSnapshotForCycle(t *testing.T) {
 	repo := &fakeCycleSnapshotRiskRepo{items: []*entity.Risk{{Title: "Risk A"}}}
 	uc := NewListRiskCycleSnapshotUseCase(repo, nil)
 
-	items, err := uc.Execute(context.Background(), ListRiskCycleSnapshotInput{Cycle: "2026-H1"})
+	items, err := uc.Execute(context.Background(), ListRiskCycleSnapshotInput{Cycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if repo.cycle != "2026-H1" {
-		t.Fatalf("expected cycle 2026-H1, got %s", repo.cycle)
+	if repo.cycle != "2026-Q2" {
+		t.Fatalf("expected cycle 2026-Q2, got %s", repo.cycle)
 	}
 	if len(items) != 1 || items[0].Title != "Risk A" {
 		t.Fatalf("unexpected items: %#v", items)

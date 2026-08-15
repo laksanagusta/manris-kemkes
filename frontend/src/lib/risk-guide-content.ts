@@ -134,7 +134,7 @@ export const riskGuideContent: RiskGuideContent = {
         "Tambahkan rencana penanganan: aksi, penanggung jawab, tenggat, frekuensi.",
         "Tentukan target penurunan dan tanggal review berikutnya, lalu klik 'Simpan Draft'.",
       ],
-      status: "assessment_draft",
+      status: "draft",
       statusLabel: "Draft",
     },
     {
@@ -148,7 +148,7 @@ export const riskGuideContent: RiskGuideContent = {
         "Sistem langsung mengubah status menjadi 'Disetujui'.",
         "Risiko terkunci dan tidak bisa diedit langsung - harus melalui proses pemantauan.",
       ],
-      status: "approved",
+      status: "final",
       statusLabel: "Disetujui",
     },
     {
@@ -162,14 +162,14 @@ export const riskGuideContent: RiskGuideContent = {
         "Siapkan rencana penanganan sesuai jadwal yang sudah ditentukan.",
         "Buka menu Pemantauan Risiko untuk memulai siklus penilaian ulang.",
       ],
-      status: "approved",
+      status: "final",
       statusLabel: "Disetujui",
     },
     {
       title: riskGuideStepTitles[3],
       summary: "Mulai siklus pemantauan - sistem membuat draft baru",
       description:
-        "Di awal semester (H1/H2) atau sesuai jadwal, mulai pemantauan untuk menilai kembali risiko. Sistem membuat draft pemantauan baru yang memuat data terakhir risiko. Draft ini terhubung ke versi sebelumnya.",
+        "Di setiap kuartal (Q1–Q4) atau sesuai kewajiban periode, mulai pemantauan untuk menilai kembali risiko. Sistem membuat draft pemantauan baru yang memuat data terakhir risiko. Draft ini terhubung ke identitas risiko yang sama.",
       actions: [
         "Buka menu Pemantauan Risiko.",
         "Pilih risiko yang akan dipantau.",
@@ -177,7 +177,7 @@ export const riskGuideContent: RiskGuideContent = {
         "Sistem membuat draft pemantauan baru (status: Draft) yang terhubung ke versi aktif.",
         "Draft otomatis berisi data terakhir: penyebab, mitigasi, target, probabilitas, dampak.",
       ],
-      status: "assessment_draft",
+      status: "draft",
       statusLabel: "Draft",
     },
     {
@@ -192,7 +192,7 @@ export const riskGuideContent: RiskGuideContent = {
         "Simpan draft secara berkala dengan klik 'Simpan Draft'.",
         "Bila sudah siap, klik 'Finalisasi Pemantauan'.",
       ],
-      status: "assessment_draft",
+      status: "draft",
       statusLabel: "Draft",
     },
     {
@@ -207,7 +207,7 @@ export const riskGuideContent: RiskGuideContent = {
         "Versi pemantauan sebelumnya diarsipkan.",
         "Siklus pemantauan selesai. Mulai pemantauan baru bila perlu.",
       ],
-      status: "approved",
+      status: "final",
       statusLabel: "Disetujui",
     },
   ],
@@ -217,7 +217,7 @@ export const riskGuideContent: RiskGuideContent = {
       {
         question: "Berapa lama satu siklus pemantauan?",
         answer:
-          "Siklus pemantauan mengikuti periode organisasi, misalnya setiap semester (H1 dan H2).",
+          "Siklus pemantauan mengikuti periode kuartalan Q1–Q4.",
       },
       {
         question:

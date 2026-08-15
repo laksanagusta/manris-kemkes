@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { CalendarDays, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { CalendarDays, AlertCircle, CheckCircle, Clock } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { normalizeKRIReportPayload, validateKRIReportForm } from "@/lib/validation/reporting";
@@ -106,7 +106,7 @@ export function KRIReportsList({ kriId, metric, organizationId }: { kriId: strin
 
   if (loading) {
     return (
-      <Card className="border-border/50 bg-card/80 animate-pulse">
+      <Card className="bg-card/80 animate-pulse">
         <CardContent className="h-40 flex items-center justify-center">
           <p className="text-sm text-muted-foreground">Memuat jadwal laporan...</p>
         </CardContent>
@@ -116,7 +116,7 @@ export function KRIReportsList({ kriId, metric, organizationId }: { kriId: strin
 
   return (
     <>
-      <Card className="border-border/50 bg-card/80">
+      <Card className="bg-card/80">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarDays className="size-5 text-primary" />

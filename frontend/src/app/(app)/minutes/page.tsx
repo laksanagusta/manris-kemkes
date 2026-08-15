@@ -9,12 +9,13 @@ import {
   Loader2,
   Plus,
   Trash2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
 import {
   AccentButton,
+  CollectionPageHeader,
   CollectionEmptyState,
   ExpandableSearchField,
   CollectionLoadingState,
@@ -221,9 +222,20 @@ function MinutesPageContent() {
 
   return (
     <PageStack>
-      <CollectionToolbar
+      <CollectionPageHeader
         title="Meeting"
         description="Kelola notulen rapat yang tersimpan dan buka briefing untuk ditinjau."
+        actions={
+          <AccentButton
+            icon={<Plus className="size-3.5" />}
+            onClick={() => router.push("/minutes/new")}
+          >
+            Buat dari Transkrip
+          </AccentButton>
+        }
+      />
+
+      <CollectionToolbar
         actions={
           <>
             <ExpandableSearchField
@@ -242,12 +254,6 @@ function MinutesPageContent() {
                 className="h-9 bg-card pl-9 text-sm ring-1 ring-inset ring-border/40"
               />
             </div>
-            <AccentButton
-              icon={<Plus className="size-3.5" />}
-              onClick={() => router.push("/minutes/new")}
-            >
-              Buat dari Transkrip
-            </AccentButton>
           </>
         }
       />

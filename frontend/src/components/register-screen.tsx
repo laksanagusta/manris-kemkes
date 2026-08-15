@@ -10,7 +10,7 @@ import {
   EyeOff,
   Loader2,
   Search,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchInput } from "@/components/ui/search-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ApiError } from "@/lib/api";
 import {
@@ -167,7 +168,7 @@ export default function RegisterScreen() {
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -left-[35%] -top-[30%] h-[70%] w-[70%] rounded-full bg-primary/5 blur-3xl animate-[pulse_10s_ease-in-out_infinite]" />
-        <div className="absolute bottom-[-25%] right-[-25%] h-[60%] w-[60%] rounded-full bg-chart-2/5 blur-3xl animate-[pulse_12s_ease-in-out_infinite_2s]" />
+        <div className="absolute bottom-[-25%] right-[-25%] h-[60%] w-[60%] rounded-full bg-muted-foreground/5 blur-3xl animate-[pulse_12s_ease-in-out_infinite_2s]" />
       </div>
 
       <div
@@ -189,7 +190,7 @@ export default function RegisterScreen() {
           </p>
         </div>
 
-        <Card className="border-border/50 bg-card/85 shadow-2xl shadow-primary/5 backdrop-blur-xl">
+        <Card className="bg-card/85 backdrop-blur-xl">
           <CardHeader className="pb-4">
             <CardTitle>Buat akun baru</CardTitle>
             <CardDescription>
@@ -288,8 +289,9 @@ export default function RegisterScreen() {
                     >
                       <div className="flex items-center border-b border-border/50 px-3">
                         <Search className="mr-2 size-4 shrink-0 text-muted-foreground/70" />
-                        <input
-                          className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                        <SearchInput
+                          type="search"
+                          className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
                           placeholder="Cari nama unit kerja..."
                           value={organizationQuery}
                           onChange={(event) =>

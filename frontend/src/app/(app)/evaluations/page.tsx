@@ -8,10 +8,9 @@ import {
   FilePlus2,
   Loader2,
   MoreHorizontal,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { toast } from "sonner";
 
-import { useSetHeaderActions } from "@/lib/header-actions-context";
 import { useAuth } from "@/contexts/auth-context";
 import {
   listOrganizationGroups,
@@ -28,6 +27,7 @@ import {
 } from "@/lib/api/organizations";
 import {
   CollectionPagination,
+  CollectionPageHeader,
   CollectionFilterTrigger,
   CollectionSearchField,
   CollectionTableCard,
@@ -144,7 +144,7 @@ function EvaluationFiltersSidebar({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[22rem] rounded-2xl p-4"
+        className="w-[22rem] rounded-xl p-4"
       >
         <div className="space-y-4">
           <div>
@@ -183,7 +183,7 @@ function EvaluationFiltersSidebar({
                 Periode
               </Label>
               <Select value={periodFilter} onValueChange={onPeriodFilterChange}>
-                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Periode" />
                 </SelectTrigger>
                 <SelectContent>
@@ -204,7 +204,7 @@ function EvaluationFiltersSidebar({
                 value={status}
                 onValueChange={(value) => onStatusChange(value as EvaluationStatus | "all")}
               >
-                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -333,8 +333,6 @@ export default function EvaluationsPage() {
   }>({});
   const organizationFilterInitialized = useRef(false);
 
-  const setHeaderActions = useSetHeaderActions();
-
   const handleCreateDialogOpenChange = useCallback(
     (open: boolean) => {
       setCreateDialogOpen(open);
@@ -345,20 +343,6 @@ export default function EvaluationsPage() {
     },
     [router],
   );
-
-  useEffect(() => {
-    if (!token) return;
-    setHeaderActions(
-      <AccentButton
-        type="button"
-        onClick={() => handleCreateDialogOpenChange(true)}
-        icon={<FilePlus2 className="size-3.5" strokeWidth={2.5} />}
-      >
-        Buat Evaluasi
-      </AccentButton>,
-    );
-    return () => setHeaderActions(null);
-  }, [token, setHeaderActions, handleCreateDialogOpenChange]);
 
   const handleResetFilters = () => {
     setOrganizationId("all");
@@ -655,6 +639,22 @@ export default function EvaluationsPage() {
 
   return (
     <PageStack>
+      <CollectionPageHeader
+        title="Evaluasi"
+        description="Kelola evaluasi monitoring dan tindak lanjut risiko organisasi."
+        actions={
+          token ? (
+            <AccentButton
+              type="button"
+              onClick={() => handleCreateDialogOpenChange(true)}
+              icon={<FilePlus2 className="size-3.5" strokeWidth={2.5} />}
+            >
+              Buat Evaluasi
+            </AccentButton>
+          ) : null
+        }
+      />
+
       <MetricGrid>
         {evaluationSummaryCards.map((card) => (
           <KpiCard
@@ -671,12 +671,6 @@ export default function EvaluationsPage() {
       </MetricGrid>
 
       <CollectionToolbar
-        title="Daftar evaluasi"
-        description={
-          loading
-            ? "Memuat data evaluasi..."
-            : `${visibleEvaluations.length} evaluasi pada filter aktif`
-        }
         actions={
           <EvaluationFiltersToolbar
             query={query}
@@ -870,26 +864,26 @@ export default function EvaluationsPage() {
         open={createDialogOpen}
         onOpenChange={handleCreateDialogOpenChange}
       >
-        <DialogContent className="flex max-h-[90vh] min-h-0 flex-col gap-0 overflow-hidden overscroll-contain rounded-2xl p-0 shadow-2xl sm:max-h-[88vh] sm:max-w-md">
+        <DialogContent>
           <form
-            className="flex min-h-0 flex-col"
+            className="space-y-5"
             onSubmit={(event) => {
               event.preventDefault();
               void handleCreateEvaluation();
             }}
             aria-busy={creatingEvaluation}
           >
-            <DialogHeader className="!-mx-0 !-mt-0 shrink-0 border-b border-border/60 bg-background px-6 py-5">
+            <DialogHeader>
               <DialogTitle className="text-base font-semibold leading-tight tracking-tight text-foreground text-balance">
                 Buat evaluasi
               </DialogTitle>
-              <DialogDescription className="mt-1 max-w-[38ch] text-sm leading-5 text-muted-foreground text-pretty">
+              <DialogDescription className="mt-1 max-w-[38ch] text-pretty">
                 Pilih organisasi dan periode untuk membuat draft evaluasi.
                 Detailnya dapat dilengkapi setelah draft dibuat.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 py-5">
+            <div className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="create-organization">Organisasi</Label>
                 <OrganizationPicker
@@ -966,7 +960,7 @@ export default function EvaluationsPage() {
               </div>
             </div>
 
-            <DialogFooter className="!-mx-0 !-mb-0 shrink-0 border-t border-border/60 bg-muted/[0.18] px-6 py-4 sm:flex-row">
+            <DialogFooter className="sm:flex-row">
               <ActionButton
                 type="button"
                 variant="outline"

@@ -33,24 +33,24 @@ export function FormDialogExample() {
       <DialogTrigger asChild>
         <Button size="sm">Open Form Dialog</Button>
       </DialogTrigger>
-      <DialogContent className="flex max-h-[90vh] min-h-0 flex-col gap-0 overflow-hidden overscroll-contain rounded-2xl p-0 shadow-2xl sm:max-w-md">
+      <DialogContent>
         <form
-          className="flex min-h-0 flex-col"
+          className="space-y-5"
           onSubmit={(event) => {
             event.preventDefault();
             setOpen(false);
           }}
         >
-          <DialogHeader className="!-mx-0 !-mt-0 shrink-0 border-b border-border/60 bg-background px-6 py-5">
+          <DialogHeader>
             <DialogTitle className="text-base font-semibold leading-tight tracking-tight text-foreground">
               Buat evaluasi
             </DialogTitle>
-            <DialogDescription className="mt-1 max-w-[38ch] text-sm leading-5 text-muted-foreground">
+            <DialogDescription className="mt-1 max-w-[38ch]">
               Pilih organisasi dan periode untuk membuat draft evaluasi.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 py-5">
+          <div className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="design-system-organization">Organisasi</Label>
               <Select defaultValue="pusat">
@@ -78,7 +78,7 @@ export function FormDialogExample() {
             </div>
           </div>
 
-          <DialogFooter className="!-mx-0 !-mb-0 shrink-0 border-t border-border/60 bg-muted/[0.18] px-6 py-4 sm:flex-row">
+          <DialogFooter className="sm:flex-row">
             <ActionButton
               type="button"
               variant="outline"

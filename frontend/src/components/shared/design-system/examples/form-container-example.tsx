@@ -15,7 +15,7 @@ export function FormContainerExample() {
       </div>
       <div className="hidden xl:block">
         <div className="space-y-6 xl:sticky xl:top-24">
-          <FormContainer title="Side Panel" className="bg-card/80 shadow-sm backdrop-blur-lg">
+          <FormContainer title="Side Panel" className="bg-card/80 backdrop-blur-lg">
             <InlineEmptyState message="Sticky side panel — 380px (xl) / 430px (2xl)" />
           </FormContainer>
         </div>

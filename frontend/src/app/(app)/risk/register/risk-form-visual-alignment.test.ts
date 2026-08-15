@@ -27,8 +27,10 @@ for (const [name, source] of [
       assert.match(source, /setHeaderActions\(/);
       assert.match(source, /Simpan draft/);
       assert.match(source, /Finalisasi risiko/);
-      assert.match(source, /borderColor: "rgba\(10, 10, 10, 0\.16\)"/);
-      assert.match(source, /"--primary": "#00b9ad"/);
+      assert.match(
+        source,
+        /smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300\/30/,
+      );
     } else {
       assert.match(source, /<FormHeader/);
     }
@@ -38,7 +40,11 @@ for (const [name, source] of [
     test(`${name} uses the risk register section geometry`, () => {
       assert.match(
         source,
-        /rounded-xl border border-zinc-200\/80 bg-card shadow-none/,
+        /not-last:border-b-0 bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300\/30/,
+      );
+      assert.doesNotMatch(
+        source,
+        /RISK_FORM_SURFACE_CLASS\s*=\s*"[^"]*\sborder(?:\s|-[^\s"]*)/,
       );
       assert.match(source, /px-5 py-4/);
       assert.match(source, /space-y-5 px-5 pb-6 pt-2/);
@@ -52,16 +58,18 @@ test("registration behavior entry points remain intact", () => {
   assert.match(registrationSource, /setHeaderActions\(/);
   assert.match(
     registrationSource,
-    /xl:grid-cols-\[minmax\(0,1\.85fr\)_340px\]/,
+    /xl:grid-cols-\[minmax\(0,1\.7fr\)_380px\]/,
   );
   assert.match(registrationSource, /xl:sticky xl:top-24/);
-  assert.match(registrationSource, /role="progressbar"/);
-  assert.match(registrationSource, /aria-label=\{`Kesiapan finalisasi:/);
+  assert.match(registrationSource, /scrollToSection\(/);
   assert.doesNotMatch(
     registrationSource,
     /onClick=\{\(\) => scrollToSection\(section\.id\)\}/,
   );
-  assert.match(registrationSource, /ring-zinc-200\/80/);
+  assert.match(
+    registrationSource,
+    /not-last:border-b-0 bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300\/30/,
+  );
 });
 
 test("assessment behavior entry points remain intact", () => {

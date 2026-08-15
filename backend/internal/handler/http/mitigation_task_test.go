@@ -71,6 +71,14 @@ func (r *mitigationTaskRepoStub) TaskExistsForPeriod(context.Context, uuid.UUID,
 	return false, nil
 }
 
+func (r *mitigationTaskRepoStub) ListByMonitoring(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return []*entity.MitigationTask{}, nil
+}
+
+func (r *mitigationTaskRepoStub) CountByMonitoringAndStatus(context.Context, uuid.UUID, []uuid.UUID) (*repository.MonitoringTaskCounts, error) {
+	return &repository.MonitoringTaskCounts{}, nil
+}
+
 var _ repository.MitigationTaskRepository = (*mitigationTaskRepoStub)(nil)
 
 type mitigationRiskRepoStub struct {

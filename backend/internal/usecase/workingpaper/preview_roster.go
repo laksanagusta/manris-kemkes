@@ -20,8 +20,8 @@ func (uc *UseCase) PreviewRoster(
 	if strings.TrimSpace(assessmentCycle) == "" {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "assessment cycle is required"}
 	}
-	if !isValidSemesterFormat(assessmentCycle) {
-		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: fmt.Sprintf("invalid assessment cycle %q, expected YYYY-H1 or YYYY-H2", assessmentCycle)}
+	if !isValidQuarterFormat(assessmentCycle) {
+		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: fmt.Sprintf("invalid assessment cycle %q, expected YYYY-Q1 through YYYY-Q4", assessmentCycle)}
 	}
 
 	if orgID == uuid.Nil {
@@ -35,12 +35,12 @@ func (uc *UseCase) PreviewRoster(
 	return uc.wpRepo.PreviewPeriodRoster(ctx, orgID, assessmentCycle)
 }
 
-func isValidSemesterFormat(cycle string) bool {
+func isValidQuarterFormat(cycle string) bool {
 	if len(cycle) < 4 {
 		return false
 	}
 	parts := strings.SplitN(cycle, "-", 2)
-	if len(parts) != 2 || (parts[1] != "H1" && parts[1] != "H2") {
+	if len(parts) != 2 || (parts[1] != "Q1" && parts[1] != "Q2" && parts[1] != "Q3" && parts[1] != "Q4") {
 		return false
 	}
 	for _, c := range parts[0] {

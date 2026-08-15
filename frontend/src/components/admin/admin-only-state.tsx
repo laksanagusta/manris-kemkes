@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldX } from "lucide-react";
+import { ShieldX } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ export function AdminOnlyState({
 }: AdminOnlyStateProps) {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-10rem)] max-w-xl items-center justify-center">
-      <Card className="w-full border-border/30 bg-card/95 shadow-sm">
+      <Card className="w-full bg-card/95">
         <CardHeader className="items-start gap-4 text-left">
           <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
             <ShieldX />

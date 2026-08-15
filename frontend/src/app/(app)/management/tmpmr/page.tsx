@@ -11,7 +11,7 @@ import {
   RefreshCw,
   Search,
   SlidersHorizontal,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
@@ -38,6 +38,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import {
+  CollectionPageHeader,
+  PageStack,
+} from "@/components/shared/design-system";
 
 const PAGE_SIZE = 10;
 
@@ -177,27 +181,24 @@ export default function TMPMRListPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-1.5">
+    <PageStack>
+      <CollectionPageHeader
+        eyebrow={
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
             Risk Governance
           </p>
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">TMPMR</h2>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Kelola penilaian maturitas manajemen risiko per organisasi dan periode, lalu lanjutkan alurnya dari draft hingga approval.
-            </p>
-          </div>
-        </div>
-
-        <Button asChild className="gap-2">
-          <Link href="/management/tmpmr/new">
-            <Plus className="size-4" />
-            Buat Assessment
-          </Link>
-        </Button>
-      </div>
+        }
+        title="TMPMR"
+        description="Kelola penilaian maturitas manajemen risiko per organisasi dan periode, lalu lanjutkan alurnya dari draft hingga approval."
+        actions={
+          <Button asChild className="gap-2">
+            <Link href="/management/tmpmr/new">
+              <Plus className="size-4" />
+              Buat Assessment
+            </Link>
+          </Button>
+        }
+      />
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {[
@@ -216,7 +217,7 @@ export default function TMPMRListPage() {
         ))}
       </div>
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+      <Card className="bg-card/80 backdrop-blur-sm overflow-hidden">
         <CardHeader className="border-b border-border/40 pb-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-1">
@@ -414,6 +415,6 @@ export default function TMPMRListPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageStack>
   );
 }

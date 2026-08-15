@@ -5,20 +5,22 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center border border-transparent bg-clip-padding text-[13px] font-medium whitespace-nowrap shadow-[0_1px_1px_rgba(0,0,0,0.04)] transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
+  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center border border-transparent bg-clip-padding text-[13px] font-medium whitespace-nowrap shadow-[0_1px_1px_rgba(0,0,0,0.04)] transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
   {
     variants: {
       variant: {
         default:
           "bg-primary text-primary-foreground hover:bg-primary/90 [a]:hover:bg-primary/90 shadow-[0_1px_2px_-0.5px_rgba(0,0,0,0.08),inset_0_-0.5px_0_0_rgba(0,0,0,0.12)] bg-clip-border border-[rgba(10,10,10,0.16)] active:scale-[0.97]",
+        primary:
+          "box-border relative shrink-0 overflow-hidden border-0 bg-[#090909] bg-no-repeat bg-[length:100%_100%] [background-image:linear-gradient(180deg,_#2e2e2e_0%,_#090909_100%)] text-white shadow-[0_1px_2px_0_#00000038] transition-[filter] duration-150 hover:brightness-110 active:brightness-90",
         success:
           "bg-success text-white hover:bg-success/90 focus-visible:border-success/40 focus-visible:ring-success/20 active:scale-[0.97]",
         outline:
-          "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 aria-expanded:bg-zinc-50 aria-expanded:text-zinc-900 dark:border-input dark:bg-input/30 dark:hover:bg-input/50 active:scale-[0.97]",
+          "border-border bg-card text-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground active:scale-[0.97]",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground active:scale-[0.97]",
         ghost:
-          "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 aria-expanded:bg-zinc-100 aria-expanded:text-zinc-900 dark:hover:bg-muted/50",
+          "text-muted-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40 active:scale-[0.97]",
         link: "text-primary underline-offset-4 hover:underline",
@@ -26,6 +28,8 @@ const buttonVariants = cva(
       size: {
         default:
           "h-11 gap-2 rounded-md px-5 has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4",
+        primary:
+          "h-[36px] w-fit gap-[6px] rounded-[8px] p-[1px_12px] text-[14px]/[21px] font-['Inter_Variable',system-ui,sans-serif] font-medium tracking-[-0.14px] text-center whitespace-nowrap",
         premium:
           "h-12 gap-2 rounded-md px-6 text-sm has-data-[icon=inline-end]:pr-5 has-data-[icon=inline-start]:pl-5",
         md: "h-9 gap-2 rounded-md px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Download, FileSpreadsheet, Loader2, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, Loader2, Upload } from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { PageStack } from "@/components/shared/design-system";
 import { ROPicker } from "@/components/risk/ro-picker";
 import type {
   MonitoringPreviewItem,
@@ -383,7 +384,7 @@ export default function BulkRiskRegisterPage() {
   };
 
   return (
-    <div className="space-y-6 pb-10">
+    <PageStack className="pb-10">
       <FormHeader
         title="Import Risiko"
         description="Upload template XLSX. Parsing, validasi, dan lookup unit kerja dijalankan di backend agar konsisten dengan master data server."
@@ -450,7 +451,7 @@ export default function BulkRiskRegisterPage() {
         </TabsList>
 
         <TabsContent value="baru">
-          <Card className="rounded-[12px] border border-border/60 bg-card">
+          <Card className="rounded-[12px] bg-card">
             <CardHeader className="border-b border-border/50">
               <CardTitle className="text-base font-semibold text-foreground">
                 Sumber Data
@@ -494,7 +495,7 @@ export default function BulkRiskRegisterPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[12px] border border-border/50 bg-card mt-10">
+          <Card className="rounded-[12px] bg-card mt-10">
             <CardContent className="space-y-4 px-6 py-6">
               {isGlobalUser && (
                 <div className="space-y-2">
@@ -626,7 +627,7 @@ export default function BulkRiskRegisterPage() {
         </TabsContent>
 
         <TabsContent value="pemantauan">
-          <Card className="rounded-[12px] border border-border/50 bg-card">
+          <Card className="rounded-[12px] bg-card">
             <CardHeader className="border-b border-border/50">
               <CardTitle className="text-base font-semibold text-foreground">
                 Sumber Data
@@ -692,7 +693,7 @@ export default function BulkRiskRegisterPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[12px] border border-border/60 bg-card mt-10">
+          <Card className="rounded-[12px] bg-card mt-10">
             <CardContent className="space-y-4 px-6 py-6">
               {!isUnitRole && (
                 <div className="space-y-2">
@@ -724,54 +725,54 @@ export default function BulkRiskRegisterPage() {
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-border/50">
                   <Table>
-                    <TableHeader className="bg-muted/20">
+                    <TableHeader className="bg-table-header">
                       <TableRow>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Baris
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Kode Risiko
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Uraian Risiko
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Target P
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Target D
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Target Nilai
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Target Tingkat
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Realisasi P
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Realisasi D
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Bobot
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Skor Inherent
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Tingkat
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Simpulan
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Efektivitas
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Status
                         </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-medium text-muted-foreground">
+                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
                           Catatan
                         </TableHead>
                       </TableRow>
@@ -864,7 +865,7 @@ export default function BulkRiskRegisterPage() {
       </Tabs>
 
       {bulkMode === "baru" && resultItems.length > 0 ? (
-        <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
+        <Card className="overflow-hidden rounded-[24px] bg-card">
           <CardContent className="space-y-4 px-6 py-6">
             <div className="flex flex-wrap gap-2">
               <Badge
@@ -909,7 +910,7 @@ export default function BulkRiskRegisterPage() {
       ) : null}
 
       {bulkMode === "pemantauan" && monitoringResults.length > 0 && (
-        <Card className="overflow-hidden rounded-[24px] border border-border/60 bg-card">
+        <Card className="overflow-hidden rounded-[24px] bg-card">
           <CardContent className="space-y-4 px-6 py-6">
             <div className="flex flex-wrap gap-2">
               <Badge
@@ -952,6 +953,6 @@ export default function BulkRiskRegisterPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageStack>
   );
 }

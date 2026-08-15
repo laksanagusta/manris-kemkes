@@ -2,6 +2,7 @@ package risk
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -85,6 +86,23 @@ func (f *fakeMonitoringTransactionRepo) UpdateDraft(_ context.Context, monitorin
 	return nil
 }
 
+func (f *fakeMonitoringTransactionRepo) UpdateTaskMonitoringIDs(context.Context, uuid.UUID, uuid.UUID, string) error {
+	return nil
+}
+
+func (f *fakeMonitoringTransactionRepo) VoidAndCreateCorrection(_ context.Context, monitoringID uuid.UUID, draft *entity.RiskMonitoring, _ uuid.UUID, _ string) (*entity.RiskMonitoring, error) {
+	if _, ok := f.byID[monitoringID]; !ok {
+		return nil, domainerrors.ErrRiskNotFound
+	}
+	if draft.ID == uuid.Nil {
+		draft.ID = uuid.New()
+	}
+	if err := f.Create(context.Background(), draft); err != nil {
+		return nil, err
+	}
+	return cloneRiskMonitoringForTest(draft), nil
+}
+
 func (f *fakeMonitoringTransactionRepo) Finalize(_ context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error) {
 	m, ok := f.byID[monitoringID]
 	if !ok {
@@ -132,6 +150,20 @@ type fakeMonitoringRiskRepoForUsecase struct {
 	risks map[uuid.UUID]*entity.Risk
 }
 
+type fakeMonitoringPeriodRepo struct {
+	previousCycle string
+	assertErr     error
+}
+
+func (f *fakeMonitoringPeriodRepo) EnsureMonitoringPeriods(context.Context, uuid.UUID, time.Time, int) error {
+	return nil
+}
+
+func (f *fakeMonitoringPeriodRepo) AssertPreviousMonitoringPeriodCompleted(_ context.Context, _ uuid.UUID, cycle string) error {
+	f.previousCycle = cycle
+	return f.assertErr
+}
+
 func (f *fakeMonitoringRiskRepoForUsecase) GetByID(_ context.Context, id uuid.UUID, _ []uuid.UUID) (*entity.Risk, error) {
 	r, ok := f.risks[id]
 	if !ok {
@@ -167,11 +199,11 @@ func TestStartMonitoringUseCase_CreatesDraft(t *testing.T) {
 
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
 	monitoringRepo := newFakeMonitoringTransactionRepo()
-	uc := NewStartMonitoringUseCase(riskRepo, monitoringRepo, nil, nil)
+	uc := NewStartMonitoringUseCase(riskRepo, monitoringRepo, nil, nil, &fakeMonitoringPeriodRepo{})
 
 	out, err := uc.Execute(context.Background(), StartMonitoringInput{
 		SourceRiskID: sourceID,
-		Cycle:        "2026-H1",
+		Cycle:        "2026-Q2",
 		OrgIDs:       []uuid.UUID{orgID},
 		StartedBy:    uuid.New(),
 	})
@@ -189,6 +221,81 @@ func TestStartMonitoringUseCase_CreatesDraft(t *testing.T) {
 	}
 	if out.RedirectURL != "/risk/monitoring/"+out.Monitoring.ID.String() {
 		t.Fatalf("unexpected redirect url %q", out.RedirectURL)
+	}
+}
+
+func TestStartMonitoringUseCase_EnforcesPreviousQuarter(t *testing.T) {
+	orgID := uuid.New()
+	sourceID := uuid.New()
+	source := &entity.Risk{
+		ID:             sourceID,
+		Code:           "R-002",
+		Title:          "Sequential risk",
+		Category:       entity.RiskCategoryOperasional,
+		Status:         entity.RiskStatusApproved,
+		VersionGroupID: uuid.New(),
+		IsCurrent:      true,
+		OrganizationID: &orgID,
+		Probability:    3,
+		Impact:         3,
+		Weight:         1,
+	}
+	periodRepo := &fakeMonitoringPeriodRepo{assertErr: domainerrors.ErrPreviousMonitoringNotCompleted}
+	uc := NewStartMonitoringUseCase(
+		&fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}},
+		newFakeMonitoringTransactionRepo(),
+		nil,
+		nil,
+		periodRepo,
+	)
+
+	_, err := uc.Execute(context.Background(), StartMonitoringInput{
+		SourceRiskID: sourceID,
+		Cycle:        "2026-Q3",
+		OrgIDs:       []uuid.UUID{orgID},
+		StartedBy:    uuid.New(),
+	})
+	if !errors.Is(err, domainerrors.ErrPreviousMonitoringNotCompleted) {
+		t.Fatalf("expected previous-quarter guard, got %v", err)
+	}
+	if periodRepo.previousCycle != "2026-Q2" {
+		t.Fatalf("expected previous cycle 2026-Q2, got %q", periodRepo.previousCycle)
+	}
+}
+
+func TestStartMonitoringUseCase_RejectsCycleBeforeRiskEffectiveCycle(t *testing.T) {
+	orgID := uuid.New()
+	sourceID := uuid.New()
+	source := &entity.Risk{
+		ID:              sourceID,
+		Code:            "R-003",
+		Title:           "Effective-cycle risk",
+		Category:        entity.RiskCategoryOperasional,
+		Status:          entity.RiskStatusFinal,
+		VersionGroupID:  uuid.New(),
+		IsCurrent:       true,
+		AssessmentCycle: "2026-Q2",
+		OrganizationID:  &orgID,
+		Probability:     3,
+		Impact:          3,
+		Weight:          1,
+	}
+	uc := NewStartMonitoringUseCase(
+		&fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}},
+		newFakeMonitoringTransactionRepo(),
+		nil,
+		nil,
+		&fakeMonitoringPeriodRepo{},
+	)
+
+	_, err := uc.Execute(context.Background(), StartMonitoringInput{
+		SourceRiskID: sourceID,
+		Cycle:        "2026-Q1",
+		OrgIDs:       []uuid.UUID{orgID},
+		StartedBy:    uuid.New(),
+	})
+	if !errors.Is(err, domainerrors.ErrInvalidInput) {
+		t.Fatalf("expected effective-cycle guard, got %v", err)
 	}
 }
 
@@ -210,11 +317,11 @@ func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
 		Impact:         3,
 		Weight:         entity.GetBobot(4, 3),
 	}
-	monitoring := entity.NewRiskMonitoringDraft(source, "2026-H1", uuid.New())
+	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q2", uuid.New())
 	monitoring.ID = monitoringID
 	monitoringRepo := newFakeMonitoringTransactionRepo()
 	monitoringRepo.byID[monitoringID] = monitoring
-	monitoringRepo.drafts[sourceID.String()+"|2026-H1"] = monitoring
+	monitoringRepo.drafts[sourceID.String()+"|2026-Q2"] = monitoring
 
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
 	uc := NewUpdateMonitoringUseCase(riskRepo, monitoringRepo)
@@ -232,8 +339,6 @@ func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
 		Conclusion:                  "Perlu revisi",
 		MitigationProgressSummary:   "60%",
 		MitigationCompletionPercent: 60,
-		MitigationObstacles:         "Barrier",
-		MitigationFollowUp:          "Next step",
 		Values: entity.RiskMonitoringDraftValues{
 			Title:                "Updated source risk",
 			Category:             entity.RiskCategoryOperasional,
@@ -263,6 +368,55 @@ func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
 	}
 }
 
+func TestUpdateMonitoringUseCase_MergesOmittedScoresAndDescription(t *testing.T) {
+	orgID := uuid.New()
+	sourceID := uuid.New()
+	monitoringID := uuid.New()
+	source := &entity.Risk{
+		ID:             sourceID,
+		Code:           "R-002",
+		Title:          "Source risk",
+		Description:    "Source description",
+		Category:       entity.RiskCategoryOperasional,
+		Status:         entity.RiskStatusFinal,
+		VersionGroupID: uuid.New(),
+		IsCurrent:      true,
+		IsCycleCurrent: true,
+		OrganizationID: &orgID,
+		Probability:    4,
+		Impact:         3,
+		Weight:         entity.GetBobot(4, 3),
+	}
+	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q2", uuid.New())
+	monitoring.ID = monitoringID
+	monitoringRepo := newFakeMonitoringTransactionRepo()
+	monitoringRepo.byID[monitoringID] = monitoring
+	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
+	uc := NewUpdateMonitoringUseCase(riskRepo, monitoringRepo)
+
+	out, err := uc.Execute(context.Background(), UpdateMonitoringInput{
+		MonitoringID: monitoringID,
+		OrgIDs:       []uuid.UUID{orgID},
+		// Deliberately omit probability and impact to model a partial MCP update.
+		Values: entity.RiskMonitoringDraftValues{
+			Description:  "Updated description",
+			ChangeReason: "Description was clarified",
+		},
+	})
+	if err != nil {
+		t.Fatalf("expected partial update to succeed, got %v", err)
+	}
+	if out.Monitoring.ObservedProbability != source.Probability || out.Monitoring.ObservedImpact != source.Impact {
+		t.Fatalf("expected omitted scores to be merged from draft, got %d/%d", out.Monitoring.ObservedProbability, out.Monitoring.ObservedImpact)
+	}
+	if out.Monitoring.DraftPayload == nil || out.Monitoring.DraftPayload.Description != "Updated description" {
+		t.Fatalf("expected monitoring description to persist, got %#v", out.Monitoring.DraftPayload)
+	}
+	if out.UpdatedMode != entity.RiskMonitoringModeWithProfileRevision {
+		t.Fatalf("expected description-only change to create profile revision mode, got %q", out.UpdatedMode)
+	}
+}
+
 func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 	orgID := uuid.New()
 	sourceID := uuid.New()
@@ -283,7 +437,7 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 		Weight:         entity.GetBobot(4, 3),
 		Mitigations:    []entity.Mitigation{{Action: "Original", Owner: "Unit"}},
 	}
-	monitoring := entity.NewRiskMonitoringDraft(source, "2026-H1", uuid.New())
+	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q2", uuid.New())
 	monitoring.ID = monitoringID
 	monitoring.Mode = entity.RiskMonitoringModeWithProfileRevision
 	monitoring.SetDraftPayload(&entity.RiskMonitoringDraftPayload{
@@ -305,7 +459,7 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 
 	monitoringRepo := newFakeMonitoringTransactionRepo()
 	monitoringRepo.byID[monitoringID] = monitoring
-	monitoringRepo.drafts[sourceID.String()+"|2026-H1"] = monitoring
+	monitoringRepo.drafts[sourceID.String()+"|2026-Q2"] = monitoring
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
 	uc := NewFinalizeMonitoringUseCase(riskRepo, monitoringRepo, nil, nil)
 
@@ -342,7 +496,7 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 	if resultRisk.ReviewStartedAt == nil {
 		t.Fatalf("expected review started at to be set")
 	}
-	if resultRisk.AssessmentCycle != "2026-H1" {
-		t.Fatalf("expected result risk assessment cycle 2026-H1, got %q", resultRisk.AssessmentCycle)
+	if resultRisk.AssessmentCycle != "2026-Q2" {
+		t.Fatalf("expected result risk assessment cycle 2026-Q2, got %q", resultRisk.AssessmentCycle)
 	}
 }

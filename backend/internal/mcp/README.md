@@ -87,7 +87,7 @@ Retrieve a specific risk by ID.
   "title": "string",
   "description": "string",
   "category": "string",
-  "status": "draft|assessment_draft|approved",
+  "status": "draft|final",
   "probability": 1-5,
   "impact": 1-5,
   "weight": "number",
@@ -106,7 +106,7 @@ List risks with optional filtering.
 **Input**:
 ```json
 {
-  "status": "string (optional, e.g., 'approved')",
+  "status": "string (optional, e.g., 'final')",
   "limit": "number (default: 100)",
   "offset": "number (default: 0)"
 }
@@ -128,7 +128,7 @@ List risks with optional filtering.
 ---
 
 ### 4. `create_and_approve_risk`
-Create a new risk and submit for approval in a single call.
+Create a new risk and finalize it in a single call. The legacy tool name is retained for MCP compatibility; risk approval is disabled.
 
 **Input**:
 ```json
@@ -152,20 +152,16 @@ Create a new risk and submit for approval in a single call.
   "risk": {
     "id": "uuid",
     "code": "R001",
-    "status": "approved|draft",
+    "status": "final|draft",
     ...
   },
-  "approval": {
-    "id": "uuid",
-    "status": "approved|pending",
-    "message": "string"
-  }
+  "final_status": "final"
 }
 ```
 
 **Behavior**:
-- If `RISK_APPROVAL_WORKFLOW_ENABLED=false`: Risk is auto-approved with `status=approved`
-- If `RISK_APPROVAL_WORKFLOW_ENABLED=true`: Risk created as draft, approval submitted to queue
+- Risk is created directly with `status=final` in one database transaction.
+- No approval request or approval step is created for risks.
 - Working paper lock check honored (returns error if locked)
 
 **Auth**: Requires active session. Risk assigned to org from session scope.
@@ -205,17 +201,14 @@ Update a draft risk.
 
 ---
 
-### 6. `monitor_and_approve_risk`
-Create a risk reassessment and submit for approval.
+### 6. `start_risk_monitoring` (canonical; `monitor_and_approve_risk` is a compatibility alias)
+Start a monitoring transaction for a finalized risk. The legacy tool name is retained for MCP compatibility; it no longer creates a standalone risk version or approval request.
 
 **Input**:
 ```json
 {
   "riskId": "uuid (required)",
-  "assessmentCycle": "string (e.g., '2026-H1', required)",
-  "riskApproverIds": ["uuid", ...],
-  "submissionType": "approval|draft",
-  "notes": "string (optional)"
+  "assessmentCycle": "string (e.g., '2026-Q2', required)"
 }
 ```
 
@@ -223,28 +216,31 @@ Create a risk reassessment and submit for approval.
 ```json
 {
   "id": "uuid",
-  "status": "approved|pending",
-  "message": "string",
-  "cycle": "2026-H1"
+  "status": "draft",
+  "existingDraft": false,
+  "redirectUrl": "/risk/monitoring/<uuid>",
+  "cycle": "2026-Q2"
 }
 ```
 
 **Behavior**:
-- Creates reassessment draft for monitoring cycle
-- Submits to approval queue if `submissionType=approval`
-- Auto-approves if `RISK_APPROVAL_WORKFLOW_ENABLED=false`
+- Creates the monitoring form only when this tool is invoked
+- Returns the existing draft when the same risk and quarter are already in progress
+- Enforces that the previous quarter's monitoring is finalized first
 
 ---
 
 ### 7. `update_monitoring_draft`
-Update a risk reassessment draft.
+Update a monitoring draft. Profile fields are revised inside this monitoring transaction and are not written directly to the risk register.
 
 **Input**:
 ```json
 {
   "id": "uuid (required)",
-  "reviewSummary": "string",
-  "assessmentCycle": "string"
+  "probability": 1,
+  "impact": 1,
+  "conclusion": "string",
+  "changeReason": "string (required when profile fields change)"
 }
 ```
 
@@ -252,8 +248,7 @@ Update a risk reassessment draft.
 ```json
 {
   "id": "uuid",
-  "code": "R001",
-  "message": "updated successfully"
+  "message": "monitoring draft updated"
 }
 ```
 
@@ -380,13 +375,11 @@ response2 = call_tool("create_and_approve_risk", {
 ### Example 2: Monitor Existing Risk
 
 ```python
-response = call_tool("monitor_and_approve_risk", {
+response = call_tool("start_risk_monitoring", {
     "riskId": "existing-risk-uuid",
-    "assessmentCycle": "2026-H1",
-    "riskApproverIds": ["approver-uuid"],
-    "submissionType": "approval"
+    "assessmentCycle": "2026-Q2"
 })
-# Reassessment created for H1 2026 monitoring
+# Monitoring draft created for Q2 2026; no approval is performed
 ```
 
 ---
@@ -499,7 +492,7 @@ Session expires after `JWT_EXPIRY_HOURS`. The LLM must call `login` again to ref
 
 ### No Call to ApprovalActionUseCase
 
-Per spec, `create_and_approve_risk` and `monitor_and_approve_risk` do NOT call `ApprovalActionUseCase` (approve/reject action). They only call `SubmitApprovalUseCase` to enqueue for approval. Auto-approval (if `RISK_APPROVAL_WORKFLOW_ENABLED=false`) happens inside the submission usecase.
+Risk and monitoring tools do not call `ApprovalActionUseCase` or `SubmitApprovalUseCase`. Risk creation finalizes directly; monitoring creates a draft transaction that must be finalized with the monitoring finalization flow.
 
 ---
 

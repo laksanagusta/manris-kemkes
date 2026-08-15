@@ -15,7 +15,7 @@ import {
   Loader2,
   Save,
   Send,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   MitigationTable,
   type MitigationItem,
@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { api, ApiError } from "@/lib/api";
 import { getRiskDetail, updateRiskAssessment } from "@/lib/api/risk-assessment";
 import {
+  correctMonitoring,
   finalizeMonitoring,
   getMonitoringDetail,
   updateMonitoringDraft,
@@ -125,13 +126,13 @@ function buildRiskFromMonitoring(
   sourceRisk: Risk | null,
 ): Risk {
   const base = (monitoring.resultRisk ?? sourceRisk ?? {}) as Risk;
-  const status =
-    monitoring.status === "finalized" ? "approved" : "assessment_draft";
+  const status = monitoring.status === "final" ? "final" : "draft";
 
   return {
     ...base,
     id: monitoring.resultRisk?.id ?? monitoring.id,
     title: monitoring.draftTitle || base.title,
+    description: monitoring.draftDescription || base.description,
     category: monitoring.draftCategory || base.category,
     cause: monitoring.draftCause?.length ? monitoring.draftCause : base.cause,
     riskSource: monitoring.draftRiskSource || base.riskSource,
@@ -171,15 +172,13 @@ const approvalRoleLabels: Record<string, string> = {
 };
 
 const assessmentStatusLabel: Record<string, string> = {
-  assessment_draft: "Draf Pemantauan",
-  assessment_in_review: "Dalam Review",
-  approved: "Disetujui",
+  draft: "Draf Pemantauan",
+  final: "Final",
 };
 
 const assessmentStatusBadgeClass: Record<string, string> = {
-  assessment_draft: "border-border bg-muted/40 text-muted-foreground",
-  assessment_in_review: "border-blue-500/20 bg-blue-500/10 text-blue-700",
-  approved: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
+  draft: "border-border bg-muted/40 text-muted-foreground",
+  final: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
 };
 
 function toHydratedUserPickerOption(user: {
@@ -221,7 +220,12 @@ export default function AssessmentFormPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { token, user } = useAuth();
-  const isMonitoringRoute = pathname.startsWith("/risk/monitoring");
+  // The former /risk/assessment route is retained as a URL compatibility
+  // alias, but it must use the same monitoring transaction flow. There is no
+  // standalone profile-edit/reassessment screen anymore.
+  const isMonitoringRoute =
+    pathname.startsWith("/risk/monitoring") ||
+    pathname.startsWith("/risk/assessment");
   const backTarget = isMonitoringRoute
     ? "/risk/register?tab=monitoring-transactions"
     : "/risk/assessment";
@@ -481,8 +485,7 @@ export default function AssessmentFormPage() {
 
   const handleSaveDraft = async () => {
     if (
-      draftRisk?.status === "assessment_in_review" ||
-      draftRisk?.status === "approved"
+      draftRisk?.status === "final"
     ) {
       toast.info("Pemantauan yang sudah diajukan tidak dapat diedit lagi.");
       return;
@@ -493,8 +496,7 @@ export default function AssessmentFormPage() {
 
   const handleSubmitForReview = async () => {
     if (
-      draftRisk?.status === "assessment_in_review" ||
-      draftRisk?.status === "approved"
+      draftRisk?.status === "final"
     ) {
       toast.info("Pemantauan yang sudah diajukan tidak dapat diedit lagi.");
       return;
@@ -502,6 +504,27 @@ export default function AssessmentFormPage() {
     submitTarget.current = "review";
     setShowSubmitReviewConfirm(false);
     await form.handleSubmit(onSubmit)();
+  };
+
+  const handleCreateCorrection = async () => {
+    if (!token || !id || !isMonitoringRoute) return;
+    const reason = window.prompt("Alasan koreksi monitoring wajib diisi:")?.trim();
+    if (!reason) {
+      toast.error("Alasan koreksi wajib diisi.");
+      return;
+    }
+    try {
+      setIsSaving(true);
+      const result = await correctMonitoring(token, id, reason);
+      toast.success("Draft koreksi monitoring berhasil dibuat.");
+      router.replace(`/risk/monitoring/${result.monitoring.id}`);
+    } catch (error) {
+      toast.error("Gagal membuat draft koreksi monitoring", {
+        description: (error as Error).message,
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const loadRiskData = useCallback(async () => {
@@ -699,8 +722,7 @@ export default function AssessmentFormPage() {
   const onSubmit = async (values: AssessmentFormValues) => {
     if (!token || !id || !draftRisk) return;
     if (
-      draftRisk.status === "assessment_in_review" ||
-      draftRisk.status === "approved"
+      draftRisk.status === "final"
     ) {
       toast.info("Pemantauan yang sudah diajukan tidak dapat diedit lagi.");
       return;
@@ -734,10 +756,9 @@ export default function AssessmentFormPage() {
             monitoring?.mitigationProgressSummary || "",
           mitigationCompletionPercent:
             monitoring?.mitigationCompletionPercent || 0,
-          mitigationObstacles: monitoring?.mitigationObstacles || "",
-          mitigationFollowUp: monitoring?.mitigationFollowUp || "",
           values: {
             title: mergedSubstance.title ?? draftRisk.title,
+            description: mergedSubstance.description ?? draftRisk.description,
             category: mergedSubstance.category ?? draftRisk.category,
             cause: mergedSubstance.cause ?? (draftRisk.cause || []),
             riskSource:
@@ -785,7 +806,7 @@ export default function AssessmentFormPage() {
       const submissionStatus =
         isDraftSubmission || riskApprovalCapabilityBehavior.submitsForApproval
           ? draftRisk.status
-          : "approved";
+          : "final";
       const draftApprovalLinePayload =
         riskApprovalCapabilityBehavior.showsApprovalLineEditor
           ? [
@@ -923,8 +944,7 @@ export default function AssessmentFormPage() {
   }
 
   const isAssessmentLocked =
-    draftRisk.status === "assessment_in_review" ||
-    draftRisk.status === "approved";
+    draftRisk.status === "final";
   const defaultAccordionSections =
     !isMonitoringRoute && riskApprovalCapabilityBehavior.showsApprovalLineEditor
       ? ["hasil-pemantauan", "approval-line"]
@@ -969,8 +989,19 @@ export default function AssessmentFormPage() {
         onBack={() => router.push(backTarget)}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {isMonitoringRoute && draftRisk.status === "final" && (
+              <Button
+                variant="outline"
+                size="md"
+                className="gap-2"
+                onClick={handleCreateCorrection}
+                disabled={isSaving}
+              >
+                Buat koreksi
+              </Button>
+            )}
             <TooltipProvider>
-              {(draftRisk.status === "assessment_draft" || !id) && (
+              {(draftRisk.status === "draft" || !id) && (
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
@@ -1021,7 +1052,7 @@ export default function AssessmentFormPage() {
           >
             <AccordionItem
               value="hasil-pemantauan"
-              className="scroll-mt-28 overflow-hidden rounded-xl border border-border/40 bg-card shadow-none transition-all data-[state=open]:border-primary/20"
+              className="scroll-mt-28 overflow-hidden rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-all"
             >
               <AccordionTrigger className="group px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
                 <div className="flex flex-1 items-center justify-between gap-4 pr-2">
@@ -1105,7 +1136,7 @@ export default function AssessmentFormPage() {
                         />
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-border/40 bg-card p-5 shadow-none">
+                      <div className="rounded-xl bg-card p-5 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                         <Label className="text-sm font-medium text-foreground">
                           Rencana Penanganan
                         </Label>
@@ -1261,7 +1292,7 @@ export default function AssessmentFormPage() {
 
             <AccordionItem
               value="perubahan-substansi"
-              className="scroll-mt-28 overflow-hidden rounded-xl border border-border/40 bg-card shadow-none transition-all data-[state=open]:border-primary/20"
+              className="scroll-mt-28 overflow-hidden rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-all"
             >
               <AccordionTrigger className="group px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
                 <div className="flex flex-1 items-center justify-between gap-4 pr-2">
@@ -1303,7 +1334,7 @@ export default function AssessmentFormPage() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                <div className="rounded-xl border border-border/40 bg-card px-5 py-5 shadow-none">
+                <div className="rounded-xl bg-card px-5 py-5 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="space-y-1">
                       <Label className="text-sm font-medium text-foreground">
@@ -1351,7 +1382,7 @@ export default function AssessmentFormPage() {
                   )}
                 </div>
 
-                <div className="rounded-xl border border-border/40 bg-card px-5 py-5 shadow-none">
+                <div className="rounded-xl bg-card px-5 py-5 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <RiskSubstanceFields
                     value={substanceDraft}
                     onChange={setSubstanceDraft}
@@ -1365,11 +1396,11 @@ export default function AssessmentFormPage() {
             {/* Accordion Approval Line */}
             {!isMonitoringRoute &&
               riskApprovalCapabilityBehavior.showsApprovalLineEditor &&
-              (!id || draftRisk.status === "assessment_draft") && (
+              (!id || draftRisk.status === "draft") && (
                 <AccordionItem
                   value="approval-line"
                   id="approval-line"
-                  className="scroll-mt-28 overflow-hidden rounded-xl border border-border/40 bg-card shadow-none transition-all data-[state=open]:border-primary/20"
+                  className="scroll-mt-28 overflow-hidden rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-all"
                 >
                   <AccordionTrigger className="group px-5 py-4 hover:no-underline hover:bg-muted/30 [&[data-state=open]>div>div>p]:text-primary">
                     <div className="flex flex-1 items-center justify-between gap-4 pr-2">
@@ -1400,7 +1431,7 @@ export default function AssessmentFormPage() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                    <div className="rounded-xl border border-border/40 bg-card p-5 space-y-3 shadow-none">
+                    <div className="rounded-xl bg-card p-5 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
                           Reviewer (Pemeriksa)
@@ -1425,7 +1456,7 @@ export default function AssessmentFormPage() {
                       />
                     </div>
 
-                    <div className="rounded-xl border border-primary/10 bg-card p-5 space-y-4 shadow-none">
+                    <div className="rounded-xl bg-card p-5 space-y-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
                           Rantai Persetujuan (Pimpinan)
@@ -1463,7 +1494,7 @@ export default function AssessmentFormPage() {
 
         {/* Right Column / Side Panel */}
         <div className="space-y-4 xl:sticky xl:top-24">
-          <div className="overflow-hidden rounded-xl border border-border/40 bg-card shadow-none">
+          <div className="overflow-hidden rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
             <div className="border-b border-border/40 px-4 py-3">
               <p className="text-sm font-semibold text-foreground">
                 Simpulan Pemantauan

@@ -48,7 +48,7 @@ test("scores and compact badges follow the table density", () => {
   assert.match(page, /<Badge\s+size="compact"\s+tone=/);
   assert.match(
     page,
-    /"flex size-6 items-center justify-center rounded-sm ring-1/,
+    /"flex h-6 items-center justify-center gap-1 rounded-full border-0/,
   );
 });
 

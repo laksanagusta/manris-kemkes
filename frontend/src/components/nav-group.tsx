@@ -14,7 +14,7 @@ import {
 	SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import type { SidebarNavGroup } from "@/components/app-shared";
-import { ChevronRightIcon } from "lucide-react";
+import { ChevronRightIcon } from "@/components/ui/icons";
 
 export function NavGroup({ label, items }: SidebarNavGroup) {
 	return (

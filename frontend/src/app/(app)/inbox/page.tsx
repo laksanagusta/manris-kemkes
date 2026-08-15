@@ -12,11 +12,12 @@ import {
   FileSignature,
   FileText,
   X,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import { Badge } from "@/components/ui/badge";
 import {
   CollectionPagination,
+  CollectionPageHeader,
   CollectionEmptyState,
   CollectionErrorState,
   CollectionLoadingState,
@@ -147,7 +148,7 @@ const requestTypeConfig: Record<
   assessment: {
     icon: FileText,
     label: "Penilaian Risiko",
-    href: (id) => `/risk/assessment/${id}`,
+    href: (id) => `/risk/monitoring/${id}`,
   },
   kri_report: {
     icon: BarChart3,
@@ -745,6 +746,11 @@ export default function InboxPage() {
 
   return (
     <PageStack>
+      <CollectionPageHeader
+        title="Persetujuan & TTE"
+        description="Tinjau, setujui, dan tindak lanjuti permintaan yang masuk."
+      />
+
       <Tabs
         value={filter}
         onValueChange={(value) => {
@@ -789,7 +795,6 @@ export default function InboxPage() {
       </MetricGrid>
 
       <CollectionToolbar
-        title="Daftar Persetujuan"
         actions={
           <>
           <CollectionSearchField

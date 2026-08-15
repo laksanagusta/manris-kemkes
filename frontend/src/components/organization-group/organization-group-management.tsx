@@ -8,12 +8,15 @@ import {
   Search,
   Trash2,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CollectionPagination } from "@/components/shared/design-system";
+import {
+  CollectionPagination,
+  CollectionTableHead,
+} from "@/components/shared/design-system";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +33,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -300,7 +302,7 @@ export function OrganizationGroupManagement({
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(24,24,27,0.05)] ring-1 ring-inset ring-zinc-200/80">
+      <div className="overflow-hidden rounded-2xl bg-white smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
         <div className="flex flex-col gap-4 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:px-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
@@ -321,11 +323,11 @@ export function OrganizationGroupManagement({
                     setPage(1);
                   }}
                   placeholder="Cari grup..."
-                  className="h-8 border-zinc-200 bg-white pl-9 text-sm shadow-none"
+                  className="h-8 border-border bg-card pl-9 text-sm shadow-none"
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground tabular-nums ring-1 ring-inset ring-border">
                   {totalGroups} grup
                 </span>
                 <Button className="h-8 gap-2 text-xs" variant="outline" onClick={openCreateDialog}>
@@ -339,34 +341,34 @@ export function OrganizationGroupManagement({
 
         <div className="relative w-full overflow-x-auto">
           <Table className="min-w-[920px]">
-            <TableHeader className="[&_tr]:border-b [&_tr]:border-zinc-200">
-              <TableRow className="border-b border-zinc-200 transition-colors hover:bg-transparent">
-                <TableHead className="w-[30%] whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
+            <TableHeader className="[&_tr]:border-b [&_tr]:border-border">
+              <TableRow className="border-b border-border transition-colors hover:bg-transparent">
+                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap pl-4 pr-2.5 text-left align-middle uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
                   Nama Grup
-                </TableHead>
-                <TableHead className="w-[30%] whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-zinc-500">
+                </CollectionTableHead>
+                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-zinc-500">
                   Pemilik
-                </TableHead>
-                <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-zinc-500">
+                </CollectionTableHead>
+                <CollectionTableHead density="compact" className="w-24 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-zinc-500">
                   Anggota
-                </TableHead>
-                <TableHead className="w-32 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-zinc-500">
+                </CollectionTableHead>
+                <CollectionTableHead density="compact" className="w-32 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-zinc-500">
                   Diperbarui
-                </TableHead>
-                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-zinc-500">
+                </CollectionTableHead>
+                <CollectionTableHead density="compact" className="w-28 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-zinc-500">
                   Aksi
-                </TableHead>
+                </CollectionTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70">
+                <TableRow className="border-border/80 transition-colors hover:bg-muted/70">
                   <TableCell colSpan={5} className="py-12 text-left text-xs text-zinc-500">
                     <Loader2 className="size-5 animate-spin text-zinc-400" />
                   </TableCell>
                 </TableRow>
               ) : paginatedGroups.length === 0 ? (
-                <TableRow className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70">
+                <TableRow className="border-border/80 transition-colors hover:bg-muted/70">
                   <TableCell colSpan={5} className="py-8 text-left text-xs text-zinc-500">
                     Tidak ada grup organisasi yang ditemukan.
                   </TableCell>
@@ -375,7 +377,7 @@ export function OrganizationGroupManagement({
                 paginatedGroups.map((group) => (
                   <TableRow
                     key={group.id}
-                    className="border-zinc-200/80 transition-colors hover:bg-zinc-50/70"
+                    className="border-border/80 transition-colors hover:bg-muted/70"
                   >
                     <TableCell className="pl-4 pr-2 align-middle md:pl-6">
                       <div className="max-w-[250px]">
@@ -452,20 +454,17 @@ export function OrganizationGroupManagement({
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent
-          className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
-          showCloseButton={!saving}
-        >
-          <DialogHeader className="shrink-0 border-b border-border/50 px-6 pb-3 pt-5">
+        <DialogContent className="max-w-2xl" showCloseButton={!saving}>
+          <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               {mode === "edit" ? "Edit Grup Organisasi" : "Tambah Grup Organisasi"}
             </DialogTitle>
-            <DialogDescription className="max-w-xl text-xs leading-5 text-muted-foreground">
+            <DialogDescription className="max-w-xl">
               Atur nama grup dan pilih organisasi anggota yang ingin dimasukkan.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 overflow-y-auto px-6 py-5">
+          <div className="space-y-5">
             <div className="space-y-2.5">
               <Label htmlFor="group-name">Nama Grup</Label>
               <Input
@@ -590,28 +589,26 @@ export function OrganizationGroupManagement({
             </div>
           </div>
 
-          <div className="shrink-0 border-t border-border/50 bg-muted/[0.18] px-6 py-4">
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleDialogOpenChange(false)}
-                disabled={saving}
-                className="sm:min-w-24"
-              >
-                Batal
-              </Button>
-              <Button
-                type="button"
-                onClick={() => void handleSave()}
-                disabled={saving || !ownerOrganizationId || !name.trim()}
-                className="sm:min-w-36"
-              >
-                {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-                {mode === "edit" ? "Simpan Perubahan" : "Simpan Grup"}
-              </Button>
-            </div>
-          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleDialogOpenChange(false)}
+              disabled={saving}
+              className="sm:min-w-24"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={saving || !ownerOrganizationId || !name.trim()}
+              className="sm:min-w-36"
+            >
+              {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+              {mode === "edit" ? "Simpan Perubahan" : "Simpan Grup"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

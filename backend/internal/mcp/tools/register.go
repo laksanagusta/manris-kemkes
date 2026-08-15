@@ -168,7 +168,7 @@ func RegisterRiskWriteTools(s *server.MCPServer, c *bootstrap.Container, mgr *se
 				"impact":         map[string]interface{}{"type": "number"},
 				"status": map[string]interface{}{
 					"type": "string",
-					"defs": "status of the risk (assessment_draft, assessment_in_review, approved)",
+					"defs": "status of the risk (draft, final)",
 				},
 			},
 			Required: []string{"id"},
@@ -188,13 +188,12 @@ func RegisterRiskWriteTools(s *server.MCPServer, c *bootstrap.Container, mgr *se
 func RegisterRiskMonitoringTools(s *server.MCPServer, c *bootstrap.Container, mgr *session.Manager) {
 	monitorTool := mcp.Tool{
 		Name:        "monitor_and_approve_risk",
-		Description: "Create a risk reassessment",
+		Description: "Deprecated compatibility alias for start_risk_monitoring. Starts a monitoring transaction and does not perform approval.",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"riskId":          map[string]interface{}{"type": "string"},
 				"assessmentCycle": map[string]interface{}{"type": "string"},
-				"submissionType":  map[string]interface{}{"type": "string"},
 			},
 			Required: []string{"riskId", "assessmentCycle"},
 		},
@@ -202,7 +201,29 @@ func RegisterRiskMonitoringTools(s *server.MCPServer, c *bootstrap.Container, mg
 	s.AddTool(monitorTool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := argsMap(req)
 		sess, _ := mgr.Get()
-		result, err := HandleMonitorRisk(ctx, c.RiskReassessUC, sess, args)
+		result, err := HandleMonitorRisk(ctx, c.RiskMonitoringStartUC, sess, args)
+		if err != nil {
+			return errorResult(err.Error()), nil
+		}
+		return successResult(result), nil
+	})
+
+	canonicalMonitorTool := mcp.Tool{
+		Name:        "start_risk_monitoring",
+		Description: "Start a quarterly risk monitoring transaction. This creates a draft and never performs approval.",
+		InputSchema: mcp.ToolInputSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"riskId":          map[string]interface{}{"type": "string"},
+				"assessmentCycle": map[string]interface{}{"type": "string", "pattern": "^[0-9]{4}-Q[1-4]$"},
+			},
+			Required: []string{"riskId", "assessmentCycle"},
+		},
+	}
+	s.AddTool(canonicalMonitorTool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		sess, _ := mgr.Get()
+		result, err := HandleMonitorRisk(ctx, c.RiskMonitoringStartUC, sess, args)
 		if err != nil {
 			return errorResult(err.Error()), nil
 		}
@@ -211,13 +232,32 @@ func RegisterRiskMonitoringTools(s *server.MCPServer, c *bootstrap.Container, mg
 
 	updateTool := mcp.Tool{
 		Name:        "update_monitoring_draft",
-		Description: "Update a risk reassessment draft",
+		Description: "Update a risk monitoring draft",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
-				"id":              map[string]interface{}{"type": "string"},
-				"reviewSummary":   map[string]interface{}{"type": "string"},
-				"assessmentCycle": map[string]interface{}{"type": "string"},
+				"id":                          map[string]interface{}{"type": "string", "description": "monitoring transaction ID"},
+				"probability":                 map[string]interface{}{"type": "integer", "minimum": 1, "maximum": 5},
+				"impact":                      map[string]interface{}{"type": "integer", "minimum": 1, "maximum": 5},
+				"conditionSummary":            map[string]interface{}{"type": "string"},
+				"eventSummary":                map[string]interface{}{"type": "string"},
+				"trend":                       map[string]interface{}{"type": "string"},
+				"effectivenessConclusion":     map[string]interface{}{"type": "string"},
+				"followUpNote":                map[string]interface{}{"type": "string"},
+				"conclusion":                  map[string]interface{}{"type": "string"},
+				"mitigationProgressSummary":   map[string]interface{}{"type": "string"},
+				"mitigationCompletionPercent": map[string]interface{}{"type": "integer", "minimum": 0, "maximum": 100},
+				"title":                       map[string]interface{}{"type": "string"},
+				"description":                 map[string]interface{}{"type": "string"},
+				"category":                    map[string]interface{}{"type": "string"},
+				"cause":                       map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+				"riskSource":                  map[string]interface{}{"type": "string"},
+				"controllability":             map[string]interface{}{"type": "string"},
+				"impactDesc":                  map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+				"existingControl":             map[string]interface{}{"type": "string"},
+				"controlEffectiveness":        map[string]interface{}{"type": "string"},
+				"treatmentOption":             map[string]interface{}{"type": "string"},
+				"changeReason":                map[string]interface{}{"type": "string"},
 			},
 			Required: []string{"id"},
 		},
@@ -225,7 +265,7 @@ func RegisterRiskMonitoringTools(s *server.MCPServer, c *bootstrap.Container, mg
 	s.AddTool(updateTool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := argsMap(req)
 		sess, _ := mgr.Get()
-		result, err := HandleUpdateMonitoringDraft(ctx, c.RiskUpdateUC, c.RiskGetUC, sess, args)
+		result, err := HandleUpdateMonitoringDraft(ctx, c.RiskMonitoringUpdateUC, sess, args)
 		if err != nil {
 			return errorResult(err.Error()), nil
 		}

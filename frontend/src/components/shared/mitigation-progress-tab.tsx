@@ -15,6 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -36,7 +44,7 @@ import {
   Loader2,
   Send,
   ExternalLink,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import type { MitigationTask } from "@/types/risk";
 import {
@@ -44,7 +52,10 @@ import {
 } from "@/lib/validation/reporting";
 import { isWithinMitigationSubmissionWindow } from "@/lib/kri-reporting";
 import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
-import { MitigationProgressDialog } from "@/components/shared/design-system";
+import {
+  AccentButton,
+  MitigationProgressDialog,
+} from "@/components/shared/design-system";
 
 export interface MitigationProgressDraft {
   taskId: string;
@@ -79,7 +90,7 @@ const STATUS_CONFIG: Record<
   },
   skipped: {
     label: "Dilewati",
-    color: "bg-gray-500/10 text-gray-500 border-gray-500/20",
+    color: "bg-muted text-muted-foreground border-border",
     icon: <Clock className="size-3" />,
   },
 };
@@ -101,6 +112,8 @@ export function MitigationProgressTab({
   // Form state for progress submission
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [notes, setNotes] = useState("");
+  const evidenceInputRef = useRef<HTMLInputElement | null>(null);
+  const notesInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const appliedDraftTaskIdRef = useRef<string | null>(null);
 
@@ -187,6 +200,13 @@ export function MitigationProgressTab({
     if (!selectedTask) return;
     if (hasFormErrors) {
       setShowValidationErrors(true);
+      window.requestAnimationFrame(() => {
+        if (formErrors.evidenceUrl) {
+          evidenceInputRef.current?.focus();
+        } else if (formErrors.notes) {
+          notesInputRef.current?.focus();
+        }
+      });
       toast.error("Lengkapi seluruh field wajib sebelum mengirim laporan.");
       return;
     }
@@ -267,7 +287,7 @@ export function MitigationProgressTab({
 
   if (loading) {
     return (
-      <Card className="border-border/50">
+      <Card>
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">
@@ -283,7 +303,7 @@ export function MitigationProgressTab({
       {/* Summary Stats */}
       {tasks.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-xl border bg-card p-3 text-center">
+          <div className="rounded-xl bg-card p-3 text-center smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
             <p className="text-2xl font-bold">{stats.total}</p>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
               Total
@@ -311,7 +331,7 @@ export function MitigationProgressTab({
       )}
 
       {/* Task List */}
-      <Card className="border-border/50">
+      <Card>
         <CardHeader className="border-b border-border/50">
           <CardTitle className="text-base font-bold">
             Progress Aktual Penanganan
@@ -333,19 +353,19 @@ export function MitigationProgressTab({
             </div>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border/50">
-              <table className="min-w-[980px] w-full">
-                <thead className="bg-muted/40">
-                  <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-3 font-semibold">Kode</th>
-                    <th className="px-4 py-3 font-semibold">Rencana</th>
-                    <th className="px-4 py-3 font-semibold">Periode</th>
-                    <th className="px-4 py-3 font-semibold">Tenggat</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold">Progress</th>
-                    <th className="px-4 py-3 font-semibold text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="min-w-[980px] w-full">
+                <TableHeader className="bg-table-header">
+                  <TableRow className="h-auto text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <TableHead className="px-4 py-3 font-semibold">Kode</TableHead>
+                    <TableHead className="px-4 py-3 font-semibold">Rencana</TableHead>
+                    <TableHead className="px-4 py-3 font-semibold">Periode</TableHead>
+                    <TableHead className="px-4 py-3 font-semibold">Tenggat</TableHead>
+                    <TableHead className="px-4 py-3 font-semibold">Status</TableHead>
+                    <TableHead className="px-4 py-3 font-semibold">Progress</TableHead>
+                    <TableHead className="px-4 py-3 font-semibold text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {tableTasks.map((task) => {
                     const statusCfg =
                       STATUS_CONFIG[task.status] || STATUS_CONFIG.pending;
@@ -358,20 +378,20 @@ export function MitigationProgressTab({
                         : null;
 
                     return (
-                      <tr
+                      <TableRow
                         key={task.id}
-                        className="cursor-pointer border-t border-border/50 transition-colors hover:bg-muted/30"
+                        className="h-auto cursor-pointer border-t border-border/50 transition-colors hover:bg-muted/30"
                         onClick={() => handleOpenDetail(task)}
                       >
-                        <td className="px-4 py-3 align-top">
+                        <TableCell className="px-4 py-3 align-top">
                           <div className="text-xs font-semibold text-foreground">
                             {task.riskCode || "—"}
                           </div>
                           <div className="text-[11px] text-muted-foreground">
                             {task.riskTitle || "—"}
                           </div>
-                        </td>
-                        <td className="px-4 py-3 align-top">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 align-top">
                           <div className="max-w-[360px] text-sm font-medium text-foreground line-clamp-2">
                             {task.mitigationAction || "—"}
                           </div>
@@ -380,21 +400,21 @@ export function MitigationProgressTab({
                               PIC: {task.mitigationOwner}
                             </div>
                           )}
-                        </td>
-                        <td className="px-4 py-3 align-top text-sm text-foreground">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 align-top text-sm text-foreground">
                           {task.periodLabel || "—"}
-                        </td>
-                        <td className="px-4 py-3 align-top text-sm text-foreground">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 align-top text-sm text-foreground">
                           {formatDate(task.dueDate)}
-                        </td>
-                        <td className="px-4 py-3 align-top">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 align-top">
                           <Badge
                             className={getLinearStatusBadgeClass(task.status)}
                           >
                             {statusCfg.icon} {statusCfg.label}
                           </Badge>
-                        </td>
-                        <td className="px-4 py-3 align-top">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 align-top">
                           <div className="space-y-1">
                             <Progress
                               value={task.status === "done" ? 100 : 0}
@@ -414,8 +434,8 @@ export function MitigationProgressTab({
                                 )}
                             </div>
                           </div>
-                        </td>
-                        <td className="px-4 py-3 align-top text-right">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 align-top text-right">
                           {(task.status === "pending" ||
                             task.status === "overdue") && (
                             <>
@@ -468,12 +488,12 @@ export function MitigationProgressTab({
                               )}
                             </>
                           )}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
@@ -486,7 +506,7 @@ export function MitigationProgressTab({
             <DialogTitle className="text-base">
               Detail Laporan Penanganan
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDescription>
               {detailTask?.mitigationAction || "-"} -{" "}
               {detailTask?.periodLabel || "-"}
             </DialogDescription>
@@ -545,7 +565,7 @@ export function MitigationProgressTab({
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+              <div className="rounded-xl bg-card p-4 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -622,11 +642,6 @@ export function MitigationProgressTab({
         open={showDialog}
         onOpenChange={setShowDialog}
         title="Lapor Progress Penanganan"
-        description={
-          selectedTask
-            ? `${selectedTask.mitigationAction} — ${selectedTask.periodLabel}`
-            : undefined
-        }
         evidenceUrl={evidenceUrl}
         onEvidenceUrlChange={setEvidenceUrl}
         notes={notes}
@@ -634,22 +649,24 @@ export function MitigationProgressTab({
         showValidationErrors={showValidationErrors}
         evidenceError={formErrors.evidenceUrl}
         notesError={formErrors.notes}
+        evidenceInputRef={evidenceInputRef}
+        notesInputRef={notesInputRef}
         evidenceId="mitigation-evidence-url"
         notesId="mitigation-notes"
         footerActions={
-          <Button
-            size="sm"
+          <AccentButton
             onClick={handleSubmitProgress}
-            disabled={submitting || hasFormErrors}
-            className="gap-2 text-xs"
+            disabled={submitting}
+            icon={
+              submitting ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <Send className="size-3" />
+              )
+            }
           >
-            {submitting ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <Send className="size-3" />
-            )}
             Kirim Laporan
-          </Button>
+          </AccentButton>
         }
       />
     </>

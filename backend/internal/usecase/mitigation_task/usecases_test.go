@@ -64,6 +64,14 @@ func (r *fakeGenerateTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID, s
 	return false, nil
 }
 
+func (r *fakeGenerateTaskRepo) ListByMonitoring(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, nil
+}
+
+func (r *fakeGenerateTaskRepo) CountByMonitoringAndStatus(context.Context, uuid.UUID, []uuid.UUID) (*repo.MonitoringTaskCounts, error) {
+	return &repo.MonitoringTaskCounts{}, nil
+}
+
 type fakeSubmitMitigationTaskRepo struct {
 	task    *entity.MitigationTask
 	updated *entity.MitigationTask
@@ -108,6 +116,14 @@ func (r *fakeSubmitMitigationTaskRepo) ListAllPaginated(context.Context, []uuid.
 }
 func (r *fakeSubmitMitigationTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID, string, string) (bool, error) {
 	return false, nil
+}
+
+func (r *fakeSubmitMitigationTaskRepo) ListByMonitoring(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (r *fakeSubmitMitigationTaskRepo) CountByMonitoringAndStatus(context.Context, uuid.UUID, []uuid.UUID) (*repo.MonitoringTaskCounts, error) {
+	return nil, errors.New("not implemented")
 }
 
 var _ repo.MitigationTaskRepository = (*fakeSubmitMitigationTaskRepo)(nil)
@@ -279,7 +295,6 @@ func TestSubmitProgressUseCase_ExecuteAllowsOverdueSubmission(t *testing.T) {
 	uc := NewSubmitProgressUseCase(taskRepo, riskRepo)
 	got, err := uc.Execute(context.Background(), SubmitProgressInput{
 		TaskID:      taskID,
-		ProgressPct: 75,
 		EvidenceURL: "https://example.com/evidence",
 		Notes:       "Catatan valid untuk progress",
 		ReportedBy:  uuid.New(),
@@ -292,9 +307,6 @@ func TestSubmitProgressUseCase_ExecuteAllowsOverdueSubmission(t *testing.T) {
 	}
 	if got.Status != "done" {
 		t.Fatalf("expected task to be marked done, got %q", got.Status)
-	}
-	if got.ProgressPct != 75 {
-		t.Fatalf("expected progress pct 75, got %d", got.ProgressPct)
 	}
 	if taskRepo.updated == nil {
 		t.Fatalf("expected task update to be persisted")
@@ -323,7 +335,6 @@ func TestSubmitProgressUseCase_ExecuteAllowsEarlySubmission(t *testing.T) {
 	uc := NewSubmitProgressUseCase(taskRepo, riskRepo)
 	got, err := uc.Execute(context.Background(), SubmitProgressInput{
 		TaskID:      taskID,
-		ProgressPct: 25,
 		EvidenceURL: "https://example.com/evidence",
 		Notes:       "Catatan valid untuk progress",
 		ReportedBy:  uuid.New(),

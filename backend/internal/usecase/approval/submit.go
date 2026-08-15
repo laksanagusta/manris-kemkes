@@ -7,7 +7,6 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
-	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
 // SubmitApprovalUseCase handles submitting entities for approval
@@ -41,7 +40,7 @@ func NewSubmitApprovalUseCase(
 
 // Input represents the input for submitting approval
 type SubmitApprovalInput struct {
-	RequestType    string      `json:"requestType"`    // 'risk', 'assessment', or 'incident'
+	RequestType    string      `json:"requestType"`    // 'risk' or 'assessment'
 	EntityID       string      `json:"entityId"`       // entity ID as string
 	RequestedBy    string      `json:"-"`              // user ID who is submitting (set by handler)
 	ActorName      string      `json:"-"`              // user name who is submitting (set by handler)
@@ -73,17 +72,15 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 		return nil, domainerrors.ErrInvalidInput
 	}
 
-	// Validate request type
-	if input.RequestType != "risk" && input.RequestType != "assessment" {
-		return nil, domainerrors.ErrInvalidRequestType
+	// Risk and assessment now use the direct draft -> final lifecycle. The
+	// incident workflow has been removed together with its database tables.
+	if input.RequestType == "risk" || input.RequestType == "assessment" {
+		return nil, domainerrors.ErrRiskApprovalDisabled
 	}
-
-	if (input.RequestType == "risk" || input.RequestType == "assessment") && uc.riskApprovalWorkflowEnabled && len(input.ApproverIDs) == 0 {
-		return nil, domainerrors.ErrInvalidInput
-	}
+	return nil, domainerrors.ErrInvalidRequestType
 
 	// Check entity existence and permissions
-	if err := uc.validateRisk(ctx, entityID, requestedBy, input.Role, input.OrgIDs); err != nil {
+	if err := uc.validateEntity(ctx, input.RequestType, entityID, input.OrgIDs); err != nil {
 		return nil, err
 	}
 
@@ -91,48 +88,6 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 	existingReq, _ := uc.approvalRepo.FindByEntity(ctx, input.RequestType, entityID, input.OrgIDs)
 	if existingReq != nil && existingReq.IsPending() {
 		return nil, domainerrors.ErrAlreadyPending
-	}
-
-	if (input.RequestType == "risk" || input.RequestType == "assessment") && !uc.riskApprovalWorkflowEnabled {
-		risk, err := uc.riskRepo.GetByID(ctx, entityID, input.OrgIDs)
-		if err != nil {
-			return nil, domainerrors.ErrRiskNotFound
-		}
-		if input.RequestType == "assessment" {
-			if err := uc.riskRepo.ActivateApprovedVersion(ctx, entityID); err != nil {
-				return nil, domainerrors.Wrap(err, "failed to activate approved assessment version")
-			}
-
-			return &SubmitApprovalOutput{
-				Status:  entity.RiskStatusApproved,
-				Message: "successfully approved",
-			}, nil
-		}
-		risk.Status = entity.RiskStatusApproved
-		if err := uc.riskRepo.Update(ctx, risk); err != nil {
-			return nil, domainerrors.Wrap(err, "failed to update risk status")
-		}
-		if uc.mitigationTaskRepo != nil {
-			if _, err := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.mitigationTaskRepo, uc.riskRepo).Execute(ctx, entityID, risk.AssessmentCycle, input.OrgIDs); err != nil {
-				return nil, domainerrors.Wrap(err, "failed to create mitigation tasks")
-			}
-		}
-
-		return &SubmitApprovalOutput{
-			Status:  entity.RiskStatusApproved,
-			Message: "successfully approved",
-		}, nil
-	}
-
-	if input.RequestType == "risk" || input.RequestType == "assessment" {
-		risk, err := uc.riskRepo.GetByID(ctx, entityID, input.OrgIDs)
-		if err != nil {
-			return nil, domainerrors.ErrRiskNotFound
-		}
-		risk.Status = entity.RiskStatusInReview
-		if err := uc.riskRepo.Update(ctx, risk); err != nil {
-			return nil, domainerrors.Wrap(err, "failed to update risk status")
-		}
 	}
 
 	approverIDs := input.ApproverIDs
@@ -225,12 +180,16 @@ func (uc *SubmitApprovalUseCase) Execute(ctx context.Context, input SubmitApprov
 	}, nil
 }
 
-// validateRisk validates if risk can be submitted for approval
-func (uc *SubmitApprovalUseCase) validateRisk(ctx context.Context, riskID uuid.UUID, _ uuid.UUID, _ string, orgIDs []uuid.UUID) error {
-	_, err := uc.riskRepo.GetByID(ctx, riskID, orgIDs)
-	if err != nil {
-		return domainerrors.ErrRiskNotFound
+func (uc *SubmitApprovalUseCase) validateEntity(ctx context.Context, requestType string, entityID uuid.UUID, orgIDs []uuid.UUID) error {
+	if requestType != "incident" || uc.incidentRepo == nil {
+		return domainerrors.ErrInvalidRequestType
 	}
-
+	incident, err := uc.incidentRepo.GetByID(ctx, entityID.String(), orgIDs)
+	if err != nil {
+		return domainerrors.ErrNotFound
+	}
+	if !incident.CanBeSubmittedForApproval() {
+		return domainerrors.ErrInvalidStatus
+	}
 	return nil
 }

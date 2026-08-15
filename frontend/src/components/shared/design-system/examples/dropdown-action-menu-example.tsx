@@ -1,4 +1,4 @@
-import { Archive, Trash2 } from "lucide-react";
+import { Archive, Trash2 } from "@/components/ui/icons";
 
 import { DropdownActionMenu } from "@/components/shared/design-system";
 

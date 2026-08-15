@@ -27,8 +27,12 @@ import {
   XCircle,
   Calendar,
   User,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
+import {
+  CollectionPageHeader,
+  PageStack,
+} from "@/components/shared/design-system";
 
 export default function ControlsPage() {
   const { token, user } = useAuth();
@@ -65,24 +69,21 @@ export default function ControlsPage() {
   }, [token]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Control Library</h1>
-          <p className="text-sm text-muted-foreground">
-            Pustaka pengendalian risiko dan pencatatan hasil testing
-          </p>
-        </div>
-        {(!user?.isGlobal && !user?.organizationId) ? null : (
-          <Link href="/compliance/controls/new">
-            <Button className="gap-2 shadow-lg shadow-primary/20">
-              <Plus className="size-4" />
-              Tambah Kontrol
+    <PageStack>
+      <CollectionPageHeader
+        title="Control Library"
+        description="Pustaka pengendalian risiko dan pencatatan hasil testing"
+        actions={
+          (!user?.isGlobal && !user?.organizationId) ? null : (
+            <Button asChild className="gap-2 shadow-lg shadow-primary/20">
+              <Link href="/compliance/controls/new">
+                <Plus className="size-4" />
+                Tambah Kontrol
+              </Link>
             </Button>
-          </Link>
-        )}
-      </div>
+          )
+        }
+      />
 
        {/* Search */}
        <div className="relative max-w-sm">
@@ -107,7 +108,7 @@ export default function ControlsPage() {
           const effectiveCount = control.tests ? control.tests.filter((t: any) => t.result === "Efektif").length : 0;
 
           return (
-            <Card key={control.id} className="border-border/50 bg-card/80 transition-all">
+            <Card key={control.id} className="bg-card/80 transition-all">
               <CardContent className="p-0">
                 {/* Main row */}
                 <button
@@ -212,6 +213,6 @@ export default function ControlsPage() {
           );
         })}
       </div>
-    </div>
+    </PageStack>
   );
 }

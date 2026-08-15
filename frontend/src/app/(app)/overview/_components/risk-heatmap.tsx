@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ArrowUpRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ArrowUpRight, TrendingUp, TrendingDown, Minus } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,7 +66,7 @@ export function RiskHeatmap({
     return (
       <Card
         className={cn(
-          "border-border/50 bg-card/80 backdrop-blur-sm",
+          "bg-card/80 backdrop-blur-sm",
           !compact && "lg:col-span-3",
         )}
         data-testid="heatmap-grid"
@@ -82,7 +82,7 @@ export function RiskHeatmap({
     return (
       <Card
         className={cn(
-          "border-border/50 bg-card/80 backdrop-blur-sm",
+          "bg-card/80 backdrop-blur-sm",
           !compact && "lg:col-span-3",
         )}
         data-testid="heatmap-grid"
@@ -102,7 +102,7 @@ export function RiskHeatmap({
   return (
     <Card
       className={cn(
-        "border-border/50 bg-card/80 backdrop-blur-sm",
+        "bg-card/80 backdrop-blur-sm",
         !compact && "lg:col-span-3",
       )}
       data-testid="heatmap-grid"

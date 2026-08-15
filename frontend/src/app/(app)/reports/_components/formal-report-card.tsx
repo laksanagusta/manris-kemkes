@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, FileText, Loader2 } from "lucide-react";
+import { ArrowUpRight, FileText, Loader2 } from "@/components/ui/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ export function FormalReportCard({
   const subtitle = summary?.headline || "";
 
   return (
-    <Card className="group flex h-full flex-col rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+    <Card className="group flex h-full flex-col rounded-lg bg-card">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1.5">

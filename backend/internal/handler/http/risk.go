@@ -26,7 +26,6 @@ type RiskHandler struct {
 	spreadsheetUC           *riskuc.BulkRiskSpreadsheetUseCase
 	getUC                   *riskuc.GetRiskUseCase
 	exportPDFUC             riskExportPDFUseCase
-	reassessUC              *riskuc.CreateRiskReassessmentUseCase
 	archiveUC               *riskuc.ArchiveRiskUseCase
 	restoreUC               *riskuc.RestoreRiskUseCase
 	updateUC                *riskuc.UpdateRiskUseCase
@@ -58,6 +57,7 @@ type RiskHandler struct {
 	getMonitoringUC         *riskuc.GetMonitoringUseCase
 	updateMonitoringUC      *riskuc.UpdateMonitoringUseCase
 	finalizeMonitoringUC    *riskuc.FinalizeMonitoringUseCase
+	correctMonitoringUC     *riskuc.CorrectMonitoringUseCase
 	mmRepo                  repository.MeetingMinuteRepository
 }
 
@@ -71,7 +71,6 @@ func NewRiskHandler(
 	spreadsheetUC *riskuc.BulkRiskSpreadsheetUseCase,
 	getUC *riskuc.GetRiskUseCase,
 	exportPDFUC riskExportPDFUseCase,
-	reassessUC *riskuc.CreateRiskReassessmentUseCase,
 	archiveUC *riskuc.ArchiveRiskUseCase,
 	restoreUC *riskuc.RestoreRiskUseCase,
 	updateUC *riskuc.UpdateRiskUseCase,
@@ -103,6 +102,7 @@ func NewRiskHandler(
 	getMonitoringUC *riskuc.GetMonitoringUseCase,
 	updateMonitoringUC *riskuc.UpdateMonitoringUseCase,
 	finalizeMonitoringUC *riskuc.FinalizeMonitoringUseCase,
+	correctMonitoringUC *riskuc.CorrectMonitoringUseCase,
 	mmRepo repository.MeetingMinuteRepository,
 ) *RiskHandler {
 	return &RiskHandler{
@@ -111,7 +111,6 @@ func NewRiskHandler(
 		spreadsheetUC:           spreadsheetUC,
 		getUC:                   getUC,
 		exportPDFUC:             exportPDFUC,
-		reassessUC:              reassessUC,
 		archiveUC:               archiveUC,
 		restoreUC:               restoreUC,
 		updateUC:                updateUC,
@@ -143,6 +142,7 @@ func NewRiskHandler(
 		getMonitoringUC:         getMonitoringUC,
 		updateMonitoringUC:      updateMonitoringUC,
 		finalizeMonitoringUC:    finalizeMonitoringUC,
+		correctMonitoringUC:     correctMonitoringUC,
 		mmRepo:                  mmRepo,
 	}
 }
@@ -337,7 +337,7 @@ func (h *RiskHandler) RestoreRisk(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": result})
 }
 
-// ListCycleSnapshot handles GET /api/risks/cycle-snapshot?cycle=YYYY-H1
+// ListCycleSnapshot handles GET /api/risks/cycle-snapshot?cycle=YYYY-Q1
 func (h *RiskHandler) ListCycleSnapshot(c *fiber.Ctx) error {
 	cycle := c.Query("cycle")
 	if cycle == "" {
@@ -574,13 +574,15 @@ type updateMonitoringRequest struct {
 	Conclusion                  string                           `json:"conclusion"`
 	MitigationProgressSummary   string                           `json:"mitigationProgressSummary"`
 	MitigationCompletionPercent int                              `json:"mitigationCompletionPercent"`
-	MitigationObstacles         string                           `json:"mitigationObstacles"`
-	MitigationFollowUp          string                           `json:"mitigationFollowUp"`
 	Values                      entity.RiskMonitoringDraftValues `json:"values"`
 }
 
 type finalizeMonitoringRequest struct {
 	FinalizedBy uuid.UUID `json:"finalizedBy"`
+}
+
+type correctMonitoringRequest struct {
+	Reason string `json:"reason"`
 }
 
 // CreateRisk handles POST /api/risks
@@ -664,7 +666,7 @@ func (h *RiskHandler) DownloadMonitoringTemplate(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-HN (contoh: 2026-H1)")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
 	}
 
 	content, filename, err := h.monitoringSpreadsheetUC.Template(c.Context(), orgID, cycle)
@@ -717,7 +719,7 @@ func (h *RiskHandler) PreviewMonitoringBatchUpload(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-HN (contoh: 2026-H1)")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
@@ -756,7 +758,7 @@ func (h *RiskHandler) CreateMonitoringBatch(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
 	}
 	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-HN (contoh: 2026-H1)")
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
 	}
 
 	userID, ok := c.Locals("userId").(uuid.UUID)
@@ -840,8 +842,13 @@ func (h *RiskHandler) ExportRiskPDF(c *fiber.Ctx) error {
 	return c.Send(result.Bytes)
 }
 
-// CreateReassessment handles POST /api/risks/:id/reassess
+// CreateReassessment is kept as a compatibility endpoint. Profile changes are
+// no longer created as standalone risk versions; the request is routed through
+// the canonical monitoring transaction flow.
 func (h *RiskHandler) CreateReassessment(c *fiber.Ctx) error {
+	if h.startMonitoringUC == nil {
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Belum Diimplementasikan", "https://api.manris.com/errors/not-implemented", "use case pemantauan belum dikonfigurasi")
+	}
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
@@ -863,7 +870,12 @@ func (h *RiskHandler) CreateReassessment(c *fiber.Ctx) error {
 
 	userID, _ := c.Locals("userId").(uuid.UUID)
 
-	result, err := h.reassessUC.Execute(c.Context(), riskuc.CreateRiskReassessmentInput{RiskID: id, Cycle: req.Cycle, OrgIDs: orgIDs, CreatedBy: userID})
+	result, err := h.startMonitoringUC.Execute(c.Context(), riskuc.StartMonitoringInput{
+		SourceRiskID: id,
+		Cycle:        req.Cycle,
+		OrgIDs:       orgIDs,
+		StartedBy:    userID,
+	})
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -976,8 +988,6 @@ func (h *RiskHandler) UpdateMonitoring(c *fiber.Ctx) error {
 		Conclusion:                  req.Conclusion,
 		MitigationProgressSummary:   req.MitigationProgressSummary,
 		MitigationCompletionPercent: req.MitigationCompletionPercent,
-		MitigationObstacles:         req.MitigationObstacles,
-		MitigationFollowUp:          req.MitigationFollowUp,
 		Values:                      req.Values,
 	})
 	if err != nil {
@@ -1029,6 +1039,43 @@ func (h *RiskHandler) FinalizeMonitoring(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": result})
 }
 
+// CorrectMonitoring voids a finalized monitoring and opens a new draft for
+// the same quarter.
+func (h *RiskHandler) CorrectMonitoring(c *fiber.Ctx) error {
+	if h.correctMonitoringUC == nil {
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Belum Diimplementasikan", "https://api.manris.com/errors/not-implemented", "use case koreksi pemantauan belum dikonfigurasi")
+	}
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pemantauan tidak valid")
+	}
+	var req correctMonitoringRequest
+	if err := c.BodyParser(&req); err != nil {
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrForbidden) {
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
+		}
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
+	}
+	correctedBy, _ := c.Locals("userId").(uuid.UUID)
+	result, err := h.correctMonitoringUC.Execute(c.Context(), riskuc.CorrectMonitoringInput{
+		MonitoringID: id,
+		OrgIDs:       orgIDs,
+		CorrectedBy:  correctedBy,
+		Reason:       req.Reason,
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": result})
+}
+
 // UpdateRisk handles PUT /api/risks/:id
 func (h *RiskHandler) UpdateRisk(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
@@ -1042,6 +1089,7 @@ func (h *RiskHandler) UpdateRisk(c *fiber.Ctx) error {
 	}
 
 	input.ID = id
+	input.FinalizedBy, _ = c.Locals("userId").(uuid.UUID)
 
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")

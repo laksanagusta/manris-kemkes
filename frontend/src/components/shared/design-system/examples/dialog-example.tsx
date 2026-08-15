@@ -16,9 +16,9 @@ export function DialogExample() {
         <DialogTrigger asChild>
           <Button size="sm">Open Dialog</Button>
         </DialogTrigger>
-        <DialogContent className="max-w-md rounded-2xl p-6 shadow-2xl">
-          <DialogHeader className="items-start gap-0 px-4 py-6 text-left">
-            <DialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+        <DialogContent>
+          <DialogHeader>
+          <DialogTitle className="text-base">
               Hapus Draft Risiko?
             </DialogTitle>
           </DialogHeader>
@@ -41,13 +41,13 @@ export function DialogExample() {
         <AlertDialogTrigger asChild>
           <Button size="sm">Open AlertDialog</Button>
         </AlertDialogTrigger>
-        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
-          <AlertDialogHeader className="items-start gap-0 px-4 py-6 text-left">
-            <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base">
               Konfirmasi Pemantauan
             </AlertDialogTitle>
           </AlertDialogHeader>
-          <div className="space-y-2 rounded-2xl bg-muted p-3 ring-1 ring-inset ring-border">
+          <div className="space-y-2 rounded-2xl bg-accent p-3 ring-1 ring-inset ring-border">
             <div className="text-sm">
               <span className="font-medium text-foreground">Kode: </span>
               <span className="font-mono text-xs text-muted-foreground">RISK-001</span>

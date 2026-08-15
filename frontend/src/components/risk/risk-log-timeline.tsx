@@ -16,7 +16,7 @@ import {
   MessageSquare,
   Plus,
   CalendarDays,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import type { CommunicationLog } from "@/types/communication-log";
 import type { MeetingMinutesRisk } from "@/types/meeting-minute";
@@ -266,7 +266,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
 
   if (loading) {
     return (
-      <Card className="border-border/50">
+      <Card>
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">
@@ -279,7 +279,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
 
   return (
     <>
-      <Card className="border-border/50">
+      <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-border/50">
           <CardTitle className="text-base font-bold flex items-center gap-2">
             <History className="size-4" /> Log & Komunikasi

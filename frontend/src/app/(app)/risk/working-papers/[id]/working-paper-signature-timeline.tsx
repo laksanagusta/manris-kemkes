@@ -2,14 +2,14 @@
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Circle } from "@/components/ui/icons";
 import type { WorkingPaperTimelineItem } from "@/lib/working-paper-detail-view-model";
 
-const timelineStatusClassName = {
-  signed: "border-success/20 bg-success/10 text-success",
-  current: "border-primary/20 bg-primary/[0.06] text-primary",
-  upcoming: "border-border bg-muted/40 text-muted-foreground",
-  skipped: "border-amber-200 bg-amber-50 text-amber-700",
+const timelineStatusTone = {
+  signed: "success",
+  current: "progress",
+  upcoming: "neutral",
+  skipped: "warning",
 } as const;
 
 const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -96,11 +96,9 @@ export function WorkingPaperSignatureTimeline({
                     {sig.signer_name}
                   </p>
                   <Badge
-                    variant="outline"
-                    className={cn(
-                      "h-5 px-2 text-[10px] font-semibold",
-                      timelineStatusClassName[item.state],
-                    )}
+                    size="micro"
+                    tone={timelineStatusTone[item.state]}
+                    className="font-semibold"
                   >
                     {item.label}
                   </Badge>
@@ -118,10 +116,13 @@ export function WorkingPaperSignatureTimeline({
               </div>
 
               {sig.signed_at ? (
-                <div className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-md border border-success/20 bg-success/10 px-2 py-1 text-xs font-medium text-success">
+                <Badge
+                  tone="success"
+                  className="mt-2 h-6 gap-1.5 px-2 text-xs font-medium"
+                >
                   <CheckCircle2 className="size-3.5" />
                   Tercatat pada {formatDateTime(sig.signed_at)}
-                </div>
+                </Badge>
               ) : null}
             </div>
           </div>

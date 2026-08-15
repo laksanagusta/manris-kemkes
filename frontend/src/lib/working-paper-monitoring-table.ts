@@ -7,7 +7,6 @@ export const WORKING_PAPER_MONITORING_COLUMNS = [
   { key: "trend", label: "Tren" },
   { key: "effectiveness", label: "Efektivitas" },
   { key: "condition", label: "Kondisi/Hasil Monitoring" },
-  { key: "obstacles", label: "Hambatan" },
   { key: "followUp", label: "Tindak Lanjut" },
   { key: "status", label: "Status" },
   { key: "action", label: "Aksi" },
@@ -32,9 +31,8 @@ export type WorkingPaperMonitoringRow = {
   trendLabel: string;
   effectiveness: string;
   condition: string;
-  obstacles: string;
   followUp: string;
-  status: "draft" | "finalized" | "unmonitored";
+  status: "draft" | "final" | "unmonitored";
   statusLabel: string;
   actionItems: WorkingPaperMonitoringAction[];
   rosterStatus?: string;
@@ -119,7 +117,7 @@ export function buildWorkingPaperMonitoringRowFromLink(
 function buildActionItems(risk: WorkingPaperRiskData, link?: WorkingPaperRiskLink): WorkingPaperMonitoringAction[] {
   const monitoringId = link?.monitoring_id || risk.monitoring?.id;
   const monitoringHref =
-    risk.monitoring?.status === "finalized" && monitoringId
+    risk.monitoring?.status === "final" && monitoringId
       ? `/risk/monitoring/${monitoringId}`
       : null;
   const sourceRiskId = link?.source_risk_id || risk.previousRiskId;
@@ -152,7 +150,6 @@ export function buildWorkingPaperMonitoringRow(
       trendLabel: "-",
       effectiveness: "-",
       condition: "-",
-      obstacles: "-",
       followUp: "-",
       status: "unmonitored",
       statusLabel: "Belum Dimonitor",
@@ -190,10 +187,7 @@ export function buildWorkingPaperMonitoringRow(
       monitoring.conditionSummary,
       monitoring.eventSummary,
     ),
-    obstacles: textOrDash(monitoring.mitigationObstacles),
-    followUp: textOrDash(
-      monitoring.mitigationFollowUp || monitoring.followUpNote,
-    ),
+    followUp: textOrDash(monitoring.followUpNote),
     status: monitoring.status,
     statusLabel: monitoring.status === "draft" ? "Draft" : "Final",
     actionItems: buildActionItems(risk),

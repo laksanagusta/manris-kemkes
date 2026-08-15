@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -71,13 +72,13 @@ func TestNormalizeOrganizationGroupMemberIDsDeduplicatesAndSkipsNil(t *testing.T
 	}
 }
 
-func TestMapOrganizationGroupErrorMapsDuplicateNameConflict(t *testing.T) {
+func TestMapOrganizationGroupErrorMapsDuplicateNameValidation(t *testing.T) {
 	err := mapOrganizationGroupError(&pgconn.PgError{
 		Code:           "23505",
 		ConstraintName: "idx_organization_groups_owner_name_unique",
 	})
-	if !domainerrors.IsConflict(err) {
-		t.Fatalf("expected conflict error, got %v", err)
+	if !errors.Is(err, domainerrors.ErrOrgGroupNameAlreadyExists) {
+		t.Fatalf("expected duplicate-name validation error, got %v", err)
 	}
 }
 

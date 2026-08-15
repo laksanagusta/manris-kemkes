@@ -235,16 +235,16 @@ func TestWorkingPaperRepositoryCreateAssignsSequenceCodePerOrganization(t *testi
 	}
 }
 
-func TestPreviousApprovedWorkingPaperRiskExprPrefersPreviousSemesterBeforeFallbackVersion(t *testing.T) {
+func TestPreviousApprovedWorkingPaperRiskExprPrefersPreviousQuarterBeforeFallbackVersion(t *testing.T) {
 	expr := previousApprovedWorkingPaperRiskExpr()
 
 	expectedSnippets := []string{
 		"prev.version_number < risk.version_number",
 		"COALESCE(prev.assessment_cycle, '') = CASE",
-		"RIGHT(risk.assessment_cycle, 2) = 'H1'",
+		"RIGHT(risk.assessment_cycle, 2) = 'Q1'",
 		"THEN ((LEFT(risk.assessment_cycle, 4))::int - 1)::text",
-		"THEN 'H2'",
-		"ELSE 'H1'",
+		"THEN '4'",
+		"ELSE ((RIGHT(risk.assessment_cycle, 1))::int - 1)::text",
 		"prev.version_number DESC",
 	}
 
@@ -263,7 +263,7 @@ func TestPreviousApprovedWorkingPaperRiskExprPrefersPreviousSemesterBeforeFallba
 	}
 }
 
-func TestWorkingPaperMonitoringExprPrefersFinalizedInSameSemester(t *testing.T) {
+func TestWorkingPaperMonitoringExprPrefersFinalizedInSameQuarter(t *testing.T) {
 	expr := workingPaperMonitoringExpr()
 
 	expectedSnippets := []string{
@@ -271,8 +271,8 @@ func TestWorkingPaperMonitoringExprPrefersFinalizedInSameSemester(t *testing.T) 
 		"JOIN risks monitoring_source ON monitoring_source.id = rm.source_risk_id",
 		"monitoring_source.version_group_id = risk.version_group_id",
 		"rm.assessment_cycle = wp.assessment_cycle",
-		"rm.status IN ('draft', 'finalized')",
-		"CASE rm.status WHEN 'finalized' THEN 0 ELSE 1 END",
+		"rm.status IN ('draft', 'final')",
+		"CASE rm.status WHEN 'final' THEN 0 ELSE 1 END",
 		"rm.updated_at DESC",
 		"LIMIT 1",
 	}
@@ -380,8 +380,6 @@ func TestWorkingPaperRepositoryHydratesMonitoringSelection(t *testing.T) {
 	finalMonitoring.EventSummary = "Satu insiden minor"
 	finalMonitoring.MitigationProgressSummary = "Tiga aksi selesai"
 	finalMonitoring.MitigationCompletionPercent = 75
-	finalMonitoring.MitigationObstacles = "Pengadaan terlambat"
-	finalMonitoring.MitigationFollowUp = "Selesaikan pengadaan"
 	finalMonitoring.FollowUpNote = "Pantau mingguan"
 	finalMonitoring.Trend = "down"
 	finalMonitoring.EffectivenessConclusion = "Kontrol cukup efektif"

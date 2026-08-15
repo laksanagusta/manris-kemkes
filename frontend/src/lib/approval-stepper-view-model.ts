@@ -29,7 +29,7 @@ function deriveWorkflowStage(
   if (
     workflowStatus === "approved" ||
     workflowStatus === "rejected" ||
-    riskStatus === "approved"
+    riskStatus === "final"
   ) {
     return "final";
   }
@@ -47,7 +47,7 @@ function deriveWorkflowStage(
     if (activeStep?.stepType === "approval") return "approval";
   }
 
-  if (riskStatus === "assessment_in_review") return "review";
+  if (riskStatus === "draft") return "unknown";
 
   return "unknown";
 }
