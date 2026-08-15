@@ -49,6 +49,9 @@ func HandleCreateRisk(
 	if err != nil {
 		return nil, err
 	}
+	// The MCP tool is the direct-finalization entry point. Risk approval is
+	// disabled, so "create_and_approve" must not leave a draft behind.
+	createInput.Status = entity.RiskStatusFinal
 
 	createOutput, err := createUC.Execute(ctx, createInput)
 	if err != nil {

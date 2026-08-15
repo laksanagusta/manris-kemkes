@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Shield, Users } from "lucide-react";
+import { Loader2, Shield, Users } from "@/components/ui/icons";
 
 import {
   Card,
@@ -16,10 +16,14 @@ import { useAuth } from "@/contexts/auth-context";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import type { Organization } from "@/lib/organization";
 import { OrganizationGroupManagement } from "@/components/organization-group/organization-group-management";
+import {
+  CollectionPageHeader,
+  PageStack,
+} from "@/components/shared/design-system";
 
 function PlaceholderTab() {
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+    <Card className="bg-card/80 backdrop-blur-sm">
       <CardHeader className="space-y-2">
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="gap-1.5">
@@ -80,15 +84,11 @@ export default function SettingsGroupsPage() {
   }, [token]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Grup</h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola grup organisasi sekarang.
-          </p>
-        </div>
-      </div>
+    <PageStack>
+      <CollectionPageHeader
+        title="Grup"
+        description="Kelola grup organisasi sekarang."
+      />
 
       <Tabs defaultValue="organizations" className="space-y-6">
         <TabsList className="w-fit">
@@ -98,7 +98,7 @@ export default function SettingsGroupsPage() {
 
         <TabsContent value="organizations" className="space-y-6">
           {loadingOrganizations ? (
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+            <Card className="bg-card/80 backdrop-blur-sm">
               <CardContent className="flex items-center justify-center py-12">
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
               </CardContent>
@@ -116,6 +116,6 @@ export default function SettingsGroupsPage() {
           <PlaceholderTab />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageStack>
   );
 }

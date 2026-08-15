@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { PageStack } from "@/components/shared/design-system";
 import {
   Settings2,
   Save,
@@ -16,7 +17,7 @@ import {
   AlertTriangle,
   Shield,
   FileText,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 const probabilityScale = [
   { level: 1, label: "Rare", description: "Hampir tidak mungkin terjadi (<5%)" },
@@ -44,11 +45,11 @@ const scaleColors = [
 
 export default function CriteriaPage() {
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageStack>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="page-title">
             Scope, Context & Criteria
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -63,7 +64,7 @@ export default function CriteriaPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Scope */}
-        <Card className="border-border/50 bg-card/80">
+        <Card className="bg-card/80">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <FileText className="size-4" />
@@ -90,7 +91,7 @@ export default function CriteriaPage() {
         </Card>
 
         {/* Context */}
-        <Card className="border-border/50 bg-card/80">
+        <Card className="bg-card/80">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Settings2 className="size-4" />
@@ -116,7 +117,7 @@ export default function CriteriaPage() {
         </Card>
 
         {/* Appetite & Tolerance */}
-        <Card className="border-border/50 bg-card/80">
+        <Card className="bg-card/80">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Target className="size-4" />
@@ -143,7 +144,7 @@ export default function CriteriaPage() {
       </div>
 
       {/* Probability Scale */}
-      <Card className="border-border/50 bg-card/80">
+      <Card className="bg-card/80">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Gauge className="size-4" />
@@ -184,7 +185,7 @@ export default function CriteriaPage() {
       </Card>
 
       {/* Impact Scale */}
-      <Card className="border-border/50 bg-card/80">
+      <Card className="bg-card/80">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <AlertTriangle className="size-4" />
@@ -223,6 +224,6 @@ export default function CriteriaPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageStack>
   );
 }

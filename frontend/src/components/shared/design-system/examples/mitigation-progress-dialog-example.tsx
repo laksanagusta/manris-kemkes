@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { Send } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
-import { MitigationProgressDialog } from "@/components/shared/design-system";
+import {
+  AccentButton,
+  MitigationProgressDialog,
+} from "@/components/shared/design-system";
 
 export function MitigationProgressDialogExample() {
   const [open, setOpen] = useState(false);
@@ -20,16 +23,14 @@ export function MitigationProgressDialogExample() {
         open={open}
         onOpenChange={setOpen}
         title="Lapor Progress Penanganan"
-        description="Contoh mitigasi - Triwulan 2"
         evidenceUrl={evidenceUrl}
         onEvidenceUrlChange={setEvidenceUrl}
         notes={notes}
         onNotesChange={setNotes}
         footerActions={
-          <Button size="sm" className="gap-2">
-            <Send className="size-3" />
+          <AccentButton icon={<Send className="size-3" />}>
             Kirim Laporan
-          </Button>
+          </AccentButton>
         }
         evidenceId="example-evidence-url"
         notesId="example-notes"

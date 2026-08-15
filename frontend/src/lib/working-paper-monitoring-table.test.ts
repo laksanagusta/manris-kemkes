@@ -43,7 +43,6 @@ test("working paper monitoring table keeps the approved 10-column order", () => 
       "trend",
       "effectiveness",
       "condition",
-      "obstacles",
       "followUp",
       "status",
       "action",
@@ -75,8 +74,6 @@ test("buildWorkingPaperMonitoringRow maps a final monitoring evaluation", () => 
         effectivenessConclusion: "Cukup efektif",
         conditionSummary: "Kondisi membaik",
         eventSummary: "Satu insiden minor",
-        mitigationObstacles: "Pengadaan terlambat",
-        mitigationFollowUp: "Selesaikan pengadaan",
         followUpNote: "Pantau mingguan",
         startedAt: "2026-06-01T08:00:00Z",
         updatedAt: "2026-06-10T08:00:00Z",
@@ -163,8 +160,6 @@ test("buildWorkingPaperMonitoringRow hides progress for draft monitoring", () =>
         effectivenessConclusion: "Cukup efektif",
         conditionSummary: "Kondisi membaik",
         eventSummary: "Satu insiden minor",
-        mitigationObstacles: "Pengadaan terlambat",
-        mitigationFollowUp: "Selesaikan pengadaan",
         followUpNote: "Pantau mingguan",
         startedAt: "2026-06-01T08:00:00Z",
         updatedAt: "2026-06-10T08:00:00Z",
@@ -184,7 +179,6 @@ test("buildWorkingPaperMonitoringRow falls back for unmonitored risks", () => {
   assert.equal(row.observedScore, null);
   assert.equal(row.trendLabel, "-");
   assert.equal(row.condition, "-");
-  assert.equal(row.obstacles, "-");
   assert.equal(row.followUp, "-");
   assert.equal(row.statusLabel, "Belum Dimonitor");
   assert.deepEqual(
@@ -218,8 +212,6 @@ test("buildWorkingPaperMonitoringRow uses general follow-up as fallback", () => 
         effectivenessConclusion: "",
         conditionSummary: "",
         eventSummary: "",
-        mitigationObstacles: "",
-        mitigationFollowUp: "",
         followUpNote: "Pertahankan kontrol",
         startedAt: "2026-06-01T08:00:00Z",
         updatedAt: "2026-06-30T08:00:00Z",

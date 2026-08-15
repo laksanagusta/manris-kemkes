@@ -35,6 +35,7 @@ type CreateRiskInput struct {
 	Title          string     `json:"title"`
 	Description    string     `json:"description"`
 	Category       string     `json:"category"`
+	Status         string     `json:"status"`
 	OrganizationID *uuid.UUID `json:"organizationId"`
 	CreatedBy      *uuid.UUID `json:"-"`
 
@@ -88,6 +89,13 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 	if input.CreatedBy == nil {
 		return nil, errors.ErrInvalidInput
 	}
+	input.Status = canonicalRiskStatus(input.Status)
+	if input.Status == "" {
+		input.Status = entity.RiskStatusDraft
+	}
+	if input.Status != entity.RiskStatusDraft && input.Status != entity.RiskStatusFinal {
+		return nil, errors.ErrInvalidStatus
+	}
 	input.Category = strings.TrimSpace(input.Category)
 	if input.Category == "" || !entity.IsValidRiskCategory(input.Category) {
 		return nil, errors.ErrInvalidRiskCategory
@@ -125,8 +133,8 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 	if input.AssessmentCycle == "" {
 		input.AssessmentCycle = currentAssessmentCycle()
 	}
-	if !IsValidSemesterFormat(input.AssessmentCycle) {
-		return nil, errors.ErrSemesterFormat
+	if !IsValidQuarterFormat(input.AssessmentCycle) {
+		return nil, errors.ErrCycleFormat
 	}
 
 	// 6. Create risk entity
@@ -135,7 +143,7 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		Title:          input.Title,
 		Description:    input.Description,
 		Category:       input.Category,
-		Status:         entity.RiskStatusDraft,
+		Status:         input.Status,
 		VersionGroupID: uuid.New(),
 		IsCurrent:      true,
 		IsCycleCurrent: true,
@@ -183,6 +191,21 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 	// 7. Validate risk entity
 	if err := risk.Validate(); err != nil {
 		return nil, err
+	}
+	if input.Status == entity.RiskStatusFinal {
+		if err := validateRiskMitigationRequirements(risk); err != nil {
+			return nil, err
+		}
+		now := time.Now().UTC()
+		risk.ReviewSubmittedAt = &now
+		risk.ReviewApprovedAt = &now
+		risk.FinalizedAt = &now
+		risk.FinalizedBy = input.CreatedBy
+		effectiveFrom, err := CycleStartDate(risk.AssessmentCycle)
+		if err != nil {
+			return nil, err
+		}
+		risk.EffectiveFrom = &effectiveFrom
 	}
 
 	// 8. Save to database

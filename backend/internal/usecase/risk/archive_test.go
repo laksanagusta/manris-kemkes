@@ -12,8 +12,8 @@ import (
 )
 
 type archiveRiskRepo struct {
-	byID     *entity.Risk
-	updated  *entity.Risk
+	byID      *entity.Risk
+	updated   *entity.Risk
 	updateErr error
 }
 
@@ -111,8 +111,8 @@ func TestArchiveRiskUseCase_ExecuteRejectsDraftRisk(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !errors.Is(err, domainerrors.ErrInvalidStatus) {
-		t.Fatalf("expected ErrInvalidStatus, got %v", err)
+	if !errors.Is(err, domainerrors.ErrOnlyApprovedCurrentArchived) {
+		t.Fatalf("expected ErrOnlyApprovedCurrentArchived, got %v", err)
 	}
 }
 
@@ -142,8 +142,8 @@ func TestArchiveRiskUseCase_ExecuteRejectsBlockedWorkingPaperRisk(t *testing.T) 
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !errors.Is(err, domainerrors.ErrInvalidStatus) {
-		t.Fatalf("expected ErrInvalidStatus, got %v", err)
+	if !errors.Is(err, domainerrors.ErrWorkingPaperLocked) {
+		t.Fatalf("expected ErrWorkingPaperLocked, got %v", err)
 	}
 }
 

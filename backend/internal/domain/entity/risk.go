@@ -19,9 +19,13 @@ const (
 
 // RiskStatus constants for risk workflow states
 const (
-	RiskStatusDraft    = "assessment_draft"
-	RiskStatusInReview = "assessment_in_review"
-	RiskStatusApproved = "approved"
+	RiskStatusDraft = "draft"
+	RiskStatusFinal = "final"
+
+	// Deprecated aliases kept so incident/approval history and older callers
+	// continue to compile while the risk lifecycle uses draft/final only.
+	RiskStatusInReview = RiskStatusDraft
+	RiskStatusApproved = RiskStatusFinal
 )
 
 // BobotMatrix is the 5x5 weight matrix based on Probability (rows) and Impact (columns)
@@ -104,24 +108,48 @@ type Risk struct {
 	ReviewApprovedAt         *time.Time           `json:"reviewApprovedAt,omitempty"`
 	DraftApprovalLine        []ApprovalLineMember `json:"draftApprovalLine,omitempty"`
 
+	// Finalization fields are persistence metadata. FinalizeRequested is set
+	// only for a draft-to-final transition and is consumed by the repository in
+	// the same transaction as the risk and version activation update.
+	FinalizedBy       *uuid.UUID `json:"-"`
+	FinalizedAt       *time.Time `json:"-"`
+	EffectiveFrom     *time.Time `json:"-"`
+	FinalizeRequested bool       `json:"-"`
+
 	// Ongoing draft tracking (for list views)
-	DraftID               *uuid.UUID                `json:"draftId,omitempty"`
-	DraftStatus           *string                   `json:"draftStatus,omitempty"`
-	HasOngoing            bool                      `json:"hasOngoing"`
-	MonitoringStatus      *string                   `json:"monitoringStatus,omitempty"`
-	LastMonitoredAt       *time.Time                `json:"lastMonitoredAt,omitempty"`
-	BeforeMonitoringNilai *float64                  `json:"beforeMonitoringNilai,omitempty"`
-	MonitoringResultNilai *float64                  `json:"monitoringResultNilai,omitempty"`
-	SemesterMonitoring    *SemesterMonitoringStatus `json:"semesterMonitoring,omitempty"`
+	DraftID               *uuid.UUID `json:"draftId,omitempty"`
+	DraftStatus           *string    `json:"draftStatus,omitempty"`
+	HasOngoing            bool       `json:"hasOngoing"`
+	MonitoringStatus      *string    `json:"monitoringStatus,omitempty"`
+	LastMonitoredAt       *time.Time `json:"lastMonitoredAt,omitempty"`
+	BeforeMonitoringNilai *float64   `json:"beforeMonitoringNilai,omitempty"`
+	MonitoringResultNilai *float64   `json:"monitoringResultNilai,omitempty"`
+	// MonitoringObserved* is the finalized quarterly observation attached to
+	// a historical snapshot. It is intentionally nullable: a risk can exist in
+	// the register for a quarter before that quarter's monitoring is finalized.
+	MonitoringAssessmentCycle     *string                   `json:"monitoringAssessmentCycle,omitempty"`
+	MonitoringMode                *string                   `json:"monitoringMode,omitempty"`
+	MonitoringObservedProbability *int                      `json:"monitoringObservedProbability,omitempty"`
+	MonitoringObservedImpact      *int                      `json:"monitoringObservedImpact,omitempty"`
+	MonitoringObservedWeight      *float64                  `json:"monitoringObservedWeight,omitempty"`
+	MonitoringObservedNilai       *float64                  `json:"monitoringObservedNilai,omitempty"`
+	MonitoringObservedLevel       *string                   `json:"monitoringObservedLevel,omitempty"`
+	SemesterMonitoring            *SemesterMonitoringStatus `json:"semesterMonitoring,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-type SemesterMonitoringStatus struct {
-	H1 *string `json:"h1"`
-	H2 *string `json:"h2"`
+type QuarterlyMonitoringStatus struct {
+	Q1 *string `json:"q1"`
+	Q2 *string `json:"q2"`
+	Q3 *string `json:"q3"`
+	Q4 *string `json:"q4"`
 }
+
+// SemesterMonitoringStatus is retained as a Go compatibility alias. The API
+// payload is now quarterly and exposes q1-q4 fields.
+type SemesterMonitoringStatus = QuarterlyMonitoringStatus
 
 type ApprovalLineMember struct {
 	ID   string `json:"id"`
@@ -389,12 +417,13 @@ func (r *Risk) CalculateAll() {
 
 // IsLocked checks if risk is in a locked (non-editable) status
 func (r *Risk) IsLocked() bool {
-	return r.Status == RiskStatusInReview || r.Status == RiskStatusApproved
+	return r.Status == RiskStatusFinal
 }
 
-// IsApprovedCurrent returns whether this risk is the active approved version.
+// IsApprovedCurrent is retained as a compatibility name for integrations.
+// The canonical lifecycle state is final.
 func (r *Risk) IsApprovedCurrent() bool {
-	return r.Status == RiskStatusApproved && r.IsCurrent
+	return r.Status == RiskStatusFinal && r.IsCurrent
 }
 
 // CanBeReassessed returns whether the risk can start a periodic reassessment.

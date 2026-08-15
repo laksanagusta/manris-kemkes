@@ -49,7 +49,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <HeaderActionsProvider>
             <AppHeader />
             <main className="flex min-w-0 flex-1 flex-col gap-4">
-              <div className="mx-auto w-full max-w-[1200px] py-8">{children}</div>
+              <div className="mx-auto w-full max-w-[1200px] min-w-0 py-8">
+                {children}
+              </div>
             </main>
           </HeaderActionsProvider>
         </SidebarInset>

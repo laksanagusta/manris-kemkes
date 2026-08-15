@@ -25,7 +25,7 @@ export function OrganizationLatestProgressChart({
   const hasData = data.length > 0;
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+    <Card className="bg-card/80 backdrop-blur-sm">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>

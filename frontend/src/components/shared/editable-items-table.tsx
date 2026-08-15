@@ -2,7 +2,8 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { Plus, Trash2, GripVertical } from "@/components/ui/icons";
 
 export interface EditableItem {
   id: string;
@@ -53,21 +54,21 @@ export function EditableItemsTable({
         </div>
       ) : (
         <div className="border border-border/50 rounded-lg overflow-hidden">
-          <table className="w-full">
-            <tbody className="divide-y divide-border/50">
+          <Table className="w-full">
+            <TableBody className="divide-y divide-border/50">
               {items.map((item, index) => (
-                <tr key={item.id} className="animate-in fade-in slide-in-from-top-2 duration-200 ease-out motion-reduce:animate-none hover:bg-muted/30 transition-colors" style={{ animationDelay: `${index * 30}ms` }}>
-                  <td className="w-8 px-2 py-2">
+                <TableRow key={item.id} className="h-auto animate-in fade-in slide-in-from-top-2 duration-200 ease-out motion-reduce:animate-none hover:bg-muted/30 transition-colors" style={{ animationDelay: `${index * 30}ms` }}>
+                  <TableCell className="w-8 px-2 py-2">
                     <div className="flex items-center justify-center text-muted-foreground">
                       <GripVertical className="size-3.5" />
                     </div>
-                  </td>
-                  <td className="w-8 px-2 py-2">
+                  </TableCell>
+                  <TableCell className="w-8 px-2 py-2">
                     <span className="text-[10px] font-semibold text-muted-foreground bg-muted/50 rounded-full w-5 h-5 flex items-center justify-center">
                       {index + 1}
                     </span>
-                  </td>
-                  <td className="flex-1 px-2 py-2">
+                  </TableCell>
+                  <TableCell className="flex-1 px-2 py-2">
                     <Input
                       value={item.text}
                       onChange={(e) => updateItem(item.id, e.target.value)}
@@ -75,8 +76,8 @@ export function EditableItemsTable({
                       className="text-xs bg-background border-border/50 h-8"
                       disabled={disabled}
                     />
-                  </td>
-                  <td className="w-10 px-2 py-2">
+                  </TableCell>
+                  <TableCell className="w-10 px-2 py-2">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -86,11 +87,11 @@ export function EditableItemsTable({
                     >
                       <Trash2 className="size-3.5" />
                     </Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 

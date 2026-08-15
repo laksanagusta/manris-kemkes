@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/ui/icons";
 
 import {
   AccentButton,
@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type WorkingPaperSemesterOption = {
+export type WorkingPaperPeriodOption = {
   value: string;
   label: string;
 };
@@ -47,37 +47,37 @@ export function WorkingPaperCreateButton({
 export function WorkingPaperCreateDialog({
   open,
   onOpenChange,
-  selectedSemester,
-  onSelectedSemesterChange,
-  semesterOptions,
+  selectedPeriod,
+  onSelectedPeriodChange,
+  periodOptions,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedSemester: string;
-  onSelectedSemesterChange: (value: string) => void;
-  semesterOptions: WorkingPaperSemesterOption[];
+  selectedPeriod: string;
+  onSelectedPeriodChange: (value: string) => void;
+  periodOptions: WorkingPaperPeriodOption[];
 }) {
   const router = useRouter();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] rounded-2xl sm:max-w-sm">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Pilih Periode Semester</DialogTitle>
+          <DialogTitle>Pilih Periode Kuartal</DialogTitle>
           <DialogDescription>
-            Tentukan semester untuk kertas kerja yang akan dibuat.
+            Tentukan kuartal untuk kertas kerja yang akan dibuat.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <Select
-            value={selectedSemester}
-            onValueChange={onSelectedSemesterChange}
+            value={selectedPeriod}
+            onValueChange={onSelectedPeriodChange}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Pilih semester" />
+              <SelectValue placeholder="Pilih kuartal" />
             </SelectTrigger>
             <SelectContent>
-              {semesterOptions.map((option) => (
+              {periodOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -91,10 +91,10 @@ export function WorkingPaperCreateDialog({
           </ActionButton>
           <AccentButton
             size="sm"
-            disabled={!selectedSemester}
+            disabled={!selectedPeriod}
             onClick={() => {
               onOpenChange(false);
-              router.push(`/risk/working-papers/new?cycle=${selectedSemester}`);
+              router.push(`/risk/working-papers/new?cycle=${selectedPeriod}`);
             }}
           >
             Lanjutkan

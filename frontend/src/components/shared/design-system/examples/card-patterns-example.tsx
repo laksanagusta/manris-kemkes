@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared/de
 export function CardPatternsExample() {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0 shadow-none ring-1 ring-inset ring-border">
+      <Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
         <CardHeader className="px-4 py-6 !pb-6">
           <CardTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Standard Card
@@ -13,12 +13,12 @@ export function CardPatternsExample() {
         </CardHeader>
         <CardContent className="p-4">
           <p className="text-sm text-muted-foreground">
-            Card standar dengan rounded-2xl, ring-1 ring-inset ring-border, bg-card, shadow-none.
+            Card standar dengan outline neutral yang terlihat jelas dan shadow tipis dekat edge.
           </p>
         </CardContent>
       </Card>
 
-      <Card className="gap-0 overflow-hidden rounded-2xl bg-card/80 p-0 shadow-sm backdrop-blur-lg transition-colors duration-300 ring-1 ring-inset ring-border">
+      <Card className="gap-0 overflow-hidden rounded-2xl bg-card/80 p-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 backdrop-blur-lg transition-colors duration-300">
         <CardHeader className="px-4 py-6 !pb-6">
           <CardTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Frosted Glass Card
@@ -31,7 +31,7 @@ export function CardPatternsExample() {
         </CardContent>
       </Card>
 
-      <Card className="relative gap-0 overflow-hidden rounded-2xl border border-zinc-200/80 bg-card p-0 shadow-none ring-0">
+      <Card className="relative gap-0 overflow-hidden rounded-2xl bg-card p-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
         <CardHeader className="px-4 py-6 !pb-6">
           <CardTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Table Card
@@ -39,19 +39,19 @@ export function CardPatternsExample() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="px-4 py-4 text-sm text-muted-foreground">
-            Card khusus table dengan satu border seperti accordion item: border-zinc-200/80, bg-card, shadow-none, ring-0.
+            Card table menggunakan elevation yang sama agar boundary dan shadow tetap satu lapisan.
           </div>
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl bg-card shadow-none ring-1 ring-inset ring-border">
+      <Card className="rounded-2xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
         <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-mono font-semibold uppercase tracking-wider text-muted-foreground">
               Inline Card
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              ring-1 ring-inset ring-border sebagai ganti border, mengikuti shell overview.
+              Surface inline menggunakan elevation standar widget dan tetap hemat visual.
             </p>
           </div>
         </CardContent>

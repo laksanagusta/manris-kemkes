@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { RiskAssessmentSummaryStrip } from "@/components/shared/design-system";
 import {
@@ -33,7 +33,7 @@ export function SimpulanCard({
 
   if (isInvalid) {
     return (
-      <Card className="border-dashed bg-muted/30">
+      <Card className="bg-muted/30">
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground">
             Pilih probabilitas dan dampak terlebih dahulu untuk melihat simpulan
@@ -130,7 +130,7 @@ export function SimpulanCard({
       ]}
       />
 
-      <div className="rounded-xl border border-border/50 bg-background p-4">
+      <div className="rounded-xl bg-background p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
         <div className="space-y-4">
           <div>
             <p className="mb-1 text-xs font-medium text-muted-foreground">

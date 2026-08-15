@@ -15,6 +15,7 @@ import {
   calculateDashboardTrend,
   calculateRiskExposureScore,
 } from "@/lib/dashboard-insights";
+import { currentAssessmentCycle, shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 
 type DashboardSummary = {
   totalRisks: number;
@@ -23,10 +24,7 @@ type DashboardSummary = {
 };
 
 function currentGlobalCycle() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const half = now.getMonth() < 6 ? "H1" : "H2";
-  return `${year}-${half}`;
+  return currentAssessmentCycle();
 }
 
 export default function DashboardPage() {
@@ -51,10 +49,7 @@ export default function DashboardPage() {
 
   const currentCycle = useMemo(() => currentGlobalCycle(), []);
   const previousCycle = useMemo(() => {
-    const [yearStr, half] = currentCycle.split("-");
-    const year = Number(yearStr);
-    if (half === "H1") return `${year - 1}-H2`;
-    return `${year}-H1`;
+    return shiftAssessmentCycle(currentCycle, -1);
   }, [currentCycle]);
 
   useEffect(() => {
@@ -85,10 +80,28 @@ export default function DashboardPage() {
         if (!cancelled) setPrevSummary(null);
       });
 
-    void api
-      .get<Risk[]>("/risks/trend", token)
-      .then((risks) => {
+    const trendCycles = Array.from({ length: 4 }, (_, index) =>
+      shiftAssessmentCycle(currentCycle, index - 3),
+    );
+    void Promise.all(
+      trendCycles.map((trendCycle) =>
+        api.get<Risk[]>(
+          `/risks/cycle-snapshot?cycle=${encodeURIComponent(trendCycle)}`,
+          token,
+        ),
+      ),
+    )
+      .then((snapshots) => {
         if (cancelled) return;
+        const risks = snapshots.flatMap((snapshot, index) =>
+          snapshot.map((risk) => ({
+            ...risk,
+            // The endpoint returns the profile's source cycle. The chart
+            // bucket is the requested as-of cycle, which is also the period
+            // represented by the attached finalized monitoring result.
+            assessmentCycle: trendCycles[index],
+          })),
+        );
         setTrendRisks(risks);
         setExposureScore(calculateRiskExposureScore(risks, currentCycle));
         setPreviousExposureScore(

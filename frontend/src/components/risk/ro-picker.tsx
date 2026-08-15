@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Loader2, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, Search } from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/utils";
 
 export type ROSelectionSummary = PlanningROOption;
@@ -169,11 +170,11 @@ export function ROPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="md"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between overflow-hidden rounded-lg px-2.5 text-sm font-normal shadow-none bg-muted/50"
+          className="group/ro-picker w-full justify-between overflow-hidden rounded-lg border-border bg-card px-2.5 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-border focus-visible:border-border focus:ring-0 focus-visible:ring-0 dark:focus:border-border dark:focus-visible:border-border"
         >
           {selected ? (
             <span className="min-w-0 flex-1 truncate text-left">
@@ -185,7 +186,7 @@ export function ROPicker({
               Pilih RO...
             </span>
           )}
-          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="pointer-events-none ml-2 size-4 shrink-0 opacity-50 transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/ro-picker:rotate-180 motion-reduce:transition-none" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
@@ -216,8 +217,9 @@ export function ROPicker({
 
         <div className="flex items-center border-b px-3">
           <Search className="mr-2 size-4 shrink-0 opacity-50" />
-          <input
-            className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+          <SearchInput
+            type="search"
+            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
             placeholder="Cari RO, kegiatan, program, IKU, atau sasaran..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}

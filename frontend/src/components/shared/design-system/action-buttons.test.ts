@@ -17,3 +17,16 @@ test("shared action buttons pass exactly one child to Radix Slot", () => {
     "AccentButton and ActionButton must bypass icon/loading siblings when asChild is enabled",
   );
 });
+
+test("ActionButton matches AccentButton primary radius", () => {
+  const actionButton = readFileSync(
+    new URL("./actions/action-button.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.equal(
+    (actionButton.match(/rounded-\[8px\]/g) ?? []).length,
+    2,
+    "ActionButton must keep the 8px radius in both render branches",
+  );
+});

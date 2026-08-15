@@ -16,15 +16,19 @@ func TestHandleMonitorAndApproveRisk_Success(t *testing.T) {
 	orgID := uuid.New()
 	userID := uuid.New()
 
-	reassessmentOutput := &riskuc.CreateRiskReassessmentOutput{
-		ID:             riskID,
-		VersionGroupID: versionGroupID,
-		Status:         "assessment_draft",
-		Message:        "risk reassessment draft created",
-		ExistingDraft:  false,
+	monitoringOutput := &riskuc.StartMonitoringOutput{
+		Monitoring: &entity.RiskMonitoring{
+			ID:              riskID,
+			VersionGroupID:  versionGroupID,
+			Status:          entity.RiskMonitoringStatusDraft,
+			AssessmentCycle: "2026-Q2",
+		},
+		Message:       "monitoring transaction created",
+		RedirectURL:   "/risk/monitoring/" + riskID.String(),
+		ExistingDraft: false,
 	}
 
-	mockReassessmentUC := &mockRiskReassessmentUC{output: reassessmentOutput}
+	mockMonitoringStarter := &mockRiskMonitoringStarter{output: monitoringOutput}
 
 	sess := &session.Session{
 		UserID:           userID,
@@ -36,12 +40,12 @@ func TestHandleMonitorAndApproveRisk_Success(t *testing.T) {
 
 	args := map[string]any{
 		"riskId":          riskID.String(),
-		"assessmentCycle": "2026-H1",
+		"assessmentCycle": "2026-Q2",
 		"riskApproverIds": []string{userID.String()},
 		"submissionType":  "approval",
 	}
 
-	output, err := HandleMonitorRisk(context.Background(), mockReassessmentUC, sess, args)
+	output, err := HandleMonitorRisk(context.Background(), mockMonitoringStarter, sess, args)
 	if err != nil {
 		t.Fatalf("HandleMonitorRisk failed: %v", err)
 	}
@@ -54,15 +58,15 @@ func TestHandleMonitorAndApproveRisk_Success(t *testing.T) {
 		t.Errorf("expected id %q, got %v", riskID.String(), output["id"])
 	}
 
-	if output["cycle"] != "2026-H1" {
-		t.Errorf("expected cycle '2026-H1', got %v", output["cycle"])
+	if output["cycle"] != "2026-Q2" {
+		t.Errorf("expected cycle '2026-Q2', got %v", output["cycle"])
 	}
 }
 
 func TestHandleMonitorAndApproveRisk_NoSession(t *testing.T) {
-	mockReassessmentUC := &mockRiskReassessmentUC{}
+	mockMonitoringStarter := &mockRiskMonitoringStarter{}
 
-	output, err := HandleMonitorRisk(context.Background(), mockReassessmentUC, nil, map[string]any{})
+	output, err := HandleMonitorRisk(context.Background(), mockMonitoringStarter, nil, map[string]any{})
 	if err != ErrNotAuthenticated {
 		t.Errorf("expected ErrNotAuthenticated, got %v", err)
 	}
@@ -76,13 +80,10 @@ func TestHandleUpdateMonitoringDraft_Success(t *testing.T) {
 	orgID := uuid.New()
 	userID := uuid.New()
 
-	updateOutput := &riskuc.UpdateRiskOutput{
-		ID:   riskID,
-		Code: "R001",
-	}
-
-	mockUpdateUC := &mockRiskUpdateUC{output: updateOutput}
-	mockGetUC := &mockRiskGetUC{risk: &entity.Risk{ID: riskID, Status: entity.RiskStatusDraft}}
+	mockMonitoringUC := &mockRiskMonitoringUpdater{output: &riskuc.UpdateMonitoringOutput{
+		Monitoring: &entity.RiskMonitoring{ID: riskID},
+		Message:    "monitoring draft updated",
+	}}
 
 	sess := &session.Session{
 		UserID:           userID,
@@ -91,12 +92,13 @@ func TestHandleUpdateMonitoringDraft_Success(t *testing.T) {
 	}
 
 	args := map[string]any{
-		"id":              riskID.String(),
-		"reviewSummary":   "Annual review completed",
-		"assessmentCycle": "2026-H1",
+		"id":          riskID.String(),
+		"conclusion":  "Annual review completed",
+		"probability": 3,
+		"impact":      4,
 	}
 
-	output, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, mockGetUC, sess, args)
+	output, err := HandleUpdateMonitoringDraft(context.Background(), mockMonitoringUC, sess, args)
 	if err != nil {
 		t.Fatalf("HandleUpdateMonitoringDraft failed: %v", err)
 	}
@@ -109,9 +111,6 @@ func TestHandleUpdateMonitoringDraft_Success(t *testing.T) {
 		t.Errorf("id mismatch")
 	}
 
-	if output["code"] != "R001" {
-		t.Errorf("expected code 'R001', got %v", output["code"])
-	}
 }
 
 func TestHandleUpdateMonitoringDraft_NotDraft(t *testing.T) {
@@ -119,8 +118,7 @@ func TestHandleUpdateMonitoringDraft_NotDraft(t *testing.T) {
 	orgID := uuid.New()
 	userID := uuid.New()
 
-	mockUpdateUC := &mockRiskUpdateUC{}
-	mockGetUC := &mockRiskGetUC{risk: &entity.Risk{ID: riskID, Status: entity.RiskStatusApproved}}
+	mockUpdateUC := &mockRiskMonitoringUpdater{err: ErrMonitoringNotDraft}
 
 	sess := &session.Session{
 		UserID:           userID,
@@ -129,17 +127,16 @@ func TestHandleUpdateMonitoringDraft_NotDraft(t *testing.T) {
 
 	args := map[string]any{"id": riskID.String()}
 
-	_, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, mockGetUC, sess, args)
+	_, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, sess, args)
 	if err != ErrMonitoringNotDraft {
 		t.Errorf("expected ErrMonitoringNotDraft, got %v", err)
 	}
 }
 
 func TestHandleUpdateMonitoringDraft_NoSession(t *testing.T) {
-	mockUpdateUC := &mockRiskUpdateUC{}
-	mockGetUC := &mockRiskGetUC{}
+	mockUpdateUC := &mockRiskMonitoringUpdater{}
 
-	output, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, mockGetUC, nil, map[string]any{})
+	output, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, nil, map[string]any{})
 	if err != ErrNotAuthenticated {
 		t.Errorf("expected ErrNotAuthenticated, got %v", err)
 	}
@@ -148,27 +145,15 @@ func TestHandleUpdateMonitoringDraft_NoSession(t *testing.T) {
 	}
 }
 
-func TestHandleUpdateMonitoringDraft_MergesCurrentFieldsForPartialUpdate(t *testing.T) {
+func TestHandleUpdateMonitoringDraft_MapsMonitoringFields(t *testing.T) {
 	riskID := uuid.New()
 	orgID := uuid.New()
 	userID := uuid.New()
 
-	currentRisk := &entity.Risk{
-		ID:                 riskID,
-		Code:               "R001",
-		Title:              "Monitoring draft",
-		Category:           entity.RiskCategoryOperasional,
-		Status:             entity.RiskStatusDraft,
-		OrganizationID:     &orgID,
-		Probability:        2,
-		Impact:             4,
-		AssessmentCycle:    "2026-H1",
-		ReviewSummary:      "Current summary",
-		ReviewScheduleText: "Semester review",
-	}
-
-	mockUpdateUC := &mockRiskUpdateUC{output: &riskuc.UpdateRiskOutput{ID: riskID, Code: "R001"}}
-	mockGetUC := &mockRiskGetUC{risk: currentRisk}
+	mockUpdateUC := &mockRiskMonitoringUpdater{output: &riskuc.UpdateMonitoringOutput{
+		Monitoring: &entity.RiskMonitoring{ID: riskID},
+		Message:    "monitoring draft updated",
+	}}
 
 	sess := &session.Session{
 		UserID:           userID,
@@ -177,30 +162,14 @@ func TestHandleUpdateMonitoringDraft_MergesCurrentFieldsForPartialUpdate(t *test
 	}
 
 	args := map[string]any{
-		"id":            riskID.String(),
-		"reviewSummary": "Updated summary",
+		"id":           riskID.String(),
+		"probability":  3,
+		"impact":       4,
+		"conclusion":   "Updated summary",
+		"changeReason": "Kondisi berubah",
 	}
 
-	if _, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, mockGetUC, sess, args); err != nil {
+	if _, err := HandleUpdateMonitoringDraft(context.Background(), mockUpdateUC, sess, args); err != nil {
 		t.Fatalf("HandleUpdateMonitoringDraft failed: %v", err)
-	}
-
-	if mockUpdateUC.input.Category != currentRisk.Category {
-		t.Fatalf("expected category %q, got %q", currentRisk.Category, mockUpdateUC.input.Category)
-	}
-	if mockUpdateUC.input.Status != currentRisk.Status {
-		t.Fatalf("expected status %q, got %q", currentRisk.Status, mockUpdateUC.input.Status)
-	}
-	if mockUpdateUC.input.Probability != currentRisk.Probability {
-		t.Fatalf("expected probability %d, got %d", currentRisk.Probability, mockUpdateUC.input.Probability)
-	}
-	if mockUpdateUC.input.Impact != currentRisk.Impact {
-		t.Fatalf("expected impact %d, got %d", currentRisk.Impact, mockUpdateUC.input.Impact)
-	}
-	if mockUpdateUC.input.ReviewSummary != "Updated summary" {
-		t.Fatalf("expected updated review summary, got %q", mockUpdateUC.input.ReviewSummary)
-	}
-	if mockUpdateUC.input.AssessmentCycle != currentRisk.AssessmentCycle {
-		t.Fatalf("expected assessment cycle %q, got %q", currentRisk.AssessmentCycle, mockUpdateUC.input.AssessmentCycle)
 	}
 }

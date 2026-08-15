@@ -22,17 +22,21 @@ import {
   TrendingDown,
   TrendingUp,
   Minus,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { buildApprovedRiskHistoryItem } from "@/lib/risk-history";
+import {
+  CollectionPageHeader,
+  PageStack,
+} from "@/components/shared/design-system";
 
 const versions = [
-  { id: "v4", name: "H2 2026 Snapshot", date: "2026-12-01", isCurrent: true },
-  { id: "v3", name: "H1 2026 Snapshot", date: "2026-06-01", isCurrent: false },
-  { id: "v2", name: "H2 2025 Snapshot", date: "2025-12-01", isCurrent: false },
-  { id: "v1", name: "H1 2025 Snapshot", date: "2025-06-01", isCurrent: false },
+  { id: "v4", name: "Q3 2026 Snapshot", date: "2026-07-01", isCurrent: true },
+  { id: "v3", name: "Q2 2026 Snapshot", date: "2026-04-01", isCurrent: false },
+  { id: "v2", name: "Q4 2025 Snapshot", date: "2025-10-01", isCurrent: false },
+  { id: "v1", name: "Q3 2025 Snapshot", date: "2025-07-01", isCurrent: false },
 ];
 export default function RiskHistoryPage() {
   const { token } = useAuth();
@@ -44,29 +48,25 @@ export default function RiskHistoryPage() {
     if (!token) return;
     setLoading(true);
     // Since there's no actual snapshot back-end yet, we simulate history by diffing Current vs Target score
-    api.get<any[]>("/risks?status=approved", token).then((risks) => {
+    api.get<any[]>("/risks?status=final", token).then((risks) => {
       const mapped = risks.map((r) => buildApprovedRiskHistoryItem(r));
       setHistoryData(mapped.slice(0, 10)); // Just show recent
     }).finally(() => setLoading(false));
   }, [token, selectedVersion]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <History className="size-6 text-primary" />
-            Risk Versioning (History)
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Rekam jejak periode manajemen risiko organisasi dari waktu ke waktu
-          </p>
-        </div>
-        <Button className="gap-2 shadow-lg shadow-primary/20">
-          <GitBranch className="size-4" />
-          Create Snapshot Baru
-        </Button>
-      </div>
+    <PageStack>
+      <CollectionPageHeader
+        icon={<History className="size-6" />}
+        title="Risk Versioning (History)"
+        description="Rekam jejak periode manajemen risiko organisasi dari waktu ke waktu"
+        actions={
+          <Button className="gap-2 shadow-lg shadow-primary/20">
+            <GitBranch className="size-4" />
+            Create Snapshot Baru
+          </Button>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Timeline Version Selector */}
@@ -78,11 +78,10 @@ export default function RiskHistoryPage() {
                 key={ver.id}
                 onClick={() => setSelectedVersion(ver.id)}
                 className={cn(
-                  "relative flex items-center justify-between w-full p-3 rounded-lg border text-left transition-all z-10",
+                  "relative flex items-center justify-between w-full p-3 rounded-lg text-left transition-all z-10 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
                   selectedVersion === ver.id
-                    ? "bg-primary/10 border-primary/30 shadow-sm"
-                    : "bg-card/80 border-border/50 hover:bg-muted/50",
-                  ver.isCurrent && "ring-1 ring-primary/50"
+                    ? "bg-primary/10"
+                    : "bg-card/80 hover:bg-muted/50",
                 )}
               >
                 <div>
@@ -104,7 +103,7 @@ export default function RiskHistoryPage() {
 
         {/* Change Comparison */}
         <div className="lg:col-span-3 space-y-4">
-          <Card className="border-border/50 bg-card/80">
+          <Card className="bg-card/80">
             <CardContent>
               <Table>
                 <TableHeader>
@@ -164,6 +163,6 @@ export default function RiskHistoryPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </PageStack>
   );
 }

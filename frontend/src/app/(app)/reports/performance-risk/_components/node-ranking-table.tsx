@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, Info } from "lucide-react";
+import { ChevronDown, Info } from "@/components/ui/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,19 +79,19 @@ export function PerformanceRiskNodeRankingTable({
   return (
     <TooltipProvider delayDuration={150}>
       <div
-        className="overflow-x-auto rounded-lg bg-card ring-1 ring-inset ring-border"
+        className="overflow-x-auto rounded-lg bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
         data-open={open}
       >
         <Collapsible open={open} onOpenChange={setOpen}>
           <div className="flex flex-col gap-3 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:flex-row md:items-start md:justify-between md:px-6">
             <CollapsibleTrigger
-              className="group flex min-w-0 flex-1 items-start justify-between gap-4 rounded-xl text-left outline-none transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-2"
+              className="group flex min-w-0 flex-1 items-start justify-between gap-4 rounded-xl text-left outline-none transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               aria-label={
                 open ? "Sembunyikan Ranking RO" : "Tampilkan Ranking RO"
               }
             >
               <div className="flex min-w-0 items-start gap-3">
-                <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-600 shadow-inner ring-1 ring-inset ring-zinc-200/80 transition-colors duration-150 ease-out group-hover:bg-white">
+                <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground shadow-inner ring-1 ring-inset ring-border/80 transition-colors duration-150 ease-out group-hover:bg-card">
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 transition-transform duration-200 ease-out",
@@ -111,7 +111,7 @@ export function PerformanceRiskNodeRankingTable({
                 </div>
               </div>
               <div className="hidden shrink-0 items-center gap-3 md:flex">
-                <span className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200">
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground tabular-nums ring-1 ring-inset ring-border">
                   {nodes.length} RO
                 </span>
               </div>
@@ -119,43 +119,43 @@ export function PerformanceRiskNodeRankingTable({
             <div className="flex flex-wrap items-center gap-2 md:justify-end">
               <Badge
                 variant="outline"
-                className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-zinc-600 tabular-nums ring-1 ring-inset ring-zinc-200 md:hidden"
+                className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground tabular-nums ring-1 ring-inset ring-border md:hidden"
               >
                 {nodes.length} RO
               </Badge>
             </div>
           </div>
           <CollapsibleContent>
-            <div className="border-b border-zinc-200 px-0 pb-0 pt-0">
+            <div className="border-b border-border px-0 pb-0 pt-0">
               <div className="w-full max-w-full min-w-0 overflow-x-auto">
                 <Table className="min-w-[1280px]">
                   <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
                     <TableRow className="border-border/50 transition-colors hover:bg-transparent">
-                    <TableHead className="h-10 w-16 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground md:pl-6">
+                    <TableHead className="h-10 w-16 whitespace-nowrap pl-4 pr-2.5 text-left align-middle text-sm font-semibold leading-none text-muted-foreground md:pl-6">
                         No
                       </TableHead>
-                      <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold leading-none text-muted-foreground">
                         Rincian Output
                       </TableHead>
-                      <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold leading-none text-muted-foreground">
                         Konteks
                       </TableHead>
-                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold leading-none text-muted-foreground">
                         Jumlah Risiko
                       </TableHead>
-                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold leading-none text-muted-foreground">
                         Total Nilai
                       </TableHead>
-                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold leading-none text-muted-foreground">
                         Overdue
                       </TableHead>
-                      <TableHead className="h-10 w-56 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-56 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold leading-none text-muted-foreground">
                         Progres Mitigasi
                       </TableHead>
-                      <TableHead className="h-10 w-32 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-32 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold leading-none text-muted-foreground">
                         Status
                       </TableHead>
-                      <TableHead className="h-10 w-24 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium leading-none text-muted-foreground">
+                      <TableHead className="h-10 w-24 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold leading-none text-muted-foreground">
                         Aksi
                       </TableHead>
                     </TableRow>
@@ -215,7 +215,7 @@ export function PerformanceRiskNodeRankingTable({
                                     <TooltipTrigger asChild>
                                       <button
                                         type="button"
-                                        className="inline-flex size-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-2"
+                                        className="inline-flex size-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                         aria-label="Lihat rincian progres mitigasi"
                                       >
                                         <Info className="size-3.5" />

@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2 } from "@/components/ui/icons";
 
 interface OrganizationDeleteDialogProps {
   open: boolean;
@@ -69,7 +69,7 @@ export function OrganizationDeleteDialog({
             </div>
             <DialogTitle className="text-lg">Hapus organisasi</DialogTitle>
           </div>
-          <DialogDescription className="pt-2">
+          <DialogDescription>
             Tindakan ini akan menghapus organisasi terpilih secara permanen.
             {organization?.name && (
               <span className="block mt-1 font-medium text-foreground">

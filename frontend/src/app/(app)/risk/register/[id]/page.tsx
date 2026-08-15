@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { PageStack } from "@/components/shared/design-system";
 
 export default function RiskDetailRedirect() {
   const { id } = useParams<{ id: string }>();
@@ -14,11 +15,11 @@ export default function RiskDetailRedirect() {
   }, [id, router]);
 
   return (
-    <div className="flex items-center justify-center min-h-[400px]">
+    <PageStack className="flex min-h-[400px] items-center justify-center">
       <div className="flex flex-col items-center gap-2">
         <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         <p className="text-sm text-muted-foreground">Memuat detail risiko...</p>
       </div>
-    </div>
+    </PageStack>
   );
 }

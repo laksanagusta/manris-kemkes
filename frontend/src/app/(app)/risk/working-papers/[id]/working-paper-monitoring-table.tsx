@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, MoreHorizontal, Minus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, MoreHorizontal, Minus } from "@/components/ui/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,6 @@ import {
   CollectionTableHeader,
   CollectionTableHeaderRow,
 } from "@/components/shared/design-system";
-import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
 import {
   WORKING_PAPER_MONITORING_COLUMNS,
   buildWorkingPaperMonitoringRowFromLink,
@@ -37,14 +36,27 @@ import {
 import { cn } from "@/lib/utils";
 import type { WorkingPaperRiskLink } from "@/types/working-paper";
 
-const levelBadgeVariant: Record<string, string> = {
-  "Sangat Rendah": "bg-green-100 text-green-700 border-green-200",
-  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
-  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi":
-    "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+const levelBadgeTone: Record<
+  string,
+  "success" | "info" | "warning" | "danger" | "neutral"
+> = {
+  "Sangat Rendah": "success",
+  Rendah: "info",
+  Sedang: "warning",
+  Tinggi: "danger",
+  "Sangat Tinggi": "danger",
 };
+
+const monitoringStatusTone = {
+  draft: "neutral",
+  final: "success",
+  unmonitored: "neutral",
+} as const;
+
+const versionBadgeTone = {
+  source: "neutral",
+  result: "info",
+} as const;
 
 function NarrativeCell({ value }: { value: string }) {
   if (value === "-") {
@@ -128,7 +140,7 @@ export function WorkingPaperMonitoringTable({
             <CollectionTableHead
               key={column.key}
               className={cn(
-                "whitespace-nowrap px-2.5 text-left align-middle text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground",
+                "whitespace-nowrap px-2.5 text-left align-middle text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground",
                 index === 0 && "w-40 min-w-40 max-w-40",
                 index === 1 && "w-[320px] min-w-[320px] max-w-[320px] overflow-hidden",
               )}
@@ -158,16 +170,16 @@ export function WorkingPaperMonitoringTable({
                 <span className="flex items-center gap-1.5">
                   {row.code}
                   {row.sourceVersionNumber != null ? (
-                    <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                    <Badge tone={versionBadgeTone.source} size="micro">
                       Sumber v{row.sourceVersionNumber}
                     </Badge>
                   ) : null}
                   {row.resultVersionNumber != null ? (
-                    <Badge className="h-5 -blue-200 bg-blue-50 px-1.5 text-[10px] text-blue-700">
+                    <Badge tone={versionBadgeTone.result} size="micro">
                       Hasil v{row.resultVersionNumber}
                     </Badge>
                   ) : row.versionNumber != null && row.versionNumber > 1 ? (
-                    <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                    <Badge tone={versionBadgeTone.source} size="micro">
                       v{row.versionNumber}
                     </Badge>
                   ) : null}
@@ -186,11 +198,9 @@ export function WorkingPaperMonitoringTable({
                   </span>
                   {row.observedScore != null ? (
                     <Badge
-                      className={cn(
-                        "h-5 px-1.5 text-[10px] font-semibold",
-                        levelBadgeVariant[row.observedLevelLabel] ||
-                          levelBadgeVariant.Rendah,
-                      )}
+                      tone={levelBadgeTone[row.observedLevelLabel] || "info"}
+                      size="micro"
+                      className="font-semibold"
                     >
                       {row.observedLevelLabel}
                     </Badge>
@@ -209,21 +219,13 @@ export function WorkingPaperMonitoringTable({
                 <NarrativeCell value={row.condition} />
               </TableCell>
               <TableCell className="px-2.5">
-                <NarrativeCell value={row.obstacles} />
-              </TableCell>
-              <TableCell className="px-2.5">
                 <NarrativeCell value={row.followUp} />
               </TableCell>
               <TableCell className="px-2.5">
                 <CollectionStatusBadge
-                  className={cn(
-                    "h-5 px-1.5 text-[10px] font-medium",
-                    row.status === "draft"
-                      ? getLinearStatusBadgeClass("draft")
-                      : row.status === "finalized"
-                        ? getLinearStatusBadgeClass("completed")
-                        : "bg-muted text-muted-foreground",
-                  )}
+                  size="micro"
+                  tone={monitoringStatusTone[row.status] || "neutral"}
+                  className="font-medium"
                 >
                   {row.statusLabel}
                 </CollectionStatusBadge>

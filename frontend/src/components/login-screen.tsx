@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "@/components/ui/icons";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,8 +56,8 @@ export default function LoginScreen() {
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -left-[40%] -top-[40%] h-[80%] w-[80%] rounded-full bg-primary/5 blur-3xl animate-[pulse_8s_ease-in-out_infinite]" />
-        <div className="absolute -bottom-[30%] -right-[30%] h-[70%] w-[70%] rounded-full bg-chart-4/5 blur-3xl animate-[pulse_10s_ease-in-out_infinite_2s]" />
-        <div className="absolute left-[20%] top-[60%] h-[40%] w-[40%] rounded-full bg-chart-2/5 blur-3xl animate-[pulse_12s_ease-in-out_infinite_4s]" />
+        <div className="absolute -bottom-[30%] -right-[30%] h-[70%] w-[70%] rounded-full bg-muted-foreground/5 blur-3xl animate-[pulse_10s_ease-in-out_infinite_2s]" />
+        <div className="absolute left-[20%] top-[60%] h-[40%] w-[40%] rounded-full bg-foreground/5 blur-3xl animate-[pulse_12s_ease-in-out_infinite_4s]" />
       </div>
 
       <div
@@ -76,7 +76,7 @@ export default function LoginScreen() {
           </h1>
         </div>
 
-        <Card className="border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl shadow-primary/5">
+        <Card className="bg-card/80 backdrop-blur-xl">
           <CardHeader className="pb-4">
             <CardTitle>Masuk ke Akun Anda</CardTitle>
             <CardDescription>

@@ -27,18 +27,19 @@ import { useAuth } from "@/contexts/auth-context";
 import type { RiskMonitoringDetail } from "@/types/risk-monitoring";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { toast } from "sonner";
-import { useSetHeaderActions } from "@/lib/header-actions-context";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   AccentButton,
   ActionButton,
   ActionIconButton,
+  CollectionPageHeader,
+  CollectionSearchField,
   PageStack,
 } from "@/components/shared/design-system";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -98,6 +99,7 @@ import {
   parseRiskRegisterQueryState,
   shouldReplaceRiskRegisterUrl,
 } from "@/lib/risk-register-query";
+import { formatMonitoringNilai } from "@/lib/risk-register-monitoring";
 import { MonitoringTransactionsTable } from "@/app/(app)/risk/components/monitoring-transactions-table";
 import {
   CollectionPagination,
@@ -106,12 +108,11 @@ import {
   CollectionFilterInput,
   CollectionFilterTrigger,
   CollectionLoadingState,
-  CollectionToolbar,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
-  ExpandableSearchField,
+  MonitoringTransactionProgress,
   SidebarTabsList,
 } from "@/components/shared/design-system";
 import {
@@ -119,14 +120,11 @@ import {
   ChevronUp,
   ChevronDown,
   Trash2,
-  Minus,
   Upload,
   RefreshCcw,
   Archive,
   RotateCcw,
-  Check,
-  Pencil,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   getLinearRiskLevelBadgeClass,
   getLinearStatusBadgeClass,
@@ -136,19 +134,15 @@ import {
 type BadgeTone = NonNullable<React.ComponentProps<typeof Badge>["tone"]>;
 
 const statusVariant: Record<string, string> = {
-  assessment_draft: getLinearStatusBadgeClass("assessment_draft"),
-  assessment_in_review: getLinearStatusBadgeClass("assessment_in_review"),
-  approved: getLinearStatusBadgeClass("approved"),
   draft: getLinearStatusBadgeClass("draft"),
-  finalized: getLinearStatusBadgeClass("completed"),
+  final: getLinearStatusBadgeClass("final"),
+  finalized: getLinearStatusBadgeClass("final"),
   void: getLinearToneBadgeClass("danger"),
 };
 
 const registerStatusTone: Record<string, BadgeTone> = {
-  assessment_draft: "neutral",
-  assessment_in_review: "progress",
-  approved: "success",
   draft: "neutral",
+  final: "success",
   finalized: "success",
   void: "danger",
   archived: "neutral",
@@ -163,11 +157,9 @@ const levelBadgeVariant: Record<string, string> = {
 };
 
 const statusLabel: Record<string, string> = {
-  assessment_draft: "Draf Risiko",
-  assessment_in_review: "Dalam Review",
-  approved: "Disetujui",
   draft: "Draft",
-  finalized: "Finalized",
+  final: "Final",
+  finalized: "Final",
   void: "Void",
 };
 
@@ -193,6 +185,8 @@ type RiskRegisterFilterToolbarProps = {
   categoryFilter: RiskRegisterCategoryFilter;
   onCategoryFilterChange: (value: RiskRegisterCategoryFilter) => void;
   onReset: () => void;
+  onRefresh: () => void;
+  refreshing: boolean;
 };
 
 function RiskRegisterFilterToolbar({
@@ -213,14 +207,17 @@ function RiskRegisterFilterToolbar({
   categoryFilter,
   onCategoryFilterChange,
   onReset,
+  onRefresh,
+  refreshing,
 }: RiskRegisterFilterToolbarProps) {
   return (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
-      <ExpandableSearchField
+    <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+      <CollectionSearchField
+        containerClassName="w-full sm:flex-1 sm:w-auto md:flex-1 md:w-auto"
         value={search}
-        onChange={onSearchChange}
+        onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchPlaceholder}
-        ariaLabel={searchAriaLabel}
+        aria-label={searchAriaLabel}
       />
 
       <RiskRegisterFiltersSidebar
@@ -237,6 +234,18 @@ function RiskRegisterFilterToolbar({
         categoryFilter={categoryFilter}
         onCategoryFilterChange={onCategoryFilterChange}
         onReset={onReset}
+      />
+      <ActionButton
+        aria-label="Muat ulang daftar risiko"
+        disabled={refreshing}
+        icon={
+          <RefreshCcw
+            className={cn("size-3.5", refreshing && "animate-spin")}
+            strokeWidth={2.25}
+          />
+        }
+        onClick={onRefresh}
+        size="icon-xs"
       />
     </div>
   );
@@ -281,7 +290,7 @@ function RiskRegisterFiltersSidebar({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[22rem] rounded-2xl p-4"
+        className="w-[22rem] rounded-xl p-4"
       >
         <div className="space-y-4">
           <div>
@@ -294,10 +303,10 @@ function RiskRegisterFiltersSidebar({
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium text-foreground">
-                Semester
+                Periode Kuartal
               </Label>
               <CollectionFilterInput
-                placeholder="Semester"
+                placeholder="YYYY-QN"
                 value={assessmentCycleFilter}
                 onChange={(event) =>
                   onAssessmentCycleFilterChange(event.target.value)
@@ -326,7 +335,7 @@ function RiskRegisterFiltersSidebar({
                   onLifecycleFilterChange(value as RiskRegisterLifecycleFilter)
                 }
               >
-                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Lifecycle" />
                 </SelectTrigger>
                 <SelectContent>
@@ -347,18 +356,15 @@ function RiskRegisterFiltersSidebar({
                   onStatusFilterChange(value as RiskRegisterStatusFilter)
                 }
               >
-                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="assessment_draft">
+                  <SelectItem value="draft">
                     Draf Risiko
                   </SelectItem>
-                  <SelectItem value="assessment_in_review">
-                    Dalam Review
-                  </SelectItem>
-                  <SelectItem value="approved">Disetujui</SelectItem>
+                  <SelectItem value="final">Final</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -373,7 +379,7 @@ function RiskRegisterFiltersSidebar({
                   onCategoryFilterChange(value as RiskRegisterCategoryFilter)
                 }
               >
-                <SelectTrigger className="h-9 rounded-md border-0 bg-muted/50 text-sm">
+                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Kategori" />
                 </SelectTrigger>
                 <SelectContent>
@@ -409,7 +415,6 @@ function RiskRegisterFiltersSidebar({
               type="button"
               size="md"
               className="gap-1.5"
-              style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}
               onClick={() => onOpenChange(false)}
             >
               Terapkan
@@ -427,7 +432,7 @@ function resolveListItemScoreSemantics(risk: RiskListItem) {
   const fallbackMetrics = calculateRiskMetrics(probability, impact);
 
   return resolveRiskScoreSemantics({
-    status: risk.status ?? "assessment_draft",
+    status: risk.status ?? "draft",
     probability,
     impact,
     weight: risk.weight ?? fallbackMetrics.weight,
@@ -447,66 +452,6 @@ function formatLocalDateTime(value?: string | null) {
     minute: "2-digit",
     hour12: false,
   });
-}
-
-function getSemesterColor(
-  status: string | null | undefined,
-  half: number,
-  year: number,
-): string {
-  if (status === "finalized") return "bg-emerald-100 text-emerald-700";
-  if (status === "draft") return "bg-amber-100 text-amber-700";
-
-  const now = new Date();
-  const semesterEnd = new Date(year, half === 1 ? 6 : 12, 0);
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  if (today > semesterEnd) return "bg-red-100 text-red-500";
-  return "bg-muted text-muted-foreground";
-}
-
-function SemesterIndicator({
-  data,
-}: {
-  data: { h1?: string | null; h2?: string | null } | null | undefined;
-}) {
-  const year = new Date().getFullYear();
-  const semesters = [
-    { key: "h1", label: "H1", value: data?.h1 },
-    { key: "h2", label: "H2", value: data?.h2 },
-  ];
-
-  const getStatusPresentation = (value?: string | null) => {
-    if (value === "finalized") {
-      return { label: "Selesai", Icon: Check };
-    }
-    if (value === "draft") {
-      return { label: "Draf", Icon: Pencil };
-    }
-    return { label: "Belum tersedia", Icon: Minus };
-  };
-
-  return (
-    <div className="flex items-center justify-start gap-1">
-      {semesters.map((semester, i) => {
-        const { label, Icon } = getStatusPresentation(semester.value);
-        return (
-          <span
-            key={semester.key}
-            className={cn(
-              "flex h-6 items-center justify-center gap-1 rounded-sm px-1.5 ring-1 ring-inset ring-border/50 text-[10px] font-semibold",
-              getSemesterColor(semester.value, i + 1, year),
-            )}
-            title={`${semester.label}: ${label}`}
-          >
-            <Icon aria-hidden="true" className="size-2.5" />
-            <span aria-hidden="true">{semester.label}</span>
-            <span className="sr-only">{semester.label}: {label}</span>
-          </span>
-        );
-      })}
-    </div>
-  );
 }
 
 function RiskRowActions({
@@ -596,7 +541,6 @@ export default function RiskRegisterPage() {
   const { token, user } = useAuth();
   const [isPending, startTransition] = useTransition();
   const isApplyingSearchParamsRef = useRef(false);
-  const tambahRisikoRef = useRef<HTMLAnchorElement>(null);
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
   const [monitoringTransactions, setMonitoringTransactions] = useState<
@@ -668,7 +612,6 @@ export default function RiskRegisterPage() {
   const [riskToArchive, setRiskToArchive] = useState<RiskListItem | null>(null);
   const [archiveReason, setArchiveReason] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
-  const setHeaderActions = useSetHeaderActions();
 
   const handleRegisterSearchChange = (value: string) => {
     setSearch(value);
@@ -712,6 +655,8 @@ export default function RiskRegisterPage() {
   };
   const [archiveNote, setArchiveNote] = useState("");
   const [riskToRestore, setRiskToRestore] = useState<RiskListItem | null>(null);
+  const [riskToDeleteDraft, setRiskToDeleteDraft] =
+    useState<RiskListItem | null>(null);
   const [sortBy, setSortBy] = useState<string>(
     () =>
       parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
@@ -743,7 +688,7 @@ export default function RiskRegisterPage() {
     ).trim();
 
     const registerStatus =
-      statusFilter === "all" || statusFilter === "assessment_draft"
+      statusFilter === "all"
         ? undefined
         : statusFilter;
 
@@ -787,6 +732,22 @@ export default function RiskRegisterPage() {
     setPage(allRisksResponse.page ?? page);
     setLimit(allRisksResponse.limit ?? limit);
 
+  };
+
+  const handleRefreshRegister = () => {
+    if (!token || loading) return;
+
+    setLoading(true);
+    void refreshRegisterData(token)
+      .catch((err) => {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Gagal memuat ulang daftar risiko.";
+        setError(message);
+        toast.error(message);
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -935,21 +896,6 @@ export default function RiskRegisterPage() {
   ]);
 
 
-  useEffect(() => {
-    if (!token) return;
-    setHeaderActions(
-      <div className="flex items-center gap-2">
-        <ActionButton asChild variant="outline" icon={<Upload className="size-3.5" strokeWidth={2.5} />}>
-          <Link href="/risk/register/bulk">Import Risiko</Link>
-        </ActionButton>
-        <AccentButton asChild icon={<Plus className="size-3.5" strokeWidth={2.5} />}>
-          <Link href="/risk/register/new" ref={tambahRisikoRef}>Tambah Risiko</Link>
-        </AccentButton>
-      </div>,
-    );
-    return () => setHeaderActions(null);
-  }, [token, setHeaderActions]);
-
   const activeTotal =
     activeTab === "monitoring-transactions" ? monitoringTotal : registerTotal;
   const handleArchiveRisk = async () => {
@@ -1008,6 +954,31 @@ export default function RiskRegisterPage() {
     );
   };
 
+  const handleDeleteDraft = async () => {
+    if (!token || !riskToDeleteDraft) {
+      toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+
+    const current = riskToDeleteDraft;
+    setRiskToDeleteDraft(null);
+
+    toast.promise(
+      (async () => {
+        await api.delete(`/risks/${current.id}`, undefined, token);
+        await refreshRegisterData(token);
+      })(),
+      {
+        loading: "Menghapus draft...",
+        success: "Draft berhasil dihapus.",
+        error: (err) =>
+          err instanceof Error
+            ? err.message
+            : "Draft belum berhasil dihapus.",
+      },
+    );
+  };
+
   const handleOpenConfirmDialog = (risk: RiskListItem) => {
     setSelectedRiskForReassessment(risk);
     setSelectedAssessmentCycle(currentMonitoringCycle());
@@ -1025,10 +996,9 @@ export default function RiskRegisterPage() {
     toast.promise(
       (async () => {
         const result = await api.post<{
-          id: string;
-          redirectURL?: string;
-          redirectUrl?: string;
-          existingDraft?: boolean;
+          monitoring: { id: string };
+          redirectUrl: string;
+          existingDraft: boolean;
         }>(
           `/risks/${selectedRiskForReassessment.id}/monitorings`,
           { cycle: selectedAssessmentCycle },
@@ -1036,12 +1006,7 @@ export default function RiskRegisterPage() {
         );
         await refreshRegisterData(token);
 
-        const redirectUrl = result.redirectUrl || result.redirectURL;
-        if (redirectUrl) {
-          router.push(redirectUrl);
-        } else {
-          router.push(`/risk/monitoring/${result.id}`);
-        }
+        router.push(result.redirectUrl || `/risk/monitoring/${result.monitoring.id}`);
 
         return result;
       })(),
@@ -1060,18 +1025,6 @@ export default function RiskRegisterPage() {
   };
 
   useEffect(() => {
-    if (tambahRisikoRef.current) {
-      const btn = tambahRisikoRef.current;
-      const { width, height } = btn.getBoundingClientRect();
-      if (width > 0 && height > 0) {
-        const radius = height / 2;
-        const d = appleCornerPath({ width, height, radius, smoothing: 60 });
-        btn.style.clipPath = `path("${d}")`;
-        btn.style.borderRadius = "0";
-        btn.style.border = "none";
-      }
-    }
-
     const smoothElements = document.querySelectorAll("[data-smooth]");
     smoothElements.forEach((el) => {
       const htmlEl = el as HTMLElement;
@@ -1118,19 +1071,38 @@ export default function RiskRegisterPage() {
       : "none";
   return (
     <PageStack>
+      <CollectionPageHeader
+        title="Daftar Risiko"
+        description="Kelola dan pantau seluruh risiko organisasi."
+        actions={
+          <>
+            <ActionButton asChild variant="outline">
+              <Link href="/risk/register/bulk">
+                <Upload className="size-3.5" strokeWidth={2.5} />
+                Import Risiko
+              </Link>
+            </ActionButton>
+            <AccentButton asChild>
+              <Link href="/risk/register/new">
+                <Plus className="size-3.5" strokeWidth={2.5} />
+                Tambah Risiko
+              </Link>
+            </AccentButton>
+          </>
+        }
+      />
       <Tabs
+        className="gap-4"
         defaultValue="all-risks"
         value={activeTab}
         onValueChange={(value) => setActiveTab(value as RiskRegisterTab)}
       >
-        <CollectionToolbar
-          leading={
-            <SidebarTabsList>
-              <TabsTrigger value="all-risks">Daftar Risiko</TabsTrigger>
-              <TabsTrigger value="monitoring-transactions">Pemantauan</TabsTrigger>
-            </SidebarTabsList>
-          }
-          actions={<RiskRegisterFilterToolbar
+        <div className="space-y-4">
+          <SidebarTabsList>
+            <TabsTrigger value="all-risks">Daftar Risiko</TabsTrigger>
+            <TabsTrigger value="monitoring-transactions">Pemantauan</TabsTrigger>
+          </SidebarTabsList>
+          <RiskRegisterFilterToolbar
             search={search}
             onSearchChange={handleRegisterSearchChange}
             searchPlaceholder="Cari risiko..."
@@ -1148,20 +1120,23 @@ export default function RiskRegisterPage() {
             categoryFilter={categoryFilter}
             onCategoryFilterChange={handleRegisterCategoryChange}
             onReset={handleResetRegisterFilters}
-          />}
-        />
-        <TabsContent value="all-risks" className="mt-3 space-y-4">
+            onRefresh={handleRefreshRegister}
+            refreshing={loading}
+          />
+        </div>
+        <TabsContent value="all-risks" className="mt-0 space-y-4">
           <CollectionTableCard>
-            <Table className="min-w-[880px] table-fixed">
+            <Table className="min-w-[1040px] table-fixed">
               <colgroup>
                 <col className="w-[10%]" />
-                <col className="w-[29%]" />
-                <col className="w-[15%]" />
+                <col className="w-[26%]" />
+                <col className="w-[14%]" />
                 <col className="w-[7%]" />
-                <col className="w-[19%]" />
-                <col className="w-[10%]" />
+                <col className="w-[17%]" />
+                <col className="w-[18%]" />
+                <col className="w-[8%]" />
               </colgroup>
-              <CollectionTableHeader>
+              <CollectionTableHeader density="compact">
                 <CollectionTableHeaderRow>
                   <CollectionTableHead className="pl-4 pr-3">
                     Kode
@@ -1190,7 +1165,7 @@ export default function RiskRegisterPage() {
                           setSortOrder("desc");
                         }
                       }}
-                    >
+                  >
                       Skor
                       {sortBy === "nilai" &&
                         (sortOrder === "desc" ? (
@@ -1203,7 +1178,10 @@ export default function RiskRegisterPage() {
                   <CollectionTableHead className="px-3">
                     Status Risiko
                   </CollectionTableHead>
-                  <CollectionTableHead className="sticky right-0 z-10 bg-white px-3 text-center">
+                  <CollectionTableHead className="min-w-[176px] px-3">
+                    Pemantauan
+                  </CollectionTableHead>
+                  <CollectionTableHead className="sticky right-0 z-10 w-[84px] bg-table-header px-3 text-center">
                       Aksi
                   </CollectionTableHead>
                 </CollectionTableHeaderRow>
@@ -1212,7 +1190,7 @@ export default function RiskRegisterPage() {
                 {risks.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="py-8 text-left text-xs text-muted-foreground"
                     >
                       Tidak ada risiko yang ditemukan
@@ -1220,20 +1198,18 @@ export default function RiskRegisterPage() {
                   </TableRow>
                 ) : (
                   risks.map((risk) => {
-                    const scoreSemantics =
-                      resolveListItemScoreSemantics(risk);
                     const isReadOnly = isReadOnlyForOrg(
                       user,
                       risk.organizationId || "",
                     );
                     const canReassess =
-                      risk.status === "approved" &&
+                      risk.status === "final" &&
                       risk.isCurrent &&
                       !risk.archivedAt &&
                       !isReadOnly;
                     const canArchive =
                       lifecycleFilter !== "archived" &&
-                      risk.status === "approved" &&
+                      risk.status === "final" &&
                       risk.isCurrent &&
                       !risk.archivedAt &&
                       !isReadOnly;
@@ -1241,7 +1217,7 @@ export default function RiskRegisterPage() {
                     const statusText =
                       risk.archivedAt
                         ? "Diarsipkan"
-                        : risk.status === "assessment_draft" &&
+                        : risk.status === "draft" &&
                             risk.versionNumber == 1
                           ? "Draft"
                           : statusLabel[risk.status || ""] ||
@@ -1250,7 +1226,7 @@ export default function RiskRegisterPage() {
                     return (
                       <TableRow
                         key={risk.id}
-                        className="group border-0 hover:bg-muted/50"
+                        className="group h-10 border-0 hover:bg-muted/50"
                       >
                         <TableCell className="py-2 pl-4 pr-3 text-foreground">
                           {risk.code || "-"}
@@ -1273,7 +1249,7 @@ export default function RiskRegisterPage() {
                         </TableCell>
                         <TableCell className="px-3 py-2">
                           <span className="text-sm font-medium tabular-nums text-foreground">
-                            {scoreSemantics.effective.score}
+                            {formatMonitoringNilai(risk.monitoringResultNilai)}
                           </span>
                         </TableCell>
                         <TableCell className="px-3 py-2">
@@ -1291,7 +1267,12 @@ export default function RiskRegisterPage() {
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="sticky right-0 bg-background px-3 py-2 transition-colors group-hover:bg-muted/50">
+                        <TableCell className="min-w-[176px] px-3 py-2">
+                          <MonitoringTransactionProgress
+                            data={risk.semesterMonitoring}
+                          />
+                        </TableCell>
+                        <TableCell className="sticky right-0 bg-card px-3 py-2 transition-colors group-hover:bg-muted/50">
                           <div className="flex justify-center">
                             <RiskRowActions
                               risk={risk}
@@ -1329,6 +1310,11 @@ export default function RiskRegisterPage() {
                                   ? () => setRiskToRestore(risk)
                                   : undefined
                               }
+                              onDeleteDraft={
+                                risk.status === "draft"
+                                  ? () => setRiskToDeleteDraft(risk)
+                                  : undefined
+                              }
                             />
                           </div>
                         </TableCell>
@@ -1354,7 +1340,7 @@ export default function RiskRegisterPage() {
           </TabsContent>
 
         {/* TAB 2: MONITORING TRANSACTIONS */}
-        <TabsContent value="monitoring-transactions" className="mt-3 space-y-4">
+        <TabsContent value="monitoring-transactions" className="mt-0 space-y-4">
           <CollectionTableCard>
             <MonitoringTransactionsTable
               items={monitoringTransactions}
@@ -1389,7 +1375,7 @@ export default function RiskRegisterPage() {
           }
         }}
       >
-        <DialogContent className="max-w-md rounded-2xl p-6 shadow-2xl">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Arsipkan Risiko?</DialogTitle>
             <DialogDescription>
@@ -1411,11 +1397,11 @@ export default function RiskRegisterPage() {
               onChange={(event) => setArchiveReason(event.target.value)}
               placeholder="Alasan utama arsip"
             />
-            <textarea
+            <Textarea
               value={archiveNote}
               onChange={(event) => setArchiveNote(event.target.value)}
               placeholder="Catatan tambahan (opsional)"
-              className="min-h-24 w-full rounded-md ring-1 ring-inset ring-border bg-card px-3 py-2 text-sm"
+              className="min-h-24"
             />
           </div>
           <DialogFooter>
@@ -1432,8 +1418,41 @@ export default function RiskRegisterPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={!!riskToDeleteDraft}
+        onOpenChange={(open) => !open && setRiskToDeleteDraft(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hapus Draft Risiko?</DialogTitle>
+            <DialogDescription>
+              Draft yang dihapus tidak bisa dikembalikan.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-2xl bg-muted px-3 py-2 text-sm ring-1 ring-inset ring-border">
+            <p className="font-medium">
+              {riskToDeleteDraft?.title || "Tanpa judul"}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {riskToDeleteDraft?.code || riskToDeleteDraft?.id}
+            </p>
+          </div>
+          <DialogFooter>
+            <CollectionDialogCancel
+              onClick={() => setRiskToDeleteDraft(null)}
+            >
+              Batal
+            </CollectionDialogCancel>
+            <Button variant="destructive" onClick={handleDeleteDraft}>
+              <Trash2 className="size-3.5" />
+              Hapus Draft
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1442,7 +1461,7 @@ export default function RiskRegisterPage() {
               sebelum finalisasi.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2 rounded-2xl ring-1 ring-inset ring-border bg-muted p-3">
+          <div className="space-y-2 rounded-2xl bg-accent p-3 ring-1 ring-inset ring-border">
             <div className="text-sm">
               <span className="font-medium text-foreground">Kode: </span>
               <span className="font-mono text-xs text-muted-foreground">
@@ -1507,7 +1526,7 @@ export default function RiskRegisterPage() {
         open={!!riskToRestore}
         onOpenChange={(open) => !open && setRiskToRestore(null)}
       >
-        <AlertDialogContent className="rounded-2xl p-6 shadow-2xl">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Pulihkan Risiko?</AlertDialogTitle>
             <AlertDialogDescription>

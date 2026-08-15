@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { KeyRound, Save, UserRound } from "lucide-react";
+import { KeyRound, Save, UserRound } from "@/components/ui/icons";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageStack } from "@/components/shared/design-system";
 
 type ProfileFormState = {
   name: string;
@@ -147,10 +148,10 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col space-y-6 animate-fade-in">
+    <PageStack className="max-w-3xl">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Akun Saya</h1>
+          <h1 className="page-title">Akun Saya</h1>
           <p className="text-sm text-muted-foreground">
             Kelola profil dan keamanan akun untuk sesi aktif Anda.
           </p>
@@ -160,7 +161,7 @@ export default function AccountPage() {
         </div>
       </div>
 
-      <Card className="border-border/60 bg-card">
+      <Card className="bg-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
             <UserRound className="size-4" /> Profil Pengguna
@@ -317,6 +318,6 @@ export default function AccountPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageStack>
   );
 }

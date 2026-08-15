@@ -37,7 +37,7 @@ import {
   CheckCircle,
   Clock,
   Search,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface KRI {
   id: string;
@@ -226,7 +226,7 @@ export function KRIMonitorPanel() {
       </div>
 
       {error && (
-        <Card className="border-destructive/50 bg-destructive/5">
+        <Card className="bg-destructive/5">
           <CardContent className="flex items-center gap-3 p-4">
             <AlertCircle className="size-5 flex-shrink-0 text-destructive" />
             <div className="flex-1">
@@ -265,7 +265,7 @@ export function KRIMonitorPanel() {
         </div>
       )}
 
-      <Card className="ring-1 ring-inset ring-border border-0 bg-card">
+      <Card className="bg-card">
         <CardContent className="space-y-4 p-4 md:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>

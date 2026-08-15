@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save } from "lucide-react";
+import { Save } from "@/components/ui/icons";
 
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -62,7 +62,7 @@ export default function NewControlPage() {
   };
 
   return (
-    <FormPage className="max-w-4xl">
+    <FormPage className="max-w-5xl">
       <FormHeader
         title="Tambah kontrol"
         description="Catat kontrol baru agar bisa dipakai di register risiko dan monitoring."

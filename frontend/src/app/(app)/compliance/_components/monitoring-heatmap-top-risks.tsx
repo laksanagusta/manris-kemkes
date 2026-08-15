@@ -6,19 +6,14 @@ import { useAuth } from "@/contexts/auth-context";
 import { RiskHeatmap } from "../../overview/_components/risk-heatmap";
 import { TopRisksPanel } from "../../overview/_components/top-risks-panel";
 import type { HeatmapVelocityCell, TopRiskItem } from "@/types/risk";
+import { currentAssessmentCycle, shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 
 function currentGlobalCycle() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const half = now.getMonth() < 6 ? "H1" : "H2";
-  return `${year}-${half}`;
+  return currentAssessmentCycle();
 }
 
 function previousGlobalCycle(cycle: string) {
-  const [yearPart, half] = cycle.split("-");
-  const year = Number(yearPart);
-  if (half === "H1") return `${year - 1}-H2`;
-  return `${year}-H1`;
+  return shiftAssessmentCycle(cycle, -1);
 }
 
 export function MonitoringHeatmapTopRisks() {

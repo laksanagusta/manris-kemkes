@@ -44,14 +44,14 @@ func TestCreateRiskReassessmentUseCase_AllowsLatePreviousCycleWhenNoNewerCycleEx
 			VersionGroupID:  groupID,
 			Status:          entity.RiskStatusApproved,
 			IsCurrent:       true,
-			AssessmentCycle: "2026-H1",
+			AssessmentCycle: "2026-Q2",
 		},
 	}
 
 	uc := NewCreateRiskReassessmentUseCase(repo, nil)
 	out, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{
 		RiskID:    sourceID,
-		Cycle:     "2026-H1",
+		Cycle:     "2026-Q2",
 		CreatedBy: creatorID,
 	})
 
@@ -64,8 +64,8 @@ func TestCreateRiskReassessmentUseCase_AllowsLatePreviousCycleWhenNoNewerCycleEx
 	if repo.created == nil {
 		t.Fatalf("expected reassessment draft to be created")
 	}
-	if repo.created.AssessmentCycle != "2026-H1" {
-		t.Fatalf("created cycle = %q, want 2026-H1", repo.created.AssessmentCycle)
+	if repo.created.AssessmentCycle != "2026-Q2" {
+		t.Fatalf("created cycle = %q, want 2026-Q2", repo.created.AssessmentCycle)
 	}
 }
 
@@ -78,7 +78,7 @@ func TestCreateRiskReassessmentUseCase_BlocksOlderCycleWhenNewerCycleExists(t *t
 			VersionGroupID:  groupID,
 			Status:          entity.RiskStatusApproved,
 			IsCurrent:       true,
-			AssessmentCycle: "2026-H2",
+			AssessmentCycle: "2026-Q4",
 		},
 		versions: []*entity.Risk{
 			{
@@ -86,7 +86,7 @@ func TestCreateRiskReassessmentUseCase_BlocksOlderCycleWhenNewerCycleExists(t *t
 				VersionGroupID:  groupID,
 				Status:          entity.RiskStatusApproved,
 				IsCurrent:       true,
-				AssessmentCycle: "2026-H2",
+				AssessmentCycle: "2026-Q4",
 			},
 		},
 	}
@@ -94,13 +94,13 @@ func TestCreateRiskReassessmentUseCase_BlocksOlderCycleWhenNewerCycleExists(t *t
 	uc := NewCreateRiskReassessmentUseCase(repo, nil)
 	_, err := uc.Execute(context.Background(), CreateRiskReassessmentInput{
 		RiskID: sourceID,
-		Cycle:  "2026-H1",
+		Cycle:  "2026-Q2",
 	})
 
 	if err == nil {
 		t.Fatalf("Execute() expected error")
 	}
-	if !strings.Contains(err.Error(), "periode lebih baru: 2026-H2") {
+	if !strings.Contains(err.Error(), "periode lebih baru: 2026-Q4") {
 		t.Fatalf("error = %q, want newer cycle message", err.Error())
 	}
 	if repo.created != nil {

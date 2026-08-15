@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/ui/icons";
 
 import type { CommunicationMethod } from "@/types/communication-log";
 import { COMMUNICATION_METHODS, COMMUNICATION_METHOD_LABELS } from "@/types/communication-log";

@@ -57,6 +57,10 @@ import {
 } from "./_components/filter-bar";
 import { PerformanceRiskNodeRankingTable } from "./_components/node-ranking-table";
 import { PerformanceRiskSummaryCards } from "./_components/summary-cards";
+import {
+  CollectionPageHeader,
+  PageStack,
+} from "@/components/shared/design-system";
 
 const EMPTY_REPORT_SCOPE: ReportsFilterScope = {
   organizationId: "",
@@ -71,6 +75,14 @@ type PerformanceRiskPlanningOption = {
   period: string;
 };
 
+function normalizePlanningPeriod(period: string) {
+  const match = period.trim().match(/^(\d{4})-(H[12]|Q[1-4])$/i);
+  if (!match) return period;
+  const legacy = match[2].toUpperCase();
+  const quarter = legacy === "H1" ? "Q2" : legacy === "H2" ? "Q4" : legacy;
+  return `${match[1]}-${quarter}`;
+}
+
 function buildPlanningOptions(items: PlanningObjectiveCompatibilityItem[]) {
   const options = new Map<string, PerformanceRiskPlanningOption>();
 
@@ -80,7 +92,7 @@ function buildPlanningOptions(items: PlanningObjectiveCompatibilityItem[]) {
       id: item.planningId,
       title: item.planningTitle || "Perjanjian Kinerja",
       status: item.planningStatus || "draft",
-      period: item.planningPeriod || item.period || "",
+      period: normalizePlanningPeriod(item.planningPeriod || item.period || ""),
     });
   }
 
@@ -345,19 +357,14 @@ export default function PerformanceRiskPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <section className="max-w-3xl space-y-2">
-        <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
-          Analisis Kinerja & Risiko
-        </h2>
-        <p className="text-sm text-muted-foreground text-pretty">
-          Memetakan paparan risiko inherent terhadap sasaran, IKU, program,
-          kegiatan, dan RO.
-        </p>
-      </section>
+    <PageStack>
+      <CollectionPageHeader
+        title="Analisis Kinerja & Risiko"
+        description="Memetakan paparan risiko inherent terhadap sasaran, IKU, program, kegiatan, dan RO."
+      />
 
       {requiresScopeSelection ? (
-        <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+        <Card className="rounded-lg bg-card">
           <CardContent className="flex min-h-40 items-center justify-center px-6 py-8 text-center">
             <div className="max-w-sm space-y-2">
               <p className="text-sm font-medium text-foreground">
@@ -395,7 +402,7 @@ export default function PerformanceRiskPage() {
       />
 
       {emptyState === "no_planning" ? (
-        <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+        <Card className="rounded-lg bg-card">
           <CardContent className="flex min-h-40 items-center justify-center px-6 py-8 text-center text-sm text-muted-foreground">
             Struktur RO belum tersedia untuk periode ini.
           </CardContent>
@@ -403,15 +410,15 @@ export default function PerformanceRiskPage() {
       ) : null}
 
       {emptyState === "no_linked_risk" ? (
-        <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+        <Card className="rounded-lg bg-card">
           <CardContent className="flex min-h-40 items-center justify-center px-6 py-8 text-center text-sm text-muted-foreground">
-            Belum ada risiko approved yang terhubung ke RO pada periode ini.
+            Belum ada risiko final yang terhubung ke RO pada periode ini.
           </CardContent>
         </Card>
       ) : null}
 
       {summary?.unlinkedRisks ? (
-        <Card className="rounded-lg ring-1 ring-inset ring-amber-200 bg-amber-50/70 shadow-none">
+        <Card className="rounded-lg bg-amber-50/70">
           <CardContent className="space-y-4 px-6 py-5">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -419,7 +426,7 @@ export default function PerformanceRiskPage() {
                   Data Quality: Risiko Tanpa RO
                 </h2>
                 <p className="text-sm text-amber-900/80">
-                  {summary.unlinkedRisks} risiko approved belum memiliki relasi
+                  {summary.unlinkedRisks} risiko final belum memiliki relasi
                   ke RO.
                 </p>
               </div>
@@ -431,22 +438,22 @@ export default function PerformanceRiskPage() {
               <Table className="text-sm">
                 <TableHeader className="[&_tr]:border-amber-200">
                   <TableRow className="border-amber-200 bg-amber-100/50 hover:bg-amber-100/50">
-                    <TableHead className="w-24 px-3 py-2 text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="w-24 px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-amber-950">
                       Kode
                     </TableHead>
-                    <TableHead className="px-3 py-2 text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-amber-950">
                       Judul Risiko
                     </TableHead>
-                    <TableHead className="w-56 px-3 py-2 text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="w-56 px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-amber-950">
                       Unit
                     </TableHead>
-                    <TableHead className="w-32 px-3 py-2 text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="w-32 px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-amber-950">
                       Kategori
                     </TableHead>
-                    <TableHead className="w-28 px-3 py-2 text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="w-28 px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-amber-950">
                       Cycle
                     </TableHead>
-                    <TableHead className="w-24 px-3 py-2 text-right text-sm font-medium uppercase tracking-[0.12em] text-amber-950">
+                    <TableHead className="w-24 px-3 py-2 text-right text-sm font-semibold uppercase tracking-[0.12em] text-amber-950">
                       Skor
                     </TableHead>
                   </TableRow>
@@ -490,7 +497,7 @@ export default function PerformanceRiskPage() {
 
       <section className="space-y-4">
         {loading ? (
-          <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+          <Card className="rounded-lg bg-card">
             <CardContent className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
               Memuat analisis...
             </CardContent>
@@ -502,7 +509,7 @@ export default function PerformanceRiskPage() {
             onSelect={handleSelectNode}
           />
         ) : (
-          <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+          <Card className="rounded-lg bg-card">
             <CardContent className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
               Tidak ada RO yang cocok dengan filter aktif.
             </CardContent>
@@ -514,6 +521,6 @@ export default function PerformanceRiskPage() {
         <h2 className="text-base font-semibold">Detail RO</h2>
         <PerformanceRiskDetailPanel detail={detail} loading={detailLoading} />
       </section>
-    </div>
+    </PageStack>
   );
 }

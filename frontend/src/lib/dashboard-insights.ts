@@ -17,11 +17,18 @@ type RiskLike = {
   weight?: number;
   nilai?: number | null;
   inherentScore?: number;
-  status?: "assessment_draft" | "assessment_in_review" | "approved";
+  // Legacy values are accepted at this analytics boundary so historical
+  // report fixtures remain readable; persisted risk workflow states are only
+  // draft/final.
+  status?: "draft" | "final" | "assessment_draft" | "assessment_in_review" | "approved";
   targetScore?: number;
   targetNilai?: number | null;
   targetProbability?: number;
   targetImpact?: number;
+  monitoringObservedProbability?: number | null;
+  monitoringObservedImpact?: number | null;
+  monitoringObservedWeight?: number | null;
+  monitoringObservedNilai?: number | null;
 };
 
 type ComparisonLike = {
@@ -88,40 +95,43 @@ export type SemesterScoreTargetDatum = {
   targetCount: number;
 };
 
-function normalizeSemesterKey(value?: string) {
+function normalizeQuarterKey(value?: string) {
   if (!value) return null;
-  const match = value.trim().match(/^(\d{4})-(H[12])$/i);
+  const match = value.trim().match(/^(\d{4})-(Q[1-4]|H[12])$/i);
   if (!match) return null;
   const year = match[1];
-  return `${year}-${match[2].toUpperCase()}`;
+  const period = match[2].toUpperCase();
+  const quarter = period === "H1" ? "Q2" : period === "H2" ? "Q4" : period;
+  return `${year}-${quarter}`;
 }
 
-function deriveSemester(createdAt?: string) {
+function deriveQuarter(createdAt?: string) {
   if (!createdAt) return null;
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return null;
-  const half = date.getMonth() < 6 ? "H1" : "H2";
+  const quarter = Math.floor(date.getMonth() / 3) + 1;
+  const half = "Q" + quarter;
   return `${date.getFullYear()}-${half}`;
 }
 
-function semesterSortValue(period: string) {
-  const [yearText, half] = period.split("-");
-  return Number(yearText) * 2 + (half === "H2" ? 1 : 0);
+function quarterSortValue(period: string) {
+  const [yearText, quarter] = period.split("-");
+  return Number(yearText) * 4 + Number(quarter.slice(1));
 }
 
 export function selectEffectiveRiskVersions<T extends RiskLike>(
   risks: T[],
   targetCycle: string,
 ): T[] {
-  const normalizedTarget = normalizeSemesterKey(targetCycle);
+  const normalizedTarget = normalizeQuarterKey(targetCycle);
   if (!normalizedTarget) return [];
 
-  const targetSortValue = semesterSortValue(normalizedTarget);
+  const targetSortValue = quarterSortValue(normalizedTarget);
   const latestByGroup = new Map<string, T>();
 
   for (const risk of risks) {
-    const cycle = normalizeSemesterKey(risk.assessmentCycle);
-    if (!cycle || semesterSortValue(cycle) > targetSortValue) continue;
+    const cycle = normalizeQuarterKey(risk.assessmentCycle);
+    if (!cycle || quarterSortValue(cycle) > targetSortValue) continue;
 
     const groupKey =
       risk.versionGroupId?.trim() ||
@@ -135,11 +145,11 @@ export function selectEffectiveRiskVersions<T extends RiskLike>(
       continue;
     }
 
-    const currentCycle = normalizeSemesterKey(current.assessmentCycle);
+    const currentCycle = normalizeQuarterKey(current.assessmentCycle);
     const currentCycleValue = currentCycle
-      ? semesterSortValue(currentCycle)
+      ? quarterSortValue(currentCycle)
       : Number.NEGATIVE_INFINITY;
-    const candidateCycleValue = semesterSortValue(cycle);
+    const candidateCycleValue = quarterSortValue(cycle);
     if (
       candidateCycleValue > currentCycleValue ||
       (candidateCycleValue === currentCycleValue &&
@@ -159,6 +169,28 @@ export function levelFromScore(inherentScore?: number): Severity {
   if (score >= 10) return "Sedang";
   if (score >= 5) return "Rendah";
   return "Sangat Rendah";
+}
+
+function effectiveScoreSemantics(risk: RiskLike) {
+  const probability = risk.monitoringObservedProbability ?? risk.probability ?? 1;
+  const impact = risk.monitoringObservedImpact ?? risk.impact ?? 1;
+  const weight =
+    risk.monitoringObservedWeight ?? risk.weight ?? getBobot(probability, impact);
+  const nilai = risk.monitoringObservedNilai ?? risk.nilai;
+  const inherentScore =
+    risk.monitoringObservedNilai !== null &&
+    risk.monitoringObservedNilai !== undefined
+      ? Math.round(risk.monitoringObservedNilai)
+      : risk.inherentScore ?? 0;
+
+  return resolveRiskScoreSemantics({
+    status: risk.status === "final" ? "final" : "draft",
+    probability,
+    impact,
+    weight,
+    nilai: nilai ?? undefined,
+    inherentScore,
+  });
 }
 
 export function weightFor(level: Severity) {
@@ -202,14 +234,7 @@ export function calculateRiskExposureScore(
   targetCycle: string,
 ) {
   return selectEffectiveRiskVersions(risks, targetCycle).reduce((sum, risk) => {
-    const score = resolveRiskScoreSemantics({
-      status: risk.status ?? "assessment_draft",
-      probability: risk.probability ?? 1,
-      impact: risk.impact ?? 1,
-      weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
-      nilai: risk.nilai ?? undefined,
-      inherentScore: risk.inherentScore ?? 0,
-    }).effective.score;
+    const score = effectiveScoreSemantics(risk).effective.score;
 
     return sum + weightFor(levelFromScore(score));
   }, 0);
@@ -227,16 +252,7 @@ export function buildUnitExposureData(risks: RiskLike[], limit = 5): UnitExposur
 
   for (const risk of risks) {
     const orgName = risk.orgName?.trim() || "Tanpa Unit";
-     const level = levelFromScore(
-       resolveRiskScoreSemantics({
-         status: risk.status ?? "assessment_draft",
-         probability: risk.probability ?? 1,
-         impact: risk.impact ?? 1,
-         weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
-         nilai: risk.nilai ?? undefined,
-         inherentScore: risk.inherentScore ?? 0,
-       }).effective.score,
-     );
+    const level = levelFromScore(effectiveScoreSemantics(risk).effective.score);
     const row = grouped.get(orgName) ?? {
       orgName,
       exposureScore: 0,
@@ -267,14 +283,7 @@ export function buildUnitTotalRiskScoreData(
 
   for (const risk of risks) {
     const orgName = risk.orgName?.trim() || "Tanpa Unit";
-    const effectiveScore = resolveRiskScoreSemantics({
-      status: risk.status ?? "assessment_draft",
-      probability: risk.probability ?? 1,
-      impact: risk.impact ?? 1,
-      weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
-      nilai: risk.nilai ?? undefined,
-      inherentScore: risk.inherentScore ?? 0,
-    }).effective.score;
+    const effectiveScore = effectiveScoreSemantics(risk).effective.score;
 
     const row = grouped.get(orgName) ?? {
       orgName,
@@ -369,19 +378,10 @@ export function buildExecutiveTrendData(risks: RiskLike[]): ExecutiveTrendDatum[
    const grouped = new Map<string, ExecutiveTrendDatum>();
 
    for (const risk of risks) {
-     const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+     const period = normalizeQuarterKey(risk.assessmentCycle) || deriveQuarter(risk.createdAt);
      if (!period) continue;
 
-     const level = levelFromScore(
-       resolveRiskScoreSemantics({
-         status: risk.status ?? "assessment_draft",
-         probability: risk.probability ?? 1,
-         impact: risk.impact ?? 1,
-         weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
-         nilai: risk.nilai ?? undefined,
-         inherentScore: risk.inherentScore ?? 0,
-       }).effective.score,
-     );
+     const level = levelFromScore(effectiveScoreSemantics(risk).effective.score);
     const row = grouped.get(period) ?? { period, medium: 0, high: 0, extreme: 0, exposureScore: 0 };
     if (level === "Sedang") row.medium += 1;
     if (level === "Tinggi") row.high += 1;
@@ -390,7 +390,7 @@ export function buildExecutiveTrendData(risks: RiskLike[]): ExecutiveTrendDatum[
     grouped.set(period, row);
   }
 
-  return [...grouped.values()].sort((left, right) => semesterSortValue(left.period) - semesterSortValue(right.period));
+  return [...grouped.values()].sort((left, right) => quarterSortValue(left.period) - quarterSortValue(right.period));
 }
 
 export function buildMovementSnapshotData(input: {
@@ -490,8 +490,8 @@ function resolveWorkingPaperPeriod(
   workingPaper: Pick<WorkingPaperLike, "assessment_cycle" | "created_at">,
 ) {
   return (
-    normalizeSemesterKey(workingPaper.assessment_cycle) ||
-    deriveSemester(workingPaper.created_at)
+    normalizeQuarterKey(workingPaper.assessment_cycle) ||
+    deriveQuarter(workingPaper.created_at)
   );
 }
 
@@ -515,11 +515,11 @@ export function buildLatestOrganizationProgressData(
 
     const createdAt = new Date(workingPaper.created_at ?? "").getTime();
     const sortValue = Number.isNaN(createdAt)
-      ? semesterSortValue(period)
+      ? quarterSortValue(period)
       : createdAt;
     const linkedRisks = workingPaper.risks ?? [];
     const progressCount = linkedRisks.filter(
-      (linkedRisk) => linkedRisk.risk?.status === "approved",
+      (linkedRisk) => linkedRisk.risk?.status === "final",
     ).length;
 
     const existing = grouped.get(orgName);
@@ -566,16 +566,12 @@ export function buildInherentResidualTrendData(risks: RiskLike[]): InherentResid
   const grouped = new Map<string, { totalInherent: number; totalResidual: number; riskCount: number }>();
 
   for (const risk of risks) {
-    const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+    const period = normalizeQuarterKey(risk.assessmentCycle) || deriveQuarter(risk.createdAt);
     if (!period) continue;
 
-    const probability = risk.probability ?? 1;
-    const impact = risk.impact ?? 1;
-    const weight = risk.weight ?? getBobot(probability, impact);
-    const residualNilai = typeof risk.nilai === "number"
-      ? risk.nilai
-      : probability * impact * weight;
-    const inherentScore = risk.inherentScore ?? Math.round(residualNilai);
+    const effective = effectiveScoreSemantics(risk).effective;
+    const residualNilai = effective.nilai;
+    const inherentScore = effective.score;
     const residualScore = Math.round(residualNilai);
 
     const bucket = grouped.get(period) ?? {
@@ -591,7 +587,7 @@ export function buildInherentResidualTrendData(risks: RiskLike[]): InherentResid
   }
 
   return [...grouped.entries()]
-    .sort(([left], [right]) => semesterSortValue(left) - semesterSortValue(right))
+    .sort(([left], [right]) => quarterSortValue(left) - quarterSortValue(right))
     .map(([period, bucket]) => {
       const avgInherent = Math.round((bucket.totalInherent / bucket.riskCount) * 10) / 10;
       const avgResidual = Math.round((bucket.totalResidual / bucket.riskCount) * 10) / 10;
@@ -637,9 +633,7 @@ function riskGroupingKey(risk: RiskLike) {
 }
 
 function readActualScore(risk: RiskLike) {
-  if (typeof risk.inherentScore === "number") return risk.inherentScore;
-  if (typeof risk.nilai === "number") return Math.round(risk.nilai);
-  return 0;
+  return effectiveScoreSemantics(risk).effective.score;
 }
 
 function readTargetScore(risk: RiskLike) {
@@ -658,7 +652,7 @@ export function buildSemesterScoreTargetTrendData(
   const groupedByPeriod = new Map<string, Map<string, RiskLike>>();
 
   for (const risk of risks) {
-    const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+    const period = normalizeQuarterKey(risk.assessmentCycle) || deriveQuarter(risk.createdAt);
     if (!period) continue;
 
     const key = riskGroupingKey(risk);
@@ -673,7 +667,7 @@ export function buildSemesterScoreTargetTrendData(
   }
 
   return [...groupedByPeriod.entries()]
-    .sort(([left], [right]) => semesterSortValue(left) - semesterSortValue(right))
+    .sort(([left], [right]) => quarterSortValue(left) - quarterSortValue(right))
     .map(([period, bucket]) => {
       let actualTotal = 0;
       let targetTotal = 0;
@@ -720,19 +714,10 @@ export function buildCriticalRiskRateTrendData(risks: RiskLike[]): CriticalRiskR
    const grouped = new Map<string, { medium: number; high: number; extreme: number; total: number }>();
 
    for (const risk of risks) {
-     const period = normalizeSemesterKey(risk.assessmentCycle) || deriveSemester(risk.createdAt);
+     const period = normalizeQuarterKey(risk.assessmentCycle) || deriveQuarter(risk.createdAt);
      if (!period) continue;
 
-     const level = levelFromScore(
-       resolveRiskScoreSemantics({
-         status: risk.status ?? "assessment_draft",
-         probability: risk.probability ?? 1,
-         impact: risk.impact ?? 1,
-         weight: risk.weight ?? getBobot(risk.probability ?? 1, risk.impact ?? 1),
-         nilai: risk.nilai ?? undefined,
-         inherentScore: risk.inherentScore ?? 0,
-       }).effective.score,
-     );
+     const level = levelFromScore(effectiveScoreSemantics(risk).effective.score);
     const bucket = grouped.get(period) ?? { medium: 0, high: 0, extreme: 0, total: 0 };
     if (level === "Sedang") bucket.medium += 1;
     if (level === "Tinggi") bucket.high += 1;
@@ -742,7 +727,7 @@ export function buildCriticalRiskRateTrendData(risks: RiskLike[]): CriticalRiskR
   }
 
   return [...grouped.entries()]
-    .sort(([a], [b]) => semesterSortValue(a) - semesterSortValue(b))
+    .sort(([a], [b]) => quarterSortValue(a) - quarterSortValue(b))
     .map(([period, bucket]) => ({
       period,
       highExtremeRate: bucket.total > 0 ? Math.round(((bucket.medium + bucket.high + bucket.extreme) / bucket.total) * 100) : 0,

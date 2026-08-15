@@ -15,16 +15,21 @@ import {
 
 import { getHeatmapCellClass, type HeatmapMode } from "@/lib/heatmap-utils";
 
-type PhaseKey = "initial" | "semester1" | "semester2" | "target";
+type PhaseKey = "initial" | "quarter1" | "quarter2" | "quarter3" | "quarter4" | "target";
 
 // NOTE: `api.get` auto-unwraps the `{ data: ... }` envelope,
 // so the helper returns the inner object directly.
-type MultiPhaseHeatmapResponse = Record<PhaseKey, number[][]>;
+type MultiPhaseHeatmapResponse = Record<PhaseKey, number[][]> & {
+  semester1?: number[][];
+  semester2?: number[][];
+};
 
 const labelMap: Record<PhaseKey, string> = {
   initial: "Skor Awal",
-  semester1: "Semester 1",
-  semester2: "Semester 2",
+  quarter1: "Kuartal 1",
+  quarter2: "Kuartal 2",
+  quarter3: "Kuartal 3",
+  quarter4: "Kuartal 4",
   target: "Target Skor",
 };
 
@@ -48,8 +53,10 @@ export function MultiPhaseHeatmapCompareCard() {
 
   const [data, setData] = useState<Record<PhaseKey, number[][]>>({
     initial: emptyHeatmap,
-    semester1: emptyHeatmap,
-    semester2: emptyHeatmap,
+    quarter1: emptyHeatmap,
+    quarter2: emptyHeatmap,
+    quarter3: emptyHeatmap,
+    quarter4: emptyHeatmap,
     target: emptyHeatmap,
   });
 
@@ -67,8 +74,10 @@ export function MultiPhaseHeatmapCompareCard() {
 
         setData({
           initial: response?.initial ?? emptyHeatmap,
-          semester1: response?.semester1 ?? emptyHeatmap,
-          semester2: response?.semester2 ?? emptyHeatmap,
+          quarter1: response?.quarter1 ?? emptyHeatmap,
+          quarter2: response?.quarter2 ?? response?.semester1 ?? emptyHeatmap,
+          quarter3: response?.quarter3 ?? emptyHeatmap,
+          quarter4: response?.quarter4 ?? response?.semester2 ?? emptyHeatmap,
           target: response?.target ?? emptyHeatmap,
         });
       } catch (err) {

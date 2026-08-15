@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export function TypographyExample() {
   return (
-    <Card className="overflow-hidden rounded-2xl bg-card shadow-none">
+    <Card className="overflow-hidden rounded-2xl bg-card">
       <CardContent className="space-y-5 p-6">
         <div className="space-y-1.5">
           <p className="font-mono text-[11px] text-muted-foreground">
@@ -16,11 +16,17 @@ export function TypographyExample() {
         </div>
         <div className="space-y-3">
           <div>
-            <p className="text-4xl font-semibold tracking-tight text-foreground">
+            <p className="text-lg font-semibold text-foreground">Manris</p>
+            <p className="font-mono text-[11px] text-muted-foreground">
+              Brand / Wordmark · text-lg font-semibold · sentence case · 0px tracking
+            </p>
+          </div>
+          <div>
+            <p className="page-title">
               Display / H1
             </p>
             <p className="font-mono text-[11px] text-muted-foreground">
-              text-4xl font-semibold tracking-tight
+              page-title · 30px → 36px · semibold
             </p>
           </div>
           <div>

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -38,7 +38,7 @@ export function FormPage({ children, className }: FormPageProps) {
   return (
     <div
       className={cn(
-        "mx-auto w-full animate-fade-in space-y-6 pb-20",
+        "mx-auto w-full max-w-5xl min-w-0 animate-fade-in space-y-6 pb-20",
         className,
       )}
     >
@@ -86,7 +86,7 @@ export function FormHeader({
               ) : null}
 
               <div className="space-y-1.5">
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                <h1 className="page-title">
                   {title}
                 </h1>
                 {description ? (
@@ -120,7 +120,7 @@ export function FormSection({
   return (
     <Card
       className={cn(
-        "rounded-2xl bg-card transition-colors duration-200 focus-within:ring-primary/20",
+        "rounded-2xl bg-card transition-colors duration-200",
         className,
       )}
     >

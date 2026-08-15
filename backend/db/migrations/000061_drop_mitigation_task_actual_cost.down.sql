@@ -1,2 +1,0 @@
-ALTER TABLE mitigation_tasks
-    ADD COLUMN IF NOT EXISTS actual_cost NUMERIC(15,2) DEFAULT 0;

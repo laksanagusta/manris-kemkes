@@ -6,8 +6,8 @@ const badge = readFileSync(new URL("./badge.tsx", import.meta.url), "utf8");
 
 test("shared badges are borderless with readable default and dense sizes", () => {
   assert.match(badge, /rounded-full border-0 px-3 py-0 text-sm font-semibold/);
-  assert.match(badge, /compact: "h-6 rounded-sm px-2 text-xs"/);
-  assert.match(badge, /micro: "h-5 rounded-sm px-1\.5 text-\[11px\]"/);
+  assert.match(badge, /compact: "h-6 rounded-full px-2 text-xs"/);
+  assert.match(badge, /micro: "h-5 rounded-full px-1\.5 text-\[11px\]"/);
 });
 
 test("badge tones use the approved pastel chip palette", () => {

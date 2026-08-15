@@ -50,21 +50,21 @@ func previousApprovedWorkingPaperRiskExpr() string {
 		SELECT prev.id FROM risks prev
 		WHERE prev.version_group_id = risk.version_group_id
 		  AND prev.version_number < risk.version_number
-		  AND prev.status = 'approved'
+		  AND prev.status = 'final'
 		ORDER BY
 		  CASE
 		    WHEN COALESCE(prev.assessment_cycle, '') = CASE
-		      WHEN risk.assessment_cycle ~ '^\d{4}-H[12]$' THEN
+	      WHEN risk.assessment_cycle ~ '^\d{4}-Q[1-4]$' THEN
 		        CONCAT(
 		          CASE
-		            WHEN RIGHT(risk.assessment_cycle, 2) = 'H1'
+	            WHEN RIGHT(risk.assessment_cycle, 2) = 'Q1'
 		              THEN ((LEFT(risk.assessment_cycle, 4))::int - 1)::text
 		            ELSE LEFT(risk.assessment_cycle, 4)
 		          END,
-		          '-',
+	          '-Q',
 		          CASE
-		            WHEN RIGHT(risk.assessment_cycle, 2) = 'H1' THEN 'H2'
-		            ELSE 'H1'
+	            WHEN RIGHT(risk.assessment_cycle, 2) = 'Q1' THEN '4'
+	            ELSE ((RIGHT(risk.assessment_cycle, 1))::int - 1)::text
 		          END
 		        )
 		      ELSE ''
@@ -101,21 +101,21 @@ func previousApprovedWorkingPaperJoinExpr() string {
 		FROM risks prev
 		WHERE prev.version_group_id = risk.version_group_id
 		  AND prev.version_number < risk.version_number
-		  AND prev.status = 'approved'
+		  AND prev.status = 'final'
 		ORDER BY
 		  CASE
 		    WHEN COALESCE(prev.assessment_cycle, '') = CASE
-		      WHEN risk.assessment_cycle ~ '^\d{4}-H[12]$' THEN
+	      WHEN risk.assessment_cycle ~ '^\d{4}-Q[1-4]$' THEN
 		        CONCAT(
 		          CASE
-		            WHEN RIGHT(risk.assessment_cycle, 2) = 'H1'
+	            WHEN RIGHT(risk.assessment_cycle, 2) = 'Q1'
 		              THEN ((LEFT(risk.assessment_cycle, 4))::int - 1)::text
 		            ELSE LEFT(risk.assessment_cycle, 4)
 		          END,
-		          '-',
+	          '-Q',
 		          CASE
-		            WHEN RIGHT(risk.assessment_cycle, 2) = 'H1' THEN 'H2'
-		            ELSE 'H1'
+	            WHEN RIGHT(risk.assessment_cycle, 2) = 'Q1' THEN '4'
+	            ELSE ((RIGHT(risk.assessment_cycle, 1))::int - 1)::text
 		          END
 		        )
 		      ELSE ''
@@ -149,8 +149,6 @@ func workingPaperMonitoringExpr() string {
 			rm.effectiveness_conclusion,
 			rm.condition_summary,
 			rm.event_summary,
-			rm.mitigation_obstacles,
-			rm.mitigation_follow_up,
 			rm.follow_up_note,
 			rm.started_at,
 			rm.updated_at,
@@ -159,8 +157,8 @@ func workingPaperMonitoringExpr() string {
 		JOIN risks monitoring_source ON monitoring_source.id = rm.source_risk_id
 		WHERE monitoring_source.version_group_id = risk.version_group_id
 		  AND rm.assessment_cycle = wp.assessment_cycle
-		  AND rm.status IN ('draft', 'finalized')
-		ORDER BY CASE rm.status WHEN 'finalized' THEN 0 ELSE 1 END, rm.updated_at DESC, rm.id DESC
+		  AND rm.status IN ('draft', 'final')
+		ORDER BY CASE rm.status WHEN 'final' THEN 0 ELSE 1 END, rm.updated_at DESC, rm.id DESC
 		LIMIT 1
 	) monitoring ON TRUE`
 }
@@ -171,7 +169,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 	weightExpr := finalizedWorkingPaperRiskExpr("risk", "weight")
 	nilaiExpr := finalizedWorkingPaperRiskExpr("risk", "nilai")
 
-	// Prefer the latest approved risk from the previous semester.
+	// Prefer the latest final risk from the previous quarter.
 	// If none exists, fall back to the latest approved version below the active one.
 	query := fmt.Sprintf(`SELECT wpr.id, wpr.working_paper_id, wpr.risk_id, wpr.sort_order, wpr.source_mode, wpr.created_at,
 		       COALESCE(wpr.version_group_id, risk.version_group_id), COALESCE(wpr.source_risk_id, wpr.risk_id), wpr.monitoring_id, wpr.result_risk_id,
@@ -215,7 +213,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       risk.version_number,
 		       COALESCE(source_risk.next_review_date::text, ''),
 		       COALESCE((SELECT string_agg(CONCAT(u.name, ' (', u.role, ')'), ', ' ORDER BY m.sort_order) FROM mitigations m JOIN users u ON u.id = m.owner_user_id WHERE m.risk_id = risk.id AND m.owner_user_id IS NOT NULL), ''),
-		       -- Previous semester snapshot
+		       -- Previous quarter snapshot
 		       prev_risk.id AS prev_id,
 		       COALESCE(prev_risk.probability, 0),
 		       COALESCE(prev_risk.impact, 0),
@@ -271,8 +269,6 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(monitoring.effectiveness_conclusion, ''),
 		       COALESCE(monitoring.condition_summary, ''),
 		       COALESCE(monitoring.event_summary, ''),
-		       COALESCE(monitoring.mitigation_obstacles, ''),
-		       COALESCE(monitoring.mitigation_follow_up, ''),
 		       COALESCE(monitoring.follow_up_note, ''),
 		       monitoring.started_at,
 		       monitoring.updated_at,
@@ -318,8 +314,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		var monitoringObservedLevel, monitoringTrend string
 		var monitoringCompletionPercent int
 		var monitoringProgressSummary, monitoringEffectiveness string
-		var monitoringConditionSummary, monitoringEventSummary string
-		var monitoringObstacles, monitoringFollowUp, monitoringFollowUpNote string
+		var monitoringConditionSummary, monitoringEventSummary, monitoringFollowUpNote string
 		var monitoringStartedAt, monitoringUpdatedAt, monitoringFinalizedAt *time.Time
 
 		// Nullable fields that may be empty arrays from COALESCE
@@ -371,7 +366,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&versionNumber,
 			&jadwalPelaksanaan,
 			&penanggungJawab,
-			// Previous semester
+			// Previous quarter
 			&prevID,
 			&prevProbability,
 			&prevImpact,
@@ -414,8 +409,6 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&monitoringEffectiveness,
 			&monitoringConditionSummary,
 			&monitoringEventSummary,
-			&monitoringObstacles,
-			&monitoringFollowUp,
 			&monitoringFollowUpNote,
 			&monitoringStartedAt,
 			&monitoringUpdatedAt,
@@ -435,7 +428,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		link.Risk.JadwalPelaksanaan = jadwalPelaksanaan
 		link.Risk.PenanggungJawab = penanggungJawab
 
-		// Previous semester snapshot
+		// Previous quarter snapshot
 		if prevID != nil {
 			prev := &entity.WorkingPaperRiskSnapshot{
 				Probability:          prevProbability,
@@ -517,8 +510,6 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 				EffectivenessConclusion:     effectiveness,
 				ConditionSummary:            monitoringConditionSummary,
 				EventSummary:                monitoringEventSummary,
-				MitigationObstacles:         monitoringObstacles,
-				MitigationFollowUp:          monitoringFollowUp,
 				FollowUpNote:                monitoringFollowUpNote,
 				StartedAt:                   time.Time{},
 				UpdatedAt:                   time.Time{},

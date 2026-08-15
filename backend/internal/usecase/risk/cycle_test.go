@@ -2,16 +2,16 @@ package risk
 
 import "testing"
 
-func TestCycleIndexAcceptsSemestersOnly(t *testing.T) {
+func TestCycleIndexAcceptsQuarterlyCycles(t *testing.T) {
 	tests := []struct {
 		cycle   string
 		want    int
 		wantErr bool
 	}{
-		{cycle: "2026-H1", want: 4052},
-		{cycle: "2026-H2", want: 4053},
-		{cycle: "2027-H1", want: 4054},
-		{cycle: "2026-Q1", wantErr: true},
+		{cycle: "2026-Q1", want: 8104},
+		{cycle: "2026-Q2", want: 8105},
+		{cycle: "2026-Q4", want: 8107},
+		{cycle: "2027-Q1", want: 8108},
 		{cycle: "2026-H3", wantErr: true},
 		{cycle: "", wantErr: true},
 	}
@@ -29,14 +29,14 @@ func TestCycleIndexAcceptsSemestersOnly(t *testing.T) {
 	}
 }
 
-func TestCompareCyclesUsesSemesterOrder(t *testing.T) {
+func TestCompareCyclesUsesQuarterOrder(t *testing.T) {
 	tests := []struct {
 		a, b string
 		want int
 	}{
-		{a: "2026-H1", b: "2026-H1", want: 0},
-		{a: "2026-H2", b: "2026-H1", want: 1},
-		{a: "2026-H2", b: "2027-H1", want: -1},
+		{a: "2026-Q2", b: "2026-Q2", want: 0},
+		{a: "2026-Q4", b: "2026-Q2", want: 1},
+		{a: "2026-Q4", b: "2027-Q1", want: -1},
 	}
 	for _, tt := range tests {
 		got, err := CompareCycles(tt.a, tt.b)
@@ -49,34 +49,34 @@ func TestCompareCyclesUsesSemesterOrder(t *testing.T) {
 	}
 }
 
-func TestIsValidCycleFormatAcceptsSemestersOnly(t *testing.T) {
-	for _, cycle := range []string{"2026-H1", "2026-H2"} {
+func TestIsValidCycleFormatAcceptsQuarterlyCycles(t *testing.T) {
+	for _, cycle := range []string{"2026-Q1", "2026-Q2", "2026-Q3", "2026-Q4"} {
 		if !IsValidCycleFormat(cycle) {
 			t.Fatalf("expected %q to be valid", cycle)
 		}
 	}
-	for _, cycle := range []string{"2026-Q1", "2026-Q4", "2026-H3", ""} {
+	for _, cycle := range []string{"2026-H1", "2026-H3", "", "2026-Q5"} {
 		if IsValidCycleFormat(cycle) {
 			t.Fatalf("expected %q to be invalid", cycle)
 		}
 	}
 }
 
-func TestNextSemesterCycle(t *testing.T) {
+func TestNextQuarterCycle(t *testing.T) {
 	tests := map[string]string{
-		"2026-H1": "2026-H2",
-		"2026-H2": "2027-H1",
+		"2026-Q1": "2026-Q2",
+		"2026-Q4": "2027-Q1",
 	}
 	for input, want := range tests {
-		got, err := NextSemesterCycle(input)
+		got, err := NextQuarterCycle(input)
 		if err != nil {
-			t.Fatalf("NextSemesterCycle(%q) error = %v", input, err)
+			t.Fatalf("NextQuarterCycle(%q) error = %v", input, err)
 		}
 		if got != want {
-			t.Fatalf("NextSemesterCycle(%q) = %q, want %q", input, got, want)
+			t.Fatalf("NextQuarterCycle(%q) = %q, want %q", input, got, want)
 		}
 	}
-	if _, err := NextSemesterCycle("2026-Q4"); err == nil {
-		t.Fatal("expected quarter cycle to be rejected")
+	if _, err := NextQuarterCycle("2026-H1"); err == nil {
+		t.Fatal("expected semester cycle to be rejected")
 	}
 }

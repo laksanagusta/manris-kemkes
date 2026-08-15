@@ -21,7 +21,7 @@ import {
   AlertTriangle,
   UploadCloud,
   RotateCcw,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
@@ -33,7 +33,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
   AccentButton,
-  CollectionToolbar,
+  CollectionPageHeader,
   PageStack,
 } from "@/components/shared/design-system";
 import {
@@ -319,8 +319,8 @@ export default function DocumentIntelligencePage() {
 
   return (
     <PageStack>
-      <CollectionToolbar
-        leading={
+      <CollectionPageHeader
+        eyebrow={
           <Badge className="mb-1 w-fit gap-2 border-primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
             <FileSearch className="size-3.5" />
             AI & Automation
@@ -344,7 +344,7 @@ export default function DocumentIntelligencePage() {
         <aside className="space-y-4 xl:sticky xl:top-6">
           <form
             onSubmit={handleAnalyze}
-            className="space-y-4 rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0"
+            className="space-y-4 rounded-2xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
           >
             <div className="space-y-1">
               <h2 className="text-sm font-semibold text-foreground">
@@ -575,7 +575,7 @@ export default function DocumentIntelligencePage() {
             </div>
           </form>
 
-          <div className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0">
+          <div className="rounded-2xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-foreground">
@@ -611,7 +611,7 @@ export default function DocumentIntelligencePage() {
         </aside>
 
         <section className="space-y-4">
-          <div className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0">
+          <div className="rounded-2xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -729,7 +729,7 @@ export default function DocumentIntelligencePage() {
           </div>
 
           {!response ? (
-            <div className="rounded-2xl border border-dashed border-zinc-200/80 bg-card p-6 shadow-none ring-0">
+            <div className="rounded-2xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
               <div className="max-w-3xl space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <CheckCircle2 className="size-4 text-muted-foreground" />
@@ -802,7 +802,7 @@ function DocumentResultPanel({
         {result.sop.processStages.map((stage) => (
           <section
             key={stage.clientKey}
-            className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0"
+            className="rounded-2xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -909,7 +909,7 @@ function DocumentResultPanel({
         {result.audit.findings.map((finding) => (
           <section
             key={finding.clientKey}
-            className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0"
+            className="rounded-2xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -1025,7 +1025,7 @@ function DocumentResultPanel({
         {result.strategic.objectives.map((objective) => (
           <section
             key={objective.clientKey}
-            className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0"
+            className="rounded-2xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -1201,7 +1201,7 @@ function DocumentResultPanel({
         {result.mitigation.taskMatches.map((task) => (
           <section
             key={task.clientKey}
-            className="rounded-2xl border border-zinc-200/80 bg-card p-4 shadow-none ring-0"
+            className="rounded-2xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
@@ -1307,7 +1307,7 @@ function DocumentResultPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-dashed border-zinc-200/80 bg-card p-6 shadow-none ring-0">
+    <div className="rounded-2xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
       <div className="max-w-2xl space-y-3">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           <CheckCircle2 className="size-4 text-muted-foreground" />

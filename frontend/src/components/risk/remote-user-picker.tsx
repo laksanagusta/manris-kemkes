@@ -9,10 +9,11 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { Check, ChevronDown, Loader2, Search } from "lucide-react";
+import { Check, ChevronDown, Loader2, Search } from "@/components/ui/icons";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SearchInput } from "@/components/ui/search-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   appendUniqueUserOptions,
@@ -252,12 +253,12 @@ export function RemoteUserPicker({
             type="button"
             disabled={disabled}
             className={cn(
-              "flex w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+              "group/remote-user-picker flex h-9 w-full items-center justify-between gap-1.5 rounded-lg border border-border bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 outline-none select-none focus:border-border focus-visible:border-border focus:ring-0 focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:focus:border-border dark:focus-visible:border-border dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
               !value && "text-muted-foreground",
             )}
           >
             <span className="truncate">{value?.name ?? placeholder}</span>
-            <ChevronDown className="pointer-events-none size-4 text-muted-foreground" />
+            <ChevronDown className="pointer-events-none size-4 text-muted-foreground transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/remote-user-picker:rotate-180 motion-reduce:transition-none" />
           </button>
         </PopoverTrigger>
 
@@ -273,14 +274,15 @@ export function RemoteUserPicker({
           <div className="flex flex-col">
             <div className="flex items-center border-b px-3">
               <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-              <input
+              <SearchInput
                 ref={inputRef}
+                type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={handleSearchKeyDown}
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
-                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
                 aria-activedescendant={
                   activeIndex >= 0 ? `${panelId}-option-${activeIndex}` : undefined
                 }
@@ -321,7 +323,7 @@ export function RemoteUserPicker({
                       role="option"
                       aria-selected={isSelected}
                       className={cn(
-                        "relative flex w-full cursor-default items-center gap-2 rounded-md py-1.5 pr-8 pl-2 text-sm outline-hidden select-none",
+                        "relative flex w-full cursor-pointer items-center gap-2 rounded-md py-1.5 pr-8 pl-2 text-sm outline-hidden select-none",
                         (isSelected || isActive) ? "bg-accent text-accent-foreground" : "",
                       )}
                       onMouseEnter={() => setActiveIndex(optionIndex)}
@@ -353,7 +355,7 @@ export function RemoteUserPicker({
                     type="button"
                     onClick={() => setPage((current) => current + 1)}
                     disabled={isLoading || isLoadingMore}
-                    className="relative flex w-full cursor-default items-center justify-center gap-2 rounded-md py-1.5 text-sm text-muted-foreground outline-hidden select-none hover:bg-accent hover:text-accent-foreground"
+                    className="relative flex w-full cursor-pointer items-center justify-center gap-2 rounded-md py-1.5 text-sm text-muted-foreground outline-hidden select-none hover:bg-accent hover:text-accent-foreground"
                   >
                     {isLoadingMore ? (
                       <>

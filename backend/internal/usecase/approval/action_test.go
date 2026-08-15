@@ -110,6 +110,14 @@ func (r *fakeApprovalMitigationTaskRepo) TaskExistsForPeriod(context.Context, uu
 	return false, nil
 }
 
+func (r *fakeApprovalMitigationTaskRepo) ListByMonitoring(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (r *fakeApprovalMitigationTaskRepo) CountByMonitoringAndStatus(context.Context, uuid.UUID, []uuid.UUID) (*repo.MonitoringTaskCounts, error) {
+	return nil, errors.New("not implemented")
+}
+
 type fakeApprovalRiskRepo struct {
 	risk              *entity.Risk
 	activatedRiskID   uuid.UUID

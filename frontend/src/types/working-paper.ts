@@ -4,7 +4,7 @@ export type WorkingPaperRiskSourceMode = "latest_approved" | "review_periodic";
 
 export interface WorkingPaperRiskMonitoring {
   id: string;
-  status: "draft" | "finalized";
+  status: "draft" | "final";
   assessmentCycle: string;
   sourceProbability: number;
   sourceImpact: number;
@@ -22,8 +22,6 @@ export interface WorkingPaperRiskMonitoring {
   effectivenessConclusion: string;
   conditionSummary: string;
   eventSummary: string;
-  mitigationObstacles: string;
-  mitigationFollowUp: string;
   followUpNote: string;
   startedAt: string;
   updatedAt: string;

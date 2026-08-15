@@ -7,6 +7,10 @@ const sidebarSource = readFileSync(
   new URL("../../../../components/app-sidebar.tsx", import.meta.url),
   "utf8",
 );
+const monitoringProgressSource = readFileSync(
+  new URL("../../../../components/shared/design-system/domain/monitoring-transaction-progress.tsx", import.meta.url),
+  "utf8",
+);
 
 test("risk register keeps navigation compact and removes KPI cards", () => {
   assert.doesNotMatch(registerSource, /import \{ KpiCard \}/);
@@ -25,8 +29,23 @@ test("sidebar does not duplicate the page-level create-risk action", () => {
 test("risk register table exposes accessible sorting and monitoring states", () => {
   assert.match(registerSource, /aria-sort=\{scoreAriaSort\}/);
   assert.match(registerSource, /aria-label=\{`Urutkan berdasarkan skor/);
-  assert.match(registerSource, /sr-only/);
-  assert.match(registerSource, /Selesai|Draf|Belum tersedia/);
+  assert.match(registerSource, /<MonitoringTransactionProgress/);
+  assert.match(monitoringProgressSource, /aria-label=\{ariaLabel\}/);
+  assert.match(monitoringProgressSource, /transaksi pemantauan/);
+});
+
+test("risk register data rows stay compact", () => {
+  assert.match(
+    registerSource,
+    /className="group h-10 border-0 hover:bg-muted\/50"/,
+  );
+});
+
+test("risk register header stays compact", () => {
+  assert.match(
+    registerSource,
+    /<CollectionTableHeader\s+[^>]*density="compact"/,
+  );
 });
 
 test("risk register table keeps actions discoverable without redundant chrome", () => {
@@ -43,11 +62,11 @@ test("risk register table keeps actions discoverable without redundant chrome", 
 test("risk register table and search use compact defined surfaces", () => {
   assert.match(
     registerSource,
-    /Card className="relative rounded-lg gap-0 overflow-hidden bg-card p-0 shadow-none ring-0 after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-\[inherit\] after:ring-1 after:ring-inset after:ring-zinc-200\/80 after:content-\[''\]"/,
+    /<CollectionTableCard\b/,
   );
   assert.doesNotMatch(
     registerSource,
-    /Card className="[^"]*border border-border[^"]*bg-card p-0/,
+    /Card className="[^"]*(?:border|ring-|shadow-none)[^"]*bg-card p-0/,
   );
   assert.doesNotMatch(registerSource, /<div className="-mx-4">/);
   assert.match(registerSource, /className="bg-card pl-10 text-sm ring-1 ring-inset ring-border\/40"/);
@@ -84,7 +103,7 @@ test("risk register header uses a blended neutral surface", () => {
 test("risk register body rows do not use separator borders", () => {
   assert.match(
     registerSource,
-    /className="group border-0 hover:bg-muted\/50"/,
+    /className="group h-10 border-0 hover:bg-muted\/50"/,
   );
   assert.match(
     registerSource,

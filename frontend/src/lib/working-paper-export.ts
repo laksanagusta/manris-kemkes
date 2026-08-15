@@ -12,7 +12,7 @@ import { buildWorkingPaperSignatureLayout } from "./working-paper-signature-layo
 type ExportableRiskRow = Record<string, any>;
 
 /**
- * For sheets 1 & 2, use previous semester data if available.
+ * For sheets 1 & 2, use previous quarter data if available.
  * Falls back to current risk data otherwise.
  * Also remaps display labels for human-readable values.
  */
@@ -244,13 +244,14 @@ function formatLongDate(dateStr: string | undefined | null): string {
 function getRiskPeriodLabel(assessmentCycle: string | undefined | null, createdAt: string | undefined | null): string {
   const createdDate = createdAt ? new Date(createdAt) : null;
   const createdValid = createdDate && !Number.isNaN(createdDate.getTime()) ? createdDate : null;
-  const match = (assessmentCycle ?? "").trim().match(/^(\d{4})-H([12])$/i);
+  const match = (assessmentCycle ?? "").trim().match(/^(\d{4})-(Q[1-4]|H[12])$/i);
   if (!match) return "-";
 
   const year = Number(match[1]);
-  const half = match[2];
-  const fallbackStartMonth = half === "1" ? 0 : 6;
-  const endMonth = half === "1" ? 5 : 11;
+  const period = match[2].toUpperCase();
+  const quarter = period === "H1" ? 2 : period === "H2" ? 4 : Number(period.slice(1));
+  const fallbackStartMonth = (quarter - 1) * 3;
+  const endMonth = fallbackStartMonth + 2;
   const startMonth = createdValid && createdValid.getUTCFullYear() === year
     ? Math.min(Math.max(createdValid.getUTCMonth(), fallbackStartMonth), endMonth)
     : fallbackStartMonth;
@@ -882,7 +883,7 @@ function buildPemantauanReviuSheet(
     const dataRow = ws.getRow(DATA_START_ROW + index);
     const prev = risk.previous;
 
-    // Previous semester data (cols 1-11)
+    // Previous quarter data (cols 1-11)
     const prevNilai = prev?.inherentScore ?? prev?.nilai ?? risk.inherentScore ?? risk.nilai;
     dataRow.getCell(C).value = index + 1;
     dataRow.getCell(C + 1).value = safeStr(risk.title);
@@ -1026,13 +1027,13 @@ const PETUNJUK_PENGISIAN_ITEMS: string[] = [
   "Kolom (1) diisi dengan nomor urut",
   "Kolom (2) diisi dengan pernyataan risiko",
   "Kolom (3) diisi dengan kode risiko",
-  "Kolom (4) diisi dengan tingkat probabilitas (P) semester sebelumnya",
-  "Kolom (5) diisi dengan tingkat dampak (D) semester sebelumnya",
-  "Kolom (6) diisi dengan nilai bobot semester sebelumnya",
-  "Kolom (7) diisi dengan nilai atau skor risiko semester sebelumnya",
-  "Kolom (8) diisi dengan tingkat risiko semester sebelumnya",
-  "Kolom (9) diisi dengan prioritas risiko semester sebelumnya",
-  "Kolom (10) diisi dengan uraian pengendalian yang ada semester sebelumnya",
+  "Kolom (4) diisi dengan tingkat probabilitas (P) kuartal sebelumnya",
+  "Kolom (5) diisi dengan tingkat dampak (D) kuartal sebelumnya",
+  "Kolom (6) diisi dengan nilai bobot kuartal sebelumnya",
+  "Kolom (7) diisi dengan nilai atau skor risiko kuartal sebelumnya",
+  "Kolom (8) diisi dengan tingkat risiko kuartal sebelumnya",
+  "Kolom (9) diisi dengan prioritas risiko kuartal sebelumnya",
+  "Kolom (10) diisi dengan uraian pengendalian yang ada kuartal sebelumnya",
   "Kolom (11) diisi dengan jadwal pelaksanaan",
   "Kolom (12) diisi dengan tingkat probabilitas (P) hasil pemantauan",
   "Kolom (13) diisi dengan tingkat dampak (D) hasil pemantauan",

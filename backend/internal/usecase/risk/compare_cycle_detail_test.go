@@ -19,7 +19,7 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteReturnsDetailedChanges(t *testing
 	repo := &fakeReassessRiskRepo{}
 	repo.listCycleSnapshot = func(_ context.Context, cycle string, _ []uuid.UUID) ([]*entity.Risk, error) {
 		switch cycle {
-		case "2025-H2":
+		case "2025-Q4":
 			return []*entity.Risk{
 				{
 					ID:             uuid.New(),
@@ -61,7 +61,7 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteReturnsDetailedChanges(t *testing
 					InherentScore:  4,
 				},
 			}, nil
-		case "2026-H1":
+		case "2026-Q2":
 			return []*entity.Risk{
 				{
 					ID:             uuid.New(),
@@ -111,8 +111,8 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteReturnsDetailedChanges(t *testing
 
 	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
 	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{
-		FromCycle: "2025-H2",
-		ToCycle:   "2026-H1",
+		FromCycle: "2025-Q4",
+		ToCycle:   "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -185,7 +185,7 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteReturnsDetailedChanges(t *testing
 	if !strings.Contains(changed.ToSnapshot.Mitigations[0], "Koordinasi vendor A dan B") {
 		t.Fatalf("expected to mitigation summary to contain action, got %q", changed.ToSnapshot.Mitigations[0])
 	}
-	if strings.TrimSpace(report.Summary.FromCycle) != "2025-H2" || strings.TrimSpace(report.Summary.ToCycle) != "2026-H1" {
+	if strings.TrimSpace(report.Summary.FromCycle) != "2025-Q4" || strings.TrimSpace(report.Summary.ToCycle) != "2026-Q2" {
 		t.Fatal("expected cycles to be echoed in summary")
 	}
 }
@@ -207,8 +207,8 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteIncludesStableWhenRequested(t *te
 
 	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
 	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{
-		FromCycle:     "2025-H2",
-		ToCycle:       "2026-H1",
+		FromCycle:     "2025-Q4",
+		ToCycle:       "2026-Q2",
 		IncludeStable: true,
 	})
 	if err != nil {
@@ -227,7 +227,7 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteIncludesStableWhenRequested(t *te
 
 func TestCompareRiskCycleDetailsUseCase_ExecuteRejectsMissingCycles(t *testing.T) {
 	uc := NewCompareRiskCycleDetailsUseCase(&fakeReassessRiskRepo{}, nil)
-	_, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "", ToCycle: "2026-H1"})
+	_, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "", ToCycle: "2026-Q2"})
 	if !domainerrors.IsValidation(err) {
 		t.Fatalf("expected validation error, got %v", err)
 	}
@@ -247,12 +247,12 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteMatchesMitigationsBeforeSortOrder
 			InherentScore:  12,
 		}
 		switch cycle {
-		case "2025-H2":
+		case "2025-Q4":
 			base.Mitigations = []entity.Mitigation{
 				{Action: "Validasi vendor", Owner: "Tim A", Frequency: "rutin", SortOrder: 1},
 				{Action: "Monitoring stok", Owner: "Tim B", Frequency: "rutin", SortOrder: 2},
 			}
-		case "2026-H1":
+		case "2026-Q2":
 			base.Mitigations = []entity.Mitigation{
 				{Action: "Briefing mingguan", Owner: "Tim C", Frequency: "rutin", SortOrder: 1},
 				{Action: "Validasi vendor", Owner: "Tim A", Frequency: "rutin", SortOrder: 2},
@@ -263,7 +263,7 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteMatchesMitigationsBeforeSortOrder
 	}
 
 	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
-	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-H2", ToCycle: "2026-H1"})
+	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-Q4", ToCycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -299,16 +299,16 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteIncludesCategoryDiff(t *testing.T
 			InherentScore:  9,
 		}
 		switch cycle {
-		case "2025-H2":
+		case "2025-Q4":
 			base.Category = entity.RiskCategoryKebijakan
-		case "2026-H1":
+		case "2026-Q2":
 			base.Category = entity.RiskCategoryOperasional
 		}
 		return []*entity.Risk{base}, nil
 	}
 
 	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
-	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-H2", ToCycle: "2026-H1"})
+	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-Q4", ToCycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -344,14 +344,14 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteHandlesLegacyBlankCategory(t *tes
 			InherentScore:  9,
 			Category:       "",
 		}
-		if cycle == "2026-H1" {
+		if cycle == "2026-Q2" {
 			base.Category = "   "
 		}
 		return []*entity.Risk{base}, nil
 	}
 
 	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
-	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-H2", ToCycle: "2026-H1"})
+	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-Q4", ToCycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("expected no error for blank legacy category, got %v", err)
 	}
@@ -371,7 +371,7 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteKeepsHistoricalSnapshotsWhenRevie
 	repo := &fakeReassessRiskRepo{}
 	repo.listCycleSnapshot = func(_ context.Context, cycle string, _ []uuid.UUID) ([]*entity.Risk, error) {
 		switch cycle {
-		case "2025-H2":
+		case "2025-Q4":
 			return []*entity.Risk{{
 				ID:                uuid.New(),
 				VersionGroupID:    groupID,
@@ -385,7 +385,7 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteKeepsHistoricalSnapshotsWhenRevie
 				TargetImpact:      2,
 				TargetScore:       2,
 			}}, nil
-		case "2026-H1":
+		case "2026-Q2":
 			return []*entity.Risk{{
 				ID:                uuid.New(),
 				VersionGroupID:    groupID,
@@ -405,7 +405,7 @@ func TestCompareRiskCycleDetailsUseCase_ExecuteKeepsHistoricalSnapshotsWhenRevie
 	}
 
 	uc := NewCompareRiskCycleDetailsUseCase(repo, nil)
-	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-H2", ToCycle: "2026-H1"})
+	report, err := uc.Execute(context.Background(), CompareRiskCycleDetailsInput{FromCycle: "2025-Q4", ToCycle: "2026-Q2"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

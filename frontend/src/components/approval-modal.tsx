@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X, Loader2 } from "lucide-react";
+import { Check, X, Loader2 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 interface ApprovalModalProps {
@@ -136,7 +136,7 @@ export function ApprovalModal({
             </div>
             <DialogTitle className="text-lg">{title}</DialogTitle>
           </div>
-          <DialogDescription className="pt-2">
+          <DialogDescription>
             {description}
             {entityTitle && (
               <span className="block mt-1 font-medium text-foreground">

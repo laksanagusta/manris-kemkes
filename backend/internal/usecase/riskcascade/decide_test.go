@@ -49,6 +49,14 @@ func (f *fakeMitigationTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID,
 	return false, nil
 }
 
+func (f *fakeMitigationTaskRepo) ListByMonitoring(context.Context, uuid.UUID, []uuid.UUID) ([]*entity.MitigationTask, error) {
+	return nil, nil
+}
+
+func (f *fakeMitigationTaskRepo) CountByMonitoringAndStatus(context.Context, uuid.UUID, []uuid.UUID) (*repository.MonitoringTaskCounts, error) {
+	return &repository.MonitoringTaskCounts{}, nil
+}
+
 type fakeRiskCascadeRepo struct {
 	cascade *entity.RiskCascade
 	updated *entity.RiskCascade

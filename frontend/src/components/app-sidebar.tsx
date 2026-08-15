@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { LayoutGroup } from "motion/react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -23,7 +24,7 @@ import {
   GitBranch,
   LogOut,
   User as UserIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -46,6 +47,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { SidebarNavItem } from "@/components/ui/sidebar-nav-item";
 import { useEffect, useMemo, useState } from "react";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
@@ -274,28 +276,22 @@ function NavLink({
         ? parseInt(item.badge)
         : undefined;
 
-  const content = (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        asChild
-        className="hover:bg-muted-foreground/10 active:bg-muted-foreground/10 data-active:bg-muted-foreground/10"
-        isActive={isActive}
-        tooltip={item.label}
-      >
-        <Link href={item.href}>
-          <item.icon />
-          <span>{item.label}</span>
-          {displayBadge !== undefined && displayBadge > 0 && (
-            <span className="ml-auto flex min-w-5 items-center justify-center rounded-full bg-sidebar-foreground px-1.5 text-[10px] font-semibold leading-5 text-sidebar group-data-[collapsible=icon]:hidden">
-              {displayBadge}
-            </span>
-          )}
-        </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
+  return (
+    <SidebarNavItem
+      badge={
+        displayBadge !== undefined && displayBadge > 0 ? (
+          <span className="relative z-10 ml-auto flex min-w-5 items-center justify-center rounded-full bg-sidebar-foreground px-1.5 text-[10px] font-semibold leading-5 text-sidebar group-data-[collapsible=icon]:hidden">
+            {displayBadge}
+          </span>
+        ) : undefined
+      }
+      className="hover:bg-sidebar-accent active:bg-sidebar-accent"
+      href={item.href}
+      icon={item.icon}
+      isActive={isActive}
+      label={item.label}
+    />
   );
-
-  return content;
 }
 
 function useLocationHash() {
@@ -358,8 +354,8 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg" tooltip="Manris">
               <Link href="/overview">
-                <span className="text-sm font-semibold uppercase tracking-[2px] text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-                  manris
+                <span className="text-lg font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+                  Manris
                 </span>
                 <span className="hidden font-semibold text-sidebar-foreground group-data-[collapsible=icon]:inline">
                   M
@@ -370,37 +366,38 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="flex flex-col gap-2">
-            {visibleNavigation.map((group) => (
-              <SidebarGroup key={group.title}>
-                <SidebarGroupLabel>
-                  {group.title}
-                </SidebarGroupLabel>
+      <LayoutGroup id="sidebar-navigation">
+        <SidebarContent>
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="flex flex-col gap-2">
+              {visibleNavigation.map((group) => (
+                <SidebarGroup key={group.title}>
+                  <SidebarGroupLabel>
+                    {group.title}
+                  </SidebarGroupLabel>
 
-                <SidebarMenu>
-                  {group.items?.map((item) => (
-                    <NavLink
-                      key={item.href}
-                      item={item}
-                      currentHash={currentHash}
-                      badgeOverride={
-                        item.href === "/inbox" ? inboxBadge : undefined
-                      }
-                    />
-                  ))}
-                </SidebarMenu>
-              </SidebarGroup>
-            ))}
-          </div>
-        </ScrollArea>
-      </SidebarContent>
+                  <SidebarMenu>
+                    {group.items?.map((item) => (
+                      <NavLink
+                        key={item.href}
+                        item={item}
+                        currentHash={currentHash}
+                        badgeOverride={
+                          item.href === "/inbox" ? inboxBadge : undefined
+                        }
+                      />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroup>
+              ))}
+            </div>
+          </ScrollArea>
+        </SidebarContent>
 
-      <SidebarFooter className="space-y-2">
-        <SidebarGroup className="p-0">
-          <SidebarGroupLabel>Bantuan</SidebarGroupLabel>
-          <SidebarMenu>
+        <SidebarFooter className="space-y-2">
+          <SidebarGroup className="p-0">
+            <SidebarGroupLabel>Bantuan</SidebarGroupLabel>
+            <SidebarMenu>
               {utilityLinks.map((item) => (
                 <NavLink
                   key={item.href}
@@ -408,70 +405,71 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
                   currentHash={currentHash}
                 />
               ))}
-          </SidebarMenu>
-        </SidebarGroup>
+            </SidebarMenu>
+          </SidebarGroup>
 
-        {user && (
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="rounded-lg border border-zinc-200/80 bg-white p-3 text-left shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] transition-colors transition-transform duration-100 active:scale-[0.97] hover:bg-muted/30 focus-visible:outline-none"
-                aria-label="Open user menu"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex shrink-0 items-center justify-center">
-                    <Avatar size="sm">
-                      <AvatarFallback className="overflow-hidden bg-[radial-gradient(circle_at_72%_28%,rgba(34,211,238,0.9),rgba(34,211,238,0)_42%),radial-gradient(circle_at_38%_76%,rgba(59,130,246,0.96),rgba(59,130,246,0)_50%),linear-gradient(135deg,rgba(110,231,183,0.98)_0%,rgba(45,212,191,0.96)_38%,rgba(34,211,238,0.94)_68%,rgba(37,99,235,0.98)_100%)]">
-                        <span className="sr-only">{user?.name || "User"}</span>
-                      </AvatarFallback>
-                    </Avatar>
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-sidebar-foreground">
-                      {user?.name || "User"}
-                    </p>
-                    <p className="truncate text-xs text-sidebar-foreground/60">
-                      {normalizedScopeLabel}
-                    </p>
+          {user && (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="rounded-lg bg-white p-3 text-left smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors transition-transform duration-100 active:scale-[0.97] hover:bg-muted/30 focus-visible:outline-none"
+                  aria-label="Open user menu"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex shrink-0 items-center justify-center">
+                      <Avatar size="sm">
+                        <AvatarFallback className="overflow-hidden bg-muted text-foreground">
+                          <span className="sr-only">{user?.name || "User"}</span>
+                        </AvatarFallback>
+                      </Avatar>
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-sidebar-foreground">
+                        {user?.name || "User"}
+                      </p>
+                      <p className="truncate text-xs text-sidebar-foreground/60">
+                        {normalizedScopeLabel}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="font-display w-56 pl-2">
-              <DropdownMenuLabel className="space-y-1 px-2 py-1.5">
-                <div className="truncate text-sm font-medium text-foreground">
-                  {user?.name || "User"}
-                </div>
-                <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                  <Building2 className="size-3.5 shrink-0" />
-                  <span className="truncate">{normalizedScopeLabel}</span>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push("/account")}>
-                <UserIcon className="mr-2 size-4" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings2 className="mr-2 size-4" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => {
-                  logout();
-                  router.push("/login");
-                }}
-              >
-                <LogOut className="mr-2 size-4" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </SidebarFooter>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="font-display w-56 pl-2">
+                <DropdownMenuLabel className="space-y-1 px-2 py-1.5">
+                  <div className="truncate text-sm font-medium text-foreground">
+                    {user?.name || "User"}
+                  </div>
+                  <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                    <Building2 className="size-3.5 shrink-0" />
+                    <span className="truncate">{normalizedScopeLabel}</span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push("/account")}>
+                  <UserIcon className="mr-2 size-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings2 className="mr-2 size-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => {
+                    logout();
+                    router.push("/login");
+                  }}
+                >
+                  <LogOut className="mr-2 size-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </SidebarFooter>
+      </LayoutGroup>
     </Sidebar>
   );
 }

@@ -1,101 +1,137 @@
 "use client";
 
-import { MoreHorizontal } from "lucide-react";
+import { Server } from "@/components/ui/icons";
 
 import {
   CollectionTableCard,
-  CollectionPagination,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
 } from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-
-const tableRows = [
-  { code: "RISK-001", title: "Keterlambatan pengadaan bahan baku", category: "Operasional", score: 16, status: "Disetujui" },
-  { code: "RISK-002", title: "Gangguan sistem IT utama", category: "Operasional", score: 20, status: "Dalam Review" },
-  { code: "RISK-003", title: "Ketidaksesuaian regulasi baru", category: "Kepatuhan", score: 12, status: "Draft" },
-] as const;
 
 export function TableExample() {
   return (
     <CollectionTableCard>
-      <div>
-        <Table className="min-w-[700px] table-fixed">
-          <colgroup>
-            <col className="w-[12%]" />
-            <col className="w-[30%]" />
-            <col className="w-[16%]" />
-            <col className="w-[12%]" />
-            <col className="w-[18%]" />
-            <col className="w-[12%]" />
-          </colgroup>
-          <CollectionTableHeader>
-            <CollectionTableHeaderRow>
-              <CollectionTableHead className="pl-4 pr-3">Kode</CollectionTableHead>
-              <CollectionTableHead className="px-3">Risiko</CollectionTableHead>
-              <CollectionTableHead className="px-3">Kategori</CollectionTableHead>
-              <CollectionTableHead className="px-3">Skor</CollectionTableHead>
-              <CollectionTableHead className="px-3">Status</CollectionTableHead>
-              <CollectionTableHead className="px-3 text-center">Aksi</CollectionTableHead>
-            </CollectionTableHeaderRow>
-          </CollectionTableHeader>
-          <TableBody>
-            {tableRows.map((row) => (
-              <TableRow key={row.code} className="group border-0 hover:bg-muted/50">
-                <TableCell className="py-2 pl-4 pr-3 text-sm text-foreground">
-                  {row.code}
-                </TableCell>
-                <TableCell className="px-3 py-2">
-                  <span className="text-sm font-normal text-foreground">{row.title}</span>
-                </TableCell>
-                <TableCell className="whitespace-nowrap px-3 py-2 text-sm text-foreground">
-                  {row.category}
-                </TableCell>
-                <TableCell className="px-3 py-2">
-                  <span className="font-medium tabular-nums text-sm text-foreground">{row.score}</span>
-                </TableCell>
-                <TableCell className="px-3 py-2">
-                  <Badge
-                    className="justify-start"
-                    size="compact"
-                    tone={
-                      row.status === "Disetujui"
-                        ? "success"
-                        : row.status === "Dalam Review"
-                          ? "progress"
-                          : "neutral"
-                    }
-                  >
-                    {row.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="px-3 py-2">
-                  <div className="flex justify-center">
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      className="border-0 bg-transparent text-foreground shadow-none hover:bg-muted/50 hover:text-foreground"
-                    >
-                      <MoreHorizontal className="size-3.5" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <CollectionPagination
-          itemLabel="risiko"
-          page={1}
-          pageSize={10}
-          total={42}
-          onPageChange={() => {}}
-          onPageSizeChange={() => {}}
-        />
-      </div>
+      <Table
+        aria-label="Daftar layanan"
+        className="min-w-[916px] table-fixed"
+      >
+        <colgroup>
+          <col className="w-[240.77px]" />
+          <col className="w-[102.81px]" />
+          <col className="w-[165.94px]" />
+          <col className="w-[154.91px]" />
+          <col className="w-[130.03px]" />
+          <col className="w-[121.55px]" />
+        </colgroup>
+      <CollectionTableHeader className="bg-table-header [&_tr]:border-b [&_tr]:border-border">
+          <CollectionTableHeaderRow className="h-[40.5px]">
+            <CollectionTableHead
+              density="compact"
+              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+            >
+              Name
+            </CollectionTableHead>
+            <CollectionTableHead
+              density="compact"
+              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+            >
+              Status
+            </CollectionTableHead>
+            <CollectionTableHead
+              density="compact"
+              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+            >
+              Plan
+            </CollectionTableHead>
+            <CollectionTableHead
+              density="compact"
+              className="h-[40.5px] px-6 py-3 text-center uppercase tracking-[0.05em] text-muted-foreground"
+            >
+              Auto renewal
+            </CollectionTableHead>
+            <CollectionTableHead
+              density="compact"
+              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+            >
+              Expiry
+            </CollectionTableHead>
+            <CollectionTableHead
+              density="compact"
+              className="h-[40.5px] px-6 py-3 text-right uppercase tracking-[0.05em] text-muted-foreground"
+            >
+              Actions
+            </CollectionTableHead>
+          </CollectionTableHeaderRow>
+        </CollectionTableHeader>
+        <TableBody>
+          {/* Two-line ledger rows stay tall; single-line registers opt into h-10. */}
+          <TableRow className="h-[72.5px] border-0 hover:bg-white">
+            <TableCell className="h-[72.5px] p-4 px-6 align-middle">
+              <div className="flex h-10 items-center gap-3">
+                <div
+                  aria-hidden="true"
+                  className="flex size-7 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground"
+                >
+                  <Server className="size-3.5" strokeWidth={1.75} />
+                </div>
+                <div className="flex h-10 min-w-0 flex-col justify-start">
+                  <span className="truncate text-sm font-medium leading-5 text-[#111827]">
+                    hermes
+                  </span>
+                  <span className="truncate text-sm font-medium leading-5 text-muted-foreground">
+                    VPS 2 Core, RAM 2GB
+                  </span>
+                </div>
+              </div>
+            </TableCell>
+            <TableCell className="h-[72.5px] p-0 px-6 align-middle">
+              <Badge
+                size="compact"
+                tone="success"
+                className="h-5 px-2 text-xs font-semibold leading-5"
+              >
+                active
+              </Badge>
+            </TableCell>
+            <TableCell className="h-[72.5px] p-4 px-6 align-middle">
+              <div className="flex h-10 flex-col justify-start">
+                <span className="text-sm font-medium leading-5 text-[#111827]">
+                  Monthly
+                </span>
+                <span className="text-sm font-normal leading-5 text-muted-foreground">
+                  Rp 60.000/month
+                </span>
+              </div>
+            </TableCell>
+            <TableCell className="h-[72.5px] p-0 px-6 text-center align-middle">
+              <div className="flex justify-center">
+                <Switch defaultChecked aria-label="Auto renewal aktif" />
+              </div>
+            </TableCell>
+            <TableCell className="h-[72.5px] p-4 px-6 align-middle">
+              <span className="text-sm font-normal leading-5 text-muted-foreground">
+                21/08/2026
+                <br />
+                (8 days left)
+              </span>
+            </TableCell>
+            <TableCell className="h-[72.5px] p-0 text-center align-middle">
+              <Button
+                variant="ghost"
+                size="xs"
+                className="bg-muted px-3 text-xs font-medium text-foreground shadow-none hover:bg-accent hover:text-foreground"
+              >
+                Manage
+              </Button>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </CollectionTableCard>
   );
 }

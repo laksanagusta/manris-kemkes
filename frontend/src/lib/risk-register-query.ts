@@ -3,9 +3,8 @@ export type RiskRegisterTab =
   | "monitoring-transactions";
 export type RiskRegisterStatusFilter =
   | "all"
-  | "assessment_draft"
-  | "assessment_in_review"
-  | "approved";
+  | "draft"
+  | "final";
 export type RiskRegisterLifecycleFilter = "active" | "archived" | "all";
 export type RiskRegisterCategoryFilter =
   | "all"
@@ -53,9 +52,8 @@ function getRiskRegisterStatusFilter(
   value: string | null,
 ): RiskRegisterStatusFilter {
   if (
-    value === "assessment_draft" ||
-    value === "assessment_in_review" ||
-    value === "approved"
+    value === "draft" ||
+    value === "final"
   ) {
     return value;
   }

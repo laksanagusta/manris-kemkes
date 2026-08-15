@@ -12,7 +12,7 @@ import {
   ClipboardPenLine,
   Loader2,
   Save,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { listAllOrganizations } from "@/lib/api/organizations";
@@ -52,7 +52,7 @@ function getCharterStatusBadgeClass(status?: string) {
     case "in_review":
       return "border-amber-200 bg-amber-50 text-amber-700";
     case "archived":
-      return "border-slate-200 bg-slate-50 text-slate-600";
+      return "border-border bg-muted text-muted-foreground";
     default:
       return "border-border bg-muted/40 text-muted-foreground";
   }
@@ -270,8 +270,8 @@ export default function RiskCharterDetailPage() {
 
   if (loading) {
     return (
-      <FormPage className="max-w-4xl">
-        <Card className="border-border/40 shadow-sm">
+      <FormPage className="max-w-5xl">
+        <Card>
           <CardContent className="flex min-h-[320px] items-center justify-center gap-3 text-sm text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
             Memuat detail piagam...
@@ -282,7 +282,7 @@ export default function RiskCharterDetailPage() {
   }
 
   return (
-    <FormPage className="max-w-4xl">
+    <FormPage className="max-w-5xl">
       <FormHeader
         title={isCreateMode ? "Buat Piagam" : "Detail Piagam"}
         description={
@@ -326,7 +326,7 @@ export default function RiskCharterDetailPage() {
       />
 
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card className="border-border/40 shadow-sm">
+        <Card>
           <CardContent className="space-y-0 p-0">
             {sections.map((section, index) => (
               <section

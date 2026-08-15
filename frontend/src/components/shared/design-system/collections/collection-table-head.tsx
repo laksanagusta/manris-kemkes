@@ -5,12 +5,16 @@ import { cn } from "@/lib/utils";
 
 export function CollectionTableHead({
   className,
+  density = "default",
   ...props
-}: ComponentProps<typeof TableHead>) {
+}: ComponentProps<typeof TableHead> & {
+  density?: "default" | "compact";
+}) {
   return (
     <TableHead
       className={cn(
-        "whitespace-nowrap text-left align-middle text-sm font-medium capitalize text-muted-foreground/75",
+        "whitespace-nowrap text-left align-middle font-semibold uppercase tracking-[0.05em] text-muted-foreground",
+        density === "compact" ? "text-[11px]" : "text-xs",
         className,
       )}
       {...props}

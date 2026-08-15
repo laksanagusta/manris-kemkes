@@ -28,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, CalendarDays, Users, CheckCircle2, Link2, AlertCircle, Clock, Trash2, Download } from "lucide-react";
+import { Loader2, CalendarDays, Users, CheckCircle2, Link2, AlertCircle, Clock, Trash2, Download } from "@/components/ui/icons";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -206,7 +206,7 @@ function MeetingMinuteDetailContent() {
               </div>
 
               {minutes.nextCheckIn && (
-                <div className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-muted/20 p-4 shadow-sm">
+                <div className="flex items-center gap-2.5 rounded-xl bg-muted/20 p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                     <Clock className="size-4 text-primary" />
                   </div>
@@ -251,7 +251,7 @@ function MeetingMinuteDetailContent() {
             >
               <ul className="grid gap-4">
                 {minutes.decisions.map((decision, idx) => (
-                  <li key={idx} className="flex items-start gap-4 rounded-xl border border-border/40 bg-card p-4 shadow-sm transition-all hover:shadow-md">
+                  <li key={idx} className="flex items-start gap-4 rounded-xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-all">
                     <CheckCircle2 className="size-5 text-success mt-0.5 shrink-0" />
                     <span className="text-sm font-medium leading-relaxed text-foreground">{decision}</span>
                   </li>
@@ -348,7 +348,7 @@ function MeetingMinuteDetailContent() {
                   <Link
                     key={risk.id}
                     href={`/risk/register/${risk.riskId}`}
-                    className="group flex flex-col gap-1.5 rounded-xl border border-border/40 bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:bg-primary/[0.02] hover:shadow-md"
+                    className="group flex flex-col gap-1.5 rounded-xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-all hover:bg-primary/[0.02]"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <span className="font-mono text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">

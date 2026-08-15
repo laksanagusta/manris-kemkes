@@ -9,7 +9,7 @@ import {
 
 export function BadgeSystemExample() {
   return (
-    <div className="space-y-5 rounded-2xl bg-card p-6 shadow-none">
+    <div className="space-y-5 rounded-2xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
       <div>
         <p className="mb-3 text-xs font-medium text-foreground">Tone Palette</p>
         <div className="flex flex-wrap gap-2">

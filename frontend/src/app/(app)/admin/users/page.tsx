@@ -23,11 +23,15 @@ import {
   ShieldCheck,
   ShieldX,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { toast } from "sonner";
 
 import { AdminOnlyState } from "@/components/admin/admin-only-state";
-import { CollectionPagination } from "@/components/shared/design-system";
+import {
+  CollectionPageHeader,
+  CollectionPagination,
+  PageStack,
+} from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -377,24 +381,19 @@ export default function UsersManagementPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Administrasi pengguna
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola akun, verifikasi registrasi unit, dan pantau aktivasi awal
-            pengguna.
-          </p>
-        </div>
-        <Button asChild className="shadow-lg shadow-primary/20">
-          <Link href="/admin/users/new">
-            <Plus data-icon="inline-start" />
-            Tambah pengguna
-          </Link>
-        </Button>
-      </div>
+    <PageStack className="flex flex-col">
+      <CollectionPageHeader
+        title="Administrasi pengguna"
+        description="Kelola akun, verifikasi registrasi unit, dan pantau aktivasi awal pengguna."
+        actions={
+          <Button asChild className="shadow-lg shadow-primary/20">
+            <Link href="/admin/users/new">
+              <Plus data-icon="inline-start" />
+              Tambah pengguna
+            </Link>
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-4">
         {stats.map((stat) => (
@@ -466,7 +465,7 @@ export default function UsersManagementPage() {
         </Select>
       </div>
 
-      <Card className="overflow-hidden border-border/50 bg-card/80">
+      <Card className="overflow-hidden bg-card/80">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -638,6 +637,6 @@ export default function UsersManagementPage() {
           />
         </CardContent>
       </Card>
-    </div>
+    </PageStack>
   );
 }

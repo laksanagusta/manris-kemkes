@@ -49,10 +49,10 @@ function scoreCardTone(level?: ReturnType<typeof getRiskLevelFromNilai>) {
       };
     default:
       return {
-        shell: "bg-white/70 ring-zinc-200/80",
-        label: "text-zinc-500",
-        metric: "text-zinc-950",
-        subcard: "ring-zinc-200/80",
+        shell: "bg-card/70 ring-border/80",
+        label: "text-muted-foreground",
+        metric: "text-foreground",
+        subcard: "ring-border/80",
       };
   }
 }
@@ -80,7 +80,7 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
   return (
     <Card
       data-testid="profil-risiko-card"
-      className="border-border/40 shadow-sm overflow-hidden"
+      className="overflow-hidden"
     >
       <CardHeader className="gap-3 border-b border-border/40 pb-4">
         <div className="flex flex-wrap items-start justify-between gap-3">

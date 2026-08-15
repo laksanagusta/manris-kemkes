@@ -49,12 +49,21 @@ func (m *mockRiskListUC) Execute(ctx context.Context, input riskuc.ListRisksInpu
 	return m.risks, m.err
 }
 
-type mockRiskReassessmentUC struct {
-	output *riskuc.CreateRiskReassessmentOutput
+type mockRiskMonitoringStarter struct {
+	output *riskuc.StartMonitoringOutput
 	err    error
 }
 
-func (m *mockRiskReassessmentUC) Execute(ctx context.Context, input riskuc.CreateRiskReassessmentInput) (*riskuc.CreateRiskReassessmentOutput, error) {
+func (m *mockRiskMonitoringStarter) Execute(ctx context.Context, input riskuc.StartMonitoringInput) (*riskuc.StartMonitoringOutput, error) {
+	return m.output, m.err
+}
+
+type mockRiskMonitoringUpdater struct {
+	output *riskuc.UpdateMonitoringOutput
+	err    error
+}
+
+func (m *mockRiskMonitoringUpdater) Execute(ctx context.Context, input riskuc.UpdateMonitoringInput) (*riskuc.UpdateMonitoringOutput, error) {
 	return m.output, m.err
 }
 

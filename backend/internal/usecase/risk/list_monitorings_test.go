@@ -42,7 +42,7 @@ func TestListRiskMonitoringsUseCase_MapsFilterAndReturnsPaginationEnvelope(t *te
 		items: []*entity.RiskMonitoring{
 			{
 				ID:              uuid.New(),
-				AssessmentCycle: "2026-H1",
+				AssessmentCycle: "2026-Q2",
 				Status:          entity.RiskMonitoringStatusDraft,
 			},
 		},
@@ -53,7 +53,7 @@ func TestListRiskMonitoringsUseCase_MapsFilterAndReturnsPaginationEnvelope(t *te
 	result, err := uc.Execute(context.Background(), ListRiskMonitoringsInput{
 		OrgIDs:          []uuid.UUID{orgID},
 		Query:           "server",
-		AssessmentCycle: "2026-H1",
+		AssessmentCycle: "2026-Q2",
 		Status:          entity.RiskMonitoringStatusDraft,
 		Page:            2,
 		Limit:           25,
@@ -85,8 +85,8 @@ func TestListRiskMonitoringsUseCase_MapsFilterAndReturnsPaginationEnvelope(t *te
 	if repo.filter.Query != "server" {
 		t.Fatalf("expected query server, got %q", repo.filter.Query)
 	}
-	if repo.filter.AssessmentCycle != "2026-H1" {
-		t.Fatalf("expected assessment cycle 2026-H1, got %q", repo.filter.AssessmentCycle)
+	if repo.filter.AssessmentCycle != "2026-Q2" {
+		t.Fatalf("expected assessment cycle 2026-Q2, got %q", repo.filter.AssessmentCycle)
 	}
 	if repo.filter.Status != entity.RiskMonitoringStatusDraft {
 		t.Fatalf("expected status draft, got %q", repo.filter.Status)

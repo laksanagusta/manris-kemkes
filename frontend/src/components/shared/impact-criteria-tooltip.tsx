@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Info } from "lucide-react";
+import { Info } from "@/components/ui/icons";
 
 import { cn } from "@/lib/utils";
 import {
@@ -9,6 +9,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   ImpactCriteria,
   ImpactCriteriaCategory,
@@ -75,7 +83,7 @@ export function ImpactCriteriaTooltip({
         <TooltipContent
           side="top"
           align="start"
-          className="w-[min(92vw,44rem)] max-w-[44rem] rounded-xl border border-border/70 bg-background p-0 text-foreground shadow-xl"
+          className="w-[min(92vw,44rem)] max-w-[44rem] rounded-xl bg-background p-0 text-foreground"
         >
           <div className="max-h-[70vh] overflow-auto">
             <div className="border-b border-border/60 px-4 py-3">
@@ -94,35 +102,35 @@ export function ImpactCriteriaTooltip({
                 Tidak ada data kriteria.
               </div>
             ) : (
-              <table className="w-full border-collapse text-left text-xs">
-                <thead className="bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="border-b border-r border-border/60 px-3 py-2 font-semibold w-10">
+              <Table className="w-full border-collapse text-left text-xs">
+                <TableHeader className="bg-table-header text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <TableRow className="h-auto">
+                    <TableHead className="w-10 border-b border-r border-border/60 px-3 py-2 font-semibold">
                       Level
-                    </th>
-                    <th className="border-b border-border/60 px-3 py-2 font-semibold">
+                    </TableHead>
+                    <TableHead className="border-b border-border/60 px-3 py-2 font-semibold">
                       Kriteria &amp; Deskripsi
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {criteria.map((c) => (
-                    <tr key={c.id} className="align-top">
-                      <td className="border-b border-r border-border/60 px-3 py-3 text-center font-bold">
+                    <TableRow key={c.id} className="h-auto border-t-0 align-top">
+                      <TableCell className="border-b border-r border-border/60 px-3 py-3 text-center font-bold">
                         {c.impactLevel}
-                      </td>
-                      <td className="border-b border-border/60 px-3 py-3">
+                      </TableCell>
+                      <TableCell className="border-b border-border/60 px-3 py-3">
                         <span className="font-medium">
                           {impactLevelLabels[c.impactLevel] || c.impactLabel}
                         </span>
                         <span className="mt-1 block text-muted-foreground">
                           {c.description}
                         </span>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
           </div>
         </TooltipContent>

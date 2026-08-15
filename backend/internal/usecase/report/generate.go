@@ -46,7 +46,7 @@ func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateRepo
 
 	risks = compactRisks(risks)
 	if len(risks) == 0 {
-		return nil, errors.Wrap(errors.ErrNotFound, "no risks found for cycle "+input.Cycle+" with status approved")
+		return nil, errors.Wrap(errors.ErrNotFound, "no risks found for cycle "+input.Cycle+" with status final")
 	}
 
 	riskIDs := make(map[uuid.UUID]struct{}, len(risks))

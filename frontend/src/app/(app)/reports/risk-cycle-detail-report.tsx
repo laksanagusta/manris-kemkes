@@ -9,7 +9,7 @@ import {
   Minus,
   Plus,
   Trash2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,7 @@ import {
 } from "@/lib/api/organization-groups";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
+import { currentAssessmentCycle, shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 import {
   classifyRiskCycleDetailMovement,
   exportRiskCycleDetailCSV,
@@ -124,24 +125,18 @@ const changeTypeMeta: Record<string, string> = {
 };
 
 function currentGlobalCycle() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const half = now.getMonth() < 6 ? "H1" : "H2";
-  return `${year}-${half}`;
+  return currentAssessmentCycle();
 }
 
 function previousGlobalCycle(cycle: string) {
-  const [yearPart, half] = cycle.split("-");
-  const year = Number(yearPart);
-  if (half === "H1") return `${year - 1}-H2`;
-  return `${year}-H1`;
+  return shiftAssessmentCycle(cycle, -1);
 }
 
 function buildCycleOptions() {
   const currentYear = new Date().getFullYear();
   const result: string[] = [];
   for (let year = currentYear + 1; year >= currentYear - 3; year -= 1) {
-    result.push(`${year}-H2`, `${year}-H1`);
+    result.push(`${year}-Q4`, `${year}-Q3`, `${year}-Q2`, `${year}-Q1`);
   }
   return result;
 }
@@ -581,12 +576,12 @@ export function RiskCycleDetailReport({
   };
 
   return (
-    <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+    <Card className="rounded-lg bg-card">
       <div className="space-y-3">
         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">
-              Bandingkan snapshot risiko approved antar dua cycle sampai ke
+              Bandingkan snapshot risiko final antar dua cycle sampai ke
               level kolom dan mitigasi.
             </p>
           </div>
@@ -874,7 +869,7 @@ export function RiskCycleDetailReport({
                               <TableCell colSpan={6}>
                                 <div className="space-y-4 py-3">
                                   <div className="grid gap-3 md:grid-cols-2">
-                                    <div className="rounded-lg border border-border/60 bg-card p-3 text-sm">
+                                    <div className="rounded-lg bg-card p-3 text-sm smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                                       <p className="text-xs uppercase tracking-wider text-muted-foreground">
                                         Periode
                                       </p>
@@ -882,7 +877,7 @@ export function RiskCycleDetailReport({
                                         {item.fromCycle} ke {item.toCycle}
                                       </p>
                                     </div>
-                                    <div className="rounded-lg border border-border/60 bg-card p-3 text-sm">
+                                    <div className="rounded-lg bg-card p-3 text-sm smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                                       <p className="text-xs uppercase tracking-wider text-muted-foreground">
                                         Versi Risiko
                                       </p>

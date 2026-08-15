@@ -7,6 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-main-content: var(--main-content);
+  --color-table-header: var(--table-header);
   --color-table-header-foreground: var(--table-header-foreground);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -41,13 +42,16 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  /* Explicit geometry tokens keep the hierarchy stable across shadcn and
+   * feature-level controls. The reference uses 8px fields/buttons, 12px
+   * cards, and 16px overlays instead of proportional radii. */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
 
   /* Easing tokens */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -83,42 +87,43 @@
   --color-chart-background: var(----chart-background);
 }
 
-/* MANRIS v2 — Linear-inspired neutral shell with Manris semantic accents */
+/* MANRIS v2 — Cloudflare-inspired monochrome shell with Manris semantic accents */
 :root {
-  --background: #ffffff;
-  --main-content: #fcfcfd;
-  --table-header-foreground: #a1a1a1;
-  --foreground: oklch(0.18 0.02 170);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 170);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 170);
-  --primary: #00b9ad;
+  --background: #fbfbfb;
+  --main-content: #fbfbfb;
+  --table-header: #f9fafb;
+  --table-header-foreground: #737373;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #090909;
   --primary-foreground: #ffffff;
-  --secondary: oklch(0.955 0.01 170);
-  --secondary-foreground: oklch(0.30 0.06 175);
-  --muted: oklch(0.96 0.006 170);
-  --muted-foreground: oklch(0.50 0.015 170);
-  --accent: #f1f1f2;
-  --accent-foreground: oklch(0.30 0.06 175);
+  --secondary: #f6f6f6;
+  --secondary-foreground: #525252;
+  --muted: #f7f7f7;
+  --muted-foreground: #737373;
+  --accent: #f6f6f6;
+  --accent-foreground: #171717;
   --destructive: oklch(0.58 0.22 27);
-  --border: rgb(228 228 231 / 80%);
-  --input: rgb(228 228 231 / 80%);
-  --ring: oklch(0.50 0.10 175);
+  --border: rgb(10 10 10 / 10.2%);
+  --input: rgb(10 10 10 / 10.2%);
+  --ring: rgb(10 10 10 / 25%);
   --chart-1: oklch(0.48 0.12 175);
   --chart-2: oklch(0.60 0.10 200);
   --chart-3: oklch(0.70 0.15 50);
   --chart-4: oklch(0.55 0.12 150);
   --chart-5: oklch(0.65 0.08 220);
   --radius: 0.625rem;
-  --sidebar: #f7f7f8;
-  --sidebar-foreground: oklch(0.25 0.02 170);
-  --sidebar-primary: #00b9ad;
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: #ececee;
-  --sidebar-accent-foreground: oklch(0.22 0.03 175);
-  --sidebar-border: rgb(0 0 0 / 8%);
-  --sidebar-ring: oklch(0.50 0.10 175);
+  --sidebar: #fbfbfb;
+  --sidebar-foreground: #171717;
+  --sidebar-primary: #090909;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f6f6f6;
+  --sidebar-accent-foreground: #171717;
+  --sidebar-border: rgb(10 10 10 / 10.2%);
+  --sidebar-ring: rgb(10 10 10 / 25%);
 
   /* Risk level colors */
   --risk-low: oklch(0.72 0.17 155);
@@ -151,39 +156,40 @@
 }
 
 .dark {
-  --background: #111113;
-  --main-content: #111113;
-  --table-header-foreground: #a1a1a1;
-  --foreground: oklch(0.93 0.01 170);
-  --card: oklch(0.16 0.018 175);
-  --card-foreground: oklch(0.93 0.01 170);
-  --popover: oklch(0.16 0.018 175);
-  --popover-foreground: oklch(0.93 0.01 170);
-  --primary: oklch(0.62 0.12 175);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.22 0.025 175);
-  --secondary-foreground: oklch(0.88 0.01 170);
-  --muted: oklch(0.22 0.02 175);
-  --muted-foreground: oklch(0.60 0.015 170);
+  --background: #111111;
+  --main-content: #111111;
+  --table-header: #1f1f1f;
+  --table-header-foreground: #a3a3a3;
+  --foreground: #f5f5f5;
+  --card: #181818;
+  --card-foreground: #f5f5f5;
+  --popover: #181818;
+  --popover-foreground: #f5f5f5;
+  --primary: #f5f5f5;
+  --primary-foreground: #171717;
+  --secondary: #242424;
+  --secondary-foreground: #e5e5e5;
+  --muted: #242424;
+  --muted-foreground: #a3a3a3;
   --accent: #27272a;
-  --accent-foreground: oklch(0.93 0.01 170);
+  --accent-foreground: #f5f5f5;
   --destructive: oklch(0.65 0.22 25);
-  --border: rgb(63 63 70 / 80%);
-  --input: rgb(63 63 70 / 80%);
-  --ring: oklch(0.55 0.10 175);
+  --border: rgb(255 255 255 / 12%);
+  --input: rgb(255 255 255 / 12%);
+  --ring: rgb(255 255 255 / 30%);
   --chart-1: oklch(0.62 0.12 175);
   --chart-2: oklch(0.65 0.10 200);
   --chart-3: oklch(0.75 0.15 50);
   --chart-4: oklch(0.60 0.12 150);
   --chart-5: oklch(0.70 0.08 220);
-  --sidebar: #171719;
-  --sidebar-foreground: oklch(0.88 0.01 170);
-  --sidebar-primary: oklch(0.62 0.12 175);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar: #171717;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #f5f5f5;
+  --sidebar-primary-foreground: #171717;
   --sidebar-accent: #27272a;
-  --sidebar-accent-foreground: oklch(0.88 0.01 170);
-  --sidebar-border: rgb(255 255 255 / 8%);
-  --sidebar-ring: oklch(0.55 0.10 175);
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: rgb(255 255 255 / 10%);
+  --sidebar-ring: rgb(255 255 255 / 30%);
 
   /* Risk level colors - dark mode */
   --risk-low: oklch(0.72 0.17 155);
@@ -220,11 +226,82 @@
   html {
     @apply font-sans scroll-smooth;
   }
+
+  :where(
+    a[href],
+    button:not(:disabled),
+    summary,
+    select:not(:disabled),
+    input[type="range"]:not(:disabled),
+    [role="button"]:not([aria-disabled="true"]),
+    [role="checkbox"]:not([aria-disabled="true"]),
+    [role="combobox"]:not([aria-disabled="true"]),
+    [role="menuitem"]:not([aria-disabled="true"]),
+    [role="menuitemcheckbox"]:not([aria-disabled="true"]),
+    [role="menuitemradio"]:not([aria-disabled="true"]),
+    [role="option"]:not([aria-disabled="true"]),
+    [role="radio"]:not([aria-disabled="true"]),
+    [role="link"]:not([aria-disabled="true"]),
+    [role="switch"]:not([aria-disabled="true"]),
+    [role="tab"]:not([aria-disabled="true"]),
+    [role="treeitem"]:not([aria-disabled="true"])
+  ) {
+    cursor: pointer;
+  }
+
+  :where(button:disabled, select:disabled, input[type="range"]:disabled, [aria-disabled="true"]) {
+    cursor: not-allowed;
+  }
 }
 
 /* DM Sans for uppercase/all-caps text */
 .font-display {
   font-family: var(--font-display);
+}
+
+/* Shared elevation for cards and floating widgets. The neutral token provides
+ * the visible outer hairline; the second layer adds only a restrained near-edge
+ * lift so surfaces remain legible against the monochrome canvas. */
+.smooth-shadow-ring-xs {
+  box-shadow:
+    0 0 0 1px var(--smooth-ring-color, var(--border)),
+    0 0 3px 0 color-mix(in srgb, var(--tw-shadow-color, rgb(60 64 67)) 4%, transparent);
+}
+
+.smooth-ring-neutral-300\/30 {
+  --smooth-ring-color: var(--border);
+}
+
+/* Shared page-title scale: prominent enough for wayfinding, still responsive
+ * for long Indonesian labels and action-heavy headers. */
+.page-title {
+  color: var(--foreground);
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.app-page-title {
+  color: var(--foreground);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+@media (min-width: 640px) {
+  .page-title {
+    font-size: 2.25rem;
+  }
+
+  .app-page-title {
+    font-size: 1.25rem;
+  }
 }
 
 .uppercase {
@@ -287,9 +364,32 @@
   background: oklch(0.15 0.02 265 / 60%);
 }
 
+/* Modal scrim: preserve the page's surface color while softening the
+ * background with a light, context-preserving veil. Keep the scrim unblurred
+ * so the page remains recognizable behind the modal. */
+.frosted-scrim {
+  background-color: color-mix(in srgb, var(--background) 64%, transparent);
+  -webkit-backdrop-filter: blur(4px) saturate(110%);
+  backdrop-filter: blur(4px) saturate(110%);
+}
+
+@supports not ((backdrop-filter: blur(1px))) {
+  .frosted-scrim {
+    background-color: color-mix(in srgb, var(--background) 86%, transparent);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .frosted-scrim {
+    background-color: color-mix(in srgb, var(--background) 86%, transparent);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, oklch(0.48 0.12 175), oklch(0.55 0.10 200));
+  background: linear-gradient(135deg, #171717, #737373);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -309,9 +409,7 @@
 .dark .heatmap-sangat-tinggi { background: oklch(0.55 0.20 27 / 25%); color: oklch(0.98 0.02 27); }
 
 /* Risk forms mirror the compact controls used by the register filter popover. */
-.risk-form-filter-controls [data-slot="button"],
-.risk-form-filter-controls [data-slot="card"],
-.risk-form-filter-controls [data-slot="accordion-item"] {
+.risk-form-filter-controls [data-slot="button"] {
   box-shadow: none;
 }
 
@@ -324,19 +422,34 @@
 .risk-form-filter-controls [data-slot="input"],
 .risk-form-filter-controls [data-slot="select-trigger"] {
   height: 2.25rem;
-  border-width: 0;
-  border-radius: 0.375rem;
-  background: color-mix(in oklab, var(--muted) 50%, transparent);
+  border-width: 1px;
+  border-radius: var(--radius-lg);
+  border-color: var(--input);
+  background: var(--card);
   box-shadow: none;
   font-size: 0.875rem;
 }
 
 .risk-form-filter-controls [data-slot="textarea"] {
-  border-width: 0;
-  border-radius: 0.375rem;
-  background: color-mix(in oklab, var(--muted) 50%, transparent);
+  border-width: 1px;
+  border-radius: var(--radius-lg);
+  border-color: var(--input);
+  background: var(--card);
   box-shadow: none;
   font-size: 0.875rem;
+}
+
+/* Keep the shared active-field treatment ahead of the page-level geometry
+ * overrides above. The form wrapper is intentionally unlayered, so these
+ * explicit states are needed to prevent it from restoring the gray input
+ * border when a field receives focus. */
+.risk-form-filter-controls [data-slot="input"]:focus,
+.risk-form-filter-controls [data-slot="input"]:focus-visible,
+.risk-form-filter-controls [data-slot="textarea"]:focus,
+.risk-form-filter-controls [data-slot="textarea"]:focus-visible {
+  border-color: var(--primary);
+  box-shadow: none;
+  outline: none;
 }
 
 .risk-form-filter-controls [data-slot="input"][aria-invalid="true"],

@@ -30,7 +30,7 @@ test("uses a white application canvas and larger wordmark", () => {
   );
   assert.match(
     sidebarSource,
-    /className="text-lg font-semibold tracking-tight text-sidebar-foreground group-data-\[collapsible=icon\]:hidden"/,
+    /className="text-lg font-semibold text-sidebar-foreground group-data-\[collapsible=icon\]:hidden">\s*Manris\s*</,
   );
   assert.match(
     sidebarSource,

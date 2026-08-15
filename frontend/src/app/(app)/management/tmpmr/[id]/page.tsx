@@ -12,7 +12,7 @@ import {
   Save,
   Send,
   ShieldCheck,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
@@ -416,7 +416,7 @@ export default function TMPMRDetailPage() {
   if (loading) {
     return (
       <FormPage className="max-w-7xl">
-        <Card className="border-border/40 shadow-sm">
+        <Card>
           <CardContent className="flex min-h-[360px] items-center justify-center gap-3 text-sm text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
             Memuat detail TMPMR...
@@ -624,7 +624,7 @@ export default function TMPMRDetailPage() {
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="bg-card/80 backdrop-blur-sm">
             <CardContent className="space-y-4 px-4 py-4">
               <div className="space-y-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
@@ -697,7 +697,7 @@ export default function TMPMRDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-dashed border-border/50 bg-muted/20">
+          <Card className="bg-muted/20">
             <CardContent className="space-y-3 px-4 py-4">
               <p className="text-sm font-medium">Panduan singkat</p>
               <p className="text-sm leading-6 text-muted-foreground">

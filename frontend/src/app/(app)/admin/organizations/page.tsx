@@ -17,7 +17,11 @@ import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CollectionPagination } from "@/components/shared/design-system";
+import {
+  CollectionPageHeader,
+  CollectionPagination,
+  PageStack,
+} from "@/components/shared/design-system";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,7 +37,7 @@ import {
   Search,
   Building2,
   Loader2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useAuth } from "@/contexts/auth-context";
 import {
   type Organization,
@@ -331,26 +335,22 @@ export default function OrganizationsManagementPage() {
   const subUnits = organizations.length - rootUnits;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageStack>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Organization Management
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Kelola struktur organisasi dan unit kerja
-            </p>
-          </div>
-          <Button
-            className="gap-2 shadow-lg shadow-primary/20"
-            onClick={handleCreateClick}
-            aria-label="Tambah Organisasi"
-          >
-            <Plus className="size-4" />
-            Tambah Organisasi
-          </Button>
-        </div>
+        <CollectionPageHeader
+          title="Organization Management"
+          description="Kelola struktur organisasi dan unit kerja"
+          actions={
+            <Button
+              className="gap-2 shadow-lg shadow-primary/20"
+              onClick={handleCreateClick}
+              aria-label="Tambah Organisasi"
+            >
+              <Plus className="size-4" />
+              Tambah Organisasi
+            </Button>
+          }
+        />
 
         <div className="grid gap-4 md:grid-cols-3">
           <KpiCard
@@ -376,7 +376,7 @@ export default function OrganizationsManagementPage() {
           />
         </div>
 
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+        <Card className="bg-card/80 backdrop-blur-sm overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
@@ -451,6 +451,6 @@ export default function OrganizationsManagementPage() {
           onSuccess={handleRefetch}
         />
       </div>
-    </div>
+    </PageStack>
   );
 }

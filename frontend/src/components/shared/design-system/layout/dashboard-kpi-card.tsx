@@ -1,6 +1,6 @@
 "use client";
 
-import { Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { Minus, TrendingDown, TrendingUp } from "@/components/ui/icons";
 
 import { cn } from "@/lib/utils";
 
@@ -39,7 +39,7 @@ export function DashboardKpiCard({
   return (
     <div
       aria-busy={loading}
-      className="flex min-h-32 flex-col rounded-2xl bg-card shadow-none ring-1 ring-inset ring-border"
+      className="flex min-h-32 flex-col rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
     >
       <div className="flex items-center px-4 py-4">
         <p className="text-[11px] font-mono font-semibold uppercase leading-4 tracking-[0.1em] text-muted-foreground">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Sparkles, Plus, Loader2 } from "lucide-react";
+import { Check, Sparkles, Plus, Loader2 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -68,8 +68,8 @@ export function AiSuggestionModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-2xl gap-0 p-0 overflow-hidden">
-        <DialogHeader className="px-6 py-5 border-b border-border/40 bg-muted/20">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-2xl">
+        <DialogHeader className="bg-muted/20">
           <div className="flex items-center gap-2.5">
             <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Sparkles className="size-4" />
@@ -77,7 +77,7 @@ export function AiSuggestionModal({
             <div>
               <DialogTitle className="text-base font-semibold leading-none">{title}</DialogTitle>
               {description && (
-                <DialogDescription className="mt-1.5 text-xs text-muted-foreground">
+                <DialogDescription className="mt-1.5">
                   {description}
                 </DialogDescription>
               )}
@@ -85,7 +85,7 @@ export function AiSuggestionModal({
           </div>
         </DialogHeader>
 
-        <div className="flex min-h-0 flex-col max-h-[60vh] min-h-[300px] bg-background">
+        <div className="flex min-h-[300px] max-h-[60vh] flex-col bg-background">
           {isLoading ? (
             <div className="flex flex-1 flex-col items-center justify-center py-12 px-4 text-center">
               <Loader2 className="size-6 animate-spin text-muted-foreground mb-3" />
@@ -142,7 +142,7 @@ export function AiSuggestionModal({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 items-center border-t border-border/40 bg-muted/10 px-6 py-4 m-0 sm:justify-between">
+        <DialogFooter className="shrink-0 items-center bg-muted/10 sm:justify-between">
           <div className="text-xs text-muted-foreground font-medium hidden sm:block">
             {selectedIds.size} item terpilih
           </div>

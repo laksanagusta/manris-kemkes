@@ -5,7 +5,10 @@ import { cn } from "@/lib/utils";
 export function PageStack({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
-      className={cn("min-w-0 space-y-4 animate-fade-in", className)}
+      className={cn(
+        "mx-auto w-full min-w-0 space-y-6 animate-fade-in",
+        className,
+      )}
       {...props}
     />
   );

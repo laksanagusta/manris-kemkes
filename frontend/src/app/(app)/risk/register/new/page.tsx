@@ -76,7 +76,7 @@ import {
   Trash2,
   CheckSquare,
   History,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import {
   getRiskLevelFromNilai,
@@ -102,7 +102,11 @@ import { EditableList } from "@/components/shared/editable-list";
 import { EditableItemsTable } from "@/components/shared/editable-items-table";
 import { FormPage } from "@/components/shared/form-shell";
 import { RiskRatingSlider } from "@/components/risk/risk-rating-slider";
-import { RiskAssessmentSummaryStrip } from "@/components/shared/design-system";
+import {
+  ActionButton,
+  AccentButton,
+  RiskAssessmentSummaryStrip,
+} from "@/components/shared/design-system";
 import {
   MitigationTable,
   type MitigationItem,
@@ -158,7 +162,7 @@ const RiskLogTimeline = dynamic(
   {
     ssr: false,
     loading: () => (
-      <Card className="border-zinc-200/80">
+      <Card>
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">
@@ -185,6 +189,8 @@ const CATEGORY_ORDER: string[] = [
   "material",
   "lingkungan",
 ];
+const RISK_FORM_SURFACE_CLASS =
+  "scroll-mt-28 overflow-hidden rounded-2xl not-last:border-b-0 bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-all";
 type CategoryKey = "manusia" | "metode" | "mesin" | "material" | "lingkungan";
 
 type SectionId =
@@ -212,6 +218,7 @@ interface PopoverSelectFieldProps {
   options: PopoverSelectOption[];
   placeholder: string;
   disabled?: boolean;
+  invalid?: boolean;
   triggerClassName?: string;
   contentClassName?: string;
   emptyMessage?: string;
@@ -223,6 +230,7 @@ function PopoverSelectField({
   options,
   placeholder,
   disabled = false,
+  invalid = false,
   triggerClassName,
   contentClassName,
   emptyMessage = "Tidak ada opsi.",
@@ -238,9 +246,10 @@ function PopoverSelectField({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-invalid={invalid || undefined}
           disabled={disabled}
           className={cn(
-            "h-9 w-full justify-between gap-2 px-3 text-sm font-normal shadow-none",
+            "group/risk-select h-9 w-full justify-between gap-2 rounded-lg border-border bg-card px-3 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-border focus-visible:border-border focus:ring-0 focus-visible:ring-0 dark:focus:border-border dark:focus-visible:border-border",
             !selected && "text-muted-foreground",
             triggerClassName,
           )}
@@ -248,7 +257,7 @@ function PopoverSelectField({
           <span className="min-w-0 flex-1 truncate text-left">
             {selected?.label ?? placeholder}
           </span>
-          <ChevronDown className="size-4 shrink-0 opacity-60" />
+          <ChevronDown className="pointer-events-none size-4 shrink-0 opacity-60 transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/risk-select:rotate-180 motion-reduce:transition-none" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -709,7 +718,7 @@ export default function RiskInputPage() {
   );
 
   const [riskId, setRiskId] = useState<string | null>(null);
-  const [riskStatus, setRiskStatus] = useState<string>("assessment_draft");
+  const [riskStatus, setRiskStatus] = useState<string>("draft");
   const [riskArchivedAt, setRiskArchivedAt] = useState<string | null>(null);
   const [riskArchivedReason, setRiskArchivedReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -989,7 +998,7 @@ export default function RiskInputPage() {
         );
 
         setRiskId(risk.id);
-        setRiskStatus(risk.status || "assessment_draft");
+        setRiskStatus(risk.status || "draft");
         setRiskArchivedAt(risk.archivedAt || null);
         setRiskArchivedReason(risk.archivedReason || "");
         setOngoingAssessmentId(
@@ -1178,7 +1187,7 @@ export default function RiskInputPage() {
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) {
           setRiskId(null);
-          setRiskStatus("assessment_draft");
+          setRiskStatus("draft");
           setRiskArchivedAt(null);
           setRiskArchivedReason("");
           setOngoingAssessmentId(null);
@@ -1329,7 +1338,7 @@ export default function RiskInputPage() {
             });
             setAssessmentCycleDisplay(currentAssessmentCycle());
             setRiskId(null);
-            setRiskStatus("assessment_draft");
+            setRiskStatus("draft");
             toast.success("Draft risiko diisi dari Document Intelligence.");
             return;
           } catch (error) {
@@ -1434,7 +1443,7 @@ export default function RiskInputPage() {
         });
         setAssessmentCycleDisplay(currentAssessmentCycle());
         setRiskId(null);
-        setRiskStatus("assessment_draft");
+        setRiskStatus("draft");
         toast.success(
           "Draft risiko diisi dari rekomendasi Meeting Intelligence.",
         );
@@ -1576,8 +1585,7 @@ export default function RiskInputPage() {
   const lockedControlClass =
     "disabled:!bg-muted/40 disabled:!text-foreground/90 disabled:!opacity-100 disabled:!cursor-not-allowed";
   const isRiskLocked =
-    riskStatus === "assessment_in_review" ||
-    riskStatus === "approved" ||
+    riskStatus === "final" ||
     !!riskArchivedAt;
 
   const scrollToSection = (sectionId: SectionId) => {
@@ -1777,7 +1785,7 @@ export default function RiskInputPage() {
   const onSubmit = async (data: FormValues) => {
     if (isRiskLocked) {
       toast.info(
-        "Risiko yang sudah final harus dikembalikan ke draft terlebih dahulu sebelum diubah.",
+        "Risiko yang sudah final bersifat read-only. Buat versi baru untuk perubahan substansi.",
       );
       return;
     }
@@ -1786,16 +1794,11 @@ export default function RiskInputPage() {
       const isDraft = submitTarget.current === "draft";
       const submissionStatus =
         isDraft || riskApprovalCapabilityBehavior.submitsForApproval
-          ? "assessment_draft"
-          : "approved";
+          ? "draft"
+          : "final";
       const payload = buildPayload(data, submissionStatus);
 
       let currentRiskId = riskId;
-      const needsDirectApprovalUpdate =
-        !isDraft &&
-        !riskApprovalCapabilityBehavior.submitsForApproval &&
-        !currentRiskId;
-
       if (currentRiskId) {
         await api.put(`/risks/${currentRiskId}`, payload, token || undefined);
         if (riskId) {
@@ -1810,14 +1813,6 @@ export default function RiskInputPage() {
         setRiskId(res.id);
         setValue("riskCode", res.code || "");
         currentRiskId = res.id;
-      }
-
-      if (needsDirectApprovalUpdate && currentRiskId) {
-        await api.put(
-          `/risks/${currentRiskId}`,
-          buildPayload(data, "approved"),
-          token || undefined,
-        );
       }
 
       if (isDraft) {
@@ -1854,7 +1849,7 @@ export default function RiskInputPage() {
         }
 
         if (!riskApprovalCapabilityBehavior.submitsForApproval) {
-          toast.success("Risk berhasil disimpan dan langsung disetujui!");
+          toast.success("Risk berhasil disimpan dan difinalisasi!");
           router.push("/risk/register");
           return;
         }
@@ -2198,39 +2193,35 @@ export default function RiskInputPage() {
   };
 
   useEffect(() => {
-    if (riskStatus !== "assessment_draft" && riskId) {
+    if (riskStatus !== "draft" && riskId) {
       setHeaderActions(null);
       return;
     }
 
     setHeaderActions(
-      <div className="flex items-center gap-4">
-        <Button
+      <div className="flex items-center gap-2">
+        <ActionButton
           variant="outline"
-          size="md"
-          className="border-border/40 shadow-none"
+          loading={isSubmitting && submitTarget.current === "draft"}
+          icon={<Save className="size-3.5" />}
           onClick={() => handleSaveDraftHeaderRef.current()}
           disabled={isSubmitting}
         >
-          {isSubmitting && submitTarget.current === "draft" ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <Save className="size-3.5" />
-          )}
           Simpan draft
-        </Button>
-        <Button
-          size="md"
+        </ActionButton>
+        <AccentButton
+          icon={
+            isSubmitting && submitTarget.current === "review" ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Send className="size-3.5" />
+            )
+          }
           onClick={() => openSubmitReviewConfirmHeaderRef.current()}
           disabled={isSubmitting}
         >
-          {isSubmitting && submitTarget.current === "review" ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <Send className="size-3.5" />
-          )}
           {submitActionLabel}
-        </Button>
+        </AccentButton>
       </div>,
     );
 
@@ -2247,7 +2238,7 @@ export default function RiskInputPage() {
     <TooltipProvider>
       <FormPage className="risk-form-filter-controls max-w-none space-y-6">
         {riskArchivedAt && (
-          <Card className="border-amber-200 bg-amber-50/80">
+          <Card className="bg-amber-50/80">
             <CardContent className="space-y-1 p-4 text-sm text-amber-900">
               <p className="font-semibold">
                 Risiko ini diarsipkan pada{" "}
@@ -2260,7 +2251,7 @@ export default function RiskInputPage() {
           </Card>
         )}
 
-        <div className="mb-6 w-full space-y-4 xl:hidden">
+        <div className="hidden">
           <div className="space-y-1">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
               Navigasi
@@ -2272,7 +2263,7 @@ export default function RiskInputPage() {
             onValueChange={(value) => handleViewChange(value as WorkspaceView)}
           >
             <TabsList
-              className="rounded-lg ring-1 ring-inset ring-zinc-200/80 bg-muted/50 p-0.5"
+              className="rounded-lg ring-1 ring-inset ring-border/80 bg-muted/50 p-0.5"
               style={{ height: "36px" }}
             >
               <TabsTrigger
@@ -2295,7 +2286,7 @@ export default function RiskInputPage() {
           </Tabs>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_380px] 2xl:grid-cols-[minmax(0,1.75fr)_430px] xl:items-start">
+        <div className="mx-auto w-full max-w-5xl">
           <div className="min-w-0 w-full">
 
             <form
@@ -2319,7 +2310,7 @@ export default function RiskInputPage() {
                 <AccordionItem
                   value="identifikasi"
                   id="identifikasi"
-                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
+                  className={RISK_FORM_SURFACE_CLASS}
                 >
                   <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
@@ -2368,7 +2359,7 @@ export default function RiskInputPage() {
                       </div>
 
                       {showRiskSuggestions && riskSuggestions.length > 0 && (
-                        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl bg-background/95 shadow-lg shadow-black/5 ring-1 ring-border/60 backdrop-blur-md">
+                        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl bg-background/95 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 backdrop-blur-md">
                           <div className="px-3 py-2">
                             <p className="text-xs font-semibold text-foreground">
                               Saran AI untuk judul risiko
@@ -2465,6 +2456,7 @@ export default function RiskInputPage() {
                             options={riskCategoryOptions}
                             placeholder="Pilih kategori risiko"
                             disabled={isRiskLocked}
+                            invalid={Boolean(errors.category)}
                             triggerClassName={cn(
                               lockedControlClass,
                               errors.category && "border-destructive",
@@ -2488,7 +2480,7 @@ export default function RiskInputPage() {
                     </div>
 
                     {objectiveSummary && (
-                      <div className="min-w-0 space-y-2 rounded-xl border border-zinc-200/80 bg-card p-5 shadow-none">
+                      <div className="min-w-0 space-y-2 rounded-xl bg-card p-5 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                         <p className="text-xs font-semibold text-foreground">
                           Ringkasan Hirarki
                         </p>
@@ -2569,7 +2561,7 @@ export default function RiskInputPage() {
                           value={assessmentCycleDisplay}
                           onValueChange={setAssessmentCycleDisplay}
                           options={assessmentCycleOptions}
-                          placeholder="Pilih semester"
+                          placeholder="Pilih periode kuartal"
                           triggerClassName={lockedControlClass}
                         />
                       </div>
@@ -2692,7 +2684,7 @@ export default function RiskInputPage() {
                 <AccordionItem
                   value="analisis"
                   id="analisis"
-                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
+                  className={RISK_FORM_SURFACE_CLASS}
                 >
                   <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
@@ -2746,6 +2738,7 @@ export default function RiskInputPage() {
                               ]}
                               placeholder="Belum dinilai"
                               disabled={isRiskLocked}
+                              invalid={Boolean(errors.controlEffectiveness)}
                               triggerClassName={cn(
                                 lockedControlClass,
                                 errors.controlEffectiveness &&
@@ -2861,7 +2854,7 @@ export default function RiskInputPage() {
                 <AccordionItem
                   value="evaluasi"
                   id="evaluasi"
-                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
+                  className={RISK_FORM_SURFACE_CLASS}
                 >
                   <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
@@ -2918,6 +2911,7 @@ export default function RiskInputPage() {
                             options={treatmentOptionOptions}
                             placeholder="Pilih penanganan"
                             disabled={isRiskLocked}
+                            invalid={Boolean(errors.treatmentOption)}
                             triggerClassName={cn(
                               lockedControlClass,
                               errors.treatmentOption && "border-destructive",
@@ -2935,7 +2929,7 @@ export default function RiskInputPage() {
                 <AccordionItem
                   value="penanganan"
                   id="penanganan"
-                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
+                  className={RISK_FORM_SURFACE_CLASS}
                 >
                   <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
@@ -3048,7 +3042,7 @@ export default function RiskInputPage() {
                 <AccordionItem
                   value="target"
                   id="target"
-                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
+                  className={RISK_FORM_SURFACE_CLASS}
                 >
                   <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
@@ -3139,7 +3133,7 @@ export default function RiskInputPage() {
                   <AccordionItem
                     value="approval-line"
                     id="approval-line"
-                  className="scroll-mt-28 overflow-hidden rounded-xl border border-zinc-200/80 bg-card shadow-none transition-all data-[state=open]:border-zinc-200/80"
+                  className={RISK_FORM_SURFACE_CLASS}
                   >
                   <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
@@ -3152,7 +3146,7 @@ export default function RiskInputPage() {
                     </div>
                   </AccordionTrigger>
                     <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                      <div className="rounded-xl border border-zinc-200/80 bg-card p-5 space-y-3 shadow-none">
+                      <div className="rounded-xl bg-card p-5 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                         <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
                             1. Reviewer (Pemeriksa)
@@ -3177,7 +3171,7 @@ export default function RiskInputPage() {
                         />
                       </div>
 
-                      <div className="rounded-xl border border-zinc-200/80 bg-card p-5 space-y-4 shadow-none">
+                      <div className="rounded-xl bg-card p-5 space-y-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                         <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
                             2. Approval Line (Pimpinan)
@@ -3216,9 +3210,9 @@ export default function RiskInputPage() {
 
           </div>
 
-          <div className="hidden xl:block">
+          <div className="hidden">
             <div className="space-y-6 xl:sticky xl:top-24">
-            <Card className="gap-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-card/80 backdrop-blur-lg p-0 shadow-sm ring-0 transition-colors duration-300 motion-reduce:backdrop-blur-none">
+            <Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors duration-300">
               <CardHeader className="px-5 pt-4 pb-2">
                 <CardTitle className="text-sm font-semibold">Navigasi</CardTitle>
               </CardHeader>

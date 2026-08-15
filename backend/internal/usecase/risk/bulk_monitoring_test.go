@@ -118,7 +118,7 @@ func TestPreview_PositionBasedParsing(t *testing.T) {
 			risk1ID: risk1,
 		},
 		versions: []*entity.Risk{
-			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
 		},
 	}
 
@@ -136,7 +136,7 @@ func TestPreview_PositionBasedParsing(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-H1",
+		Cycle:          "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -212,7 +212,7 @@ func TestPreview_CodeNotFound(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-H1",
+		Cycle:          "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -262,7 +262,7 @@ func TestPreview_EmptyPAndD(t *testing.T) {
 	riskRepo := &fakeMonitoringRiskRepo{
 		risks: map[uuid.UUID]*entity.Risk{risk1ID: risk1},
 		versions: []*entity.Risk{
-			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
 		},
 	}
 
@@ -278,7 +278,7 @@ func TestPreview_EmptyPAndD(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-H1",
+		Cycle:          "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -329,7 +329,7 @@ func TestPreview_InvalidPAndD(t *testing.T) {
 	riskRepo := &fakeMonitoringRiskRepo{
 		risks: map[uuid.UUID]*entity.Risk{risk1ID: risk1},
 		versions: []*entity.Risk{
-			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
 		},
 	}
 
@@ -345,7 +345,7 @@ func TestPreview_InvalidPAndD(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-H1",
+		Cycle:          "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -394,8 +394,8 @@ func TestPreview_ExistingDraftWarning(t *testing.T) {
 	riskRepo := &fakeMonitoringRiskRepo{
 		risks: map[uuid.UUID]*entity.Risk{risk1ID: risk1},
 		versions: []*entity.Risk{
-			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
-			{ID: existingDraftID, VersionGroupID: vg1ID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-H1"},
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
+			{ID: existingDraftID, VersionGroupID: vg1ID, Status: entity.RiskStatusDraft, AssessmentCycle: "2026-Q2"},
 		},
 	}
 
@@ -411,7 +411,7 @@ func TestPreview_ExistingDraftWarning(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-H1",
+		Cycle:          "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -426,7 +426,7 @@ func TestPreview_ExistingDraftWarning(t *testing.T) {
 	}
 	found := false
 	for _, w := range item.Warnings {
-		if w == "Risiko 'R-001' sudah memiliki draf pemantauan untuk siklus 2026-H1." {
+		if w == "Risiko 'R-001' sudah memiliki draf pemantauan untuk siklus 2026-Q2." {
 			found = true
 		}
 	}
@@ -458,7 +458,7 @@ func TestPreview_SimpulanAndEfektivitas(t *testing.T) {
 	riskRepo := &fakeMonitoringRiskRepo{
 		risks: map[uuid.UUID]*entity.Risk{risk1ID: risk1},
 		versions: []*entity.Risk{
-			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
 		},
 	}
 
@@ -488,7 +488,7 @@ func TestPreview_SimpulanAndEfektivitas(t *testing.T) {
 				Content:        makeMonitoringWorkbook(t, rows),
 				UploaderID:     uploaderID,
 				OrganizationID: orgID,
-				Cycle:          "2026-H1",
+				Cycle:          "2026-Q2",
 			})
 			if err != nil {
 				t.Fatalf("preview err: %v", err)
@@ -529,7 +529,7 @@ func TestPreview_EmptyCodeError(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-H1",
+		Cycle:          "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -573,7 +573,7 @@ func TestPreview_TargetValuesComputedWhenMissing(t *testing.T) {
 	riskRepo := &fakeMonitoringRiskRepo{
 		risks: map[uuid.UUID]*entity.Risk{risk1ID: risk1},
 		versions: []*entity.Risk{
-			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
 		},
 	}
 
@@ -589,7 +589,7 @@ func TestPreview_TargetValuesComputedWhenMissing(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-H1",
+		Cycle:          "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -633,7 +633,7 @@ func TestPreview_CsvParsing(t *testing.T) {
 	riskRepo := &fakeMonitoringRiskRepo{
 		risks: map[uuid.UUID]*entity.Risk{risk1ID: risk1},
 		versions: []*entity.Risk{
-			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
 		},
 	}
 
@@ -645,7 +645,7 @@ func TestPreview_CsvParsing(t *testing.T) {
 		Content:        csvContent,
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-H1",
+		Cycle:          "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -702,8 +702,8 @@ func TestPreview_MultipleRows(t *testing.T) {
 			risk2ID: risk2,
 		},
 		versions: []*entity.Risk{
-			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
-			{ID: risk2ID, VersionGroupID: vg2ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
+			{ID: risk2ID, VersionGroupID: vg2ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
 		},
 	}
 
@@ -720,7 +720,7 @@ func TestPreview_MultipleRows(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-H1",
+		Cycle:          "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -743,25 +743,25 @@ func TestPreview_TemplateRoundTrip(t *testing.T) {
 	vg1ID := uuid.New()
 
 	risk1 := &entity.Risk{
-		ID:                risk1ID,
-		Code:              "R-001",
-		Title:             "Round Trip Risk",
-		Status:            entity.RiskStatusApproved,
-		VersionGroupID:    vg1ID,
-		IsCurrent:         true,
-		OrganizationID:    &orgID,
-		TargetProbability: 2,
-		TargetImpact:      3,
-		TargetWeight:      entity.GetBobot(2, 3),
-		TargetNilai:       entity.CalculateNilai(2, 3, entity.GetBobot(2, 3)),
-		InherentScore:     18,
+		ID:                 risk1ID,
+		Code:               "R-001",
+		Title:              "Round Trip Risk",
+		Status:             entity.RiskStatusApproved,
+		VersionGroupID:     vg1ID,
+		IsCurrent:          true,
+		OrganizationID:     &orgID,
+		TargetProbability:  2,
+		TargetImpact:       3,
+		TargetWeight:       entity.GetBobot(2, 3),
+		TargetNilai:        entity.CalculateNilai(2, 3, entity.GetBobot(2, 3)),
+		InherentScore:      18,
 		ReviewScheduleText: "Review bulanan",
 	}
 
 	riskRepo := &fakeMonitoringRiskRepo{
 		risks: map[uuid.UUID]*entity.Risk{risk1ID: risk1},
 		versions: []*entity.Risk{
-			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
 		},
 	}
 
@@ -773,7 +773,7 @@ func TestPreview_TemplateRoundTrip(t *testing.T) {
 		riskRepo,
 	)
 
-	content, _, err := templateUC.Template(context.Background(), orgID, "2026-H1")
+	content, _, err := templateUC.Template(context.Background(), orgID, "2026-Q2")
 	if err != nil {
 		t.Fatalf("template err: %v", err)
 	}
@@ -827,7 +827,7 @@ func TestPreview_TemplateRoundTrip(t *testing.T) {
 		Content:        content,
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-H1",
+		Cycle:          "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -923,7 +923,7 @@ func TestPreview_AliasBasedHeaderDetection(t *testing.T) {
 	riskRepo := &fakeMonitoringRiskRepo{
 		risks: map[uuid.UUID]*entity.Risk{risk1ID: risk1},
 		versions: []*entity.Risk{
-			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
 		},
 	}
 
@@ -939,7 +939,7 @@ func TestPreview_AliasBasedHeaderDetection(t *testing.T) {
 		Content:        makeMonitoringWorkbook(t, rows),
 		UploaderID:     uploaderID,
 		OrganizationID: orgID,
-		Cycle:          "2026-H1",
+		Cycle:          "2026-Q2",
 	})
 	if err != nil {
 		t.Fatalf("preview err: %v", err)
@@ -978,7 +978,7 @@ func BenchmarkPreview_PositionBasedParsing(b *testing.B) {
 	riskRepo := &fakeMonitoringRiskRepo{
 		risks: map[uuid.UUID]*entity.Risk{risk1ID: risk1},
 		versions: []*entity.Risk{
-			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-H2"},
+			{ID: risk1ID, VersionGroupID: vg1ID, Status: entity.RiskStatusApproved, AssessmentCycle: "2025-Q4"},
 		},
 	}
 
@@ -997,7 +997,7 @@ func BenchmarkPreview_PositionBasedParsing(b *testing.B) {
 			Content:        content,
 			UploaderID:     uploaderID,
 			OrganizationID: orgID,
-			Cycle:          "2026-H1",
+			Cycle:          "2026-Q2",
 		})
 	}
 }

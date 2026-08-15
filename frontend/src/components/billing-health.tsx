@@ -14,7 +14,7 @@ import {
 	EmptyTitle,
 } from "@/components/ui/empty";
 import { DashboardCard } from "@/components/dashboard-card";
-import { CircleCheckIcon, ArrowRightIcon } from "lucide-react";
+import { CircleCheckIcon, ArrowRightIcon } from "@/components/ui/icons";
 import Link from "next/link";
 
 export function BillingHealth() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { TooltipProvider } from "@/components/shared/design-system";
+import { PageStack, TooltipProvider } from "@/components/shared/design-system";
 import {
   AccordionExample,
   AiSuggestionDropdownExample,
@@ -10,16 +10,20 @@ import {
   ActionButtonsExample,
   CardPatternsExample,
   CollectionLayoutExample,
+  CollectionPageHeaderExample,
   ColorPaletteExample,
   DesignSystemSectionLabel,
   DialogExample,
   DropdownActionMenuExample,
   FilterPopoverExample,
+  FieldsExample,
   FormDialogExample,
   FormContainerExample,
   InlineEmptyStateExample,
+  IconographyExample,
   MitigationProgressDialogExample,
   MitigationProgressFormExample,
+  MonitoringTransactionProgressExample,
   OverviewDashboardExample,
   OverviewPanelStatesExample,
   PageHeaderExample,
@@ -31,6 +35,7 @@ import {
   RiskSummaryStripExample,
   SearchInputExample,
   SemesterIndicatorExample,
+  SidebarMotionExample,
   TableExample,
   TabsExample,
   TooltipExample,
@@ -41,7 +46,7 @@ import {
 export default function DesignSystemPage() {
   return (
     <TooltipProvider>
-      <div className="space-y-12">
+      <PageStack className="space-y-12">
         <PageHeaderExample />
 
         <section className="space-y-4">
@@ -55,8 +60,23 @@ export default function DesignSystemPage() {
         </section>
 
         <section className="space-y-4">
+          <DesignSystemSectionLabel>Iconography</DesignSystemSectionLabel>
+          <IconographyExample />
+        </section>
+
+        <section className="space-y-4">
+          <DesignSystemSectionLabel>Sidebar Motion</DesignSystemSectionLabel>
+          <SidebarMotionExample />
+        </section>
+
+        <section className="space-y-4">
           <DesignSystemSectionLabel>Border Radius Scale</DesignSystemSectionLabel>
           <RadiusScaleExample />
+        </section>
+
+        <section className="space-y-4">
+          <DesignSystemSectionLabel>Form Fields</DesignSystemSectionLabel>
+          <FieldsExample />
         </section>
 
         <section className="space-y-4">
@@ -89,6 +109,7 @@ export default function DesignSystemPage() {
             loading/empty yang konsisten.
           </p>
           <CollectionLayoutExample />
+          <CollectionPageHeaderExample />
         </section>
 
         <section className="space-y-4">
@@ -159,6 +180,13 @@ export default function DesignSystemPage() {
         </section>
 
         <section className="space-y-4">
+          <DesignSystemSectionLabel>
+            Monitoring Transaction Progress
+          </DesignSystemSectionLabel>
+          <MonitoringTransactionProgressExample />
+        </section>
+
+        <section className="space-y-4">
           <DesignSystemSectionLabel>Dropdown Menu</DesignSystemSectionLabel>
           <DropdownActionMenuExample />
         </section>
@@ -202,7 +230,7 @@ export default function DesignSystemPage() {
           <DesignSystemSectionLabel>Form Page Container</DesignSystemSectionLabel>
           <FormContainerExample />
         </section>
-      </div>
+      </PageStack>
     </TooltipProvider>
   );
 }

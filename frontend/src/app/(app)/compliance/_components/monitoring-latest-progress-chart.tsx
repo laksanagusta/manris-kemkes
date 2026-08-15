@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "@/components/ui/icons";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Collapsible,
@@ -112,12 +112,12 @@ export function MonitoringLatestProgressChart({
   );
 
   return (
-    <Card className="ring-1 ring-inset ring-border border-0 bg-card shadow-none">
+    <Card className="bg-card">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger className="w-full text-left">
             <div className="flex items-center justify-between gap-4 px-0 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-600 shadow-inner ring-1 ring-inset ring-zinc-200/80">
+                <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground shadow-inner ring-1 ring-inset ring-border/80">
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 transition-transform duration-200 ease-out",
@@ -127,8 +127,11 @@ export function MonitoringLatestProgressChart({
                   />
                 </span>
                 <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    Progress Kertas Kerja Terbaru
+                  </p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    Persentase risiko approved pada kertas kerja terbaru tiap
+                    Persentase risiko final pada kertas kerja terbaru tiap
                     organisasi.
                   </p>
                 </div>
@@ -160,7 +163,7 @@ export function MonitoringLatestProgressChart({
                         Progress
                       </TableHead>
                       <TableHead className="h-11 whitespace-nowrap py-3 text-right align-middle">
-                        Approved
+                        Final
                       </TableHead>
                     </TableRow>
                   </TableHeader>

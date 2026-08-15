@@ -3,7 +3,7 @@ export type ControlEffectiveness = "" | "efektif" | "tidak_efektif";
 export type MitigationFrequency = "insidental" | "rutin";
 export type RecurringInterval = "harian" | "mingguan" | "bulanan" | "triwulan" | "semesteran" | "tahunan";
 export type TreatmentOption = "" | "menghindari" | "berbagi" | "mitigasi" | "menerima";
-export type RiskStatus = "assessment_draft" | "assessment_in_review" | "approved";
+export type RiskStatus = "draft" | "final";
 export type RiskCategory = "" | "kebijakan" | "reputasi" | "fraud_korupsi" | "legal" | "kepatuhan" | "operasional";
 export type RiskSource = "" | "internal" | "eksternal";
 export type RiskAppetite = "" | "dalam_batas" | "di_atas_batas";
@@ -119,7 +119,7 @@ export interface RiskVersionTimelineItem {
   orgName?: string;
 }
 
-export type RiskReviewStatus = "due" | "in_draft" | "pending_approval" | "approved" | "overdue" | "rejected";
+export type RiskReviewStatus = "due" | "in_draft" | "overdue" | "final" | "rejected";
 
 export interface RiskReviewQueueItem {
   riskId: string;
@@ -132,6 +132,7 @@ export interface RiskReviewQueueItem {
   assessmentCycle: string;
   currentScore: number;
   currentLevel: string;
+  monitoringId?: string | null;
   candidateRiskId?: string | null;
   candidateStatus?: string | null;
   candidateScore?: number | null;
@@ -325,6 +326,13 @@ export interface Risk {
   hasOngoing?: boolean;
   monitoringStatus?: string | null;
   lastMonitoredAt?: string | null;
+  monitoringAssessmentCycle?: string | null;
+  monitoringMode?: string | null;
+  monitoringObservedProbability?: number | null;
+  monitoringObservedImpact?: number | null;
+  monitoringObservedWeight?: number | null;
+  monitoringObservedNilai?: number | null;
+  monitoringObservedLevel?: string | null;
   objectiveId?: string;
   roId?: string;
 

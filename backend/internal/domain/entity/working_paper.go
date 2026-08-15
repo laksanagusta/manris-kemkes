@@ -55,12 +55,12 @@ type WorkingPaperRiskLink struct {
 	CreatedAt      time.Time            `json:"created_at"`
 	Risk           WorkingPaperRiskData `json:"risk"`
 
-	VersionGroupID uuid.UUID            `json:"version_group_id,omitempty"`
-	SourceRiskID   uuid.UUID            `json:"source_risk_id,omitempty"`
-	MonitoringID   *uuid.UUID           `json:"monitoring_id,omitempty"`
-	ResultRiskID   *uuid.UUID           `json:"result_risk_id,omitempty"`
+	VersionGroupID uuid.UUID             `json:"version_group_id,omitempty"`
+	SourceRiskID   uuid.UUID             `json:"source_risk_id,omitempty"`
+	MonitoringID   *uuid.UUID            `json:"monitoring_id,omitempty"`
+	ResultRiskID   *uuid.UUID            `json:"result_risk_id,omitempty"`
 	ResultRisk     *WorkingPaperRiskData `json:"result_risk,omitempty"`
-	RosterStatus   string               `json:"roster_status,omitempty"`
+	RosterStatus   string                `json:"roster_status,omitempty"`
 }
 
 type WorkingPaperRosterEntry struct {
@@ -86,12 +86,12 @@ type WorkingPaperRosterSummary struct {
 }
 
 type WorkingPaperRosterPreview struct {
-	OrganizationID  uuid.UUID                  `json:"organizationId"`
-	AssessmentCycle string                     `json:"assessmentCycle"`
-	MonitoringCycle string                     `json:"monitoringCycle"`
-	Revision        string                     `json:"revision"`
-	Entries         []WorkingPaperRosterEntry  `json:"entries"`
-	Summary         WorkingPaperRosterSummary  `json:"summary"`
+	OrganizationID  uuid.UUID                 `json:"organizationId"`
+	AssessmentCycle string                    `json:"assessmentCycle"`
+	MonitoringCycle string                    `json:"monitoringCycle"`
+	Revision        string                    `json:"revision"`
+	Entries         []WorkingPaperRosterEntry `json:"entries"`
+	Summary         WorkingPaperRosterSummary `json:"summary"`
 }
 
 type WorkingPaperRosterDecision struct {
@@ -130,8 +130,6 @@ type WorkingPaperRiskMonitoring struct {
 	EffectivenessConclusion     string     `json:"effectivenessConclusion"`
 	ConditionSummary            string     `json:"conditionSummary"`
 	EventSummary                string     `json:"eventSummary"`
-	MitigationObstacles         string     `json:"mitigationObstacles"`
-	MitigationFollowUp          string     `json:"mitigationFollowUp"`
 	FollowUpNote                string     `json:"followUpNote"`
 	StartedAt                   time.Time  `json:"startedAt"`
 	UpdatedAt                   time.Time  `json:"updatedAt"`

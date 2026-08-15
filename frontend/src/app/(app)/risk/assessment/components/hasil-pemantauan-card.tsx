@@ -118,7 +118,7 @@ export function HasilPemantauanCard({
                               "h-14 rounded-xl border-2 text-lg font-bold transition-all",
                               val === field.value
                                 ? "border-amber-600 bg-amber-50 text-amber-900"
-                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50",
+                                : "border-border bg-card text-muted-foreground hover:border-border hover:bg-muted",
                             )}
                             data-testid={
                               val === field.value
@@ -161,7 +161,7 @@ export function HasilPemantauanCard({
                               "h-14 rounded-xl border-2 text-lg font-bold transition-all",
                               val === field.value
                                 ? "border-amber-600 bg-amber-50 text-amber-900"
-                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50",
+                                : "border-border bg-card text-muted-foreground hover:border-border hover:bg-muted",
                             )}
                             data-testid={
                               val === field.value ? "new-impact" : undefined

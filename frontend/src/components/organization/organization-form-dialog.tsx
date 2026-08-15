@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Loader2, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, Search } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { listOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import {
   Select,
   SelectContent,
@@ -269,12 +270,13 @@ export function OrganizationFormDialog({
               <PopoverContent
                 align="start"
                 sideOffset={8}
-                className="w-[var(--radix-popover-trigger-width)] overflow-hidden p-0 shadow-lg"
+                className="w-[var(--radix-popover-trigger-width)] overflow-hidden p-0"
               >
                 <div className="flex items-center border-b px-3">
                   <Search className="mr-2 size-4 shrink-0 opacity-50" />
-                  <input
-                    className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                  <SearchInput
+                    type="search"
+                    className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
                     placeholder="Cari parent unit..."
                     value={parentQuery}
                     onChange={(event) => setParentQuery(event.target.value)}

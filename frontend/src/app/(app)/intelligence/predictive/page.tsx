@@ -24,12 +24,13 @@ import {
   ArrowUp,
   ArrowDown,
   BarChart3,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
+import { PageStack } from "@/components/shared/design-system";
 
 
 const levelColors: Record<string, string> = {
@@ -91,7 +92,7 @@ function PredictivePageContent() {
     setIsRunning(true);
     try {
       // 1. Fetch all risks (could limit to top 10 as AI endpoint does)
-      const risks = await api.get<any[]>("/risks?status=approved", token);
+      const risks = await api.get<any[]>("/risks?status=final", token);
       const sortedRisks = [...risks].sort((a: any, b: any) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
       
       // 2. Call AI prediction
@@ -115,11 +116,11 @@ function PredictivePageContent() {
   const stableCount = predictions.filter((p) => p.trend === "stable").length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageStack>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="page-title">
             AI Predictive Scoring
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -146,7 +147,7 @@ function PredictivePageContent() {
       </div>
 
       {/* Executive Summary */}
-      <Card className="border-border/50 bg-card/80">
+      <Card className="bg-card/80">
         <CardContent className="p-5">
           <div className="flex items-start gap-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
@@ -195,7 +196,7 @@ function PredictivePageContent() {
       </div>
 
       {/* Predictions Table */}
-       <Card className="border-border/50 bg-card/80 overflow-hidden">
+       <Card className="bg-card/80 overflow-hidden">
          <Table>
            <TableHeader>
              <TableRow className="border-border/50 hover:bg-transparent">
@@ -275,6 +276,6 @@ function PredictivePageContent() {
           </TableBody>
         </Table>
       </Card>
-    </div>
+    </PageStack>
   );
 }

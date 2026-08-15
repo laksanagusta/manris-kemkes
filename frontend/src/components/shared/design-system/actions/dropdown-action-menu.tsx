@@ -1,4 +1,4 @@
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,7 @@ export function DropdownActionMenu({
           variant="ghost"
           size="icon-xs"
           aria-label={label}
-          className="border border-zinc-200/70 bg-white text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:bg-white hover:text-foreground"
+          className="border border-border/70 bg-card text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:bg-card hover:text-foreground"
         >
           <MoreHorizontal className="size-3.5" />
         </Button>

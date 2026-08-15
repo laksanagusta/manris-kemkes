@@ -25,7 +25,44 @@ func mitigationTaskPeriodLabel(assessmentCycle string) string {
 	return singleMitigationTaskPeriodLabel
 }
 
-// SemesterStart returns the first day of a semester.
+// QuarterStart returns the first day of a calendar quarter.
+func QuarterStart(year int, quarter int) time.Time {
+	if quarter < 1 || quarter > 4 {
+		return time.Time{}
+	}
+	return time.Date(year, time.Month((quarter-1)*3+1), 1, 0, 0, 0, 0, time.UTC)
+}
+
+// QuarterEnd returns the last day of a calendar quarter.
+func QuarterEnd(year int, quarter int) time.Time {
+	start := QuarterStart(year, quarter)
+	if start.IsZero() {
+		return time.Time{}
+	}
+	return start.AddDate(0, 3, -1)
+}
+
+func CurrentQuarter(now time.Time) (int, int) {
+	return now.Year(), int((now.Month()-1)/3) + 1
+}
+
+func ParseQuarterCycle(cycle string) (int, int, error) {
+	parts := strings.Split(cycle, "-Q")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("format siklus kuartal tidak valid: %s", cycle)
+	}
+	year, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("tahun tidak valid dalam siklus: %s", cycle)
+	}
+	quarter, err := strconv.Atoi(parts[1])
+	if err != nil || quarter < 1 || quarter > 4 {
+		return 0, 0, fmt.Errorf("kuartal tidak valid dalam siklus: %s", cycle)
+	}
+	return year, quarter, nil
+}
+
+// SemesterStart remains for reading legacy H1/H2 task rows.
 func SemesterStart(year int, half int) time.Time {
 	month := 1
 	if half == 2 {
@@ -49,8 +86,12 @@ func CurrentSemester(now time.Time) (int, int) {
 	return year, half
 }
 
-// ParseSemesterCycle parses "2026-H1" into year and semester.
+// ParseSemesterCycle accepts the canonical quarterly format and legacy H1/H2
+// labels so historical task rows remain readable.
 func ParseSemesterCycle(cycle string) (int, int, error) {
+	if strings.Contains(cycle, "-Q") {
+		return ParseQuarterCycle(cycle)
+	}
 	parts := strings.Split(cycle, "-H")
 	if len(parts) != 2 {
 		return 0, 0, fmt.Errorf("format siklus semester tidak valid: %s", cycle)

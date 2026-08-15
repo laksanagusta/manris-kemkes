@@ -1,6 +1,6 @@
 "use client";
 
-import { GitBranch, ShieldAlert, Trash2 } from "lucide-react";
+import { GitBranch, ShieldAlert, Trash2 } from "@/components/ui/icons";
 
 import { ActionButton } from "@/components/shared/design-system";
 import {

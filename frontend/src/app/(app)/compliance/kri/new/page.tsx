@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save, Sparkles } from "lucide-react";
+import { Loader2, Save, Sparkles } from "@/components/ui/icons";
 
 import { api } from "@/lib/api";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -64,7 +64,7 @@ export default function NewKRIPage() {
     if (!token) return;
 
     api
-      .get<RiskOption[]>("/risks?status=approved", token)
+      .get<RiskOption[]>("/risks?status=final", token)
       .then((res) => setRisks(res || []))
       .catch(console.error);
   }, [token]);
@@ -152,7 +152,7 @@ export default function NewKRIPage() {
   }
 
   return (
-    <FormPage className="max-w-4xl">
+    <FormPage className="max-w-5xl">
       <FormHeader
         title="Tambah indikator KRI"
         description="Tambahkan indikator pemantauan untuk satu risiko, lalu tetapkan batas aman yang akan dipantau."

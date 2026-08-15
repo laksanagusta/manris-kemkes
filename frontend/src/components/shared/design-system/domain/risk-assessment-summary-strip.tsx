@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info } from "@/components/ui/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,7 @@ export interface RiskAssessmentSummaryStripProps {
 }
 
 const statusToneClassName: Record<StatusTone, string> = {
-  neutral: "border-zinc-200 bg-zinc-50 text-zinc-700",
+  neutral: "border-border bg-muted text-muted-foreground",
   success: "border-emerald-200 bg-emerald-50 text-emerald-700",
   warning: "border-amber-200 bg-amber-50 text-amber-700",
 };
@@ -78,7 +78,7 @@ export function RiskAssessmentSummaryStrip({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-xl border border-border/60 bg-card",
+        "overflow-hidden rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
         className,
       )}
     >

@@ -5,12 +5,18 @@ import { cn } from "@/lib/utils";
 
 export function CollectionTableHeader({
   className,
+  density = "default",
   ...props
-}: ComponentProps<typeof TableHeader>) {
+}: ComponentProps<typeof TableHeader> & {
+  density?: "default" | "compact";
+}) {
   return (
     <TableHeader
       className={cn(
-        "bg-white [&_tr]:border-b [&_tr]:border-border/40",
+        "bg-table-header [&_tr]:border-b [&_tr]:border-border",
+        density === "compact"
+          ? "[&_tr]:!h-10 [&_th]:!h-10 [&_th]:!py-0"
+          : undefined,
         className,
       )}
       {...props}

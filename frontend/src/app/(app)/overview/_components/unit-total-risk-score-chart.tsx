@@ -13,6 +13,7 @@ import {
 import { StandardCard } from "@/components/shared/design-system";
 import { OverviewPanelState } from "@/components/shared/design-system";
 import { buildSemesterScoreTargetTrendData } from "@/lib/dashboard-insights";
+import { shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 import type { Risk } from "@/types/risk";
 
 interface UnitTotalRiskScoreChartProps {
@@ -22,17 +23,10 @@ interface UnitTotalRiskScoreChartProps {
   error?: boolean;
 }
 
-function getLastNSemesters(currentCycle: string, n: number): string[] {
-  const [yearStr, half] = currentCycle.split("-");
-  let year = Number(yearStr);
-  let h = half === "H1" ? 1 : 2;
-  const semesters: string[] = [];
-  for (let i = 0; i < n; i++) {
-    semesters.unshift(`${year}-${h === 1 ? "H1" : "H2"}`);
-    h = h === 1 ? 2 : 1;
-    if (h === 2) year -= 1;
-  }
-  return semesters;
+function getLastNQuarters(currentCycle: string, n: number): string[] {
+  return Array.from({ length: n }, (_, index) =>
+    shiftAssessmentCycle(currentCycle, index - (n - 1)),
+  );
 }
 
 export function UnitTotalRiskScoreChart({
@@ -43,7 +37,7 @@ export function UnitTotalRiskScoreChart({
 }: UnitTotalRiskScoreChartProps) {
   const chartData = useMemo(() => {
     const trend = buildSemesterScoreTargetTrendData(risks);
-    const periods = getLastNSemesters(currentCycle, 4);
+    const periods = getLastNQuarters(currentCycle, 4);
     return periods.map((p) => {
       const found = trend.find((d) => d.period === p);
       return {
@@ -58,7 +52,7 @@ export function UnitTotalRiskScoreChart({
 
   return (
     <StandardCard
-      title="Tren Skor Risiko per Semester"
+      title="Tren Skor Risiko per Kuartal"
       contentClassName="p-4 pt-2"
     >
       {loading ? (
@@ -76,7 +70,7 @@ export function UnitTotalRiskScoreChart({
       ) : !hasData ? (
         <OverviewPanelState
           state="empty"
-          message="Belum ada data tren untuk 4 semester terakhir."
+          message="Belum ada data tren untuk 4 kuartal terakhir."
           className="min-h-80"
         />
       ) : (
@@ -129,7 +123,7 @@ export function UnitTotalRiskScoreChart({
                     value,
                     name === "actualScore" ? "Skor Aktual" : "Skor Target",
                   ]}
-                  labelFormatter={(label) => `Semester ${label}`}
+                  labelFormatter={(label) => `Kuartal ${label}`}
                   contentStyle={{
                     background: "var(--popover)",
                     border: "1px solid var(--border)",

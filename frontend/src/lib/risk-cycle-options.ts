@@ -3,27 +3,26 @@ export type AssessmentCycleOption = {
   label: string;
 };
 
-function normalizeSemesterCycle(cycle: string) {
-  const [yearRaw, halfRaw] = cycle.split("-");
+function normalizeQuarterCycle(cycle: string) {
+  const [yearRaw, quarterRaw] = cycle.split("-");
   const year = Number(yearRaw);
-  const halfMatch = halfRaw?.match(/^H([12])$/);
-  if (!Number.isInteger(year) || !halfMatch) {
+  const quarterMatch = quarterRaw?.match(/^Q([1-4])$/);
+  if (!Number.isInteger(year) || !quarterMatch) {
     throw new Error(`invalid assessment cycle: ${cycle}`);
   }
-  const half = Number(halfMatch[1]) - 1;
-  return { year, half };
+  const quarter = Number(quarterMatch[1]) - 1;
+  return { year, quarter };
 }
 
-function semesterCycleFromIndex(index: number) {
-  const year = Math.floor(index / 2);
-  const half = index % 2 === 0 ? "H1" : "H2";
-  return `${year}-${half}`;
+function quarterCycleFromIndex(index: number) {
+  const year = Math.floor(index / 4);
+  const quarter = (index % 4) + 1;
+  return `${year}-Q${quarter}`;
 }
 
 export function currentAssessmentCycle(referenceDate = new Date()) {
-  const month = referenceDate.getMonth();
-  const half = month < 6 ? "H1" : "H2";
-  return `${referenceDate.getFullYear()}-${half}`;
+  const quarter = Math.floor(referenceDate.getMonth() / 3) + 1;
+  return `${referenceDate.getFullYear()}-Q${quarter}`;
 }
 
 export function currentMonitoringCycle(referenceDate = new Date()) {
@@ -31,9 +30,9 @@ export function currentMonitoringCycle(referenceDate = new Date()) {
 }
 
 export function shiftAssessmentCycle(cycle: string, delta: number) {
-  const { year, half } = normalizeSemesterCycle(cycle);
-  const index = year * 2 + half + delta;
-  return semesterCycleFromIndex(index);
+  const { year, quarter } = normalizeQuarterCycle(cycle);
+  const index = year * 4 + quarter + delta;
+  return quarterCycleFromIndex(index);
 }
 
 export function shiftMonitoringCycle(cycle: string, delta: number) {

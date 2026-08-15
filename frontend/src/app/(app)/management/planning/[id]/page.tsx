@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Building2, Layers3, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Building2, Layers3, ShieldCheck } from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Separator } from "@/components/ui/separator";
+import { PageStack } from "@/components/shared/design-system";
 
 function infoItem(label: string, value?: string | null) {
   return (
@@ -89,7 +90,7 @@ export default function PlanningDetailPage() {
 
   if (!token) {
     return (
-      <Card className="border-border/50">
+      <Card>
         <CardContent className="py-10 text-sm text-muted-foreground">
           Silakan masuk untuk membuka detail struktur kinerja.
         </CardContent>
@@ -99,7 +100,7 @@ export default function PlanningDetailPage() {
 
   if (loading) {
     return (
-      <Card className="border-border/50">
+      <Card>
         <CardContent className="py-10 text-sm text-muted-foreground">
           Memuat detail struktur...
         </CardContent>
@@ -109,7 +110,7 @@ export default function PlanningDetailPage() {
 
   if (!item) {
     return (
-      <Card className="border-border/50">
+      <Card>
         <CardContent className="space-y-4 py-10">
           <p className="text-sm text-muted-foreground">
             Struktur dengan ID tersebut belum ditemukan di cache kompatibilitas.
@@ -126,14 +127,14 @@ export default function PlanningDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageStack>
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="space-y-1.5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
             Risk Governance
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-2xl font-semibold tracking-tight">
+            <h2 className="page-title">
               Detail Struktur Kinerja
             </h2>
             <Badge
@@ -177,7 +178,7 @@ export default function PlanningDetailPage() {
         />
       </div>
 
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+      <Card className="bg-card/80 backdrop-blur-sm">
         <CardHeader className="border-b border-border/40 pb-4">
           <CardTitle className="text-[15px] font-semibold">
             Rantai Hierarki
@@ -201,6 +202,6 @@ export default function PlanningDetailPage() {
           {infoItem("Periode", item.period)}
         </CardContent>
       </Card>
-    </div>
+    </PageStack>
   );
 }

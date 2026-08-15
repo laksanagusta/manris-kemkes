@@ -43,7 +43,7 @@ export function MitigationStatusTable({ monitoringId }: MitigationStatusTablePro
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-border/50 bg-card/80 shadow-sm px-4 py-3">
+      <div className="rounded-xl bg-card/80 px-4 py-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
         <p className="text-sm text-muted-foreground">Memuat laporan mitigasi...</p>
       </div>
     );
@@ -72,21 +72,21 @@ export function MitigationStatusTable({ monitoringId }: MitigationStatusTablePro
         </Badge>
       </div>
       <Progress value={progressPct} className="h-1.5" />
-      <div className="rounded-xl border border-border/50 bg-card/80 shadow-sm">
+      <div className="rounded-xl bg-card/80 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
         <div className="w-full overflow-x-auto">
           <Table>
             <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
               <TableRow className="border-border/50 transition-colors hover:bg-transparent">
-                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Rencana Mitigasi
                 </TableHead>
-                <TableHead className="w-56 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-56 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   PIC
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Status
                 </TableHead>
-                <TableHead className="w-40 whitespace-nowrap px-2.5 text-left align-middle text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <TableHead className="w-40 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Dilaporkan
                 </TableHead>
               </TableRow>

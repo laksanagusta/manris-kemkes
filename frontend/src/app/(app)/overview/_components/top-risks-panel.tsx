@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "@/components/ui/icons";
 
 import { StandardCard } from "@/components/shared/design-system";
 import { OverviewPanelState } from "@/components/shared/design-system";

@@ -303,11 +303,8 @@ func isPendingLikeTask(status string) bool {
 }
 
 func currentGlobalCycle(now time.Time) string {
-	half := "H1"
-	if now.Month() > time.June {
-		half = "H2"
-	}
-	return fmt.Sprintf("%d-%s", now.Year(), half)
+	quarter := (int(now.Month())-1)/3 + 1
+	return fmt.Sprintf("%d-Q%d", now.Year(), quarter)
 }
 
 func previousGlobalCycle(cycle string) string {
@@ -319,10 +316,22 @@ func previousGlobalCycle(cycle string) string {
 	if err != nil {
 		return cycle
 	}
-	if strings.EqualFold(parts[1], "H1") {
-		return fmt.Sprintf("%d-H2", year.Year()-1)
+	if strings.EqualFold(parts[1], "Q1") {
+		return fmt.Sprintf("%d-Q4", year.Year()-1)
 	}
-	return fmt.Sprintf("%d-H1", year.Year())
+	if strings.HasPrefix(strings.ToUpper(parts[1]), "Q") {
+		var quarter int
+		if _, err := fmt.Sscanf(parts[1][1:], "%d", &quarter); err == nil && quarter > 1 && quarter <= 4 {
+			return fmt.Sprintf("%d-Q%d", year.Year(), quarter-1)
+		}
+	}
+	if strings.EqualFold(parts[1], "H1") {
+		return fmt.Sprintf("%d-Q1", year.Year())
+	}
+	if strings.EqualFold(parts[1], "H2") {
+		return fmt.Sprintf("%d-Q3", year.Year())
+	}
+	return fmt.Sprintf("%d-Q1", year.Year())
 }
 
 func fallbackText(value string, fallback string) string {

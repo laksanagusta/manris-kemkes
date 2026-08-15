@@ -323,8 +323,8 @@ func TestUpdateRiskUseCase_ExecuteRejectsRiskLinkedToSigningWorkingPaper(t *test
 	if err == nil {
 		t.Fatal("expected error when risk is linked to signing working paper, got nil")
 	}
-	if !errors.Is(err, domainerrors.ErrInvalidStatus) {
-		t.Fatalf("expected ErrInvalidStatus, got %v", err)
+	if !errors.Is(err, domainerrors.ErrWorkingPaperLocked) {
+		t.Fatalf("expected ErrWorkingPaperLocked, got %v", err)
 	}
 }
 

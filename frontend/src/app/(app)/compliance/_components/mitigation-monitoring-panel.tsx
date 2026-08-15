@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +30,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   Clock,
@@ -39,7 +38,7 @@ import {
   Loader2,
   Send,
   ExternalLink,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -123,6 +122,8 @@ export function MitigationMonitoringPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [notes, setNotes] = useState("");
+  const evidenceInputRef = useRef<HTMLInputElement | null>(null);
+  const notesInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [search, setSearch] = useState(queryState.search);
 
@@ -279,6 +280,13 @@ export function MitigationMonitoringPanel() {
     if (!selectedTask || !token) return;
     if (hasFormErrors) {
       setShowValidationErrors(true);
+      window.requestAnimationFrame(() => {
+        if (formErrors.evidenceUrl) {
+          evidenceInputRef.current?.focus();
+        } else if (formErrors.notes) {
+          notesInputRef.current?.focus();
+        }
+      });
       toast.error("Lengkapi seluruh field wajib sebelum mengirim laporan.");
       return;
     }
@@ -574,12 +582,12 @@ export function MitigationMonitoringPanel() {
       )}
 
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-2xl rounded-2xl p-6 shadow-2xl">
-          <DialogHeader className="items-start gap-0 px-4 py-6 text-left">
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
             <DialogTitle className="text-base">
               Detail Laporan Penanganan
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDescription>
               {detailTask?.mitigationAction || "-"} -{" "}
               {detailTask?.periodLabel || "-"}
             </DialogDescription>
@@ -588,7 +596,7 @@ export function MitigationMonitoringPanel() {
           {detailTask && (
             <div className="space-y-4 py-2">
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl ring-1 ring-inset ring-border bg-card p-3 shadow-none">
+                <div className="rounded-xl bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Status
                   </p>
@@ -606,7 +614,7 @@ export function MitigationMonitoringPanel() {
                     {getMitigationStatusLabel(detailTask.status)}
                   </Badge>
                 </div>
-                <div className="rounded-xl ring-1 ring-inset ring-border bg-card p-3 shadow-none">
+                <div className="rounded-xl bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Periode
                   </p>
@@ -614,7 +622,7 @@ export function MitigationMonitoringPanel() {
                     {detailTask.periodLabel || "-"}
                   </p>
                 </div>
-                <div className="rounded-xl ring-1 ring-inset ring-border bg-card p-3 shadow-none">
+                <div className="rounded-xl bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Tenggat
                   </p>
@@ -632,7 +640,7 @@ export function MitigationMonitoringPanel() {
                 </div>
               </div>
 
-              <div className="rounded-xl ring-1 ring-inset ring-border bg-card p-4 space-y-3 shadow-none">
+              <div className="rounded-xl bg-card p-4 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -645,7 +653,7 @@ export function MitigationMonitoringPanel() {
                     </p>
                   </div>
                 </div>
-                <div className="rounded-xl ring-1 ring-inset ring-border bg-card p-3 shadow-none">
+                <div className="rounded-xl bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Evidence
                   </p>
@@ -663,7 +671,7 @@ export function MitigationMonitoringPanel() {
                     <p className="mt-1 text-sm font-medium">-</p>
                   )}
                 </div>
-                <div className="rounded-xl ring-1 ring-inset ring-border bg-card p-3 shadow-none">
+                <div className="rounded-xl bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Catatan
                   </p>
@@ -718,11 +726,6 @@ export function MitigationMonitoringPanel() {
         open={showDialog}
         onOpenChange={setShowDialog}
         title="Lapor Progress Penanganan"
-        description={
-          selectedTask
-            ? `${selectedTask.mitigationAction} - ${selectedTask.periodLabel}`
-            : undefined
-        }
         evidenceUrl={evidenceUrl}
         onEvidenceUrlChange={setEvidenceUrl}
         notes={notes}
@@ -730,12 +733,12 @@ export function MitigationMonitoringPanel() {
         showValidationErrors={showValidationErrors}
         evidenceError={formErrors.evidenceUrl}
         notesError={formErrors.notes}
+        evidenceInputRef={evidenceInputRef}
+        notesInputRef={notesInputRef}
         footerActions={
           <AccentButton
-            size="sm"
             onClick={handleSubmitProgress}
-            disabled={submitting || hasFormErrors}
-            className="gap-2 text-xs"
+            disabled={submitting}
             icon={
               submitting ? (
                 <Loader2 className="size-3 animate-spin" />

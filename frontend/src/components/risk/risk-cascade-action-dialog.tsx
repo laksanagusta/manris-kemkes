@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, GitBranch, CheckCircle2 } from "lucide-react";
+import { Loader2, Search, GitBranch, CheckCircle2 } from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { listOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { SearchInput } from "@/components/ui/search-input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -164,8 +165,9 @@ function CascadeRiskSelect({
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <div className="flex items-center border-b px-3">
           <Search className="mr-2 size-4 shrink-0 opacity-50" />
-          <input
-            className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+          <SearchInput
+            type="search"
+            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
             placeholder="Cari kode atau judul risiko..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -282,8 +284,9 @@ function CascadeOrgSelect({
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <div className="flex items-center border-b px-3">
           <Search className="mr-2 size-4 shrink-0 opacity-50" />
-          <input
-            className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+          <SearchInput
+            type="search"
+            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
             placeholder="Cari organisasi..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}

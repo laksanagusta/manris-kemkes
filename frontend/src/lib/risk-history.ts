@@ -47,7 +47,7 @@ function resolveTimelineScoreSemantics(item: RiskScoreLike) {
    const fallbackMetrics = calculateRiskMetrics(item.probability ?? 1, item.impact ?? 1);
 
    return resolveRiskScoreSemantics({
-     status: item.status ?? "assessment_draft",
+     status: item.status ?? "draft",
      probability: item.probability ?? 1,
      impact: item.impact ?? 1,
      weight: fallbackMetrics.weight,
@@ -194,7 +194,7 @@ export function getRiskVersionDetailHref(
 
 export function buildApprovedRiskHistoryItem(risk: ApprovedRiskHistoryLike) {
    const currentSemantics = resolveRiskScoreSemantics({
-     status: risk.status ?? "assessment_draft",
+     status: risk.status ?? "draft",
      probability: risk.probability ?? 1,
      impact: risk.impact ?? 1,
      weight: risk.weight ?? calculateRiskMetrics(risk.probability ?? 1, risk.impact ?? 1).weight,

@@ -2,7 +2,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/ui/icons";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -28,7 +28,7 @@ import {
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
-  CollectionToolbar,
+  CollectionPageHeader,
   DashboardKpiCard,
   ExpandableSearchField,
 } from "@/components/shared/design-system";
@@ -246,7 +246,9 @@ export default function RiskCascadingPage() {
 
   return (
     <PageStack>
-      <CollectionToolbar
+      <CollectionPageHeader
+        title="Eskalasi Risiko"
+        description="Kelola eskalasi risiko lintas organisasi dan tindak lanjutnya."
         actions={
           <AccentButton
             icon={<Plus className="size-4" />}

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -49,6 +50,7 @@ import {
   normalizeMeetingMinuteDate,
 } from "@/lib/meeting-minutes-utils";
 import { exportMeetingMinuteDocument } from "@/lib/meeting-minute-export";
+import { PageStack } from "@/components/shared/design-system";
 import {
   AlertTriangle,
   CalendarDays,
@@ -67,7 +69,7 @@ import {
   Sparkles,
   Users,
   X,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { createMeetingMinute } from "@/lib/meeting-minutes";
 
 type WorkspaceMode = "minutes" | "risk";
@@ -270,16 +272,16 @@ const suggestionTypeConfig: Record<
 const lowConfidenceThreshold = 70;
 
 function isLockedRiskStatus(status?: string) {
-  return status === "assessment_in_review" || status === "approved";
+  return status === "final";
 }
 
 function getRiskStatusLabel(status?: string) {
   switch (status) {
-    case "assessment_in_review":
+    case "final":
       return "Sedang Ditinjau";
     case "approved":
       return "Approved";
-    case "assessment_draft":
+    case "draft":
       return "Draft";
     default:
       return "Belum diketahui";
@@ -741,12 +743,12 @@ function MeetingIntelligenceWorkspaceContent({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageStack>
       <section className="space-y-2">
         <Badge variant="outline" className="text-[10px] uppercase tracking-[0.18em]">
           Briefing
         </Badge>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+        <h1 className="page-title">
           Tinjau rapat, lalu susun briefing atau tinjauan risiko.
         </h1>
         <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -755,7 +757,7 @@ function MeetingIntelligenceWorkspaceContent({
       </section>
 
       <section className="space-y-6">
-          <Card className="overflow-hidden border-border/60 bg-card/90">
+          <Card className="overflow-hidden bg-card/90">
             <CardHeader className="border-b border-border/50 bg-muted/[0.18] pb-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="space-y-1.5">
@@ -849,7 +851,7 @@ function MeetingIntelligenceWorkspaceContent({
 
           {mode === "minutes" ? (
             generatedMinutes ? (
-              <Card className="border-border/60 bg-card/90">
+              <Card className="bg-card/90">
                 <div className="border-b border-border/50 p-6">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-2">
@@ -1139,7 +1141,7 @@ function MeetingIntelligenceWorkspaceContent({
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-dashed border-border/70 bg-muted/[0.12]">
+              <Card className="bg-muted/[0.12]">
                 <CardContent className="flex flex-col items-start gap-3 p-6">
                   <div>
                     <p className="text-base font-medium text-foreground">Briefing akan muncul di sini setelah Anda menjalankan mode ini.</p>
@@ -1180,7 +1182,7 @@ function MeetingIntelligenceWorkspaceContent({
                   return (
                     <Card
                       key={suggestion.id}
-                      className="border-border/60 bg-card/90 shadow-sm"
+                      className="bg-card/90"
                     >
                       <CardContent className="space-y-4 p-5">
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -1357,10 +1359,10 @@ function MeetingIntelligenceWorkspaceContent({
                   }
                 }}
               >
-                <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:max-w-5xl">
+                <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-5xl">
                   {reviewSuggestion ? (
                     <>
-                      <DialogHeader className="shrink-0 border-b border-border/60 bg-background px-6 py-4">
+                      <DialogHeader className="shrink-0">
                         <div className="space-y-3">
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                             <span className="font-medium text-foreground">Tinjau perubahan</span>
@@ -1422,7 +1424,7 @@ function MeetingIntelligenceWorkspaceContent({
                         </div>
                       </DialogHeader>
 
-                      <div className="min-h-0 flex-1 overflow-y-auto bg-background px-6 py-5">
+                      <div className="min-h-0 flex-1 overflow-y-auto">
                         <div className="space-y-5">
                           {targetRiskDetails ? (
                             <div className="flex items-start gap-2 border border-border/60 bg-muted/[0.08] px-4 py-3 text-sm leading-6 text-muted-foreground">
@@ -1480,11 +1482,9 @@ function MeetingIntelligenceWorkspaceContent({
                                   >
                                     <div className="flex items-start gap-3 p-4">
                                       <div className="pt-0.5">
-                                        <input
-                                          type="checkbox"
+                                        <Checkbox
                                           checked={checked}
-                                          onChange={() => handleToggleChange(change.id)}
-                                          className="size-4 rounded border-border"
+                                          onCheckedChange={() => handleToggleChange(change.id)}
                                         />
                                       </div>
 
@@ -1543,7 +1543,7 @@ function MeetingIntelligenceWorkspaceContent({
                         </div>
                       </div>
 
-                      <div className="shrink-0 flex flex-col gap-3 border-t border-border/60 bg-muted/[0.18] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                      <DialogFooter className="shrink-0 sm:flex-row sm:items-center sm:justify-between">
                         <div className="space-y-1">
                           <p className="text-sm font-medium text-foreground">
                             {selectedChangeIds.length} perubahan siap diterapkan
@@ -1584,14 +1584,14 @@ function MeetingIntelligenceWorkspaceContent({
                                 : "Terapkan pembaruan ke draf"}
                           </Button>
                         </div>
-                      </div>
+                      </DialogFooter>
                     </>
                   ) : null}
                 </DialogContent>
               </Dialog>
             </>
           ) : (
-            <Card className="border-dashed border-border/70 bg-muted/[0.12]">
+            <Card className="bg-muted/[0.12]">
               <CardContent className="flex flex-col items-start gap-3 p-6">
                 <div>
                   <p className="text-base font-medium text-foreground">Saran akan muncul di sini setelah analisis dijalankan.</p>
@@ -1603,15 +1603,15 @@ function MeetingIntelligenceWorkspaceContent({
 
       {/* Save Dialog - moved to root level to avoid nested Dialog interaction issues */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:max-w-2xl">
-          <DialogHeader className="shrink-0 border-b border-border/60 bg-background px-6 py-4">
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-2xl">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="text-lg">Simpan Briefing</DialogTitle>
-            <DialogDescription className="mt-1 text-sm text-muted-foreground">
+            <DialogDescription className="mt-1">
               Simpan briefing ini dan hubungkan dengan risiko terkait.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="min-h-0 flex-1 overflow-y-auto bg-background px-6 py-5">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="space-y-5">
               <div className="space-y-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -1765,7 +1765,7 @@ function MeetingIntelligenceWorkspaceContent({
             </div>
           </div>
 
-          <DialogFooter className="!-mx-0 !-mb-0 shrink-0 border-t border-border/60 bg-muted/[0.18] px-6 py-4">
+          <DialogFooter className="shrink-0">
             <Button
               type="button"
               variant="outline"
@@ -1793,6 +1793,6 @@ function MeetingIntelligenceWorkspaceContent({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageStack>
   );
 }

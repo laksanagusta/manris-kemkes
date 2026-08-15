@@ -39,7 +39,7 @@ export function UnitResponseTimeChart({ loading, data = [] }: UnitResponseTimeCh
 
   if (loading) {
     return (
-      <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none" data-testid="unit-response-time">
+      <Card className="rounded-lg bg-card" data-testid="unit-response-time">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Waktu Respons Unit</CardTitle>
         </CardHeader>
@@ -53,7 +53,7 @@ export function UnitResponseTimeChart({ loading, data = [] }: UnitResponseTimeCh
   }
 
   return (
-    <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none" data-testid="unit-response-time">
+    <Card className="rounded-lg bg-card" data-testid="unit-response-time">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>

@@ -25,7 +25,7 @@ func NewReportHandler(generateUC *reportuc.GenerateReportUseCase, pdfRenderer se
 	}
 }
 
-// GenerateRiskPDF handles GET /api/v1/reports/risk-pdf?cycle=YYYY-H1
+// GenerateRiskPDF handles GET /api/v1/reports/risk-pdf?cycle=YYYY-Q1
 func (h *ReportHandler) GenerateRiskPDF(c *fiber.Ctx) error {
 	cycle := c.Query("cycle")
 	if cycle == "" {

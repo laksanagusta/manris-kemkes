@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, FileText, ClipboardList } from "lucide-react";
+import { ArrowRight, FileText, ClipboardList } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageStack } from "@/components/shared/design-system";
 
 export default function FormalReportsPage() {
   return (
-    <div className="space-y-4">
+    <PageStack>
       <section className="max-w-3xl space-y-2">
-        <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
+        <h2 className="page-title">
           Laporan Monitoring & Evaluasi dipindahkan ke Evaluasi
         </h2>
         <p className="text-sm text-muted-foreground text-pretty">
@@ -21,7 +22,7 @@ export default function FormalReportsPage() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+        <Card className="rounded-lg bg-card">
           <CardHeader className="border-b border-border/40 pb-4">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <ClipboardList className="size-4" />
@@ -42,7 +43,7 @@ export default function FormalReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-lg ring-1 ring-inset ring-border bg-card shadow-none">
+        <Card className="rounded-lg bg-card">
           <CardHeader className="border-b border-border/40 pb-4">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <FileText className="size-4" />
@@ -63,6 +64,6 @@ export default function FormalReportsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageStack>
   );
 }

@@ -1,19 +1,25 @@
 import type { ComponentProps } from "react";
-import { Search } from "lucide-react";
+import { Search } from "@/components/ui/icons";
 
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/utils";
 
 export function CollectionSearchField({
   className,
+  containerClassName,
   ...props
-}: ComponentProps<typeof SearchInput>) {
+}: ComponentProps<typeof SearchInput> & { containerClassName?: string }) {
   return (
-    <div className="relative min-w-0 flex-1 sm:w-64 md:flex-none">
-      <Search className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+    <div
+      className={cn(
+        "relative min-w-0 flex-1 sm:w-64 md:flex-none",
+        containerClassName,
+      )}
+    >
+      <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
       <SearchInput
         className={cn(
-          "bg-card pl-10 text-sm ring-1 ring-inset ring-border/40",
+          "border border-border bg-card pl-10 text-sm",
           className,
         )}
         {...props}

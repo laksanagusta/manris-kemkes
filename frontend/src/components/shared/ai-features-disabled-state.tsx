@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BotOff } from "lucide-react";
+import { BotOff } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -20,7 +20,7 @@ export function AIFeaturesDisabledState({
 }: AIFeaturesDisabledStateProps) {
   return (
     <div className="flex min-h-[420px] items-center justify-center">
-      <Card className="w-full max-w-2xl border-border/60 shadow-sm">
+      <Card className="w-full max-w-2xl">
         <CardHeader className="space-y-4">
           <div className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
             <BotOff className="size-5" />

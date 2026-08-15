@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Search, Users } from "lucide-react";
+import { Check, ChevronsUpDown, Search, Users } from "@/components/ui/icons";
 
 import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SearchInput } from "@/components/ui/search-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -122,17 +123,18 @@ export function OrganizationGroupPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[min(var(--radix-popover-trigger-width),620px)] gap-0 overflow-hidden rounded-md p-0"
+        className="w-[min(var(--radix-popover-trigger-width),620px)] gap-0 overflow-hidden rounded-xl p-0"
         align="start"
       >
         <div className="flex items-center border-b px-3">
           <Search className="mr-2 size-3.5 shrink-0 text-muted-foreground" />
-          <input
+          <SearchInput
             ref={inputRef}
+            type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={searchPlaceholder}
-            className="h-9 w-full bg-transparent py-2 text-xs outline-none placeholder:text-muted-foreground"
+            className="h-9 rounded-none border-0 bg-transparent px-0 py-2 text-xs shadow-none"
           />
         </div>
         <ScrollArea className="h-56">

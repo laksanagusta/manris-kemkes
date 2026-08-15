@@ -52,8 +52,8 @@ func (uc *CreateRiskReassessmentUseCase) Execute(ctx context.Context, input Crea
 	if input.RiskID == uuid.Nil || input.Cycle == "" {
 		return nil, errors.ErrInvalidInput
 	}
-	if !IsValidSemesterFormat(input.Cycle) {
-		return nil, errors.ErrSemesterFormat
+	if !IsValidQuarterFormat(input.Cycle) {
+		return nil, errors.ErrCycleFormat
 	}
 
 	sourceRisk, err := uc.riskRepo.GetByID(ctx, input.RiskID, input.OrgIDs)

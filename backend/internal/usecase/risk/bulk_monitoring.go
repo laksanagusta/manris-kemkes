@@ -153,7 +153,7 @@ type BulkMonitoringSpreadsheetInput struct {
 	Content        []byte
 	UploaderID     uuid.UUID
 	OrganizationID uuid.UUID
-	Cycle          string // "2026-H1" format
+	Cycle          string // "2026-Q1" format
 }
 
 // BulkMonitoringPreviewItem mirrors BulkRiskPreviewItem structure but with monitoring fields
@@ -212,7 +212,7 @@ type BulkMonitoringBatchOutput struct {
 // Template generates a monitoring spreadsheet template pre-filled with approved risks.
 func (uc *BulkMonitoringSpreadsheetUseCase) Template(ctx context.Context, orgID uuid.UUID, cycle string) ([]byte, string, error) {
 	if !IsValidCycleFormat(cycle) {
-		return nil, "", apperrors.Wrap(apperrors.ErrInvalidInput, "cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return nil, "", apperrors.Wrap(apperrors.ErrInvalidInput, "cycle must be in YYYY-QN format (e.g. 2026-Q1)")
 	}
 
 	org, err := uc.orgRepo.GetByID(ctx, orgID)
@@ -591,7 +591,7 @@ func monitoringEfektivitasFormula(row int) string {
 // Preview parses a monitoring spreadsheet and returns preview items with computed values and validation.
 func (uc *BulkMonitoringSpreadsheetUseCase) Preview(ctx context.Context, input BulkMonitoringSpreadsheetInput) (*BulkMonitoringSpreadsheetOutput, error) {
 	if !IsValidCycleFormat(input.Cycle) {
-		return nil, apperrors.Wrap(apperrors.ErrInvalidInput, "cycle must be in YYYY-HN format (e.g. 2026-H1)")
+		return nil, apperrors.Wrap(apperrors.ErrInvalidInput, "cycle must be in YYYY-QN format (e.g. 2026-Q1)")
 	}
 
 	risks, err := uc.riskRepo.List(ctx, []uuid.UUID{input.OrganizationID}, entity.RiskStatusApproved, "")

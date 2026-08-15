@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -46,6 +46,7 @@ import {
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
+  CollectionPageHeader,
 } from "@/components/shared/design-system";
 import { PageStack } from "@/components/shared/design-system";
 
@@ -78,12 +79,12 @@ const hierarchyLevelLabel: Record<PlanningHierarchyLevel, string> = {
 };
 
 const hierarchyBadgeClass: Record<PlanningHierarchyLevel, string> = {
-  agreement: "border-zinc-200 bg-zinc-50 text-zinc-700",
-  tujuan: "border-zinc-200 bg-zinc-50 text-zinc-700",
-  sasaran: "border-zinc-200 bg-zinc-50 text-zinc-700",
-  iku: "border-zinc-200 bg-zinc-50 text-zinc-700",
-  program: "border-zinc-200 bg-zinc-50 text-zinc-700",
-  kegiatan: "border-zinc-200 bg-zinc-50 text-zinc-700",
+  agreement: "border-border bg-muted text-muted-foreground",
+  tujuan: "border-border bg-muted text-muted-foreground",
+  sasaran: "border-border bg-muted text-muted-foreground",
+  iku: "border-border bg-muted text-muted-foreground",
+  program: "border-border bg-muted text-muted-foreground",
+  kegiatan: "border-border bg-muted text-muted-foreground",
 };
 
 function pushUnique(values: string[], value?: string) {
@@ -274,7 +275,7 @@ function PlanningHierarchyLoadingState() {
           </CollectionTableHeader>
           <TableBody>
             {Array.from({ length: 4 }).map((_, index) => (
-              <TableRow key={index} className="border-zinc-200/80">
+              <TableRow key={index} className="border-border/80">
                 <TableCell className="align-top pl-4 pr-2 py-2 md:pl-6">
                   <div className="flex min-w-0 items-center gap-3 py-0.5">
                     <Skeleton className="h-5 w-5 rounded-md" />
@@ -367,7 +368,7 @@ function PlanningHierarchyRows({
           <Fragment key={node.key}>
             <TableRow
               className={cn(
-                "h-12 border-zinc-200/80 transition-colors hover:bg-zinc-50/70",
+                "h-12 border-border/80 transition-colors hover:bg-muted/70",
                 depth > 0 && "bg-zinc-50/30",
               )}
             >
@@ -383,7 +384,7 @@ function PlanningHierarchyRows({
                         if (isExpandable) onToggleNode(node.key);
                       }}
                       className={cn(
-                        "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 shadow-sm transition-colors",
+                        "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground shadow-sm transition-colors",
                         isExpandable
                           ? "hover:bg-zinc-100"
                           : "cursor-default bg-zinc-50 text-zinc-300",
@@ -445,7 +446,7 @@ function PlanningHierarchyRows({
               ? node.items.map((item) => (
                   <TableRow
                     key={item.id}
-                    className="h-12 border-zinc-200/80 bg-zinc-50/20 hover:bg-zinc-50/70"
+                    className="h-12 border-border/80 bg-muted/20 hover:bg-muted/70"
                   >
                     <TableCell className="align-middle">
                       <div className="flex h-full min-w-0 items-center">
@@ -453,7 +454,7 @@ function PlanningHierarchyRows({
                           className="flex min-w-0 items-center gap-2.5"
                           style={{ paddingLeft: `${(depth + 2) * 18}px` }}
                         >
-                          <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-500 shadow-sm">
+                          <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground shadow-sm">
                             <span className="size-1 rounded-full bg-zinc-400" />
                           </span>
                           <div className="min-w-0 space-y-0.5">
@@ -468,7 +469,7 @@ function PlanningHierarchyRows({
                     </TableCell>
                     <TableCell className="align-middle text-[12px] leading-5 text-zinc-600">
                       <div className="flex h-full items-center">
-                        <Badge className="-zinc-200 bg-zinc-50 text-zinc-700">
+                        <Badge className="bg-muted text-muted-foreground">
                           RO
                         </Badge>
                       </div>
@@ -596,7 +597,7 @@ export function PlanningManagementPage() {
 
   if (!activeToken) {
     return (
-      <Card className="border-border/50">
+      <Card>
         <CardContent className="py-10 text-sm text-muted-foreground">
           Silakan masuk untuk mengelola Struktur Kinerja.
         </CardContent>
@@ -606,6 +607,11 @@ export function PlanningManagementPage() {
 
   return (
     <PageStack>
+      <CollectionPageHeader
+        title="Struktur Kinerja"
+        description="Kelola struktur kinerja organisasi sebagai dasar penautan risiko ke RO."
+      />
+
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
         <CollectionSearchField
           id="planning-search"

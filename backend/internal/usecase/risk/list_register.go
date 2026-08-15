@@ -40,6 +40,7 @@ type ListRiskRegisterResult struct {
 }
 
 func (uc *ListRiskRegisterUseCase) Execute(ctx context.Context, input ListRiskRegisterInput) (*ListRiskRegisterResult, error) {
+	input.Status = canonicalRiskStatus(input.Status)
 	if input.Category != "" && !entity.IsValidRiskCategory(input.Category) {
 		return nil, domainerrors.ErrInvalidRiskCategory
 	}
@@ -53,7 +54,7 @@ func (uc *ListRiskRegisterUseCase) Execute(ctx context.Context, input ListRiskRe
 		input.Limit = 100
 	}
 
-		risks, total, err := uc.riskRepo.ListRegister(ctx, repository.RiskRegisterFilter{
+	risks, total, err := uc.riskRepo.ListRegister(ctx, repository.RiskRegisterFilter{
 		View:            input.View,
 		OrgIDs:          input.OrgIDs,
 		Status:          input.Status,

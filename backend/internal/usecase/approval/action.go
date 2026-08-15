@@ -68,6 +68,10 @@ func (uc *ApprovalActionUseCase) Execute(ctx context.Context, input ApprovalActi
 	if err != nil {
 		return nil, domainerrors.ErrApprovalNotFound
 	}
+	if approvalReq.RequestType == "risk" || approvalReq.RequestType == "assessment" {
+		return nil, domainerrors.ErrRiskApprovalDisabled
+	}
+	return nil, domainerrors.ErrInvalidRequestType
 
 	actorID, err := uuid.Parse(input.ActorID)
 	if err != nil {
@@ -174,7 +178,7 @@ func validateCurrentApprover(approvalReq *entity.ApprovalRequest, actorID uuid.U
 	return nil
 }
 
-// updateEntityStatus updates the status of the entity (risk, assessment, or incident).
+// updateEntityStatus updates the status of a risk or assessment entity.
 func (uc *ApprovalActionUseCase) updateEntityStatus(ctx context.Context, approvalReq *entity.ApprovalRequest, status string, input ApprovalActionInput) error {
 	if approvalReq.RequestType == "risk" || approvalReq.RequestType == "assessment" {
 		risk, err := uc.riskRepo.GetByID(ctx, approvalReq.EntityID, input.OrgIDs)
@@ -187,12 +191,6 @@ func (uc *ApprovalActionUseCase) updateEntityStatus(ctx context.Context, approva
 		}
 		risk.Status = status
 		return uc.riskRepo.Update(ctx, risk)
-	} else {
-		incident, err := uc.incidentRepo.GetByID(ctx, approvalReq.EntityID.String(), input.OrgIDs)
-		if err != nil {
-			return err
-		}
-		incident.Status = status
-		return uc.incidentRepo.Update(ctx, incident)
 	}
+	return domainerrors.ErrInvalidRequestType
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { Filter as FilterIcon } from "lucide-react";
+import { Filter as FilterIcon } from "@/components/ui/icons";
 
 import { ReportScopePicker } from "@/components/report/report-scope-picker";
 import {
@@ -179,8 +179,7 @@ export function ReportsFilterSheet({
             <Button type="button" variant="outline" size="md" onClick={onCancel} className="shadow-none">
               Batal
             </Button>
-            <Button type="button" size="md" onClick={onApply}
-              style={{ '--primary': '#00b9ad', '--primary-foreground': '#ffffff' } as React.CSSProperties}>
+            <Button type="button" size="md" onClick={onApply}>
               Terapkan Filter
             </Button>
           </div>

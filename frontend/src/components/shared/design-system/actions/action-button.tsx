@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,7 @@ export function ActionButton({
       <Button
         variant={variant}
         size={size}
-        className={cn("gap-2 shadow-none", className)}
+        className={cn("gap-2 rounded-[8px] shadow-none", className)}
         {...props}
         asChild
       >
@@ -37,7 +37,7 @@ export function ActionButton({
     <Button
       variant={variant}
       size={size}
-      className={cn("gap-2 shadow-none", className)}
+      className={cn("gap-2 rounded-[8px] shadow-none", className)}
       {...props}
     >
       {loading ? <Loader2 className="size-3.5 animate-spin" /> : icon}

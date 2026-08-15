@@ -57,7 +57,7 @@ func TestExportRiskPDFUseCase_Execute_Success(t *testing.T) {
 			Category:             entity.RiskCategoryOperasional,
 			RiskSource:           "internal",
 			Controllability:      "C",
-			AssessmentCycle:      "2025-H2",
+			AssessmentCycle:      "2025-Q4",
 			Description:          "Distribusi vaksin dapat tertunda ketika rantai pasok terganggu.",
 			Cause:                []string{"Cuaca ekstrem"},
 			ImpactDesc:           []string{"Pelayanan kesehatan tertunda"},
