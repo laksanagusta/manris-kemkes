@@ -30,7 +30,11 @@ export function DialogExample() {
             <CollectionDialogCancel onClick={() => setDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <Button size="sm" onClick={() => setDialogOpen(false)}>
+            <Button
+              variant="primary"
+              size="primary"
+              onClick={() => setDialogOpen(false)}
+            >
               Hapus Draft
             </Button>
           </DialogFooter>
@@ -58,10 +62,12 @@ export function DialogExample() {
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel variant="ghost" size="sm" className="shadow-none">
+            <AlertDialogCancel variant="outline" size="md">
               Batal
             </AlertDialogCancel>
-            <AlertDialogAction size="sm">Lanjutkan</AlertDialogAction>
+            <AlertDialogAction variant="primary" size="primary">
+              Lanjutkan
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

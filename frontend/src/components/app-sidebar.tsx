@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import { LayoutGroup } from "motion/react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,6 +27,7 @@ import {
   User as UserIcon,
 } from "@/components/ui/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,11 +100,6 @@ const reportsNavigation: NavGroup = {
     //   href: "/reports/formal",
     //   icon: FileText,
     // },
-    {
-      label: "Monitoring Kepatuhan",
-      href: "/reports/compliance-monitoring",
-      icon: ClipboardCheck,
-    },
     // {
     //   label: "Detail Siklus Risiko",
     //   href: "/reports/cycle-detail",
@@ -280,9 +277,13 @@ function NavLink({
     <SidebarNavItem
       badge={
         displayBadge !== undefined && displayBadge > 0 ? (
-          <span className="relative z-10 ml-auto flex min-w-5 items-center justify-center rounded-full bg-sidebar-foreground px-1.5 text-[10px] font-semibold leading-5 text-sidebar group-data-[collapsible=icon]:hidden">
+          <Badge
+            tone="neutral"
+            size="micro"
+            className="relative z-10 ml-auto min-w-5 bg-sidebar-foreground px-1.5 leading-5 text-sidebar group-data-[collapsible=icon]:hidden"
+          >
             {displayBadge}
-          </span>
+          </Badge>
         ) : undefined
       }
       className="hover:bg-sidebar-accent active:bg-sidebar-accent"
@@ -354,11 +355,16 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg" tooltip="Manris">
               <Link href="/overview">
-                <span className="text-lg font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+                <Image
+                  src="/logo.svg"
+                  alt=""
+                  width={20}
+                  height={20}
+                  priority
+                  className="size-5 shrink-0 object-contain"
+                />
+                <span className="text-base font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
                   Manris
-                </span>
-                <span className="hidden font-semibold text-sidebar-foreground group-data-[collapsible=icon]:inline">
-                  M
                 </span>
               </Link>
             </SidebarMenuButton>
@@ -394,7 +400,11 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
           </ScrollArea>
         </SidebarContent>
 
-        <SidebarFooter className="space-y-2">
+        <SidebarFooter className="relative isolate space-y-2">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 -top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar/75 to-sidebar backdrop-blur-md"
+          />
           <SidebarGroup className="p-0">
             <SidebarGroupLabel>Bantuan</SidebarGroupLabel>
             <SidebarMenu>

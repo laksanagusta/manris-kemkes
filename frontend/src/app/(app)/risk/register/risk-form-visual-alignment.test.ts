@@ -21,10 +21,10 @@ for (const [name, source] of [
       /<FormPage className="risk-form-filter-controls max-w-none/,
     );
     if (name === "registration") {
+      assert.match(source, /<CollectionPageHeader/);
+      assert.match(source, /backAction=/);
+      assert.match(source, /actionsPlacement="title"/);
       assert.doesNotMatch(source, /<FormHeader/);
-      assert.doesNotMatch(source, /Form registrasi risiko/);
-      assert.doesNotMatch(source, /Lengkapi identifikasi, analisis, dan rencana penanganan/);
-      assert.match(source, /setHeaderActions\(/);
       assert.match(source, /Simpan draft/);
       assert.match(source, /Finalisasi risiko/);
       assert.match(
@@ -55,11 +55,7 @@ for (const [name, source] of [
 test("registration behavior entry points remain intact", () => {
   assert.match(registrationSource, /handleSaveDraft/);
   assert.match(registrationSource, /openSubmitReviewConfirm/);
-  assert.match(registrationSource, /setHeaderActions\(/);
-  assert.match(
-    registrationSource,
-    /xl:grid-cols-\[minmax\(0,1\.7fr\)_380px\]/,
-  );
+  assert.match(registrationSource, /<CollectionPageHeader/);
   assert.match(registrationSource, /xl:sticky xl:top-24/);
   assert.match(registrationSource, /scrollToSection\(/);
   assert.doesNotMatch(

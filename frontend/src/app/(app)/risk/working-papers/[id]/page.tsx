@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
-  InlineCard,
   StandardCard,
 } from "@/components/shared/design-system";
 import {
@@ -48,8 +47,12 @@ import { cn } from "@/lib/utils";
 import { useSetHeaderActions } from "@/lib/header-actions-context";
 import {
   AlertCircle,
+  CalendarDays,
   CheckCircle2,
+  CircleDot,
+  Clock3,
   Download,
+  FileText,
   Pen,
 } from "@/components/ui/icons";
 
@@ -308,11 +311,8 @@ export default function WorkingPaperDetailPage(props: {
     );
   }
 
-  const { signatories, status } = data;
+  const { status } = data;
   const viewModel = buildWorkingPaperDetailViewModel(data, user?.id);
-  const signedCount = signatories.filter(
-    (signatory) => signatory.status === "signed",
-  ).length;
 
   const totalRiskCount = data.risks?.length || 0;
   const finalizedMonitoringCount =
@@ -325,18 +325,22 @@ export default function WorkingPaperDetailPage(props: {
     {
       label: "Kode",
       value: data.code || "-",
+      icon: FileText,
     },
     {
       label: "Status",
       value: statusLabel[status],
+      icon: CircleDot,
     },
     {
       label: "Siklus asesmen",
       value: data.assessment_cycle || "Belum ditetapkan",
+      icon: CalendarDays,
     },
     {
       label: "Dibuat pada",
       value: formatDate(data.created_at),
+      icon: CalendarDays,
     },
     {
       label:
@@ -351,6 +355,7 @@ export default function WorkingPaperDetailPage(props: {
           : status === "cancelled"
             ? formatDateTime(data.cancelled_at)
             : formatDateTime(data.updated_at),
+      icon: Clock3,
     },
   ];
 
@@ -378,16 +383,26 @@ export default function WorkingPaperDetailPage(props: {
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-4">
           <StandardCard title="Ringkasan dokumen">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {summaryItems.map((item) => (
-                <InlineCard key={item.label}>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    {item.label}
-                  </p>
-                  <p className="mt-1 font-mono text-sm font-medium text-foreground">
-                    {item.value}
-                  </p>
-                </InlineCard>
+            <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+              {summaryItems.map(({ icon: Icon, label, value }) => (
+                <div key={label} className="flex min-w-0 flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">{label}</p>
+                  <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                    <Icon
+                      className="size-5 shrink-0 text-muted-foreground"
+                      strokeWidth={1.6}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className={cn(
+                        "min-w-0 break-words",
+                        label === "Kode" && "font-mono",
+                      )}
+                    >
+                      {value}
+                    </span>
+                  </div>
+                </div>
               ))}
             </div>
           </StandardCard>

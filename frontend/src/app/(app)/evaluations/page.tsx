@@ -81,7 +81,10 @@ import {
   resolveDefaultReportOrgId,
 } from "@/lib/report-scope";
 import { evaluationStatusLabel, filterEvaluations } from "@/lib/evaluations";
-import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
+import {
+  getLinearStatusBadgeTone,
+  type BadgeTone,
+} from "@/lib/linear-status-badge";
 import {
   currentAssessmentCycle,
   getSelectableAssessmentCycles,
@@ -98,9 +101,9 @@ function formatDateTime(value?: string | null) {
   }).format(date);
 }
 
-const statusStyles: Record<EvaluationStatus, string> = {
-  draft: getLinearStatusBadgeClass("draft"),
-  final: getLinearStatusBadgeClass("finalized"),
+const statusStyles: Record<EvaluationStatus, BadgeTone> = {
+  draft: getLinearStatusBadgeTone("draft"),
+  final: getLinearStatusBadgeTone("finalized"),
 };
 
 type EvaluationFiltersSidebarProps = {
@@ -804,7 +807,10 @@ export default function EvaluationsPage() {
                         {evaluation.templateName || evaluation.templateId}
                       </TableCell>
                       <TableCell className="px-3 py-2">
-                        <Badge className={statusStyles[evaluation.status]}>
+                        <Badge
+                          tone={statusStyles[evaluation.status]}
+                          size="compact"
+                        >
                           {evaluationStatusLabel[evaluation.status]}
                         </Badge>
                       </TableCell>

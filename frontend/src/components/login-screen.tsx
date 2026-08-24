@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff } from "@/components/ui/icons";
@@ -9,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -71,17 +71,19 @@ export default function LoginScreen() {
 
       <div className="relative z-10 w-full max-w-md px-4 animate-fade-in">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-medium tracking-tight">
-            <span className="gradient-text">M A N R I S</span>
-          </h1>
+          <Image
+            src="/logo.svg"
+            alt="MANRIS logo"
+            width={48}
+            height={48}
+            priority
+            className="mx-auto size-12 object-contain"
+          />
         </div>
 
         <Card className="bg-card/80 backdrop-blur-xl">
           <CardHeader className="pb-4">
             <CardTitle>Masuk ke Akun Anda</CardTitle>
-            <CardDescription>
-              Gunakan kredensial yang telah anda buat
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -142,7 +144,9 @@ export default function LoginScreen() {
 
               <Button
                 type="submit"
-                className="h-10 w-full gap-2 text-sm font-semibold shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30"
+                variant="primary"
+                size="primary"
+                className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? (

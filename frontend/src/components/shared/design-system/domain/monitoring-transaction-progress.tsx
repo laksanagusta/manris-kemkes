@@ -2,6 +2,11 @@ import { cn } from "@/lib/utils";
 
 export type MonitoringTransactionStatus = string | null | undefined;
 
+export type MonitoringTransactionProgressItem = {
+  label: string;
+  status: MonitoringTransactionStatus;
+};
+
 export type MonitoringTransactionQuarters = {
   q1?: MonitoringTransactionStatus;
   q2?: MonitoringTransactionStatus;
@@ -32,20 +37,32 @@ function getStatusLabel(status: MonitoringTransactionStatus) {
 export function MonitoringTransactionProgress({
   data,
   className,
+  items,
+  countLabel = "transaksi",
+  ariaLabelOverride,
 }: {
   data?: MonitoringTransactionQuarters | null;
   className?: string;
+  items?: MonitoringTransactionProgressItem[];
+  countLabel?: string;
+  ariaLabelOverride?: string;
 }) {
-  const transactions = quarters.map(({ key, label }) => ({
-    label,
-    status: data?.[key],
-  }));
+  const transactions =
+    items ??
+    quarters.map(({ key, label }) => ({
+      label,
+      status: data?.[key],
+    }));
   const completed = transactions.filter(({ status }) => isCompleted(status)).length;
   const total = transactions.length;
   const detail = transactions
     .map(({ label, status }) => `${label}: ${getStatusLabel(status)}`)
     .join(", ");
-  const ariaLabel = `${completed} dari ${total} transaksi pemantauan berstatus final${detail ? `. ${detail}` : ""}`;
+  const ariaLabel =
+    ariaLabelOverride ??
+    (items
+      ? `${completed} dari ${total} ${countLabel} berstatus selesai${detail ? `. ${detail}` : ""}`
+      : `${completed} dari ${total} transaksi pemantauan berstatus final${detail ? `. ${detail}` : ""}`);
 
   return (
     <span
@@ -68,7 +85,7 @@ export function MonitoringTransactionProgress({
         />
       ))}
       <span className="text-sm leading-none tabular-nums text-muted-foreground">
-        {completed}/{total} transaksi
+        {completed}/{total} {countLabel}
       </span>
     </span>
   );

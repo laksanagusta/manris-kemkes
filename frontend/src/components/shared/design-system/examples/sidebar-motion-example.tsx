@@ -45,8 +45,9 @@ export function SidebarMotionExample() {
       </SidebarProvider>
       <p className="text-xs text-muted-foreground">
         Hover untuk scale 1.08 dan translateY -1.5px. Klik memberi press
-        feedback 0.92 lalu spring kembali; active surface berpindah dengan
-        layout animation.
+        feedback 0.92 lalu spring kembali; icon inactive abu-abu, icon active
+        mengikuti warna font, dan surface netral berpindah dengan layout
+        animation tanpa garis indikator kiri.
       </p>
     </div>
   );

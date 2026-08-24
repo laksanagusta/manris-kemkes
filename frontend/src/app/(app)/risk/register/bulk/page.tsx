@@ -825,22 +825,22 @@ export default function BulkRiskRegisterPage() {
                           <TableCell className="px-3 py-4">
                             {preview.errors.length > 0 ? (
                               <Badge
-                                variant="outline"
-                                className="h-6 rounded-full border-destructive/30 bg-destructive/10 px-2 text-[10px] font-medium text-destructive"
+                                tone="danger"
+                                size="compact"
                               >
                                 Invalid
                               </Badge>
                             ) : preview.warnings.length > 0 ? (
                               <Badge
-                                variant="outline"
-                                className="h-6 rounded-full border-risk-high/30 bg-risk-high/10 px-2 text-[10px] font-medium text-risk-high"
+                                tone="warning"
+                                size="compact"
                               >
                                 Warning
                               </Badge>
                             ) : (
                               <Badge
-                                variant="outline"
-                                className="h-6 rounded-full border-success/30 bg-success/10 px-2 text-[10px] font-medium text-success"
+                                tone="success"
+                                size="compact"
                               >
                                 Valid
                               </Badge>

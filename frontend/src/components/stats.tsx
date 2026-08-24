@@ -42,7 +42,7 @@ export function DashboardStats() {
 			{stats.map((s) => (
 				<DashboardCard className="" key={s.label}>
 					<CardHeader className="flex flex-row items-center justify-between">
-						<CardTitle className="font-normal text-xs tracking-wide">
+						<CardTitle className="text-sm font-medium normal-case">
 							{s.label}
 						</CardTitle>
 					</CardHeader>

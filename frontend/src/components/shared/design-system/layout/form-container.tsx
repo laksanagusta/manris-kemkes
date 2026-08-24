@@ -26,7 +26,7 @@ export function FormContainer({
       {title || description ? (
         <CardHeader className="px-4 py-6 !pb-6">
           {title ? (
-            <CardTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            <CardTitle className="text-sm font-medium normal-case text-foreground">
               {title}
             </CardTitle>
           ) : null}

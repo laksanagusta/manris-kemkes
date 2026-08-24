@@ -42,7 +42,9 @@ export function validateMitigationReportForm(
   const errors: FieldErrors<keyof MitigationReportFormValues> = {};
 
   const evidenceUrl = values.evidenceUrl.trim();
-  if (evidenceUrl && !isValidHttpUrl(evidenceUrl)) {
+  if (!evidenceUrl) {
+    errors.evidenceUrl = "Link bukti wajib diisi.";
+  } else if (!isValidHttpUrl(evidenceUrl)) {
     errors.evidenceUrl = "Link bukti harus berupa URL http:// atau https:// yang valid.";
   }
 

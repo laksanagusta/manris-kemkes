@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   riskGuideContent,
   type RiskGuideContent,
@@ -28,6 +29,7 @@ const STATUS_CONFIG = {
   draft: {
     label: "draft",
     icon: Circle,
+    tone: "warning" as const,
     bg: "bg-yellow-500/10",
     border: "border-yellow-500/30",
     text: "text-yellow-400",
@@ -35,6 +37,7 @@ const STATUS_CONFIG = {
   final: {
     label: "final",
     icon: CheckCircle2,
+    tone: "success" as const,
     bg: "bg-green-500/10",
     border: "border-green-500/30",
     text: "text-green-400",
@@ -48,17 +51,14 @@ function StatusPill({ status }: { status: string }) {
   const Icon = config.icon;
 
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider",
-        config.bg,
-        config.border,
-        config.text,
-      )}
+    <Badge
+      tone={config.tone}
+      size="micro"
+      className={cn("font-mono uppercase tracking-wider", config.text)}
     >
       <Icon className="size-2.5" />
       {config.label}
-    </span>
+    </Badge>
   );
 }
 
@@ -166,7 +166,7 @@ function StepCard({
         {stepNum}
       </div>
 
-      <div className="ml-10 rounded-xl bg-card/30 p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors hover:bg-card/50">
+      <div className="ml-10 rounded-xl bg-card/30 p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors hover:bg-sidebar-accent/50">
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex items-center gap-3">
             <Icon className={cn("size-4", config.text)} />

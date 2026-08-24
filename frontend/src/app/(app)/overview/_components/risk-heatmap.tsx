@@ -110,7 +110,7 @@ export function RiskHeatmap({
       <CardHeader className={cn(compact ? "pb-2" : "pb-4")}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className={cn("font-semibold", compact ? "text-sm" : "text-base")}>
+            <CardTitle className="text-sm font-medium normal-case">
               Heatmap Risiko
             </CardTitle>
             <p className={cn("mt-1 text-xs text-muted-foreground", compact && "max-w-[18rem]")}>

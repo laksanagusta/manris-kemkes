@@ -13,7 +13,12 @@ import {
   validateKRIRevisionReviewNote,
   validateEvidenceURL,
 } from "./kri-reporting.mjs";
-import { normalizeKRIReportPayload, validateKRIReportForm, validateKRISkipForm } from "./validation/reporting.mjs";
+import {
+  normalizeKRIReportPayload,
+  validateKRIReportForm,
+  validateKRISkipForm,
+  validateMitigationReportForm,
+} from "./validation/reporting.mjs";
 
 test("getKRIStatus evaluates explicit amber thresholds for higher-worse KRIs", () => {
   const thresholds = { thresholdMin: 10, thresholdMax: 90, amberThresholdMax: 70 };
@@ -105,6 +110,21 @@ test("validateEvidenceURL and validateKRIReportForm enforce optional URL rules",
   assert.deepEqual(
     validateKRIReportForm({ value: "12", notes: "OK", evidenceUrl: "ftp://example.com/evidence" }),
     { evidenceUrl: "Link bukti harus berupa URL http:// atau https:// yang valid." }
+  );
+});
+
+test("validateMitigationReportForm requires a valid evidence URL and notes", () => {
+  assert.deepEqual(
+    validateMitigationReportForm({ evidenceUrl: "", notes: "Catatan progress" }),
+    { evidenceUrl: "Link bukti wajib diisi." },
+  );
+  assert.deepEqual(
+    validateMitigationReportForm({ evidenceUrl: "ftp://example.com/evidence", notes: "Catatan progress" }),
+    { evidenceUrl: "Link bukti harus berupa URL http:// atau https:// yang valid." },
+  );
+  assert.deepEqual(
+    validateMitigationReportForm({ evidenceUrl: "https://example.com/evidence", notes: "Catatan progress" }),
+    {},
   );
 });
 

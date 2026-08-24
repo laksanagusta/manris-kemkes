@@ -1,4 +1,3 @@
-import { MonitoringReportingWorkspace } from "../_components/monitoring-reporting-workspace";
 import { MonitoringOperationalPanel } from "../_components/monitoring-operational-panel";
 import { MonitoringLatestProgressChart } from "../_components/monitoring-latest-progress-chart";
 import {
@@ -13,7 +12,6 @@ export default function MonitoringPage() {
         title="Monitoring"
         description="Pantau kewajiban monitoring risiko dan progres organisasi."
       />
-      <MonitoringReportingWorkspace />
       <MonitoringLatestProgressChart />
       <MonitoringOperationalPanel />
     </PageStack>

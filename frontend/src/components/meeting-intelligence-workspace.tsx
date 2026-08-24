@@ -886,14 +886,14 @@ function MeetingIntelligenceWorkspaceContent({
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                      <span className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1">
+                      <Badge tone="neutral" size="compact" className="text-[11px]">
                         <CalendarDays className="size-3.5" />
                         {generatedMinutes.date}
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1">
+                      </Badge>
+                      <Badge tone="neutral" size="compact" className="text-[11px]">
                         <Clock3 className="size-3.5" />
                         Draf siap ditinjau
-                      </span>
+                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -909,22 +909,22 @@ function MeetingIntelligenceWorkspaceContent({
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1">
+                        <Badge tone="neutral" size="compact" className="text-[11px]">
                           <span className="font-medium text-foreground">{minutesSummary?.total ?? 0}</span>
                           Tindak lanjut
-                        </span>
-                        <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1">
+                        </Badge>
+                        <Badge tone="neutral" size="compact" className="text-[11px]">
                           <span className="font-medium text-foreground">{minutesSummary?.missingPic ?? 0}</span>
                           Perlu PIC
-                        </span>
-                        <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1">
+                        </Badge>
+                        <Badge tone="neutral" size="compact" className="text-[11px]">
                           <span className="font-medium text-foreground">{minutesSummary?.missingDeadline ?? 0}</span>
                           Perlu deadline
-                        </span>
-                        <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1">
+                        </Badge>
+                        <Badge tone="neutral" size="compact" className="text-[11px]">
                           <span className="font-medium text-foreground">{minutesSummary?.highPriority ?? 0}</span>
                           Prioritas tinggi
-                        </span>
+                        </Badge>
                       </div>
                     </div>
                   </section>
@@ -1359,10 +1359,10 @@ function MeetingIntelligenceWorkspaceContent({
                   }
                 }}
               >
-                <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-5xl">
+                <DialogContent className="overflow-hidden sm:max-w-5xl">
                   {reviewSuggestion ? (
                     <>
-                      <DialogHeader className="shrink-0">
+                      <DialogHeader className="shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
                         <div className="space-y-3">
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                             <span className="font-medium text-foreground">Tinjau perubahan</span>
@@ -1424,7 +1424,7 @@ function MeetingIntelligenceWorkspaceContent({
                         </div>
                       </DialogHeader>
 
-                      <div className="min-h-0 flex-1 overflow-y-auto">
+                      <div className="min-h-0 flex-1 overflow-y-auto motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
                         <div className="space-y-5">
                           {targetRiskDetails ? (
                             <div className="flex items-start gap-2 border border-border/60 bg-muted/[0.08] px-4 py-3 text-sm leading-6 text-muted-foreground">
@@ -1543,7 +1543,7 @@ function MeetingIntelligenceWorkspaceContent({
                         </div>
                       </div>
 
-                      <DialogFooter className="shrink-0 sm:flex-row sm:items-center sm:justify-between">
+                      <DialogFooter className="shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms] sm:flex-row sm:items-center sm:justify-between">
                         <div className="space-y-1">
                           <p className="text-sm font-medium text-foreground">
                             {selectedChangeIds.length} perubahan siap diterapkan
@@ -1603,15 +1603,15 @@ function MeetingIntelligenceWorkspaceContent({
 
       {/* Save Dialog - moved to root level to avoid nested Dialog interaction issues */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-2xl">
-          <DialogHeader className="shrink-0">
+        <DialogContent className="overflow-hidden sm:max-w-2xl">
+          <DialogHeader className="shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
             <DialogTitle className="text-lg">Simpan Briefing</DialogTitle>
             <DialogDescription className="mt-1">
               Simpan briefing ini dan hubungkan dengan risiko terkait.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
             <div className="space-y-5">
               <div className="space-y-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -1765,7 +1765,7 @@ function MeetingIntelligenceWorkspaceContent({
             </div>
           </div>
 
-          <DialogFooter className="shrink-0">
+          <DialogFooter className="shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
             <Button
               type="button"
               variant="outline"

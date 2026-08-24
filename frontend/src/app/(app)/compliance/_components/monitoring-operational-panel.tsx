@@ -51,7 +51,7 @@ export function MonitoringOperationalPanel() {
       <Card className="bg-card">
         <CardHeader>
           <div>
-            <CardTitle className="text-base font-semibold">
+            <CardTitle className="text-sm font-medium normal-case">
               Progress Penanganan
             </CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">

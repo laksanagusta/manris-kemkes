@@ -9,6 +9,14 @@ export function MonitoringTransactionProgressExample() {
       <MonitoringTransactionProgress
         data={{ q1: "final", q2: "final", q3: "draft" }}
       />
+      <MonitoringTransactionProgress
+        items={[
+          { label: "Ketua", status: "final" },
+          { label: "Reviewer", status: "draft" },
+        ]}
+        countLabel="TTE"
+        ariaLabelOverride="Progres TTE: 1 dari 2 penandatangan sudah menandatangani."
+      />
       <MonitoringTransactionProgress />
     </div>
   );

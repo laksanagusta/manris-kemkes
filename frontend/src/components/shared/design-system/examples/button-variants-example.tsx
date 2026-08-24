@@ -35,13 +35,13 @@ export function ButtonVariantsExample() {
         <Button variant="outline" size="icon-xs" className="rounded-lg border-transparent bg-white shadow-none">
           <ChevronLeft className="size-3.5" />
         </Button>
-        <Button variant="outline" size="xs" className="min-w-10 rounded-lg border-transparent bg-white px-3 text-foreground shadow-none hover:bg-white hover:text-foreground">
+        <Button variant="outline" size="xs" className="min-w-10 rounded-lg border-transparent bg-white px-3 text-foreground shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
           1
         </Button>
-        <Button variant="outline" size="xs" className="min-w-10 rounded-lg border-transparent bg-white px-3 text-foreground/80 shadow-none hover:bg-white hover:text-foreground">
+        <Button variant="outline" size="xs" className="min-w-10 rounded-lg border-transparent bg-white px-3 text-foreground/80 shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
           2
         </Button>
-        <Button variant="ghost" size="icon-xs" className="bg-white text-foreground shadow-none hover:bg-white hover:text-foreground">
+        <Button variant="ghost" size="icon-xs" className="bg-white text-foreground shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
           <MoreHorizontal className="size-3.5" />
         </Button>
       </div>

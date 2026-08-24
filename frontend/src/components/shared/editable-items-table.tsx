@@ -1,9 +1,12 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, GripVertical } from "@/components/ui/icons";
+import { cn } from "@/lib/utils";
 
 export interface EditableItem {
   id: string;
@@ -27,6 +30,59 @@ export function EditableItemsTable({
   addItemLabel = "Tambah Item",
   emptyMessage = "Belum ada item",
 }: EditableItemsTableProps) {
+  const previousItemIdsRef = useRef(new Set(items.map((item) => item.id)));
+  const animatingItemIdsRef = useRef<Set<string>>(new Set());
+  const animationTimerRef = useRef<number | null>(null);
+  const [animatingItemIds, setAnimatingItemIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const currentItemIds = new Set(items.map((item) => item.id));
+    const newlyAddedItemIds = [...currentItemIds].filter(
+      (id) => !previousItemIdsRef.current.has(id),
+    );
+
+    previousItemIdsRef.current = currentItemIds;
+
+    if (newlyAddedItemIds.length > 0) {
+      const nextAnimatingItemIds = new Set(
+        [...animatingItemIdsRef.current].filter((id) => currentItemIds.has(id)),
+      );
+
+      newlyAddedItemIds.forEach((id) => nextAnimatingItemIds.add(id));
+      animatingItemIdsRef.current = nextAnimatingItemIds;
+      setAnimatingItemIds(nextAnimatingItemIds);
+    } else {
+      const currentAnimatingItemIds = new Set(
+        [...animatingItemIdsRef.current].filter((id) => currentItemIds.has(id)),
+      );
+
+      if (currentAnimatingItemIds.size !== animatingItemIdsRef.current.size) {
+        animatingItemIdsRef.current = currentAnimatingItemIds;
+        setAnimatingItemIds(currentAnimatingItemIds);
+      }
+    }
+
+    if (animationTimerRef.current !== null) {
+      window.clearTimeout(animationTimerRef.current);
+      animationTimerRef.current = null;
+    }
+
+    if (animatingItemIdsRef.current.size > 0) {
+      animationTimerRef.current = window.setTimeout(() => {
+        animationTimerRef.current = null;
+        animatingItemIdsRef.current = new Set();
+        setAnimatingItemIds(new Set());
+      }, 220);
+    }
+
+    return () => {
+      if (animationTimerRef.current !== null) {
+        window.clearTimeout(animationTimerRef.current);
+        animationTimerRef.current = null;
+      }
+    };
+  }, [items]);
+
   const addItem = () => {
     const newItem: EditableItem = {
       id: `item-${Date.now()}`,
@@ -55,9 +111,16 @@ export function EditableItemsTable({
       ) : (
         <div className="border border-border/50 rounded-lg overflow-hidden">
           <Table className="w-full">
-            <TableBody className="divide-y divide-border/50">
+            <TableBody>
               {items.map((item, index) => (
-                <TableRow key={item.id} className="h-auto animate-in fade-in slide-in-from-top-2 duration-200 ease-out motion-reduce:animate-none hover:bg-muted/30 transition-colors" style={{ animationDelay: `${index * 30}ms` }}>
+                <TableRow
+                  key={item.id}
+                  className={cn(
+                    "h-auto border-t-0 transition-colors hover:bg-muted/30",
+                    animatingItemIds.has(item.id) &&
+                      "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-2 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-reduce:animate-none",
+                  )}
+                >
                   <TableCell className="w-8 px-2 py-2">
                     <div className="flex items-center justify-center text-muted-foreground">
                       <GripVertical className="size-3.5" />

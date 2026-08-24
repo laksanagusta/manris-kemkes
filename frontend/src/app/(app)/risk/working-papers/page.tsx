@@ -14,7 +14,6 @@ import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -33,7 +32,7 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronRight } from "@/components/ui/icons";
+import { ChevronRight, Plus } from "@/components/ui/icons";
 import {
   currentAssessmentCycle,
   shiftAssessmentCycle,
@@ -53,13 +52,13 @@ import {
   CollectionTableHeader,
   CollectionTableHeaderRow,
   CollectionToolbar,
+  MonitoringTransactionProgress,
 } from "@/components/shared/design-system";
 import {
   AccentButton,
   PageStack,
 } from "@/components/shared/design-system";
 import {
-  WorkingPaperCreateButton,
   WorkingPaperCreateDialog,
 } from "@/components/shared/working-paper-create-dialog";
 
@@ -404,27 +403,27 @@ function WorkingPaperMobileCard({
 }
 
 function WorkingPaperDesktopSigningProgress({
-  totalSignatories,
-  progressPercent,
-  progressText,
+  signatories,
 }: {
-  totalSignatories: number;
-  progressPercent: number;
-  progressText: string;
+  signatories: WorkingPaper["signatories"];
 }) {
-  if (totalSignatories === 0) {
+  if (signatories.length === 0) {
     return <span className="text-sm text-muted-foreground">-</span>;
   }
 
+  const signedCount = signatories.filter(
+    (signatory) => signatory.status === "signed",
+  ).length;
+
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-medium text-foreground">
-          {progressText}
-        </span>
-      </div>
-      <Progress value={progressPercent} className="h-2 bg-muted" />
-    </div>
+    <MonitoringTransactionProgress
+      items={signatories.map((signatory) => ({
+        label: signatory.signer_name || `Penandatangan ${signatory.sequence_no}`,
+        status: signatory.status === "signed" ? "final" : "draft",
+      }))}
+      countLabel="TTE"
+      ariaLabelOverride={`Progres TTE: ${signedCount} dari ${signatories.length} penandatangan sudah menandatangani.`}
+    />
   );
 }
 
@@ -631,12 +630,15 @@ export default function WorkingPapersPage() {
         title="Kertas Kerja"
         description="Kelola dan pantau seluruh kertas kerja risiko organisasi."
         actions={
-          <WorkingPaperCreateButton
+          <AccentButton
             onClick={() => {
               setSelectedPeriod(currentAssessmentCycle());
               setCreateModalOpen(true);
             }}
-          />
+          >
+            <Plus className="size-3.5" strokeWidth={2.5} />
+            Buat Kertas Kerja
+          </AccentButton>
         }
       />
 
@@ -731,7 +733,7 @@ export default function WorkingPapersPage() {
                         Judul
                       </CollectionTableHead>
                       <CollectionTableHead className="px-3">
-                        Siklus
+                        Periode
                       </CollectionTableHead>
                       <CollectionTableHead className="px-3">
                         Status
@@ -749,8 +751,6 @@ export default function WorkingPapersPage() {
                   </CollectionTableHeader>
                   <TableBody>
                     {papers.map((paper) => {
-                      const { totalSignatories, progressPercent, progressText } =
-                        getWorkingPaperSigningProgress(paper);
                       const createdDate = formatWorkingPaperDate(
                         paper.created_at,
                         {
@@ -766,16 +766,16 @@ export default function WorkingPapersPage() {
                           className="border-0 hover:bg-muted/50"
                         >
                           <TableCell className="min-w-[320px] py-2 pl-4 pr-3 align-middle">
-                            <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                              {paper.code}
-                            </div>
                             <Link
                               href={`/risk/working-papers/${paper.id}`}
-                              className="block text-sm font-normal leading-relaxed text-foreground transition-colors hover:text-primary"
+                              className="block text-sm font-semibold leading-relaxed text-foreground transition-colors hover:text-primary"
                               title={paper.title}
                             >
                               {paper.title || "Tanpa Judul"}
                             </Link>
+                            <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                              {paper.code}
+                            </div>
                           </TableCell>
                           <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-muted-foreground">
                             {paper.assessment_cycle || "-"}
@@ -792,9 +792,7 @@ export default function WorkingPapersPage() {
                           </TableCell>
                           <TableCell className="min-w-[180px] px-3 py-2 align-middle">
                             <WorkingPaperDesktopSigningProgress
-                              totalSignatories={totalSignatories}
-                              progressPercent={progressPercent}
-                              progressText={progressText}
+                              signatories={paper.signatories}
                             />
                           </TableCell>
                           <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-muted-foreground">

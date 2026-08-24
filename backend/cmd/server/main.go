@@ -174,13 +174,6 @@ func main() {
 
 	// Report handler
 	cleanReportHandler := httpHandler.NewReportHandler(container.GenerateReportUC, container.PDFReportRenderer, container.OrgGroupResolveUC)
-	cleanPerformanceRiskHandler := httpHandler.NewPerformanceRiskHandler(
-		container.PerformanceRiskSummaryUC,
-		container.PerformanceRiskNodesUC,
-		container.PerformanceRiskDetailUC,
-		container.PerformanceRiskUnlinkedUC,
-		container.OrgGroupResolveUC,
-	)
 
 	// External PIC handler
 	cleanExternalPICHandler := httpHandler.NewExternalPICHandler(
@@ -354,10 +347,6 @@ func main() {
 
 	// Reports (Clean Architecture)
 	protected.Get("/reports/risk-pdf", cleanReportHandler.GenerateRiskPDF)
-	protected.Get("/reports/performance-risk/summary", cleanPerformanceRiskHandler.Summary)
-	protected.Get("/reports/performance-risk/nodes", cleanPerformanceRiskHandler.Nodes)
-	protected.Get("/reports/performance-risk/nodes/:id", cleanPerformanceRiskHandler.Detail)
-	protected.Get("/reports/performance-risk/unlinked-risks", cleanPerformanceRiskHandler.UnlinkedRisks)
 
 	// KRIs (Clean Architecture)
 	protected.Get("/kris", cleanKRIHandler.ListKRIs)

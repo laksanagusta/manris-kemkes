@@ -21,7 +21,7 @@ export function BillingHealth() {
 	return (
 		<DashboardCard className="gap-0">
 			<CardHeader className="border-b">
-				<CardTitle className="text-balance text-base">Billing health</CardTitle>
+				<CardTitle className="text-balance text-sm font-medium normal-case">Billing health</CardTitle>
 				<CardDescription className="text-pretty">
 					Nothing urgent needs your attention.
 				</CardDescription>

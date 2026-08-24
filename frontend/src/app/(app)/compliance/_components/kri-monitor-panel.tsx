@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
@@ -135,23 +136,20 @@ export function KRIMonitorPanel() {
   const statusConfig = {
     safe: {
       label: "Aman",
+      tone: "success" as const,
       color: "text-success",
-      bg: "bg-success/10",
-      border: "border-success/20",
       icon: CheckCircle,
     },
     warning: {
       label: "Peringatan",
+      tone: "warning" as const,
       color: "text-risk-medium",
-      bg: "bg-risk-medium/10",
-      border: "border-risk-medium/20",
       icon: AlertCircle,
     },
     breach: {
       label: "Dilanggar",
+      tone: "danger" as const,
       color: "text-risk-extreme",
-      bg: "bg-risk-extreme/10",
-      border: "border-risk-extreme/20",
       icon: AlertCircle,
     },
   } as const;
@@ -365,21 +363,14 @@ export function KRIMonitorPanel() {
                                 className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                               >
                                 <span className="truncate">{kri.name}</span>
-                                <span
-                                  className={cn(
-                                    "shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                                    config.bg,
-                                    config.border,
-                                    config.color
-                                  )}
-                                >
+                                <Badge tone={config.tone} size="micro" className="shrink-0">
                                   {config.label}
-                                </span>
+                                </Badge>
                               </Link>
                               {isReadOnly && (
-                                <span className="inline-flex items-center rounded-full border border-secondary/50 bg-secondary/10 px-1.5 py-0.5 text-[9px] font-semibold text-secondary-foreground" title="Read-only access">
+                                <Badge tone="neutral" size="micro" title="Read-only access">
                                   RO
-                                </span>
+                                </Badge>
                               )}
                             </div>
                             <p className="truncate text-xs text-muted-foreground">

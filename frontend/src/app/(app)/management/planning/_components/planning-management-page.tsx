@@ -386,7 +386,7 @@ function PlanningHierarchyRows({
                       className={cn(
                         "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground shadow-sm transition-colors",
                         isExpandable
-                          ? "hover:bg-zinc-100"
+                          ? "hover:bg-sidebar-accent"
                           : "cursor-default bg-zinc-50 text-zinc-300",
                       )}
                       aria-label={

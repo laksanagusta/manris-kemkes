@@ -24,7 +24,7 @@ export default function FormalReportsPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="rounded-lg bg-card">
           <CardHeader className="border-b border-border/40 pb-4">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium normal-case">
               <ClipboardList className="size-4" />
               Buka Evaluasi
             </CardTitle>
@@ -45,7 +45,7 @@ export default function FormalReportsPage() {
 
         <Card className="rounded-lg bg-card">
           <CardHeader className="border-b border-border/40 pb-4">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium normal-case">
               <FileText className="size-4" />
               Buat Draft Baru
             </CardTitle>

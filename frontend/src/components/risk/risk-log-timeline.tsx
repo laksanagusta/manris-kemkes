@@ -5,18 +5,19 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Plus } from "@/components/ui/icons";
 import {
-  CheckCircle2,
-  Clock,
-  History,
-  Loader2,
-  MessageSquare,
-  Plus,
-  CalendarDays,
-} from "@/components/ui/icons";
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { CollectionDialogCancel } from "@/components/shared/design-system";
 
 import type { CommunicationLog } from "@/types/communication-log";
 import type { MeetingMinutesRisk } from "@/types/meeting-minute";
@@ -68,6 +69,8 @@ interface TimelineItem {
   link?: string;
 }
 
+const LOG_PREVIEW_LIMIT = 5;
+
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   submitted: {
     label: "Diajukan",
@@ -85,13 +88,6 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
     label: "Dikembalikan",
     color: "bg-amber-500/10 text-amber-600 border-amber-500/20",
   },
-};
-
-const METHOD_ICONS: Record<string, React.ReactNode> = {
-  Meeting: <Clock className="size-3" />,
-  Email: <MessageSquare className="size-3" />,
-  Phone: <MessageSquare className="size-3" />,
-  Chat: <MessageSquare className="size-3" />,
 };
 
 async function getApprovalHistory(
@@ -163,15 +159,101 @@ function getRelatedRiskIds(
   return [...ids];
 }
 
+function formatRelativeTime(dateStr: string): string {
+  const timestamp = new Date(dateStr).getTime();
+  if (!Number.isFinite(timestamp)) return "baru saja";
+
+  const elapsed = Math.max(0, Date.now() - timestamp);
+  if (elapsed < 60_000) return "baru saja";
+
+  const units = [
+    { value: 86_400_000, label: "hari" },
+    { value: 3_600_000, label: "jam" },
+    { value: 60_000, label: "mnt" },
+  ];
+
+  const unit = units.find(({ value }) => elapsed >= value) ?? units[2];
+  return `${Math.floor(elapsed / unit.value)} ${unit.label} lalu`;
+}
+
 function formatDateTime(dateStr: string): string {
   const date = new Date(dateStr);
-  return date.toLocaleDateString("id-ID", {
+  if (!Number.isFinite(date.getTime())) return "-";
+
+  return date.toLocaleString("id-ID", {
     day: "numeric",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getInitials(name: string): string {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+  return initials || "SY";
+}
+
+function getActorName(item: TimelineItem): string {
+  const actorName = item.metadata?.oleh?.trim();
+  return actorName && actorName !== "-" ? actorName : "Sistem";
+}
+
+function getActivityText(item: TimelineItem): string {
+  if (item.type === "approval") {
+    return `mengubah status menjadi ${item.title.toLowerCase()}`;
+  }
+  if (item.type === "communication") {
+    return `mencatat ${item.title}`;
+  }
+  if (item.type === "meeting_minute") {
+    return `menautkan ${item.title}`;
+  }
+  return item.title;
+}
+
+function ActivityFeedRow({
+  item,
+  onOpen,
+}: {
+  item: TimelineItem;
+  onOpen: () => void;
+}) {
+  const actorName = getActorName(item);
+  const activityText = getActivityText(item);
+
+  return (
+    <div className="flex min-w-0 items-start gap-3 rounded-lg px-1 py-2 text-left transition-colors duration-150 hover:bg-muted/40">
+      <button
+        type="button"
+        className="flex min-w-0 flex-1 items-start gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        onClick={onOpen}
+        aria-label={`Buka detail aktivitas dari ${actorName}`}
+      >
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+          {getInitials(actorName)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="whitespace-normal break-words text-sm leading-5 text-foreground">
+            <span className="font-medium">{actorName}</span>{" "}
+            {activityText}
+            <span className="text-muted-foreground/70">
+              {" · "}
+              {formatRelativeTime(item.date)}
+            </span>
+          </p>
+        </div>
+      </button>
+    </div>
+  );
 }
 
 export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
@@ -182,6 +264,8 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
     [],
   );
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showAllLogsDialog, setShowAllLogsDialog] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<TimelineItem | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchData = useCallback(async () => {
@@ -239,6 +323,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
       metadata: {
         oleh: log.createdByName,
         method: log.method,
+        stakeholder: log.stakeholder,
         tanggal: new Date(log.date).toLocaleDateString("id-ID", {
           day: "numeric",
           month: "short",
@@ -258,6 +343,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
       link: `/minutes/${mm.meetingId}`,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const visibleTimelineItems = timelineItems.slice(0, LOG_PREVIEW_LIMIT);
 
   const handleAddSuccess = () => {
     setShowAddDialog(false);
@@ -266,137 +352,55 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-sm text-muted-foreground">
-            Memuat log...
-          </span>
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+        <Loader2 className="size-3.5 animate-spin" />
+        Memuat log...
+      </div>
     );
   }
 
   return (
     <>
-      <Card>
-        <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-border/50">
-          <CardTitle className="text-base font-bold flex items-center gap-2">
-            <History className="size-4" /> Log & Komunikasi
-          </CardTitle>
+      <div className="space-y-1">
+        {timelineItems.length === 0 ? (
+          <p className="py-2 text-xs text-muted-foreground">
+            Belum ada aktivitas log.
+          </p>
+        ) : (
+          visibleTimelineItems.map((item) => (
+            <ActivityFeedRow
+              key={item.id}
+              item={item}
+              onOpen={() => setSelectedItem(item)}
+            />
+          ))
+        )}
+      </div>
+
+      <div className="mt-2 flex items-center justify-between gap-3 border-t border-border/50 pt-2">
+        {timelineItems.length > LOG_PREVIEW_LIMIT ? (
           <Button
-            variant="outline"
+            type="button"
+            variant="ghost"
             size="sm"
-            className="gap-2 text-xs h-8"
-            onClick={() => setShowAddDialog(true)}
+            className="h-8 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
+            onClick={() => setShowAllLogsDialog(true)}
           >
-            <Plus className="size-3.5" /> Tambah Log
+            Lihat semua log ({timelineItems.length})
           </Button>
-        </CardHeader>
-        <CardContent className="pt-4">
-          {timelineItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <p className="text-sm font-medium text-foreground">Belum Ada Log Komunikasi</p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                Tambahkan log komunikasi untuk mencatat interaksi dengan stakeholder terkait risiko ini.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4 gap-2 text-xs"
-                onClick={() => setShowAddDialog(true)}
-              >
-                <Plus className="size-3.5" /> Tambah Log Pertama
-              </Button>
-            </div>
-          ) : (
-            <div className="relative">
-              {/* Timeline line */}
-              <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border/50" />
-
-              {/* Timeline items */}
-              <div className="space-y-3">
-                {timelineItems.map((item) => (
-                  <div key={item.id} className="flex gap-3 relative">
-                    {/* Icon */}
-                    <div className={"shrink-0 w-6 h-6 rounded-full flex items-center justify-center z-10 " + (
-                      item.type === "approval" ? "bg-emerald-500/10 text-emerald-600" :
-                      item.type === "meeting_minute" ? "bg-primary/10 text-primary" :
-                      "bg-blue-500/10 text-blue-600"
-                    )}>
-                      {item.type === "approval" ? (
-                        <CheckCircle2 className="size-3.5" />
-                      ) : item.type === "meeting_minute" ? (
-                        <CalendarDays className="size-3.5" />
-                      ) : (
-                        <MessageSquare className="size-3.5" />
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0 pb-4">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-sm font-semibold">
-                          {item.title}
-                        </span>
-                        {item.type === "approval" && (
-                          <Badge variant="outline" className="text-[11px] h-5">
-                            Approval
-                          </Badge>
-                        )}
-                        {item.type === "communication" && (
-                          <Badge
-                            variant="outline"
-                            className="text-[11px] h-5 gap-1"
-                          >
-                            {METHOD_ICONS[item.metadata?.method || "Meeting"]}
-                            {item.metadata?.method || "Komunikasi"}
-                          </Badge>
-                        )}
-                        {item.type === "meeting_minute" && (
-                          <Badge variant="outline" className="text-[11px] h-5">
-                            Notulen
-                          </Badge>
-                        )}
-                      </div>
-
-                      {item.description && item.description !== "-" && (
-                        <p className="text-xs text-muted-foreground mb-2">
-                          {item.description}
-                        </p>
-                      )}
-
-                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                        <span>{formatDateTime(item.date)}</span>
-                        {item.metadata?.oleh && (
-                          <span>Oleh: {item.metadata.oleh}</span>
-                        )}
-                        {item.metadata?.role && (
-                          <Badge
-                            variant="outline"
-                            className="text-[11px] h-5"
-                          >
-                            {item.metadata.role}
-                          </Badge>
-                        )}
-                      </div>
-
-                      {item.link && (
-                        <Link
-                          href={item.link}
-                          className="text-xs text-primary hover:underline mt-1"
-                        >
-                          Lihat detail notulen →
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        ) : (
+          <span />
+        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 gap-1.5 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
+          onClick={() => setShowAddDialog(true)}
+        >
+          <Plus className="size-3.5" /> Tambah log
+        </Button>
+      </div>
 
       <CommunicationLogDialog
         open={showAddDialog}
@@ -405,6 +409,181 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
         token={token}
         onSuccess={handleAddSuccess}
       />
+
+      <Dialog
+        open={showAllLogsDialog}
+        onOpenChange={setShowAllLogsDialog}
+      >
+        <DialogContent
+          className="max-w-2xl no-scrollbar"
+          showCloseButton={false}
+        >
+          <div className="flex min-h-0 flex-col gap-5">
+            <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+              <DialogTitle className="text-base">Semua Log</DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto pr-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+              <div className="space-y-1">
+                {timelineItems.map((item) => (
+                  <ActivityFeedRow
+                    key={item.id}
+                    item={item}
+                    onOpen={() => {
+                      setShowAllLogsDialog(false);
+                      setSelectedItem(item);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+              <CollectionDialogCancel
+                onClick={() => setShowAllLogsDialog(false)}
+              >
+                Tutup
+              </CollectionDialogCancel>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={selectedItem !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedItem(null);
+        }}
+      >
+        <DialogContent
+          className="max-w-2xl no-scrollbar"
+          showCloseButton={false}
+        >
+          <div className="flex min-h-0 flex-col gap-5">
+            <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+              <DialogTitle className="text-base">
+                Detail Aktivitas Log
+              </DialogTitle>
+            </DialogHeader>
+
+            {selectedItem && (
+              <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="log-detail-date">Tanggal</Label>
+                    <Input
+                      id="log-detail-date"
+                      disabled
+                      value={
+                        selectedItem.metadata?.tanggal ||
+                        formatDateTime(selectedItem.date)
+                      }
+                      className="text-base sm:text-sm"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="log-detail-actor">Oleh</Label>
+                    <Input
+                      id="log-detail-actor"
+                      disabled
+                      value={getActorName(selectedItem)}
+                      className="text-base sm:text-sm"
+                    />
+                  </div>
+
+                  {selectedItem.type === "communication" ? (
+                    <>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="log-detail-method">Metode</Label>
+                        <Input
+                          id="log-detail-method"
+                          disabled
+                          value={selectedItem.metadata?.method || "-"}
+                          className="text-base sm:text-sm"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="log-detail-stakeholder">
+                          Stakeholder
+                        </Label>
+                        <Input
+                          id="log-detail-stakeholder"
+                          disabled
+                          value={selectedItem.metadata?.stakeholder || "-"}
+                          className="text-base sm:text-sm"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2 sm:col-span-2">
+                        <Label htmlFor="log-detail-notes">Catatan</Label>
+                        <Textarea
+                          id="log-detail-notes"
+                          disabled
+                          value={selectedItem.description || "-"}
+                          className="min-h-[100px] resize-none text-base sm:text-sm"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="log-detail-type">Jenis aktivitas</Label>
+                        <Input
+                          id="log-detail-type"
+                          disabled
+                          value={
+                            selectedItem.type === "approval"
+                              ? "Approval"
+                              : "Notulen rapat"
+                          }
+                          className="text-base sm:text-sm"
+                        />
+                      </div>
+
+                      {selectedItem.metadata?.role && (
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="log-detail-role">Peran</Label>
+                          <Input
+                            id="log-detail-role"
+                            disabled
+                            value={selectedItem.metadata.role}
+                            className="text-base sm:text-sm"
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex flex-col gap-2 sm:col-span-2">
+                        <Label htmlFor="log-detail-description">Detail</Label>
+                        <Textarea
+                          id="log-detail-description"
+                          disabled
+                          value={selectedItem.description || "-"}
+                          className="min-h-[100px] resize-none text-base sm:text-sm"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {selectedItem.link && (
+                  <Link
+                    href={selectedItem.link}
+                    className="inline-flex text-sm font-medium text-primary hover:underline"
+                  >
+                    Buka detail notulen →
+                  </Link>
+                )}
+              </div>
+            )}
+
+            <DialogFooter className="gap-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+              <CollectionDialogCancel onClick={() => setSelectedItem(null)}>
+                Tutup
+              </CollectionDialogCancel>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

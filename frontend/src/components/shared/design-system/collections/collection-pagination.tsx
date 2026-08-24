@@ -60,8 +60,8 @@ export function CollectionPagination({
               className={cn(
                 "min-w-10 rounded-lg border bg-white px-3 shadow-none",
                 pageNumber === page
-                  ? "border-primary text-foreground hover:bg-white hover:text-foreground"
-                  : "border-border/60 text-foreground/80 hover:bg-white hover:text-foreground",
+                  ? "border-primary text-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  : "border-border/60 text-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               )}
               disabled={pageNumber === page || disabled}
               onClick={() => onPageChange(pageNumber)}

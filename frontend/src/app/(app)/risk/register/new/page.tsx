@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -11,15 +12,13 @@ import { listUsers, type UserListItem } from "@/lib/api/users";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import { useAuth } from "@/contexts/auth-context";
-import { useSetHeaderActions } from "@/lib/header-actions-context";
 import { ROPicker, type ROSelectionSummary } from "@/components/risk/ro-picker";
-import { ImpactCriteriaTooltip } from "@/components/shared/impact-criteria-tooltip";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,7 +54,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,
@@ -67,29 +65,21 @@ import { cn } from "@/lib/utils";
 import {
   Check,
   ChevronDown,
+  ArrowLeft,
   Loader2,
   Save,
   Send,
-  CheckCircle2,
-  CircleDot,
   WandSparkles,
   Trash2,
-  CheckSquare,
-  History,
 } from "@/components/ui/icons";
 
 import {
   getRiskLevelFromNilai,
-  getRiskLevelLabel,
   riskCategoryLabels,
   getBobot,
   calculateNilai,
   getRiskPriority,
-  resolveRiskScoreSemantics,
   resolveRiskAppetite,
-  isRiskUtama,
-  PROBABILITY_LABELS,
-  IMPACT_LABELS,
 } from "@/lib/risk";
 import {
   resolveDraftApprovalLine,
@@ -101,25 +91,25 @@ import {
 import { EditableList } from "@/components/shared/editable-list";
 import { EditableItemsTable } from "@/components/shared/editable-items-table";
 import { FormPage } from "@/components/shared/form-shell";
-import { RiskRatingSlider } from "@/components/risk/risk-rating-slider";
 import {
   ActionButton,
   AccentButton,
-  RiskAssessmentSummaryStrip,
+  CollectionDialogCancel,
+  CollectionPageHeader,
+  RiskScoreHeatmapModal,
+  RiskScorePickerTrigger,
 } from "@/components/shared/design-system";
 import {
   MitigationTable,
   type MitigationItem,
 } from "@/components/shared/mitigation-table";
 import { MitigationPicker } from "@/components/shared/mitigation-picker";
-import { ProbabilityCriteriaTooltip } from "@/components/shared/probability-criteria-tooltip";
 import {
   MitigationProgressTab,
   type MitigationProgressDraft,
 } from "@/components/shared/mitigation-progress-tab";
 import type {
   RiskCategory,
-  RiskStatus,
   RiskVersionTimelineItem,
 } from "@/types/risk";
 import {
@@ -199,7 +189,6 @@ type SectionId =
   | "evaluasi"
   | "penanganan"
   | "target";
-type WorkspaceView = "form" | "progress" | "log";
 type CauseImpactItem = { id: string; text: string };
 type RiskSuggestion = {
   title: string;
@@ -436,6 +425,75 @@ type SectionStatus = {
   done: boolean;
   hint: string;
 };
+
+const SIDE_PANEL_PREVIEW_LIMIT = 5;
+
+function RiskVersionHistoryList({
+  versions,
+}: {
+  versions: RiskVersionTimelineItem[];
+}) {
+  return (
+    <div className="relative pl-6">
+      <div
+        aria-hidden="true"
+        className="absolute bottom-2 left-2 top-2 w-px bg-border/70"
+      />
+      <div className="space-y-5">
+        {versions.map((version) => (
+          <Link
+            key={version.id}
+            href={`/risk/register/new?id=${version.id}`}
+            className="group relative block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                "absolute -left-6 top-0.5 z-10 size-4 rounded-full border-2 bg-card",
+                version.isCurrent
+                  ? "border-emerald-600 bg-emerald-600"
+                  : "border-muted-foreground/50",
+              )}
+            />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-foreground">
+                  {version.versionNumber
+                    ? `v${version.versionNumber}`
+                    : "Versi"}
+                </span>
+                {version.isCurrent && (
+                  <Badge tone="success" size="micro" className="font-semibold">
+                    Terkini
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {version.code || "Risiko"} ·{" "}
+                {new Date(version.createdAt).toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+                {version.assessmentCycle
+                  ? ` · ${version.assessmentCycle}`
+                  : ""}
+              </p>
+              <p className="mt-1 line-clamp-2 text-xs font-medium text-foreground/80">
+                {version.title || "Tanpa judul"}
+              </p>
+              {version.changeReason && (
+                <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
+                  {version.changeReason}
+                </p>
+              )}
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function AiFieldButton({
   loading,
@@ -711,7 +769,6 @@ export default function RiskInputPage() {
   const aiFeaturesDisabled = isAIFeaturesDisabled();
   const router = useRouter();
   const { token, user } = useAuth();
-  const setHeaderActions = useSetHeaderActions();
   const riskApprovalCapabilityBehavior = useMemo(
     () => getRiskApprovalCapabilityBehavior(user?.capabilities),
     [user?.capabilities],
@@ -752,8 +809,6 @@ export default function RiskInputPage() {
     }
     return options;
   }, [assessmentCycleDisplay]);
-  const [selectedOrganizationUPRLevel, setSelectedOrganizationUPRLevel] =
-    useState<string>("kementerian");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
@@ -764,6 +819,8 @@ export default function RiskInputPage() {
     [],
   );
   const [loadingVersions, setLoadingVersions] = useState(false);
+  const [showVersionHistoryDialog, setShowVersionHistoryDialog] =
+    useState(false);
   const [ongoingAssessmentId, setOngoingAssessmentId] = useState<string | null>(
     null,
   );
@@ -846,7 +903,6 @@ export default function RiskInputPage() {
   const advisoryNilai = calculateNilai(probability, impact, advisoryWeight);
   const advisoryInherentScore = Math.round(advisoryNilai);
   const advisoryAppetite = resolveRiskAppetite(advisoryInherentScore);
-  const advisoryIsRiskUtama = isRiskUtama(advisoryInherentScore);
 
   // Auto-set selera risiko & pilihan penanganan berdasarkan KMK
   useEffect(() => {
@@ -1213,16 +1269,6 @@ export default function RiskInputPage() {
 
   const currentOrganizationId = watch("organizationId");
 
-  // Update UPR level when organization changes
-  useEffect(() => {
-    if (currentOrganizationId && organizations.length > 0) {
-      const org = organizations.find((o) => o.id === currentOrganizationId);
-      if (org?.uprLevel) {
-        setSelectedOrganizationUPRLevel(org.uprLevel);
-      }
-    }
-  }, [currentOrganizationId, organizations]);
-
   useEffect(() => {
     if (!riskId && user?.organizationId && organizations.length > 0) {
       if (!currentOrganizationId || currentOrganizationId === "") {
@@ -1469,10 +1515,12 @@ export default function RiskInputPage() {
   const [impactSuggestions, setImpactSuggestions] = useState<SuggestionItem[]>(
     [],
   );
+  const [scorePickerMode, setScorePickerMode] = useState<
+    "inherent" | "target" | null
+  >(null);
   const [generatingRisk, setGeneratingRisk] = useState(false);
   const [riskSuggestions, setRiskSuggestions] = useState<RiskSuggestion[]>([]);
   const [showRiskSuggestions, setShowRiskSuggestions] = useState(false);
-  const [activeView, setActiveView] = useState<WorkspaceView>("form");
   const [mitigationProgressDraft, setMitigationProgressDraft] =
     useState<MitigationProgressDraft | null>(null);
 
@@ -1496,27 +1544,6 @@ export default function RiskInputPage() {
     () => calculateNilai(targetProbability, targetImpact, targetWeight),
     [targetProbability, targetImpact, targetWeight],
   );
-  const targetLevel = useMemo(
-    () => getRiskLevelFromNilai(targetNilai),
-    [targetNilai],
-  );
-  const targetPriority = useMemo(
-    () => getRiskPriority(targetLevel),
-    [targetLevel],
-  );
-  const currentScoreSemantics = useMemo(
-    () =>
-      resolveRiskScoreSemantics({
-        status: riskStatus as RiskStatus,
-        probability,
-        impact,
-        weight,
-        nilai,
-        inherentScore: Math.round(nilai),
-      }),
-    [impact, nilai, probability, riskStatus, weight],
-  );
-  const currentPrimarySnapshot = currentScoreSemantics.effective;
   const canUseAiAssist =
     !aiFeaturesDisabled &&
     title.trim().length > 0 &&
@@ -1620,6 +1647,34 @@ export default function RiskInputPage() {
     return matchedCategory && isRiskCategory(matchedCategory)
       ? matchedCategory
       : undefined;
+  };
+
+  const handleApplyRiskSuggestion = (selectedItems: SuggestionItem[]) => {
+    const selectedItem = selectedItems[0];
+    if (!selectedItem) return;
+
+    const selectedIndex = Number(
+      selectedItem.id.replace("risk-suggestion-", ""),
+    );
+    const suggestion = riskSuggestions[selectedIndex];
+    if (!suggestion) return;
+
+    setValue("title", suggestion.title, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+    setValue("description", suggestion.description, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+
+    const resolvedCategory = resolveSuggestionCategory(suggestion);
+    if (resolvedCategory) {
+      setValue("category", resolvedCategory, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
   };
 
   const getSectionIdFromField = (fieldName?: string): SectionId | undefined => {
@@ -1765,12 +1820,6 @@ export default function RiskInputPage() {
       firstInvalidSection,
     };
   };
-
-  useEffect(() => {
-    if (!riskId && activeView !== "form") {
-      setActiveView("form");
-    }
-  }, [riskId, activeView]);
 
   const buildPayload = (data: FormValues, status: string) =>
     buildRiskRegisterPayload(data, status, {
@@ -2009,16 +2058,6 @@ export default function RiskInputPage() {
     [token],
   );
 
-  const handleViewChange = (nextView: WorkspaceView) => {
-    if (nextView !== "form" && !riskId) {
-      toast.info(
-        "Simpan draft terlebih dahulu untuk membuka progress mitigasi, riwayat versi, dan log komunikasi.",
-      );
-      return;
-    }
-    setActiveView(nextView);
-  };
-
   useEffect(() => {
     if (riskId && token) {
       void loadRiskVersions(riskId);
@@ -2045,7 +2084,8 @@ export default function RiskInputPage() {
   async function handleGenerateRisk() {
     if (aiFeaturesDisabled || isRiskLocked) return;
     setGeneratingRisk(true);
-    setShowRiskSuggestions(false);
+    setRiskSuggestions([]);
+    setShowRiskSuggestions(true);
     try {
       const res = await api.post<{ suggestions: RiskSuggestion[] }>(
         "/ai/risk-suggestions",
@@ -2053,9 +2093,9 @@ export default function RiskInputPage() {
         token || undefined,
       );
       setRiskSuggestions(res.suggestions || []);
-      setShowRiskSuggestions(true);
     } catch (err) {
       console.error(err);
+      setShowRiskSuggestions(false);
     } finally {
       setGeneratingRisk(false);
     }
@@ -2080,12 +2120,13 @@ export default function RiskInputPage() {
       CATEGORY_ORDER.forEach((category) => {
         const categoryKey = category as CategoryKey;
         const categoryItems = res.categories[categoryKey] || [];
-        categoryItems.forEach((itemText: string) => {
-          newItems.push({
-            id: `cause-suggestion-${Date.now()}-${idx++}`,
-            text: `[${CATEGORY_TITLES[categoryKey]}] ${itemText}`,
+          categoryItems.forEach((itemText: string) => {
+            newItems.push({
+              id: `cause-suggestion-${Date.now()}-${idx++}`,
+              text: itemText,
+              value: `[${CATEGORY_TITLES[categoryKey]}] ${itemText}`,
+            });
           });
-        });
       });
       setCauseSuggestions(newItems);
     } catch (err) {
@@ -2192,51 +2233,66 @@ export default function RiskInputPage() {
     }
   };
 
-  useEffect(() => {
-    if (riskStatus !== "draft" && riskId) {
-      setHeaderActions(null);
-      return;
-    }
-
-    setHeaderActions(
-      <div className="flex items-center gap-2">
-        <ActionButton
-          variant="outline"
-          loading={isSubmitting && submitTarget.current === "draft"}
-          icon={<Save className="size-3.5" />}
-          onClick={() => handleSaveDraftHeaderRef.current()}
-          disabled={isSubmitting}
-        >
-          Simpan draft
-        </ActionButton>
-        <AccentButton
-          icon={
-            isSubmitting && submitTarget.current === "review" ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Send className="size-3.5" />
-            )
-          }
-          onClick={() => openSubmitReviewConfirmHeaderRef.current()}
-          disabled={isSubmitting}
-        >
-          {submitActionLabel}
-        </AccentButton>
-      </div>,
-    );
-
-    return () => setHeaderActions(null);
-  }, [
-    isSubmitting,
-    riskId,
-    riskStatus,
-    setHeaderActions,
-    submitActionLabel,
-  ]);
+  const visibleRiskVersions = riskVersions.slice(0, SIDE_PANEL_PREVIEW_LIMIT);
 
   return (
     <TooltipProvider>
       <FormPage className="risk-form-filter-controls max-w-none space-y-6">
+        <div className="mx-auto grid w-full max-w-[1400px] min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0">
+          <CollectionPageHeader
+            backAction={
+              <ActionButton
+                asChild
+                variant="ghost"
+                size="sm"
+                className="px-0 hover:bg-transparent"
+              >
+                <Link href="/risk/register">
+                  <ArrowLeft className="size-3.5" />
+                  Kembali ke daftar risiko
+                </Link>
+              </ActionButton>
+            }
+            actionsPlacement="title"
+            title={riskId ? "Edit Risiko" : "Tambah Risiko"}
+            description={
+              riskId
+                ? "Perbarui informasi dan rencana penanganan risiko."
+                : "Daftarkan risiko baru untuk organisasi."
+            }
+            actions={
+              riskStatus === "draft" || !riskId ? (
+                <>
+                  <ActionButton
+                    variant="outline"
+                    loading={isSubmitting && submitTarget.current === "draft"}
+                    icon={<Save className="size-3.5" />}
+                    onClick={() => handleSaveDraftHeaderRef.current()}
+                    disabled={isSubmitting}
+                  >
+                    Simpan draft
+                  </ActionButton>
+                  <AccentButton
+                    icon={
+                      isSubmitting && submitTarget.current === "review" ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Send className="size-3.5" />
+                      )
+                    }
+                    onClick={() => openSubmitReviewConfirmHeaderRef.current()}
+                    disabled={isSubmitting}
+                  >
+                    {submitActionLabel}
+                  </AccentButton>
+                </>
+              ) : undefined
+            }
+          />
+          </div>
+        </div>
+
         {riskArchivedAt && (
           <Card className="bg-amber-50/80">
             <CardContent className="space-y-1 p-4 text-sm text-amber-900">
@@ -2251,48 +2307,12 @@ export default function RiskInputPage() {
           </Card>
         )}
 
-        <div className="hidden">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Navigasi
-            </p>
-          </div>
-
-          <Tabs
-            value={activeView}
-            onValueChange={(value) => handleViewChange(value as WorkspaceView)}
-          >
-            <TabsList
-              className="rounded-lg ring-1 ring-inset ring-border/80 bg-muted/50 p-0.5"
-              style={{ height: "36px" }}
-            >
-              <TabsTrigger
-                value="progress"
-                disabled={!riskId}
-                className="h-full gap-1.5 rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200 motion-reduce:transition-none"
-              >
-                <CheckSquare className="size-3.5 shrink-0" strokeWidth={2.5} />
-                Progres
-              </TabsTrigger>
-              <TabsTrigger
-                value="log"
-                disabled={!riskId}
-                className="h-full gap-1.5 rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200 motion-reduce:transition-none"
-              >
-                <History className="size-3.5 shrink-0" strokeWidth={2.5} />
-                Log
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        <div className="mx-auto w-full max-w-5xl">
-          <div className="min-w-0 w-full">
-
+        <div className="mx-auto grid w-full max-w-[1400px] min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0">
             <form
-                onSubmit={(e) => e.preventDefault()}
-                className="min-w-0 w-full"
-              >
+              onSubmit={(e) => e.preventDefault()}
+              className="min-w-0 w-full"
+            >
               <Accordion
                 type="multiple"
                 value={[
@@ -2323,7 +2343,7 @@ export default function RiskInputPage() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                    <div className="relative">
+                    <div>
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <Label className="text-sm font-medium text-foreground">
                           Risiko
@@ -2358,88 +2378,34 @@ export default function RiskInputPage() {
                         <FormErrorMessage error={errors.title?.message} />
                       </div>
 
-                      {showRiskSuggestions && riskSuggestions.length > 0 && (
-                        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl bg-background/95 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 backdrop-blur-md">
-                          <div className="px-3 py-2">
-                            <p className="text-xs font-semibold text-foreground">
-                              Saran AI untuk judul risiko
-                            </p>
-                          </div>
-                          <div className="max-h-[300px] overflow-y-auto divide-y divide-border/40">
-                            {riskSuggestions.map((suggestion, idx) => {
-                              const resolvedCategory =
-                                resolveSuggestionCategory(suggestion);
-                              return (
-                                <button
-                                  key={idx}
-                                  type="button"
-                                  onClick={() => {
-                                    setValue("title", suggestion.title, {
-                                      shouldValidate: true,
-                                      shouldDirty: true,
-                                    });
-                                    setValue(
-                                      "description",
-                                      suggestion.description,
-                                      {
-                                        shouldValidate: true,
-                                        shouldDirty: true,
-                                      },
-                                    );
-                                    if (resolvedCategory) {
-                                      setValue("category", resolvedCategory, {
-                                        shouldValidate: true,
-                                        shouldDirty: true,
-                                      });
-                                    }
-                                    setShowRiskSuggestions(false);
-                                  }}
-                                  className="w-full p-3 text-left transition-colors hover:bg-muted/30"
-                                >
-                                  <p className="text-sm font-medium text-foreground">
-                                    {suggestion.title}
-                                  </p>
-                                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground line-clamp-2">
-                                    {suggestion.description}
-                                  </p>
-                                  {resolvedCategory ? (
-                                    <p className="mt-1 text-[11px] font-medium text-primary">
-                                      Kategori:{" "}
-                                      {riskCategoryLabels[resolvedCategory]}
-                                    </p>
-                                  ) : null}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
-                    <Label className="text-sm font-medium text-foreground">
-                      Deskripsi Kejadian Risiko
-                      <span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <Controller
-                      name="description"
-                      control={control}
-                      render={({ field }) => (
-                        <Textarea
-                          {...field}
-                          placeholder="Contoh: Mesin A mati secara tiba-tiba saat proses produksi berlangsung..."
-                          disabled={isRiskLocked}
-                          className={cn(
-                            "min-h-[120px] text-sm",
-                            lockedControlClass,
-                            errors.description && "border-destructive",
-                          )}
-                        />
-                      )}
-                    />
-                    <FormErrorMessage
-                      error={errors.description?.message}
-                      className="mt-0"
-                    />
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-sm font-medium text-foreground">
+                        Deskripsi Kejadian Risiko
+                        <span className="text-destructive ml-0.5">*</span>
+                      </Label>
+                      <Controller
+                        name="description"
+                        control={control}
+                        render={({ field }) => (
+                          <Textarea
+                            {...field}
+                            placeholder="Contoh: Mesin A mati secara tiba-tiba saat proses produksi berlangsung..."
+                            disabled={isRiskLocked}
+                            className={cn(
+                              "min-h-[120px] text-sm",
+                              lockedControlClass,
+                              errors.description && "border-destructive",
+                            )}
+                          />
+                        )}
+                      />
+                      <FormErrorMessage
+                        error={errors.description?.message}
+                        className="mt-0"
+                      />
+                    </div>
 
                     <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium text-foreground">
@@ -2700,6 +2666,7 @@ export default function RiskInputPage() {
                     <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium text-foreground">
                         Pengendalian yang Ada
+                        <span className="text-destructive ml-0.5">*</span>
                       </Label>
                       <Controller
                         name="existingControl"
@@ -2718,9 +2685,10 @@ export default function RiskInputPage() {
                       />
                     </div>
                     <div className="grid gap-5 md:grid-cols-2">
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 md:col-span-2">
                         <Label className="text-sm font-medium text-foreground">
                           Efektivitas Pengendalian
+                          <span className="text-destructive ml-0.5">*</span>
                         </Label>
                         <Controller
                           name="controlEffectiveness"
@@ -2740,6 +2708,7 @@ export default function RiskInputPage() {
                               disabled={isRiskLocked}
                               invalid={Boolean(errors.controlEffectiveness)}
                               triggerClassName={cn(
+                                "!w-full",
                                 lockedControlClass,
                                 errors.controlEffectiveness &&
                                   "border-destructive",
@@ -2753,101 +2722,18 @@ export default function RiskInputPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-5 md:grid-cols-2">
-                      <div className="flex flex-col gap-2">
-                        <ProbabilityCriteriaTooltip className="text-sm font-medium" />
-                        <RiskRatingSlider
-                          value={probability}
-                          onChange={(val) =>
-                            setValue("probability", val, {
-                              shouldValidate: true,
-                            })
-                          }
-                          getLevel={(val) =>
-                            getRiskLevelFromNilai(
-                              calculateNilai(val, impact, getBobot(val, impact)),
-                            )
-                          }
-                          labels={PROBABILITY_LABELS}
-                          disabled={isRiskLocked}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        {category && selectedOrganizationUPRLevel ? (
-                          <ImpactCriteriaTooltip
-                            token={token || ""}
-                            label="Dampak"
-                            category={
-                              category as import("@/types/impact-criteria").ImpactCriteriaCategory
-                            }
-                            uprLevel={
-                              selectedOrganizationUPRLevel as import("@/types/impact-criteria").ImpactCriteriaUPRLevel
-                            }
-                            className="text-sm font-medium"
-                          />
-                        ) : (
-                          <Label className="flex h-6 items-center text-sm font-medium">
-                            Dampak
-                          </Label>
-                        )}
-                        <RiskRatingSlider
-                          value={impact}
-                          onChange={(val) =>
-                            setValue("impact", val, {
-                              shouldValidate: true,
-                            })
-                          }
-                          getLevel={(val) =>
-                            getRiskLevelFromNilai(
-                              calculateNilai(probability, val, getBobot(probability, val)),
-                            )
-                          }
-                          labels={IMPACT_LABELS}
-                          disabled={isRiskLocked}
-                        />
-                      </div>
+                    <div className="flex flex-col gap-3">
+                      <Label className="text-sm font-medium text-foreground">
+                        Skor Risiko
+                      </Label>
+                      <RiskScorePickerTrigger
+                        title="Skor Risiko"
+                        probability={probability}
+                        impact={impact}
+                        onClick={() => setScorePickerMode("inherent")}
+                        disabled={isRiskLocked}
+                      />
                     </div>
-
-                    <RiskAssessmentSummaryStrip
-                      title="Hasil Penilaian"
-                      score={currentPrimarySnapshot.score}
-                      level={currentPrimarySnapshot.level}
-                      scoreLabel="Skor risiko"
-                      statusLabel={
-                        advisoryAppetite === "di_atas_batas"
-                          ? "Di Atas Batas"
-                          : "Dalam Batas"
-                      }
-                      statusTone={
-                        advisoryAppetite === "di_atas_batas"
-                          ? "warning"
-                          : "success"
-                      }
-                      metrics={[
-                        {
-                          label: "Bobot",
-                          value: (
-                            <span className="font-mono tabular-nums">
-                              {currentPrimarySnapshot.weight.toFixed(2)}
-                            </span>
-                          ),
-                        },
-                        {
-                          label: "Prioritas",
-                          value: (
-                            <span className="tabular-nums">
-                              {currentPrimarySnapshot.priority}
-                            </span>
-                          ),
-                        },
-                      ]}
-                      note={
-                        advisoryIsRiskUtama
-                          ? `Risiko utama. Pertimbangkan mitigasi.`
-                          : undefined
-                      }
-                      noteTone={advisoryIsRiskUtama ? "warning" : "neutral"}
-                    />
                   </AccordionContent>
                 </AccordionItem>
 
@@ -2872,9 +2758,9 @@ export default function RiskInputPage() {
                         <Label className="text-sm font-medium text-foreground">
                           Prioritas Risiko
                         </Label>
-                        <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3 text-sm">
+                        <div className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                           <span className="font-semibold">{riskPriority}</span>
-                          <span className="ml-2 text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             (Otomatis dari tingkat risiko)
                           </span>
                         </div>
@@ -2882,15 +2768,14 @@ export default function RiskInputPage() {
                       <div className="flex flex-col gap-2">
                         <Label className="text-sm font-medium text-foreground">
                           Selera Risiko
-                          <span className="text-destructive ml-0.5">*</span>
                         </Label>
-                        <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3 text-sm">
-                          <span className="font-normal text-foreground">
+                        <div className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                          <span className="font-medium text-foreground">
                             {advisoryAppetite === "di_atas_batas"
                               ? "Di atas batas selera risiko"
                               : "Dalam batas selera risiko"}
                           </span>
-                          <span className="ml-2 text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             (Otomatis dari skor risiko)
                           </span>
                         </div>
@@ -2942,82 +2827,88 @@ export default function RiskInputPage() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                    <Controller
-                      name="mitigations"
-                      control={control}
-                      render={({ field }) => (
-                        <MitigationTable
-                          items={(field.value ?? []).map(
-                            (mitigation): MitigationItem => ({
-                              id: mitigation.id,
-                              action: mitigation.action ?? "",
-                              owner: mitigation.owner ?? "",
-                              treatmentOwnerId: mitigation.treatmentOwnerId,
-                              externalPicId: mitigation.externalPicId,
-                              mitigationType:
-                                mitigation.mitigationType ??
-                                "reduce_probability",
-                              activityStage: mitigation.activityStage ?? "",
-                              expectedOutput: mitigation.expectedOutput ?? "",
-                              quantitativeTarget:
-                                mitigation.quantitativeTarget ?? "",
-                              supportingUnit: mitigation.supportingUnit ?? "",
-                              resourcesRequired:
-                                mitigation.resourcesRequired ?? "",
-                              contingencyPlan: mitigation.contingencyPlan ?? "",
-                              potentialObstacle:
-                                mitigation.potentialObstacle ?? "",
-                              costBenefitNote: mitigation.costBenefitNote ?? "",
-                              isBreakthroughActivity:
-                                mitigation.isBreakthroughActivity ?? false,
-                              isExistingControl:
-                                mitigation.isExistingControl ?? false,
-                            }),
-                          )}
-                          onChange={field.onChange}
-                          loadPicOptions={loadPicOptions}
-                          disabled={isRiskLocked}
-                          actionErrors={mitigationActionErrors}
-                        />
-                      )}
-                    />
-                    <FormErrorMessage error={errors.mitigations?.message} />
-
-                    {!aiFeaturesDisabled ? (
-                      <MitigationPicker
-                        title={title}
-                        description={description}
-                        cause={(causes || [])
-                          .map((cause) => cause.text)
-                          .join("\n")}
-                        impactDescription={(impacts || [])
-                          .map((impactItem) => impactItem.text)
-                          .join("\n")}
-                        onSelect={(action) => {
-                          const current = form.getValues("mitigations") || [];
-                          setValue(
-                            "mitigations",
-                            [
-                              ...current,
-                              {
-                                action,
-                                owner: "",
-                                mitigationType: "reduce_probability",
-                                isBreakthroughActivity: false,
-                                isExistingControl: false,
-                              },
-                            ],
-                            { shouldValidate: true },
-                          );
-                        }}
-                        existingActions={(mitigations || [])
-                          .map((mitigation) => mitigation.action)
-                          .filter((action): action is string =>
-                            Boolean(action),
-                          )}
-                        disabled={isRiskLocked}
+                    <div className="space-y-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <Label className="text-sm font-medium text-foreground">
+                          Rencana Mitigasi
+                        </Label>
+                        {!aiFeaturesDisabled ? (
+                          <MitigationPicker
+                            title={title}
+                            description={description}
+                            cause={(causes || [])
+                              .map((cause) => cause.text)
+                              .join("\n")}
+                            impactDescription={(impacts || [])
+                              .map((impactItem) => impactItem.text)
+                              .join("\n")}
+                            onSelect={(action) => {
+                              const current = form.getValues("mitigations") || [];
+                              setValue(
+                                "mitigations",
+                                [
+                                  ...current,
+                                  {
+                                    action,
+                                    owner: "",
+                                    mitigationType: "reduce_probability",
+                                    isBreakthroughActivity: false,
+                                    isExistingControl: false,
+                                  },
+                                ],
+                                { shouldValidate: true },
+                              );
+                            }}
+                            existingActions={(mitigations || [])
+                              .map((mitigation) => mitigation.action)
+                              .filter((action): action is string =>
+                                Boolean(action),
+                              )}
+                            disabled={isRiskLocked}
+                          />
+                        ) : null}
+                      </div>
+                      <Controller
+                        name="mitigations"
+                        control={control}
+                        render={({ field }) => (
+                          <MitigationTable
+                            items={(field.value ?? []).map(
+                              (mitigation): MitigationItem => ({
+                                id: mitigation.id,
+                                action: mitigation.action ?? "",
+                                owner: mitigation.owner ?? "",
+                                treatmentOwnerId: mitigation.treatmentOwnerId,
+                                externalPicId: mitigation.externalPicId,
+                                mitigationType:
+                                  mitigation.mitigationType ??
+                                  "reduce_probability",
+                                activityStage: mitigation.activityStage ?? "",
+                                expectedOutput: mitigation.expectedOutput ?? "",
+                                quantitativeTarget:
+                                  mitigation.quantitativeTarget ?? "",
+                                supportingUnit: mitigation.supportingUnit ?? "",
+                                resourcesRequired:
+                                  mitigation.resourcesRequired ?? "",
+                                contingencyPlan: mitigation.contingencyPlan ?? "",
+                                potentialObstacle:
+                                  mitigation.potentialObstacle ?? "",
+                                costBenefitNote: mitigation.costBenefitNote ?? "",
+                                isBreakthroughActivity:
+                                  mitigation.isBreakthroughActivity ?? false,
+                                isExistingControl:
+                                  mitigation.isExistingControl ?? false,
+                              }),
+                            )}
+                            onChange={field.onChange}
+                            loadPicOptions={loadPicOptions}
+                            disabled={isRiskLocked}
+                            actionErrors={mitigationActionErrors}
+                          />
+                        )}
                       />
-                    ) : null}
+                      <FormErrorMessage error={errors.mitigations?.message} />
+                    </div>
 
                     <div className="flex flex-col gap-2 pt-1">
                       <Label className="text-sm font-medium text-foreground">
@@ -3055,77 +2946,28 @@ export default function RiskInputPage() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                    <div className="grid gap-5 md:grid-cols-2">
-                      <div className="flex flex-col gap-2">
-                        <ProbabilityCriteriaTooltip className="text-sm font-medium" />
-                        <RiskRatingSlider
-                          value={targetProbability}
-                          onChange={(val) =>
-                            setValue("targetProbability", val, {
-                              shouldValidate: true,
-                            })
-                          }
-                          getLevel={(val) =>
-                            getRiskLevelFromNilai(
-                              calculateNilai(val, targetImpact, getBobot(val, targetImpact)),
-                            )
-                          }
-                          labels={PROBABILITY_LABELS}
-                          disabled={isRiskLocked}
-                        />
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center">
+                        <Label className="flex h-6 items-center text-sm font-medium">
+                          Pilih skor target
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                      </div>
+                      <RiskScorePickerTrigger
+                        title="Target penurunan"
+                        probability={targetProbability}
+                        impact={targetImpact}
+                        onClick={() => setScorePickerMode("target")}
+                        disabled={isRiskLocked}
+                      />
+                      <div className="grid gap-1 md:grid-cols-2">
                         <FormErrorMessage
                           error={errors.targetProbability?.message}
                         />
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Label className="flex h-6 items-center text-sm font-medium">
-                          Dampak
-                        </Label>
-                        <RiskRatingSlider
-                          value={targetImpact}
-                          onChange={(val) =>
-                            setValue("targetImpact", val, {
-                              shouldValidate: true,
-                            })
-                          }
-                          getLevel={(val) =>
-                            getRiskLevelFromNilai(
-                              calculateNilai(targetProbability, val, getBobot(targetProbability, val)),
-                            )
-                          }
-                          labels={IMPACT_LABELS}
-                          disabled={isRiskLocked}
-                        />
-                        <FormErrorMessage
-                          error={errors.targetImpact?.message}
-                        />
+                        <FormErrorMessage error={errors.targetImpact?.message} />
                       </div>
                     </div>
 
-                    <RiskAssessmentSummaryStrip
-                      title="Target Penurunan"
-                      score={Math.round(targetNilai)}
-                      level={targetLevel}
-                      scoreLabel="Skor target"
-                      metrics={[
-                        {
-                          label: "Bobot",
-                          value: (
-                            <span className="font-mono tabular-nums">
-                              {targetWeight.toFixed(2)}
-                            </span>
-                          ),
-                        },
-                        {
-                          label: "Prioritas",
-                          value: (
-                            <span className="tabular-nums">
-                              {targetPriority}
-                            </span>
-                          ),
-                        },
-                      ]}
-                    />
                   </AccordionContent>
                 </AccordionItem>
 
@@ -3207,79 +3049,153 @@ export default function RiskInputPage() {
                 )}
               </Accordion>
             </form>
-
           </div>
 
-          <div className="hidden">
-            <div className="space-y-6 xl:sticky xl:top-24">
-            <Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors duration-300">
-              <CardHeader className="px-5 pt-4 pb-2">
-                <CardTitle className="text-sm font-semibold">Navigasi</CardTitle>
-              </CardHeader>
-              <CardContent className="px-5 pb-4 pt-3">
-                {riskId ? (
-                  <Tabs
-                    value={activeView}
-                    onValueChange={(value) =>
-                      handleViewChange(value as WorkspaceView)
-                    }
-                  >
-                    <TabsList className="rounded-lg ring-1 ring-inset ring-border/50 bg-muted/50 p-0.5" style={{ height: '36px' }}>
-                      <TabsTrigger
-                        value="progress"
-                        disabled={!riskId}
-                        className="h-full flex-1 rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200 motion-reduce:transition-none"
+          <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">
+            <div className="space-y-6">
+              <Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors duration-300">
+                <CardContent className="px-5 py-5">
+                  <div className="space-y-6">
+                    <section aria-labelledby="risk-side-progress">
+                      <div className="flex items-center justify-between gap-3">
+                        <h2
+                          id="risk-side-progress"
+                          className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
+                        >
+                          Progres
+                        </h2>
+                      </div>
+                      <div className="mt-3">
+                        {riskId ? (
+                          <MitigationProgressTab
+                            riskId={riskId}
+                            token={token || ""}
+                            aiDraft={mitigationProgressDraft}
+                            onAiDraftConsumed={() =>
+                              setMitigationProgressDraft(null)
+                            }
+                          />
+                        ) : (
+                          <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 px-3 py-4 text-center text-xs text-muted-foreground">
+                            Simpan draft untuk melihat progres penanganan.
+                          </div>
+                        )}
+                      </div>
+                    </section>
+
+                    <section
+                      aria-labelledby="risk-side-log"
+                      className="border-t border-dashed border-border/70 pt-5"
+                    >
+                      <h2
+                        id="risk-side-log"
+                        className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
                       >
-                        <CheckSquare className="size-3.5 shrink-0" strokeWidth={2.5} />
-                        Progres
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="log"
-                        disabled={!riskId}
-                        className="h-full flex-1 rounded-md border border-transparent px-3 text-sm font-medium data-active:border-border/50 data-active:bg-background group-data-[variant=default]/tabs-list:data-active:shadow-none duration-200 motion-reduce:transition-none"
-                      >
-                        <History className="size-3.5 shrink-0" strokeWidth={2.5} />
                         Log
-                      </TabsTrigger>
-                    </TabsList>
-                    {activeView === "progress" && riskId && (
+                      </h2>
                       <div className="mt-3">
-                        <MitigationProgressTab
-                          riskId={riskId}
-                          token={token || ""}
-                          aiDraft={mitigationProgressDraft}
-                          onAiDraftConsumed={() => setMitigationProgressDraft(null)}
-                        />
+                        {riskId ? (
+                          <RiskLogTimeline
+                            riskId={riskId}
+                            token={token || ""}
+                          />
+                        ) : (
+                          <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 px-3 py-4 text-center text-xs text-muted-foreground">
+                            Simpan draft untuk mencatat log komunikasi.
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {activeView === "log" && riskId && (
-                      <div className="mt-3">
-                        <RiskLogTimeline riskId={riskId} token={token || ""} />
-                      </div>
-                    )}
-                  </Tabs>
-                ) : (
-                  <div className="flex min-h-[36px] items-center justify-center rounded-md border border-dashed border-border/40 bg-muted/10 px-3 text-center text-xs text-muted-foreground">
-                    Simpan draft untuk mengakses navigasi
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    </section>
 
-            <ReviewSidePanel
-              approvalId={approvalId}
-              approvalWorkflow={approvalWorkflow}
-              currentUserId={user?.id}
-              riskStatus={riskStatus}
-              userRole={user?.role || ""}
-              inherentScore={Math.round(nilai)}
-              token={token || undefined}
-              onActionComplete={() => riskId && loadRiskData(riskId)}
-              onNavigateToLog={() => setActiveView("log")}
-            />
+                    <section
+                      aria-labelledby="risk-side-version-history"
+                      className="border-t border-dashed border-border/70 pt-5"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <h2
+                          id="risk-side-version-history"
+                          className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
+                        >
+                          Riwayat versi
+                        </h2>
+                        {riskVersions.length > 0 && (
+                          <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                            {riskVersions.length}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-4">
+                        {loadingVersions ? (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Loader2 className="size-3.5 animate-spin" />
+                            Memuat riwayat versi...
+                          </div>
+                        ) : riskVersions.length > 0 ? (
+                          <RiskVersionHistoryList versions={visibleRiskVersions} />
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            {riskId
+                              ? "Belum ada riwayat versi."
+                              : "Simpan draft untuk membentuk riwayat versi."}
+                          </p>
+                        )}
+                      </div>
+                      {riskVersions.length > SIDE_PANEL_PREVIEW_LIMIT && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 h-8 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
+                          onClick={() => setShowVersionHistoryDialog(true)}
+                        >
+                          Lihat semua versi ({riskVersions.length})
+                        </Button>
+                      )}
+                    </section>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <ReviewSidePanel
+                approvalId={approvalId}
+                approvalWorkflow={approvalWorkflow}
+                currentUserId={user?.id}
+                riskStatus={riskStatus}
+                userRole={user?.role || ""}
+                inherentScore={Math.round(nilai)}
+                token={token || undefined}
+                onActionComplete={() => riskId && loadRiskData(riskId)}
+              />
             </div>
-          </div>
+          </aside>
         </div>
+
+        <Dialog
+          open={showVersionHistoryDialog}
+          onOpenChange={setShowVersionHistoryDialog}
+        >
+          <DialogContent
+            className="max-w-2xl no-scrollbar"
+            showCloseButton={false}
+          >
+            <div className="flex min-h-0 flex-col gap-5">
+              <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+                <DialogTitle className="text-base">Riwayat Versi</DialogTitle>
+              </DialogHeader>
+              <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto pr-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+                <RiskVersionHistoryList versions={riskVersions} />
+              </div>
+              <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+                <CollectionDialogCancel
+                  onClick={() => setShowVersionHistoryDialog(false)}
+                >
+                  Tutup
+                </CollectionDialogCancel>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
           <DialogContent className="max-w-md">
@@ -3315,43 +3231,67 @@ export default function RiskInputPage() {
         </Dialog>
 
         <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Arsipkan Risiko?</DialogTitle>
-              <DialogDescription>
-                Risiko akan disembunyikan dari daftar aktif tetapi tetap
-                tersimpan untuk audit trail.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
-              <Input
-                value={archiveReasonInput}
-                onChange={(event) => setArchiveReasonInput(event.target.value)}
-                placeholder="Alasan utama arsip"
-              />
-              <Textarea
-                value={archiveNoteInput}
-                onChange={(event) => setArchiveNoteInput(event.target.value)}
-                placeholder="Catatan tambahan (opsional)"
-                rows={4}
-              />
+          <DialogContent
+            className="max-w-lg no-scrollbar"
+            showCloseButton={false}
+          >
+            <div className="flex min-h-0 flex-col gap-5">
+              <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+                <DialogTitle>Arsipkan Risiko?</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                    Risiko
+                  </p>
+                  <p className="text-sm font-medium">
+                    {title || "Tanpa judul"}
+                  </p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {riskId || "Belum tersimpan"}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label className="text-sm" htmlFor="new-archive-reason">
+                    Alasan utama arsip
+                  </Label>
+                  <Input
+                    id="new-archive-reason"
+                    value={archiveReasonInput}
+                    onChange={(event) =>
+                      setArchiveReasonInput(event.target.value)
+                    }
+                    placeholder="Masukkan alasan pengarsipan"
+                    className="text-base sm:text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label className="text-sm" htmlFor="new-archive-note">
+                    Catatan tambahan (opsional)
+                  </Label>
+                  <Textarea
+                    id="new-archive-note"
+                    value={archiveNoteInput}
+                    onChange={(event) => setArchiveNoteInput(event.target.value)}
+                    placeholder="Tambahkan konteks jika diperlukan"
+                    className="min-h-[80px] text-base sm:text-sm"
+                  />
+                </div>
+              </div>
+              <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+                <CollectionDialogCancel
+                  onClick={() => setShowArchiveDialog(false)}
+                >
+                  Batal
+                </CollectionDialogCancel>
+                <AccentButton
+                  onClick={handleArchiveCurrentRisk}
+                  disabled={isSubmitting}
+                >
+                  Arsipkan
+                </AccentButton>
+              </DialogFooter>
             </div>
-            <DialogFooter className="gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowArchiveDialog(false)}
-              >
-                Batal
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleArchiveCurrentRisk}
-                disabled={isSubmitting}
-              >
-                Arsipkan
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
 
@@ -3443,17 +3383,79 @@ export default function RiskInputPage() {
           </AlertDialogContent>
         </AlertDialog>
 
+        <RiskScoreHeatmapModal
+          key={scorePickerMode ?? "closed"}
+          open={scorePickerMode !== null}
+          onOpenChange={(open) => {
+            if (!open) setScorePickerMode(null);
+          }}
+          title={
+            scorePickerMode === "target"
+              ? "Pilih Skor Target"
+              : "Pilih Skor Risiko"
+          }
+          description="Klik satu cell untuk melihat kombinasi probabilitas, dampak, skor, dan level risikonya."
+          probability={
+            scorePickerMode === "target" ? targetProbability : probability
+          }
+          impact={scorePickerMode === "target" ? targetImpact : impact}
+          onApply={({ probability: selectedProbability, impact: selectedImpact }) => {
+            if (scorePickerMode === "target") {
+              setValue("targetProbability", selectedProbability, {
+                shouldValidate: true,
+                shouldDirty: true,
+              });
+              setValue("targetImpact", selectedImpact, {
+                shouldValidate: true,
+                shouldDirty: true,
+              });
+              return;
+            }
+
+            setValue("probability", selectedProbability, {
+              shouldValidate: true,
+              shouldDirty: true,
+            });
+            setValue("impact", selectedImpact, {
+              shouldValidate: true,
+              shouldDirty: true,
+            });
+          }}
+        />
+
+        <AiSuggestionModal
+          open={showRiskSuggestions}
+          onOpenChange={setShowRiskSuggestions}
+          title="Rekomendasi Judul Risiko"
+          description="Pilih satu saran yang paling sesuai untuk mengisi judul dan deskripsi risiko."
+          suggestions={riskSuggestions.map((suggestion, index) => {
+            const resolvedCategory = resolveSuggestionCategory(suggestion);
+            return {
+              id: `risk-suggestion-${index}`,
+              text: suggestion.title,
+              description: suggestion.description,
+              meta: resolvedCategory
+                ? `Kategori: ${riskCategoryLabels[resolvedCategory]}`
+                : undefined,
+            };
+          })}
+          selectionMode="single"
+          variant="clean-list"
+          isLoading={generatingRisk}
+          onApply={handleApplyRiskSuggestion}
+        />
+
         <AiSuggestionModal
           open={causeModalOpen}
           onOpenChange={setCauseModalOpen}
           title="Saran Penyebab Risiko"
-          description="Pilih penyebab yang relevan dari saran AI di bawah ini untuk ditambahkan ke daftar sebab."
           suggestions={causeSuggestions}
           isLoading={generatingCause}
+          variant="structured-list"
           onApply={(selectedItems) => {
             const newItems = selectedItems.map((item, idx) => ({
               id: `cause-applied-${Date.now()}-${idx}`,
-              text: item.text,
+              text: item.value ?? item.text,
             }));
             const currentCauses = form.getValues("causes") || [];
             setValue("causes", [...currentCauses, ...newItems], {

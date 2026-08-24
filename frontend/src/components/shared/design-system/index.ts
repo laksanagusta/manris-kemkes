@@ -97,11 +97,18 @@ export {
   type RiskAssessmentSummaryStripProps,
 } from "./domain/risk-assessment-summary-strip";
 export {
+  RiskScoreHeatmapModal,
+  RiskScorePickerTrigger,
+  type RiskScorePickerTriggerProps,
+  type RiskScoreSelection,
+} from "./domain/risk-score-heatmap-picker";
+export {
   SemesterIndicator,
   type SemesterIndicatorStatus,
 } from "./domain/semester-indicator";
 export {
   MonitoringTransactionProgress,
+  type MonitoringTransactionProgressItem,
   type MonitoringTransactionQuarters,
   type MonitoringTransactionStatus,
 } from "./domain/monitoring-transaction-progress";

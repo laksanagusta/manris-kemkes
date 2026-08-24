@@ -230,7 +230,7 @@ export function RiskAnalysisTab({
           <CardHeader className="space-y-1.5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-sm font-semibold">
+                <CardTitle className="text-sm font-medium normal-case">
                   Tren nilai risiko
                 </CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">

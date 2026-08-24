@@ -70,7 +70,7 @@ export function TableExample() {
         </CollectionTableHeader>
         <TableBody>
           {/* Two-line ledger rows stay tall; single-line registers opt into h-10. */}
-          <TableRow className="h-[72.5px] border-0 hover:bg-white">
+          <TableRow className="h-[72.5px] border-0 hover:bg-sidebar-accent">
             <TableCell className="h-[72.5px] p-4 px-6 align-middle">
               <div className="flex h-10 items-center gap-3">
                 <div
@@ -80,11 +80,11 @@ export function TableExample() {
                   <Server className="size-3.5" strokeWidth={1.75} />
                 </div>
                 <div className="flex h-10 min-w-0 flex-col justify-start">
-                  <span className="truncate text-sm font-medium leading-5 text-[#111827]">
-                    hermes
+                  <span className="truncate text-sm font-semibold leading-5 text-[#111827]">
+                    Rencana Penanganan
                   </span>
-                  <span className="truncate text-sm font-medium leading-5 text-muted-foreground">
-                    VPS 2 Core, RAM 2GB
+                  <span className="truncate font-mono text-sm font-medium tracking-wide text-muted-foreground">
+                    R-151
                   </span>
                 </div>
               </div>

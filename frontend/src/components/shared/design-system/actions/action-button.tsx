@@ -19,12 +19,19 @@ export function ActionButton({
   icon?: ReactNode;
   loading?: boolean;
 }) {
+  const hasSmoothElevation = className?.includes("smooth-shadow-") ?? false;
+  const buttonClassName = cn(
+    "gap-2 rounded-[8px]",
+    !hasSmoothElevation && "shadow-none",
+    className,
+  );
+
   if (asChild) {
     return (
       <Button
         variant={variant}
         size={size}
-        className={cn("gap-2 rounded-[8px] shadow-none", className)}
+        className={buttonClassName}
         {...props}
         asChild
       >
@@ -37,7 +44,7 @@ export function ActionButton({
     <Button
       variant={variant}
       size={size}
-      className={cn("gap-2 rounded-[8px] shadow-none", className)}
+      className={buttonClassName}
       {...props}
     >
       {loading ? <Loader2 className="size-3.5 animate-spin" /> : icon}

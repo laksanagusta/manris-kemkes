@@ -29,14 +29,14 @@ import {
 } from "@/lib/risk-register-monitoring";
 import type { RiskMonitoringDetail } from "@/types/risk-monitoring";
 import type { RiskCategory, RiskLevel } from "@/types/risk";
-import { cn } from "@/lib/utils";
 import { riskCategoryLabels } from "@/lib/risk";
 import { ActionIconButton } from "@/components/shared/design-system";
+import type { BadgeTone } from "@/lib/linear-status-badge";
 
 type MonitoringTransactionsTableProps = {
   items: RiskMonitoringDetail[];
-  levelBadgeVariant: Record<string, string>;
-  statusVariant: Record<string, string>;
+  levelBadgeVariant: Record<string, BadgeTone>;
+  statusVariant: Record<string, BadgeTone>;
   getRiskLevelLabel: (level: RiskLevel) => string;
   formatLocalDateTime: (value?: string | null) => string;
 };
@@ -131,7 +131,7 @@ export function MonitoringTransactionsTable({
                       {sourceRisk?.title || item.draftTitle || "-"}
                     </Link>
                     {sourceRisk?.versionNumber != null ? (
-                      <Badge className="h-4 shrink-0 bg-zinc-50 px-1 text-[9px] font-semibold text-muted-foreground">
+                      <Badge tone="neutral" size="micro" className="shrink-0">
                         v{sourceRisk.versionNumber}
                       </Badge>
                     ) : null}
@@ -153,10 +153,8 @@ export function MonitoringTransactionsTable({
                     </span>
                     <span className="text-[10px] text-muted-foreground">{trendIcon}</span>
                     <Badge
-  className={cn(
-  "text-[10px] font-semibold h-5 px-1.5",
-  levelBadgeVariant[levelLabel] || levelBadgeVariant.Rendah,
-  )}
+                      tone={levelBadgeVariant[levelLabel] || levelBadgeVariant.Rendah}
+                      size="micro"
                     >
                       {levelLabel}
                     </Badge>
@@ -164,10 +162,8 @@ export function MonitoringTransactionsTable({
                 </TableCell>
                 <TableCell className="px-2.5 py-2">
                   <Badge
-  className={cn(
-  "text-[10px] font-medium h-5 px-1.5",
-  item.status ? statusVariant[item.status] : undefined,
-  )}
+                    tone={item.status ? statusVariant[item.status] : "neutral"}
+                    size="micro"
                   >
                     {statusText}
                   </Badge>

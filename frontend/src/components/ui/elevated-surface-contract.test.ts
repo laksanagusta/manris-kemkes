@@ -6,6 +6,8 @@ import test from "node:test";
 
 const ELEVATION =
   "smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30";
+const MODAL_ELEVATION =
+  "smooth-shadow-ring-xl shadow-black smooth-ring-neutral-300/30";
 const sourceRoot = fileURLToPath(new URL("../..", import.meta.url));
 const globalsSource = readFileSync(
   new URL("../../app/globals.css", import.meta.url),
@@ -51,21 +53,27 @@ function isConflictingSurfaceToken(token: string) {
   return false;
 }
 
-test("all shared elevated primitives use the canonical smooth elevation", () => {
+test("shared floating primitives use the compact smooth elevation", () => {
   for (const file of [
-    "alert-dialog.tsx",
     "card.tsx",
     "combobox.tsx",
-    "dialog.tsx",
     "dropdown-menu.tsx",
     "popover.tsx",
     "select.tsx",
-    "sheet.tsx",
     "sonner.tsx",
     "tooltip.tsx",
   ]) {
     const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
     assert.ok(source.includes(ELEVATION), `${file} must use ${ELEVATION}`);
+  }
+
+  for (const file of ["alert-dialog.tsx", "dialog.tsx", "sheet.tsx"]) {
+    const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
+    assert.ok(
+      source.includes(MODAL_ELEVATION),
+      `${file} must use ${MODAL_ELEVATION}`,
+    );
+    assert.doesNotMatch(source, /smooth-shadow-ring-xs/);
   }
 
   const accordionFormSection = readFileSync(
@@ -93,10 +101,14 @@ test("modal overlays use the shared frosted scrim", () => {
     const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
     assert.match(source, /frosted-scrim/);
     assert.doesNotMatch(source, /bg-black\/10/);
+    assert.match(source, /motion-reduce:animate-none/);
+    assert.match(source, /motion-reduce:transition-none/);
   }
 
-  assert.match(globalsSource, /\.frosted-scrim[\s\S]*backdrop-filter/);
-  assert.match(globalsSource, /blur\(4px\) saturate\(110%\)/);
+  const scrimBlock = globalsSource.match(
+    /\.frosted-scrim \{[\s\S]*?\n\}/,
+  )?.[0] ?? "";
+  assert.match(scrimBlock, /backdrop-filter:\s*blur\(4px\) saturate\(110%\)/);
   assert.match(globalsSource, /--background\) 64%/);
 });
 

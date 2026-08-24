@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useReducedMotion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,6 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -32,15 +32,19 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
-  Clock,
-  AlertTriangle,
-  CheckCircle2,
+  CalendarClock,
+  CalendarDays,
   Loader2,
+  Link2,
+  MessageSquare,
   Send,
+  Target,
   ExternalLink,
+  UserRound,
 } from "@/components/ui/icons";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { cn } from "@/lib/utils";
 import {
   ActionButton,
   AccentButton,
@@ -124,6 +128,8 @@ export function MitigationMonitoringPanel() {
   const [notes, setNotes] = useState("");
   const evidenceInputRef = useRef<HTMLInputElement | null>(null);
   const notesInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const pendingReportTaskRef = useRef<MitigationTaskRow | null>(null);
+  const reducedMotion = useReducedMotion();
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [search, setSearch] = useState(queryState.search);
 
@@ -263,13 +269,39 @@ export function MitigationMonitoringPanel() {
     fetchMitigations();
   }, [fetchMitigations]);
 
-  const handleOpenSubmit = (task: MitigationTaskRow) => {
+  const handleOpenSubmit = useCallback((task: MitigationTaskRow) => {
     setSelectedTask(task);
     setEvidenceUrl(task.evidenceUrl || "");
     setNotes(task.notes || "");
     setShowValidationErrors(false);
     setShowDialog(true);
-  };
+  }, []);
+
+  const flushPendingReport = useCallback(() => {
+    const task = pendingReportTaskRef.current;
+    if (!task) return;
+
+    pendingReportTaskRef.current = null;
+    handleOpenSubmit(task);
+  }, [handleOpenSubmit]);
+
+  const handleOpenSubmitFromDetail = useCallback(
+    (task: MitigationTaskRow) => {
+      pendingReportTaskRef.current = task;
+      setShowDetailDialog(false);
+
+      if (reducedMotion) {
+        window.requestAnimationFrame(flushPendingReport);
+      }
+    },
+    [flushPendingReport, reducedMotion],
+  );
+
+  useEffect(() => {
+    return () => {
+      pendingReportTaskRef.current = null;
+    };
+  }, []);
 
   const handleOpenDetail = (task: MitigationTaskRow) => {
     setDetailTask(task);
@@ -332,19 +364,6 @@ export function MitigationMonitoringPanel() {
       day: "numeric",
       month: "short",
       year: "numeric",
-    });
-  };
-
-  const formatDateTime = (value?: string | null) => {
-    if (!value) return "-";
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return value;
-    return parsed.toLocaleString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 
@@ -417,24 +436,24 @@ export function MitigationMonitoringPanel() {
         <CollectionTableCard>
           <Table className="min-w-[980px] table-fixed">
             <colgroup>
-              <col className="w-[8%]" />
-              <col className="w-[28%]" />
-              <col className="w-[15%]" />
-              <col className="w-[12%]" />
+              <col className="w-[34%]" />
+              <col className="w-[10%]" />
+              <col className="w-[18%]" />
               <col className="w-[14%]" />
-              <col className="w-[23%]" />
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
-                <CollectionTableHead className="pl-4 pr-3">
-                  Kode
-                </CollectionTableHead>
                 <CollectionTableHead className="px-3">
                   Rencana Penanganan
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">Unit</CollectionTableHead>
                 <CollectionTableHead className="px-3">
-                  Jatuh Tempo
+                  Kode Risiko
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">PIC</CollectionTableHead>
+                <CollectionTableHead className="px-3">
+                  Deadline
                 </CollectionTableHead>
                 <CollectionTableHead className="px-3">Status</CollectionTableHead>
                 <CollectionTableHead className="pl-3 pr-4 text-right">
@@ -456,18 +475,13 @@ export function MitigationMonitoringPanel() {
                     key={item.id}
                     className="group border-0 hover:bg-transparent"
                   >
-                    <TableCell className="py-2 pl-4 pr-3 align-top text-sm text-foreground">
-                      <span className="font-mono text-xs font-medium tracking-wide text-muted-foreground">
-                        {item.riskCode}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-3 py-2 align-top">
+                    <TableCell className="px-3 py-2 align-middle">
                       <button
                         type="button"
                         onClick={() => handleOpenDetail(item)}
-                        className="block min-w-0 text-left text-sm font-normal leading-5 text-foreground transition-colors hover:text-primary"
+                        className="block min-w-0 text-left text-sm font-semibold leading-5 text-foreground transition-colors hover:text-primary"
                       >
-                        <span className="line-clamp-2">
+                        <span className="line-clamp-2 font-semibold">
                           {item.mitigationAction}
                         </span>
                       </button>
@@ -475,12 +489,17 @@ export function MitigationMonitoringPanel() {
                         Risiko: {item.title}
                       </p>
                     </TableCell>
-                    <TableCell className="px-3 py-2 align-top">
+                    <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-foreground">
+                      <span className="font-mono text-sm font-medium tracking-wide text-muted-foreground">
+                        {item.riskCode}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 align-middle">
                       <p className="truncate text-sm font-medium text-foreground">
                         {item.unit}
                       </p>
                     </TableCell>
-                    <TableCell className="px-3 py-2 align-top text-sm text-muted-foreground">
+                    <TableCell className="px-3 py-2 align-middle text-sm text-muted-foreground">
                       <div className="space-y-1">
                         <p>
                           {item.dueDate
@@ -494,7 +513,7 @@ export function MitigationMonitoringPanel() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="px-3 py-2 align-top">
+                    <TableCell className="px-3 py-2 align-middle">
                       <Badge
                         size="compact"
                         tone={getMitigationStatusTone(item.status)}
@@ -502,7 +521,7 @@ export function MitigationMonitoringPanel() {
                         {getMitigationStatusLabel(item.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-2 pl-3 pr-4 text-right">
+                    <TableCell className="py-2 pl-3 pr-4 text-right align-middle">
                       {item.status === "done" ? null : !submissionState.allowed ? (
                         <TooltipProvider>
                           <Tooltip>
@@ -582,142 +601,198 @@ export function MitigationMonitoringPanel() {
       )}
 
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-base">
-              Detail Laporan Penanganan
-            </DialogTitle>
-            <DialogDescription>
-              {detailTask?.mitigationAction || "-"} -{" "}
-              {detailTask?.periodLabel || "-"}
-            </DialogDescription>
+        <DialogContent
+          className="max-w-2xl no-scrollbar"
+          showCloseButton={false}
+          onAnimationEnd={(event) => {
+            if (
+              event.currentTarget !== event.target ||
+              event.animationName !== "exit"
+            ) {
+              return;
+            }
+
+            flushPendingReport();
+          }}
+        >
+          <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+            <DialogTitle className="text-base">Detail Laporan Penanganan</DialogTitle>
           </DialogHeader>
 
           {detailTask && (
-            <div className="space-y-4 py-2">
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Status
+            <div className="space-y-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+              <div className="space-y-4">
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    Tindakan Penanganan
                   </p>
-                  <Badge
-                    size="compact"
-                    tone={getMitigationStatusTone(detailTask.status)}
-                  >
-                    {detailTask.status === "done" ? (
-                      <CheckCircle2 className="size-3" />
-                    ) : detailTask.status === "overdue" ? (
-                      <AlertTriangle className="size-3" />
-                    ) : (
-                      <Clock className="size-3" />
-                    )}
-                    {getMitigationStatusLabel(detailTask.status)}
-                  </Badge>
+                  <div className="flex min-w-0 items-start gap-2 text-sm font-medium leading-6">
+                    <Target
+                      className="mt-0.5 size-5 shrink-0 text-muted-foreground"
+                      strokeWidth={1.6}
+                      aria-hidden="true"
+                    />
+                    <span>{detailTask.mitigationAction || "-"}</span>
+                  </div>
                 </div>
-                <div className="rounded-xl bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Periode
-                  </p>
-                  <p className="mt-2 text-sm font-medium">
-                    {detailTask.periodLabel || "-"}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Tenggat
-                  </p>
-                  <p className="mt-2 text-sm font-medium">
-                    {formatDate(detailTask.dueDate)}
-                  </p>
-                </div>
-                <div className="rounded-lg ring-1 ring-inset ring-border bg-muted/20 p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Laporan Oleh
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDateTime(detailTask.reportedAt)}
-                  </p>
+
+                <div className="grid gap-x-6 gap-y-5 md:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <span
+                        className={cn(
+                          "size-2.5 shrink-0 rounded-full",
+                          detailTask.status === "done"
+                            ? "bg-success"
+                            : detailTask.status === "overdue"
+                              ? "bg-destructive"
+                              : "bg-muted-foreground",
+                        )}
+                        aria-hidden="true"
+                      />
+                      {getMitigationStatusLabel(detailTask.status)}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm text-muted-foreground">Periode</p>
+                    <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                      <CalendarDays
+                        className="size-5 shrink-0 text-muted-foreground"
+                        strokeWidth={1.6}
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0 break-words">
+                        {detailTask.periodLabel || "-"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm text-muted-foreground">Tenggat</p>
+                    <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                      <CalendarClock
+                        className="size-5 shrink-0 text-muted-foreground"
+                        strokeWidth={1.6}
+                        aria-hidden="true"
+                      />
+                      <span>{formatDate(detailTask.dueDate)}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm text-muted-foreground">
+                      Laporan Oleh
+                    </p>
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium">
+                      <UserRound
+                        className="size-5 shrink-0 text-muted-foreground"
+                        strokeWidth={1.6}
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0 break-words">
+                        {detailTask.reportedByName ||
+                          detailTask.reportedBy ||
+                          "Belum dilaporkan"}
+                      </span>
+                      {detailTask.reportedAt ? (
+                        <span className="text-muted-foreground">
+                          {formatDate(detailTask.reportedAt)}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-xl bg-card p-4 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </p>
-                    <p className="text-lg font-bold">
-                      {detailTask.status === "done"
-                        ? "Selesai"
-                        : "Belum dilaporkan"}
-                    </p>
+              <div className="space-y-5">
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    Link Bukti / Evidence
+                  </p>
+                  <div className="flex min-w-0 items-start gap-2 text-sm font-medium">
+                    {detailTask.evidenceUrl ? (
+                      <a
+                        href={detailTask.evidenceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex max-w-full min-w-0 items-start gap-2 text-foreground hover:text-primary"
+                        onClick={(event) => event.stopPropagation()}
+                        title={detailTask.evidenceUrl}
+                      >
+                        <Link2
+                          className="size-5 shrink-0 text-muted-foreground"
+                          strokeWidth={1.6}
+                          aria-hidden="true"
+                        />
+                        <span className="min-w-0 break-all">
+                          {detailTask.evidenceUrl}
+                        </span>
+                        <ExternalLink
+                          className="size-3.5 shrink-0 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      </a>
+                    ) : (
+                      <>
+                        <Link2
+                          className="size-5 shrink-0 text-muted-foreground"
+                          strokeWidth={1.6}
+                          aria-hidden="true"
+                        />
+                        <span className="text-muted-foreground">-</span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="rounded-xl bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Evidence
+
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    Catatan Pelaksanaan
                   </p>
-                  {detailTask.evidenceUrl ? (
-                    <a
-                      href={detailTask.evidenceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      Buka bukti <ExternalLink className="size-3.5" />
-                    </a>
-                  ) : (
-                    <p className="mt-1 text-sm font-medium">-</p>
-                  )}
-                </div>
-                <div className="rounded-xl bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Catatan
-                  </p>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
-                    {detailTask.notes || "Belum ada catatan pelaksanaan."}
-                  </p>
+                  <div className="flex min-w-0 items-start gap-2 text-sm leading-6 text-foreground">
+                    <MessageSquare
+                      className="mt-0.5 size-5 shrink-0 text-muted-foreground"
+                      strokeWidth={1.6}
+                      aria-hidden="true"
+                    />
+                    <p className="min-w-0 whitespace-pre-wrap">
+                      {detailTask.notes || "Belum ada catatan pelaksanaan."}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 sm:justify-between motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+            <CollectionDialogCancel
+              type="button"
+              variant="outline"
+              size="md"
+              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              onClick={() => setShowDetailDialog(false)}
+            >
+              Tutup
+            </CollectionDialogCancel>
             {detailTask &&
               (detailTask.status === "pending" ||
                 detailTask.status === "overdue") && (
                 detailTask.status === "overdue" ? (
                   <ActionButton
-                    size="sm"
                     variant="destructive"
-                    onClick={() => {
-                      setShowDetailDialog(false);
-                      handleOpenSubmit(detailTask);
-                    }}
+                    onClick={() => handleOpenSubmitFromDetail(detailTask)}
                     icon={<Send className="size-3" />}
                   >
                     Lapor Progress
                   </ActionButton>
                 ) : (
                   <AccentButton
-                    size="sm"
-                    onClick={() => {
-                      setShowDetailDialog(false);
-                      handleOpenSubmit(detailTask);
-                    }}
+                    onClick={() => handleOpenSubmitFromDetail(detailTask)}
                     icon={<Send className="size-3" />}
                   >
                     Lapor Progress
                   </AccentButton>
                 )
               )}
-            <CollectionDialogCancel
-              size="sm"
-              onClick={() => setShowDetailDialog(false)}
-            >
-              Tutup
-            </CollectionDialogCancel>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -739,6 +814,7 @@ export function MitigationMonitoringPanel() {
           <AccentButton
             onClick={handleSubmitProgress}
             disabled={submitting}
+            aria-busy={submitting}
             icon={
               submitting ? (
                 <Loader2 className="size-3 animate-spin" />
@@ -747,7 +823,7 @@ export function MitigationMonitoringPanel() {
               )
             }
           >
-            Kirim Laporan
+            {submitting ? "Mengirim..." : "Kirim Laporan"}
           </AccentButton>
         }
         evidenceId="monitoring-evidence-url"
