@@ -1,6 +1,6 @@
 import { Check, Minus, Pencil } from "@/components/ui/icons";
 
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 export type SemesterIndicatorStatus = "complete" | "draft" | "empty" | "error";
 
@@ -10,6 +10,13 @@ const iconByStatus = {
   empty: Minus,
   error: Minus,
 };
+
+const toneByStatus = {
+  complete: "success",
+  draft: "warning",
+  empty: "neutral",
+  error: "danger",
+} as const;
 
 export function SemesterIndicator({
   label,
@@ -22,18 +29,14 @@ export function SemesterIndicator({
 }) {
   const Icon = iconByStatus[status];
   return (
-    <span
+    <Badge
       aria-label={statusLabel}
-      className={cn(
-        "flex h-6 items-center justify-center gap-1 rounded-full border-0 px-1.5 text-[10px] font-semibold",
-        status === "complete" && "bg-emerald-100 text-emerald-700",
-        status === "draft" && "bg-amber-100 text-amber-700",
-        status === "empty" && "bg-muted text-muted-foreground",
-        status === "error" && "bg-red-100 text-red-500",
-      )}
+      tone={toneByStatus[status]}
+      size="compact"
+      className="px-1.5 text-[10px]"
     >
       <Icon aria-hidden="true" className="size-2.5" />
       {label}
-    </span>
+    </Badge>
   );
 }

@@ -126,18 +126,17 @@ import {
   RotateCcw,
 } from "@/components/ui/icons";
 import {
-  getLinearRiskLevelBadgeClass,
-  getLinearStatusBadgeClass,
-  getLinearToneBadgeClass,
+  getLinearRiskLevelBadgeTone,
+  getLinearStatusBadgeTone,
 } from "@/lib/linear-status-badge";
 
 type BadgeTone = NonNullable<React.ComponentProps<typeof Badge>["tone"]>;
 
-const statusVariant: Record<string, string> = {
-  draft: getLinearStatusBadgeClass("draft"),
-  final: getLinearStatusBadgeClass("final"),
-  finalized: getLinearStatusBadgeClass("final"),
-  void: getLinearToneBadgeClass("danger"),
+const statusVariant: Record<string, BadgeTone> = {
+  draft: getLinearStatusBadgeTone("draft"),
+  final: getLinearStatusBadgeTone("final"),
+  finalized: getLinearStatusBadgeTone("final"),
+  void: "danger",
 };
 
 const registerStatusTone: Record<string, BadgeTone> = {
@@ -148,12 +147,12 @@ const registerStatusTone: Record<string, BadgeTone> = {
   archived: "neutral",
 };
 
-const levelBadgeVariant: Record<string, string> = {
-  "Sangat Rendah": getLinearRiskLevelBadgeClass("Sangat Rendah"),
-  Rendah: getLinearRiskLevelBadgeClass("Rendah"),
-  Sedang: getLinearRiskLevelBadgeClass("Sedang"),
-  Tinggi: getLinearRiskLevelBadgeClass("Tinggi"),
-  "Sangat Tinggi": getLinearRiskLevelBadgeClass("Sangat Tinggi"),
+const levelBadgeVariant: Record<string, BadgeTone> = {
+  "Sangat Rendah": getLinearRiskLevelBadgeTone("Sangat Rendah"),
+  Rendah: getLinearRiskLevelBadgeTone("Rendah"),
+  Sedang: getLinearRiskLevelBadgeTone("Sedang"),
+  Tinggi: getLinearRiskLevelBadgeTone("Tinggi"),
+  "Sangat Tinggi": getLinearRiskLevelBadgeTone("Sangat Tinggi"),
 };
 
 const statusLabel: Record<string, string> = {
@@ -1153,7 +1152,7 @@ export default function RiskRegisterPage() {
                   >
                     <button
                       type="button"
-                      className="flex h-9 w-full items-center gap-1 px-3 text-left outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30 active:bg-muted/70"
+                      className="flex h-9 w-full items-center gap-1 px-3 text-left uppercase outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30 active:bg-muted/70"
                       aria-label={`Urutkan berdasarkan skor, saat ini ${scoreAriaSort === "ascending" ? "menaik" : scoreAriaSort === "descending" ? "menurun" : "belum diurutkan"}`}
                       onClick={() => {
                         if (sortBy === "nilai") {
@@ -1235,7 +1234,7 @@ export default function RiskRegisterPage() {
                           <div className="flex min-w-0 items-center gap-1.5">
                             <Link
                               href={`/risk/register/${risk.id}`}
-                              className="min-w-0 flex-1 truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
+                              className="min-w-0 flex-1 truncate text-sm font-semibold leading-relaxed text-foreground hover:text-primary"
                               title={risk.title || "-"}
                             >
                               {risk.title || "-"}
@@ -1375,46 +1374,60 @@ export default function RiskRegisterPage() {
           }
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Arsipkan Risiko?</DialogTitle>
-            <DialogDescription>
-              Risiko akan hilang dari daftar aktif, tetapi tetap tersimpan untuk
-              audit trail.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="rounded-2xl ring-1 ring-inset ring-border bg-muted px-3 py-2 text-sm">
-              <p className="font-medium">
-                {riskToArchive?.title || "Tanpa judul"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {riskToArchive?.code || riskToArchive?.id}
-              </p>
+        <DialogContent className="max-w-lg no-scrollbar" showCloseButton={false}>
+          <div className="flex min-h-0 flex-col gap-5">
+            <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+              <DialogTitle>Arsipkan Risiko?</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                  Risiko
+                </p>
+                <p className="text-sm font-medium">
+                  {riskToArchive?.title || "Tanpa judul"}
+                </p>
+                <p className="font-mono text-xs text-muted-foreground">
+                  {riskToArchive?.code || riskToArchive?.id}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label className="text-sm" htmlFor="archive-reason">
+                  Alasan utama arsip
+                </Label>
+                <Input
+                  id="archive-reason"
+                  value={archiveReason}
+                  onChange={(event) => setArchiveReason(event.target.value)}
+                  placeholder="Masukkan alasan pengarsipan"
+                  className="text-base sm:text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label className="text-sm" htmlFor="archive-note">
+                  Catatan tambahan (opsional)
+                </Label>
+                <Textarea
+                  id="archive-note"
+                  value={archiveNote}
+                  onChange={(event) => setArchiveNote(event.target.value)}
+                  placeholder="Tambahkan konteks jika diperlukan"
+                  className="min-h-[80px] text-base sm:text-sm"
+                />
+              </div>
             </div>
-            <Input
-              value={archiveReason}
-              onChange={(event) => setArchiveReason(event.target.value)}
-              placeholder="Alasan utama arsip"
-            />
-            <Textarea
-              value={archiveNote}
-              onChange={(event) => setArchiveNote(event.target.value)}
-              placeholder="Catatan tambahan (opsional)"
-              className="min-h-24"
-            />
+            <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+              <CollectionDialogCancel onClick={() => setRiskToArchive(null)}>
+                Batal
+              </CollectionDialogCancel>
+              <AccentButton
+                icon={<Archive className="size-3.5" />}
+                onClick={handleArchiveRisk}
+              >
+                Arsipkan
+              </AccentButton>
+            </DialogFooter>
           </div>
-          <DialogFooter>
-            <CollectionDialogCancel onClick={() => setRiskToArchive(null)}>
-              Batal
-            </CollectionDialogCancel>
-            <Button
-              className="bg-warning text-warning-foreground hover:bg-warning/90"
-              onClick={handleArchiveRisk}
-            >
-              Arsipkan
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1452,43 +1465,49 @@ export default function RiskRegisterPage() {
       </Dialog>
 
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
+        <AlertDialogContent className="max-w-lg no-scrollbar">
+          <AlertDialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
             <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
-            <AlertDialogDescription>
-              Anda akan memulai pemantauan untuk risiko berikut. Tindakan ini
-              akan membuat transaksi pemantauan baru yang dapat Anda edit
-              sebelum finalisasi.
-            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2 rounded-2xl bg-accent p-3 ring-1 ring-inset ring-border">
-            <div className="text-sm">
-              <span className="font-medium text-foreground">Kode: </span>
-              <span className="font-mono text-xs text-muted-foreground">
-                {selectedRiskForReassessment?.code || "-"}
-              </span>
-            </div>
-            <div className="text-sm">
-              <span className="font-medium text-foreground">Judul: </span>
-              <span className="text-muted-foreground">
-                {selectedRiskForReassessment?.title || "-"}
-              </span>
-            </div>
-            <div className="text-sm">
-              <span className="font-medium text-foreground">Siklus: </span>
-              <span className="text-muted-foreground">
-                {selectedAssessmentCycle}
-              </span>
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm font-medium text-foreground">
-                Periode Pemantauan
+          <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                  Kode
+                </p>
+                <p className="font-mono text-xs text-foreground">
+                  {selectedRiskForReassessment?.code || "-"}
+                </p>
               </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                  Score
+                </p>
+                <p className="text-sm text-foreground">
+                  {selectedRiskForReassessment
+                    ? resolveListItemScoreSemantics(selectedRiskForReassessment)
+                        .effective.score
+                    : "-"}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                Judul
+              </p>
+              <p className="text-sm text-foreground">
+                {selectedRiskForReassessment?.title || "-"}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm" htmlFor="monitoring-cycle">
+                Periode Pemantauan
+              </Label>
               <Select
                 value={selectedAssessmentCycle}
                 onValueChange={setSelectedAssessmentCycle}
               >
-                <SelectTrigger className="h-9 ring-1 ring-inset ring-border">
+                <SelectTrigger id="monitoring-cycle" className="h-9">
                   <SelectValue placeholder="Pilih kuartal" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1503,19 +1522,20 @@ export default function RiskRegisterPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="text-sm">
-              <span className="font-medium text-foreground">Score: </span>
-              <span className="text-muted-foreground">
-                {selectedRiskForReassessment
-                  ? resolveListItemScoreSemantics(selectedRiskForReassessment)
-                      .effective.score
-                  : "-"}
-              </span>
-            </div>
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCreateReassessment}>
+          <AlertDialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+            <AlertDialogCancel
+              variant="outline"
+              size="md"
+              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="primary"
+              size="primary"
+              onClick={handleCreateReassessment}
+            >
               Lanjutkan
             </AlertDialogAction>
           </AlertDialogFooter>

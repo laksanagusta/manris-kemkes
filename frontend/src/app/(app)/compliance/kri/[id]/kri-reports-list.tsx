@@ -207,13 +207,13 @@ export function KRIReportsList({ kriId, metric, organizationId }: { kriId: strin
                         );
                       })()
                     ) : report.status === "submitted" ? (
-                      <div className="text-xs font-semibold text-amber-600 flex items-center gap-1 bg-amber-100 px-3 py-1.5 rounded-full">
+                      <Badge tone="warning" size="compact" className="text-xs">
                         <Clock className="size-3.5" /> Menunggu Review
-                      </div>
+                      </Badge>
                     ) : (
-                      <div className="text-xs font-semibold text-success flex items-center gap-1 bg-success/10 px-3 py-1.5 rounded-full">
+                      <Badge tone="success" size="compact" className="text-xs">
                         <CheckCircle className="size-3.5" /> Diterima
-                      </div>
+                      </Badge>
                     )}
                   </div>
                 </div>

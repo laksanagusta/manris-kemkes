@@ -11,12 +11,12 @@ export function AppHeader() {
 
   if (
     pathname === "/risk/register" ||
+    pathname === "/risk/register/new" ||
     pathname === "/risk/working-papers" ||
     pathname === "/evaluations" ||
     pathname === "/inbox" ||
     pathname === "/minutes" ||
     pathname === "/management/charters" ||
-    pathname === "/reports/compliance-monitoring" ||
     pathname === "/reports" ||
     pathname === "/risk/cascading" ||
     pathname === "/risk/history" ||
@@ -28,8 +28,7 @@ export function AppHeader() {
     pathname === "/compliance/penanganan" ||
     pathname === "/admin/users" ||
     pathname === "/admin/organizations" ||
-    pathname === "/settings/groups" ||
-    pathname === "/reports/performance-risk"
+    pathname === "/settings/groups"
   ) {
     return null;
   }

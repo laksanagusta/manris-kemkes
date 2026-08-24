@@ -65,6 +65,30 @@ test("active register surfaces use shared design-system components", () => {
   assert.match(page, /<CollectionDialogCancel/);
 });
 
+test("risk confirmation modals use the shared modal action contract", () => {
+  assert.match(
+    page,
+    /<DialogContent className="max-w-lg no-scrollbar" showCloseButton=\{false\}>/,
+  );
+  assert.match(
+    page,
+    /<AccentButton[\s\S]*?onClick=\{handleArchiveRisk\}[\s\S]*?>\s*Arsipkan\s*<\/AccentButton>/,
+  );
+  assert.match(
+    page,
+    /<AlertDialogCancel\s+variant="outline"\s+size="md"[\s\S]*?>\s*Batal\s*<\/AlertDialogCancel>/,
+  );
+  assert.match(
+    page,
+    /className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300\/30"/,
+  );
+  assert.match(
+    page,
+    /<AlertDialogAction\s+variant="primary"\s+size="primary"\s+onClick=\{handleCreateReassessment\}/,
+  );
+  assert.doesNotMatch(page, /bg-accent p-3 ring-1 ring-inset ring-border/);
+});
+
 test("removed draft and history experiences leave no route UI", () => {
   assert.doesNotMatch(page, /<TabsTrigger value="my-drafts"/);
   assert.doesNotMatch(page, /<TabsTrigger value="history"/);

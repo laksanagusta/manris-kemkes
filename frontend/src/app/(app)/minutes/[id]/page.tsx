@@ -179,7 +179,7 @@ function MeetingMinuteDetailContent() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {minutes.participants.map((participant, idx) => (
-                    <Badge key={idx} variant="secondary" className="px-2.5 py-1 text-xs font-medium bg-secondary/60 hover:bg-secondary/80 transition-colors">
+                    <Badge key={idx} variant="secondary" className="px-2.5 py-1 text-xs font-medium bg-secondary/60 hover:bg-sidebar-accent transition-colors">
                       {participant}
                     </Badge>
                   ))}

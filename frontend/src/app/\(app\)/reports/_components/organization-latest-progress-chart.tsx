@@ -29,7 +29,7 @@ export function OrganizationLatestProgressChart({
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-base font-semibold">
+            <CardTitle className="text-sm font-medium normal-case">
               Progress Kertas Kerja Terakhir
             </CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">

@@ -53,7 +53,7 @@ export function RiskNavHeader({ title, description, badge }: { title: string, de
                 "px-3 py-1.5 text-xs font-semibold transition-all rounded-md flex items-center gap-2",
                 isActive
                   ? "bg-background shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  : "text-muted-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50"
               )}
             >
               {item.type === "history" ? <History className="size-3.5" /> : (

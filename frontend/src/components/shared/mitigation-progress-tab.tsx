@@ -4,13 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -27,7 +20,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -51,9 +43,11 @@ import {
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
 import { isWithinMitigationSubmissionWindow } from "@/lib/kri-reporting";
-import { getLinearStatusBadgeClass } from "@/lib/linear-status-badge";
+import { getLinearStatusBadgeTone } from "@/lib/linear-status-badge";
 import {
   AccentButton,
+  ActionButton,
+  CollectionDialogCancel,
   MitigationProgressDialog,
 } from "@/components/shared/design-system";
 
@@ -67,6 +61,7 @@ interface MitigationProgressTabProps {
   token: string;
   aiDraft?: MitigationProgressDraft | null;
   onAiDraftConsumed?: () => void;
+  showTaskList?: boolean;
 }
 
 const STATUS_CONFIG: Record<
@@ -100,6 +95,7 @@ export function MitigationProgressTab({
   token,
   aiDraft,
   onAiDraftConsumed,
+  showTaskList = false,
 }: MitigationProgressTabProps) {
   const [tasks, setTasks] = useState<MitigationTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -287,14 +283,10 @@ export function MitigationProgressTab({
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-sm text-muted-foreground">
-            Memuat task mitigasi...
-          </span>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" />
+        <span className="ml-2">Memuat task mitigasi...</span>
+      </div>
     );
   }
 
@@ -302,225 +294,236 @@ export function MitigationProgressTab({
     <>
       {/* Summary Stats */}
       {tasks.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-xl bg-card p-3 text-center smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-            <p className="text-2xl font-bold">{stats.total}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              Total
-            </p>
+        <div
+          className="space-y-0.5"
+          role="list"
+          aria-label="Ringkasan progres penanganan"
+        >
+          <div
+            className="flex items-center justify-between gap-4 py-1.5"
+            role="listitem"
+          >
+            <span className="text-xs text-muted-foreground">Total</span>
+            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+              {stats.total}
+            </span>
           </div>
-          <div className="rounded-xl border bg-emerald-500/5 border-emerald-500/20 p-3 text-center">
-            <p className="text-2xl font-bold text-emerald-600">{stats.done}</p>
-            <p className="text-[10px] text-emerald-600 uppercase tracking-wider">
-              Selesai
-            </p>
+          <div
+            className="flex items-center justify-between gap-4 py-1.5"
+            role="listitem"
+          >
+            <span className="text-xs text-muted-foreground">Selesai</span>
+            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+              {stats.done}
+            </span>
           </div>
-          <div className="rounded-xl border bg-amber-500/5 border-amber-500/20 p-3 text-center">
-            <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
-            <p className="text-[10px] text-amber-600 uppercase tracking-wider">
-              Menunggu
-            </p>
+          <div
+            className="flex items-center justify-between gap-4 py-1.5"
+            role="listitem"
+          >
+            <span className="text-xs text-muted-foreground">Menunggu</span>
+            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+              {stats.pending}
+            </span>
           </div>
-          <div className="rounded-xl border bg-red-500/5 border-red-500/20 p-3 text-center">
-            <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
-            <p className="text-[10px] text-red-600 uppercase tracking-wider">
-              Terlambat
-            </p>
+          <div
+            className="flex items-center justify-between gap-4 py-1.5"
+            role="listitem"
+          >
+            <span className="text-xs text-muted-foreground">Terlambat</span>
+            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+              {stats.overdue}
+            </span>
           </div>
         </div>
       )}
 
-      {/* Task List */}
-      <Card>
-        <CardHeader className="border-b border-border/50">
-          <CardTitle className="text-base font-bold">
+      {showTaskList && (
+        <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">
             Progress Aktual Penanganan
-          </CardTitle>
-          <CardDescription className="text-xs leading-5">
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
             Pantau progres task penanganan yang sedang berjalan, termasuk
             status, tenggat, dan laporan realisasi terbaru.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-4 overflow-hidden">
-          {tasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center border-2 border-dashed border-border/60 rounded-lg bg-muted/10">
-              <Activity className="size-8 text-muted-foreground/50 mb-3" />
-              <p className="text-sm font-medium">Belum Ada Task Penanganan</p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                Task akan muncul otomatis saat risiko difinalisasi dan setiap
-                mitigasi hanya memiliki satu laporan.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-border/50">
-              <Table className="min-w-[980px] w-full">
-                <TableHeader className="bg-table-header">
-                  <TableRow className="h-auto text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                    <TableHead className="px-4 py-3 font-semibold">Kode</TableHead>
-                    <TableHead className="px-4 py-3 font-semibold">Rencana</TableHead>
-                    <TableHead className="px-4 py-3 font-semibold">Periode</TableHead>
-                    <TableHead className="px-4 py-3 font-semibold">Tenggat</TableHead>
-                    <TableHead className="px-4 py-3 font-semibold">Status</TableHead>
-                    <TableHead className="px-4 py-3 font-semibold">Progress</TableHead>
-                    <TableHead className="px-4 py-3 font-semibold text-right">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tableTasks.map((task) => {
-                    const statusCfg =
-                      STATUS_CONFIG[task.status] || STATUS_CONFIG.pending;
-                    const submissionCheck =
-                      task.status === "pending" || task.status === "overdue"
-                        ? isWithinMitigationSubmissionWindow(
-                            task.periodEnd,
-                            task.dueDate,
-                          )
-                        : null;
+          </p>
+        </div>
+        {tasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border/60 bg-muted/10 p-8 text-center">
+            <Activity className="mb-3 size-8 text-muted-foreground/50" />
+            <p className="text-sm font-medium">Belum Ada Task Penanganan</p>
+            <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+              Task akan muncul otomatis saat risiko difinalisasi dan setiap
+              mitigasi hanya memiliki satu laporan.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-border/50">
+            <Table className="min-w-[980px] w-full">
+              <TableHeader className="bg-table-header">
+                <TableRow className="h-auto text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <TableHead className="px-4 py-3 font-semibold">Kode</TableHead>
+                  <TableHead className="px-4 py-3 font-semibold">Rencana</TableHead>
+                  <TableHead className="px-4 py-3 font-semibold">Periode</TableHead>
+                  <TableHead className="px-4 py-3 font-semibold">Tenggat</TableHead>
+                  <TableHead className="px-4 py-3 font-semibold">Status</TableHead>
+                  <TableHead className="px-4 py-3 font-semibold">Progress</TableHead>
+                  <TableHead className="px-4 py-3 font-semibold text-right">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tableTasks.map((task) => {
+                  const statusCfg =
+                    STATUS_CONFIG[task.status] || STATUS_CONFIG.pending;
+                  const submissionCheck =
+                    task.status === "pending" || task.status === "overdue"
+                      ? isWithinMitigationSubmissionWindow(
+                          task.periodEnd,
+                          task.dueDate,
+                        )
+                      : null;
 
-                    return (
-                      <TableRow
-                        key={task.id}
-                        className="h-auto cursor-pointer border-t border-border/50 transition-colors hover:bg-muted/30"
-                        onClick={() => handleOpenDetail(task)}
-                      >
-                        <TableCell className="px-4 py-3 align-top">
-                          <div className="text-xs font-semibold text-foreground">
-                            {task.riskCode || "—"}
+                  return (
+                    <TableRow
+                      key={task.id}
+                      className="h-auto cursor-pointer border-t border-border/50 transition-colors hover:bg-muted/30"
+                      onClick={() => handleOpenDetail(task)}
+                    >
+                      <TableCell className="px-4 py-3 align-top">
+                        <div className="text-xs font-semibold text-foreground">
+                          {task.riskCode || "—"}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {task.riskTitle || "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 align-top">
+                        <div className="max-w-[360px] text-sm font-medium text-foreground line-clamp-2">
+                          {task.mitigationAction || "—"}
+                        </div>
+                        {task.mitigationOwner && (
+                          <div className="mt-1 text-[11px] text-muted-foreground">
+                            PIC: {task.mitigationOwner}
                           </div>
-                          <div className="text-[11px] text-muted-foreground">
-                            {task.riskTitle || "—"}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top">
-                          <div className="max-w-[360px] text-sm font-medium text-foreground line-clamp-2">
-                            {task.mitigationAction || "—"}
-                          </div>
-                          {task.mitigationOwner && (
-                            <div className="mt-1 text-[11px] text-muted-foreground">
-                              PIC: {task.mitigationOwner}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top text-sm text-foreground">
-                          {task.periodLabel || "—"}
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top text-sm text-foreground">
-                          {formatDate(task.dueDate)}
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top">
-                          <Badge
-                            className={getLinearStatusBadgeClass(task.status)}
-                          >
-                            {statusCfg.icon} {statusCfg.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top">
-                          <div className="space-y-1">
-                            <Progress
-                              value={task.status === "done" ? 100 : 0}
-                              className="h-1.5"
-                            />
-                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                              <span>
-                                {task.status === "done"
-                                  ? "Selesai"
-                                  : "Belum dilaporkan"}
-                              </span>
-                              {task.reportedByName &&
-                                task.status === "done" && (
-                                  <span className="truncate max-w-[150px]">
-                                    {task.reportedByName}
-                                  </span>
-                                )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top text-right">
-                          {(task.status === "pending" ||
-                            task.status === "overdue") && (
-                            <>
-                              {submissionCheck && !submissionCheck.allowed ? (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="inline-block cursor-not-allowed">
-                                        <Button
-                                          size="sm"
-                                          variant={
-                                            task.status === "overdue"
-                                              ? "destructive"
-                                              : "default"
-                                          }
-                                          disabled
-                                          className="opacity-50 pointer-events-none"
-                                          onClick={(event) =>
-                                            event.stopPropagation()
-                                          }
-                                        >
-                                          <Send className="size-3" /> Lapor
-                                        </Button>
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent
-                                      side="left"
-                                      className="max-w-[220px] text-xs"
-                                    >
-                                      {submissionCheck.message}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant={
-                                    task.status === "overdue"
-                                      ? "destructive"
-                                      : "default"
-                                  }
-                                  className="gap-1.5 text-xs h-8 shrink-0"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleOpenSubmit(task);
-                                  }}
-                                >
-                                  <Send className="size-3" /> Lapor
-                                </Button>
+                        )}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 align-top text-sm text-foreground">
+                        {task.periodLabel || "—"}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 align-top text-sm text-foreground">
+                        {formatDate(task.dueDate)}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 align-top">
+                        <Badge
+                          tone={getLinearStatusBadgeTone(task.status)}
+                          size="compact"
+                        >
+                          {statusCfg.icon} {statusCfg.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 align-top">
+                        <div className="space-y-1">
+                          <Progress
+                            value={task.status === "done" ? 100 : 0}
+                            className="h-1.5"
+                          />
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span>
+                              {task.status === "done"
+                                ? "Selesai"
+                                : "Belum dilaporkan"}
+                            </span>
+                            {task.reportedByName &&
+                              task.status === "done" && (
+                                <span className="max-w-[150px] truncate">
+                                  {task.reportedByName}
+                                </span>
                               )}
-                            </>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-right align-top">
+                        {(task.status === "pending" ||
+                          task.status === "overdue") && (
+                          <>
+                            {submissionCheck && !submissionCheck.allowed ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="inline-block cursor-not-allowed">
+                                      <Button
+                                        size="sm"
+                                        variant={
+                                          task.status === "overdue"
+                                            ? "destructive"
+                                            : "default"
+                                        }
+                                        disabled
+                                        className="pointer-events-none opacity-50"
+                                        onClick={(event) =>
+                                          event.stopPropagation()
+                                        }
+                                      >
+                                        <Send className="size-3" /> Lapor
+                                      </Button>
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    side="left"
+                                    className="max-w-[220px] text-xs"
+                                  >
+                                    {submissionCheck.message}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant={
+                                  task.status === "overdue"
+                                    ? "destructive"
+                                    : "default"
+                                }
+                                className="h-8 shrink-0 gap-1.5 text-xs"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleOpenSubmit(task);
+                                }}
+                              >
+                                <Send className="size-3" /> Lapor
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+        </div>
+      )}
 
       {/* Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl no-scrollbar" showCloseButton={false}>
+          <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
             <DialogTitle className="text-base">
               Detail Laporan Penanganan
             </DialogTitle>
-            <DialogDescription>
-              {detailTask?.mitigationAction || "-"} -{" "}
-              {detailTask?.periodLabel || "-"}
-            </DialogDescription>
           </DialogHeader>
 
           {detailTask && (
-            <div className="space-y-4 py-2">
+            <div className="space-y-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Status
-                  </p>
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">Status</p>
                   <Badge
-                    className={getLinearStatusBadgeClass(detailTask.status)}
+                    tone={getLinearStatusBadgeTone(detailTask.status)}
+                    size="compact"
                   >
                     {
                       (
@@ -536,27 +539,21 @@ export function MitigationProgressTab({
                     }
                   </Badge>
                 </div>
-                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Tenggat
-                  </p>
-                  <p className="mt-2 text-sm font-medium">
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">Tenggat</p>
+                  <p className="text-sm font-medium">
                     {formatDate(detailTask.dueDate)}
                   </p>
                 </div>
-                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Periode
-                  </p>
-                  <p className="mt-2 text-sm font-medium">
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">Periode</p>
+                  <p className="text-sm font-medium">
                     {detailTask.periodLabel || "-"}
                   </p>
                 </div>
-                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Laporan Oleh
-                  </p>
-                  <p className="mt-2 text-sm font-medium">
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">Laporan Oleh</p>
+                  <p className="text-sm font-medium">
                     {detailTask.reportedByName || "Belum ada laporan"}
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -565,10 +562,10 @@ export function MitigationProgressTab({
                 </div>
               </div>
 
-              <div className="rounded-xl bg-card p-4 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+              <div className="space-y-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <p className="text-sm text-muted-foreground">
                       Progress
                     </p>
                     <p className="text-lg font-bold">
@@ -578,29 +575,25 @@ export function MitigationProgressTab({
                     </p>
                   </div>
                 </div>
-                <div className="rounded-lg bg-muted/20 p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Evidence
-                  </p>
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">Evidence</p>
                   {detailTask.evidenceUrl ? (
                     <a
                       href={detailTask.evidenceUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                       onClick={(event) => event.stopPropagation()}
                     >
                       Buka bukti <ExternalLink className="size-3.5" />
                     </a>
                   ) : (
-                    <p className="mt-1 text-sm font-medium">-</p>
+                    <p className="text-sm font-medium">-</p>
                   )}
                 </div>
-                <div className="rounded-lg bg-muted/20 p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Catatan
-                  </p>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">Catatan</p>
+                  <p className="whitespace-pre-wrap text-sm text-foreground">
                     {detailTask.notes || "Belum ada catatan pelaksanaan."}
                   </p>
                 </div>
@@ -608,31 +601,27 @@ export function MitigationProgressTab({
             </div>
           )}
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms] sm:justify-between">
+            <CollectionDialogCancel onClick={() => setShowDetailDialog(false)}>
+              Tutup
+            </CollectionDialogCancel>
             {detailTask &&
               (detailTask.status === "pending" ||
                 detailTask.status === "overdue") && (
-                <Button
-                  size="sm"
+                <ActionButton
                   variant={
-                    detailTask.status === "overdue" ? "destructive" : "default"
+                    detailTask.status === "overdue" ? "destructive" : "primary"
                   }
+                  size={detailTask.status === "overdue" ? "md" : "primary"}
+                  icon={<Send className="size-3" />}
                   onClick={() => {
                     setShowDetailDialog(false);
                     handleOpenSubmit(detailTask);
                   }}
                 >
-                  <Send className="size-3" />
                   Lapor Progress
-                </Button>
+                </ActionButton>
               )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDetailDialog(false)}
-            >
-              Tutup
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

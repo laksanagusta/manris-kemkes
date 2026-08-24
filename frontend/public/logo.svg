@@ -1,8 +1,22 @@
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
   <title id="title">MANRIS logo</title>
-  <desc id="desc">Minimal angular MANRIS monogram inspired by precise geometric editor marks.</desc>
-  <path d="M184 748V276H312L512 504L712 276H840V748H704V486L512 704L320 486V748H184Z" fill="#0F766E"/>
-  <path d="M512 504L624 632L512 704L400 632L512 504Z" fill="#134E4A"/>
-  <path d="M320 486L184 330V276H312L512 504L400 632L320 486Z" fill="#14A392"/>
-  <path d="M704 486L840 330V276H712L512 504L624 632L704 486Z" fill="#0B6059"/>
+  <desc id="desc">A complete 4 by 4 grid of sixteen black circular dots.</desc>
+  <g fill="#171717">
+    <circle cx="112" cy="112" r="36"/>
+    <circle cx="208" cy="112" r="36"/>
+    <circle cx="304" cy="112" r="36"/>
+    <circle cx="400" cy="112" r="36"/>
+    <circle cx="112" cy="208" r="36"/>
+    <circle cx="208" cy="208" r="36"/>
+    <circle cx="304" cy="208" r="36"/>
+    <circle cx="400" cy="208" r="36"/>
+    <circle cx="112" cy="304" r="36"/>
+    <circle cx="208" cy="304" r="36"/>
+    <circle cx="304" cy="304" r="36"/>
+    <circle cx="400" cy="304" r="36"/>
+    <circle cx="112" cy="400" r="36"/>
+    <circle cx="208" cy="400" r="36"/>
+    <circle cx="304" cy="400" r="36"/>
+    <circle cx="400" cy="400" r="36"/>
+  </g>
 </svg>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function TypographyExample() {
@@ -16,9 +17,18 @@ export function TypographyExample() {
         </div>
         <div className="space-y-3">
           <div>
-            <p className="text-lg font-semibold text-foreground">Manris</p>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/logo.svg"
+                alt=""
+                width={20}
+                height={20}
+                className="size-5 object-contain"
+              />
+              <p className="text-base font-semibold text-foreground">Manris</p>
+            </div>
             <p className="font-mono text-[11px] text-muted-foreground">
-              Brand / Wordmark · text-lg font-semibold · sentence case · 0px tracking
+              Brand mark + wordmark · 4×4 dot grid · 20px mark · text-base font-semibold
             </p>
           </div>
           <div>

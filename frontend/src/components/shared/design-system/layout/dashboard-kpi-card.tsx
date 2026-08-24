@@ -39,10 +39,10 @@ export function DashboardKpiCard({
   return (
     <div
       aria-busy={loading}
-      className="flex min-h-32 flex-col rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+      className="flex min-h-28 flex-col rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
     >
-      <div className="flex items-center px-4 py-4">
-        <p className="text-[11px] font-mono font-semibold uppercase leading-4 tracking-[0.1em] text-muted-foreground">
+      <div className="flex items-center px-4 py-3">
+        <p className="font-sans text-[10px] font-medium uppercase tracking-[0.5px] leading-5 text-muted-foreground">
           {title}
         </p>
       </div>

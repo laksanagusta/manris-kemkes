@@ -102,10 +102,10 @@
   --primary-foreground: #ffffff;
   --secondary: #f6f6f6;
   --secondary-foreground: #525252;
-  --muted: #f7f7f7;
+  --muted: var(--sidebar-accent);
   --muted-foreground: #737373;
-  --accent: #f6f6f6;
-  --accent-foreground: #171717;
+  --accent: var(--sidebar-accent);
+  --accent-foreground: var(--sidebar-accent-foreground);
   --destructive: oklch(0.58 0.22 27);
   --border: rgb(10 10 10 / 10.2%);
   --input: rgb(10 10 10 / 10.2%);
@@ -169,10 +169,10 @@
   --primary-foreground: #171717;
   --secondary: #242424;
   --secondary-foreground: #e5e5e5;
-  --muted: #242424;
+  --muted: var(--sidebar-accent);
   --muted-foreground: #a3a3a3;
-  --accent: #27272a;
-  --accent-foreground: #f5f5f5;
+  --accent: var(--sidebar-accent);
+  --accent-foreground: var(--sidebar-accent-foreground);
   --destructive: oklch(0.65 0.22 25);
   --border: rgb(255 255 255 / 12%);
   --input: rgb(255 255 255 / 12%);
@@ -221,7 +221,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
   }
   html {
     @apply font-sans scroll-smooth;
@@ -266,6 +266,16 @@
   box-shadow:
     0 0 0 1px var(--smooth-ring-color, var(--border)),
     0 0 3px 0 color-mix(in srgb, var(--tw-shadow-color, rgb(60 64 67)) 4%, transparent);
+}
+
+/* Modal and sheet elevation. Keep the same single hairline ring as the
+ * compact surface, then add a restrained two-layer lift so the panel is
+ * separated from the scrim without creating a broad haze. */
+.smooth-shadow-ring-xl {
+  box-shadow:
+    0 0 0 1px var(--smooth-ring-color, var(--border)),
+    0 8px 18px -8px color-mix(in srgb, var(--tw-shadow-color, rgb(60 64 67)) 12%, transparent),
+    0 22px 48px -16px color-mix(in srgb, var(--tw-shadow-color, rgb(60 64 67)) 16%, transparent);
 }
 
 .smooth-ring-neutral-300\/30 {
@@ -337,9 +347,6 @@
   ::-webkit-scrollbar-thumb {
     background: oklch(0.5 0.02 265 / 30%);
     border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.5 0.02 265 / 50%);
   }
 }
 

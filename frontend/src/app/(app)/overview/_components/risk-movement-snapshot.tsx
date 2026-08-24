@@ -97,7 +97,7 @@ export function RiskMovementSnapshot({
       data-testid="movement-snapshot"
     >
       <CardHeader className="pb-4">
-        <CardTitle className="text-base font-semibold">
+        <CardTitle className="text-sm font-medium normal-case">
           Perubahan Risiko
         </CardTitle>
         <p className="mt-1 text-xs text-muted-foreground">

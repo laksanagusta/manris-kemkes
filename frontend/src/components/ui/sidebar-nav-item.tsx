@@ -95,18 +95,14 @@ export function SidebarNavItem({
                 transition={SIDEBAR_SPRING}
               />
             )}
-            {isActive && (
-              <motion.span
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 left-0 z-10 h-4 w-0.5 -translate-y-1/2 rounded-full bg-sidebar-primary"
-                layoutId="sidebar-active-indicator"
-                transition={SIDEBAR_SPRING}
-              />
-            )}
-
             <motion.span
               aria-hidden="true"
-              className="relative z-10 inline-flex size-4 shrink-0 items-center justify-center transition-[color] duration-[180ms] ease-(--ease-out) [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:transition-[stroke-width,color] [&>svg]:duration-[180ms] [&>svg]:ease-(--ease-out) group-hover/menu-button:[&>svg]:[stroke-width:1.95] group-active/menu-button:[&>svg]:[stroke-width:2.1]"
+              className={cn(
+                "relative z-10 inline-flex size-4 shrink-0 items-center justify-center transition-[color] duration-[180ms] ease-(--ease-out) [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:transition-[stroke-width,color] [&>svg]:duration-[180ms] [&>svg]:ease-(--ease-out) group-hover/menu-button:[&>svg]:[stroke-width:1.95] group-active/menu-button:[&>svg]:[stroke-width:2.1]",
+                isActive
+                  ? "!text-sidebar-accent-foreground"
+                  : "!text-sidebar-foreground/60",
+              )}
               variants={sidebarIconVariants}
             >
               <Icon aria-hidden="true" />

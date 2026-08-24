@@ -1,18 +1,12 @@
-import { cn } from "@/lib/utils";
+export type BadgeTone =
+  | "neutral"
+  | "progress"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info";
 
-const BASE_CLASS =
-  "inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border px-2 py-0 text-[10px] font-medium whitespace-nowrap tracking-tight";
-
-const TONES: Record<string, string> = {
-  neutral: "border-border bg-muted text-muted-foreground",
-  progress: "border-violet-200 bg-violet-50 text-violet-700",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  warning: "border-amber-200 bg-amber-50 text-amber-700",
-  danger: "border-rose-200 bg-rose-50 text-rose-700",
-  info: "border-sky-200 bg-sky-50 text-sky-700",
-};
-
-const STATUS_TO_TONE: Record<string, keyof typeof TONES> = {
+const STATUS_TO_TONE: Record<string, BadgeTone> = {
   draft: "neutral",
   signing: "progress",
   completed: "success",
@@ -28,33 +22,25 @@ const STATUS_TO_TONE: Record<string, keyof typeof TONES> = {
   skipped: "neutral",
 };
 
-export function getLinearStatusBadgeClass(status?: string | null) {
+export function getLinearStatusBadgeTone(status?: string | null): BadgeTone {
   const normalized = (status ?? "").trim().toLowerCase();
-  const tone = STATUS_TO_TONE[normalized] ?? "neutral";
-  return cn(BASE_CLASS, TONES[tone]);
+  return STATUS_TO_TONE[normalized] ?? "neutral";
 }
 
-export function getLinearToneBadgeClass(
-  tone: keyof typeof TONES = "neutral",
-) {
-  return cn(BASE_CLASS, TONES[tone]);
-}
-
-export function getLinearRiskLevelBadgeClass(level?: string | null) {
+export function getLinearRiskLevelBadgeTone(level?: string | null): BadgeTone {
   const normalized = (level ?? "").trim().toLowerCase();
 
   switch (normalized) {
     case "sangat rendah":
-    case "sangat rendah ":
-      return getLinearToneBadgeClass("success");
+      return "success";
     case "rendah":
-      return getLinearToneBadgeClass("info");
+      return "info";
     case "sedang":
-      return getLinearToneBadgeClass("warning");
+      return "warning";
     case "tinggi":
     case "sangat tinggi":
-      return getLinearToneBadgeClass("danger");
+      return "danger";
     default:
-      return getLinearToneBadgeClass("neutral");
+      return "neutral";
   }
 }

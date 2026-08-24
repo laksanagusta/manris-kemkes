@@ -10,9 +10,6 @@ const pages = {
   cascading: readSource("../app/(app)/risk/cascading/page.tsx"),
   planning: readSource("../app/(app)/management/planning/page.tsx"),
   reports: readSource("../app/(app)/reports/page.tsx"),
-  complianceMonitoring: readSource(
-    "../app/(app)/reports/compliance-monitoring/page.tsx",
-  ),
 };
 const collectionLayoutExample = readSource(
   "./shared/design-system/examples/collection-layout-example.tsx",
@@ -114,13 +111,11 @@ test("page files do not define local React components", () => {
 });
 
 test("report pages consume shared report shells instead of raw Card composition", () => {
-  for (const name of ["reports", "complianceMonitoring"] as const) {
+  for (const name of ["reports"] as const) {
     assert.doesNotMatch(pages[name], /from "@\/components\/ui\/card"/);
   }
   assert.match(pages.reports, /<ReportPanel[\s>]/);
   assert.match(pages.reports, /<ReportLinkGrid[\s>]/);
-  assert.match(pages.complianceMonitoring, /<ReportEmptyState[\s>]/);
-  assert.match(pages.complianceMonitoring, /<ReportGrid[\s>]/);
   assert.match(designSystemPage, /<ReportPrimitivesExample\s*\/>/);
   assert.match(designSystemDocument, /\*\*ReportPanel\*\*/);
 });

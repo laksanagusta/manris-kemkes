@@ -49,7 +49,7 @@ export function FormalReportCard({
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1.5">
-            <CardTitle className="text-sm font-semibold leading-5 text-balance">
+            <CardTitle className="text-sm font-medium normal-case leading-5 text-balance">
               {title}
             </CardTitle>
             <p className="text-sm leading-6 text-muted-foreground">

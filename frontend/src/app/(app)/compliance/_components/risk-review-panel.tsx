@@ -57,7 +57,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -776,36 +775,49 @@ export function RiskReviewPanel({
       </section>
 
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
+        <AlertDialogContent className="max-w-lg no-scrollbar">
+          <AlertDialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
             <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
-            <AlertDialogDescription>
-              Anda akan memulai pemantauan untuk risiko berikut. Tindakan ini
-              akan membuat draft pemantauan baru yang dapat Anda edit sebelum
-              finalisasi.
-            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
-            <div className="text-sm">
-              <span className="font-medium text-foreground">Kode: </span>
-              <span className="font-mono text-xs text-muted-foreground">
-                {selectedRisk?.code || "-"}
-              </span>
+          <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                  Kode
+                </p>
+                <p className="font-mono text-xs text-foreground">
+                  {selectedRisk?.code || "-"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                  Siklus
+                </p>
+                <p className="text-sm text-foreground">{cycle}</p>
+              </div>
             </div>
-            <div className="text-sm">
-              <span className="font-medium text-foreground">Judul: </span>
-              <span className="text-muted-foreground">
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                Judul
+              </p>
+              <p className="text-sm text-foreground">
                 {selectedRisk?.title || "-"}
-              </span>
-            </div>
-            <div className="text-sm">
-              <span className="font-medium text-foreground">Cycle: </span>
-              <span className="text-muted-foreground">{cycle}</span>
+              </p>
             </div>
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCreateReassessment}>
+          <AlertDialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+            <AlertDialogCancel
+              variant="outline"
+              size="md"
+              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="primary"
+              size="primary"
+              onClick={handleCreateReassessment}
+            >
               Lanjutkan
             </AlertDialogAction>
           </AlertDialogFooter>

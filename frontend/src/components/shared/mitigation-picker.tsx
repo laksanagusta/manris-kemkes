@@ -73,10 +73,10 @@ export function MitigationPicker({ title, description, cause, impactDescription,
           !description.trim() ||
           !title.trim()
         }
-        className="mt-2 gap-2 text-xs text-primary border-primary/20 bg-primary/[0.03] hover:bg-primary/10"
+        className="h-7 gap-2 border-border/60 bg-muted/40 px-2.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
       >
         {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-        {loading ? "AI sedang menyiapkan opsi..." : "Minta rekomendasi mitigasi"}
+        {loading ? "Memproses..." : "Minta rekomendasi mitigasi"}
       </Button>
 
       <AiSuggestionModal

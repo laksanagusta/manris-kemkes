@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Search, Trash2, X } from "@/components/ui/icons";
+import { Fragment, useCallback, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, Plus, Trash2 } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,8 +9,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -18,10 +16,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
+import { CollectionTableHead } from "@/components/shared/design-system/collections/collection-table-head";
+import { CollectionTableHeader } from "@/components/shared/design-system/collections/collection-table-header";
+import { CollectionTableHeaderRow } from "@/components/shared/design-system/collections/collection-table-header-row";
 import { cn } from "@/lib/utils";
 import type { UserPickerOption } from "@/lib/risk-register-user-picker";
 import type { MitigationType } from "@/types/risk";
-import { filterMitigationItems } from "@/components/shared/mitigation-table-search";
 
 export interface MitigationItem {
   id?: string;
@@ -94,21 +94,6 @@ export function MitigationTable({
   loadPicOptions,
 }: MitigationTableProps) {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  useEffect(() => {
-    const handle = window.setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 500);
-
-    return () => window.clearTimeout(handle);
-  }, [search]);
-
-  const filteredItems = useMemo(
-    () => filterMitigationItems(items, debouncedSearch),
-    [debouncedSearch, items],
-  );
 
   const addItem = () => {
     onChange([...items, emptyMitigation()]);
@@ -166,88 +151,43 @@ export function MitigationTable({
 
   return (
     <div className="space-y-3">
-      {items.length > 0 ? (
-        <div className="rounded-xl bg-card/80 p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="mitigation-search" className="text-xs font-medium text-muted-foreground">
-                Cari mitigasi
-              </Label>
-              <div className="relative w-full md:w-[360px]">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="mitigation-search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Cari aksi, PIC, due date, atau detail..."
-                  className="h-9 bg-background/80 pl-9 pr-9 text-xs border-border/50"
-                  disabled={disabled}
-                />
-                {search ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      setSearch("");
-                      setDebouncedSearch("");
-                    }}
-                    disabled={disabled}
-                    aria-label="Hapus pencarian mitigasi"
-                  >
-                    <X className="size-3.5" />
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {filteredItems.length} dari {items.length} rencana penanganan
-            </p>
-          </div>
-        </div>
-      ) : null}
-
       {items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 px-4 py-8 text-left">
           <p className="text-xs text-muted-foreground">
             Belum ada rencana mitigasi.
           </p>
         </div>
-      ) : filteredItems.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 px-4 py-8 text-left">
-          <p className="text-xs text-muted-foreground">
-            Tidak ada rencana mitigasi yang cocok dengan pencarian ini.
-          </p>
-        </div>
       ) : (
-        <div className="rounded-xl bg-card/80 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-          <div className="w-full max-w-full min-w-0 overflow-x-auto">
-            <Table className="min-w-[1120px]">
-              <TableHeader className="[&_tr]:border-b [&_tr]:border-border/50">
-                <TableRow className="border-border/50 transition-colors hover:bg-transparent">
-                <TableHead className="w-16 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  No
-                </TableHead>
-                <TableHead className="whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  Rencana Mitigasi
-                </TableHead>
-                <TableHead className="w-56 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <div className="w-full min-w-0 overflow-hidden rounded-xl border border-border/60">
+          <Table className="w-full table-fixed">
+            <colgroup>
+              <col className="w-[40%]" />
+              <col className="w-[22%]" />
+              <col className="w-[18%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
+            </colgroup>
+            <CollectionTableHeader density="compact">
+              <CollectionTableHeaderRow>
+                <CollectionTableHead className="px-3">
+                  Rencana Penanganan
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   PIC
-                </TableHead>
-                <TableHead className="w-44 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Tipe
-                </TableHead>
-                <TableHead className="w-28 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="px-3">
                   Detail
-                </TableHead>
-                <TableHead className="w-24 whitespace-nowrap px-2.5 text-left align-middle text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                </CollectionTableHead>
+                <CollectionTableHead className="sticky right-0 z-10 w-[84px] bg-table-header px-3 text-center">
                   Aksi
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+                </CollectionTableHead>
+              </CollectionTableHeaderRow>
+            </CollectionTableHeader>
             <TableBody>
-              {filteredItems.map(({ item, index }) => {
+              {items.map((item, index) => {
                 const expanded = expandedRows[index] ?? false;
 
                 return (
@@ -255,16 +195,11 @@ export function MitigationTable({
                     <TableRow
                       style={{ animationDelay: `${index * 30}ms` }}
                       className={cn(
-                        "animate-in fade-in slide-in-from-top-2 duration-200 ease-out motion-reduce:animate-none border-border/30 transition-colors hover:bg-muted/30",
-                        expanded && "bg-muted/20",
+                        "group h-10 border-0 hover:bg-muted/50",
+                        expanded && "bg-muted/20 hover:bg-muted/20",
                       )}
                     >
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted/60 text-[10px] font-semibold text-foreground">
-                          {index + 1}
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-[360px]">
+                      <TableCell className="px-3 py-2">
                         <div className="space-y-1">
                           <Input
                             value={item.action || ""}
@@ -272,7 +207,7 @@ export function MitigationTable({
                               updateItem(index, "action", e.target.value)
                             }
                             placeholder="Uraian rencana penanganan..."
-                            className="h-8 bg-background/80 text-xs border-border/50"
+                            className="h-8 bg-card text-xs border-border/50"
                             disabled={disabled}
                           />
                           {actionErrors?.[index] ? (
@@ -282,7 +217,7 @@ export function MitigationTable({
                           ) : null}
                         </div>
                       </TableCell>
-                      <TableCell className="align-top">
+                      <TableCell className="px-3 py-2 align-top">
                         <div className="space-y-1">
                           {loadPicOptions ? (
                             <RemoteUserPicker
@@ -303,13 +238,13 @@ export function MitigationTable({
                                 updateItem(index, "owner", e.target.value)
                               }
                               placeholder="Nama PIC"
-                              className="h-8 bg-background/80 text-xs border-border/50"
+                              className="h-8 bg-card text-xs border-border/50"
                               disabled={disabled}
                             />
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="align-top">
+                      <TableCell className="px-3 py-2 align-top">
                         <Select
                           value={item.mitigationType ?? "reduce_probability"}
                           onValueChange={(value) =>
@@ -321,7 +256,7 @@ export function MitigationTable({
                           }
                           disabled={disabled}
                         >
-                          <SelectTrigger className="h-8 bg-background/80 text-xs border-border/50">
+                          <SelectTrigger className="h-8 bg-card text-xs border-border/50">
                             <SelectValue placeholder="Pilih tipe mitigasi" />
                           </SelectTrigger>
                           <SelectContent>
@@ -333,7 +268,7 @@ export function MitigationTable({
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="align-top">
+                      <TableCell className="px-3 py-2 align-top">
                         <Button
                           type="button"
                           variant="ghost"
@@ -355,7 +290,7 @@ export function MitigationTable({
                           {expanded ? "Sembunyikan" : "Rincian"}
                         </Button>
                       </TableCell>
-                      <TableCell className="align-top">
+                      <TableCell className="sticky right-0 bg-card px-3 py-2 align-top transition-colors group-hover:bg-muted/50">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -369,8 +304,8 @@ export function MitigationTable({
                     </TableRow>
 
                     {expanded ? (
-                      <TableRow className="animate-in fade-in slide-in-from-top-2 duration-200 ease-out motion-reduce:animate-none border-border/30 bg-muted/15">
-                        <TableCell colSpan={7} className="p-0">
+                      <TableRow className="border-0 bg-muted/15">
+                        <TableCell colSpan={5} className="p-0">
                           <div className="border-t border-border/50 px-4 py-4">
                             {disabled ? (
                               <p className="mb-3 text-xs text-muted-foreground">
@@ -393,7 +328,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Contoh: persiapan, pelaksanaan, monitoring"
-                                  className="h-8 bg-background/80 text-xs border-border/50"
+                                  className="h-8 bg-card text-xs border-border/50"
                                   disabled={disabled}
                                 />
                               </div>
@@ -411,7 +346,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Contoh: Subdit Surveilans, Biro Umum"
-                                  className="h-8 bg-background/80 text-xs border-border/50"
+                                  className="h-8 bg-card text-xs border-border/50"
                                   disabled={disabled}
                                 />
                               </div>
@@ -430,7 +365,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Tuliskan output yang ingin dicapai..."
-                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  className="min-h-20 bg-card text-sm border-border/50"
                                   disabled={disabled}
                                 />
                               </div>
@@ -448,7 +383,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Contoh: 100% unit terdokumentasi, SLA < 5 hari..."
-                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  className="min-h-20 bg-card text-sm border-border/50"
                                   disabled={disabled}
                                 />
                               </div>
@@ -467,7 +402,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="SDM, anggaran, sistem, atau alat bantu yang diperlukan"
-                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  className="min-h-20 bg-card text-sm border-border/50"
                                   disabled={disabled}
                                 />
                               </div>
@@ -485,7 +420,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Langkah cadangan jika rencana utama tidak berjalan"
-                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  className="min-h-20 bg-card text-sm border-border/50"
                                   disabled={disabled}
                                 />
                               </div>
@@ -504,7 +439,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Risiko implementasi, penolakan, keterbatasan kapasitas"
-                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  className="min-h-20 bg-card text-sm border-border/50"
                                   disabled={disabled}
                                 />
                               </div>
@@ -523,7 +458,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Ringkasan sederhana manfaat dibanding biaya"
-                                  className="min-h-20 bg-background/80 text-sm border-border/50"
+                                  className="min-h-20 bg-card text-sm border-border/50"
                                   disabled={disabled}
                                 />
                               </div>
@@ -581,8 +516,7 @@ export function MitigationTable({
                 );
               })}
             </TableBody>
-            </Table>
-          </div>
+          </Table>
         </div>
       )}
 

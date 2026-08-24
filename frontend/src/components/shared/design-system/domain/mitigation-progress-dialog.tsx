@@ -36,19 +36,22 @@ export function MitigationProgressDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn("max-w-2xl", className)}
+        className={cn("max-w-2xl no-scrollbar", className)}
         showCloseButton={false}
       >
         <div className="flex min-h-0 flex-col gap-5">
-          <DialogHeader>
+          <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
             <DialogTitle className="text-base">{title}</DialogTitle>
           </DialogHeader>
-          <MitigationProgressForm {...formProps} />
-          <DialogFooter>
+          <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+            <MitigationProgressForm {...formProps} />
+          </div>
+          <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
             <CollectionDialogCancel
               type="button"
-              variant="secondary"
-              size="primary"
+              variant="outline"
+              size="md"
+              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
               onClick={() => onOpenChange(false)}
             >
               Batal

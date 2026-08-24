@@ -956,14 +956,6 @@ export default function ReportsPage() {
       <ReportLinkGrid
         items={[
           {
-            href: "/reports/compliance-monitoring",
-            title: "Monitoring Kepatuhan",
-          },
-          {
-            href: "/reports/performance-risk",
-            title: "Analisis Kinerja & Risiko",
-          },
-          {
             href: "/reports/cycle-detail",
             title: "Detail Siklus Risiko",
           },

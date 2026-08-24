@@ -26,7 +26,7 @@ export function StandardCard({
       )}
     >
       <CardHeader className="flex flex-row items-center justify-between px-4 py-4 !pb-4">
-        <CardTitle className="text-[11px] font-mono font-semibold uppercase leading-4 tracking-[0.1em] text-muted-foreground">
+        <CardTitle className="font-sans text-sm font-medium normal-case leading-5 text-foreground">
           {title}
         </CardTitle>
         {action ? <div className="shrink-0">{action}</div> : null}

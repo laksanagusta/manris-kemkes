@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { getLinearRiskLevelBadgeClass } from "@/lib/linear-status-badge";
+import { getLinearRiskLevelBadgeTone } from "@/lib/linear-status-badge";
 import {
   History,
   GitBranch,
@@ -88,7 +88,7 @@ export default function RiskHistoryPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm">{ver.name}</span>
                     {ver.isCurrent && (
-                      <Badge className="bg-primary/20 text-primary -primary/20 text-[9px] h-4 px-1.5 ml-1">Current</Badge>
+                      <Badge tone="info" size="micro" className="ml-1">Current</Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
@@ -140,13 +140,13 @@ export default function RiskHistoryPage() {
                         <p className="truncate text-[10px] text-muted-foreground mt-0.5 italic text-primary/70">{history.changeReason}</p>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getLinearRiskLevelBadgeClass(history.previousLevel)}>
+                        <Badge tone={getLinearRiskLevelBadgeTone(history.previousLevel)} size="compact">
                           {history.previousLevel}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center text-muted-foreground">→</TableCell>
                       <TableCell>
-                        <Badge className={getLinearRiskLevelBadgeClass(history.currentLevel)}>
+                        <Badge tone={getLinearRiskLevelBadgeTone(history.currentLevel)} size="compact">
                           {history.currentLevel}
                         </Badge>
                       </TableCell>

@@ -360,16 +360,6 @@ export interface HeatmapVelocityCell {
   newCount: number;
 }
 
-export interface OverdueMitigationTimelineItem {
-  orgId: string;
-  orgName: string;
-  onTimeCount: number;
-  overdue7Count: number;
-  overdue30Count: number;
-  overdue30PlusCount: number;
-  totalCount: number;
-}
-
 export interface KRIBreachItem {
   kriId: string;
   kriName: string;
@@ -379,14 +369,6 @@ export interface KRIBreachItem {
   status: 'safe' | 'warning' | 'breach';
   riskTitle: string;
   orgName: string;
-}
-
-export interface UnitResponseTime {
-  orgId: string;
-  orgName: string;
-  avgMitigationDays: number;
-  avgApprovalDays: number;
-  taskCount: number;
 }
 
 /** Subset of Risk fields returned by GET /api/v1/dashboard/top-risks */

@@ -44,6 +44,9 @@ export function MitigationProgressForm({
       <div className="flex flex-col gap-2">
         <Label className="text-sm" htmlFor={evidenceId}>
           Link Bukti / Evidence
+          <span className="text-destructive ml-0.5" aria-hidden="true">
+            *
+          </span>
         </Label>
         <Input
           id={evidenceId}
@@ -52,6 +55,8 @@ export function MitigationProgressForm({
           onChange={(event) => onEvidenceUrlChange(event.target.value)}
           className="text-base sm:text-sm"
           placeholder={evidencePlaceholder}
+          required
+          aria-required="true"
           aria-invalid={Boolean(showValidationErrors && evidenceError)}
           aria-describedby={
             showValidationErrors && evidenceError
@@ -60,7 +65,11 @@ export function MitigationProgressForm({
           }
         />
         {showValidationErrors && evidenceError ? (
-          <p id={`${evidenceId}-error`} className="text-xs leading-5 text-destructive">
+          <p
+            id={`${evidenceId}-error`}
+            role="alert"
+            className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-150 motion-safe:ease-(--ease-out) text-xs leading-5 text-destructive"
+          >
             {evidenceError}
           </p>
         ) : null}
@@ -78,13 +87,19 @@ export function MitigationProgressForm({
           onChange={(event) => onNotesChange(event.target.value)}
           className="min-h-[80px] text-base sm:text-sm"
           placeholder={notesPlaceholder}
+          required
+          aria-required="true"
           aria-invalid={Boolean(showValidationErrors && notesError)}
           aria-describedby={
             showValidationErrors && notesError ? `${notesId}-error` : undefined
           }
         />
         {showValidationErrors && notesError ? (
-          <p id={`${notesId}-error`} className="text-xs leading-5 text-destructive">
+          <p
+            id={`${notesId}-error`}
+            role="alert"
+            className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-150 motion-safe:ease-(--ease-out) text-xs leading-5 text-destructive"
+          >
             {notesError}
           </p>
         ) : null}

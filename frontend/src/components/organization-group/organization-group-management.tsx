@@ -327,9 +327,9 @@ export function OrganizationGroupManagement({
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground tabular-nums ring-1 ring-inset ring-border">
+                <Badge tone="neutral" size="compact" className="tabular-nums">
                   {totalGroups} grup
-                </span>
+                </Badge>
                 <Button className="h-8 gap-2 text-xs" variant="outline" onClick={openCreateDialog}>
                   <Plus className="size-3.5" />
                   Tambah Grup
@@ -397,7 +397,7 @@ export function OrganizationGroupManagement({
                       </div>
                     </TableCell>
                     <TableCell className="px-2.5 align-middle">
-                      <Badge className="inline-flex h-5 w-fit items-center justify-center gap-1 overflow-hidden rounded-full bg-zinc-50 px-2 py-0 text-[10px] font-medium whitespace-nowrap tracking-tight text-zinc-700">
+                      <Badge tone="neutral" size="micro">
                         <Users className="size-3" />
                         {group.memberCount}
                       </Badge>
@@ -559,7 +559,7 @@ export function OrganizationGroupManagement({
                         <label
                           key={option.id}
                           className={cn(
-                            "flex cursor-pointer items-start gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-background",
+                            "flex cursor-pointer items-start gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent",
                             checked && "bg-background",
                           )}
                         >

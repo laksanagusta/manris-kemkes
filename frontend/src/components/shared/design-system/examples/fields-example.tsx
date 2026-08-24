@@ -15,7 +15,10 @@ export function FieldsExample() {
   return (
     <div className="grid gap-4 rounded-xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 md:grid-cols-3">
       <div className="space-y-2">
-        <Label htmlFor="design-system-field-input">Input</Label>
+        <Label htmlFor="design-system-field-input">
+          Input
+          <span className="ml-0.5 text-destructive">*</span>
+        </Label>
         <Input
           id="design-system-field-input"
           placeholder="Nama risiko"
