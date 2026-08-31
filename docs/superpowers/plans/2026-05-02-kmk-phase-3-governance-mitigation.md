@@ -559,7 +559,6 @@ ALTER TABLE mitigations ADD COLUMN supporting_unit TEXT NOT NULL DEFAULT '';
 ALTER TABLE mitigations ADD COLUMN resources_required TEXT NOT NULL DEFAULT '';
 ALTER TABLE mitigations ADD COLUMN contingency_plan TEXT NOT NULL DEFAULT '';
 ALTER TABLE mitigations ADD COLUMN potential_obstacle TEXT NOT NULL DEFAULT '';
-ALTER TABLE mitigations ADD COLUMN cost_benefit_note TEXT NOT NULL DEFAULT '';
 ALTER TABLE mitigations ADD COLUMN is_breakthrough_activity BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE mitigations ADD COLUMN is_existing_control BOOLEAN NOT NULL DEFAULT FALSE;
 ```
@@ -569,7 +568,6 @@ Create `backend/db/migrations/000053_mitigation_kmk_fields.down.sql`:
 ```sql
 ALTER TABLE mitigations DROP COLUMN IF EXISTS is_existing_control;
 ALTER TABLE mitigations DROP COLUMN IF EXISTS is_breakthrough_activity;
-ALTER TABLE mitigations DROP COLUMN IF EXISTS cost_benefit_note;
 ALTER TABLE mitigations DROP COLUMN IF EXISTS potential_obstacle;
 ALTER TABLE mitigations DROP COLUMN IF EXISTS contingency_plan;
 ALTER TABLE mitigations DROP COLUMN IF EXISTS resources_required;
@@ -593,7 +591,6 @@ SupportingUnit         string `json:"supportingUnit,omitempty"`
 ResourcesRequired      string `json:"resourcesRequired,omitempty"`
 ContingencyPlan        string `json:"contingencyPlan,omitempty"`
 PotentialObstacle      string `json:"potentialObstacle,omitempty"`
-CostBenefitNote        string `json:"costBenefitNote,omitempty"`
 IsBreakthroughActivity bool   `json:"isBreakthroughActivity,omitempty"`
 IsExistingControl      bool   `json:"isExistingControl,omitempty"`
 ```
@@ -623,7 +620,6 @@ export interface RiskMitigation {
   resourcesRequired?: string;
   contingencyPlan?: string;
   potentialObstacle?: string;
-  costBenefitNote?: string;
   isBreakthroughActivity?: boolean;
   isExistingControl?: boolean;
 }

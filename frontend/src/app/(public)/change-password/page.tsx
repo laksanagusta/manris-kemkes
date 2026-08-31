@@ -148,7 +148,7 @@ export default function ChangePasswordPage() {
                     id="current-password"
                     type="password"
                     placeholder="masukkan password saat ini"
-                    className="h-10 border-border/50 bg-muted/30 focus-visible:ring-primary/30"
+                    className="h-10 border-input bg-muted/30 focus-visible:ring-primary/30"
                     value={currentPassword}
                     onChange={(event) => setCurrentPassword(event.target.value)}
                     required
@@ -164,7 +164,7 @@ export default function ChangePasswordPage() {
                   id="new-password"
                   type="password"
                   placeholder="minimal 8 karakter"
-                  className="h-10 border-border/50 bg-muted/30 focus-visible:ring-primary/30"
+                  className="h-10 border-input bg-muted/30 focus-visible:ring-primary/30"
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                   required
@@ -179,7 +179,7 @@ export default function ChangePasswordPage() {
                   id="confirm-password"
                   type="password"
                   placeholder="ulangi password baru"
-                  className="h-10 border-border/50 bg-muted/30 focus-visible:ring-primary/30"
+                  className="h-10 border-input bg-muted/30 focus-visible:ring-primary/30"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   required
@@ -188,7 +188,7 @@ export default function ChangePasswordPage() {
 
               <Button
                 type="submit"
-                className="h-10 w-full gap-2 text-sm font-semibold shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30"
+                className="h-10 w-full gap-2 text-sm font-semibold"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

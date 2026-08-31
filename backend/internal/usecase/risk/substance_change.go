@@ -111,7 +111,6 @@ func mitigationsEqual(a, b []entity.Mitigation) bool {
 				ResourcesRequired:      trim(item.ResourcesRequired),
 				ContingencyPlan:        trim(item.ContingencyPlan),
 				PotentialObstacle:      trim(item.PotentialObstacle),
-				CostBenefitNote:        trim(item.CostBenefitNote),
 				IsBreakthroughActivity: item.IsBreakthroughActivity,
 				IsExistingControl:      item.IsExistingControl,
 			})
@@ -137,7 +136,6 @@ type normalizedMitigation struct {
 	ResourcesRequired      string
 	ContingencyPlan        string
 	PotentialObstacle      string
-	CostBenefitNote        string
 	IsBreakthroughActivity bool
 	IsExistingControl      bool
 }

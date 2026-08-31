@@ -14,18 +14,15 @@ import (
 type GenerateReportUseCase struct {
 	riskRepo     repository.RiskRepository
 	incidentRepo repository.IncidentRepository
-	kriRepo      repository.KRIRepository
 }
 
 func NewGenerateReportUseCase(
 	riskRepo repository.RiskRepository,
 	incidentRepo repository.IncidentRepository,
-	kriRepo repository.KRIRepository,
 ) *GenerateReportUseCase {
 	return &GenerateReportUseCase{
 		riskRepo:     riskRepo,
 		incidentRepo: incidentRepo,
-		kriRepo:      kriRepo,
 	}
 }
 
@@ -79,11 +76,6 @@ func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateRepo
 		return nil, errors.Wrap(err, "failed to load incidents")
 	}
 
-	kris, err := uc.filterKRIsByRiskIDs(ctx, riskIDs, input.OrgIDs)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to load kris")
-	}
-
 	trendData, err := uc.computeTrendData(ctx, input.OrgIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compute trend data")
@@ -95,7 +87,6 @@ func (uc *GenerateReportUseCase) Execute(ctx context.Context, input GenerateRepo
 		Risks:     sortedRisks,
 		TopRisks:  topRisks,
 		Incidents: incidents,
-		KRIs:      kris,
 		TrendData: trendData,
 	}, nil
 }
@@ -271,24 +262,6 @@ func (uc *GenerateReportUseCase) filterIncidentsByRiskIDs(ctx context.Context, r
 				filtered = append(filtered, inc)
 				break
 			}
-		}
-	}
-	return filtered, nil
-}
-
-func (uc *GenerateReportUseCase) filterKRIsByRiskIDs(ctx context.Context, riskIDs map[uuid.UUID]struct{}, orgIDs []uuid.UUID) ([]*entity.KRI, error) {
-	allKRIs, err := uc.kriRepo.List(ctx, orgIDs, false)
-	if err != nil {
-		return nil, err
-	}
-
-	var filtered []*entity.KRI
-	for _, kri := range allKRIs {
-		if kri == nil {
-			continue
-		}
-		if _, ok := riskIDs[kri.RiskID]; ok {
-			filtered = append(filtered, kri)
 		}
 	}
 	return filtered, nil

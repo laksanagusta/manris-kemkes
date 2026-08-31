@@ -20,11 +20,8 @@ import {
   type RiskRegisterListItem,
   type RiskRegisterStatusFilter,
 } from "@/lib/api/risk-register";
-import {
-  listRiskMonitorings,
-} from "@/lib/api/risk-monitoring";
+import { startMonitoring } from "@/lib/api/risk-monitoring";
 import { useAuth } from "@/contexts/auth-context";
-import type { RiskMonitoringDetail } from "@/types/risk-monitoring";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +29,9 @@ import { Button } from "@/components/ui/button";
 import {
   AccentButton,
   ActionButton,
-  ActionIconButton,
   CollectionPageHeader,
   CollectionSearchField,
+  CollectionToolbar,
   PageStack,
 } from "@/components/shared/design-system";
 import { Input } from "@/components/ui/input";
@@ -86,12 +83,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
 import {
-  calculateRiskMetrics,
-  getRiskLevelLabel,
-  resolveRiskScoreSemantics,
   riskCategoryLabels,
 } from "@/lib/risk";
 import {
@@ -100,7 +92,6 @@ import {
   shouldReplaceRiskRegisterUrl,
 } from "@/lib/risk-register-query";
 import { formatMonitoringNilai } from "@/lib/risk-register-monitoring";
-import { MonitoringTransactionsTable } from "@/app/(app)/risk/components/monitoring-transactions-table";
 import {
   CollectionPagination,
   CollectionErrorState,
@@ -113,7 +104,6 @@ import {
   CollectionTableHeader,
   CollectionTableHeaderRow,
   MonitoringTransactionProgress,
-  SidebarTabsList,
 } from "@/components/shared/design-system";
 import {
   Plus,
@@ -121,50 +111,28 @@ import {
   ChevronDown,
   Trash2,
   Upload,
-  RefreshCcw,
   Archive,
+  MoreHorizontal,
+  RefreshCcw,
   RotateCcw,
 } from "@/components/ui/icons";
-import {
-  getLinearRiskLevelBadgeTone,
-  getLinearStatusBadgeTone,
-} from "@/lib/linear-status-badge";
 
 type BadgeTone = NonNullable<React.ComponentProps<typeof Badge>["tone"]>;
-
-const statusVariant: Record<string, BadgeTone> = {
-  draft: getLinearStatusBadgeTone("draft"),
-  final: getLinearStatusBadgeTone("final"),
-  finalized: getLinearStatusBadgeTone("final"),
-  void: "danger",
-};
 
 const registerStatusTone: Record<string, BadgeTone> = {
   draft: "neutral",
   final: "success",
   finalized: "success",
-  void: "danger",
   archived: "neutral",
-};
-
-const levelBadgeVariant: Record<string, BadgeTone> = {
-  "Sangat Rendah": getLinearRiskLevelBadgeTone("Sangat Rendah"),
-  Rendah: getLinearRiskLevelBadgeTone("Rendah"),
-  Sedang: getLinearRiskLevelBadgeTone("Sedang"),
-  Tinggi: getLinearRiskLevelBadgeTone("Tinggi"),
-  "Sangat Tinggi": getLinearRiskLevelBadgeTone("Sangat Tinggi"),
 };
 
 const statusLabel: Record<string, string> = {
   draft: "Draft",
   final: "Final",
   finalized: "Final",
-  void: "Void",
 };
 
 type RiskListItem = RiskRegisterListItem;
-
-type RiskRegisterTab = "all-risks" | "monitoring-transactions";
 
 type RiskRegisterFilterToolbarProps = {
   search: string;
@@ -184,8 +152,6 @@ type RiskRegisterFilterToolbarProps = {
   categoryFilter: RiskRegisterCategoryFilter;
   onCategoryFilterChange: (value: RiskRegisterCategoryFilter) => void;
   onReset: () => void;
-  onRefresh: () => void;
-  refreshing: boolean;
 };
 
 function RiskRegisterFilterToolbar({
@@ -206,13 +172,11 @@ function RiskRegisterFilterToolbar({
   categoryFilter,
   onCategoryFilterChange,
   onReset,
-  onRefresh,
-  refreshing,
 }: RiskRegisterFilterToolbarProps) {
   return (
     <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
       <CollectionSearchField
-        containerClassName="w-full sm:flex-1 sm:w-auto md:flex-1 md:w-auto"
+        containerClassName="w-full sm:w-80 sm:flex-none"
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchPlaceholder}
@@ -233,18 +197,6 @@ function RiskRegisterFilterToolbar({
         categoryFilter={categoryFilter}
         onCategoryFilterChange={onCategoryFilterChange}
         onReset={onReset}
-      />
-      <ActionButton
-        aria-label="Muat ulang daftar risiko"
-        disabled={refreshing}
-        icon={
-          <RefreshCcw
-            className={cn("size-3.5", refreshing && "animate-spin")}
-            strokeWidth={2.25}
-          />
-        }
-        onClick={onRefresh}
-        size="icon-xs"
       />
     </div>
   );
@@ -295,7 +247,7 @@ function RiskRegisterFiltersSidebar({
           <div>
             <h4 className="text-sm font-medium">Filter Daftar Risiko</h4>
             <p className="mt-1 text-xs text-muted-foreground">
-              Atur filter untuk daftar risiko dan transaksi pemantauan.
+              Atur filter untuk daftar risiko.
             </p>
           </div>
 
@@ -334,7 +286,7 @@ function RiskRegisterFiltersSidebar({
                   onLifecycleFilterChange(value as RiskRegisterLifecycleFilter)
                 }
               >
-                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Lifecycle" />
                 </SelectTrigger>
                 <SelectContent>
@@ -355,7 +307,7 @@ function RiskRegisterFiltersSidebar({
                   onStatusFilterChange(value as RiskRegisterStatusFilter)
                 }
               >
-                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -378,7 +330,7 @@ function RiskRegisterFiltersSidebar({
                   onCategoryFilterChange(value as RiskRegisterCategoryFilter)
                 }
               >
-                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Kategori" />
                 </SelectTrigger>
                 <SelectContent>
@@ -425,41 +377,11 @@ function RiskRegisterFiltersSidebar({
   );
 }
 
-function resolveListItemScoreSemantics(risk: RiskListItem) {
-  const probability = risk.probability ?? 1;
-  const impact = risk.impact ?? 1;
-  const fallbackMetrics = calculateRiskMetrics(probability, impact);
-
-  return resolveRiskScoreSemantics({
-    status: risk.status ?? "draft",
-    probability,
-    impact,
-    weight: risk.weight ?? fallbackMetrics.weight,
-    nilai: risk.nilai ?? fallbackMetrics.nilai,
-    inherentScore: risk.inherentScore ?? fallbackMetrics.inherentScore,
-  });
-}
-
-function formatLocalDateTime(value?: string | null) {
-  if (!value) return "-";
-
-  return new Date(value).toLocaleString("id-ID", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
-
 function RiskRowActions({
   risk,
   isReadOnly,
   onContinueMonitoring,
   onStartMonitoring,
-  onMandateCascade,
-  onEscalateCascade,
   onArchive,
   onRestore,
   onDeleteDraft,
@@ -468,8 +390,6 @@ function RiskRowActions({
   isReadOnly: boolean;
   onContinueMonitoring?: () => void;
   onStartMonitoring?: () => void;
-  onMandateCascade?: () => void;
-  onEscalateCascade?: () => void;
   onArchive?: () => void;
   onRestore?: () => void;
   onDeleteDraft?: () => void;
@@ -477,7 +397,11 @@ function RiskRowActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <ActionIconButton
+        <ActionButton
+          variant="ghost"
+          size="icon-xs"
+          className="text-muted-foreground"
+          icon={<MoreHorizontal className="size-3.5" />}
           aria-label={`Aksi risiko ${risk.code || risk.title || risk.id}`}
         />
       </DropdownMenuTrigger>
@@ -494,22 +418,6 @@ function RiskRowActions({
             Mulai Pemantauan
           </DropdownMenuItem>
         )}
-        {/*{(onMandateCascade || onEscalateCascade) && (
-          <>
-            {onMandateCascade && (
-              <DropdownMenuItem onClick={onMandateCascade}>
-                <GitBranch className="size-3.5" />
-                Turunkan Risiko
-              </DropdownMenuItem>
-            )}
-            {onEscalateCascade && (
-              <DropdownMenuItem onClick={onEscalateCascade}>
-                <GitBranch className="size-3.5 rotate-180" />
-                Usulkan Naik
-              </DropdownMenuItem>
-            )}
-          </>
-        )}*/}
         {onArchive && (
           <DropdownMenuItem onClick={onArchive}>
             <Archive className="size-3.5" />
@@ -542,9 +450,6 @@ export default function RiskRegisterPage() {
   const isApplyingSearchParamsRef = useRef(false);
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
-  const [monitoringTransactions, setMonitoringTransactions] = useState<
-    RiskMonitoringDetail[]
-  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState(
@@ -592,12 +497,6 @@ export default function RiskRegisterPage() {
         .limit,
   );
   const [registerTotal, setRegisterTotal] = useState(0);
-  const [monitoringTotal, setMonitoringTotal] = useState(0);
-  const [activeTab, setActiveTab] = useState<RiskRegisterTab>(
-    () =>
-      parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
-        .activeTab,
-  );
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
     useState<RiskListItem | null>(null);
@@ -691,11 +590,7 @@ export default function RiskRegisterPage() {
         ? undefined
         : statusFilter;
 
-    const [
-      allRisksResponse,
-      draftRisks,
-      monitoringTransactionsResponse,
-    ] = await Promise.all([
+    const [allRisksResponse, draftRisks] = await Promise.all([
       listRiskRegister(activeToken, {
         q: normalizedSearch || undefined,
         lifecycle: lifecycleFilter,
@@ -709,44 +604,14 @@ export default function RiskRegisterPage() {
         limit,
       }),
       api.get<RiskListItem[]>("/risks?status=draft", activeToken),
-      listRiskMonitorings(activeToken, {
-        q: normalizedSearch || undefined,
-        lifecycle: lifecycleFilter,
-        status: undefined,
-        category: categoryFilter === "all" ? undefined : categoryFilter,
-        assessment_cycle: normalizedAssessmentCycle || undefined,
-        created_at: normalizedCreatedAt || undefined,
-        sort_by: sortBy,
-        sort_order: sortOrder,
-        page,
-        limit,
-      }),
     ]);
 
     setDrafts(draftRisks);
-    setMonitoringTransactions(monitoringTransactionsResponse.data ?? []);
     setRisks(allRisksResponse.data ?? []);
     setRegisterTotal(allRisksResponse.total ?? 0);
-    setMonitoringTotal(monitoringTransactionsResponse.total ?? 0);
     setPage(allRisksResponse.page ?? page);
     setLimit(allRisksResponse.limit ?? limit);
 
-  };
-
-  const handleRefreshRegister = () => {
-    if (!token || loading) return;
-
-    setLoading(true);
-    void refreshRegisterData(token)
-      .catch((err) => {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Gagal memuat ulang daftar risiko.";
-        setError(message);
-        toast.error(message);
-      })
-      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -786,9 +651,6 @@ export default function RiskRegisterPage() {
     setLimit((current) =>
       current === nextState.limit ? current : nextState.limit,
     );
-    setActiveTab((current) =>
-      current === nextState.activeTab ? current : nextState.activeTab,
-    );
     setSortBy((current) =>
       current === nextState.sortBy ? current : nextState.sortBy,
     );
@@ -799,7 +661,6 @@ export default function RiskRegisterPage() {
 
   useEffect(() => {
     const nextState = {
-      activeTab,
       search,
       lifecycleFilter,
       statusFilter,
@@ -834,7 +695,6 @@ export default function RiskRegisterPage() {
       router.replace(nextUrl, { scroll: false });
     });
   }, [
-    activeTab,
     assessmentCycleFilter,
     categoryFilter,
     createdAtFilter,
@@ -895,8 +755,6 @@ export default function RiskRegisterPage() {
   ]);
 
 
-  const activeTotal =
-    activeTab === "monitoring-transactions" ? monitoringTotal : registerTotal;
   const handleArchiveRisk = async () => {
     if (!token || !riskToArchive) {
       toast.error("Sesi login tidak ditemukan.");
@@ -990,22 +848,21 @@ export default function RiskRegisterPage() {
       return;
     }
 
+    const currentRisk = selectedRiskForReassessment;
     setConfirmDialogOpen(false);
 
     toast.promise(
       (async () => {
-        const result = await api.post<{
-          monitoring: { id: string };
-          redirectUrl: string;
-          existingDraft: boolean;
-        }>(
-          `/risks/${selectedRiskForReassessment.id}/monitorings`,
-          { cycle: selectedAssessmentCycle },
+        const result = await startMonitoring(
           token,
+          currentRisk.id,
+          selectedAssessmentCycle,
         );
         await refreshRegisterData(token);
 
-        router.push(result.redirectUrl || `/risk/monitoring/${result.monitoring.id}`);
+        router.push(
+          result.redirectUrl || `/risk/monitoring/${result.monitoring.id}`,
+        );
 
         return result;
       })(),
@@ -1070,65 +927,56 @@ export default function RiskRegisterPage() {
       : "none";
   return (
     <PageStack>
-      <CollectionPageHeader
-        title="Daftar Risiko"
-        description="Kelola dan pantau seluruh risiko organisasi."
-        actions={
-          <>
-            <ActionButton asChild variant="outline">
-              <Link href="/risk/register/bulk">
-                <Upload className="size-3.5" strokeWidth={2.5} />
-                Import Risiko
-              </Link>
-            </ActionButton>
-            <AccentButton asChild>
-              <Link href="/risk/register/new">
-                <Plus className="size-3.5" strokeWidth={2.5} />
-                Tambah Risiko
-              </Link>
-            </AccentButton>
-          </>
-        }
-      />
-      <Tabs
-        className="gap-4"
-        defaultValue="all-risks"
-        value={activeTab}
-        onValueChange={(value) => setActiveTab(value as RiskRegisterTab)}
-      >
-        <div className="space-y-4">
-          <SidebarTabsList>
-            <TabsTrigger value="all-risks">Daftar Risiko</TabsTrigger>
-            <TabsTrigger value="monitoring-transactions">Pemantauan</TabsTrigger>
-          </SidebarTabsList>
-          <RiskRegisterFilterToolbar
-            search={search}
-            onSearchChange={handleRegisterSearchChange}
-            searchPlaceholder="Cari risiko..."
-            searchAriaLabel="Cari risiko"
-            filterOpen={filterOpen}
-            onFilterOpenChange={setFilterOpen}
-            assessmentCycleFilter={assessmentCycleFilter}
-            onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
-            createdAtFilter={createdAtFilter}
-            onCreatedAtFilterChange={handleRegisterCreatedAtChange}
-            lifecycleFilter={lifecycleFilter}
-            onLifecycleFilterChange={handleRegisterLifecycleChange}
-            statusFilter={statusFilter}
-            onStatusFilterChange={handleRegisterStatusChange}
-            categoryFilter={categoryFilter}
-            onCategoryFilterChange={handleRegisterCategoryChange}
-            onReset={handleResetRegisterFilters}
-            onRefresh={handleRefreshRegister}
-            refreshing={loading}
-          />
-        </div>
-        <TabsContent value="all-risks" className="mt-0 space-y-4">
-          <CollectionTableCard>
+      <CollectionPageHeader title="Daftar Risiko" />
+      <div className="space-y-4">
+        <CollectionToolbar
+            className="w-full"
+            leading={
+              <RiskRegisterFilterToolbar
+                search={search}
+                onSearchChange={handleRegisterSearchChange}
+                searchPlaceholder="Cari risiko..."
+                searchAriaLabel="Cari risiko"
+                filterOpen={filterOpen}
+                onFilterOpenChange={setFilterOpen}
+                assessmentCycleFilter={assessmentCycleFilter}
+                onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
+                createdAtFilter={createdAtFilter}
+                onCreatedAtFilterChange={handleRegisterCreatedAtChange}
+                lifecycleFilter={lifecycleFilter}
+                onLifecycleFilterChange={handleRegisterLifecycleChange}
+                statusFilter={statusFilter}
+                onStatusFilterChange={handleRegisterStatusChange}
+                categoryFilter={categoryFilter}
+                onCategoryFilterChange={handleRegisterCategoryChange}
+                onReset={handleResetRegisterFilters}
+              />
+            }
+            actions={
+              <>
+                <ActionButton
+                  asChild
+                  variant="outline"
+                  className="border-0 border-shadow"
+                >
+                  <Link href="/risk/register/bulk">
+                    <Upload className="size-3.5" strokeWidth={2.5} />
+                    Import Risiko
+                  </Link>
+                </ActionButton>
+                <AccentButton asChild>
+                  <Link href="/risk/register/new">
+                    <Plus className="size-3.5" strokeWidth={2.5} />
+                    Tambah Risiko
+                  </Link>
+                </AccentButton>
+              </>
+            }
+        />
+        <CollectionTableCard>
             <Table className="min-w-[1040px] table-fixed">
               <colgroup>
-                <col className="w-[10%]" />
-                <col className="w-[26%]" />
+                <col className="w-[36%]" />
                 <col className="w-[14%]" />
                 <col className="w-[7%]" />
                 <col className="w-[17%]" />
@@ -1137,9 +985,6 @@ export default function RiskRegisterPage() {
               </colgroup>
               <CollectionTableHeader density="compact">
                 <CollectionTableHeaderRow>
-                  <CollectionTableHead className="pl-4 pr-3">
-                    Kode
-                  </CollectionTableHead>
                   <CollectionTableHead className="px-3">
                     Risiko
                   </CollectionTableHead>
@@ -1188,8 +1033,8 @@ export default function RiskRegisterPage() {
               <TableBody>
                 {risks.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={7}
+                  <TableCell
+                      colSpan={6}
                       className="py-8 text-left text-xs text-muted-foreground"
                     >
                       Tidak ada risiko yang ditemukan
@@ -1201,11 +1046,6 @@ export default function RiskRegisterPage() {
                       user,
                       risk.organizationId || "",
                     );
-                    const canReassess =
-                      risk.status === "final" &&
-                      risk.isCurrent &&
-                      !risk.archivedAt &&
-                      !isReadOnly;
                     const canArchive =
                       lifecycleFilter !== "archived" &&
                       risk.status === "final" &&
@@ -1213,6 +1053,11 @@ export default function RiskRegisterPage() {
                       !risk.archivedAt &&
                       !isReadOnly;
                     const canRestore = !!risk.archivedAt && !isReadOnly;
+                    const canReassess =
+                      risk.status === "final" &&
+                      risk.isCurrent &&
+                      !risk.archivedAt &&
+                      !isReadOnly;
                     const statusText =
                       risk.archivedAt
                         ? "Diarsipkan"
@@ -1227,28 +1072,28 @@ export default function RiskRegisterPage() {
                         key={risk.id}
                         className="group h-10 border-0 hover:bg-muted/50"
                       >
-                        <TableCell className="py-2 pl-4 pr-3 text-foreground">
-                          {risk.code || "-"}
-                        </TableCell>
                         <TableCell className="px-3 py-2">
-                          <div className="flex min-w-0 items-center gap-1.5">
+                          <div className="flex min-w-0 flex-col items-start gap-0.5">
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {risk.code || "-"}
+                            </span>
                             <Link
                               href={`/risk/register/${risk.id}`}
-                              className="min-w-0 flex-1 truncate text-sm font-semibold leading-relaxed text-foreground hover:text-primary"
+                              className="min-w-0 max-w-full truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
                               title={risk.title || "-"}
                             >
                               {risk.title || "-"}
                             </Link>
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap px-3 py-2 text-foreground">
+                        <TableCell className="whitespace-nowrap px-3 py-2 text-muted-foreground">
                           {riskCategoryLabels[risk.category ?? ""] ||
                             risk.category ||
                             "-"}
                         </TableCell>
                         <TableCell className="px-3 py-2">
-                          <span className="text-sm font-medium tabular-nums text-foreground">
-                            {formatMonitoringNilai(risk.monitoringResultNilai)}
+                          <span className="text-sm font-normal tabular-nums text-muted-foreground">
+                            {risk.nilai ?? risk.inherentScore ?? "-"}
                           </span>
                         </TableCell>
                         <TableCell className="px-3 py-2">
@@ -1269,6 +1114,7 @@ export default function RiskRegisterPage() {
                         <TableCell className="min-w-[176px] px-3 py-2">
                           <MonitoringTransactionProgress
                             data={risk.semesterMonitoring}
+                            countLabel=""
                           />
                         </TableCell>
                         <TableCell className="sticky right-0 bg-card px-3 py-2 transition-colors group-hover:bg-muted/50">
@@ -1277,27 +1123,14 @@ export default function RiskRegisterPage() {
                               risk={risk}
                               isReadOnly={isReadOnly}
                               onContinueMonitoring={
-                                canReassess && risk.hasOngoing && risk.draftId
-                                  ? () =>
-                                      router.push(
-                                        `/risk/monitoring/${risk.draftId}`,
-                                      )
-                                  : undefined
-                              }
-                              onStartMonitoring={
-                                canReassess && !risk.hasOngoing
+                                canReassess && risk.monitoringStatus === "draft"
                                   ? () => handleOpenConfirmDialog(risk)
                                   : undefined
                               }
-                              onMandateCascade={() =>
-                                router.push(
-                                  `/risk/cascading?sourceRiskId=${risk.id}&mode=mandatory`,
-                                )
-                              }
-                              onEscalateCascade={() =>
-                                router.push(
-                                  `/risk/cascading?sourceRiskId=${risk.id}&mode=bottom-up`,
-                                )
+                              onStartMonitoring={
+                                canReassess && risk.monitoringStatus !== "draft"
+                                  ? () => handleOpenConfirmDialog(risk)
+                                  : undefined
                               }
                               onArchive={
                                 canArchive
@@ -1335,34 +1168,88 @@ export default function RiskRegisterPage() {
                     setPage(1);
                   }}
                 />
-              </CollectionTableCard>
-          </TabsContent>
+        </CollectionTableCard>
+      </div>
 
-        {/* TAB 2: MONITORING TRANSACTIONS */}
-        <TabsContent value="monitoring-transactions" className="mt-0 space-y-4">
-          <CollectionTableCard>
-            <MonitoringTransactionsTable
-              items={monitoringTransactions}
-              levelBadgeVariant={levelBadgeVariant}
-              statusVariant={statusVariant}
-              getRiskLevelLabel={getRiskLevelLabel}
-              formatLocalDateTime={formatLocalDateTime}
-            />
-            <CollectionPagination
-              itemLabel="transaksi"
-              page={page}
-              pageSize={limit}
-              total={activeTotal}
-              disabled={loading || isPending}
-              onPageChange={setPage}
-              onPageSizeChange={(nextLimit) => {
-                setLimit(nextLimit);
-                setPage(1);
-              }}
-            />
-          </CollectionTableCard>
-        </TabsContent>
-      </Tabs>
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent className="max-w-lg no-scrollbar">
+          <AlertDialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+            <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                  Kode
+                </p>
+                <p className="font-mono text-xs text-foreground">
+                  {selectedRiskForReassessment?.code || "-"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                  Skor
+                </p>
+                <p className="text-sm text-foreground">
+                  {selectedRiskForReassessment
+                    ? formatMonitoringNilai(
+                        selectedRiskForReassessment.nilai ??
+                          selectedRiskForReassessment.inherentScore,
+                      )
+                    : "-"}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                Judul
+              </p>
+              <p className="text-sm text-foreground">
+                {selectedRiskForReassessment?.title || "-"}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm" htmlFor="monitoring-cycle">
+                Periode Pemantauan
+              </Label>
+              <Select
+                value={selectedAssessmentCycle}
+                onValueChange={setSelectedAssessmentCycle}
+              >
+                <SelectTrigger id="monitoring-cycle" className="h-10">
+                  <SelectValue placeholder="Pilih kuartal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectableMonitoringCycles.map((cycleOption) => (
+                    <SelectItem
+                      key={cycleOption.value}
+                      value={cycleOption.value}
+                    >
+                      {cycleOption.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <AlertDialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+            <AlertDialogCancel
+              variant="outline"
+              size="md"
+              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="primary"
+              size="primary"
+              onClick={handleCreateReassessment}
+            >
+              Lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog
         open={!!riskToArchive}
@@ -1463,84 +1350,6 @@ export default function RiskRegisterPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent className="max-w-lg no-scrollbar">
-          <AlertDialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
-            <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
-          </AlertDialogHeader>
-          <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
-                  Kode
-                </p>
-                <p className="font-mono text-xs text-foreground">
-                  {selectedRiskForReassessment?.code || "-"}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
-                  Score
-                </p>
-                <p className="text-sm text-foreground">
-                  {selectedRiskForReassessment
-                    ? resolveListItemScoreSemantics(selectedRiskForReassessment)
-                        .effective.score
-                    : "-"}
-                </p>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
-                Judul
-              </p>
-              <p className="text-sm text-foreground">
-                {selectedRiskForReassessment?.title || "-"}
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm" htmlFor="monitoring-cycle">
-                Periode Pemantauan
-              </Label>
-              <Select
-                value={selectedAssessmentCycle}
-                onValueChange={setSelectedAssessmentCycle}
-              >
-                <SelectTrigger id="monitoring-cycle" className="h-9">
-                  <SelectValue placeholder="Pilih kuartal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectableMonitoringCycles.map((cycleOption) => (
-                    <SelectItem
-                      key={cycleOption.value}
-                      value={cycleOption.value}
-                    >
-                      {cycleOption.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <AlertDialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
-            <AlertDialogCancel
-              variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
-            >
-              Batal
-            </AlertDialogCancel>
-            <AlertDialogAction
-              variant="primary"
-              size="primary"
-              onClick={handleCreateReassessment}
-            >
-              Lanjutkan
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog
         open={!!riskToRestore}

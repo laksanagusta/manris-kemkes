@@ -387,7 +387,6 @@ export default function BulkRiskRegisterPage() {
     <PageStack className="pb-10">
       <FormHeader
         title="Import Risiko"
-        description="Upload template XLSX. Parsing, validasi, dan lookup unit kerja dijalankan di backend agar konsisten dengan master data server."
         badges={
           <div className="flex flex-wrap gap-2">
             <Badge

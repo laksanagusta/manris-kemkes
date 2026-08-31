@@ -155,7 +155,7 @@ function CascadeRiskSelect({
       }}
     >
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-full justify-between gap-2 font-normal">
+        <Button variant="outline" className="h-10 w-full justify-between gap-2 font-normal">
           <span className="truncate">
             {selected ? `${selected.code || "Risk"} · ${selected.title || "-"}` : "Pilih risiko asal"}
           </span>
@@ -276,7 +276,7 @@ function CascadeOrgSelect({
       }}
     >
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-full justify-between gap-2 font-normal">
+        <Button variant="outline" className="h-10 w-full justify-between gap-2 font-normal">
           <span className="truncate">{selected?.name || triggerLabel}</span>
           <Search className="size-4 shrink-0 opacity-60" />
         </Button>

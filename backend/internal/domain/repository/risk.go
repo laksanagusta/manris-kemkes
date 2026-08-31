@@ -51,6 +51,5 @@ type RiskRepository interface {
 	// Dashboard analytics
 	GetHeatmapVelocity(ctx context.Context, fromCycle, toCycle string, orgIDs []uuid.UUID) ([]entity.HeatmapVelocityCell, error)
 	GetOverdueMitigationTimeline(ctx context.Context, orgIDs []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error)
-	GetKRIBreachSummary(ctx context.Context, orgIDs []uuid.UUID) ([]entity.KRIBreachItem, error)
 	GetUnitResponseTime(ctx context.Context, orgIDs []uuid.UUID) ([]entity.UnitResponseTime, error)
 }

@@ -105,11 +105,10 @@ function mapMitigationsToItems(values: RiskMitigation[]): MitigationItem[] {
     expectedOutput: mitigation.expectedOutput ?? "",
     quantitativeTarget: mitigation.quantitativeTarget ?? "",
     supportingUnit: mitigation.supportingUnit ?? "",
-    resourcesRequired: mitigation.resourcesRequired ?? "",
-    contingencyPlan: mitigation.contingencyPlan ?? "",
-    potentialObstacle: mitigation.potentialObstacle ?? "",
-    costBenefitNote: mitigation.costBenefitNote ?? "",
-    isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
+	resourcesRequired: mitigation.resourcesRequired ?? "",
+	contingencyPlan: mitigation.contingencyPlan ?? "",
+	potentialObstacle: mitigation.potentialObstacle ?? "",
+	isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
     isExistingControl: mitigation.isExistingControl ?? false,
   }));
 }
@@ -183,11 +182,10 @@ export function RiskSubstanceFields({
           expectedOutput: item.expectedOutput,
           quantitativeTarget: item.quantitativeTarget,
           supportingUnit: item.supportingUnit,
-          resourcesRequired: item.resourcesRequired,
-          contingencyPlan: item.contingencyPlan,
-          potentialObstacle: item.potentialObstacle,
-          costBenefitNote: item.costBenefitNote,
-          isBreakthroughActivity: Boolean(item.isBreakthroughActivity),
+		resourcesRequired: item.resourcesRequired,
+		contingencyPlan: item.contingencyPlan,
+		potentialObstacle: item.potentialObstacle,
+		isBreakthroughActivity: Boolean(item.isBreakthroughActivity),
           isExistingControl: Boolean(item.isExistingControl),
         })),
       );
@@ -199,21 +197,27 @@ export function RiskSubstanceFields({
     <div className={cn("space-y-6", className)}>
       <div className="grid gap-5 md:grid-cols-2">
         <div className="space-y-1.5 md:col-span-2">
-          <Label className="text-sm font-medium">Judul Risiko</Label>
+          <Label htmlFor="risk-substance-title" className="text-sm font-medium">
+            Judul Risiko
+          </Label>
           <Input
+            id="risk-substance-title"
             value={value.title}
             onChange={(event) =>
               updateRiskSubstanceField(value, onChange, "title", event.target.value)
             }
             placeholder="Judul risiko"
             disabled={disabled}
-            className="h-9 text-sm"
+            className="h-10 text-sm"
           />
         </div>
 
         <div className="space-y-1.5 md:col-span-2">
-          <Label className="text-sm font-medium">Deskripsi Risiko</Label>
+          <Label htmlFor="risk-substance-description" className="text-sm font-medium">
+            Deskripsi Risiko
+          </Label>
           <Textarea
+            id="risk-substance-description"
             value={value.description}
             onChange={(event) =>
               updateRiskSubstanceField(
@@ -230,7 +234,9 @@ export function RiskSubstanceFields({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-sm font-medium">Kategori Risiko</Label>
+          <Label htmlFor="risk-substance-category" className="text-sm font-medium">
+            Kategori Risiko
+          </Label>
           <Select
             value={value.category}
             onValueChange={(nextValue) =>
@@ -238,7 +244,7 @@ export function RiskSubstanceFields({
             }
             disabled={disabled}
           >
-            <SelectTrigger className="h-9 text-sm">
+            <SelectTrigger id="risk-substance-category" className="h-10 text-sm">
               <SelectValue placeholder="Pilih kategori" />
             </SelectTrigger>
             <SelectContent>
@@ -252,7 +258,9 @@ export function RiskSubstanceFields({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-sm font-medium">Sumber Risiko</Label>
+          <Label htmlFor="risk-substance-source" className="text-sm font-medium">
+            Sumber Risiko
+          </Label>
           <Select
             value={value.riskSource}
             onValueChange={(nextValue) =>
@@ -260,7 +268,7 @@ export function RiskSubstanceFields({
             }
             disabled={disabled}
           >
-            <SelectTrigger className="h-9 text-sm">
+            <SelectTrigger id="risk-substance-source" className="h-10 text-sm">
               <SelectValue placeholder="Pilih sumber" />
             </SelectTrigger>
             <SelectContent>
@@ -274,7 +282,9 @@ export function RiskSubstanceFields({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-sm font-medium">Kontrollabilitas</Label>
+          <Label htmlFor="risk-substance-controllability" className="text-sm font-medium">
+            Kontrollabilitas
+          </Label>
           <Select
             value={value.controllability}
             onValueChange={(nextValue) =>
@@ -287,7 +297,7 @@ export function RiskSubstanceFields({
             }
             disabled={disabled}
           >
-            <SelectTrigger className="h-9 text-sm">
+            <SelectTrigger id="risk-substance-controllability" className="h-10 text-sm">
               <SelectValue placeholder="Pilih status" />
             </SelectTrigger>
             <SelectContent>
@@ -301,7 +311,9 @@ export function RiskSubstanceFields({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-sm font-medium">Efektivitas Kontrol</Label>
+          <Label htmlFor="risk-substance-control-effectiveness" className="text-sm font-medium">
+            Efektivitas Kontrol
+          </Label>
           <Select
             value={value.controlEffectiveness}
             onValueChange={(nextValue) =>
@@ -314,7 +326,7 @@ export function RiskSubstanceFields({
             }
             disabled={disabled}
           >
-            <SelectTrigger className="h-9 text-sm">
+            <SelectTrigger id="risk-substance-control-effectiveness" className="h-10 text-sm">
               <SelectValue placeholder="Belum dinilai" />
             </SelectTrigger>
             <SelectContent>
@@ -328,7 +340,9 @@ export function RiskSubstanceFields({
         </div>
 
         <div className="space-y-1.5 md:col-span-2">
-          <Label className="text-sm font-medium">Pilihan Penanganan</Label>
+          <Label htmlFor="risk-substance-treatment" className="text-sm font-medium">
+            Pilihan Penanganan
+          </Label>
           <Select
             value={value.treatmentOption}
             onValueChange={(nextValue) =>
@@ -341,7 +355,7 @@ export function RiskSubstanceFields({
             }
             disabled={disabled}
           >
-            <SelectTrigger className="h-9 text-sm">
+            <SelectTrigger id="risk-substance-treatment" className="h-10 text-sm">
               <SelectValue placeholder="Pilih penanganan" />
             </SelectTrigger>
             <SelectContent>
@@ -358,7 +372,7 @@ export function RiskSubstanceFields({
       <div className="space-y-5">
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <Label className="text-sm font-medium">Penyebab Risiko</Label>
+                        <Label className="text-sm font-medium">Penyebab Risiko</Label>
             <Badge
               variant="outline"
               className="border-border/50 bg-muted/30 text-[10px] uppercase tracking-[0.14em]"
@@ -373,6 +387,7 @@ export function RiskSubstanceFields({
             placeholder="Tulis penyebab..."
             addItemLabel="Tambah Penyebab"
             emptyMessage="Belum ada penyebab"
+            itemLabel="Penyebab risiko"
           />
         </div>
 
@@ -393,13 +408,17 @@ export function RiskSubstanceFields({
             placeholder="Tulis dampak..."
             addItemLabel="Tambah Dampak"
             emptyMessage="Belum ada dampak"
+            itemLabel="Dampak risiko"
           />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium">Kontrol Eksisting</Label>
+        <Label htmlFor="risk-substance-existing-control" className="text-sm font-medium">
+          Kontrol Eksisting
+        </Label>
         <EditableList
+          id="risk-substance-existing-control"
           value={value.existingControl}
           onChange={(nextValue) =>
             updateRiskSubstanceField(
@@ -419,7 +438,7 @@ export function RiskSubstanceFields({
           <div className="flex flex-col gap-1">
             <Label className="text-sm font-medium">Rencana Mitigasi</Label>
             <p className="text-xs text-muted-foreground">
-              Bagian ini bisa dipakai untuk memperbarui penanganan tanpa mengubah skor pemantauan utama.
+              Gunakan bagian ini untuk memperbarui penanganan tanpa mengubah skor pemantauan utama.
             </p>
           </div>
           <MitigationTable

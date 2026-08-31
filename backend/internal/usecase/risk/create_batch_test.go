@@ -86,9 +86,6 @@ func (r *fakeBatchRiskRepo) GetHeatmapVelocity(context.Context, string, string, 
 func (r *fakeBatchRiskRepo) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, nil
 }
-func (r *fakeBatchRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
-	return nil, nil
-}
 func (r *fakeBatchRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, nil
 }

@@ -20,8 +20,7 @@ import {
   BotOffIcon,
   BriefcaseIcon as BriefcaseDefinition,
   Building02Icon,
-  CalculatorIcon,
-  CalendarClockIcon,
+	CalendarClockIcon,
   CalendarDaysIcon,
   CalendarIcon,
   CancelCircleIcon,
@@ -82,6 +81,7 @@ import {
   MagicWandIcon,
   MessageSquare as MessageSquareDefinition,
   MinusSignIcon,
+  MonitorDotIcon,
   MoreHorizontalIcon as MoreHorizontalDefinition,
   OctagonXIcon as OctagonXDefinition,
   PanelLeftIcon as PanelLeftDefinition,
@@ -170,7 +170,6 @@ export const BookOpenIcon = createIcon(BookOpenDefinition, "BookOpenIcon");
 export const BotOff = createIcon(BotOffIcon, "BotOff");
 export const BriefcaseIcon = createIcon(BriefcaseDefinition, "BriefcaseIcon");
 export const Building2 = createIcon(Building02Icon, "Building2");
-export const Calculator = createIcon(CalculatorIcon, "Calculator");
 export const Calendar = createIcon(CalendarIcon, "Calendar");
 export const CalendarClock = createIcon(CalendarClockIcon, "CalendarClock");
 export const CalendarDays = createIcon(CalendarDaysIcon, "CalendarDays");
@@ -241,6 +240,7 @@ export const MinusCircle = createIcon(CircleMinusIcon, "MinusCircle");
 export const MinusIcon = createIcon(MinusSignIcon, "MinusIcon");
 export const MoreHorizontal = createIcon(MoreHorizontalDefinition, "MoreHorizontal");
 export const MoreHorizontalIcon = createIcon(MoreHorizontalDefinition, "MoreHorizontalIcon");
+export const MonitorDot = createIcon(MonitorDotIcon, "MonitorDot");
 export const OctagonXIcon = createIcon(OctagonXDefinition, "OctagonXIcon");
 export const PanelLeftIcon = createIcon(PanelLeftDefinition, "PanelLeftIcon");
 export const Pen = createIcon(PenIcon, "Pen");

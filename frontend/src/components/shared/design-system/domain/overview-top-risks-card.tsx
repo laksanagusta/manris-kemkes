@@ -28,21 +28,21 @@ export function OverviewTopRisksCard({
               href={risk.href}
               className="group/risk flex min-h-14 items-center justify-between gap-3 px-4 py-2.5 outline-none transition-[background-color,transform] duration-150 hover:bg-muted/30 active:scale-[0.995] focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transform-none motion-reduce:transition-none"
             >
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 font-normal">
                 <div className="flex items-center gap-2">
-                  <span className="shrink-0 text-xs font-mono font-semibold text-muted-foreground">
+                  <span className="shrink-0 text-xs font-mono font-normal text-muted-foreground">
                     {risk.code}
                   </span>
                   <span
                     className={cn(
-                      "inline-block rounded border px-1.5 py-0.5 text-[10px] font-semibold",
+                      "inline-block rounded border px-1.5 py-0.5 text-[10px] font-normal",
                       risk.levelClass,
                     )}
                   >
                     {risk.score}
                   </span>
                 </div>
-                <p className="mt-1 truncate text-sm font-medium text-foreground">
+                <p className="mt-1 truncate text-sm font-normal text-foreground">
                   {risk.title}
                 </p>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">

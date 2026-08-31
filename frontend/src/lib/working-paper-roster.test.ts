@@ -4,7 +4,6 @@ import assert from "node:assert";
 const {
   buildInitialRosterDecisions,
   summarizeRosterDecisions,
-  validateRosterDecisions,
 } = await import(
   new URL("./working-paper-roster.ts", import.meta.url).href
 );
@@ -21,7 +20,7 @@ interface WorkingPaperRosterEntry {
   monitoringId?: string;
   monitoringCycle: string;
   monitoringStatus: string;
-  rosterStatus: "finalized_result" | "existing_draft" | "draft_will_be_created";
+  rosterStatus: "not_started" | "in_progress" | "finalized";
 }
 
 interface WorkingPaperRosterPreview {
@@ -32,9 +31,9 @@ interface WorkingPaperRosterPreview {
   entries: WorkingPaperRosterEntry[];
   summary: {
     eligibleCount: number;
+    notStartedCount: number;
+    inProgressCount: number;
     finalizedCount: number;
-    existingDraftCount: number;
-    newDraftCount: number;
   };
 }
 
@@ -50,7 +49,7 @@ function makeEntry(
     sourceVersionNumber: overrides.sourceVersionNumber ?? 1,
     monitoringCycle: overrides.monitoringCycle ?? "2026-H1",
     monitoringStatus: overrides.monitoringStatus ?? "",
-    rosterStatus: overrides.rosterStatus ?? "draft_will_be_created",
+    rosterStatus: overrides.rosterStatus ?? "not_started",
   };
 }
 
@@ -65,14 +64,14 @@ function makePreview(
     entries,
     summary: {
       eligibleCount: entries.length,
+      notStartedCount: entries.filter(
+        (e) => e.rosterStatus === "not_started",
+      ).length,
+      inProgressCount: entries.filter(
+        (e) => e.rosterStatus === "in_progress",
+      ).length,
       finalizedCount: entries.filter(
-        (e) => e.rosterStatus === "finalized_result",
-      ).length,
-      existingDraftCount: entries.filter(
-        (e) => e.rosterStatus === "existing_draft",
-      ).length,
-      newDraftCount: entries.filter(
-        (e) => e.rosterStatus === "draft_will_be_created",
+        (e) => e.rosterStatus === "finalized",
       ).length,
     },
   };
@@ -88,37 +87,36 @@ describe("buildInitialRosterDecisions", () => {
     const decisions = buildInitialRosterDecisions(preview);
 
     assert.deepStrictEqual(decisions, [
-      { versionGroupId: "group-1", included: true, exclusionReason: "" },
-      { versionGroupId: "group-2", included: true, exclusionReason: "" },
+      { versionGroupId: "group-1", included: true },
+      { versionGroupId: "group-2", included: true },
     ]);
   });
 });
 
 describe("summarizeRosterDecisions", () => {
-  it("counts new drafts and exclusions", () => {
+  it("counts monitoring progress and exclusions", () => {
     const preview = makePreview([
       makeEntry({
         versionGroupId: "group-1",
-        rosterStatus: "finalized_result",
+        rosterStatus: "finalized",
       }),
       makeEntry({
         versionGroupId: "group-2",
-        rosterStatus: "draft_will_be_created",
+        rosterStatus: "not_started",
       }),
       makeEntry({
         versionGroupId: "group-3",
-        rosterStatus: "existing_draft",
+        rosterStatus: "in_progress",
       }),
     ]);
 
     const decisions = [
-      { versionGroupId: "group-1", included: true, exclusionReason: "" },
+      { versionGroupId: "group-1", included: true },
       {
         versionGroupId: "group-2",
         included: false,
-        exclusionReason: "Tidak relevan",
       },
-      { versionGroupId: "group-3", included: true, exclusionReason: "" },
+      { versionGroupId: "group-3", included: true },
     ];
 
     const summary = summarizeRosterDecisions(preview, decisions);
@@ -127,27 +125,7 @@ describe("summarizeRosterDecisions", () => {
     assert.strictEqual(summary.includedCount, 2);
     assert.strictEqual(summary.excludedCount, 1);
     assert.strictEqual(summary.finalizedCount, 1);
-    assert.strictEqual(summary.existingDraftCount, 1);
-    assert.strictEqual(summary.newDraftCount, 0);
-  });
-});
-
-describe("validateRosterDecisions", () => {
-  it("requires exclusion reasons", () => {
-    const decisions = [
-      { versionGroupId: "group-1", included: true, exclusionReason: "" },
-      { versionGroupId: "group-2", included: false, exclusionReason: "" },
-      {
-        versionGroupId: "group-3",
-        included: false,
-        exclusionReason: "OK",
-      },
-    ];
-
-    const errors = validateRosterDecisions(decisions);
-
-    assert.deepStrictEqual(errors, {
-      "group-2": "Alasan pengecualian wajib diisi.",
-    });
+    assert.strictEqual(summary.inProgressCount, 1);
+    assert.strictEqual(summary.notStartedCount, 0);
   });
 });

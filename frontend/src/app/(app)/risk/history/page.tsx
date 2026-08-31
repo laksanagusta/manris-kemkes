@@ -59,9 +59,8 @@ export default function RiskHistoryPage() {
       <CollectionPageHeader
         icon={<History className="size-6" />}
         title="Risk Versioning (History)"
-        description="Rekam jejak periode manajemen risiko organisasi dari waktu ke waktu"
         actions={
-          <Button className="gap-2 shadow-lg shadow-primary/20">
+          <Button className="gap-2">
             <GitBranch className="size-4" />
             Create Snapshot Baru
           </Button>
@@ -136,7 +135,7 @@ export default function RiskHistoryPage() {
                     <TableRow key={history.riskId} className="border-border/30 hover:bg-muted/30">
                       <TableCell className="text-xs font-mono text-muted-foreground">{history.riskId}</TableCell>
                       <TableCell className="max-w-[300px]">
-                        <p className="truncate text-xs font-medium leading-relaxed">{history.title}</p>
+                        <p className="truncate text-xs font-medium leading-relaxed text-foreground">{history.title}</p>
                         <p className="truncate text-[10px] text-muted-foreground mt-0.5 italic text-primary/70">{history.changeReason}</p>
                       </TableCell>
                       <TableCell>

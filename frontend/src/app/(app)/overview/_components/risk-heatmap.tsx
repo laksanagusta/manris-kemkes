@@ -89,7 +89,7 @@ export function RiskHeatmap({
       >
         <CardContent
           className={cn(
-            "flex items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground",
+            "flex items-center justify-center rounded-lg border border-dashed border-surface-border bg-muted/20 px-6 text-center text-sm text-muted-foreground",
             compact ? "h-44" : "h-64",
           )}
         >
@@ -113,7 +113,7 @@ export function RiskHeatmap({
             <CardTitle className="text-sm font-medium normal-case">
               Heatmap Risiko
             </CardTitle>
-            <p className={cn("mt-1 text-xs text-muted-foreground", compact && "max-w-[18rem]")}>
+            <p className={cn("mt-1 text-xs text-secondary-foreground", compact && "max-w-[18rem]")}>
               Distribusi risiko berdasarkan Probabilitas × Dampak
             </p>
           </div>

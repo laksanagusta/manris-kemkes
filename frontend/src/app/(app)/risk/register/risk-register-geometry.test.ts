@@ -50,14 +50,11 @@ test("targeted controls use the approved corner geometry", () => {
     source,
     /className="pointer-events-none absolute left-4 top-1\/2 z-10 size-4/,
   );
-  assert.match(
+  assert.doesNotMatch(
     source,
-    /<TabsList[^>]*className="corner-xl-smooth border border-border\/50 bg-muted\/50 p-0\.5"/,
+    /TabsList|TabsTrigger|TabsContent|monitoring-transactions/,
   );
-  assert.equal(
-    source.match(/className="h-full corner-xl-smooth border/g)?.length,
-    2,
-  );
+  assert.match(source, /<MonitoringTransactionProgress/);
   assert.match(
     source,
     /className="flex min-h-\[96px\] flex-col corner-2xl-smooth p-4"/,

@@ -163,7 +163,6 @@ export default function NewUserPage() {
     <FormPage className="max-w-5xl">
       <FormHeader
         title="Tambah pengguna"
-        description="Buat akun baru, tetapkan peran, lalu sampaikan NIP dan password sementara secara manual. Akun akan berstatus menunggu aktivasi sampai pengguna mengganti password saat login pertama."
         badges={
           <div className="flex flex-wrap items-center gap-2">
             <Badge

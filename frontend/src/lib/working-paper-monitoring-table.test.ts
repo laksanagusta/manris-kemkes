@@ -33,17 +33,14 @@ function makeRisk(
   };
 }
 
-test("working paper monitoring table keeps the approved 10-column order", () => {
+test("working paper monitoring table keeps the compact monitoring column order", () => {
   assert.deepEqual(
     WORKING_PAPER_MONITORING_COLUMNS.map((column) => column.key),
     [
       "code",
+      "version",
       "risk",
       "score",
-      "trend",
-      "effectiveness",
-      "condition",
-      "followUp",
       "status",
       "action",
     ],
@@ -56,7 +53,7 @@ test("buildWorkingPaperMonitoringRow maps a final monitoring evaluation", () => 
       previousRiskId: "risk-prev",
       monitoring: {
         id: "monitoring-1",
-        status: "finalized",
+        status: "final",
         assessmentCycle: "2026-H1",
         sourceProbability: 4,
         sourceImpact: 4,
@@ -68,13 +65,8 @@ test("buildWorkingPaperMonitoringRow maps a final monitoring evaluation", () => 
         observedWeight: 1,
         observedNilai: 12,
         observedLevel: "tinggi",
-        trend: "down",
         mitigationCompletionPercent: 75,
         mitigationProgressSummary: "Tiga aksi selesai",
-        effectivenessConclusion: "Cukup efektif",
-        conditionSummary: "Kondisi membaik",
-        eventSummary: "Satu insiden minor",
-        followUpNote: "Pantau mingguan",
         startedAt: "2026-06-01T08:00:00Z",
         updatedAt: "2026-06-10T08:00:00Z",
       },
@@ -84,13 +76,10 @@ test("buildWorkingPaperMonitoringRow maps a final monitoring evaluation", () => 
   assert.equal(row.sourceScore, 16);
   assert.equal(row.observedScore, 12);
   assert.equal(row.observedLevelLabel, "Tinggi");
-  assert.equal(row.trendLabel, "Menurun");
-  assert.equal(row.condition, "Kondisi membaik\nSatu insiden minor");
-  assert.equal(row.followUp, "Selesaikan pengadaan");
-  assert.equal(row.statusLabel, "Final");
+  assert.equal(row.statusLabel, "Selesai");
   assert.deepEqual(
     row.actionItems.map((item) => item.label),
-    ["Detail Risiko Awal", "Hasil Pemantauan"],
+    ["Detail Risiko Awal", "Lihat Hasil Pemantauan"],
   );
   assert.deepEqual(
     row.actionItems.map((item) => item.href),
@@ -109,11 +98,11 @@ test("buildWorkingPaperMonitoringRowFromLink uses persisted source and monitorin
     source_risk_id: "risk-source",
     monitoring_id: "monitoring-1",
     result_risk_id: "risk-result",
-    roster_status: "finalized_result",
+    roster_status: "finalized",
     risk: makeRisk({
       monitoring: {
         id: "monitoring-1",
-        status: "finalized",
+        status: "final",
         assessmentCycle: "2026-H1",
         sourceProbability: 4,
         sourceImpact: 4,
@@ -154,22 +143,18 @@ test("buildWorkingPaperMonitoringRow hides progress for draft monitoring", () =>
         observedWeight: 1,
         observedNilai: 12,
         observedLevel: "tinggi",
-        trend: "down",
         mitigationCompletionPercent: 75,
         mitigationProgressSummary: "Tiga aksi selesai",
-        effectivenessConclusion: "Cukup efektif",
-        conditionSummary: "Kondisi membaik",
-        eventSummary: "Satu insiden minor",
-        followUpNote: "Pantau mingguan",
         startedAt: "2026-06-01T08:00:00Z",
         updatedAt: "2026-06-10T08:00:00Z",
       },
     }),
   );
 
-  assert.equal(row.statusLabel, "Draft");
+  assert.equal(row.statusLabel, "Sedang Berjalan");
   assert.equal(row.actionItems[0]?.href, "/risk/register/risk-1");
-  assert.equal(row.actionItems[1]?.href, null);
+  assert.equal(row.actionItems[1]?.label, "Lanjutkan Pemantauan");
+  assert.equal(row.actionItems[1]?.href, "/risk/monitoring/monitoring-1");
 });
 
 test("buildWorkingPaperMonitoringRow falls back for unmonitored risks", () => {
@@ -177,24 +162,21 @@ test("buildWorkingPaperMonitoringRow falls back for unmonitored risks", () => {
 
   assert.equal(row.sourceScore, 16);
   assert.equal(row.observedScore, null);
-  assert.equal(row.trendLabel, "-");
-  assert.equal(row.condition, "-");
-  assert.equal(row.followUp, "-");
-  assert.equal(row.statusLabel, "Belum Dimonitor");
+  assert.equal(row.statusLabel, "Belum Dimulai");
   assert.deepEqual(
     row.actionItems.map((item) => item.label),
-    ["Detail Risiko Awal", "Hasil Pemantauan"],
+    ["Detail Risiko Awal", "Mulai Pemantauan"],
   );
   assert.equal(row.actionItems[0]?.href, "/risk/register/risk-1");
   assert.equal(row.actionItems[1]?.href, null);
 });
 
-test("buildWorkingPaperMonitoringRow uses general follow-up as fallback", () => {
+test("buildWorkingPaperMonitoringRow keeps score and status when monitoring is final", () => {
   const row = buildWorkingPaperMonitoringRow(
     makeRisk({
       monitoring: {
         id: "monitoring-2",
-        status: "finalized",
+        status: "final",
         assessmentCycle: "2026-H1",
         sourceProbability: 4,
         sourceImpact: 4,
@@ -206,13 +188,8 @@ test("buildWorkingPaperMonitoringRow uses general follow-up as fallback", () => 
         observedWeight: 1,
         observedNilai: 16,
         observedLevel: "tinggi",
-        trend: "stable",
         mitigationCompletionPercent: 100,
         mitigationProgressSummary: "",
-        effectivenessConclusion: "",
-        conditionSummary: "",
-        eventSummary: "",
-        followUpNote: "Pertahankan kontrol",
         startedAt: "2026-06-01T08:00:00Z",
         updatedAt: "2026-06-30T08:00:00Z",
         finalizedAt: "2026-06-30T08:00:00Z",
@@ -220,7 +197,5 @@ test("buildWorkingPaperMonitoringRow uses general follow-up as fallback", () => 
     }),
   );
 
-  assert.equal(row.trendLabel, "Tetap");
-  assert.equal(row.followUp, "Pertahankan kontrol");
-  assert.equal(row.statusLabel, "Final");
+  assert.equal(row.statusLabel, "Selesai");
 });

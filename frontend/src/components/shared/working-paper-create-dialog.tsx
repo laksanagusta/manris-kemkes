@@ -53,7 +53,7 @@ function WorkingPaperPeriodPicker({
           aria-expanded={open}
           aria-controls="working-paper-period-options"
           aria-required="true"
-          className="group/risk-select h-9 w-full justify-between gap-2 rounded-lg border-border bg-card px-3 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-border focus-visible:border-border focus:ring-0 focus-visible:ring-0 dark:focus:border-border dark:focus-visible:border-border"
+          className="group/risk-select h-10 w-full justify-between gap-2 rounded-lg border-input bg-card px-3 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0 dark:focus:border-input dark:focus-visible:border-input"
         >
           <span
             className={cn(

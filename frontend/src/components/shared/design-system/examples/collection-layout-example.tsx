@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Download, Plus } from "@/components/ui/icons";
 
 import { AccentButton } from "@/components/shared/design-system";
-import { KpiCard } from "@/components/ui/kpi-card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   CollectionFilterGrid,
@@ -13,7 +12,11 @@ import {
   CollectionToolbar,
   ExpandableSearchField,
 } from "@/components/shared/design-system";
-import { MetricGrid, PageStack } from "@/components/shared/design-system";
+import {
+  KpiCard,
+  MetricGrid,
+  PageStack,
+} from "@/components/shared/design-system";
 import { ActionButton } from "@/components/shared/design-system";
 
 export function CollectionLayoutExample() {
@@ -33,41 +36,34 @@ export function CollectionLayoutExample() {
       </MetricGrid>
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">
-          Actions-only toolbar
+          Filter kiri, action kanan
         </p>
         <CollectionToolbar
+          leading={
+            <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+              <ExpandableSearchField
+                value={search}
+                onChange={setSearch}
+                ariaLabel="Cari contoh"
+                placeholder="Cari data..."
+              />
+              <CollectionFilterTrigger />
+            </div>
+          }
           actions={
             <>
-              <CollectionFilterTrigger />
               <ActionButton
                 icon={<Download className="size-3.5" />}
                 variant="outline"
               >
                 Export data
               </ActionButton>
+              <AccentButton icon={<Plus className="size-4" />}>
+                Buat item
+              </AccentButton>
             </>
           }
         />
-      </div>
-      <CollectionToolbar
-        title="Daftar operasional"
-        description="Toolbar berada di luar shell tabel."
-        actions={
-          <>
-            <ExpandableSearchField
-              value={search}
-              onChange={setSearch}
-              ariaLabel="Cari contoh"
-              placeholder="Cari data..."
-            />
-            <CollectionFilterTrigger />
-          </>
-        }
-      />
-      <div className="flex justify-end">
-        <AccentButton icon={<Plus className="size-4" />}>
-          Buat Eskalasi
-        </AccentButton>
       </div>
       <CollectionFilterGrid className="lg:grid-cols-[minmax(0,1fr)_220px] lg:items-end">
         <div className="min-w-0">

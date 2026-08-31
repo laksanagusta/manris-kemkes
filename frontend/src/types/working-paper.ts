@@ -16,13 +16,8 @@ export interface WorkingPaperRiskMonitoring {
   observedWeight: number;
   observedNilai: number;
   observedLevel: string;
-  trend: "up" | "down" | "stable" | string;
   mitigationCompletionPercent: number;
   mitigationProgressSummary: string;
-  effectivenessConclusion: string;
-  conditionSummary: string;
-  eventSummary: string;
-  followUpNote: string;
   startedAt: string;
   updatedAt: string;
   finalizedAt?: string;
@@ -81,8 +76,6 @@ export interface WorkingPaperRiskData {
   monitoring_inherent_score?: number;
   monitoring_tingkat_risiko?: string;
   monitoring_tingkat_risiko_display?: string;
-  monitoring_simpulan?: string;
-  monitoring_efektivitas?: string;
   jadwal_pelaksanaan?: string;
   penanggung_jawab?: string;
 }
@@ -188,9 +181,9 @@ export interface CreateSignatoryInput {
 }
 
 export type WorkingPaperRosterStatus =
-  | "finalized_result"
-  | "existing_draft"
-  | "draft_will_be_created";
+  | "not_started"
+  | "in_progress"
+  | "finalized";
 
 export interface WorkingPaperRosterEntry {
   versionGroupId: string;
@@ -215,16 +208,15 @@ export interface WorkingPaperRosterPreview {
   entries: WorkingPaperRosterEntry[];
   summary: {
     eligibleCount: number;
+    notStartedCount: number;
+    inProgressCount: number;
     finalizedCount: number;
-    existingDraftCount: number;
-    newDraftCount: number;
   };
 }
 
 export interface WorkingPaperRosterDecisionInput {
   version_group_id: string;
   included: boolean;
-  exclusion_reason?: string;
 }
 
 export interface CreateWorkingPaperRequest {

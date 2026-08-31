@@ -19,10 +19,6 @@ type incidentSummarySource interface {
 	List(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Incident, error)
 }
 
-type kriSummarySource interface {
-	List(ctx context.Context, orgIDs []uuid.UUID, includeArchived bool) ([]*entity.KRI, error)
-}
-
 type tmpmrSummarySource interface {
 	List(ctx context.Context, filter repository.TMPMRListFilter) ([]*entity.TMPMRAssessment, int, error)
 }
@@ -31,7 +27,6 @@ type GenerateFormalReportUseCase struct {
 	reportRepo   repository.FormalReportRepository
 	riskRepo     riskSummarySource
 	incidentRepo incidentSummarySource
-	kriRepo      kriSummarySource
 	tmpmrRepo    tmpmrSummarySource
 }
 
@@ -39,14 +34,12 @@ func NewGenerateFormalReportUseCase(
 	reportRepo repository.FormalReportRepository,
 	riskRepo repository.RiskRepository,
 	incidentRepo repository.IncidentRepository,
-	kriRepo repository.KRIRepository,
 	tmpmrRepo repository.TMPMRRepository,
 ) *GenerateFormalReportUseCase {
 	return &GenerateFormalReportUseCase{
 		reportRepo:   reportRepo,
 		riskRepo:     riskRepo,
 		incidentRepo: incidentRepo,
-		kriRepo:      kriRepo,
 		tmpmrRepo:    tmpmrRepo,
 	}
 }
@@ -88,7 +81,6 @@ func (uc *GenerateFormalReportUseCase) Execute(ctx context.Context, input Genera
 		"focus":          reportType,
 		"riskCount":      0,
 		"incidentCount":  0,
-		"kriCount":       0,
 		"tmpmrCount":     0,
 		"tmpmrScore":     0,
 		"tmpmrLevel":     "",
@@ -107,12 +99,6 @@ func (uc *GenerateFormalReportUseCase) Execute(ctx context.Context, input Genera
 		summary["incidentCount"] = len(incidents)
 	} else {
 		summary["sourceWarnings"] = append(summary["sourceWarnings"].([]string), "incident data unavailable")
-	}
-
-	if kris, err := uc.kriRepo.List(ctx, orgIDs, false); err == nil {
-		summary["kriCount"] = len(kris)
-	} else {
-		summary["sourceWarnings"] = append(summary["sourceWarnings"].([]string), "kri data unavailable")
 	}
 
 	if assessments, total, err := uc.tmpmrRepo.List(ctx, repository.TMPMRListFilter{

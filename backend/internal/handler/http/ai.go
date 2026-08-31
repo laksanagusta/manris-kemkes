@@ -34,7 +34,6 @@ type AIHandler struct {
 	applyRiskChangeUC      *aiuc.ApplyTranscriptRiskChangesUseCase
 	predictiveUC           *aiuc.GeneratePredictiveUseCase
 	riskSuggestionUC       *aiuc.GenerateRiskSuggestionsUseCase
-	kriUC                  *aiuc.GenerateKRIUseCase
 	incidentBatchUC        *aiuc.GenerateIncidentBatchExtractionUseCase
 	incidentRiskUC         *aiuc.GenerateManualIncidentRiskSuggestionsUseCase
 	documentIntelligenceUC *aiuc.AnalyzeDocumentIntelligenceUseCase
@@ -50,7 +49,6 @@ func NewAIHandler(
 	applyRiskChangeUC *aiuc.ApplyTranscriptRiskChangesUseCase,
 	predictiveUC *aiuc.GeneratePredictiveUseCase,
 	riskSuggestionUC *aiuc.GenerateRiskSuggestionsUseCase,
-	kriUC *aiuc.GenerateKRIUseCase,
 	incidentBatchUC *aiuc.GenerateIncidentBatchExtractionUseCase,
 	incidentRiskUC *aiuc.GenerateManualIncidentRiskSuggestionsUseCase,
 	documentIntelligenceUC *aiuc.AnalyzeDocumentIntelligenceUseCase,
@@ -64,7 +62,6 @@ func NewAIHandler(
 		applyRiskChangeUC:      applyRiskChangeUC,
 		predictiveUC:           predictiveUC,
 		riskSuggestionUC:       riskSuggestionUC,
-		kriUC:                  kriUC,
 		incidentBatchUC:        incidentBatchUC,
 		incidentRiskUC:         incidentRiskUC,
 		documentIntelligenceUC: documentIntelligenceUC,
@@ -319,12 +316,6 @@ func (h *AIHandler) GenerateRiskSuggestion(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": result})
 }
 
-// GenerateKRIRequest represents request for KRI generation
-type GenerateKRIRequest struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-}
-
 type GenerateManualIncidentRiskSuggestionRequest struct {
 	Title          string     `json:"title"`
 	What           string     `json:"what"`
@@ -334,30 +325,6 @@ type GenerateManualIncidentRiskSuggestionRequest struct {
 	WhyHow         string     `json:"whyHow"`
 	Severity       string     `json:"severity"`
 	OrganizationID *uuid.UUID `json:"organizationId"`
-}
-
-// GenerateKRI handles POST /api/v1/ai/kris
-func (h *AIHandler) GenerateKRI(c *fiber.Ctx) error {
-	// 1. Parse request
-	var req GenerateKRIRequest
-	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
-	}
-
-	scope := middleware.GetAccessScope(c)
-
-	// 2. Execute use case
-	result, err := h.kriUC.Execute(c.Context(), aiuc.GenerateKRIInput{
-		Title:          req.Title,
-		Description:    req.Description,
-		OrganizationID: scopeOrgID(scope),
-	})
-	if err != nil {
-		return handleError(c, err)
-	}
-
-	// 3. Return response
-	return c.JSON(fiber.Map{"data": result})
 }
 
 // GenerateManualIncidentRiskSuggestions handles POST /api/v1/ai/incidents/suggest-risks

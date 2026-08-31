@@ -5,13 +5,11 @@ import { cn } from "@/lib/utils";
 export function PageHeader({
   eyebrow,
   title,
-  description,
   actions,
   className,
 }: {
   eyebrow?: ReactNode;
   title: ReactNode;
-  description?: ReactNode;
   actions?: ReactNode;
   className?: string;
 }) {
@@ -30,13 +28,10 @@ export function PageHeader({
         </div>
       ) : null}
       <div className="flex flex-col gap-4 px-4 pb-4 pt-6 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
+        <div>
           <h1 className="page-title">
             {title}
           </h1>
-          {description ? (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          ) : null}
         </div>
         {actions}
       </div>

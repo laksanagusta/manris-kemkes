@@ -230,9 +230,9 @@ test("buildMovementChartData summarizes up down and stable comparison counts", (
   ]);
 
   assert.deepEqual(result, [
-    { label: "Naik", value: 2, fill: "oklch(0.70 0.18 40)" },
-    { label: "Turun", value: 1, fill: "oklch(0.72 0.17 155)" },
-    { label: "Stabil", value: 1, fill: "oklch(0.60 0.02 265 / 55%)" },
+    { label: "Naik", value: 2, fill: "var(--risk-high)" },
+    { label: "Turun", value: 1, fill: "var(--risk-low)" },
+    { label: "Stabil", value: 1, fill: "var(--chart-5)" },
   ]);
 });
 
@@ -350,9 +350,9 @@ test("movement helpers remain comparison-driven for all risk states", () => {
   });
 
   assert.deepEqual(chart, [
-    { label: "Naik", value: 1, fill: "oklch(0.70 0.18 40)" },
-    { label: "Turun", value: 1, fill: "oklch(0.72 0.17 155)" },
-    { label: "Stabil", value: 1, fill: "oklch(0.60 0.02 265 / 55%)" },
+    { label: "Naik", value: 1, fill: "var(--risk-high)" },
+    { label: "Turun", value: 1, fill: "var(--risk-low)" },
+    { label: "Stabil", value: 1, fill: "var(--chart-5)" },
   ]);
   assert.deepEqual(badges, {
     "R-001": ["Naik level", "Overdue"],
@@ -362,9 +362,9 @@ test("movement helpers remain comparison-driven for all risk states", () => {
 test("buildUnitExposureData and buildMovementChartData return empty-friendly arrays", () => {
   assert.deepEqual(buildUnitExposureData([]), []);
   assert.deepEqual(buildMovementChartData([]), [
-    { label: "Naik", value: 0, fill: "oklch(0.70 0.18 40)" },
-    { label: "Turun", value: 0, fill: "oklch(0.72 0.17 155)" },
-    { label: "Stabil", value: 0, fill: "oklch(0.60 0.02 265 / 55%)" },
+    { label: "Naik", value: 0, fill: "var(--risk-high)" },
+    { label: "Turun", value: 0, fill: "var(--risk-low)" },
+    { label: "Stabil", value: 0, fill: "var(--chart-5)" },
   ]);
 });
 

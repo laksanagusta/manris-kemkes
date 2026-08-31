@@ -3,11 +3,15 @@
 import Link from "next/link";
 import { ChevronRight } from "@/components/ui/icons";
 
-import { StandardCard } from "@/components/shared/design-system";
-import { OverviewPanelState } from "@/components/shared/design-system";
+import {
+  Badge,
+  OverviewPanelState,
+  StandardCard,
+} from "@/components/shared/design-system";
 import {
   getBobot,
   getRiskLevelFromNilai,
+  getRiskLevelLabel,
   levelToColor,
   resolveRiskScoreSemantics,
 } from "@/lib/risk";
@@ -18,6 +22,7 @@ interface TopRisksPanelProps {
   risks: TopRiskItem[];
   loading?: boolean;
   error?: boolean;
+  onRetry?: () => void;
   className?: string;
 }
 
@@ -25,6 +30,7 @@ export function TopRisksPanel({
   risks,
   loading,
   error,
+  onRetry,
   className,
 }: TopRisksPanelProps) {
   return (
@@ -42,6 +48,7 @@ export function TopRisksPanel({
         <OverviewPanelState
           state="error"
           message="Risiko teratas tidak dapat dimuat."
+          onRetry={onRetry}
         />
       ) : risks.length === 0 ? (
         <OverviewPanelState state="empty" message="Belum ada data risiko." />
@@ -67,25 +74,37 @@ export function TopRisksPanel({
                   data-testid="risk-row"
                   className="group/risk flex min-h-14 items-center justify-between gap-3 px-4 py-2.5 outline-none transition-[background-color,transform] duration-150 hover:bg-muted/30 active:scale-[0.995] focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transform-none motion-reduce:transition-none"
                 >
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 font-normal">
                     <div className="flex items-center gap-2">
-                      <span className="shrink-0 text-xs font-mono font-semibold text-muted-foreground">
+                      <span className="shrink-0 text-xs font-mono font-normal text-muted-foreground">
                         {risk.code}
                       </span>
-                      <span
+                      <Badge
+                        variant="outline"
+                        size="micro"
+                        title={`Skor ${score} — ${getRiskLevelLabel(level)}`}
                         className={cn(
-                          "inline-block rounded border px-1.5 py-0.5 text-[10px] font-semibold",
+                          "font-normal",
                           levelToColor(level),
                         )}
                       >
                         {score}
-                      </span>
+                        <span className="sr-only">
+                          ({getRiskLevelLabel(level)})
+                        </span>
+                      </Badge>
                     </div>
-                    <p className="mt-1 truncate text-sm font-medium text-foreground">
+                    <p
+                      className="mt-1 break-words text-pretty text-sm font-normal text-foreground"
+                      title={risk.title}
+                    >
                       {risk.title}
                     </p>
                     {risk.orgName && (
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      <p
+                        className="mt-0.5 truncate text-xs text-muted-foreground"
+                        title={risk.orgName}
+                      >
                         {risk.orgName}
                       </p>
                     )}

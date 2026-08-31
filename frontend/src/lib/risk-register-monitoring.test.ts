@@ -63,17 +63,15 @@ test("getMonitoringTransactionActionLabel reflects monitoring status", () => {
 });
 
 test("getMonitoringTransactionStatusLabel normalizes monitoring statuses", () => {
-  assert.equal(getMonitoringTransactionStatusLabel("draft"), "Draft");
-  assert.equal(getMonitoringTransactionStatusLabel("finalized"), "Final");
-  assert.equal(getMonitoringTransactionStatusLabel("void"), "Void");
+  assert.equal(getMonitoringTransactionStatusLabel("draft"), "Sedang Berjalan");
+  assert.equal(getMonitoringTransactionStatusLabel("finalized"), "Selesai");
 });
 
 test("getRiskRegisterMonitoringStatusLabel reflects risk register semantics", () => {
   assert.equal(getRiskRegisterMonitoringStatusLabel(undefined, false), "-");
   assert.equal(getRiskRegisterMonitoringStatusLabel(undefined, true), "Belum Dimulai");
-  assert.equal(getRiskRegisterMonitoringStatusLabel("draft"), "Draf");
+  assert.equal(getRiskRegisterMonitoringStatusLabel("draft"), "Sedang Berjalan");
   assert.equal(getRiskRegisterMonitoringStatusLabel("finalized"), "Selesai");
-  assert.equal(getRiskRegisterMonitoringStatusLabel("void"), "Dibatalkan");
 });
 
 test("getRiskRegisterMonitoringStatusTone maps monitoring state to tone", () => {
@@ -81,5 +79,4 @@ test("getRiskRegisterMonitoringStatusTone maps monitoring state to tone", () => 
   assert.equal(getRiskRegisterMonitoringStatusTone(undefined, true), "neutral");
   assert.equal(getRiskRegisterMonitoringStatusTone("draft"), "warning");
   assert.equal(getRiskRegisterMonitoringStatusTone("finalized"), "success");
-  assert.equal(getRiskRegisterMonitoringStatusTone("void"), "danger");
 });

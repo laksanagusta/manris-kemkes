@@ -58,7 +58,7 @@ export function getSelectableMonitoringCycles(
     const value = shiftMonitoringCycle(currentCycle, delta);
     return {
       value,
-      label: value,
+      label: `${value} — ${delta === 0 ? "periode berjalan" : "periode sebelumnya"}`,
     };
   });
 }

@@ -9,7 +9,6 @@ export default function PenangananPage() {
     <PageStack>
       <CollectionPageHeader
         title="Penanganan"
-        description="Kelola dan pantau pelaksanaan mitigasi risiko organisasi."
       />
       <MitigationMonitoringPanel />
     </PageStack>

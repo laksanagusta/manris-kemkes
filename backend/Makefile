@@ -6,7 +6,7 @@ export
 DB_URL=$(DATABASE_URL)
 MIGRATIONS_DIR="db/migrations"
 
-.PHONY: install-migrate migrate-up migrate-down migrate-force seed run mcp-build mcp-build-prod run-mcp mcp-test mcp-test-coverage lint-mcp
+.PHONY: install-migrate migrate-up migrate-down migrate-force seed run
 
 # Install golang-migrate CLI
 install-migrate:
@@ -32,45 +32,3 @@ migrate-new:
 # Run application
 run:
 	go run cmd/server/main.go
-
-# ============================================================================
-# MCP Server (Model Context Protocol) Targets
-# ============================================================================
-
-# Build MCP stdio server binary
-mcp-build:
-	@echo "Building manris-mcp binary..."
-	@mkdir -p bin
-	go build -o bin/mcp ./cmd/mcp
-	@echo "✓ Built: ./bin/mcp"
-
-# Build MCP with optimizations
-mcp-build-prod:
-	@echo "Building manris-mcp binary (production)..."
-	@mkdir -p bin
-	go build -ldflags="-s -w" -o bin/mcp ./cmd/mcp
-	@echo "✓ Built: ./bin/mcp (optimized)"
-
-# Run MCP server directly (stdio mode)
-run-mcp: mcp-build
-	@echo "Starting MCP server (stdio mode)..."
-	@echo "Listening on stdin/stdout. Send JSON-RPC 2.0 requests."
-	./bin/mcp
-
-# Test MCP tools and components
-mcp-test:
-	@echo "Running MCP test suite..."
-	go test ./internal/mcp/... -v
-	@echo "✓ All MCP tests passed"
-
-# Test with coverage
-mcp-test-coverage:
-	go test ./internal/mcp/... -v -coverprofile=coverage-mcp.out
-	go tool cover -html=coverage-mcp.out -o coverage-mcp.html
-	@echo "✓ Coverage report: coverage-mcp.html"
-
-# Lint MCP code
-lint-mcp:
-	go vet ./internal/mcp/...
-	go fmt ./internal/mcp/...
-	@echo "✓ MCP code linted"

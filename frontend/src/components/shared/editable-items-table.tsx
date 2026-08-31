@@ -20,6 +20,7 @@ interface EditableItemsTableProps {
   disabled?: boolean;
   addItemLabel?: string;
   emptyMessage?: string;
+  itemLabel?: string;
 }
 
 export function EditableItemsTable({
@@ -29,6 +30,7 @@ export function EditableItemsTable({
   disabled = false,
   addItemLabel = "Tambah Item",
   emptyMessage = "Belum ada item",
+  itemLabel = "Item",
 }: EditableItemsTableProps) {
   const previousItemIdsRef = useRef(new Set(items.map((item) => item.id)));
   const animatingItemIdsRef = useRef<Set<string>>(new Set());
@@ -133,10 +135,11 @@ export function EditableItemsTable({
                   </TableCell>
                   <TableCell className="flex-1 px-2 py-2">
                     <Input
+                      aria-label={`${itemLabel} ${index + 1}`}
                       value={item.text}
                       onChange={(e) => updateItem(item.id, e.target.value)}
                       placeholder={placeholder}
-                      className="text-xs bg-background border-border/50 h-8"
+                      className="text-xs bg-background border-input h-10"
                       disabled={disabled}
                     />
                   </TableCell>
@@ -144,6 +147,7 @@ export function EditableItemsTable({
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label={`Hapus ${itemLabel.toLowerCase()} ${index + 1}`}
                       className="h-8 w-8 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
                       onClick={() => removeItem(item.id)}
                       disabled={disabled}

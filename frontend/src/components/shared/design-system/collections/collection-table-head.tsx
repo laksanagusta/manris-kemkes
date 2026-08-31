@@ -13,7 +13,7 @@ export function CollectionTableHead({
   return (
     <TableHead
       className={cn(
-        "whitespace-nowrap text-left align-middle font-semibold uppercase tracking-[0.05em] text-muted-foreground",
+        "whitespace-nowrap text-left align-middle font-normal uppercase tracking-[0.05em] text-muted-foreground",
         density === "compact" ? "text-[11px]" : "text-xs",
         className,
       )}

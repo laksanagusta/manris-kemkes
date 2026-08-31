@@ -28,7 +28,6 @@ type monitoringTransactionRepository interface {
 	Create(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	UpdateDraft(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error)
-	VoidAndCreateCorrection(ctx context.Context, monitoringID uuid.UUID, draft *entity.RiskMonitoring, voidedBy uuid.UUID, reason string) (*entity.RiskMonitoring, error)
 	UpdateTaskMonitoringIDs(ctx context.Context, monitoringID uuid.UUID, riskID uuid.UUID, cycle string) error
 }
 
@@ -84,14 +83,9 @@ type UpdateMonitoringInput struct {
 	MonitoringID uuid.UUID
 	OrgIDs       []uuid.UUID
 
-	ObservedProbability     int
-	ObservedImpact          int
-	ConditionSummary        string
-	EventSummary            string
-	Trend                   string
-	EffectivenessConclusion string
-	FollowUpNote            string
-	Conclusion              string
+	ObservedProbability int
+	ObservedImpact      int
+	Conclusion          string
 
 	MitigationProgressSummary   string
 	MitigationCompletionPercent int
@@ -116,23 +110,6 @@ type FinalizeMonitoringOutput struct {
 	Message    string                 `json:"message"`
 }
 
-type CorrectMonitoringUseCase struct {
-	riskRepo       monitoringRiskRepository
-	monitoringRepo monitoringTransactionRepository
-}
-
-type CorrectMonitoringInput struct {
-	MonitoringID uuid.UUID
-	OrgIDs       []uuid.UUID
-	CorrectedBy  uuid.UUID
-	Reason       string
-}
-
-type CorrectMonitoringOutput struct {
-	Monitoring *entity.RiskMonitoring `json:"monitoring"`
-	Message    string                 `json:"message"`
-}
-
 func NewStartMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository, fullRiskRepo domainrepo.RiskRepository, mitigationTaskRepo domainrepo.MitigationTaskRepository, periodRepo MonitoringPeriodRepository) *StartMonitoringUseCase {
 	return &StartMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo, fullRiskRepo: fullRiskRepo, mitigationTaskRepo: mitigationTaskRepo, periodRepo: periodRepo}
 }
@@ -147,57 +124,6 @@ func NewUpdateMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRep
 
 func NewFinalizeMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository, taskRepo domainrepo.MitigationTaskRepository, fullRiskRepo domainrepo.RiskRepository) *FinalizeMonitoringUseCase {
 	return &FinalizeMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo, taskRepo: taskRepo, fullRiskRepo: fullRiskRepo}
-}
-
-func NewCorrectMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository) *CorrectMonitoringUseCase {
-	return &CorrectMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo}
-}
-
-func (uc *CorrectMonitoringUseCase) Execute(ctx context.Context, input CorrectMonitoringInput) (*CorrectMonitoringOutput, error) {
-	if input.MonitoringID == uuid.Nil || strings.TrimSpace(input.Reason) == "" {
-		return nil, errors.ErrInvalidInput
-	}
-	original, err := uc.monitoringRepo.GetByID(ctx, input.MonitoringID, input.OrgIDs)
-	if err != nil {
-		return nil, errors.ErrRiskNotFound
-	}
-	if original.Status != entity.RiskMonitoringStatusFinal {
-		return nil, errors.ErrMonitoringNotFinalizable
-	}
-
-	sourceRiskID := original.SourceRiskID
-	if original.ResultRiskID != nil {
-		sourceRiskID = *original.ResultRiskID
-	}
-	sourceRisk, err := uc.riskRepo.GetByID(ctx, sourceRiskID, input.OrgIDs)
-	if err != nil || !sourceRisk.IsApprovedCurrent() {
-		return nil, errors.ErrSourceRiskNoLongerActive
-	}
-
-	draft := entity.NewRiskMonitoringDraft(sourceRisk, original.AssessmentCycle, input.CorrectedBy)
-	draft.Mode = original.Mode
-	draft.ObservedProbability = original.ObservedProbability
-	draft.ObservedImpact = original.ObservedImpact
-	draft.ObservedWeight = original.ObservedWeight
-	draft.ObservedNilai = original.ObservedNilai
-	draft.ObservedLevel = original.ObservedLevel
-	draft.ConditionSummary = original.ConditionSummary
-	draft.EventSummary = original.EventSummary
-	draft.Trend = original.Trend
-	draft.EffectivenessConclusion = original.EffectivenessConclusion
-	draft.FollowUpNote = original.FollowUpNote
-	draft.Conclusion = original.Conclusion
-	draft.MitigationProgressSummary = original.MitigationProgressSummary
-	draft.MitigationCompletionPercent = original.MitigationCompletionPercent
-	draft.ProfileChangeSummary = append([]string(nil), original.ProfileChangeSummary...)
-	draft.ChangeReason = strings.TrimSpace(input.Reason)
-	draft.SetDraftPayload(original.DraftPayload)
-
-	created, err := uc.monitoringRepo.VoidAndCreateCorrection(ctx, input.MonitoringID, draft, input.CorrectedBy, strings.TrimSpace(input.Reason))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create monitoring correction")
-	}
-	return &CorrectMonitoringOutput{Monitoring: created, Message: "monitoring correction draft created"}, nil
 }
 
 func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonitoringInput) (*StartMonitoringOutput, error) {
@@ -337,7 +263,7 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 		return nil, errors.ErrSourceRiskNoLongerActive
 	}
 
-	// MCP and other integration callers may intentionally send only the
+	// Integration callers may intentionally send only the
 	// fields they changed. Score fields are required by the domain, so merge
 	// omitted values from the monitoring draft before validating and saving.
 	if input.ObservedProbability == 0 {
@@ -353,9 +279,12 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 	}
 	draftValues.Probability = input.ObservedProbability
 	draftValues.Impact = input.ObservedImpact
-	draftValues.ConditionSummary = input.ConditionSummary
-	draftValues.EventSummary = input.EventSummary
-	draftValues.Effectiveness = input.EffectivenessConclusion
+	if strings.TrimSpace(input.Conclusion) == "" {
+		input.Conclusion = monitoring.Conclusion
+	}
+	if strings.TrimSpace(input.MitigationProgressSummary) == "" {
+		input.MitigationProgressSummary = monitoring.MitigationProgressSummary
+	}
 	draftValues.Conclusion = input.Conclusion
 	mode, changedFields := entity.DetectRiskMonitoringMode(sourceRisk, &draftValues)
 
@@ -372,19 +301,11 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 	monitoring.SetDraftPayload(entity.NewRiskMonitoringDraftPayloadFromValues(draftValues))
 	monitoring.ObservedProbability = input.ObservedProbability
 	monitoring.ObservedImpact = input.ObservedImpact
-	monitoring.ConditionSummary = input.ConditionSummary
-	monitoring.EventSummary = input.EventSummary
-	monitoring.Trend = input.Trend
-	monitoring.EffectivenessConclusion = input.EffectivenessConclusion
-	monitoring.FollowUpNote = input.FollowUpNote
 	monitoring.Conclusion = input.Conclusion
 	monitoring.MitigationProgressSummary = input.MitigationProgressSummary
 	monitoring.MitigationCompletionPercent = input.MitigationCompletionPercent
 	monitoring.CalculateObservedScore()
 	monitoring.NormalizeNilaiForStorage()
-	if mode == entity.RiskMonitoringModeWithProfileRevision && monitoring.ChangeReason == "" {
-		return nil, errors.ErrChangeReasonRequired
-	}
 
 	if err := monitoring.Validate(); err != nil {
 		return nil, err
@@ -466,16 +387,23 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 	if !sourceRisk.IsApprovedCurrent() {
 		return nil, errors.ErrSourceRiskNoLongerActive
 	}
+	if monitoring.ObservedProbability < 1 || monitoring.ObservedProbability > 5 {
+		return nil, errors.ErrInvalidProbability
+	}
+	if monitoring.ObservedImpact < 1 || monitoring.ObservedImpact > 5 {
+		return nil, errors.ErrInvalidImpact
+	}
 
-	var resultRisk *entity.Risk
-	if monitoring.Mode == entity.RiskMonitoringModeWithProfileRevision {
-		resultRisk, err = buildRiskVersionFromMonitoring(sourceRisk, monitoring, input.FinalizedBy)
-		if err != nil {
-			return nil, err
-		}
-		if err := resultRisk.Validate(); err != nil {
-			return nil, err
-		}
+	// Every finalized monitoring creates an immutable risk snapshot. A
+	// score-only monitoring still changes the official residual assessment;
+	// keeping it as a log-only transaction makes the UI and the ledger disagree
+	// about which score is authoritative.
+	resultRisk, err := buildRiskVersionFromMonitoring(sourceRisk, monitoring, input.FinalizedBy)
+	if err != nil {
+		return nil, err
+	}
+	if err := resultRisk.Validate(); err != nil {
+		return nil, err
 	}
 
 	finalizedMonitoring, err := uc.monitoringRepo.Finalize(ctx, monitoring.ID, resultRisk, input.FinalizedBy)
@@ -489,10 +417,7 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		if cycleErr != nil {
 			return nil, cycleErr
 		}
-		nextRiskID := sourceRisk.ID
-		if resultRisk != nil {
-			nextRiskID = resultRisk.ID
-		}
+		nextRiskID := resultRisk.ID
 		if _, err := ensureUC.Execute(ctx, nextRiskID, nextCycle, input.OrgIDs); err != nil {
 			log.Printf("[WARN] ensure mitigation tasks after finalize for next cycle %s: %v", nextCycle, err)
 		}
@@ -519,6 +444,7 @@ func buildRiskVersionFromMonitoring(source *entity.Risk, monitoring *entity.Risk
 	now := time.Now().UTC()
 	clone.ReviewSubmittedAt = &now
 	clone.ReviewApprovedAt = &now
+	clone.ChangeReason = monitoring.ChangeReason
 	if finalizedBy != uuid.Nil {
 		clone.CreatedBy = &finalizedBy
 	}

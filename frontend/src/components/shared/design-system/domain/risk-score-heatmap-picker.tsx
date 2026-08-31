@@ -33,6 +33,53 @@ const LEGEND_LEVELS: RiskLevel[] = [
   "tinggi",
   "sangat_tinggi",
 ];
+const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+
+function VerticalNumberTicker({
+  value,
+  className,
+}: {
+  value: number;
+  className?: string;
+}) {
+  const digits = String(Math.round(value)).split("");
+
+  return (
+    <span
+      aria-live="polite"
+      aria-atomic="true"
+      className={cn("inline-flex items-baseline tabular-nums", className)}
+    >
+      <span className="sr-only">{Math.round(value)}</span>
+      <span aria-hidden="true" className="inline-flex">
+        {digits.map((digit, index) => {
+          const numericDigit = Number(digit);
+
+          return (
+            <span
+              key={index}
+              className="relative inline-block h-[1em] w-[0.62em] overflow-hidden align-baseline"
+            >
+              <span
+                className="absolute inset-x-0 top-0 flex flex-col motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out motion-reduce:transition-none"
+                style={{ transform: `translateY(-${numericDigit}em)` }}
+              >
+                {DIGITS.map((nextDigit) => (
+                  <span
+                    key={nextDigit}
+                    className="flex h-[1em] items-center justify-center"
+                  >
+                    {nextDigit}
+                  </span>
+                ))}
+              </span>
+            </span>
+          );
+        })}
+      </span>
+    </span>
+  );
+}
 
 export interface RiskScoreSelection {
   probability: number;
@@ -43,6 +90,8 @@ export interface RiskScorePickerTriggerProps extends RiskScoreSelection {
   title: string;
   onClick: () => void;
   disabled?: boolean;
+  id?: string;
+  "aria-describedby"?: string;
 }
 
 export function RiskScorePickerTrigger({
@@ -51,14 +100,18 @@ export function RiskScorePickerTrigger({
   impact,
   onClick,
   disabled = false,
+  id,
+  "aria-describedby": ariaDescribedBy,
 }: RiskScorePickerTriggerProps) {
   const metrics = calculateRiskMetrics(probability, impact);
 
   return (
     <button
       type="button"
+      id={id}
       onClick={onClick}
       disabled={disabled}
+      aria-describedby={ariaDescribedBy}
       aria-label={`Pilih ${title.toLowerCase()} dari heatmap. Probabilitas ${probability}, dampak ${impact}, skor ${metrics.inherentScore}.`}
       className="group flex min-h-11 w-fit max-w-full self-start items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-left transition-colors hover:border-border hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60"
     >
@@ -201,14 +254,9 @@ export function RiskScoreHeatmapModal({
                         className={cn(
                           "relative flex min-h-12 items-center justify-center rounded-xl border px-1 py-1 text-center transition-[filter,box-shadow,transform] duration-150 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.96] motion-reduce:transition-none motion-reduce:transform-none sm:min-h-14",
                           levelToColor(metrics.level),
-                          isSelected
-                            ? "z-10 border-2 border-foreground"
-                            : "hover:brightness-95",
-                        )}
-                      >
-                        {isSelected ? (
-                          <Check className="absolute right-1.5 top-1.5 size-3.5" />
-                        ) : null}
+                        isSelected ? "z-10 border-2" : "hover:brightness-95",
+                      )}
+                    >
                         <span className="font-mono text-base font-semibold tabular-nums sm:text-lg">
                           {metrics.inherentScore}
                         </span>
@@ -234,50 +282,53 @@ export function RiskScoreHeatmapModal({
           </div>
 
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Probabilitas
-              </p>
-              <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-foreground">
-                <span className="font-mono text-2xl font-semibold leading-none tabular-nums">
-                  {draft.probability}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {PROBABILITY_LABELS[draft.probability]}
-                </span>
-              </p>
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Dampak
-              </p>
-              <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-foreground">
-                <span className="font-mono text-2xl font-semibold leading-none tabular-nums">
-                  {draft.impact}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {IMPACT_LABELS[draft.impact]}
-                </span>
-              </p>
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Hasil
-              </p>
-              <p className="mt-1 flex flex-wrap items-center gap-2 text-foreground">
-                <span className="font-mono text-2xl font-semibold leading-none tabular-nums">
-                  {selectedMetrics.inherentScore}
-                </span>
-                <span
-                  className={cn(
-                    "rounded-full border px-2 py-0.5 text-[10px]",
-                    levelToColor(selectedMetrics.level),
-                  )}
-                >
-                  {getRiskLevelLabel(selectedMetrics.level)}
-                </span>
-              </p>
-            </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  Probabilitas
+                </p>
+                <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-foreground">
+                  <VerticalNumberTicker
+                    value={draft.probability}
+                    className="font-mono text-2xl font-semibold leading-none"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {PROBABILITY_LABELS[draft.probability]}
+                  </span>
+                </p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  Dampak
+                </p>
+                <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-foreground">
+                  <VerticalNumberTicker
+                    value={draft.impact}
+                    className="font-mono text-2xl font-semibold leading-none"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {IMPACT_LABELS[draft.impact]}
+                  </span>
+                </p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  Hasil
+                </p>
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-foreground">
+                  <VerticalNumberTicker
+                    value={selectedMetrics.inherentScore}
+                    className="font-mono text-2xl font-semibold leading-none"
+                  />
+                  <span
+                    className={cn(
+                      "rounded-full border px-2 py-0.5 text-[10px]",
+                      levelToColor(selectedMetrics.level),
+                    )}
+                  >
+                    {getRiskLevelLabel(selectedMetrics.level)}
+                  </span>
+                </p>
+              </div>
           </div>
         </div>
 

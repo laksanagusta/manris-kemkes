@@ -40,6 +40,7 @@ type PlanningOption = {
 interface ROPickerProps {
   organizationId?: string;
   value?: string;
+  disabled?: boolean;
   onChange: (roId: string, summary?: ROSelectionSummary) => void;
 }
 
@@ -68,6 +69,7 @@ function buildPlanningOptions(items: PlanningObjectiveCompatibilityItem[]) {
 export function ROPicker({
   organizationId,
   value,
+  disabled = false,
   onChange,
 }: ROPickerProps) {
   const { token, user } = useAuth();
@@ -174,7 +176,8 @@ export function ROPicker({
           size="md"
           role="combobox"
           aria-expanded={open}
-          className="group/ro-picker w-full justify-between overflow-hidden rounded-lg border-border bg-card px-2.5 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-border focus-visible:border-border focus:ring-0 focus-visible:ring-0 dark:focus:border-border dark:focus-visible:border-border"
+          disabled={disabled}
+          className="group/ro-picker h-10 w-full justify-between overflow-hidden rounded-lg border-input bg-card px-2.5 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0 dark:focus:border-input dark:focus-visible:border-input"
         >
           {selected ? (
             <span className="min-w-0 flex-1 truncate text-left">
@@ -198,9 +201,9 @@ export function ROPicker({
             <Select
               value={selectedPlanningId}
               onValueChange={setSelectedPlanningId}
-              disabled={loadingPlanning || planningOptions.length === 0}
+              disabled={disabled || loadingPlanning || planningOptions.length === 0}
             >
-              <SelectTrigger className="h-9">
+              <SelectTrigger className="h-10">
                 <SelectValue placeholder="Pilih perjanjian kinerja" />
               </SelectTrigger>
               <SelectContent>
@@ -220,6 +223,7 @@ export function ROPicker({
           <SearchInput
             type="search"
             className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
+            disabled={disabled}
             placeholder="Cari RO, kegiatan, program, IKU, atau sasaran..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -240,6 +244,7 @@ export function ROPicker({
             filtered.map((item) => (
               <button
                 key={item.roId}
+                disabled={disabled}
                 className={cn(
                   "relative flex w-full cursor-pointer select-none items-start rounded-sm px-2 py-2 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground",
                   value === item.roId && "bg-accent text-accent-foreground",

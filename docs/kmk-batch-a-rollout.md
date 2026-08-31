@@ -10,7 +10,6 @@
 ### Backend (`go test ./...`)
 
 - **Status:** ✅ PASS
-- **Note:** One pre-existing test in `internal/mcp/tools` was fixed — `TestHandleMonitorAndApproveRisk_Success` expected `status=approved` from an approval flow that was temporarily commented out. Updated test to assert on `id` and `cycle` fields that the function actually returns.
 
 ### Frontend (`npm run build`)
 

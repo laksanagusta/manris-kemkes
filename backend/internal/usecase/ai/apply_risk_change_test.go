@@ -103,9 +103,6 @@ func (r *fakeRiskRepository) GetHeatmapVelocity(context.Context, string, string,
 func (r *fakeRiskRepository) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeRiskRepository) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
-	return nil, errors.New("not implemented")
-}
 func (r *fakeRiskRepository) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, errors.New("not implemented")
 }

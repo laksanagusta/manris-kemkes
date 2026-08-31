@@ -30,12 +30,14 @@ import { AdminOnlyState } from "@/components/admin/admin-only-state";
 import {
   CollectionPageHeader,
   CollectionPagination,
+  CollectionToolbar,
+  KpiCard,
+  MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -382,11 +384,75 @@ export default function UsersManagementPage() {
 
   return (
     <PageStack className="flex flex-col">
-      <CollectionPageHeader
-        title="Administrasi pengguna"
-        description="Kelola akun, verifikasi registrasi unit, dan pantau aktivasi awal pengguna."
+      <CollectionPageHeader title="Administrasi pengguna" />
+
+      <MetricGrid>
+        {stats.map((stat) => (
+          <KpiCard
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            tone="white"
+            icon={<stat.icon className={cn("size-5", stat.iconClassName)} />}
+          />
+        ))}
+      </MetricGrid>
+
+      <CollectionToolbar
+        className="w-full"
+        leading={
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 w-full sm:w-80 sm:flex-none">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Cari pengguna, NIP, atau email"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                className="h-10 border-input bg-card pl-8 text-xs"
+              />
+            </div>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(getStatusFilter(value));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-10 w-full bg-card text-xs sm:w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="pending_activation">Menunggu Aktivasi</SelectItem>
+                <SelectItem value="active">Aktif</SelectItem>
+                <SelectItem value="inactive">Nonaktif</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={roleFilter}
+              onValueChange={(value) => {
+                setRoleFilter(getRoleFilter(value));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-10 w-full bg-card text-xs sm:w-36">
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Role</SelectItem>
+                <SelectItem value="superadmin">Super Admin</SelectItem>
+                <SelectItem value="unit">Unit Kerja</SelectItem>
+                <SelectItem value="reviewer">Reviewer</SelectItem>
+                <SelectItem value="pimpinan">Pimpinan</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        }
         actions={
-          <Button asChild className="shadow-lg shadow-primary/20">
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/admin/users/new">
               <Plus data-icon="inline-start" />
               Tambah pengguna
@@ -394,76 +460,6 @@ export default function UsersManagementPage() {
           </Button>
         }
       />
-
-      <div className="grid gap-4 md:grid-cols-4">
-        {stats.map((stat) => (
-          <KpiCard
-            key={stat.label}
-            label={stat.label}
-            value={stat.value}
-            tone={
-              stat.label.toLowerCase().includes("total")
-                ? "white"
-                : stat.label.toLowerCase().includes("active")
-                  ? "emerald"
-                  : stat.label.toLowerCase().includes("inactive")
-                    ? "rose"
-                    : "zinc"
-            }
-            icon={<stat.icon className={cn("size-5", stat.iconClassName)} />}
-          />
-        ))}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Cari pengguna, NIP, atau email"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-            className="h-8 border-border/50 bg-card pl-8 text-xs"
-          />
-        </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => {
-            setStatusFilter(getStatusFilter(value));
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="h-8 w-40 text-xs bg-card border-border/50">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Status</SelectItem>
-            <SelectItem value="pending_activation">Menunggu Aktivasi</SelectItem>
-            <SelectItem value="active">Aktif</SelectItem>
-            <SelectItem value="inactive">Nonaktif</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={roleFilter}
-          onValueChange={(value) => {
-            setRoleFilter(getRoleFilter(value));
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="h-8 w-36 text-xs bg-card border-border/50">
-            <SelectValue placeholder="Role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Role</SelectItem>
-            <SelectItem value="superadmin">Super Admin</SelectItem>
-            <SelectItem value="unit">Unit Kerja</SelectItem>
-            <SelectItem value="reviewer">Reviewer</SelectItem>
-            <SelectItem value="pimpinan">Pimpinan</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       <Card className="overflow-hidden bg-card/80">
         <CardContent className="p-0">
@@ -508,7 +504,7 @@ export default function UsersManagementPage() {
                             {getInitials(managedUser.name)}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate text-xs font-medium">
+                            <p className="truncate text-xs font-medium text-foreground">
                               {managedUser.name}
                             </p>
                             <p className="truncate text-[10px] text-muted-foreground">

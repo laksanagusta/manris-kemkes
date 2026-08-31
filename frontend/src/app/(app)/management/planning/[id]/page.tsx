@@ -17,11 +17,15 @@ import {
 } from "@/lib/api/planning";
 import type { PlanningObjectiveCompatibilityItem } from "@/types/planning";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { KpiCard } from "@/components/ui/kpi-card";
 import { Separator } from "@/components/ui/separator";
-import { PageStack } from "@/components/shared/design-system";
+import {
+  ActionButton,
+  CollectionPageHeader,
+  KpiCard,
+  MetricGrid,
+  PageStack,
+} from "@/components/shared/design-system";
 
 function infoItem(label: string, value?: string | null) {
   return (
@@ -115,12 +119,12 @@ export default function PlanningDetailPage() {
           <p className="text-sm text-muted-foreground">
             Struktur dengan ID tersebut belum ditemukan di cache kompatibilitas.
           </p>
-          <Button asChild variant="outline">
+          <ActionButton asChild variant="secondary" size="sm">
             <Link href="/management/planning">
-              <ArrowLeft className="mr-2 size-4" />
+              <ArrowLeft className="size-3.5" />
               Kembali ke Struktur Kinerja &amp; RO
             </Link>
-          </Button>
+          </ActionButton>
         </CardContent>
       </Card>
     );
@@ -128,36 +132,32 @@ export default function PlanningDetailPage() {
 
   return (
     <PageStack>
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-1.5">
+      <CollectionPageHeader
+        eyebrow={
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
             Risk Governance
           </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="page-title">
-              Detail Struktur Kinerja
-            </h2>
-            <Badge
-              variant="outline"
-              className="border-blue-200 bg-blue-50 text-blue-700"
-            >
-              Kompatibilitas
-            </Badge>
-          </div>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            Halaman ini menampilkan satu rantai planning lengkap yang nantinya
-            menjadi sumber utama untuk penautan risiko ke RO.
-          </p>
-        </div>
-        <Button asChild variant="outline">
-          <Link href="/management/planning">
-            <ArrowLeft className="mr-2 size-4" />
-            Kembali
-          </Link>
-        </Button>
-      </div>
+        }
+        title="Detail Struktur Kinerja"
+        backAction={
+          <ActionButton asChild variant="secondary" size="sm">
+            <Link href="/management/planning">
+              <ArrowLeft className="size-3.5" />
+              Kembali
+            </Link>
+          </ActionButton>
+        }
+        actions={
+          <Badge
+            variant="outline"
+            className="border-blue-200 bg-blue-50 text-blue-700"
+          >
+            Kompatibilitas
+          </Badge>
+        }
+      />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <MetricGrid className="md:grid-cols-3 xl:grid-cols-3">
         <KpiCard
           label="Periode"
           value={item.period}
@@ -167,16 +167,16 @@ export default function PlanningDetailPage() {
         <KpiCard
           label="Satker"
           value={organizationMap.get(item.organizationId) ?? item.organizationId}
-          tone="zinc"
+          tone="white"
           icon={<Building2 className="size-5 text-muted-foreground" />}
         />
         <KpiCard
           label="Status"
           value={item.status || "draft"}
-          tone={item.status === "approved" ? "emerald" : item.status === "rejected" ? "rose" : "zinc"}
+          tone="white"
           icon={<ShieldCheck className="size-5 text-muted-foreground" />}
         />
-      </div>
+      </MetricGrid>
 
       <Card className="bg-card/80 backdrop-blur-sm">
         <CardHeader className="border-b border-border/40 pb-4">

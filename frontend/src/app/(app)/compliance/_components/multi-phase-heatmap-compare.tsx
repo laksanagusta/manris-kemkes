@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StandardCard } from "@/components/shared/design-system";
 import { OverviewPanelState } from "@/components/shared/design-system";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,7 @@ type PhaseKey = "initial" | "quarter1" | "quarter2" | "quarter3" | "quarter4" | 
 
 // NOTE: `api.get` auto-unwraps the `{ data: ... }` envelope,
 // so the helper returns the inner object directly.
-type MultiPhaseHeatmapResponse = Record<PhaseKey, number[][]> & {
+type MultiPhaseHeatmapResponse = Partial<Record<PhaseKey, number[][]>> & {
   semester1?: number[][];
   semester2?: number[][];
 };
@@ -33,7 +33,26 @@ const labelMap: Record<PhaseKey, string> = {
   target: "Target Skor",
 };
 
-const emptyHeatmap = Array(5).fill(Array(5).fill(0));
+type HeatmapData = Record<PhaseKey, number[][] | null>;
+
+function readHeatmapMatrix(value: unknown): number[][] | null {
+  if (
+    !Array.isArray(value) ||
+    value.length !== 5 ||
+    !value.every(
+      (row) =>
+        Array.isArray(row) &&
+        row.length === 5 &&
+        row.every(
+          (count) => typeof count === "number" && Number.isFinite(count),
+        ),
+    )
+  ) {
+    return null;
+  }
+
+  return value as number[][];
+}
 
 const riskLevelLegend = [
   { label: "Sangat Rendah", className: "heatmap-sangat-rendah" },
@@ -51,45 +70,38 @@ export function MultiPhaseHeatmapCompareCard() {
   const [error, setError] = useState<string | null>(null);
   const heatmapMode: HeatmapMode = "riskLevel";
 
-  const [data, setData] = useState<Record<PhaseKey, number[][]>>({
-    initial: emptyHeatmap,
-    quarter1: emptyHeatmap,
-    quarter2: emptyHeatmap,
-    quarter3: emptyHeatmap,
-    quarter4: emptyHeatmap,
-    target: emptyHeatmap,
-  });
+  const [data, setData] = useState<HeatmapData | null>(null);
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!token) return;
 
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await api.get<MultiPhaseHeatmapResponse>(
-          `/dashboard/heatmap-multi?year=${currentYear}`,
-          token,
-        );
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get<MultiPhaseHeatmapResponse>(
+        `/dashboard/heatmap-multi?year=${currentYear}`,
+        token,
+      );
 
-        setData({
-          initial: response?.initial ?? emptyHeatmap,
-          quarter1: response?.quarter1 ?? emptyHeatmap,
-          quarter2: response?.quarter2 ?? response?.semester1 ?? emptyHeatmap,
-          quarter3: response?.quarter3 ?? emptyHeatmap,
-          quarter4: response?.quarter4 ?? response?.semester2 ?? emptyHeatmap,
-          target: response?.target ?? emptyHeatmap,
-        });
-      } catch (err) {
-        console.error("Failed to load multi-phase heatmap", err);
-        setError("Gagal memuat data heatmap.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      setData({
+        initial: readHeatmapMatrix(response?.initial),
+        quarter1: readHeatmapMatrix(response?.quarter1),
+        quarter2: readHeatmapMatrix(response?.quarter2 ?? response?.semester1),
+        quarter3: readHeatmapMatrix(response?.quarter3),
+        quarter4: readHeatmapMatrix(response?.quarter4 ?? response?.semester2),
+        target: readHeatmapMatrix(response?.target),
+      });
+    } catch (err) {
+      console.error("Failed to load multi-phase heatmap", err);
+      setError("Gagal memuat data heatmap.");
+    } finally {
+      setLoading(false);
+    }
+  }, [currentYear, token]);
 
-    loadData();
-  }, [token, currentYear]);
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   return (
     <StandardCard
@@ -97,80 +109,91 @@ export function MultiPhaseHeatmapCompareCard() {
       className="w-full"
       contentClassName="p-4 pt-2"
     >
-      {error ? (
+      {loading ? (
+        <OverviewPanelState
+          state="loading"
+          message="Memuat perbandingan heatmap..."
+          className="min-h-64"
+        />
+      ) : error ? (
         <OverviewPanelState
           state="error"
           message="Perbandingan heatmap tidak dapat dimuat."
           className="min-h-64"
+          onRetry={() => void loadData()}
         />
       ) : (
         <>
-          <div
-            aria-busy={loading}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4"
-          >
-        {loading ? <span className="sr-only">Memuat data heatmap.</span> : null}
-        {(Object.keys(labelMap) as PhaseKey[]).map((phase) => {
-          const gridData = data[phase];
-          return (
-            <div
-              key={phase}
-              role="group"
-              aria-label={`Heatmap ${labelMap[phase]}`}
-              className={cn(
-                "space-y-2",
-                loading && "opacity-50 transition-opacity motion-reduce:transition-none",
-              )}
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                {labelMap[phase]}
-              </p>
-              <div className="relative grid grid-cols-5 gap-1">
-                {[...gridData].reverse().flatMap((row, rowIndex) =>
-                  row.map((count, colIndex) => {
-                    const probability = 5 - rowIndex;
-                    const impact = colIndex + 1;
-                    const level = getRiskLevelLabel(
-                      getRiskLevelFromNilai(
-                        calculateNilai(
-                          probability,
-                          impact,
-                          getBobot(probability, impact),
-                        ),
-                      ),
-                    );
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-6">
+            {(Object.keys(labelMap) as PhaseKey[]).map((phase) => {
+              const gridData = data?.[phase];
+              return (
+                <div
+                  key={phase}
+                  role="group"
+                  aria-label={`Heatmap ${labelMap[phase]}`}
+                  className="space-y-2"
+                >
+                  <p className="text-xs font-normal uppercase tracking-[0.6px] text-muted-foreground">
+                    {labelMap[phase]}
+                  </p>
+                  {gridData ? (
+                    <div className="relative grid grid-cols-5 gap-1">
+                      {[...gridData].reverse().flatMap((row, rowIndex) =>
+                        row.map((count, colIndex) => {
+                          const probability = 5 - rowIndex;
+                          const impact = colIndex + 1;
+                          const level = getRiskLevelLabel(
+                            getRiskLevelFromNilai(
+                              calculateNilai(
+                                probability,
+                                impact,
+                                getBobot(probability, impact),
+                              ),
+                            ),
+                          );
 
-                    return (
-                      <div
-                        key={`${phase}-${rowIndex}-${colIndex}`}
-                        role="img"
-                        aria-label={`Probabilitas ${probability}, dampak ${impact}, level ${level}, ${count} risiko`}
-                        className={cn(
-                          "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
-                          getHeatmapCellClass(
-                            count,
-                            probability,
-                            impact,
-                            heatmapMode,
-                          ),
-                        )}
-                      >
-                        <span aria-hidden="true">
-                          {heatmapMode === "riskLevel" && count === 0 ? "" : count}
-                        </span>
-                      </div>
-                    );
-                  }),
-                )}
-              </div>
-            </div>
-          );
-        })}
+                          return (
+                            <div
+                              key={`${phase}-${rowIndex}-${colIndex}`}
+                              role="img"
+                              aria-label={`Probabilitas ${probability}, dampak ${impact}, level ${level}, ${count} risiko`}
+                              className={cn(
+                                "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
+                                getHeatmapCellClass(
+                                  count,
+                                  probability,
+                                  impact,
+                                  heatmapMode,
+                                ),
+                              )}
+                            >
+                              <span aria-hidden="true">
+                                {heatmapMode === "riskLevel" && count === 0
+                                  ? ""
+                                  : count}
+                              </span>
+                            </div>
+                          );
+                        }),
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      role="status"
+                      className="flex min-h-32 items-center justify-center rounded-md border border-dashed border-border/60 bg-muted/20 px-3 text-center text-xs text-muted-foreground"
+                    >
+                      Data fase belum tersedia.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <div
             role="list"
             aria-label="Legenda level risiko"
-            className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-border/40 pt-3 text-[11px] text-muted-foreground"
+            className="-mx-4 -mb-4 mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-border/60 bg-table-header px-4 py-3 text-[11px] text-muted-foreground"
           >
             {riskLevelLegend.map((item) => (
               <span

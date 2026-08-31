@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { archiveRisk, restoreRisk } from "@/lib/api/risk-register";
@@ -18,7 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,12 +43,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
 import {
   Popover,
   PopoverContent,
@@ -179,8 +173,8 @@ const CATEGORY_ORDER: string[] = [
   "material",
   "lingkungan",
 ];
-const RISK_FORM_SURFACE_CLASS =
-  "scroll-mt-28 overflow-hidden rounded-2xl not-last:border-b-0 bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-all";
+const RISK_FORM_CARD_CLASS =
+  "scroll-mt-28 overflow-hidden rounded-2xl bg-card gap-0 p-0 transition-colors";
 type CategoryKey = "manusia" | "metode" | "mesin" | "material" | "lingkungan";
 
 type SectionId =
@@ -195,7 +189,6 @@ type RiskSuggestion = {
   description: string;
   category?: RiskCategory | "" | null;
 };
-type ErrorWithMessage = { message?: string; error?: string };
 type PopoverSelectOption = {
   value: string;
   label: string;
@@ -238,7 +231,7 @@ function PopoverSelectField({
           aria-invalid={invalid || undefined}
           disabled={disabled}
           className={cn(
-            "group/risk-select h-9 w-full justify-between gap-2 rounded-lg border-border bg-card px-3 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-border focus-visible:border-border focus:ring-0 focus-visible:ring-0 dark:focus:border-border dark:focus-visible:border-border",
+            "group/risk-select h-10 w-full justify-between gap-2 rounded-lg border-input bg-card px-3 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0 dark:focus:border-input dark:focus-visible:border-input",
             !selected && "text-muted-foreground",
             triggerClassName,
           )}
@@ -430,8 +423,10 @@ const SIDE_PANEL_PREVIEW_LIMIT = 5;
 
 function RiskVersionHistoryList({
   versions,
+  onVersionSelect,
 }: {
   versions: RiskVersionTimelineItem[];
+  onVersionSelect: (versionId: string) => void;
 }) {
   return (
     <div className="relative pl-6">
@@ -444,6 +439,8 @@ function RiskVersionHistoryList({
           <Link
             key={version.id}
             href={`/risk/register/new?id=${version.id}`}
+            onPointerDown={() => onVersionSelect(version.id)}
+            onClick={() => onVersionSelect(version.id)}
             className="group relative block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <span
@@ -542,10 +539,9 @@ const mitigationSchema = z.object({
   quantitativeTarget: z.string().optional(),
   supportingUnit: z.string().optional(),
   resourcesRequired: z.string().optional(),
-  contingencyPlan: z.string().optional(),
-  potentialObstacle: z.string().optional(),
-  costBenefitNote: z.string().optional(),
-  isBreakthroughActivity: z.boolean().default(false),
+	contingencyPlan: z.string().optional(),
+	potentialObstacle: z.string().optional(),
+	isBreakthroughActivity: z.boolean().default(false),
   isExistingControl: z.boolean().default(false),
 });
 
@@ -613,11 +609,10 @@ const formSchema = z
           mitigation.expectedOutput,
           mitigation.quantitativeTarget,
           mitigation.supportingUnit,
-          mitigation.resourcesRequired,
-          mitigation.contingencyPlan,
-          mitigation.potentialObstacle,
-          mitigation.costBenefitNote,
-          mitigation.treatmentOwnerId,
+			mitigation.resourcesRequired,
+			mitigation.contingencyPlan,
+			mitigation.potentialObstacle,
+			mitigation.treatmentOwnerId,
           mitigation.externalPicId,
         ].some((value) => Boolean(String(value ?? "").trim())) ||
         mitigation.isBreakthroughActivity ||
@@ -646,14 +641,6 @@ const draftSchema = z
 
 type FormInput = z.input<typeof formSchema>;
 type FormValues = z.output<typeof formSchema>;
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error && typeof error === "object") {
-    const typedError = error as ErrorWithMessage;
-    if (typedError.message) return typedError.message;
-    if (typedError.error) return typedError.error;
-  }
-  return fallback;
-}
 
 function normalizeFormValues(values: FormInput): FormValues {
   return {
@@ -687,11 +674,10 @@ function normalizeFormValues(values: FormInput): FormValues {
       expectedOutput: mitigation.expectedOutput ?? "",
       quantitativeTarget: mitigation.quantitativeTarget ?? "",
       supportingUnit: mitigation.supportingUnit ?? "",
-      resourcesRequired: mitigation.resourcesRequired ?? "",
-      contingencyPlan: mitigation.contingencyPlan ?? "",
-      potentialObstacle: mitigation.potentialObstacle ?? "",
-      costBenefitNote: mitigation.costBenefitNote ?? "",
-      isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
+		resourcesRequired: mitigation.resourcesRequired ?? "",
+		contingencyPlan: mitigation.contingencyPlan ?? "",
+		potentialObstacle: mitigation.potentialObstacle ?? "",
+		isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
       isExistingControl: mitigation.isExistingControl ?? false,
     })),
     targetProbability: values.targetProbability ?? 1,
@@ -768,6 +754,7 @@ function toHydratedUserPickerOption(user: {
 export default function RiskInputPage() {
   const aiFeaturesDisabled = isAIFeaturesDisabled();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { token, user } = useAuth();
   const riskApprovalCapabilityBehavior = useMemo(
     () => getRiskApprovalCapabilityBehavior(user?.capabilities),
@@ -775,6 +762,7 @@ export default function RiskInputPage() {
   );
 
   const [riskId, setRiskId] = useState<string | null>(null);
+  const [loadingVersionId, setLoadingVersionId] = useState<string | null>(null);
   const [riskStatus, setRiskStatus] = useState<string>("draft");
   const [riskArchivedAt, setRiskArchivedAt] = useState<string | null>(null);
   const [riskArchivedReason, setRiskArchivedReason] = useState("");
@@ -895,8 +883,8 @@ export default function RiskInputPage() {
     approvalLine.every((member) => member.id);
   const submitActionLabel =
     riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-      ? "Finalisasi risiko"
-      : "Ajukan review";
+      ? "Finalisasi"
+      : "Ajukan untuk review";
 
   // KMK Risk Appetite Advisory
   const advisoryWeight = getBobot(probability, impact);
@@ -1118,11 +1106,10 @@ export default function RiskInputPage() {
                 expectedOutput: mitigation.expectedOutput || "",
                 quantitativeTarget: mitigation.quantitativeTarget || "",
                 supportingUnit: mitigation.supportingUnit || "",
-                resourcesRequired: mitigation.resourcesRequired || "",
-                contingencyPlan: mitigation.contingencyPlan || "",
-                potentialObstacle: mitigation.potentialObstacle || "",
-                costBenefitNote: mitigation.costBenefitNote || "",
-                isBreakthroughActivity:
+				resourcesRequired: mitigation.resourcesRequired || "",
+				contingencyPlan: mitigation.contingencyPlan || "",
+				potentialObstacle: mitigation.potentialObstacle || "",
+				isBreakthroughActivity:
                   mitigation.isBreakthroughActivity || false,
                 isExistingControl: mitigation.isExistingControl || false,
               }))
@@ -1306,7 +1293,6 @@ export default function RiskInputPage() {
         }
       }
 
-      const searchParams = new URLSearchParams(window.location.search);
       const existingRiskId = searchParams.get("id");
       const documentPrefillToken = searchParams.get(
         DOCUMENT_INTELLIGENCE_PREFILL_PARAM,
@@ -1316,7 +1302,14 @@ export default function RiskInputPage() {
       );
 
       if (existingRiskId && token) {
-        await loadRiskData(existingRiskId);
+        setLoadingVersionId(existingRiskId);
+        try {
+          await loadRiskData(existingRiskId);
+        } finally {
+          setLoadingVersionId((current) =>
+            current === existingRiskId ? null : current,
+          );
+        }
       }
 
       if (documentPrefillToken) {
@@ -1502,7 +1495,7 @@ export default function RiskInputPage() {
     };
 
     init();
-  }, [loadRiskData, reset, setValue, token, user]);
+  }, [loadRiskData, reset, searchParams, setValue, token, user]);
 
   // UI state
   const [generatingCause, setGeneratingCause] = useState(false);
@@ -1581,7 +1574,7 @@ export default function RiskInputPage() {
       step: "3",
       title: "Evaluasi Risiko",
       description:
-        "Tetapkan prioritas dan pilihan penanganan sebelum diajukan untuk approval.",
+        "Tetapkan prioritas dan pilihan penanganan sebelum diajukan untuk persetujuan.",
       done: !!treatmentOption,
       hint: "Pilih strategi penanganan risiko.",
     },
@@ -1590,7 +1583,7 @@ export default function RiskInputPage() {
       step: "4",
       title: "Rencana Penanganan",
       description:
-        "Tentukan aksi mitigasi yang nyata, siapa PIC-nya, dan kapan eksekusinya. Opsional — tidak wajib diisi.",
+        "Tentukan aksi mitigasi yang nyata, siapa PIC-nya, dan kapan eksekusinya. Opsional.",
       done: true, // Always optional — no enforcement based on treatment option
       hint: "Tambahkan aksi mitigasi jika diperlukan.",
     },
@@ -1599,7 +1592,7 @@ export default function RiskInputPage() {
       step: "5",
       title: "Target Penurunan",
       description:
-        "Tetapkan target residual risk agar reviewer melihat tujuan akhirnya dengan jelas.",
+        "Tetapkan target risiko residual agar reviewer melihat tujuan akhirnya dengan jelas.",
       done: targetNilai > 0,
       hint: "Tetapkan target probabilitas dan dampak residual.",
     },
@@ -1610,7 +1603,7 @@ export default function RiskInputPage() {
   ).length;
   const missingSections = sectionStatuses.filter((section) => !section.done);
   const lockedControlClass =
-    "disabled:!bg-muted/40 disabled:!text-foreground/90 disabled:!opacity-100 disabled:!cursor-not-allowed";
+    "disabled:pointer-events-none disabled:cursor-not-allowed disabled:!bg-muted disabled:!text-muted-foreground disabled:!opacity-100 dark:disabled:bg-input/80 dark:disabled:text-muted-foreground";
   const isRiskLocked =
     riskStatus === "final" ||
     !!riskArchivedAt;
@@ -1834,7 +1827,7 @@ export default function RiskInputPage() {
   const onSubmit = async (data: FormValues) => {
     if (isRiskLocked) {
       toast.info(
-        "Risiko yang sudah final bersifat read-only. Buat versi baru untuk perubahan substansi.",
+        "Risiko yang sudah difinalisasi hanya dapat dibaca. Buat versi baru untuk mengubah substansi.",
       );
       return;
     }
@@ -1893,12 +1886,12 @@ export default function RiskInputPage() {
           riskApprovalCapabilityBehavior.requiresApprovalLineSelection &&
           approverIds.length === 0
         ) {
-          toast.error("Susun reviewer dan approval line terlebih dahulu.");
+          toast.error("Susun reviewer dan alur persetujuan terlebih dahulu.");
           return;
         }
 
         if (!riskApprovalCapabilityBehavior.submitsForApproval) {
-          toast.success("Risk berhasil disimpan dan difinalisasi!");
+          toast.success("Risiko berhasil disimpan dan difinalisasi!");
           router.push("/risk/register");
           return;
         }
@@ -1915,18 +1908,18 @@ export default function RiskInputPage() {
             },
             token || undefined,
           );
-          toast.success("Risk berhasil disimpan dan diajukan untuk review!");
+          toast.success("Risiko berhasil disimpan dan diajukan untuk review!");
           router.push("/risk/register");
-        } catch (approvalErr: unknown) {
-          const errorMsg = getErrorMessage(approvalErr, "Unknown error");
-          toast.error(`Risk disimpan, namun gagal diajukan: ${errorMsg}`);
+        } catch {
+          toast.error(
+            "Risiko tersimpan, tetapi pengajuan review gagal. Periksa koneksi dan coba lagi.",
+          );
           router.push("/risk/register");
         }
       }
     } catch (err: unknown) {
       console.error("Failed to save", err);
-      const errorMessage = getErrorMessage(err, "Gagal menyimpan data.");
-      toast.error(`Error: ${errorMessage}`);
+      toast.error("Gagal menyimpan risiko. Periksa koneksi dan coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -1972,14 +1965,13 @@ export default function RiskInputPage() {
     toast.promise(promise, {
       loading: "Menghapus draft...",
       success: "Draft berhasil dihapus.",
-      error: (err) =>
-        `Error: ${getErrorMessage(err, "Gagal menghapus draft.")}`,
+      error: "Gagal menghapus draft. Periksa koneksi dan coba lagi.",
     });
   };
 
   const onValidationError = (errors: FieldErrors<FormInput>) => {
     toast.error(
-      "Ada form isian yang wajib diisi atau masih salah. Periksa teks merah di bawah form.",
+      "Ada form isian yang wajib diisi atau masih salah. Periksa kolom yang ditandai di bawah ini.",
     );
     const [firstErrorField] = Object.keys(errors || {});
     const sectionId = getSectionIdFromField(firstErrorField);
@@ -2006,7 +1998,7 @@ export default function RiskInputPage() {
       !isApprovalLineReady
     ) {
       toast.error(
-        "Lengkapi setiap baris approver atau hapus baris yang masih kosong.",
+        "Lengkapi setiap baris penyetuju atau hapus baris yang masih kosong.",
       );
       return;
     }
@@ -2017,7 +2009,7 @@ export default function RiskInputPage() {
 
     if (hasErrors) {
       toast.error(
-        "Ada form isian yang wajib diisi atau masih salah. Periksa teks merah di bawah form.",
+        "Ada form isian yang wajib diisi atau masih salah. Periksa kolom yang ditandai di bawah ini.",
       );
       scrollToSection(
         firstInvalidSection ?? missingSections[0]?.id ?? "identifikasi",
@@ -2063,6 +2055,15 @@ export default function RiskInputPage() {
       void loadRiskVersions(riskId);
     }
   }, [loadRiskVersions, riskId, token]);
+
+  const handleVersionSelect = useCallback(
+    (versionId: string) => {
+      if (versionId !== riskId) {
+        setLoadingVersionId(versionId);
+      }
+    },
+    [riskId],
+  );
 
   const FormErrorMessage = ({
     error,
@@ -2199,12 +2200,8 @@ export default function RiskInputPage() {
       setArchiveReasonInput("");
       setArchiveNoteInput("");
       toast.success("Risiko berhasil diarsipkan.");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Risiko belum berhasil diarsipkan.",
-      );
+    } catch {
+      toast.error("Gagal mengarsipkan risiko. Periksa koneksi dan coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -2222,45 +2219,54 @@ export default function RiskInputPage() {
       await loadRiskData(riskId);
       setShowRestoreDialog(false);
       toast.success("Risiko berhasil dipulihkan.");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Risiko belum berhasil dipulihkan.",
-      );
+    } catch {
+      toast.error("Gagal memulihkan risiko. Periksa koneksi dan coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const visibleRiskVersions = riskVersions.slice(0, SIDE_PANEL_PREVIEW_LIMIT);
+  const loadingVersion = riskVersions.find(
+    (version) => version.id === loadingVersionId,
+  );
 
   return (
     <TooltipProvider>
       <FormPage className="risk-form-filter-controls max-w-none space-y-6">
-        <div className="mx-auto grid w-full max-w-[1400px] min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="min-w-0">
+        {loadingVersionId && (
+          <div
+            className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            <span>
+              Memuat {loadingVersion?.versionNumber
+                ? `versi v${loadingVersion.versionNumber}`
+                : "versi risiko"}
+              ...
+            </span>
+          </div>
+        )}
+
+        <div className="mx-auto w-full max-w-[1400px] min-w-0">
           <CollectionPageHeader
             backAction={
               <ActionButton
                 asChild
-                variant="ghost"
+                variant="secondary"
                 size="sm"
-                className="px-0 hover:bg-transparent"
+                className="border-0 text-sm font-normal"
               >
                 <Link href="/risk/register">
                   <ArrowLeft className="size-3.5" />
-                  Kembali ke daftar risiko
+                  Kembali
                 </Link>
               </ActionButton>
             }
             actionsPlacement="title"
             title={riskId ? "Edit Risiko" : "Tambah Risiko"}
-            description={
-              riskId
-                ? "Perbarui informasi dan rencana penanganan risiko."
-                : "Daftarkan risiko baru untuk organisasi."
-            }
             actions={
               riskStatus === "draft" || !riskId ? (
                 <>
@@ -2290,7 +2296,6 @@ export default function RiskInputPage() {
               ) : undefined
             }
           />
-          </div>
         </div>
 
         {riskArchivedAt && (
@@ -2307,42 +2312,25 @@ export default function RiskInputPage() {
           </Card>
         )}
 
-        <div className="mx-auto grid w-full max-w-[1400px] min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="mx-auto grid w-full max-w-[1400px] min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <div className="min-w-0">
             <form
               onSubmit={(e) => e.preventDefault()}
-              className="min-w-0 w-full"
+              className="min-w-0 w-full [&_[data-slot=label]]:font-medium"
             >
-              <Accordion
-                type="multiple"
-                value={[
-                  "identifikasi",
-                  "analisis",
-                  "evaluasi",
-                  "penanganan",
-                  "target",
-                  ...(riskApprovalCapabilityBehavior.showsApprovalLineEditor
-                    ? ["approval-line"]
-                    : []),
-                ]}
-                className="space-y-6"
-              >
-                <AccordionItem
-                  value="identifikasi"
-                  id="identifikasi"
-                  className={RISK_FORM_SURFACE_CLASS}
-                >
-                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
+              <div className="space-y-6">
+                <Card id="identifikasi" className={RISK_FORM_CARD_CLASS}>
+                  <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
+                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Identifikasi Risiko
                       </p>
-                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                      <p className="text-xs text-secondary-foreground leading-relaxed">
                         {sectionStatuses[0].description}
                       </p>
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                  </CardHeader>
+                  <CardContent className="space-y-5 px-5 pb-6 pt-2">
                     <div>
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <Label className="text-sm font-medium text-foreground">
@@ -2391,7 +2379,7 @@ export default function RiskInputPage() {
                         render={({ field }) => (
                           <Textarea
                             {...field}
-                            placeholder="Contoh: Mesin A mati secara tiba-tiba saat proses produksi berlangsung..."
+                            placeholder="Contoh: Mesin A mati tiba-tiba saat proses produksi sehingga produksi terhenti selama 2 jam."
                             disabled={isRiskLocked}
                             className={cn(
                               "min-h-[120px] text-sm",
@@ -2438,6 +2426,7 @@ export default function RiskInputPage() {
                       <ROPicker
                         organizationId={currentOrganizationId}
                         value={watch("roId")}
+                        disabled={isRiskLocked}
                         onChange={(id, summary) => {
                           setValue("roId", id, { shouldDirty: true });
                           setObjectiveSummary(summary);
@@ -2528,6 +2517,7 @@ export default function RiskInputPage() {
                           onValueChange={setAssessmentCycleDisplay}
                           options={assessmentCycleOptions}
                           placeholder="Pilih periode kuartal"
+                          disabled={isRiskLocked}
                           triggerClassName={lockedControlClass}
                         />
                       </div>
@@ -2555,8 +2545,8 @@ export default function RiskInputPage() {
                           <EditableItemsTable
                             items={field.value}
                             onChange={field.onChange}
-                            placeholder="Tulis penyebab..."
-                            addItemLabel="Tambah Sebab"
+                            placeholder="Tulis penyebab risiko"
+                            addItemLabel="Tambah sebab"
                             emptyMessage="Belum ada sebab"
                             disabled={isRiskLocked}
                           />
@@ -2636,33 +2626,29 @@ export default function RiskInputPage() {
                           <EditableItemsTable
                             items={field.value}
                             onChange={field.onChange}
-                            placeholder="Tulis dampak..."
-                            addItemLabel="Tambah Dampak"
+                            placeholder="Tulis dampak risiko"
+                            addItemLabel="Tambah dampak"
                             disabled={isRiskLocked}
                           />
                         )}
                       />
                       <FormErrorMessage error={errors.impacts?.message} />
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  </CardContent>
+                </Card>
 
-                <AccordionItem
-                  value="analisis"
-                  id="analisis"
-                  className={RISK_FORM_SURFACE_CLASS}
-                >
-                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
+                <Card id="analisis" className={RISK_FORM_CARD_CLASS}>
+                  <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
+                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Analisis Risiko
                       </p>
-                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                      <p className="text-xs text-secondary-foreground leading-relaxed">
                         {sectionStatuses[1].description}
                       </p>
                     </div>
-                  </AccordionTrigger>
-                    <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                  </CardHeader>
+                  <CardContent className="space-y-5 px-5 pb-6 pt-2">
                     <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium text-foreground">
                         Pengendalian yang Ada
@@ -2675,7 +2661,7 @@ export default function RiskInputPage() {
                           <EditableList
                             value={field.value || ""}
                             onChange={field.onChange}
-                            placeholder="Tulis pengendalian yang sudah berjalan..."
+                            placeholder="Contoh: SOP inspeksi dan pemeliharaan berkala."
                             disabled={isRiskLocked}
                           />
                         )}
@@ -2734,49 +2720,39 @@ export default function RiskInputPage() {
                         disabled={isRiskLocked}
                       />
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  </CardContent>
+                </Card>
 
-                <AccordionItem
-                  value="evaluasi"
-                  id="evaluasi"
-                  className={RISK_FORM_SURFACE_CLASS}
-                >
-                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
+                <Card id="evaluasi" className={RISK_FORM_CARD_CLASS}>
+                  <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
+                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Evaluasi Risiko
                       </p>
-                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                      <p className="text-xs text-secondary-foreground leading-relaxed">
                         {sectionStatuses[2].description}
                       </p>
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
-                    <div className="grid gap-5 md:grid-cols-2">
+                  </CardHeader>
+                  <CardContent className="space-y-5 px-5 pb-6 pt-2">
+                    <div className="grid gap-5 text-sm font-normal text-muted-foreground md:grid-cols-2">
                       <div className="flex flex-col gap-2">
-                        <Label className="text-sm font-medium text-foreground">
+                      <Label className="text-sm font-medium text-muted-foreground">
                           Prioritas Risiko
                         </Label>
-                        <div className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                          <span className="font-semibold">{riskPriority}</span>
-                          <span className="text-xs text-muted-foreground">
-                            (Otomatis dari tingkat risiko)
-                          </span>
+                        <div className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 font-normal text-muted-foreground">
+                          <span>{riskPriority}</span>
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Label className="text-sm font-medium text-foreground">
+                      <Label className="text-sm font-medium text-muted-foreground">
                           Selera Risiko
                         </Label>
-                        <div className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                          <span className="font-medium text-foreground">
+                        <div className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 font-normal text-muted-foreground">
+                          <span>
                             {advisoryAppetite === "di_atas_batas"
                               ? "Di atas batas selera risiko"
                               : "Dalam batas selera risiko"}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            (Otomatis dari skor risiko)
                           </span>
                         </div>
                       </div>
@@ -2808,25 +2784,21 @@ export default function RiskInputPage() {
                         error={errors.treatmentOption?.message}
                       />
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  </CardContent>
+                </Card>
 
-                <AccordionItem
-                  value="penanganan"
-                  id="penanganan"
-                  className={RISK_FORM_SURFACE_CLASS}
-                >
-                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
+                <Card id="penanganan" className={RISK_FORM_CARD_CLASS}>
+                  <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
+                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Rencana Penanganan
                       </p>
-                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                      <p className="text-xs text-secondary-foreground leading-relaxed">
                         {sectionStatuses[3].description}
                       </p>
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                  </CardHeader>
+                  <CardContent className="space-y-5 px-5 pb-6 pt-2">
                     <div className="space-y-3">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <Label className="text-sm font-medium text-foreground">
@@ -2888,13 +2860,12 @@ export default function RiskInputPage() {
                                 quantitativeTarget:
                                   mitigation.quantitativeTarget ?? "",
                                 supportingUnit: mitigation.supportingUnit ?? "",
-                                resourcesRequired:
-                                  mitigation.resourcesRequired ?? "",
-                                contingencyPlan: mitigation.contingencyPlan ?? "",
-                                potentialObstacle:
-                                  mitigation.potentialObstacle ?? "",
-                                costBenefitNote: mitigation.costBenefitNote ?? "",
-                                isBreakthroughActivity:
+				resourcesRequired:
+					mitigation.resourcesRequired ?? "",
+				contingencyPlan: mitigation.contingencyPlan ?? "",
+				potentialObstacle:
+					mitigation.potentialObstacle ?? "",
+				isBreakthroughActivity:
                                   mitigation.isBreakthroughActivity ?? false,
                                 isExistingControl:
                                   mitigation.isExistingControl ?? false,
@@ -2916,7 +2887,7 @@ export default function RiskInputPage() {
                       </Label>
                       <Input
                         type="text"
-                        placeholder="Contoh: Triwulan I 2026, minggu ke-2"
+                        placeholder="Contoh: Minggu ke-2 pada Triwulan I 2026"
                         value={nextReviewDate}
                         onChange={(event) =>
                           setValue("nextReviewDate", event.target.value, {
@@ -2924,28 +2895,24 @@ export default function RiskInputPage() {
                           })
                         }
                         disabled={isRiskLocked}
-                        className={cn("h-9 text-sm", lockedControlClass)}
+                        className={cn("h-10 text-sm", lockedControlClass)}
                       />
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  </CardContent>
+                </Card>
 
-                <AccordionItem
-                  value="target"
-                  id="target"
-                  className={RISK_FORM_SURFACE_CLASS}
-                >
-                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
+                <Card id="target" className={RISK_FORM_CARD_CLASS}>
+                  <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
+                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Target Penurunan
                       </p>
-                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                      <p className="text-xs text-secondary-foreground leading-relaxed">
                         {sectionStatuses[4].description}
                       </p>
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                  </CardHeader>
+                  <CardContent className="space-y-5 px-5 pb-6 pt-2">
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center">
                         <Label className="flex h-6 items-center text-sm font-medium">
@@ -2968,26 +2935,22 @@ export default function RiskInputPage() {
                       </div>
                     </div>
 
-                  </AccordionContent>
-                </AccordionItem>
+                  </CardContent>
+                </Card>
 
                 {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
-                  <AccordionItem
-                    value="approval-line"
-                    id="approval-line"
-                  className={RISK_FORM_SURFACE_CLASS}
-                  >
-                  <AccordionTrigger className="pointer-events-none cursor-default px-5 py-4 [&>svg]:hidden">
-                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-semibold tracking-tight text-black transition-colors">
-                        Approval Line
-                      </p>
-                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
-                        Susun reviewer dan rantai persetujuan pimpinan
-                      </p>
-                    </div>
-                  </AccordionTrigger>
-                    <AccordionContent className="space-y-5 px-5 pb-6 pt-2">
+                  <Card id="approval-line" className={RISK_FORM_CARD_CLASS}>
+                    <CardHeader className="px-5 py-4">
+                      <div className="flex flex-1 flex-col gap-0.5 pr-4">
+                        <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
+                          Alur Persetujuan
+                        </p>
+                        <p className="text-xs text-secondary-foreground leading-relaxed">
+                          Susun reviewer dan rantai persetujuan pimpinan
+                        </p>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-5 px-5 pb-6 pt-2">
                       <div className="rounded-xl bg-card p-5 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                         <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
@@ -3016,7 +2979,7 @@ export default function RiskInputPage() {
                       <div className="rounded-xl bg-card p-5 space-y-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                         <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
-                            2. Approval Line (Pimpinan)
+                            2. Alur Persetujuan (Pimpinan)
                             <span className="text-destructive ml-0.5">*</span>
                           </Label>
                           <p className="text-xs text-muted-foreground">
@@ -3032,35 +2995,35 @@ export default function RiskInputPage() {
                           onAddRow={handleAddApproverRow}
                           onRemoveRow={removeApprover}
                           onMoveRow={moveApprover}
-                          pickerTitle="Pilih approver"
-                          pickerDescription="Cari approver untuk disusun ke dalam rantai persetujuan berurutan."
-                          pickerPlaceholder="Pilih approver"
-                          pickerSearchPlaceholder="Cari nama approver"
-                          pickerEmptyMessage="Approver tidak ditemukan."
-                          emptyStateMessage="Belum ada approver. Tambahkan minimal satu user sebelum klik Ajukan approval."
-                          addRowLabel="Tambah Approver"
-                          footerNote="Urutan baris menentukan sequence persetujuan pimpinan."
+                          pickerTitle="Pilih penyetuju"
+                          pickerDescription="Cari penyetuju untuk disusun ke dalam alur persetujuan."
+                          pickerPlaceholder="Pilih penyetuju"
+                          pickerSearchPlaceholder="Cari nama penyetuju"
+                          pickerEmptyMessage="Penyetuju tidak ditemukan."
+                          emptyStateMessage="Belum ada penyetuju. Tambahkan minimal satu pengguna sebelum mengajukan persetujuan."
+                          addRowLabel="Tambah penyetuju"
+                          footerNote="Urutan baris menentukan tahapan persetujuan pimpinan."
                           disabled={isRiskLocked}
                           dndGroup="risk-register-approval-line"
                         />
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
+                    </CardContent>
+                  </Card>
                 )}
-              </Accordion>
+              </div>
             </form>
           </div>
 
-          <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">
-            <div className="space-y-6">
-              <Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors duration-300">
+          <aside className="min-w-0 self-start">
+            <div className="space-y-6 xl:sticky xl:top-20">
+              <Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0 transition-colors duration-300">
                 <CardContent className="px-5 py-5">
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     <section aria-labelledby="risk-side-progress">
                       <div className="flex items-center justify-between gap-3">
                         <h2
                           id="risk-side-progress"
-                          className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
+                          className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
                         >
                           Progres
                         </h2>
@@ -3089,7 +3052,7 @@ export default function RiskInputPage() {
                     >
                       <h2
                         id="risk-side-log"
-                        className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
+                        className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
                       >
                         Log
                       </h2>
@@ -3114,7 +3077,7 @@ export default function RiskInputPage() {
                       <div className="flex items-center justify-between gap-3">
                         <h2
                           id="risk-side-version-history"
-                          className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
+                          className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
                         >
                           Riwayat versi
                         </h2>
@@ -3132,7 +3095,10 @@ export default function RiskInputPage() {
                             Memuat riwayat versi...
                           </div>
                         ) : riskVersions.length > 0 ? (
-                          <RiskVersionHistoryList versions={visibleRiskVersions} />
+                          <RiskVersionHistoryList
+                            versions={visibleRiskVersions}
+                            onVersionSelect={handleVersionSelect}
+                          />
                         ) : (
                           <p className="text-xs text-muted-foreground">
                             {riskId
@@ -3184,7 +3150,10 @@ export default function RiskInputPage() {
                 <DialogTitle className="text-base">Riwayat Versi</DialogTitle>
               </DialogHeader>
               <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto pr-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
-                <RiskVersionHistoryList versions={riskVersions} />
+                <RiskVersionHistoryList
+                  versions={riskVersions}
+                  onVersionSelect={handleVersionSelect}
+                />
               </div>
               <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
                 <CollectionDialogCancel
@@ -3224,7 +3193,7 @@ export default function RiskInputPage() {
                 size="sm"
                 onClick={handleDeleteDraft}
               >
-                <Trash2 className="size-3.5" /> Hapus Draft
+                <Trash2 className="size-3.5" /> Hapus draft
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -3252,7 +3221,7 @@ export default function RiskInputPage() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label className="text-sm" htmlFor="new-archive-reason">
+                  <Label className="text-sm font-medium" htmlFor="new-archive-reason">
                     Alasan utama arsip
                   </Label>
                   <Input
@@ -3261,12 +3230,12 @@ export default function RiskInputPage() {
                     onChange={(event) =>
                       setArchiveReasonInput(event.target.value)
                     }
-                    placeholder="Masukkan alasan pengarsipan"
+                    placeholder="Contoh: Risiko sudah tidak relevan"
                     className="text-base sm:text-sm"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label className="text-sm" htmlFor="new-archive-note">
+                  <Label className="text-sm font-medium" htmlFor="new-archive-note">
                     Catatan tambahan (opsional)
                   </Label>
                   <Textarea
@@ -3334,8 +3303,8 @@ export default function RiskInputPage() {
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-                  ? "Risiko akan disimpan dan langsung disetujui tanpa melalui reviewer atau approval line. Pastikan seluruh bagian sudah final sebelum melanjutkan."
-                  : "Risiko akan disimpan lalu dikirim ke reviewer dan approval line yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan."}
+                  ? "Risiko akan disimpan dan langsung disetujui tanpa melalui reviewer atau alur persetujuan. Pastikan seluruh bagian sudah final sebelum melanjutkan."
+                  : "Risiko akan disimpan lalu dikirim ke reviewer dan alur persetujuan yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan."}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-2 text-sm">
@@ -3351,7 +3320,7 @@ export default function RiskInputPage() {
                   </div>
                   <div>
                     <span className="font-medium text-foreground">
-                      Approval line:{" "}
+                      Alur persetujuan:{" "}
                     </span>
                     <span className="text-muted-foreground">
                       {selectedApprovalLine.length} orang
@@ -3377,7 +3346,9 @@ export default function RiskInputPage() {
                 onClick={handleConfirmSubmitReview}
                 disabled={isSubmitting}
               >
-                Lanjutkan
+                {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+                  ? "Finalisasi"
+                  : "Ajukan untuk review"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -3394,7 +3365,7 @@ export default function RiskInputPage() {
               ? "Pilih Skor Target"
               : "Pilih Skor Risiko"
           }
-          description="Klik satu cell untuk melihat kombinasi probabilitas, dampak, skor, dan level risikonya."
+          description="Pilih satu sel untuk melihat kombinasi probabilitas, dampak, skor, dan level risikonya."
           probability={
             scorePickerMode === "target" ? targetProbability : probability
           }

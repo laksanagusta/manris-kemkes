@@ -4,18 +4,34 @@ import {
   CartesianGrid,
   Line,
   LineChart,
-  ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
 import { Badge } from "@/components/ui/badge";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { CHART_COLORS } from "@/lib/chart-colors";
 import type { SemesterScoreTargetDatum } from "@/lib/dashboard-insights";
 import { StandardCard } from "@/components/shared/design-system";
 
-const ACTUAL_COLOR = "oklch(0.72 0.13 190)";
-const TARGET_COLOR = "oklch(0.55 0.10 190)";
+const ACTUAL_COLOR = CHART_COLORS.primary;
+const TARGET_COLOR = CHART_COLORS.secondary;
+
+const chartConfig = {
+  actualScore: {
+    label: "Skor aktual",
+    color: ACTUAL_COLOR,
+  },
+  targetScore: {
+    label: "Target",
+    color: TARGET_COLOR,
+  },
+} satisfies ChartConfig;
 
 interface SemesterTargetTrendProps {
   loading?: boolean;
@@ -64,24 +80,25 @@ export function SemesterTargetTrend({
         ) : null
       }
       className="h-full"
-      contentClassName="space-y-4"
+      contentClassName="flex flex-col gap-4"
     >
       {!hasData ? (
-        <div className="flex h-[420px] items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+        <div className="flex h-[420px] items-center justify-center rounded-lg border border-dashed border-surface-border bg-muted/20 px-6 text-center text-sm text-muted-foreground">
           Belum ada data kuartal untuk menampilkan skor aktual dan target.
         </div>
       ) : (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(260px,0.95fr)]">
           <div>
             <div className="h-[420px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={chartConfig} className="h-full w-full">
                 <LineChart
+                  accessibilityLayer
                   data={data}
                   margin={{ top: 6, right: 18, left: -18, bottom: 0 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="oklch(0.5 0 0 / 8%)"
+                    stroke="var(--chart-grid)"
                     vertical={false}
                   />
                   <XAxis
@@ -96,23 +113,39 @@ export function SemesterTargetTrend({
                     axisLine={false}
                     tickLine={false}
                   />
-                  <Tooltip
-                    formatter={(value, name) => {
-                      if (name === "actualScore") return [formatScore(Number(value ?? 0)), "Skor aktual"];
-                      if (name === "targetScore") return [formatScore(typeof value === "number" ? value : null), "Target"];
-                      return [formatScore(typeof value === "number" ? value : null), String(name)];
-                    }}
-                    labelFormatter={(label) => {
-                      const item = data.find((entry) => entry.period === label);
-                      if (!item) return String(label);
-                      return `${label} - ${item.riskCount} risiko`;
-                    }}
-                    contentStyle={{
-                      background: "oklch(0.98 0.003 170 / 95%)",
-                      border: "1px solid oklch(0.91 0.008 170)",
-                      borderRadius: "8px",
-                      fontSize: "11px",
-                    }}
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        indicator="line"
+                        formatter={(value, name) => {
+                          if (name === "actualScore") {
+                            return [
+                              formatScore(Number(value ?? 0)),
+                              "Skor aktual",
+                            ];
+                          }
+                          if (name === "targetScore") {
+                            return [
+                              formatScore(
+                                typeof value === "number" ? value : null,
+                              ),
+                              "Target",
+                            ];
+                          }
+                          return [
+                            formatScore(
+                              typeof value === "number" ? value : null,
+                            ),
+                            String(name),
+                          ];
+                        }}
+                        labelFormatter={(label) => {
+                          const item = data.find((entry) => entry.period === label);
+                          if (!item) return String(label);
+                          return `${label} - ${item.riskCount} risiko`;
+                        }}
+                      />
+                    }
                   />
                   <Line
                     type="monotone"
@@ -134,7 +167,7 @@ export function SemesterTargetTrend({
                     activeDot={{ r: 4 }}
                   />
                 </LineChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
 
             <div className="mt-3 flex flex-wrap gap-3 text-[10px] text-muted-foreground">
@@ -155,13 +188,13 @@ export function SemesterTargetTrend({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border/50 bg-muted/20 p-4">
+          <div className="surface-hairline rounded-2xl bg-muted/20 p-4">
             <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
               Snapshot terbaru
             </p>
             {latest ? (
-              <div className="mt-4 space-y-3">
-                <div className="rounded-lg bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+              <div className="mt-4 flex flex-col gap-3">
+                <div className="surface-hairline rounded-lg bg-card p-3">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                     Skor aktual
                   </p>
@@ -173,7 +206,7 @@ export function SemesterTargetTrend({
                   </p>
                 </div>
 
-                <div className="rounded-lg bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+                <div className="surface-hairline rounded-lg bg-card p-3">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                     Target
                   </p>
@@ -185,7 +218,7 @@ export function SemesterTargetTrend({
                   </p>
                 </div>
 
-                <div className="rounded-lg bg-card p-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+                <div className="surface-hairline rounded-lg bg-card p-3">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                     Gap
                   </p>

@@ -54,7 +54,6 @@ func (r *pdfReportRenderer) Render(ctx context.Context, data *entity.ReportData)
 	r.addRiskRegister(m, data.Risks)
 	r.addTopRisks(m, data.TopRisks)
 	r.addIncidentSummary(m, data.Incidents)
-	r.addKRISection(m, data.KRIs)
 	r.addTrendSection(m, data.TrendData)
 
 	r.addPageNumbers(m)
@@ -264,7 +263,6 @@ func (r *pdfReportRenderer) addKPIGrid(m core.Maroto, summary *entity.ReportSumm
 		{"Tinggi & Ekstrem", strconv.Itoa(summary.HighExtremeCount)},
 		{"Mitigasi Terlambat", strconv.Itoa(summary.OverdueMitigations)},
 		{"Insiden Terkait", strconv.Itoa(len(data.Incidents))},
-		{"Jumlah KRI", strconv.Itoa(len(data.KRIs))},
 		{"Skor Eksposur Rata-rata", fmt.Sprintf("%.1f", summary.AvgExposureScore)},
 	}
 
@@ -613,57 +611,6 @@ func (r *pdfReportRenderer) addIncidentSummary(m core.Maroto, incidents []*entit
 	}
 
 	m.AddRows(RenderTable(header, tableRows, colWidths, WithFontSize(FontSizeSmall), WithLeftAligned(2, 5))...)
-	m.AddRows(row.New(SectionSpacing))
-}
-
-func (r *pdfReportRenderer) addKRISection(m core.Maroto, kris []*entity.KRI) {
-	headerRow := row.New(FontSizeH2 + 4)
-	headerRow.Add(col.New(gridSize).Add(text.New(
-		"Status KRI / KRI Dashboard",
-		props.Text{
-			Size:   FontSizeH2,
-			Align:  align.Left,
-			Style:  fontstyle.Bold,
-			Color:  BlackColor,
-			Family: fontfamily.Arial,
-		},
-	)))
-	m.AddRows(headerRow)
-
-	if len(kris) == 0 {
-		emptyRow := row.New(RowHeight + 2)
-		emptyRow.Add(col.New(gridSize).Add(text.New(
-			"Tidak ada KRI terkait / No related KRIs",
-			props.Text{
-				Size:   FontSizeBody,
-				Align:  align.Center,
-				Color:  MutedText,
-				Family: fontfamily.Arial,
-			},
-		)))
-		m.AddRows(emptyRow)
-		m.AddRows(row.New(SectionSpacing))
-		return
-	}
-
-	kriHeader := []string{"No.", "Nama KRI / KRI Name", "Batas Bawah", "Batas Atas", "Nilai Aktual", "Status", "Risiko"}
-	kriWidths := []uint{2, 6, 3, 3, 3, 3, 5}
-
-	var kriRows [][]string
-	for i, kri := range kris {
-		status := kri.GetStatus()
-		kriRows = append(kriRows, []string{
-			strconv.Itoa(i + 1),
-			truncate(kri.Name, 40),
-			fmt.Sprintf("%.2f", kri.ThresholdMin),
-			fmt.Sprintf("%.2f", kri.ThresholdMax),
-			fmt.Sprintf("%.2f", kri.CurrentValue),
-			status,
-			truncate(kri.RiskTitle, 25),
-		})
-	}
-
-	m.AddRows(RenderTable(kriHeader, kriRows, kriWidths, WithFontSize(FontSizeSmall), WithLeftAligned(1, 6))...)
 	m.AddRows(row.New(SectionSpacing))
 }
 

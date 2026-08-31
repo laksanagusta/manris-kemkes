@@ -155,7 +155,6 @@ func TestRiskListRegisterIncludesMonitoringStatusAndLastMonitoredAt(t *testing.T
 	monitoring.ObservedProbability = 4
 	monitoring.ObservedImpact = 4
 	monitoring.CalculateObservedScore()
-	monitoring.ConditionSummary = "Observed condition"
 	monitoring.Conclusion = "Need follow-up"
 	if err := monitoringRepo.Create(ctx, monitoring); err != nil {
 		t.Fatalf("Create monitoring draft: %v", err)

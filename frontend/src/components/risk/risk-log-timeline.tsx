@@ -189,19 +189,6 @@ function formatDateTime(dateStr: string): string {
   });
 }
 
-function getInitials(name: string): string {
-  const initials = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-
-  return initials || "SY";
-}
-
 function getActorName(item: TimelineItem): string {
   const actorName = item.metadata?.oleh?.trim();
   return actorName && actorName !== "-" ? actorName : "Sistem";
@@ -234,13 +221,10 @@ function ActivityFeedRow({
     <div className="flex min-w-0 items-start gap-3 rounded-lg px-1 py-2 text-left transition-colors duration-150 hover:bg-muted/40">
       <button
         type="button"
-        className="flex min-w-0 flex-1 items-start gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        className="flex min-w-0 flex-1 items-start text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         onClick={onOpen}
         aria-label={`Buka detail aktivitas dari ${actorName}`}
       >
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
-          {getInitials(actorName)}
-        </span>
         <div className="min-w-0 flex-1">
           <p className="whitespace-normal break-words text-sm leading-5 text-foreground">
             <span className="font-medium">{actorName}</span>{" "}
@@ -377,7 +361,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
         )}
       </div>
 
-      <div className="mt-2 flex items-center justify-between gap-3 border-t border-border/50 pt-2">
+      <div className="mt-2 flex items-center justify-between gap-3 pt-2">
         {timelineItems.length > LOG_PREVIEW_LIMIT ? (
           <Button
             type="button"

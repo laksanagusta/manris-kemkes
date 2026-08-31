@@ -29,8 +29,10 @@ import {
   CollectionTableHeader,
   CollectionTableHeaderRow,
   CollectionPageHeader,
+  CollectionToolbar,
   DashboardKpiCard,
   ExpandableSearchField,
+  MetricGrid,
 } from "@/components/shared/design-system";
 import {
   AccentButton,
@@ -187,30 +189,18 @@ export default function RiskCascadingPage() {
       {
         title: "Total Eskalasi",
         value: String(summary.total),
-        change: "Baru",
-        trend: "unavailable" as const,
-        tone: "neutral" as const,
       },
       {
         title: "Menunggu Tinjauan",
         value: String(summary.pending),
-        change: "Baru",
-        trend: "unavailable" as const,
-        tone: "warning" as const,
       },
       {
         title: "Sudah Disetujui",
         value: String(summary.approved),
-        change: "Baru",
-        trend: "unavailable" as const,
-        tone: "success" as const,
       },
       {
         title: "Bottom-up",
         value: String(summary.bottomUp),
-        change: "Baru",
-        trend: "unavailable" as const,
-        tone: "neutral" as const,
       },
     ],
     [summary],
@@ -246,37 +236,39 @@ export default function RiskCascadingPage() {
 
   return (
     <PageStack>
-      <CollectionPageHeader
-        title="Eskalasi Risiko"
-        description="Kelola eskalasi risiko lintas organisasi dan tindak lanjutnya."
-        actions={
-          <AccentButton
-            icon={<Plus className="size-4" />}
-            onClick={() => {
-              setCreateCascadeType("mandatory_top_down");
-              setCreateOpen(true);
-            }}
-          >
-            Eskalasi
-          </AccentButton>
-        }
-      />
+      <CollectionPageHeader title="Eskalasi Risiko" />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <MetricGrid>
         {kpiCards.map((card) => (
           <DashboardKpiCard key={card.title} {...card} />
         ))}
-      </div>
+      </MetricGrid>
 
       <div className="space-y-5">
-          <div className="flex justify-end">
+          <CollectionToolbar
+            className="w-full"
+            leading={
+              <div className="min-w-0 flex-1">
             <ExpandableSearchField
               value={search}
               onChange={setSearch}
               placeholder="Cari kode risiko, organisasi, status, atau catatan..."
               ariaLabel="Cari eskalasi"
             />
-          </div>
+              </div>
+            }
+            actions={
+              <AccentButton
+                icon={<Plus className="size-4" />}
+                onClick={() => {
+                  setCreateCascadeType("mandatory_top_down");
+                  setCreateOpen(true);
+                }}
+              >
+                Eskalasi
+              </AccentButton>
+            }
+          />
 
           {error ? <CollectionErrorState message={error} /> : null}
 
@@ -336,7 +328,7 @@ export default function RiskCascadingPage() {
                       <TableRow key={item.id}>
                         <TableCell>
                           <div className="space-y-1">
-                            <p className="font-medium">
+                            <p className="font-medium text-foreground">
                               {formatCascadeTitle(item)}
                             </p>
                             <p className="text-xs text-muted-foreground">

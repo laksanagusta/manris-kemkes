@@ -5,24 +5,18 @@ import { ArrowRight, FileText, ClipboardList } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageStack } from "@/components/shared/design-system";
+import {
+  CollectionPageHeader,
+  PageStack,
+} from "@/components/shared/design-system";
 
 export default function FormalReportsPage() {
   return (
     <PageStack>
-      <section className="max-w-3xl space-y-2">
-        <h2 className="page-title">
-          Laporan Monitoring & Evaluasi dipindahkan ke Evaluasi
-        </h2>
-        <p className="text-sm text-muted-foreground text-pretty">
-          Mulai sekarang, proses isi, finalisasi, dan ekspor PDF dilakukan dari
-          modul Evaluasi. Halaman ini dipertahankan sebagai pengarah agar alur
-          lama tidak dipakai lagi sebagai titik input utama.
-        </p>
-      </section>
+      <CollectionPageHeader title="Laporan Monitoring & Evaluasi dipindahkan ke Evaluasi" />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-lg bg-card">
+        <Card className="rounded-xl bg-card">
           <CardHeader className="border-b border-border/40 pb-4">
             <CardTitle className="flex items-center gap-2 text-sm font-medium normal-case">
               <ClipboardList className="size-4" />
@@ -30,7 +24,7 @@ export default function FormalReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
-            <p className="text-sm leading-6 text-muted-foreground">
+            <p className="text-sm leading-6 text-secondary-foreground">
               Masuk ke daftar evaluasi untuk melihat draft, final, dan PDF yang
               sudah diekspor.
             </p>
@@ -43,7 +37,7 @@ export default function FormalReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-lg bg-card">
+        <Card className="rounded-xl bg-card">
           <CardHeader className="border-b border-border/40 pb-4">
             <CardTitle className="flex items-center gap-2 text-sm font-medium normal-case">
               <FileText className="size-4" />
@@ -51,7 +45,7 @@ export default function FormalReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
-            <p className="text-sm leading-6 text-muted-foreground">
+            <p className="text-sm leading-6 text-secondary-foreground">
               Langsung buat draft evaluasi untuk organisasi dan periode yang
               dipilih, lalu isi section dan finalisasi dari detail evaluasi.
             </p>

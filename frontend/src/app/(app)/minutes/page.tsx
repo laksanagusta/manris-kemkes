@@ -222,22 +222,11 @@ function MinutesPageContent() {
 
   return (
     <PageStack>
-      <CollectionPageHeader
-        title="Meeting"
-        description="Kelola notulen rapat yang tersimpan dan buka briefing untuk ditinjau."
-        actions={
-          <AccentButton
-            icon={<Plus className="size-3.5" />}
-            onClick={() => router.push("/minutes/new")}
-          >
-            Buat dari Transkrip
-          </AccentButton>
-        }
-      />
+      <CollectionPageHeader title="Meeting" />
 
       <CollectionToolbar
-        actions={
-          <>
+        leading={
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
             <ExpandableSearchField
               value={query}
               onChange={setQuery}
@@ -251,10 +240,18 @@ function MinutesPageContent() {
                 value={createdAtFilter}
                 onChange={(event) => setCreatedAtFilter(event.target.value)}
                 aria-label="Filter tanggal dibuat"
-                className="h-9 bg-card pl-9 text-sm ring-1 ring-inset ring-border/40"
+                className="h-10 bg-card pl-9 text-sm ring-1 ring-inset ring-border/40"
               />
             </div>
-          </>
+          </div>
+        }
+        actions={
+          <AccentButton
+            icon={<Plus className="size-3.5" />}
+            onClick={() => router.push("/minutes/new")}
+          >
+            Buat dari Transkrip
+          </AccentButton>
         }
       />
 

@@ -73,7 +73,7 @@ export function WorkingPaperSignatureTimeline({
               {!isLast && (
                 <div
                   className={cn(
-                    "w-0.5 flex-1 min-h-4",
+                    "w-0.5 flex-1 min-h-4 -mb-1",
                     isSigned
                       ? "bg-success"
                       : isCurrent

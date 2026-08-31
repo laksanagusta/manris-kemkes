@@ -24,7 +24,7 @@ export function FieldsExample() {
           placeholder="Nama risiko"
         />
         <p className="text-xs text-muted-foreground">
-          36px · 8px radius · padding horizontal 12px
+          40px · 8px radius · padding horizontal 12px
         </p>
       </div>
 

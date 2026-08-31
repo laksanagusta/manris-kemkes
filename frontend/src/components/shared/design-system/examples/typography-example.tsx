@@ -9,7 +9,7 @@ export function TypographyExample() {
       <CardContent className="space-y-5 p-6">
         <div className="space-y-1.5">
           <p className="font-mono text-[11px] text-muted-foreground">
-            --font-sans: Plus Jakarta Sans
+            --font-sans: Inter
           </p>
           <p className="font-mono text-[11px] text-muted-foreground">
             --font-mono: JetBrains Mono
@@ -36,7 +36,7 @@ export function TypographyExample() {
               Display / H1
             </p>
             <p className="font-mono text-[11px] text-muted-foreground">
-              page-title · 30px → 36px · semibold
+              page-title · 24px · semibold
             </p>
           </div>
           <div>
@@ -48,9 +48,17 @@ export function TypographyExample() {
             </p>
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">Label / Body</p>
+            <p className="text-sm font-medium tracking-tight text-foreground">
+              Form section title
+            </p>
             <p className="font-mono text-[11px] text-muted-foreground">
-              text-sm font-medium
+              text-sm font-medium tracking-tight
+            </p>
+          </div>
+          <div>
+            <p className="text-sm font-normal text-foreground">Form field label</p>
+            <p className="font-mono text-[11px] text-muted-foreground">
+              text-sm font-normal · input labels
             </p>
           </div>
           <div>

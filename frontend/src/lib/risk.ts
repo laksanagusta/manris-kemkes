@@ -33,6 +33,7 @@ type RiskScoreBundleInput = {
   impact: number;
   weight: number;
   nilai?: number | null;
+  /** @deprecated score is derived from nilai and is ignored when supplied. */
   score?: number | null;
 };
 
@@ -286,7 +287,9 @@ function buildRiskScoreSnapshot(bundle: RiskScoreBundleInput): RiskScoreSnapshot
   const nilai = isExplicitNumber(bundle.nilai)
     ? bundle.nilai
     : calculateNilai(bundle.probability, bundle.impact, bundle.weight);
-  const score = isExplicitNumber(bundle.score) ? bundle.score : Math.round(nilai);
+  // Nilai is the single source of truth. Keep score in the input type only so
+  // older callers can migrate without changing this calculation.
+  const score = Math.round(nilai);
   const level = getRiskLevelFromNilai(nilai);
 
   return {

@@ -11,7 +11,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -33,13 +32,17 @@ import {
   ChevronDown,
 } from "@/components/ui/icons";
 import {
-  ResponsiveContainer,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip as RechartsTooltip,
   Cell,
 } from "recharts";
 
@@ -56,6 +59,7 @@ import {
 } from "@/lib/api/organization-groups";
 import { SemesterTargetTrend } from "./_components/inherent-residual-trend";
 import { CriticalRiskRateTrend } from "./_components/critical-risk-rate-trend";
+import { RiskCategoryPieChart } from "./_components/risk-category-pie-chart";
 import { RiskMovementByOrg } from "./_components/risk-movement-by-org";
 import { cn } from "@/lib/utils";
 import {
@@ -68,6 +72,7 @@ import { exportMovementByOrgXLSX } from "@/lib/risk-movement-by-org-export";
 import {
   buildMovementChartData,
   buildMovementSnapshotData,
+  buildDashboardRiskCategoryData,
   buildUnitExposureData,
   buildSemesterScoreTargetTrendData,
   buildCriticalRiskRateTrendData,
@@ -91,6 +96,7 @@ import {
   type ReportsFilterScope,
 } from "@/lib/reports-filter-sheet";
 import type {
+  DashboardRiskCategoryItem,
   Risk,
   RiskCycleComparisonItem,
 } from "@/types/risk";
@@ -102,6 +108,8 @@ import {
 import {
   AccentButton,
   ActionButton,
+  KpiCard,
+  MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
 import {
@@ -110,6 +118,7 @@ import {
   ReportLinkGrid,
   ReportPanel,
 } from "@/components/shared/design-system";
+import { CHART_COLORS, RISK_CHART_COLORS } from "@/lib/chart-colors";
 
 type RiskCycleSnapshotItem = RiskExportItem & {
   assessmentCycle?: string;
@@ -117,11 +126,35 @@ type RiskCycleSnapshotItem = RiskExportItem & {
 };
 
 const trendColors: Record<string, string> = {
-  Rendah: "oklch(0.85 0.07 190)",
-  Sedang: "oklch(0.78 0.10 190)",
-  Tinggi: "oklch(0.72 0.13 190)",
-  "Sangat Tinggi": "oklch(0.62 0.17 190)",
+  Rendah: RISK_CHART_COLORS.low,
+  Sedang: RISK_CHART_COLORS.medium,
+  Tinggi: RISK_CHART_COLORS.high,
+  "Sangat Tinggi": RISK_CHART_COLORS.extreme,
 };
+
+const movementChartConfig = {
+  value: {
+    label: "Jumlah",
+    color: RISK_CHART_COLORS.high,
+  },
+} satisfies ChartConfig;
+
+const exposureChartConfig = {
+  exposureScore: {
+    label: "Exposure",
+    color: CHART_COLORS.primary,
+  },
+} satisfies ChartConfig;
+
+const riskTrendChartConfig = {
+  Rendah: { label: "Rendah", color: RISK_CHART_COLORS.low },
+  Sedang: { label: "Sedang", color: RISK_CHART_COLORS.medium },
+  Tinggi: { label: "Tinggi", color: RISK_CHART_COLORS.high },
+  "Sangat Tinggi": {
+    label: "Sangat Tinggi",
+    color: RISK_CHART_COLORS.extreme,
+  },
+} satisfies ChartConfig;
 
 const EMPTY_REPORT_SCOPE: ReportsFilterScope = {
   organizationId: "",
@@ -138,13 +171,6 @@ const exportOptions = [
     format: "XLSX",
     isEnabled: true,
   },
-  //   key: "kri-xlsx",
-  //   title: "KRI Summary (Excel)",
-  //   description: "Export KRI belum termasuk ruang lingkup delivery ini",
-  //   icon: FileSpreadsheet,
-  //   format: "XLSX",
-  //   isEnabled: false,
-  // },
   {
     key: "risk-pdf",
     title: "Laporan Risiko (PDF)",
@@ -189,6 +215,11 @@ export default function ReportsPage() {
   const [cycleRisks, setCycleRisks] = useState<Risk[]>([]);
   const [previousCycleRisks, setPreviousCycleRisks] = useState<Risk[]>([]);
   const [comparisons, setComparisons] = useState<RiskCycleComparisonItem[]>([]);
+  const [riskCategoryData, setRiskCategoryData] = useState<
+    ReturnType<typeof buildDashboardRiskCategoryData>
+  >([]);
+  const [riskCategoryLoading, setRiskCategoryLoading] = useState(true);
+  const [riskCategoryError, setRiskCategoryError] = useState(false);
   const [trendWindow, setTrendWindow] = useState<RiskTrendWindow>("4s");
   const [exportCycle] = useState(currentGlobalCycle());
   const [isExporting, setIsExporting] = useState<string | null>(null);
@@ -337,6 +368,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     if (!token) {
+      setRiskCategoryLoading(false);
       return;
     }
 
@@ -345,8 +377,15 @@ export default function ReportsPage() {
       setCycleRisks([]);
       setPreviousCycleRisks([]);
       setComparisons([]);
+      setRiskCategoryData([]);
+      setRiskCategoryError(false);
+      setRiskCategoryLoading(false);
       return;
     }
+
+    let cancelled = false;
+    setRiskCategoryLoading(true);
+    setRiskCategoryError(false);
 
     Promise.allSettled([
       api.get<RiskTrendSourceItem[]>(
@@ -365,13 +404,20 @@ export default function ReportsPage() {
         `/risks/compare?from=${previousCycle}&to=${exportCycle}${reportScopeQuery}`,
         token,
       ),
+      api.get<DashboardRiskCategoryItem[]>(
+        `/dashboard/risk-categories?cycle=${encodeURIComponent(exportCycle)}${reportScopeQuery}`,
+        token,
+      ),
     ]).then(
       ([
         riskResult,
         cycleRiskResult,
         previousCycleRiskResult,
         comparisonResult,
+        riskCategoryResult,
       ]) => {
+        if (cancelled) return;
+
         if (riskResult.status === "fulfilled") {
           setTrendRisks(riskResult.value);
         } else {
@@ -399,8 +445,23 @@ export default function ReportsPage() {
           console.error(comparisonResult.reason);
           setComparisons([]);
         }
+
+        if (riskCategoryResult.status === "fulfilled") {
+          setRiskCategoryData(
+            buildDashboardRiskCategoryData(riskCategoryResult.value),
+          );
+        } else {
+          console.error(riskCategoryResult.reason);
+          setRiskCategoryData([]);
+          setRiskCategoryError(true);
+        }
+        setRiskCategoryLoading(false);
       },
     );
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     token,
     exportCycle,
@@ -534,78 +595,77 @@ export default function ReportsPage() {
     <PageStack>
       <CollectionPageHeader
         title="Laporan"
-        description="Ringkasan analitik risiko, monitoring, dan kinerja organisasi."
       />
 
       <CollectionToolbar
+        leading={
+          <Popover open={reportFilterOpen} onOpenChange={handleReportFilterOpenChange}>
+            <PopoverTrigger asChild>
+              <ActionButton variant="outline" size="md" className="h-10"
+                disabled={reportOrganizations.length === 0 && reportOrganizationGroups.length === 0}>
+                <Filter className="size-3.5" strokeWidth={2.5} />
+                Filter
+              </ActionButton>
+            </PopoverTrigger>
+            <PopoverContent
+              side="right"
+              align="start"
+              sideOffset={8}
+              className="w-[22rem] rounded-xl p-4"
+            >
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h4 className="text-sm font-medium">Filter Laporan</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Atur group dan unit. Perubahan baru diterapkan setelah menekan Terapkan.
+                  </p>
+                </div>
+                <ReportScopePicker
+                  organizationId={draftReportScope.organizationId}
+                  onOrganizationChange={(organizationId) =>
+                    setDraftReportScope((current) => ({
+                      ...current,
+                      organizationId,
+                    }))
+                  }
+                  selectedOrganizationIds={draftReportScope.organizationIds}
+                  onSelectedOrganizationIdsChange={(organizationIds) =>
+                    setDraftReportScope((current) => ({
+                      ...current,
+                      organizationIds,
+                    }))
+                  }
+                  organizations={reportOrganizations}
+                  organizationGroups={reportOrganizationGroups}
+                  organizationGroupId={draftReportScope.organizationGroupId}
+                  onOrganizationGroupChange={(organizationGroupId) =>
+                    setDraftReportScope((current) => ({
+                      ...current,
+                      organizationGroupId,
+                    }))
+                  }
+                  organizationPlaceholder="Pilih unit"
+                  organizationGroupPlaceholder="Pilih grup"
+                  orientation="vertical"
+                />
+                <div className="flex items-center justify-between pt-4">
+                  <ActionButton type="button" variant="ghost" size="md" onClick={handleResetReportFilter}>
+                    Reset
+                  </ActionButton>
+                  <AccentButton
+                    type="button"
+                    size="md"
+                    onClick={handleApplyReportFilter}
+                  >
+                    Terapkan
+                  </AccentButton>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        }
         actions={
           <>
-        <Popover open={reportFilterOpen} onOpenChange={handleReportFilterOpenChange}>
-          <PopoverTrigger asChild>
-            <ActionButton variant="outline" size="md"
-              disabled={reportOrganizations.length === 0 && reportOrganizationGroups.length === 0}>
-              <Filter className="size-3.5" strokeWidth={2.5} />
-              Filter
-            </ActionButton>
-          </PopoverTrigger>
-          <PopoverContent
-            side="right"
-            align="start"
-            sideOffset={8}
-            className="w-[22rem] rounded-xl p-4"
-          >
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium">Filter Laporan</h4>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Atur group dan unit. Perubahan baru diterapkan setelah menekan Terapkan.
-                </p>
-              </div>
-              <ReportScopePicker
-                organizationId={draftReportScope.organizationId}
-                onOrganizationChange={(organizationId) =>
-                  setDraftReportScope((current) => ({
-                    ...current,
-                    organizationId,
-                  }))
-                }
-                selectedOrganizationIds={draftReportScope.organizationIds}
-                onSelectedOrganizationIdsChange={(organizationIds) =>
-                  setDraftReportScope((current) => ({
-                    ...current,
-                    organizationIds,
-                  }))
-                }
-                organizations={reportOrganizations}
-                organizationGroups={reportOrganizationGroups}
-                organizationGroupId={draftReportScope.organizationGroupId}
-                onOrganizationGroupChange={(organizationGroupId) =>
-                  setDraftReportScope((current) => ({
-                    ...current,
-                    organizationGroupId,
-                  }))
-                }
-                organizationPlaceholder="Pilih unit"
-                organizationGroupPlaceholder="Pilih grup"
-                orientation="vertical"
-              />
-              <div className="flex items-center justify-between pt-4">
-                <ActionButton type="button" variant="ghost" size="md" onClick={handleResetReportFilter}>
-                  Reset
-                </ActionButton>
-                <AccentButton
-                  type="button"
-                  size="md"
-                  onClick={handleApplyReportFilter}
-                >
-                  Terapkan
-                </AccentButton>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Export Section */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <ActionButton variant="outline" size="md">
@@ -635,7 +695,7 @@ export default function ReportsPage() {
         }
       />
 
-      <section id="risk-analytics" className="space-y-4 scroll-mt-24">
+      <section id="risk-analytics" className="flex flex-col gap-4 scroll-mt-24">
         <div className="grid gap-6 xl:grid-cols-12">
           <ReportPanel
             className="xl:col-span-7"
@@ -648,7 +708,7 @@ export default function ReportsPage() {
           >
               {hasMovementData ? (
                 <>
-                  <div className="grid gap-3 pb-4 md:grid-cols-5">
+                  <MetricGrid className="pb-4 md:grid-cols-5 xl:grid-cols-5">
                     {movementSnapshotData.map((item) => (
                       <button
                         key={item.key}
@@ -660,9 +720,6 @@ export default function ReportsPage() {
                           label={item.label}
                           value={item.value}
                           tone="white"
-                          className="flex min-h-[96px] flex-col rounded-lg p-4"
-                          labelClassName="capitalize tracking-normal"
-                          valueClassName="font-medium"
                           description={
                             selectedMovement === item.key ? (
                               <Badge
@@ -676,16 +733,20 @@ export default function ReportsPage() {
                         />
                       </button>
                     ))}
-                  </div>
+                  </MetricGrid>
                   <div className="h-56">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ChartContainer
+                      config={movementChartConfig}
+                      className="h-full w-full"
+                    >
                       <BarChart
+                        accessibilityLayer
                         data={movementData}
                         margin={{ top: 4, right: 12, left: -24, bottom: 0 }}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="oklch(0.5 0 0 / 8%)"
+                          stroke="var(--chart-grid)"
                           vertical={false}
                         />
                         <XAxis
@@ -700,17 +761,15 @@ export default function ReportsPage() {
                           axisLine={false}
                           tickLine={false}
                         />
-                        <RechartsTooltip
-                          formatter={(value) => [
-                            `${value ?? 0} risiko`,
-                            "Jumlah",
-                          ]}
-                          contentStyle={{
-                            background: "oklch(0.98 0.003 170 / 95%)",
-                            border: "1px solid oklch(0.91 0.008 170)",
-                            borderRadius: "8px",
-                            fontSize: "11px",
-                          }}
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent
+                              formatter={(value) => [
+                                `${value ?? 0} risiko`,
+                                "Jumlah",
+                              ]}
+                            />
+                          }
                         />
                         <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                           {movementData.map((item) => (
@@ -718,7 +777,7 @@ export default function ReportsPage() {
                           ))}
                         </Bar>
                       </BarChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                   </div>
                 </>
               ) : (
@@ -739,7 +798,7 @@ export default function ReportsPage() {
         </div>
       </section>
 
-      <section id="risk-exposure-trend" className="space-y-6 scroll-mt-24">
+      <section id="risk-exposure-trend" className="flex flex-col gap-6 scroll-mt-24">
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-12">
           <ReportPanel
             className="xl:col-span-4"
@@ -750,17 +809,21 @@ export default function ReportsPage() {
                 </Badge>
             }
           >
-              {hasExposureData ? (
+                  {hasExposureData ? (
                 <>
                   <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ChartContainer
+                      config={exposureChartConfig}
+                      className="h-full w-full"
+                    >
                       <BarChart
+                        accessibilityLayer
                         data={unitExposureData}
                         margin={{ top: 4, right: 12, left: -24, bottom: 0 }}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="oklch(0.5 0 0 / 8%)"
+                          stroke="var(--chart-grid)"
                           vertical={false}
                         />
                         <XAxis
@@ -778,27 +841,25 @@ export default function ReportsPage() {
                           axisLine={false}
                           tickLine={false}
                         />
-                        <RechartsTooltip
-                          formatter={(value) => [
-                            `${value ?? 0} poin`,
-                            "Exposure",
-                          ]}
-                          contentStyle={{
-                            background: "oklch(0.98 0.003 170 / 95%)",
-                            border: "1px solid oklch(0.91 0.008 170)",
-                            borderRadius: "8px",
-                            fontSize: "11px",
-                          }}
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent
+                              formatter={(value) => [
+                                `${value ?? 0} poin`,
+                                "Exposure",
+                              ]}
+                            />
+                          }
                         />
                         <Bar
                           dataKey="exposureScore"
-                          fill="oklch(0.72 0.13 190)"
+                          fill="var(--color-exposureScore)"
                           radius={[6, 6, 0, 0]}
                         />
                       </BarChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                   </div>
-                  <div className="mt-3 space-y-2">
+                  <div className="mt-3 flex flex-col gap-2">
                     {unitExposureData.slice(0, 3).map((item) => (
                       <button
                         key={item.orgName}
@@ -808,7 +869,7 @@ export default function ReportsPage() {
                           "flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors",
                           selectedUnit === item.orgName
                             ? "border-primary/40 bg-primary/10"
-                            : "border-border/50 bg-muted/20 hover:bg-muted/30",
+                            : "border-surface-border bg-muted/20 hover:bg-muted/30",
                         )}
                       >
                         <div>
@@ -850,7 +911,7 @@ export default function ReportsPage() {
                     setTrendWindow(value as RiskTrendWindow)
                   }
                 >
-                  <SelectTrigger className="h-7 w-28 border-none bg-muted/30 text-[10px]">
+                  <SelectTrigger className="h-10 w-28 border-input bg-muted/30 text-[10px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -864,14 +925,18 @@ export default function ReportsPage() {
               {hasTrendData ? (
                 <>
                   <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ChartContainer
+                      config={riskTrendChartConfig}
+                      className="h-full w-full"
+                    >
                       <BarChart
+                        accessibilityLayer
                         data={trendData}
                         margin={{ top: 4, right: 10, left: -10, bottom: 0 }}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="oklch(0.5 0 0 / 8%)"
+                          stroke="var(--chart-grid)"
                           vertical={false}
                         />
                         <XAxis
@@ -885,26 +950,20 @@ export default function ReportsPage() {
                           axisLine={false}
                           tickLine={false}
                         />
-                        <RechartsTooltip
-                          contentStyle={{
-                            background: "oklch(0.98 0.003 170 / 95%)",
-                            border: "1px solid oklch(0.91 0.008 170)",
-                            borderRadius: "8px",
-                            fontSize: "11px",
-                            backdropFilter: "blur(8px)",
-                          }}
+                        <ChartTooltip
+                          content={<ChartTooltipContent indicator="line" />}
                         />
-                        {Object.entries(trendColors).map(([key, color]) => (
+                        {Object.keys(trendColors).map((key) => (
                           <Bar
                             key={key}
                             dataKey={key}
                             stackId="risk"
-                            fill={color}
+                            fill={`var(--color-${key})`}
                             radius={[3, 3, 0, 0]}
                           />
                         ))}
                       </BarChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                   </div>
                   <div className="mt-3 flex items-center justify-center gap-4">
                     {Object.entries(trendColors).map(([key, color]) => (
@@ -932,8 +991,18 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="grid gap-6">
-          <SemesterTargetTrend data={semesterTargetTrendData} />
+        <div className="grid gap-6 xl:grid-cols-12">
+          <div className="xl:col-span-8">
+            <SemesterTargetTrend data={semesterTargetTrendData} />
+          </div>
+          <div className="xl:col-span-4">
+            <RiskCategoryPieChart
+              data={riskCategoryData}
+              loading={riskCategoryLoading}
+              error={riskCategoryError}
+              cycle={exportCycle}
+            />
+          </div>
         </div>
       </section>
 

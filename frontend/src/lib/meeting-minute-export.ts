@@ -245,11 +245,11 @@ function buildDocumentHtml(data: MeetingMinuteExportData) {
             padding: 6pt;
             vertical-align: top;
             font-size: 11pt;
+            font-weight: normal;
           }
 
           th {
             text-align: left;
-            font-weight: 700;
             background: #f3f4f6;
           }
 

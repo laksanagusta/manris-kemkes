@@ -6,9 +6,9 @@ import (
 
 func TestResolveRiskAppetite(t *testing.T) {
 	tests := []struct {
-		name         string
+		name          string
 		inherentScore int
-		want         string
+		want          string
 	}{
 		{"inherentScore 0", 0, "dalam_batas"},
 		{"inherentScore 5", 5, "dalam_batas"},
@@ -31,9 +31,9 @@ func TestResolveRiskAppetite(t *testing.T) {
 
 func TestRiskIsRiskUtama(t *testing.T) {
 	tests := []struct {
-		name         string
+		name          string
 		inherentScore int
-		want         bool
+		want          bool
 	}{
 		{"inherentScore 1", 1, false},
 		{"inherentScore 5", 5, false},
@@ -45,7 +45,7 @@ func TestRiskIsRiskUtama(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := Risk{InherentScore: tt.inherentScore}
+			r := Risk{Nilai: float64(tt.inherentScore)}
 			if got := r.IsRiskUtama(); got != tt.want {
 				t.Errorf("Risk.IsRiskUtama() with InherentScore=%d = %v, want %v", tt.inherentScore, got, tt.want)
 			}

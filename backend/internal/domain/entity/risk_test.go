@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"math"
 	"testing"
 
 	domainErrors "github.com/manris/backend/internal/domain/errors"
@@ -250,6 +251,10 @@ func TestRiskCalculateAll(t *testing.T) {
 		t.Errorf("Expected nilai 25.0, got %v", risk.Nilai)
 	}
 
+	if risk.InherentScore != 25 {
+		t.Errorf("Expected derived inherent score 25, got %v", risk.InherentScore)
+	}
+
 	if risk.RiskPriority != 1 {
 		t.Errorf("Expected priority 1, got %v", risk.RiskPriority)
 	}
@@ -263,6 +268,7 @@ func TestRiskCalculateTarget(t *testing.T) {
 
 	risk.CalculateTargetBobot()
 	risk.CalculateTargetNilai()
+	risk.CalculateTargetScore()
 
 	if risk.TargetWeight != 1.83 {
 		t.Errorf("Expected target weight 1.83, got %v", risk.TargetWeight)
@@ -271,6 +277,32 @@ func TestRiskCalculateTarget(t *testing.T) {
 	expectedNilai := 2.0 * 3.0 * 1.83
 	if risk.TargetNilai != expectedNilai {
 		t.Errorf("Expected target nilai %v, got %v", expectedNilai, risk.TargetNilai)
+	}
+
+	if risk.TargetScore != int(math.Round(expectedNilai)) {
+		t.Errorf("Expected derived target score %v, got %v", math.Round(expectedNilai), risk.TargetScore)
+	}
+}
+
+func TestRiskScoreProjectionsIgnoreStaleCompatibilityValues(t *testing.T) {
+	risk := &Risk{
+		Probability:   2,
+		Impact:        2,
+		Weight:        1.8,
+		Nilai:         7.2,
+		InherentScore: 99,
+		TargetNilai:   6.6,
+		TargetScore:   99,
+	}
+
+	risk.CalculateInherentScore()
+	risk.CalculateTargetScore()
+
+	if risk.InherentScore != 7 {
+		t.Fatalf("expected inherent score derived from nilai to be 7, got %d", risk.InherentScore)
+	}
+	if risk.TargetScore != 7 {
+		t.Fatalf("expected target score derived from target nilai to be 7, got %d", risk.TargetScore)
 	}
 }
 

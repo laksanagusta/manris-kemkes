@@ -171,22 +171,6 @@ type RiskSuggestions struct {
 	Suggestions []RiskSuggestion `json:"suggestions"`
 }
 
-// KRISuggestion represents an AI-generated KRI suggestion
-type KRISuggestion struct {
-	Name         string  `json:"name"`
-	Description  string  `json:"description"`
-	Metric       string  `json:"metric"`
-	ThresholdMin float64 `json:"thresholdMin"`
-	ThresholdMax float64 `json:"thresholdMax"`
-	Direction    string  `json:"direction"`
-	Frequency    string  `json:"frequency"`
-}
-
-// KRISuggestions represents multiple KRI suggestions
-type KRISuggestions struct {
-	Suggestions []KRISuggestion `json:"suggestions"`
-}
-
 // IncidentExtractionRequest represents the normalized input for batch incident extraction.
 type IncidentExtractionRequest struct {
 	DocumentText   string

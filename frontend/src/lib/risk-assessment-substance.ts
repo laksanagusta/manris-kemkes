@@ -137,11 +137,10 @@ function normalizeMitigation(value: Partial<RiskMitigation> | undefined): RiskMi
     expectedOutput: normalizeText(value?.expectedOutput),
     quantitativeTarget: normalizeText(value?.quantitativeTarget),
     supportingUnit: normalizeText(value?.supportingUnit),
-    resourcesRequired: normalizeText(value?.resourcesRequired),
-    contingencyPlan: normalizeText(value?.contingencyPlan),
-    potentialObstacle: normalizeText(value?.potentialObstacle),
-    costBenefitNote: normalizeText(value?.costBenefitNote),
-    isBreakthroughActivity: Boolean(value?.isBreakthroughActivity),
+	resourcesRequired: normalizeText(value?.resourcesRequired),
+	contingencyPlan: normalizeText(value?.contingencyPlan),
+	potentialObstacle: normalizeText(value?.potentialObstacle),
+	isBreakthroughActivity: Boolean(value?.isBreakthroughActivity),
     isExistingControl: Boolean(value?.isExistingControl),
   };
 }
@@ -173,11 +172,10 @@ function serializeMitigation(value: RiskMitigation): string {
     expectedOutput: normalizeText(value.expectedOutput),
     quantitativeTarget: normalizeText(value.quantitativeTarget),
     supportingUnit: normalizeText(value.supportingUnit),
-    resourcesRequired: normalizeText(value.resourcesRequired),
-    contingencyPlan: normalizeText(value.contingencyPlan),
-    potentialObstacle: normalizeText(value.potentialObstacle),
-    costBenefitNote: normalizeText(value.costBenefitNote),
-    isBreakthroughActivity: Boolean(value.isBreakthroughActivity),
+	resourcesRequired: normalizeText(value.resourcesRequired),
+	contingencyPlan: normalizeText(value.contingencyPlan),
+	potentialObstacle: normalizeText(value.potentialObstacle),
+	isBreakthroughActivity: Boolean(value.isBreakthroughActivity),
     isExistingControl: Boolean(value.isExistingControl),
   });
 }

@@ -27,6 +27,7 @@ export interface RiskAssessmentSummaryStripProps {
   metrics?: RiskAssessmentSummaryMetric[];
   note?: string;
   noteTone?: NoteTone;
+  surface?: "elevated" | "flat";
   className?: string;
 }
 
@@ -71,6 +72,7 @@ export function RiskAssessmentSummaryStrip({
   metrics = [],
   note,
   noteTone = "neutral",
+  surface = "elevated",
   className,
 }: RiskAssessmentSummaryStripProps) {
   const hasMetrics = metrics.length > 0;
@@ -78,7 +80,10 @@ export function RiskAssessmentSummaryStrip({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
+        "overflow-hidden rounded-xl bg-card",
+        surface === "elevated"
+          ? "smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+          : "border border-border/60 bg-card/80",
         className,
       )}
     >

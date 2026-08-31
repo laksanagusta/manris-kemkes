@@ -135,12 +135,12 @@ func (r *workingPaperRepository) PreviewPeriodRoster(ctx context.Context, orgID 
 		summary.EligibleCount++
 
 		switch entry.RosterStatus {
-		case entity.WorkingPaperRosterFinalizedResult:
+		case entity.WorkingPaperRosterNotStarted:
+			summary.NotStartedCount++
+		case entity.WorkingPaperRosterInProgress:
+			summary.InProgressCount++
+		case entity.WorkingPaperRosterFinalized:
 			summary.FinalizedCount++
-		case entity.WorkingPaperRosterExistingDraft:
-			summary.ExistingDraftCount++
-		case entity.WorkingPaperRosterDraftWillBeCreated:
-			summary.NewDraftCount++
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -161,15 +161,15 @@ func (r *workingPaperRepository) PreviewPeriodRoster(ctx context.Context, orgID 
 
 func resolveRosterStatus(monitoringID *uuid.UUID, monitoringStatus string) string {
 	if monitoringID == nil {
-		return entity.WorkingPaperRosterDraftWillBeCreated
+		return entity.WorkingPaperRosterNotStarted
 	}
 	switch monitoringStatus {
 	case entity.RiskMonitoringStatusFinalized:
-		return entity.WorkingPaperRosterFinalizedResult
+		return entity.WorkingPaperRosterFinalized
 	case entity.RiskMonitoringStatusDraft:
-		return entity.WorkingPaperRosterExistingDraft
+		return entity.WorkingPaperRosterInProgress
 	default:
-		return entity.WorkingPaperRosterDraftWillBeCreated
+		return entity.WorkingPaperRosterNotStarted
 	}
 }
 
@@ -317,23 +317,10 @@ func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp 
 			continue
 		}
 
-		monitoringID := entry.MonitoringID
-		if entry.RosterStatus == entity.WorkingPaperRosterDraftWillBeCreated {
-			sourceRisk, err := getRiskByIDWithQueryer(ctx, tx, entry.SourceRiskID)
-			if err != nil {
-				return fmt.Errorf("resolve source risk for monitoring draft: %w", err)
-			}
-			draft := entity.NewRiskMonitoringDraft(sourceRisk, period.MonitoringCycle, wp.CreatedBy)
-			if err := insertRiskMonitoring(ctx, tx, draft); err != nil {
-				return fmt.Errorf("create monitoring draft: %w", err)
-			}
-			monitoringID = &draft.ID
-		}
-
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO working_paper_risks (working_paper_id, risk_id, sort_order, source_mode, version_group_id, source_risk_id, monitoring_id, result_risk_id)
 			VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-		`, wp.ID, entry.SourceRiskID, sortOrder, "roster", entry.VersionGroupID, entry.SourceRiskID, monitoringID, entry.ResultRiskID); err != nil {
+		`, wp.ID, entry.SourceRiskID, sortOrder, "roster", entry.VersionGroupID, entry.SourceRiskID, entry.MonitoringID, entry.ResultRiskID); err != nil {
 			return fmt.Errorf("insert working paper risk link: %w", err)
 		}
 
@@ -420,12 +407,12 @@ func scanRosterPreview(ctx context.Context, q rosterQuerier, orgID uuid.UUID, pe
 		summary.EligibleCount++
 
 		switch entry.RosterStatus {
-		case entity.WorkingPaperRosterFinalizedResult:
+		case entity.WorkingPaperRosterNotStarted:
+			summary.NotStartedCount++
+		case entity.WorkingPaperRosterInProgress:
+			summary.InProgressCount++
+		case entity.WorkingPaperRosterFinalized:
 			summary.FinalizedCount++
-		case entity.WorkingPaperRosterExistingDraft:
-			summary.ExistingDraftCount++
-		case entity.WorkingPaperRosterDraftWillBeCreated:
-			summary.NewDraftCount++
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -438,13 +425,23 @@ func scanRosterPreview(ctx context.Context, q rosterQuerier, orgID uuid.UUID, pe
 func (r *workingPaperRepository) ListSigningBlockers(ctx context.Context, workingPaperID uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT wpr.version_group_id, source.code, source.title,
-		       COALESCE(rm.status, 'missing')
+		       COALESCE(monitoring.status, 'missing')
 		FROM working_paper_risks wpr
+		JOIN working_papers wp ON wp.id = wpr.working_paper_id
 		JOIN risks source ON source.id = COALESCE(wpr.source_risk_id, wpr.risk_id)
-		LEFT JOIN risk_monitorings rm ON rm.id = wpr.monitoring_id
+		LEFT JOIN LATERAL (
+			SELECT rm.status
+			FROM risk_monitorings rm
+			JOIN risks monitoring_source ON monitoring_source.id = rm.source_risk_id
+			WHERE monitoring_source.version_group_id = COALESCE(wpr.version_group_id, source.version_group_id)
+			  AND rm.assessment_cycle = wp.assessment_cycle
+			  AND rm.status IN ('draft', 'final')
+			ORDER BY CASE rm.status WHEN 'final' THEN 0 ELSE 1 END, rm.updated_at DESC, rm.id DESC
+			LIMIT 1
+		) monitoring ON TRUE
 		WHERE wpr.working_paper_id = $1
 		  AND wpr.version_group_id IS NOT NULL
-		  AND (rm.id IS NULL OR rm.status <> 'final')
+		  AND (monitoring.status IS NULL OR monitoring.status <> 'final')
 		ORDER BY wpr.sort_order
 	`, workingPaperID)
 	if err != nil {

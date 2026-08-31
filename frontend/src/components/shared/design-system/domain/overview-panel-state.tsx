@@ -1,4 +1,5 @@
 import { AlertCircle } from "@/components/ui/icons";
+import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 
@@ -6,12 +7,14 @@ type OverviewPanelStateProps = {
   state: "loading" | "error" | "empty";
   message: string;
   className?: string;
+  onRetry?: () => void;
 };
 
 export function OverviewPanelState({
   state,
   message,
   className,
+  onRetry,
 }: OverviewPanelStateProps) {
   if (state === "loading") {
     return (
@@ -19,7 +22,7 @@ export function OverviewPanelState({
         role="status"
         aria-live="polite"
         className={cn(
-          "flex min-h-48 items-center justify-center rounded-xl bg-muted/25 px-6 text-center text-sm text-muted-foreground",
+          "flex min-h-48 items-center justify-center rounded-lg bg-muted/25 px-6 text-center text-sm text-muted-foreground",
           className,
         )}
       >
@@ -33,7 +36,7 @@ export function OverviewPanelState({
       <div
         role="alert"
         className={cn(
-          "flex min-h-48 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/5 px-6 text-center text-sm text-destructive",
+          "flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-6 text-center text-sm text-destructive",
           className,
         )}
       >
@@ -41,6 +44,17 @@ export function OverviewPanelState({
           <AlertCircle aria-hidden="true" className="size-4 shrink-0" />
           {message}
         </span>
+        {onRetry ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={onRetry}
+          >
+            Coba lagi
+          </Button>
+        ) : null}
       </div>
     );
   }
@@ -48,7 +62,7 @@ export function OverviewPanelState({
   return (
     <div
       className={cn(
-        "flex min-h-48 items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground",
+        "flex min-h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground",
         className,
       )}
     >

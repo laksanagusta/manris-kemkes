@@ -39,7 +39,7 @@ Dokumen ini mendefinisikan perilaku fungsional, input, output, validasi, alur, i
 - Pembuatan uraian dampak dan rekomendasi mitigasi.
 - Analisis transkrip dan penerapan perubahan risiko hasil review pengguna.
 - Pembuatan notulensi rapat terstruktur.
-- Saran risiko berdasarkan konteks organisasi dan saran KRI.
+- Saran risiko berdasarkan konteks organisasi.
 - Ekstraksi insiden dari PDF dan pencocokan insiden dengan risiko.
 - Document Intelligence untuk SOP, temuan audit, sasaran strategis, dan laporan mitigasi.
 - Kontrol akses organisasi, konfigurasi model AI, validasi input, dan penanganan kegagalan.
@@ -53,7 +53,7 @@ Dokumen ini mendefinisikan perilaku fungsional, input, output, validasi, alur, i
 
 ### 1.3 Ruang Lingkup Dokumen (Scope of the Document)
 
-FSD membahas capability AI yang tersedia melalui API dan UI Manris v2, termasuk keterkaitannya dengan register risiko, insiden, KRI, organisasi, sasaran strategis, dan tugas mitigasi.
+FSD membahas capability AI yang tersedia melalui API dan UI Manris v2, termasuk keterkaitannya dengan register risiko, insiden, organisasi, sasaran strategis, dan tugas mitigasi.
 
 ### 1.4 Dokumen Terkait (Related Documents)
 
@@ -71,7 +71,6 @@ FSD membahas capability AI yang tersedia melalui API dan UI Manris v2, termasuk 
 | AI | Artificial Intelligence | Kemampuan berbasis model bahasa untuk menghasilkan rekomendasi terstruktur |
 | LLM | Large Language Model | Layanan model yang memproses prompt dan menghasilkan respons |
 | Fishbone | Diagram Ishikawa | Pengelompokan akar penyebab dalam lima kategori |
-| KRI | Key Risk Indicator | Indikator untuk memantau perubahan eksposur risiko |
 | PIC | Person In Charge | Penanggung jawab action item |
 | Access Scope | Cakupan akses | Organisasi yang boleh dibaca atau diproses oleh pengguna |
 | Source Reference | Bukti sumber | Kutipan dan lokasi dokumen yang mendasari saran |
@@ -106,7 +105,7 @@ flowchart LR
     U["Pengguna terautentikasi"] --> UI["UI Manris"]
     UI --> API["API Fitur AI"]
     API --> SCOPE["Access Scope dan konteks organisasi"]
-    API --> DATA["Data risiko, KRI, insiden, sasaran, mitigasi"]
+    API --> DATA["Data risiko, insiden, sasaran, mitigasi"]
     API --> LLM["Layanan LLM"]
     LLM --> API
     API --> REVIEW["Draf/saran untuk review"]
@@ -142,7 +141,7 @@ flowchart LR
 |---|---|---|---|---|---|
 | IMP-001 | Register risiko | Saran dapat membuat draf atau mengubah versi risiko | Data risiko dan audit trail bertambah | Uji otorisasi dan versioning | Risk Team |
 | IMP-002 | Insiden | PDF dapat menghasilkan beberapa draf insiden | Input manual berkurang | Wajib review sebelum persistensi | Incident Team |
-| IMP-003 | KRI dan mitigasi | AI memberi saran struktur data | Pengguna memperoleh prefill | Validasi domain tetap berlaku | Product Owner |
+| IMP-003 | Risiko dan mitigasi | AI memberi saran struktur data | Pengguna memperoleh prefill | Validasi domain tetap berlaku | Product Owner |
 
 ## 3. Functional Specifications
 
@@ -155,7 +154,6 @@ Spesifikasi dikelompokkan berdasarkan capability.
 | FN-001 | Analisis risiko inline | BR-001 | UC-001 | FR-001–FR-006 | TC-001 | High |
 | FN-002 | Analisis transkrip | BR-002 | UC-002 | FR-007–FR-012 | TC-002 | High |
 | FN-003 | Notulensi rapat | BR-003 | UC-003 | FR-013–FR-015 | TC-003 | Medium |
-| FN-004 | Saran risiko dan KRI | BR-004 | UC-004 | FR-016–FR-019 | TC-004 | Medium |
 | FN-005 | AI untuk insiden | BR-005 | UC-005 | FR-020–FR-025 | TC-005 | High |
 | FN-006 | Document Intelligence | BR-006 | UC-006 | FR-026–FR-032 | TC-006 | High |
 
@@ -359,57 +357,6 @@ Tidak Berlaku sebagai mock-up final; implementasi memakai halaman pembuatan dan 
 
 Transkrip adalah textarea wajib dan editable. Hasil adalah object terstruktur dari AI. Tombol Generate hanya aktif bila transkrip tidak kosong.
 
-### 3.4 Saran Risiko dan KRI
-
-#### 3.4.1 Tujuan/Deskripsi (Purpose/Description)
-
-Memberi saran risiko berdasarkan data organisasi yang dapat diakses dan menyusun kandidat KRI dari konteks risiko.
-
-#### 3.4.2 Use Case
-
-##### UC-004 — Menghasilkan Saran Risiko atau KRI
-
-| Elemen | Deskripsi |
-|---|---|
-| Primary Actor(s) | Unit, Reviewer |
-| Stakeholders and Interest | Organisasi membutuhkan identifikasi risiko dan indikator yang konsisten |
-| Trigger | Pengguna meminta saran |
-| Pre-conditions | Access Scope tersedia; untuk KRI judul dan deskripsi terisi |
-| Post-conditions | Daftar saran ditampilkan tanpa penyimpanan otomatis |
-| Priority | Medium |
-| Special Requirements | Data organisasi harus dibatasi sesuai scope |
-| Open Questions | Tidak Ada |
-
-**Main Success Scenario**
-
-1. Pengguna memilih fungsi saran.
-2. Sistem mengambil konteks yang diizinkan.
-3. Sistem menghasilkan daftar saran.
-4. Pengguna memilih atau mengedit saran.
-
-**Extensions/Alternative and Error Flows**
-
-| Ref. Langkah | Kondisi | Alternative/Error Steps | Hasil |
-|---|---|---|---|
-| 2a | Scope tidak tersedia | Sistem menolak request | Tidak ada data terekspos |
-
-#### 3.4.3 Mock-up
-
-Tidak Berlaku; fungsi digunakan sebagai prefill pada layar domain terkait.
-
-#### 3.4.4 Functional Requirements
-
-| Spec ID | Specification Description | Business Rules/Data Dependency |
-|---|---|---|
-| FR-016 | Sistem harus membatasi konteks saran risiko ke organisasi dalam Access Scope. | Repository risiko |
-| FR-017 | Saran risiko harus memuat title, description, dan category. | Schema domain |
-| FR-018 | Saran KRI harus memuat name, description, metric, threshold minimum/maksimum, direction, dan frequency. | Schema domain |
-| FR-019 | Sistem harus mewajibkan judul dan deskripsi untuk generasi KRI. | POST `/api/v1/ai/kris` |
-
-#### 3.4.5 Field-Level Specifications
-
-Saran risiko tidak memerlukan body pengguna; konteks berasal dari scope. Generasi KRI memakai Judul dan Deskripsi wajib. Semua hasil editable setelah dipilih sebagai prefill.
-
 ### 3.5 AI untuk Insiden
 
 #### 3.5.1 Tujuan/Deskripsi (Purpose/Description)
@@ -564,7 +511,7 @@ Menganalisis PDF/XLSX dalam salah satu mode bisnis dan memetakan hasil terhadap 
 |---|---|---|---|---|---|
 | CFG-001 | API key penyedia AI | Autentikasi layanan LLM | Secret environment | Wajib untuk fitur aktif | Operation |
 | CFG-002 | Model default | Fallback model AI | Model yang didukung provider | Digunakan bila model fitur kosong | Super Admin |
-| CFG-003 | Model per fitur | Memilih model sesuai capability | Cause, impact, mitigation, transcript, minutes, KRI, risk suggestion, incident | Dikelola lewat system settings | Super Admin |
+| CFG-003 | Model per fitur | Memilih model sesuai capability | Cause, impact, mitigation, transcript, minutes, risk suggestion, incident | Dikelola lewat system settings | Super Admin |
 | CFG-004 | AI feature capability | Mengaktifkan/menonaktifkan UI AI | Enabled/disabled | Environment frontend | Operation |
 | CFG-005 | Batas upload | Mencegah payload berlebih | 10 MB | Handler upload | Backend Team |
 
@@ -668,7 +615,6 @@ Tidak Berlaku karena tidak ada mapping migrasi.
 | BR-001 Mempercepat penyusunan analisis risiko | UC-001 | FR-001–FR-006 | NFR-001, NFR-007 | TC-001 Validasi input dan schema hasil | Covered |
 | BR-002 Mengubah transkrip menjadi perubahan risiko terkontrol | UC-002 | FR-007–FR-012 | NFR-003, NFR-005 | TC-002 Analisis, scope, apply, versioning | Covered |
 | BR-003 Menghasilkan notulensi terstruktur | UC-003 | FR-013–FR-015 | NFR-007 | TC-003 Struktur dan error transkrip | Covered |
-| BR-004 Memberi saran risiko dan KRI | UC-004 | FR-016–FR-019 | NFR-001 | TC-004 Scope dan schema saran | Covered |
 | BR-005 Mempercepat input insiden | UC-005 | FR-020–FR-025 | NFR-004 | TC-005 File, ekstraksi, review | Covered |
 | BR-006 Memetakan dokumen ke konteks risiko | UC-006 | FR-026–FR-032 | NFR-001, NFR-004 | TC-006 Empat mode, scope, bukti | Covered |
 

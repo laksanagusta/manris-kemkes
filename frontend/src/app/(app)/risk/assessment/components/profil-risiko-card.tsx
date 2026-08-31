@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowUpRight } from "@/components/ui/icons";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Risk } from "@/types/risk";
@@ -8,6 +9,8 @@ import { cn } from "@/lib/utils";
 interface ProfilRisikoCardProps {
   risk: Risk;
   detailHref?: string;
+  compact?: boolean;
+  floating?: boolean;
 }
 
 function scoreCardTone(level?: ReturnType<typeof getRiskLevelFromNilai>) {
@@ -57,7 +60,12 @@ function scoreCardTone(level?: ReturnType<typeof getRiskLevelFromNilai>) {
   }
 }
 
-export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
+export function ProfilRisikoCard({
+  risk,
+  detailHref,
+  compact = false,
+  floating = false,
+}: ProfilRisikoCardProps) {
   const code = risk.riskCode || risk.code || "-";
   const inherentScore = risk.inherentScore ?? risk.nilai;
   const targetScore = risk.targetScore ?? 0;
@@ -77,6 +85,100 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
   const targetScoreTitle = "Target Penurunan";
   const targetLevelLabel = targetLevel ? getRiskLevelLabel(targetLevel) : null;
 
+  if (compact && floating) {
+    return (
+      <div
+        data-testid="profil-risiko-card"
+        data-component="monitoring-baseline-floating"
+        className="pointer-events-none fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 flex w-full justify-center px-3 sm:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6"
+      >
+        <div
+          role="group"
+          aria-label={`Baseline risiko ${code}, versi ${risk.versionNumber ?? "-"}. Skor sumber ${inherentScore ?? "-"}, probabilitas ${risk.probability ?? "-"}, dampak ${risk.impact ?? "-"}, target ${targetScore || "-"}, level ${currentLevelLabel || "-"}.`}
+          title={risk.title || undefined}
+          className="pointer-events-auto flex max-w-full items-center overflow-hidden rounded-full border border-white/15 bg-primary text-primary-foreground shadow-[0_12px_28px_-16px_rgba(0,0,0,0.7)] backdrop-blur-md supports-[backdrop-filter]:bg-primary/90 motion-safe:transition-[box-shadow,transform] motion-safe:duration-200 motion-safe:ease-out"
+        >
+          <div className="relative min-w-0 max-w-[calc(100vw-5rem)] sm:max-w-none">
+            <div
+              tabIndex={0}
+              aria-label="Detail baseline risiko. Geser secara horizontal untuk melihat semua informasi."
+              className="flex min-w-0 items-center gap-2 overflow-x-auto px-3 py-2.5 pr-8 text-sm font-normal outline-none [scrollbar-width:thin] focus-visible:ring-2 focus-visible:ring-white/80 sm:gap-2.5 sm:px-3.5 sm:pr-3.5"
+            >
+              <span className="shrink-0 text-sm font-normal text-white/70">
+                {code} · v{risk.versionNumber ?? "-"}
+              </span>
+              <span className="h-4 w-px shrink-0 bg-white/25" aria-hidden="true" />
+              <span className="shrink-0 text-sm font-normal text-white/70">Sumber</span>
+              <span className="shrink-0 text-sm font-normal tabular-nums">
+                {inherentScore ?? "-"}
+              </span>
+              <span className="shrink-0 text-sm font-normal tabular-nums text-white/70">
+                P {risk.probability ?? "-"} · D {risk.impact ?? "-"}
+              </span>
+              <span className="h-4 w-px shrink-0 bg-white/25" aria-hidden="true" />
+              <span className="shrink-0 text-sm font-normal text-white/70">Target</span>
+              <span className="shrink-0 text-sm font-normal tabular-nums">
+                {targetScore || "-"}
+              </span>
+              {currentLevelLabel ? (
+                <span className="shrink-0 text-sm font-normal text-white/70">
+                  {currentLevelLabel}
+                </span>
+              ) : null}
+            </div>
+            <span
+              className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-black to-transparent sm:hidden"
+              aria-hidden="true"
+            />
+          </div>
+          {detailHref ? (
+            <Link
+              href={detailHref}
+              aria-label={`Lihat detail risiko ${code}`}
+              className="mr-1 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-white/70 outline-none transition-[background-color,color,transform] hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-[0.96]"
+            >
+              <ArrowUpRight className="size-4" aria-hidden="true" />
+            </Link>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <Card data-testid="profil-risiko-card" className="overflow-hidden">
+        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="font-mono text-[11px]">
+                {code}
+              </Badge>
+              <span className="text-xs text-muted-foreground">Versi sumber {risk.versionNumber ?? "-"}</span>
+            </div>
+            <p className="truncate text-sm font-medium text-foreground">{risk.title || "-"}</p>
+            <p className="text-xs text-secondary-foreground">Baseline yang digunakan untuk membandingkan hasil periode ini.</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-5 sm:justify-end">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Skor saat ini</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{inherentScore ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Target</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{targetScore || "-"}</p>
+            </div>
+            {detailHref ? (
+              <Link href={detailHref} className="min-h-11 inline-flex items-center text-xs font-medium text-primary underline-offset-2 hover:underline">
+                Lihat detail
+              </Link>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card
       data-testid="profil-risiko-card"
@@ -86,7 +188,7 @@ export function ProfilRisikoCard({ risk, detailHref }: ProfilRisikoCardProps) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <CardTitle className="text-base">Profil Risiko Saat Ini</CardTitle>
-            <p className="text-sm leading-6 text-muted-foreground">
+            <p className="text-sm leading-6 text-secondary-foreground">
               Ringkasan versi terakhir yang menjadi acuan pemantauan saat ini.
             </p>
           </div>

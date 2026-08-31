@@ -21,10 +21,8 @@ type AIModels struct {
 	Transcript     string `json:"transcript"`
 	Predictive     string `json:"predictive"`
 	Minutes        string `json:"minutes"`
-	KRI            string `json:"kri"`
 	RiskSuggestion string `json:"riskSuggestion"`
 	Incident       string `json:"incident"`
-	CBA            string `json:"cba"`
 }
 
 func (m *AIModels) GetModelForFeature(feature string) string {
@@ -53,10 +51,6 @@ func (m *AIModels) GetModelForFeature(feature string) string {
 		if m.Minutes != "" {
 			return m.Minutes
 		}
-	case "kri":
-		if m.KRI != "" {
-			return m.KRI
-		}
 	case "risk-suggestion":
 		if m.RiskSuggestion != "" {
 			return m.RiskSuggestion
@@ -64,10 +58,6 @@ func (m *AIModels) GetModelForFeature(feature string) string {
 	case "incident":
 		if m.Incident != "" {
 			return m.Incident
-		}
-	case "cba":
-		if m.CBA != "" {
-			return m.CBA
 		}
 	}
 

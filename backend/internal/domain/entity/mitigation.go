@@ -47,7 +47,6 @@ type Mitigation struct {
 	ResourcesRequired      string `json:"resourcesRequired,omitempty"`
 	ContingencyPlan        string `json:"contingencyPlan,omitempty"`
 	PotentialObstacle      string `json:"potentialObstacle,omitempty"`
-	CostBenefitNote        string `json:"costBenefitNote,omitempty"`
 	IsBreakthroughActivity bool   `json:"isBreakthroughActivity,omitempty"`
 	IsExistingControl      bool   `json:"isExistingControl,omitempty"`
 }

@@ -2,12 +2,9 @@ import type { WorkingPaperRiskData, WorkingPaperRiskLink } from "@/types/working
 
 export const WORKING_PAPER_MONITORING_COLUMNS = [
   { key: "code", label: "Kode" },
+  { key: "version", label: "Versi" },
   { key: "risk", label: "Risiko" },
-  { key: "score", label: "Skor Awal -> Aktual" },
-  { key: "trend", label: "Tren" },
-  { key: "effectiveness", label: "Efektivitas" },
-  { key: "condition", label: "Kondisi/Hasil Monitoring" },
-  { key: "followUp", label: "Tindak Lanjut" },
+  { key: "score", label: "Perubahan Skor" },
   { key: "status", label: "Status" },
   { key: "action", label: "Aksi" },
 ] as const;
@@ -22,16 +19,9 @@ export type WorkingPaperMonitoringRow = {
   code: string;
   title: string;
   versionNumber?: number;
-  sourceVersionNumber?: number;
-  resultVersionNumber?: number;
   sourceScore: number;
   observedScore: number | null;
   observedLevelLabel: string;
-  trend: "up" | "down" | "stable" | null;
-  trendLabel: string;
-  effectiveness: string;
-  condition: string;
-  followUp: string;
   status: "draft" | "final" | "unmonitored";
   statusLabel: string;
   actionItems: WorkingPaperMonitoringAction[];
@@ -46,11 +36,6 @@ const levelLabels: Record<string, string> = {
   sangat_tinggi: "Sangat Tinggi",
 };
 
-function textOrDash(value?: string | null) {
-  const normalized = value?.trim();
-  return normalized || "-";
-}
-
 function normalizeScore(value?: number | null) {
   if (value == null || Number.isNaN(value)) {
     return 0;
@@ -58,26 +43,9 @@ function normalizeScore(value?: number | null) {
   return Math.round(value);
 }
 
-function computeTrend(source: number | null, observed: number | null): "up" | "down" | "stable" | null {
-  if (source == null || observed == null) return null;
-  if (source < observed) return "up";
-  if (source > observed) return "down";
-  return "stable";
-}
-
-function combineNarrative(...values: Array<string | undefined>) {
-  const present = values
-    .map((value) => value?.trim())
-    .filter((value): value is string => Boolean(value));
-  return present.length > 0 ? present.join("\n") : "-";
-}
-
 function baselineScore(risk: WorkingPaperRiskData) {
   if (risk.monitoring?.sourceNilai != null) {
     return normalizeScore(risk.monitoring.sourceNilai);
-  }
-  if (typeof risk.inherentScore === "number" && risk.inherentScore > 0) {
-    return risk.inherentScore;
   }
   return normalizeScore(risk.nilai);
 }
@@ -101,9 +69,6 @@ export function buildWorkingPaperMonitoringRowFromLink(
 ): WorkingPaperMonitoringRow {
   const row = buildWorkingPaperMonitoringRow(link.risk);
   row.actionItems = buildActionItems(link.risk, link);
-  if (link.source_risk_id) {
-    row.sourceVersionNumber = link.risk.versionNumber;
-  }
   if (link.roster_status) {
     row.rosterStatus = link.roster_status;
   }
@@ -116,19 +81,25 @@ export function buildWorkingPaperMonitoringRowFromLink(
 
 function buildActionItems(risk: WorkingPaperRiskData, link?: WorkingPaperRiskLink): WorkingPaperMonitoringAction[] {
   const monitoringId = link?.monitoring_id || risk.monitoring?.id;
-  const monitoringHref =
-    risk.monitoring?.status === "final" && monitoringId
-      ? `/risk/monitoring/${monitoringId}`
-      : null;
   const sourceRiskId = link?.source_risk_id || risk.previousRiskId;
+  const monitoringHref = monitoringId
+    ? `/risk/monitoring/${monitoringId}`
+    : null;
+  const monitoringAction = risk.monitoring
+    ? risk.monitoring.status === "final"
+      ? { label: "Lihat Hasil Pemantauan", href: monitoringHref }
+      : { label: "Lanjutkan Pemantauan", href: monitoringHref }
+    : {
+        label: "Mulai Pemantauan",
+        href: sourceRiskId ? `/risk/register/${sourceRiskId}` : null,
+      };
   return [
     {
       label: "Detail Risiko Awal",
       href: sourceRiskId ? `/risk/register/${sourceRiskId}` : `/risk/register/${risk.id}`,
     },
     {
-      label: "Hasil Pemantauan",
-      href: monitoringHref,
+      ...monitoringAction,
     },
   ];
 }
@@ -146,24 +117,14 @@ export function buildWorkingPaperMonitoringRow(
       sourceScore: baselineScore(risk),
       observedScore: null,
       observedLevelLabel: "-",
-      trend: null,
-      trendLabel: "-",
-      effectiveness: "-",
-      condition: "-",
-      followUp: "-",
       status: "unmonitored",
-      statusLabel: "Belum Dimonitor",
+      statusLabel: "Belum Dimulai",
       actionItems: buildActionItems(risk),
     };
   }
 
   const rowObservedScore = observedScore(risk);
   const rowSourceScore = baselineScore(risk);
-  const computedTrend = computeTrend(rowSourceScore, rowObservedScore);
-  const rowTrend = computedTrend ??
-    (monitoring.trend === "up" || monitoring.trend === "down" || monitoring.trend === "stable"
-      ? monitoring.trend
-      : null);
 
   return {
     id: risk.id,
@@ -173,23 +134,8 @@ export function buildWorkingPaperMonitoringRow(
     sourceScore: rowSourceScore,
     observedScore: rowObservedScore,
     observedLevelLabel: observedLevelLabel(monitoring.observedLevel),
-    trend: rowTrend,
-    trendLabel:
-      rowTrend === "up"
-        ? "Meningkat"
-        : rowTrend === "down"
-          ? "Menurun"
-          : rowTrend === "stable"
-            ? "Tetap"
-            : "-",
-    effectiveness: textOrDash(monitoring.effectivenessConclusion),
-    condition: combineNarrative(
-      monitoring.conditionSummary,
-      monitoring.eventSummary,
-    ),
-    followUp: textOrDash(monitoring.followUpNote),
     status: monitoring.status,
-    statusLabel: monitoring.status === "draft" ? "Draft" : "Final",
+    statusLabel: monitoring.status === "draft" ? "Sedang Berjalan" : "Selesai",
     actionItems: buildActionItems(risk),
   };
 }

@@ -87,8 +87,6 @@ var (
 	ErrInvalidProgress              = newValidationError("INVALID_PROGRESS", "persentase progres harus antara 0-100")
 	ErrInvalidEvidenceURL           = newValidationError("INVALID_EVIDENCE_URL", "URL bukti harus berupa http(s) yang valid")
 	ErrInvalidNotes                 = newValidationError("INVALID_NOTES", "catatan harus antara 10 dan 1000 karakter")
-	ErrInvalidKRIValue              = newValidationError("INVALID_KRI_VALUE", "nilai KRI harus nol atau lebih besar")
-	ErrSubmissionWindowClosed       = newValidationError("SUBMISSION_WINDOW_CLOSED", "laporan KRI hanya dapat dikirim antara H+1 dan H+3 setelah periode berakhir")
 	ErrMitigationSubmissionTooEarly = newValidationError("MITIGATION_SUBMISSION_TOO_EARLY", "laporan progres hanya dapat dikirim mulai H+1 setelah periode berakhir")
 	ErrInvalidSourceType            = newValidationError("INVALID_SOURCE_TYPE", "tipe sumber tidak valid")
 	ErrInvalidSeverity              = newValidationError("INVALID_SEVERITY", "severitas tidak valid")
@@ -139,6 +137,7 @@ var (
 	ErrMonitoringNotFinalizable       = newStatusError("MONITORING_NOT_FINALIZABLE", "hanya pemantauan draft yang dapat difinalisasi")
 	ErrMonitoringAlreadyFinalized     = newStatusError("MONITORING_ALREADY_FINALIZED", "pemantauan untuk siklus ini sudah difinalisasi")
 	ErrPreviousMonitoringNotCompleted = newStatusError("PREVIOUS_MONITORING_NOT_COMPLETED", "pemantauan periode sebelumnya harus difinalisasi terlebih dahulu")
+	ErrMonitoringConclusionRequired   = newValidationError("MONITORING_CONCLUSION_REQUIRED", "simpulan pemantauan wajib diisi")
 
 	// ── Working Paper ──
 	ErrWorkingPaperLocked = newValidationError("WORKING_PAPER_LOCKED", "versi risiko dikunci oleh kertas kerja yang sedang ditandatangani atau sudah selesai")

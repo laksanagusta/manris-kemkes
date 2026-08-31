@@ -42,7 +42,7 @@ import type { MitigationTask } from "@/types/risk";
 import {
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
-import { isWithinMitigationSubmissionWindow } from "@/lib/kri-reporting";
+import { isWithinMitigationSubmissionWindow } from "@/lib/mitigation-reporting";
 import { getLinearStatusBadgeTone } from "@/lib/linear-status-badge";
 import {
   AccentButton,

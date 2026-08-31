@@ -72,7 +72,7 @@ export function DashboardInvoices() {
 						{invoices.map((inv) => (
 							<TableRow className="h-12" key={inv.id}>
 								<TableCell className="max-w-40 truncate ps-6 font-medium">
-									{inv.customer}
+									<span className="text-foreground">{inv.customer}</span>
 								</TableCell>
 								<TableCell className="text-muted-foreground tabular-nums">
 									#{inv.id}

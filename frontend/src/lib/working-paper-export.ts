@@ -21,11 +21,11 @@ function getProfileRow(risk: WorkingPaperRiskData): ExportableRiskRow {
   const src = prev ?? risk;
   return {
     ...risk,
-    // Inherent scores — prefer previous snapshot
+    // Inherent values — prefer previous snapshot and canonical nilai
     probability: src.probability ?? risk.probability,
     impact: src.impact ?? risk.impact,
     bobot: src.bobot ?? risk.bobot,
-    nilai: src.inherentScore ?? src.nilai ?? risk.inherentScore ?? risk.nilai,
+    nilai: src.nilai ?? src.inherentScore ?? risk.nilai ?? risk.inherentScore,
     tingkat_risiko: src === prev ? (prev.tingkat_risiko_display ?? prev.tingkat_risiko) : (risk.tingkat_risiko_display ?? risk.tingkat_risiko),
     prioritas_risiko: src.prioritas_risiko ?? risk.prioritas_risiko,
     cause: src.cause ?? risk.cause,
@@ -42,11 +42,11 @@ function getProfileRow(risk: WorkingPaperRiskData): ExportableRiskRow {
     mitigations: src.mitigations ?? risk.mitigations,
     mitigation_due_dates: src.mitigation_due_dates ?? risk.mitigation_due_dates,
     mitigation_details: src.mitigation_details ?? risk.mitigation_details,
-    // Target scores — prefer previous snapshot
+    // Target values — prefer previous snapshot and canonical target_nilai
     target_probability: src.target_probability ?? risk.target_probability,
     target_impact: src.target_impact ?? risk.target_impact,
     target_bobot: src.target_bobot ?? risk.target_bobot,
-    target_nilai: src.target_score ?? src.target_nilai ?? risk.target_score ?? risk.target_nilai,
+    target_nilai: src.target_nilai ?? src.target_score ?? risk.target_nilai ?? risk.target_score,
     target_tingkat_risiko: src === prev ? (prev.target_tingkat_risiko_display ?? prev.target_tingkat_risiko) : (risk.target_tingkat_risiko_display ?? risk.target_tingkat_risiko),
   };
 }
@@ -439,7 +439,7 @@ function buildProfilRisikoSheet(
 ): void {
   const ws = workbook.addWorksheet("Profil Risiko");
 
-  const COL_COUNT = 18;
+  const COL_COUNT = 16;
   const FIRST_COL = DATA_START_COL; // B = col 2
   const LAST_COL = FIRST_COL + COL_COUNT - 1; // col 19 (S)
 
@@ -551,7 +551,7 @@ function buildProfilRisikoSheet(
     dataRow.getCell(c + 1).value = safeStr(risk.org_name);
     dataRow.getCell(c + 2).value = safeStr(risk.title);
     dataRow.getCell(c + 3).value = safeStr(risk.code);
-    const nilai = risk.inherentScore ?? risk.nilai;
+    const nilai = risk.nilai ?? risk.inherentScore;
     dataRow.getCell(c + 4).value = safeNum(risk.probability);
     dataRow.getCell(c + 5).value = safeNum(risk.impact);
     dataRow.getCell(c + 6).value = safeNum(risk.bobot);
@@ -563,7 +563,7 @@ function buildProfilRisikoSheet(
     dataRow.getCell(c + 12).value = safeStr(risk.penanggung_jawab);
     dataRow.getCell(c + 13).value = safeNum(risk.target_probability);
     dataRow.getCell(c + 14).value = safeNum(risk.target_impact);
-    const targetNilai = risk.target_score ?? risk.target_nilai;
+    const targetNilai = risk.target_nilai ?? risk.target_score;
     dataRow.getCell(c + 15).value = safeNum(risk.target_bobot);
     dataRow.getCell(c + 16).value = safeNum(targetNilai);
     dataRow.getCell(c + 17).value = safeStr(targetTR);
@@ -726,7 +726,7 @@ function buildPenilaianRisikoSheet(
     dataRow.getCell(C + 7).value = safeStr(risk.existing_control);
     dataRow.getCell(C + 8).value = eff.includes("efektif") && !eff.includes("tidak") ? "EFEKTIF" : "";
     dataRow.getCell(C + 9).value = eff.includes("tidak") ? "TIDAK EFEKTIF" : "";
-    const nilai = risk.inherentScore ?? risk.nilai;
+    const nilai = risk.nilai ?? risk.inherentScore;
     dataRow.getCell(C + 10).value = safeNum(risk.probability);
     dataRow.getCell(C + 11).value = safeNum(risk.impact);
     dataRow.getCell(C + 12).value = safeNum(risk.bobot);
@@ -739,7 +739,7 @@ function buildPenilaianRisikoSheet(
     dataRow.getCell(C + 19).value = (risk.mitigation_due_dates ?? []).filter(Boolean).map((d: string) => formatDate(d)).join(", ");
     dataRow.getCell(C + 20).value = safeNum(risk.target_probability);
     dataRow.getCell(C + 21).value = safeNum(risk.target_impact);
-    const targetNilai = risk.target_score ?? risk.target_nilai;
+    const targetNilai = risk.target_nilai ?? risk.target_score;
     dataRow.getCell(C + 22).value = safeNum(risk.target_bobot);
     dataRow.getCell(C + 23).value = safeNum(targetNilai);
     dataRow.getCell(C + 24).value = safeStr(targetTR);
@@ -765,7 +765,7 @@ function buildPemantauanReviuSheet(
 
   const COL_COUNT = 18;
   const FIRST_COL = DATA_START_COL; // col 2 (B)
-  const LAST_COL = FIRST_COL + COL_COUNT - 1; // col 19
+  const LAST_COL = FIRST_COL + COL_COUNT - 1; // col 17
   const C = FIRST_COL;
 
   ws.getColumn(1).width = 3;
@@ -787,8 +787,6 @@ function buildPemantauanReviuSheet(
     10,  // 14 BOBOT (monitoring)
     10,  // 15 NILAI (monitoring)
     18,  // 16 TINGKAT RISIKO (monitoring)
-    35,  // 17 TINGKAT RISIKO (simpulan)
-    16,  // 18 EFEKTIFITAS
   ];
 
   columnWidths.forEach((width, index) => {
@@ -852,9 +850,6 @@ function buildPemantauanReviuSheet(
   }
   // HASIL PEMANTAUAN (cols 12-16)
   ws.mergeCells(HEADER_ROW_1, C + 11, HEADER_ROW_1, C + 15);
-  // SIMPULAN (cols 17-18)
-  ws.mergeCells(HEADER_ROW_1, C + 16, HEADER_ROW_1, C + 17);
-
   // ── Row 14: sub-headers ──
   const row2 = ws.getRow(HEADER_ROW_2);
   for (let i = 0; i < COL_COUNT; i++) hCell(row2.getCell(C + i));
@@ -864,10 +859,6 @@ function buildPemantauanReviuSheet(
   hasilPemantauanSubs.forEach((header, index) => {
     row2.getCell(C + 11 + index).value = header;
   });
-
-  // Sub-headers under SIMPULAN
-  row2.getCell(C + 16).value = "TINGKAT RISIKO";
-  row2.getCell(C + 17).value = "EFEKTIFITAS";
 
   row2.height = 28;
 
@@ -884,7 +875,7 @@ function buildPemantauanReviuSheet(
     const prev = risk.previous;
 
     // Previous quarter data (cols 1-11)
-    const prevNilai = prev?.inherentScore ?? prev?.nilai ?? risk.inherentScore ?? risk.nilai;
+    const prevNilai = prev?.nilai ?? prev?.inherentScore ?? risk.nilai ?? risk.inherentScore;
     dataRow.getCell(C).value = index + 1;
     dataRow.getCell(C + 1).value = safeStr(risk.title);
     dataRow.getCell(C + 2).value = safeStr(risk.code);
@@ -904,10 +895,6 @@ function buildPemantauanReviuSheet(
     dataRow.getCell(C + 13).value = safeNum(risk.monitoring_bobot);
     dataRow.getCell(C + 14).value = safeNum(monNilai);
     dataRow.getCell(C + 15).value = safeStr(risk.monitoring_tingkat_risiko_display ?? risk.monitoring_tingkat_risiko);
-
-    // Simpulan (cols 17-18)
-    dataRow.getCell(C + 16).value = safeStr(risk.monitoring_simpulan);
-    dataRow.getCell(C + 17).value = safeStr(risk.monitoring_efektivitas);
 
     // Apply risk level colors
     applyNilaiStyle(dataRow.getCell(C + 6), prevNilai);

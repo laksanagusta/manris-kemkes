@@ -90,7 +90,7 @@ export function SidebarNavItem({
             {isActive && (
               <motion.span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 z-0 rounded-sm bg-sidebar-accent"
+                className="pointer-events-none absolute inset-0 z-0 rounded-md bg-sidebar-accent"
                 layoutId="sidebar-active-background"
                 transition={SIDEBAR_SPRING}
               />
@@ -101,7 +101,8 @@ export function SidebarNavItem({
                 "relative z-10 inline-flex size-4 shrink-0 items-center justify-center transition-[color] duration-[180ms] ease-(--ease-out) [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:transition-[stroke-width,color] [&>svg]:duration-[180ms] [&>svg]:ease-(--ease-out) group-hover/menu-button:[&>svg]:[stroke-width:1.95] group-active/menu-button:[&>svg]:[stroke-width:2.1]",
                 isActive
                   ? "!text-sidebar-accent-foreground"
-                  : "!text-sidebar-foreground/60",
+                  : "!text-sidebar-muted-foreground",
+                !isActive && "[&>svg]:[stroke-width:1.8]",
               )}
               variants={sidebarIconVariants}
             >

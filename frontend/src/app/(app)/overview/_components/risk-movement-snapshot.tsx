@@ -46,7 +46,7 @@ const movementConfig: Record<
     label: "Stabil",
     colorClass: "text-muted-foreground",
     bgClass: "bg-muted/30",
-    borderClass: "border-border/40 hover:border-border",
+    borderClass: "border-surface-border hover:border-surface-border",
   },
   removed: {
     icon: Trash2,
@@ -76,7 +76,7 @@ export function RiskMovementSnapshot({
             {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className="flex flex-col gap-3 rounded-xl border border-border/30 bg-muted/20 p-4"
+                className="flex flex-col gap-3 rounded-xl border border-surface-border bg-muted/20 p-4"
               >
                 <div className="flex items-center gap-2">
                   <div className="size-4 animate-pulse rounded bg-muted/60" />
@@ -100,7 +100,7 @@ export function RiskMovementSnapshot({
         <CardTitle className="text-sm font-medium normal-case">
           Perubahan Risiko
         </CardTitle>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-secondary-foreground">
           Perubahan portofolio risiko vs kuartal sebelumnya.
         </p>
       </CardHeader>

@@ -36,8 +36,8 @@ test("shiftMonitoringCycle moves across quarters", () => {
 
 test("getSelectableMonitoringCycles returns adjacent quarters", () => {
   assert.deepEqual(getSelectableMonitoringCycles("2026-Q2"), [
-    { value: "2026-Q1", label: "2026-Q1" },
-    { value: "2026-Q2", label: "2026-Q2" },
+    { value: "2026-Q1", label: "2026-Q1 — periode sebelumnya" },
+    { value: "2026-Q2", label: "2026-Q2 — periode berjalan" },
   ]);
 });
 

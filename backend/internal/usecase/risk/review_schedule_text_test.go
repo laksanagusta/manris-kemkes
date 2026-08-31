@@ -175,10 +175,6 @@ func (r *reviewScheduleRiskRepo) GetOverdueMitigationTimeline(context.Context, [
 	return nil, nil
 }
 
-func (r *reviewScheduleRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
-	return nil, nil
-}
-
 func (r *reviewScheduleRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, nil
 }

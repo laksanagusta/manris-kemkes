@@ -151,15 +151,3 @@ export async function finalizeMonitoring(
     token
   );
 }
-
-export async function correctMonitoring(
-  token: string,
-  id: string,
-  reason: string,
-): Promise<{ monitoring: RiskMonitoringDetail }> {
-  return api.post<{ monitoring: RiskMonitoringDetail }>(
-    `/risk-monitorings/${id}/correct`,
-    { reason },
-    token,
-  );
-}

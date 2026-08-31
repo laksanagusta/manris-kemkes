@@ -37,11 +37,10 @@ export interface MitigationItem {
   expectedOutput?: string;
   quantitativeTarget?: string;
   supportingUnit?: string;
-  resourcesRequired?: string;
-  contingencyPlan?: string;
-  potentialObstacle?: string;
-  costBenefitNote?: string;
-  isBreakthroughActivity?: boolean;
+	resourcesRequired?: string;
+	contingencyPlan?: string;
+	potentialObstacle?: string;
+	isBreakthroughActivity?: boolean;
   isExistingControl?: boolean;
 }
 
@@ -72,11 +71,10 @@ const emptyMitigation = (): MitigationItem => ({
   expectedOutput: "",
   quantitativeTarget: "",
   supportingUnit: "",
-  resourcesRequired: "",
-  contingencyPlan: "",
-  potentialObstacle: "",
-  costBenefitNote: "",
-  isBreakthroughActivity: false,
+	resourcesRequired: "",
+	contingencyPlan: "",
+	potentialObstacle: "",
+	isBreakthroughActivity: false,
   isExistingControl: false,
 });
 
@@ -207,7 +205,7 @@ export function MitigationTable({
                               updateItem(index, "action", e.target.value)
                             }
                             placeholder="Uraian rencana penanganan..."
-                            className="h-8 bg-card text-xs border-border/50"
+                            className="h-10 bg-card text-xs border-input"
                             disabled={disabled}
                           />
                           {actionErrors?.[index] ? (
@@ -238,7 +236,7 @@ export function MitigationTable({
                                 updateItem(index, "owner", e.target.value)
                               }
                               placeholder="Nama PIC"
-                              className="h-8 bg-card text-xs border-border/50"
+                              className="h-10 bg-card text-xs border-input"
                               disabled={disabled}
                             />
                           )}
@@ -256,7 +254,7 @@ export function MitigationTable({
                           }
                           disabled={disabled}
                         >
-                          <SelectTrigger className="h-8 bg-card text-xs border-border/50">
+                          <SelectTrigger className="h-10 bg-card text-xs border-input">
                             <SelectValue placeholder="Pilih tipe mitigasi" />
                           </SelectTrigger>
                           <SelectContent>
@@ -328,7 +326,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Contoh: persiapan, pelaksanaan, monitoring"
-                                  className="h-8 bg-card text-xs border-border/50"
+                                  className="h-10 bg-card text-xs border-input"
                                   disabled={disabled}
                                 />
                               </div>
@@ -346,7 +344,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Contoh: Subdit Surveilans, Biro Umum"
-                                  className="h-8 bg-card text-xs border-border/50"
+                                  className="h-10 bg-card text-xs border-input"
                                   disabled={disabled}
                                 />
                               </div>
@@ -365,7 +363,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Tuliskan output yang ingin dicapai..."
-                                  className="min-h-20 bg-card text-sm border-border/50"
+                                  className="min-h-20 bg-card text-sm border-input"
                                   disabled={disabled}
                                 />
                               </div>
@@ -383,7 +381,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Contoh: 100% unit terdokumentasi, SLA < 5 hari..."
-                                  className="min-h-20 bg-card text-sm border-border/50"
+                                  className="min-h-20 bg-card text-sm border-input"
                                   disabled={disabled}
                                 />
                               </div>
@@ -402,7 +400,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="SDM, anggaran, sistem, atau alat bantu yang diperlukan"
-                                  className="min-h-20 bg-card text-sm border-border/50"
+                                  className="min-h-20 bg-card text-sm border-input"
                                   disabled={disabled}
                                 />
                               </div>
@@ -420,7 +418,7 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Langkah cadangan jika rencana utama tidak berjalan"
-                                  className="min-h-20 bg-card text-sm border-border/50"
+                                  className="min-h-20 bg-card text-sm border-input"
                                   disabled={disabled}
                                 />
                               </div>
@@ -439,29 +437,11 @@ export function MitigationTable({
                                     )
                                   }
                                   placeholder="Risiko implementasi, penolakan, keterbatasan kapasitas"
-                                  className="min-h-20 bg-card text-sm border-border/50"
+                                  className="min-h-20 bg-card text-sm border-input"
                                   disabled={disabled}
                                 />
                               </div>
 
-                              <div className="space-y-1.5">
-                                <Label className="text-xs text-muted-foreground">
-                                  Catatan cost-benefit
-                                </Label>
-                                <Textarea
-                                  value={item.costBenefitNote || ""}
-                                  onChange={(e) =>
-                                    updateItem(
-                                      index,
-                                      "costBenefitNote",
-                                      e.target.value,
-                                    )
-                                  }
-                                  placeholder="Ringkasan sederhana manfaat dibanding biaya"
-                                  className="min-h-20 bg-card text-sm border-border/50"
-                                  disabled={disabled}
-                                />
-                              </div>
                             </div>
 
                             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">

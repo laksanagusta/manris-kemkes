@@ -88,17 +88,17 @@ func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 	err := q.QueryRow(ctx,
 		`INSERT INTO risks (code, title, description, category, status, version_group_id, previous_risk_id, is_current, is_cycle_current, version_number, archived_at, archived_reason, organization_id, created_by,
 		  cause, risk_source, controllability, impact_description,
-		  existing_control, control_effectiveness, probability, impact, weight, nilai, inherent_score,
+		  existing_control, control_effectiveness, probability, impact, weight, nilai,
 		  risk_priority, risk_appetite, treatment_option,
-		  target_probability, target_impact, target_weight, target_nilai, target_score, next_review_date, review_schedule_text, assessment_cycle, review_type, change_reason, review_summary, review_started_at, review_submitted_at, review_approved_at, draft_approval_line,
+		  target_probability, target_impact, target_weight, target_nilai, next_review_date, review_schedule_text, assessment_cycle, review_type, change_reason, review_summary, review_started_at, review_submitted_at, review_approved_at, draft_approval_line,
 		  objective_id, ro_id, impact_criteria_id, impact_justification, residual_acceptance_reason, finalized_by, finalized_at, effective_from)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49)
 		 RETURNING id, created_at, updated_at`,
 		risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.VersionNumber, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID, risk.CreatedBy,
 		risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
-		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight, risk.Nilai, risk.InherentScore,
+		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight, risk.Nilai,
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
-		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.TargetScore, risk.NextReviewDate, risk.ReviewScheduleText,
+		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.NextReviewDate, risk.ReviewScheduleText,
 		risk.AssessmentCycle, risk.ReviewType, risk.ChangeReason, risk.ReviewSummary, risk.ReviewStartedAt, risk.ReviewSubmittedAt, risk.ReviewApprovedAt, mustJSON(risk.DraftApprovalLine),
 		risk.ObjectiveID, risk.ROID, risk.ImpactCriteriaID, risk.ImpactJustification, risk.ResidualAcceptanceReason, risk.FinalizedBy, risk.FinalizedAt, risk.EffectiveFrom,
 	).Scan(&risk.ID, &risk.CreatedAt, &risk.UpdatedAt)
@@ -112,11 +112,11 @@ func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		_, err := q.Exec(ctx,
 			`INSERT INTO mitigations (
 				risk_id, action, owner, owner_user_id, due_date, frequency, recurring_interval, report_day, report_date, execution_schedule_text, target_cost, sort_order,
-				mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, cost_benefit_note, is_breakthrough_activity, is_existing_control
+				mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, is_breakthrough_activity, is_existing_control
 			)
-			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
 			risk.ID, m.Action, m.Owner, m.OwnerUserID, nullableDateString(m.DueDate), frequency, m.RecurringInterval, m.ReportDay, m.ReportDate, m.ExecutionScheduleText, m.TargetCost, i+1,
-			mitigationType, m.ActivityStage, m.ExpectedOutput, m.QuantitativeTarget, m.SupportingUnit, m.ResourcesRequired, m.ContingencyPlan, m.PotentialObstacle, m.CostBenefitNote, m.IsBreakthroughActivity, m.IsExistingControl)
+			mitigationType, m.ActivityStage, m.ExpectedOutput, m.QuantitativeTarget, m.SupportingUnit, m.ResourcesRequired, m.ContingencyPlan, m.PotentialObstacle, m.IsBreakthroughActivity, m.IsExistingControl)
 		if err != nil {
 			return fmt.Errorf("create mitigation: %w", err)
 		}
@@ -170,9 +170,9 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 
 	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
-		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
+			        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
-		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
+			        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, ROUND(COALESCE(r.target_nilai, 0))::int, r.residual_acceptance_reason,
 		        r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 		        r.review_started_at, r.review_submitted_at, r.review_approved_at,
 		        COALESCE(r.draft_approval_line, '[]'::jsonb),
@@ -228,7 +228,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 	// Load mitigations
 	mRows, err := r.pool.Query(ctx,
 		`SELECT id, risk_id, action, owner, owner_user_id, due_date::text, frequency, recurring_interval, report_day, report_date, COALESCE(execution_schedule_text, ''), target_cost, sort_order, created_at,
-		        mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, cost_benefit_note, is_breakthrough_activity, is_existing_control
+		        mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, is_breakthrough_activity, is_existing_control
 		 FROM mitigations WHERE risk_id = $1 ORDER BY sort_order`, id)
 	if err != nil {
 		return nil, fmt.Errorf("load mitigations: %w", err)
@@ -238,7 +238,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 	for mRows.Next() {
 		var m entity.Mitigation
 		if err := mRows.Scan(&m.ID, &m.RiskID, &m.Action, &m.Owner, &m.OwnerUserID, &m.DueDate, &m.Frequency, &m.RecurringInterval, &m.ReportDay, &m.ReportDate, &m.ExecutionScheduleText, &m.TargetCost, &m.SortOrder, &m.CreatedAt,
-			&m.MitigationType, &m.ActivityStage, &m.ExpectedOutput, &m.QuantitativeTarget, &m.SupportingUnit, &m.ResourcesRequired, &m.ContingencyPlan, &m.PotentialObstacle, &m.CostBenefitNote, &m.IsBreakthroughActivity, &m.IsExistingControl); err != nil {
+			&m.MitigationType, &m.ActivityStage, &m.ExpectedOutput, &m.QuantitativeTarget, &m.SupportingUnit, &m.ResourcesRequired, &m.ContingencyPlan, &m.PotentialObstacle, &m.IsBreakthroughActivity, &m.IsExistingControl); err != nil {
 			return nil, fmt.Errorf("scan mitigation: %w", err)
 		}
 		risk.Mitigations = append(risk.Mitigations, m)
@@ -273,18 +273,18 @@ func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 	_, err := q.Exec(ctx,
 		`UPDATE risks SET code=$2, title=$3, description=$4, category=$5, status=$6, version_group_id=$7, previous_risk_id=$8, is_current=$9, is_cycle_current=$10, version_number=$11, archived_at=$12, archived_reason=$13, organization_id=$14,
 		  ro_id=$15, cause=$16, risk_source=$17, controllability=$18, impact_description=$19,
-		  existing_control=$20, control_effectiveness=$21, probability=$22, impact=$23, weight=$24, nilai=$25, inherent_score=$26,
-		  risk_priority=$27, risk_appetite=$28, treatment_option=$29,
-		  target_probability=$30, target_impact=$31, target_weight=$32, target_nilai=$33, target_score=$34, next_review_date=$35, review_schedule_text=$36,
-		  assessment_cycle=$37, review_type=$38, change_reason=$39, review_summary=$40, review_started_at=$41, review_submitted_at=$42, review_approved_at=$43,
-		  draft_approval_line=$44, impact_criteria_id=$45, impact_justification=$46, residual_acceptance_reason=$47,
+		  existing_control=$20, control_effectiveness=$21, probability=$22, impact=$23, weight=$24, nilai=$25,
+		  risk_priority=$26, risk_appetite=$27, treatment_option=$28,
+		  target_probability=$29, target_impact=$30, target_weight=$31, target_nilai=$32, next_review_date=$33, review_schedule_text=$34,
+		  assessment_cycle=$35, review_type=$36, change_reason=$37, review_summary=$38, review_started_at=$39, review_submitted_at=$40, review_approved_at=$41,
+		  draft_approval_line=$42, impact_criteria_id=$43, impact_justification=$44, residual_acceptance_reason=$45,
 		  updated_at=now()
 		 WHERE id=$1`,
 		risk.ID, risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.VersionNumber, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID,
 		risk.ROID, risk.Cause, risk.RiskSource, risk.Controllability, risk.ImpactDesc,
-		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight, risk.Nilai, risk.InherentScore,
+		risk.ExistingControl, risk.ControlEffectiveness, risk.Probability, risk.Impact, risk.Weight, risk.Nilai,
 		risk.RiskPriority, risk.RiskAppetite, risk.TreatmentOption,
-		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.TargetScore, risk.NextReviewDate, risk.ReviewScheduleText,
+		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.NextReviewDate, risk.ReviewScheduleText,
 		risk.AssessmentCycle, risk.ReviewType, risk.ChangeReason, risk.ReviewSummary, risk.ReviewStartedAt, risk.ReviewSubmittedAt, risk.ReviewApprovedAt, mustJSON(risk.DraftApprovalLine),
 		risk.ImpactCriteriaID, risk.ImpactJustification, risk.ResidualAcceptanceReason,
 	)
@@ -302,11 +302,11 @@ func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		_, err := q.Exec(ctx,
 			`INSERT INTO mitigations (
 				risk_id, action, owner, owner_user_id, due_date, frequency, recurring_interval, report_day, report_date, execution_schedule_text, target_cost, sort_order,
-				mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, cost_benefit_note, is_breakthrough_activity, is_existing_control
+				mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, is_breakthrough_activity, is_existing_control
 			)
-			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
 			risk.ID, m.Action, m.Owner, m.OwnerUserID, nullableDateString(m.DueDate), frequency, m.RecurringInterval, m.ReportDay, m.ReportDate, m.ExecutionScheduleText, m.TargetCost, i+1,
-			mitigationType, m.ActivityStage, m.ExpectedOutput, m.QuantitativeTarget, m.SupportingUnit, m.ResourcesRequired, m.ContingencyPlan, m.PotentialObstacle, m.CostBenefitNote, m.IsBreakthroughActivity, m.IsExistingControl)
+			mitigationType, m.ActivityStage, m.ExpectedOutput, m.QuantitativeTarget, m.SupportingUnit, m.ResourcesRequired, m.ContingencyPlan, m.PotentialObstacle, m.IsBreakthroughActivity, m.IsExistingControl)
 		if err != nil {
 			return fmt.Errorf("upsert mitigation: %w", err)
 		}
@@ -368,8 +368,8 @@ func getInProgressReassessmentForCycle(ctx context.Context, q riskQueryer, versi
 		        r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai,
-		        r.inherent_score, r.risk_priority, r.risk_appetite, r.treatment_option,
-		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
+		        ROUND(COALESCE(r.nilai, 0))::int, r.risk_priority, r.risk_appetite, r.treatment_option,
+		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, ROUND(COALESCE(r.target_nilai, 0))::int, r.residual_acceptance_reason,
 		        r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''),
 		        COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''), r.review_started_at,
 		        r.review_submitted_at, r.review_approved_at,
@@ -446,9 +446,9 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 	status = normalizeRiskStatusFilter(status)
 	query := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
-	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
+		                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 	                  r.risk_priority, r.risk_appetite, r.treatment_option,
-	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
+		                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, ROUND(COALESCE(r.target_nilai, 0))::int, r.residual_acceptance_reason,
 	                  r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
 	                  r.created_at, r.updated_at,
@@ -528,9 +528,9 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		WHERE 1=1`
 	dataQuery := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		                  r.cause, r.risk_source, r.controllability, r.impact_description,
-		                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
+		                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 		                  r.risk_priority, r.risk_appetite, r.treatment_option,
-		                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
+		                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, ROUND(COALESCE(r.target_nilai, 0))::int, r.residual_acceptance_reason,
 		                  r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 		                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
 		                  r.created_at, r.updated_at,
@@ -541,7 +541,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		                  CASE WHEN draft.id IS NOT NULL THEN true ELSE false END as has_ongoing,
 		                  monitoring.status as monitoring_status,
 		                  monitoring_last.last_monitored_at as last_monitored_at,
-		                  COALESCE(monitoring_score.source_nilai, prev.inherent_score, r.inherent_score) as before_monitoring_nilai,
+		                  COALESCE(monitoring_score.source_nilai, prev.nilai, r.nilai) as before_monitoring_nilai,
 		                  monitoring_score.observed_nilai as monitoring_result_nilai,
 		                  quarters.q1 as quarter_q1,
 		                  quarters.q2 as quarter_q2,
@@ -742,9 +742,9 @@ func normalizeRiskStatusFilter(status string) string {
 func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UUID, query string) ([]*entity.Risk, error) {
 	queryStr := `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 	                  r.cause, r.risk_source, r.controllability, r.impact_description,
-	                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
+		                  r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 	                  r.risk_priority, r.risk_appetite, r.treatment_option,
-	                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
+		                  r.target_probability, r.target_impact, r.target_weight, r.target_nilai, ROUND(COALESCE(r.target_nilai, 0))::int, r.residual_acceptance_reason,
 	                  r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 	                  r.review_started_at, r.review_submitted_at, r.review_approved_at,
 	                  r.created_at, r.updated_at,
@@ -810,7 +810,7 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 // ListMitigations returns all mitigations joined with risk details
 func (r *riskRepository) ListMitigations(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	query := `SELECT m.id, m.risk_id, m.action, m.owner, m.owner_user_id, m.due_date::text, m.frequency, m.recurring_interval, m.target_cost, m.sort_order, m.created_at,
-	                 m.mitigation_type, m.activity_stage, m.expected_output, m.quantitative_target, m.supporting_unit, m.resources_required, m.contingency_plan, m.potential_obstacle, m.cost_benefit_note, m.is_breakthrough_activity, m.is_existing_control,
+	                 m.mitigation_type, m.activity_stage, m.expected_output, m.quantitative_target, m.supporting_unit, m.resources_required, m.contingency_plan, m.potential_obstacle, m.is_breakthrough_activity, m.is_existing_control,
 	                 r.code as risk_code, r.title as risk_title, r.organization_id as risk_org_id, r.probability, r.impact
 	          FROM mitigations m
 	          JOIN risks r ON m.risk_id = r.id
@@ -835,7 +835,7 @@ func (r *riskRepository) ListMitigations(ctx context.Context, orgIDs []uuid.UUID
 		var ma entity.MitigationAssoc
 		if err := rows.Scan(
 			&ma.ID, &ma.RiskID, &ma.Action, &ma.Owner, &ma.OwnerUserID, &ma.DueDate, &ma.Frequency, &ma.RecurringInterval, &ma.TargetCost, &ma.SortOrder, &ma.CreatedAt,
-			&ma.MitigationType, &ma.ActivityStage, &ma.ExpectedOutput, &ma.QuantitativeTarget, &ma.SupportingUnit, &ma.ResourcesRequired, &ma.ContingencyPlan, &ma.PotentialObstacle, &ma.CostBenefitNote, &ma.IsBreakthroughActivity, &ma.IsExistingControl,
+			&ma.MitigationType, &ma.ActivityStage, &ma.ExpectedOutput, &ma.QuantitativeTarget, &ma.SupportingUnit, &ma.ResourcesRequired, &ma.ContingencyPlan, &ma.PotentialObstacle, &ma.IsBreakthroughActivity, &ma.IsExistingControl,
 			&ma.RiskCode, &ma.RiskTitle, &ma.RiskOrgID, &ma.Probability, &ma.Impact,
 		); err != nil {
 			return nil, fmt.Errorf("scan mitigation assoc: %w", err)
@@ -881,7 +881,7 @@ const dashboardRiskSnapshotCTE = `WITH risk_snapshots AS (
 	       COALESCE(m.observed_impact, snapshot.impact) AS effective_impact,
 	       COALESCE(m.observed_weight, snapshot.weight) AS effective_weight,
 	       COALESCE(m.observed_nilai, snapshot.nilai) AS effective_nilai,
-	       COALESCE(m.observed_nilai, snapshot.inherent_score) AS effective_inherent_score
+	       COALESCE(m.observed_nilai, snapshot.nilai) AS effective_inherent_score
 	FROM risk_snapshots snapshot
 	LEFT JOIN LATERAL (
 		SELECT rm.observed_probability, rm.observed_impact, rm.observed_weight, rm.observed_nilai
@@ -939,7 +939,7 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 			return nil, fmt.Errorf("count risks: %w", err)
 		}
 		var args2 []interface{}
-		q2 := "SELECT COUNT(*) FROM risks r WHERE r.status = 'final' AND r.is_current = TRUE AND r.archived_at IS NULL AND r.inherent_score >= 15"
+		q2 := "SELECT COUNT(*) FROM risks r WHERE r.status = 'final' AND r.is_current = TRUE AND r.archived_at IS NULL AND ROUND(COALESCE(r.nilai, 0))::int >= 15"
 		if len(orgIDs) > 0 {
 			q2 += fmt.Sprintf(orgFilter, argIdx)
 			args2 = append(args2, orgArgs...)
@@ -1246,7 +1246,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 		 LIMIT $%d`, argIdx)
 		args = append(args, limit)
 	} else {
-		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, r.inherent_score, r.nilai, r.status,
+		query = `SELECT r.id, r.code, r.title, r.category, r.probability, r.impact, ROUND(COALESCE(r.nilai, 0))::int, r.nilai, r.status,
 		        COALESCE(o.name, '') as org_name
 		 FROM risks r LEFT JOIN organizations o ON r.organization_id = o.id
 		 WHERE r.status = 'final' AND r.is_current = TRUE AND r.archived_at IS NULL`
@@ -1286,9 +1286,9 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 	rows, err := r.pool.Query(ctx,
 		`SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
-		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
+		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
-		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
+		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, ROUND(COALESCE(r.target_nilai, 0))::int, r.residual_acceptance_reason,
 		        r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 		        r.review_started_at, r.review_submitted_at, r.review_approved_at,
 		        r.created_at, r.updated_at,
@@ -1345,9 +1345,9 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 	)
 	SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
-		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
+		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
-		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
+		        r.target_probability, r.target_impact, r.target_weight, r.target_nilai, ROUND(COALESCE(r.target_nilai, 0))::int, r.residual_acceptance_reason,
 		        r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 		        r.review_started_at, r.review_submitted_at, r.review_approved_at,
 		        r.created_at, r.updated_at,
@@ -1428,7 +1428,7 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 
 	mitigationRows, err := r.pool.Query(ctx,
 		`SELECT id, risk_id, action, owner, owner_user_id, due_date::text, frequency, recurring_interval, report_day, report_date, COALESCE(execution_schedule_text, ''), target_cost, sort_order, created_at,
-		        mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, cost_benefit_note, is_breakthrough_activity, is_existing_control
+		        mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, is_breakthrough_activity, is_existing_control
 		 FROM mitigations
 		 WHERE risk_id = ANY($1)
 		 ORDER BY risk_id, sort_order, created_at`, riskIDs)
@@ -1440,7 +1440,7 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 	for mitigationRows.Next() {
 		var mitigation entity.Mitigation
 		if err := mitigationRows.Scan(&mitigation.ID, &mitigation.RiskID, &mitigation.Action, &mitigation.Owner, &mitigation.OwnerUserID, &mitigation.DueDate, &mitigation.Frequency, &mitigation.RecurringInterval, &mitigation.ReportDay, &mitigation.ReportDate, &mitigation.ExecutionScheduleText, &mitigation.TargetCost, &mitigation.SortOrder, &mitigation.CreatedAt,
-			&mitigation.MitigationType, &mitigation.ActivityStage, &mitigation.ExpectedOutput, &mitigation.QuantitativeTarget, &mitigation.SupportingUnit, &mitigation.ResourcesRequired, &mitigation.ContingencyPlan, &mitigation.PotentialObstacle, &mitigation.CostBenefitNote, &mitigation.IsBreakthroughActivity, &mitigation.IsExistingControl); err != nil {
+			&mitigation.MitigationType, &mitigation.ActivityStage, &mitigation.ExpectedOutput, &mitigation.QuantitativeTarget, &mitigation.SupportingUnit, &mitigation.ResourcesRequired, &mitigation.ContingencyPlan, &mitigation.PotentialObstacle, &mitigation.IsBreakthroughActivity, &mitigation.IsExistingControl); err != nil {
 			return nil, fmt.Errorf("scan cycle snapshot mitigation: %w", err)
 		}
 		if risk := riskByID[mitigation.RiskID]; risk != nil {
@@ -1638,12 +1638,12 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 			ELSE 'due'
 		END AS review_status,
 		$1 AS assessment_cycle,
-		base.inherent_score AS current_score,
+		ROUND(COALESCE(base.nilai, 0))::int AS current_score,
 		CASE
-			WHEN base.inherent_score >= 20 THEN 'extreme'
-			WHEN base.inherent_score >= 15 THEN 'high'
-			WHEN base.inherent_score >= 10 THEN 'medium'
-			WHEN base.inherent_score >= 5 THEN 'low'
+			WHEN ROUND(COALESCE(base.nilai, 0))::int >= 20 THEN 'extreme'
+			WHEN ROUND(COALESCE(base.nilai, 0))::int >= 15 THEN 'high'
+			WHEN ROUND(COALESCE(base.nilai, 0))::int >= 10 THEN 'medium'
+			WHEN ROUND(COALESCE(base.nilai, 0))::int >= 5 THEN 'low'
 			ELSE 'very_low'
 		END AS current_level,
 		monitoring.id,
@@ -1747,10 +1747,10 @@ func (r *riskRepository) CompareCycles(ctx context.Context, fromCycle string, to
 			COALESCE(org.name, '') AS org_name,
 			CASE
 				WHEN prev_monitoring.observed_nilai IS NOT NULL THEN ROUND(prev_monitoring.observed_nilai)::int
-				WHEN prev.assessment_cycle = $1 THEN prev.inherent_score
+				WHEN prev.assessment_cycle = $1 THEN ROUND(COALESCE(prev.nilai, 0))::int
 				ELSE 0
 			END AS prev_score,
-			COALESCE(ROUND(current_monitoring.observed_nilai)::int, curr.inherent_score) AS curr_score,
+			COALESCE(ROUND(current_monitoring.observed_nilai)::int, ROUND(COALESCE(curr.nilai, 0))::int) AS curr_score,
 			(prev_monitoring.version_group_id IS NOT NULL OR prev.assessment_cycle = $1) AS has_previous,
 			COALESCE(NULLIF(current_monitoring.change_reason, ''), curr.change_reason, '') AS change_reason
 		FROM current_monitorings current_monitoring
@@ -2128,73 +2128,6 @@ func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context, orgID
 			&item.TotalCount,
 		); err != nil {
 			return nil, fmt.Errorf("scan overdue timeline: %w", err)
-		}
-		items = append(items, item)
-	}
-	return items, nil
-}
-
-func (r *riskRepository) GetKRIBreachSummary(ctx context.Context, orgIDs []uuid.UUID) ([]entity.KRIBreachItem, error) {
-	query := `
-	SELECT
-		k.id::text AS kri_id,
-		k.name AS kri_name,
-		k.threshold_max AS threshold,
-		k.current_value AS actual_value,
-		COALESCE(k.metric, '') AS unit,
-		CASE
-			WHEN k.direction = 'higher_worse' THEN
-				CASE
-					WHEN k.current_value > k.threshold_max THEN 'breach'
-					WHEN k.current_value >= k.threshold_max * 0.8 THEN 'warning'
-					ELSE 'safe'
-				END
-			WHEN k.direction = 'lower_worse' THEN
-				CASE
-					WHEN k.current_value < k.threshold_min THEN 'breach'
-					WHEN k.current_value <= k.threshold_min * 1.2 THEN 'warning'
-					ELSE 'safe'
-				END
-			ELSE 'safe'
-		END AS status,
-		COALESCE(r.title, '') AS risk_title,
-		COALESCE(org.name, '') AS org_name
-	FROM kris k
-	LEFT JOIN risks r ON r.id = k.risk_id
-	LEFT JOIN organizations org ON org.id = k.organization_id
-	WHERE k.is_archived = FALSE
-	  AND (
-	    (k.direction = 'higher_worse' AND k.current_value >= k.threshold_max * 0.8)
-	    OR (k.direction = 'lower_worse' AND k.current_value <= k.threshold_min * 1.2)
-	  )`
-	args := []interface{}{}
-	if len(orgIDs) > 0 {
-		query += fmt.Sprintf(" AND k.organization_id = ANY($%d)", len(args)+1)
-		args = append(args, uuidArrayToStrings(orgIDs))
-	}
-	query += `
-	ORDER BY
-		CASE
-			WHEN k.direction = 'higher_worse' AND k.current_value > k.threshold_max THEN 0
-			WHEN k.direction = 'lower_worse' AND k.current_value < k.threshold_min THEN 0
-			ELSE 1
-		END,
-		k.name ASC`
-
-	rows, err := r.pool.Query(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("kri breach summary: %w", err)
-	}
-	defer rows.Close()
-
-	items := make([]entity.KRIBreachItem, 0)
-	for rows.Next() {
-		var item entity.KRIBreachItem
-		if err := rows.Scan(
-			&item.KRIID, &item.KRIName, &item.Threshold, &item.ActualValue,
-			&item.Unit, &item.Status, &item.RiskTitle, &item.OrgName,
-		); err != nil {
-			return nil, fmt.Errorf("scan kri breach: %w", err)
 		}
 		items = append(items, item)
 	}

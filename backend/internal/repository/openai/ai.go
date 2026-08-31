@@ -816,35 +816,6 @@ func truncateText(value string, limit int) string {
 	return value[:limit]
 }
 
-// GenerateKRI generates KRI suggestions for a given risk
-func (r *aiRepository) GenerateKRI(ctx context.Context, req entity.AIRequest, orgContext string) (*entity.KRISuggestions, error) {
-	if r.client == nil {
-		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
-	}
-
-	if err := req.Validate(); err != nil {
-		return nil, err
-	}
-
-	prompt := r.buildKRIPrompt(req.Title, req.Description)
-
-	content, err := r.callOpenAI(ctx, prompt, "Anda adalah analis risiko profesional di sektor kesehatan pemerintahan. Anda hanya merespons menggunakan JSON yang valid.", "kri", orgContext)
-	if err != nil {
-		return nil, err
-	}
-
-	// Clean markdown
-	content = cleanMarkdown(content)
-
-	// Parse response
-	var suggestions entity.KRISuggestions
-	if err := json.Unmarshal([]byte(content), &suggestions); err != nil {
-		return nil, fmt.Errorf("gagal mengurai respons AI: %w", err)
-	}
-
-	return &suggestions, nil
-}
-
 func (r *aiRepository) AnalyzeDocument(ctx context.Context, req entity.DocumentAnalysisRequest, orgContext string) (*entity.DocumentIntelligenceResult, error) {
 	if r.client == nil {
 		return nil, fmt.Errorf("klien OpenAI belum dikonfigurasi")
@@ -916,42 +887,6 @@ func parseDocumentIntelligenceResult(mode entity.DocumentAnalysisMode, content s
 	}
 
 	return result, nil
-}
-
-func (r *aiRepository) buildKRIPrompt(title, description string) string {
-	return fmt.Sprintf(`Sebagai analis risiko profesional di Kementerian Kesehatan, buatkan 3 Key Risk Indicator (KRI) yang relevan untuk risiko berikut:
-
-Judul Risiko: %s
-Deskripsi Risiko: %s
-
-Setiap KRI harus:
-1. Memiliki nama indikator yang spesifik dan terukur
-2. Memiliki deskripsi singkat tentang apa yang diukur
-3. Memiliki satuan ukur (metric) yang jelas (contoh: %%, jumlah, hari, Rp)
-4. Memiliki threshold min dan max yang realistis
-5. Memiliki direction: "higher_worse" (semakin tinggi semakin buruk) atau "lower_worse" (semakin rendah semakin buruk)
-6. Memiliki frequency: "harian", "mingguan", atau "bulanan"
-
-Format respons JSON (hanya JSON, tanpa markdown):
-{
-  "suggestions": [
-    {
-      "name": "Nama KRI spesifik",
-      "description": "Deskripsi singkat indikator",
-      "metric": "satuan ukur",
-      "thresholdMin": 0,
-      "thresholdMax": 100,
-      "direction": "higher_worse",
-      "frequency": "bulanan"
-    }
-  ]
-}
-
-PENTING:
-- Berikan tepat 3 KRI yang berbeda dan relevan
-- threshold harus realistis dan masuk akal untuk konteks kesehatan
-- thresholdMin harus lebih kecil dari thresholdMax
-- Jangan sertakan teks pembuka atau penutup, hanya JSON`, title, description)
 }
 
 func (r *aiRepository) buildDocumentIntelligencePrompt(req entity.DocumentAnalysisRequest) string {

@@ -12,7 +12,11 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn(
+          "w-full caption-bottom text-sm font-normal [&_th]:font-normal [&_th_*]:font-normal [&_td]:font-normal [&_td_*]:font-normal",
+          "text-muted-foreground [&_th]:text-muted-foreground [&_td]:text-muted-foreground",
+          className,
+        )}
         {...props}
       />
     </div>
@@ -24,7 +28,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
     <thead
       data-slot="table-header"
       className={cn(
-        "bg-table-header [&_tr]:h-[40.5px] [&_tr]:border-t-0 [&_tr]:border-b [&_tr]:border-border",
+        "bg-table-header [&_tr]:h-[40.5px] [&_tr]:border-t-0 [&_tr]:border-b [&_tr]:border-border/60",
         className,
       )}
       {...props}
@@ -47,7 +51,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
     <tfoot
       data-slot="table-footer"
       className={cn(
-        "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
+        "border-t border-border/60 bg-muted/50 font-normal [&>tr]:last:border-b-0",
         className
       )}
       {...props}
@@ -73,7 +77,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-[40.5px] px-6 py-3 text-left align-middle text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground [&:has([role=checkbox])]:pr-0",
+        "h-[40.5px] px-6 py-3 text-left align-middle text-xs font-normal uppercase tracking-[0.05em] text-muted-foreground [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

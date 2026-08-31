@@ -2,6 +2,7 @@
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
+import { AppTopbar } from "@/components/app-topbar";
 import {
   SidebarInset,
   SidebarProvider,
@@ -44,17 +45,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={200}>
       <SidebarProvider>
-        <AppSidebar inboxBadge={hasFullSession ? inboxCount : 0} />
-        <SidebarInset className="min-w-0 overflow-x-hidden bg-main-content p-4 md:p-6">
-          <HeaderActionsProvider>
-            <AppHeader />
-            <main className="flex min-w-0 flex-1 flex-col gap-4">
-              <div className="mx-auto w-full max-w-[1200px] min-w-0 py-8">
-                {children}
-              </div>
-            </main>
-          </HeaderActionsProvider>
-        </SidebarInset>
+        <div className="relative flex min-h-svh w-full flex-col bg-background pt-14">
+          <AppTopbar />
+          <div className="flex min-h-0 flex-1 w-full">
+            <AppSidebar inboxBadge={hasFullSession ? inboxCount : 0} />
+            <SidebarInset className="min-w-0 overflow-x-hidden bg-main-content p-4 md:p-6">
+              <HeaderActionsProvider>
+                <AppHeader />
+                <main className="flex min-w-0 flex-1 flex-col gap-4">
+                  <div className="mx-auto w-full max-w-[1400px] min-w-0 pb-8">
+                    {children}
+                  </div>
+                </main>
+              </HeaderActionsProvider>
+            </SidebarInset>
+          </div>
+        </div>
       </SidebarProvider>
     </TooltipProvider>
   );

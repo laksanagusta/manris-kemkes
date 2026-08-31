@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { BotOff } from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, BotOff } from "@/components/ui/icons";
+import { ActionButton } from "@/components/shared/design-system";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface AIFeaturesDisabledStateProps {
@@ -27,15 +27,18 @@ export function AIFeaturesDisabledState({
           </div>
           <div className="space-y-2">
             <CardTitle className="text-xl">{title}</CardTitle>
-            <p className="text-sm leading-6 text-muted-foreground">
+            <p className="text-sm leading-6 text-secondary-foreground">
               {description}
             </p>
           </div>
         </CardHeader>
         <CardContent>
-          <Button asChild variant="outline">
-            <Link href={backHref}>{backLabel}</Link>
-          </Button>
+          <ActionButton asChild variant="secondary" size="sm">
+            <Link href={backHref}>
+              <ArrowLeft className="size-3.5" aria-hidden="true" />
+              {backLabel}
+            </Link>
+          </ActionButton>
         </CardContent>
       </Card>
     </div>

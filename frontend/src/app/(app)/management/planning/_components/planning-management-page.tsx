@@ -609,7 +609,6 @@ export function PlanningManagementPage() {
     <PageStack>
       <CollectionPageHeader
         title="Struktur Kinerja"
-        description="Kelola struktur kinerja organisasi sebagai dasar penautan risiko ke RO."
       />
 
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">

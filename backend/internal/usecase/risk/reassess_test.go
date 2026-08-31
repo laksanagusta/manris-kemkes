@@ -114,9 +114,6 @@ func (r *fakeReassessRiskRepo) GetHeatmapVelocity(context.Context, string, strin
 func (r *fakeReassessRiskRepo) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeReassessRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
-	return nil, errors.New("not implemented")
-}
 func (r *fakeReassessRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, errors.New("not implemented")
 }

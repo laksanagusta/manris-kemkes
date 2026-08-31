@@ -1,7 +1,7 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
   <title id="title">MANRIS logo</title>
   <desc id="desc">A complete 4 by 4 grid of sixteen black circular dots.</desc>
-  <g fill="#171717">
+  <g fill="#202020">
     <circle cx="112" cy="112" r="36"/>
     <circle cx="208" cy="112" r="36"/>
     <circle cx="304" cy="112" r="36"/>

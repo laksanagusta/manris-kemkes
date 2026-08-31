@@ -97,9 +97,6 @@ func (s exportPDFRiskRepoStub) GetHeatmapVelocity(context.Context, string, strin
 func (s exportPDFRiskRepoStub) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, nil
 }
-func (s exportPDFRiskRepoStub) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
-	return nil, nil
-}
 func (s exportPDFRiskRepoStub) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, nil
 }

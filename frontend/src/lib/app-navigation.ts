@@ -3,6 +3,7 @@ export type MainMenuItem = {
   href: string;
   icon: string;
   matchHrefs?: string[];
+  adminOnly?: boolean;
 };
 
 export type MainMenuGroup = {
@@ -12,7 +13,7 @@ export type MainMenuGroup = {
 
 export const mainMenuItems: MainMenuGroup[] = [
   {
-    title: "RISK GOVERNANCE",
+    title: "TATA KELOLA RISIKO",
     items: [
       {
         label: "Piagam Manris",
@@ -21,16 +22,16 @@ export const mainMenuItems: MainMenuGroup[] = [
         matchHrefs: ["/management/charters"],
       },
       {
-        label: "Eskalasi Risiko",
-        href: "/risk/cascading",
-        icon: "GitBranch",
-        matchHrefs: ["/risk/cascading"],
-      },
-      {
         label: "Struktur Kinerja",
         href: "/management/planning",
         icon: "Goal",
         matchHrefs: ["/management/planning"],
+      },
+      {
+        label: "Eskalasi Risiko",
+        href: "/risk/cascading",
+        icon: "GitBranch",
+        matchHrefs: ["/risk/cascading"],
       },
       // {
       //   label: "TMPMR",
@@ -46,22 +47,22 @@ export const mainMenuItems: MainMenuGroup[] = [
       { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
       { label: "Daftar Risiko", href: "/risk/register", icon: "ShieldAlert" },
       {
-        label: "Kertas Kerja",
-        href: "/risk/working-papers",
-        icon: "FileSignature",
-      },
-      { label: "Persetujuan & TTE", href: "/inbox", icon: "Inbox" },
-      {
         label: "Penanganan",
         href: "/compliance/penanganan",
         icon: "ClipboardCheck",
       },
       {
-        label: "Monitoring",
+        label: "Pemantauan",
         href: "/compliance/monitoring",
-        icon: "ClipboardCheck",
-        matchHrefs: ["/compliance/monitoring", "/compliance/kri"],
+        icon: "MonitorDot",
+        matchHrefs: ["/compliance/monitoring"],
       },
+      {
+        label: "Kertas Kerja",
+        href: "/risk/working-papers",
+        icon: "FileText",
+      },
+      { label: "Persetujuan & TTE", href: "/inbox", icon: "FileSignature" },
       {
         label: "Evaluasi",
         href: "/evaluations",
@@ -74,21 +75,20 @@ export const mainMenuItems: MainMenuGroup[] = [
 ];
 
 export const adminMenuGroup: MainMenuGroup = {
-  title: "MASTER",
+  title: "ADMINISTRASI",
   items: [
-    { label: "Users", href: "/admin/users", icon: "Users" },
     {
-      label: "Organizations",
+      label: "Pengguna",
+      href: "/admin/users",
+      icon: "Users",
+      adminOnly: true,
+    },
+    {
+      label: "Organisasi",
       href: "/admin/organizations",
       icon: "Building2",
+      adminOnly: true,
     },
-    // { label: "Settings", href: "/admin/settings", icon: "Settings2" },
-  ],
-};
-
-export const settingsMenuGroup: MainMenuGroup = {
-  title: "PENGATURAN",
-  items: [
     {
       label: "Grup",
       href: "/settings/groups",
@@ -99,13 +99,13 @@ export const settingsMenuGroup: MainMenuGroup = {
 
 export const breadcrumbMap: Record<string, string> = {
   "/overview": "Dashboard",
+  "/design-system": "Design System",
   "/inbox": "Persetujuan",
   "/panduan": "Panduan",
   "/panduan/risiko": "Panduan",
   "/compliance": "Compliance",
-  "/compliance/monitoring": "Monitoring",
+  "/compliance/monitoring": "Pemantauan",
   "/compliance/penanganan": "Penanganan",
-  "/compliance/kri": "Monitoring",
   "/compliance/controls": "Control Library",
   "/risk": "Risk Assessments",
   "/risk/register": "Register Risiko",
@@ -115,7 +115,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/risk/working-papers/new": "Buat Kertas Kerja",
   "/controls": "Control Library",
   "/monitoring/overdue": "Overdue",
-  "/reports": "Analisis Risiko",
+  "/reports": "Laporan",
   "/evaluations": "Evaluasi",
   "/evaluations/new": "Evaluasi",
   "/reports/formal": "Laporan Formal",
@@ -128,16 +128,15 @@ export const breadcrumbMap: Record<string, string> = {
   "/intelligence/document": "Document Intelligence",
   "/minutes": "Meeting",
   "/minutes/new": "Buat Notulen",
-  "/intelligence/predictive": "Predictive Scoring",
-  "/intelligence/cba": "Cost Benefit Analysis",
-  "/admin": "Administrasi",
+	"/intelligence/predictive": "Predictive Scoring",
+	"/admin": "Administrasi",
   "/admin/users": "Pengguna",
   "/admin/users/new": "Tambah Pengguna",
   "/admin/organizations": "Organisasi",
   "/admin/settings": "Pengaturan",
   "/settings": "Pengaturan",
   "/settings/groups": "Grup",
-  "/management": "Risk Governance",
+  "/management": "Tata Kelola Risiko",
   "/management/charters": "Piagam Manris",
   "/management/charters/new": "Buat Piagam Manris",
   "/risk/cascading": "Eskalasi Risiko",

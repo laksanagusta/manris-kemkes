@@ -11,6 +11,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { listWorkingPapers } from "@/lib/api/working-papers";
 import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
+import { WorkingPaperProgressCollapsible } from "./_components/working-paper-progress-collapsible";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -155,7 +156,7 @@ function WorkingPaperFiltersSidebar({
                   onStatusFilterChange(value as WorkingPaperStatusFilter)
                 }
               >
-                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Semua status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -251,7 +252,7 @@ function WorkingPaperFiltersToolbar({
   return (
     <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
       <CollectionSearchField
-        containerClassName="w-full sm:flex-1 sm:w-auto md:flex-1 md:w-auto"
+        containerClassName="w-full sm:w-80 sm:flex-none"
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchPlaceholder}
@@ -626,21 +627,7 @@ export default function WorkingPapersPage() {
 
   return (
     <PageStack>
-      <CollectionPageHeader
-        title="Kertas Kerja"
-        description="Kelola dan pantau seluruh kertas kerja risiko organisasi."
-        actions={
-          <AccentButton
-            onClick={() => {
-              setSelectedPeriod(currentAssessmentCycle());
-              setCreateModalOpen(true);
-            }}
-          >
-            <Plus className="size-3.5" strokeWidth={2.5} />
-            Buat Kertas Kerja
-          </AccentButton>
-        }
-      />
+      <CollectionPageHeader title="Kertas Kerja" />
 
       {error ? (
         <CollectionErrorState
@@ -650,9 +637,14 @@ export default function WorkingPapersPage() {
         />
       ) : null}
 
+      <WorkingPaperProgressCollapsible
+        workingPapers={papers}
+        loading={loading}
+      />
+
       <CollectionToolbar
-        className="w-full [&>div]:w-full [&>div]:md:w-full"
-        actions={
+        className="w-full"
+        leading={
           <WorkingPaperFiltersToolbar
             search={search}
             onSearchChange={(value) => {
@@ -680,6 +672,17 @@ export default function WorkingPapersPage() {
             }}
             onReset={handleResetFilters}
           />
+        }
+        actions={
+          <AccentButton
+            onClick={() => {
+              setSelectedPeriod(currentAssessmentCycle());
+              setCreateModalOpen(true);
+            }}
+          >
+            <Plus className="size-3.5" strokeWidth={2.5} />
+            Buat Kertas Kerja
+          </AccentButton>
         }
       />
 

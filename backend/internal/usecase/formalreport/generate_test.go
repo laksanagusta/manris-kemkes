@@ -48,12 +48,6 @@ func (f fakeIncidentRepo) List(ctx context.Context, orgIDs []uuid.UUID) ([]*enti
 	return []*entity.Incident{{}, {}}, nil
 }
 
-type fakeKRIRepo struct{}
-
-func (f fakeKRIRepo) List(ctx context.Context, orgIDs []uuid.UUID, includeArchived bool) ([]*entity.KRI, error) {
-	return []*entity.KRI{{}}, nil
-}
-
 type fakeTMPMRRepo struct{}
 
 func (f fakeTMPMRRepo) Create(ctx context.Context, assessment *entity.TMPMRAssessment) error {
@@ -84,7 +78,6 @@ func TestGenerateFormalReportUseCase(t *testing.T) {
 		reportRepo:   &fakeFormalReportRepo{},
 		riskRepo:     fakeRiskRepo{},
 		incidentRepo: fakeIncidentRepo{},
-		kriRepo:      fakeKRIRepo{},
 		tmpmrRepo:    fakeTMPMRRepo{},
 	}
 
@@ -122,9 +115,6 @@ func TestGenerateFormalReportUseCase(t *testing.T) {
 	if summary["incidentCount"].(int) != 2 {
 		t.Fatalf("incidentCount = %v, want 2", summary["incidentCount"])
 	}
-	if summary["kriCount"].(int) != 1 {
-		t.Fatalf("kriCount = %v, want 1", summary["kriCount"])
-	}
 	if summary["tmpmrCount"].(int) != 1 {
 		t.Fatalf("tmpmrCount = %v, want 1", summary["tmpmrCount"])
 	}
@@ -141,7 +131,6 @@ func TestGenerateFormalReportUseCase_StoresTypeAwareSummaryMetadata(t *testing.T
 		reportRepo:   &fakeFormalReportRepo{},
 		riskRepo:     fakeRiskRepo{},
 		incidentRepo: fakeIncidentRepo{},
-		kriRepo:      fakeKRIRepo{},
 		tmpmrRepo:    fakeTMPMRRepo{},
 	}
 
@@ -180,7 +169,6 @@ func TestGenerateFormalReportRejectsInvalidType(t *testing.T) {
 		reportRepo:   &fakeFormalReportRepo{},
 		riskRepo:     fakeRiskRepo{},
 		incidentRepo: fakeIncidentRepo{},
-		kriRepo:      fakeKRIRepo{},
 		tmpmrRepo:    fakeTMPMRRepo{},
 	}
 

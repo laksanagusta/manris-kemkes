@@ -430,11 +430,6 @@ export default function TMPMRDetailPage() {
     <FormPage className="max-w-7xl">
       <FormHeader
         title={isCreateMode ? "Buat TMPMR" : "Detail TMPMR"}
-        description={
-          isCreateMode
-            ? "Isi enam dimensi penilaian untuk menyimpan draft awal sebelum masuk ke alur review."
-            : "Kelola skor, evidence, dan alur persetujuan untuk assessment yang sudah tersimpan."
-        }
         onBack={() => router.push("/management/tmpmr")}
         backLabel="Kembali ke TMPMR"
         badges={statusBadges}
@@ -700,7 +695,7 @@ export default function TMPMRDetailPage() {
           <Card className="bg-muted/20">
             <CardContent className="space-y-3 px-4 py-4">
               <p className="text-sm font-medium">Panduan singkat</p>
-              <p className="text-sm leading-6 text-muted-foreground">
+              <p className="text-sm leading-6 text-secondary-foreground">
                 Isi skor dari 1 sampai 5 untuk semua dimensi sebelum submit. Setelah masuk review, item dikunci dan hanya catatan review yang bisa diperbarui.
               </p>
               {!isCreateMode ? (

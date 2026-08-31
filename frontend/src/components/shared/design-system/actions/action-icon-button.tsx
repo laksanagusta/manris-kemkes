@@ -20,7 +20,7 @@ export function ActionIconButton({
       variant="ghost"
       size="icon-xs"
       className={cn(
-        "border-0 bg-card text-muted-foreground shadow-none",
+        "border border-border/60 bg-card text-muted-foreground shadow-none",
         className,
       )}
       aria-label={ariaLabel}

@@ -30,9 +30,7 @@ function getWorkingPaperRiskLevelLabel(level: RiskLevel): string {
 export function resolveWorkingPaperRiskDisplay(
   risk: WorkingPaperRiskData,
 ): WorkingPaperRiskDisplay {
-  const fallbackScore = typeof risk.nilai === "number" ? Math.round(risk.nilai) : 0;
-  const score =
-    typeof risk.inherentScore === "number" ? risk.inherentScore : fallbackScore;
+  const score = typeof risk.nilai === "number" ? Math.round(risk.nilai) : 0;
   const level = getWorkingPaperRiskLevel(score);
 
   return {

@@ -766,7 +766,6 @@ ALTER TABLE mitigations ADD COLUMN supporting_unit TEXT NOT NULL DEFAULT '';
 ALTER TABLE mitigations ADD COLUMN resources_required TEXT NOT NULL DEFAULT '';
 ALTER TABLE mitigations ADD COLUMN contingency_plan TEXT NOT NULL DEFAULT '';
 ALTER TABLE mitigations ADD COLUMN potential_obstacle TEXT NOT NULL DEFAULT '';
-ALTER TABLE mitigations ADD COLUMN cost_benefit_note TEXT NOT NULL DEFAULT '';
 ALTER TABLE mitigations ADD COLUMN is_breakthrough_activity BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE mitigations ADD COLUMN is_existing_control BOOLEAN NOT NULL DEFAULT FALSE;
 ```

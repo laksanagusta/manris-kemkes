@@ -18,7 +18,6 @@ func TestMitigationValidateAllowsKMKFields(t *testing.T) {
 		ResourcesRequired:      "2 SDM",
 		ContingencyPlan:        "Rapat mingguan",
 		PotentialObstacle:      "Penolakan internal",
-		CostBenefitNote:        "Manfaat lebih besar dari biaya",
 		IsBreakthroughActivity: true,
 		IsExistingControl:      false,
 	}

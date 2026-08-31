@@ -3,6 +3,14 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const page = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
+const riskFormPage = readFileSync(
+  new URL("./new/page.tsx", import.meta.url),
+  "utf8",
+);
+const roPicker = readFileSync(
+  new URL("../../../../components/risk/ro-picker.tsx", import.meta.url),
+  "utf8",
+);
 const shell = readFileSync(
   new URL("../../../../components/app-shell.tsx", import.meta.url),
   "utf8",
@@ -14,18 +22,85 @@ test("risk register header omits the redundant subtitle", () => {
 
 test("risk register table headings share one typography scale", () => {
   const tableHeaderSection = page.slice(
-    page.indexOf("<TableHeader"),
-    page.indexOf("</TableHeader>") + "</TableHeader>".length,
+    page.indexOf("<CollectionTableHeader"),
+    page.indexOf("</CollectionTableHeader>") + "</CollectionTableHeader>".length,
   );
 
-  assert.doesNotMatch(tableHeaderSection, /text-xs/);
-  assert.equal(tableHeaderSection.match(/text-sm/g)?.length, 7);
+  assert.equal(tableHeaderSection.match(/<CollectionTableHead(?:\s|>)/g)?.length, 6);
+  assert.doesNotMatch(tableHeaderSection, />\s*Kode\s*</);
+  assert.match(tableHeaderSection, /Pemantauan/);
+});
+
+test("risk form context card uses the shared default border shadow", () => {
+  assert.match(
+    riskFormPage,
+    /<Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0 transition-colors duration-300">/,
+  );
+  assert.doesNotMatch(riskFormPage, /elevation\s*=/);
+});
+
+test("risk form back action uses a secondary button with a concise label", () => {
+  assert.match(
+    riskFormPage,
+    /<ActionButton\s+asChild\s+variant="secondary"\s+size="sm"\s+className="border-0 text-sm font-normal"\s*>[\s\S]*?<Link href="\/risk\/register">[\s\S]*?Kembali\s*<\/Link>/,
+  );
+  assert.doesNotMatch(riskFormPage, /Kembali ke daftar risiko/);
+});
+
+test("risk form uses concise finalization copy and medium-weight field labels", () => {
+  assert.match(
+    riskFormPage,
+    /usesDirectApprovalCopy[\s\S]*?\? "Finalisasi"/,
+  );
+  assert.doesNotMatch(riskFormPage, /Finalisasi risiko/);
+  assert.match(riskFormPage, /<Label[^>]*font-medium/);
+  assert.match(riskFormPage, /\[&_\[data-slot=label\]\]:font-medium/);
+});
+
+test("risk form section headings use the medium weight", () => {
+  const sectionHeadingClass =
+    /<p className="text-sm font-medium tracking-tight text-foreground transition-colors">/g;
+
+  assert.equal(riskFormPage.match(sectionHeadingClass)?.length, 6);
+  assert.match(
+    riskFormPage,
+    /<p className="text-sm font-medium tracking-tight text-foreground transition-colors">\s*Identifikasi Risiko\s*<\/p>/,
+  );
+});
+
+test("risk evaluation metadata is concise, normal, and muted", () => {
+  assert.match(
+    riskFormPage,
+    /<div className="grid gap-5 text-sm font-normal text-muted-foreground md:grid-cols-2">[\s\S]*?Prioritas Risiko[\s\S]*?<span>\{riskPriority\}<\/span>[\s\S]*?Selera Risiko[\s\S]*?<span>/,
+  );
+  assert.doesNotMatch(riskFormPage, /\(Otomatis dari (tingkat|skor) risiko\)/);
+});
+
+test("finalized risk locks RO and assessment cycle selectors", () => {
+  assert.match(
+    riskFormPage,
+    /<ROPicker[\s\S]*?value=\{watch\("roId"\)\}[\s\S]*?disabled=\{isRiskLocked\}/,
+  );
+  assert.match(
+    riskFormPage,
+    /<PopoverSelectField[\s\S]*?value=\{assessmentCycleDisplay\}[\s\S]*?placeholder="Pilih periode kuartal"[\s\S]*?disabled=\{isRiskLocked\}/,
+  );
+  assert.match(roPicker, /role="combobox"[\s\S]*?disabled=\{disabled\}/);
+  assert.match(roPicker, /<SearchInput[\s\S]*?disabled=\{disabled\}/);
+  assert.match(roPicker, /<button[\s\S]*?disabled=\{disabled\}/);
+});
+
+test("risk form context section titles use 0.6px character spacing", () => {
+  const rightPanel = riskFormPage.slice(riskFormPage.indexOf("<aside"));
+
+  assert.equal(rightPanel.match(/tracking-\[0\.6px\]/g)?.length, 3);
+  assert.doesNotMatch(rightPanel, /tracking-\[0\.16em\]/);
 });
 
 test("application main content can shrink beside the sidebar", () => {
   assert.match(
     shell,
-    /<SidebarInset className="min-w-0 overflow-x-hidden bg-background p-4 md:p-6">/,
+    /<SidebarInset className="min-w-0 overflow-x-hidden bg-main-content p-4 md:p-6">/,
   );
   assert.match(
     shell,
@@ -33,39 +108,41 @@ test("application main content can shrink beside the sidebar", () => {
   );
 });
 
-test("register tools sit on the same row as the tabs", () => {
+test("register tools sit above the single risk collection", () => {
+  assert.match(page, /<CollectionToolbar/);
+  assert.match(page, /<CollectionTableCard>/);
+  assert.doesNotMatch(page, /<Tabs|TabsContent|TabsTrigger/);
+  assert.doesNotMatch(page, /Muat ulang daftar risiko|handleRefreshRegister/);
+});
+
+test("risk register import action shares the card shadow boundary", () => {
   assert.match(
     page,
-    /<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">\s*<TabsList[\s\S]*?<RiskRegisterFilterToolbar[\s\S]*?<\/div>\s*<TabsContent/,
+    /<ActionButton\s+asChild\s+variant="outline"\s+className="border-0 border-shadow"\s*>[\s\S]*?Import Risiko/,
   );
 });
 
 test("scores and compact badges follow the table density", () => {
   assert.match(
     page,
-    /className="text-sm font-medium tabular-nums text-foreground"/,
+    /className="text-sm font-normal tabular-nums text-muted-foreground"/,
   );
   assert.match(page, /<Badge\s+size="compact"\s+tone=/);
-  assert.match(
-    page,
-    /"flex h-6 items-center justify-center gap-1 rounded-full border-0/,
-  );
+  assert.match(page, /<CollectionTableHead className="sticky right-0/);
 });
 
 test("active register surfaces use shared design-system components", () => {
   assert.match(page, /from "@\/components\/shared\/design-system"/);
-  assert.match(page, /<CollectionTabsList>/);
   assert.match(page, /<CollectionTableCard>/);
-  assert.equal(page.match(/<CollectionPagination/g)?.length, 2);
-  assert.doesNotMatch(page, /RegisterTabsList|RegisterTableCard|RegisterPagination/);
-  assert.match(page, /<CollectionTabsTrigger/);
+  assert.equal(page.match(/<CollectionPagination/g)?.length, 1);
+  assert.doesNotMatch(page, /RegisterTabsList|RegisterTableCard|RegisterPagination|<Tabs/);
   assert.match(page, /<CollectionSearchField/);
   assert.match(page, /<CollectionFilterTrigger/);
   assert.match(page, /from "@\/components\/ui\/badge"/);
   assert.match(page, /<CollectionDialogCancel/);
 });
 
-test("risk confirmation modals use the shared modal action contract", () => {
+test("risk archive modal uses the shared modal action contract", () => {
   assert.match(
     page,
     /<DialogContent className="max-w-lg no-scrollbar" showCloseButton=\{false\}>/,
@@ -74,22 +151,10 @@ test("risk confirmation modals use the shared modal action contract", () => {
     page,
     /<AccentButton[\s\S]*?onClick=\{handleArchiveRisk\}[\s\S]*?>\s*Arsipkan\s*<\/AccentButton>/,
   );
-  assert.match(
-    page,
-    /<AlertDialogCancel\s+variant="outline"\s+size="md"[\s\S]*?>\s*Batal\s*<\/AlertDialogCancel>/,
-  );
-  assert.match(
-    page,
-    /className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300\/30"/,
-  );
-  assert.match(
-    page,
-    /<AlertDialogAction\s+variant="primary"\s+size="primary"\s+onClick=\{handleCreateReassessment\}/,
-  );
   assert.doesNotMatch(page, /bg-accent p-3 ring-1 ring-inset ring-border/);
 });
 
-test("removed draft and history experiences leave no route UI", () => {
+test("removed draft and history experiences leave no legacy tab UI", () => {
   assert.doesNotMatch(page, /<TabsTrigger value="my-drafts"/);
   assert.doesNotMatch(page, /<TabsTrigger value="history"/);
 });

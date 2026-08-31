@@ -47,13 +47,13 @@ import {
 import { cn } from "@/lib/utils";
 import {
   CollectionPagination,
-  CollectionFilterGrid,
   CollectionPageHeader,
   CollectionSearchField,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
+  CollectionToolbar,
 } from "@/components/shared/design-system";
 import {
   AccentButton,
@@ -223,9 +223,46 @@ export default function RiskChartersPage() {
 
   return (
     <PageStack>
-      <CollectionPageHeader
-        title="Piagam Manris"
-        description="Kelola piagam manajemen risiko untuk menetapkan konteks, ruang lingkup, dan struktur UPR secara konsisten antar unit kerja."
+      <CollectionPageHeader title="Piagam Manris" />
+
+      <CollectionToolbar
+        className="w-full"
+        leading={
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="min-w-0 w-full sm:w-80 sm:flex-none">
+              <CollectionSearchField
+                id="charter-search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari organisasi, UPR, atau periode"
+              />
+            </div>
+            <Select value={periodFilter} onValueChange={setPeriodFilter}>
+              <SelectTrigger className="w-full sm:w-56">
+                <SelectValue placeholder="Semua periode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua periode</SelectItem>
+                {availablePeriods.map((period) => (
+                  <SelectItem key={period} value={period}>
+                    {period}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {hasActiveFilters ? (
+              <ActionButton
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="text-muted-foreground"
+                icon={<RotateCcw className="size-3.5" />}
+              >
+                Reset filter
+              </ActionButton>
+            ) : null}
+          </div>
+        }
         actions={
           <AccentButton asChild>
             <Link href="/management/charters/new">
@@ -235,47 +272,6 @@ export default function RiskChartersPage() {
           </AccentButton>
         }
       />
-
-      <CollectionFilterGrid className="lg:grid-cols-[minmax(0,1fr)_220px] lg:items-end">
-        <div className="min-w-0">
-          <CollectionSearchField
-            id="charter-search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Cari organisasi, UPR, atau periode"
-          />
-        </div>
-
-        <div className="justify-self-end">
-          <Select value={periodFilter} onValueChange={setPeriodFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Semua periode" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua periode</SelectItem>
-              {availablePeriods.map((period) => (
-                <SelectItem key={period} value={period}>
-                  {period}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </CollectionFilterGrid>
-
-      {hasActiveFilters && (
-        <div>
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            onClick={resetFilters}
-            className="text-muted-foreground"
-            icon={<RotateCcw className="size-3.5" />}
-          >
-            Reset filter
-          </ActionButton>
-        </div>
-      )}
 
       <CollectionTableCard>
         <Table className="min-w-[880px] table-fixed">
@@ -346,8 +342,10 @@ export default function RiskChartersPage() {
               paginatedItems.map((item) => (
                 <TableRow key={item.id} className="hover:bg-muted/20">
                   <TableCell className="max-w-[200px] truncate font-medium">
-                    {organizationMap.get(item.organizationId) ??
-                      "Organisasi tidak ditemukan"}
+                    <span className="text-foreground">
+                      {organizationMap.get(item.organizationId) ??
+                        "Organisasi tidak ditemukan"}
+                    </span>
                   </TableCell>
                   <TableCell>{uprLevelLabel[item.uprLevel] ?? item.uprLevel}</TableCell>
                   <TableCell>{item.period}</TableCell>

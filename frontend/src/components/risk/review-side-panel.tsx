@@ -391,7 +391,7 @@ export function ReviewSidePanel({
                                 }
                               }}
                               disabled={submittingStage !== null}
-                              className="text-xs shadow-sm"
+                              className="text-xs"
                             >
                               {node.label === "Ditinjau"
                                 ? "Tinjau"

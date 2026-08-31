@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowLeft } from "@/components/ui/icons";
 
-import { Button } from "@/components/ui/button";
+import { ActionButton, CollectionPageHeader } from "@/components/shared/design-system";
 import {
   Card,
   CardContent,
@@ -18,7 +18,6 @@ type FormPageProps = {
 
 type FormHeaderProps = {
   title: string;
-  description?: ReactNode;
   badges?: ReactNode;
   actions?: ReactNode;
   onBack?: () => void;
@@ -49,63 +48,35 @@ export function FormPage({ children, className }: FormPageProps) {
 
 export function FormHeader({
   title,
-  description,
   badges,
   actions,
   onBack,
   backLabel = "Kembali",
 }: FormHeaderProps) {
   return (
-    <div className="pt-3 pb-6">
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          {onBack ? (
-            <Button
-              type="button"
-              variant="ghost"
-              aria-label={backLabel}
-              className="h-auto rounded-full border border-border/70 bg-background px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-sm transition-all hover:border-primary/25 hover:bg-primary/[0.05] hover:text-foreground"
-              onClick={onBack}
-            >
-              <span className="flex size-6 items-center justify-center rounded-full border border-current/15 bg-muted/[0.55] text-current transition-transform duration-200 group-hover/button:-translate-x-0.5">
-                <ArrowLeft className="size-3.5" />
-              </span>
-              <span className="truncate">{backLabel}</span>
-            </Button>
-          ) : null}
-          <div className="h-px flex-1 bg-gradient-to-r from-border/80 via-border/35 to-transparent" />
-        </div>
-
-        <div className="grid gap-x-6 gap-y-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-          <div className="min-w-0">
-            <div className="min-w-0 space-y-2">
-              {badges ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  {badges}
-                </div>
-              ) : null}
-
-              <div className="space-y-1.5">
-                <h1 className="page-title">
-                  {title}
-                </h1>
-                {description ? (
-                  <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                    {description}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
-          {actions ? (
-            <div className="flex flex-wrap items-center gap-2 md:justify-end md:self-start md:pt-1">
-              {actions}
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </div>
+    <CollectionPageHeader
+      backAction={
+        onBack ? (
+          <ActionButton
+            type="button"
+            variant="secondary"
+            size="sm"
+            icon={<ArrowLeft className="size-3.5" />}
+            onClick={onBack}
+          >
+            {backLabel}
+          </ActionButton>
+        ) : undefined
+      }
+      eyebrow={
+        badges ? (
+          <div className="flex flex-wrap items-center gap-2">{badges}</div>
+        ) : undefined
+      }
+      title={title}
+      actions={actions}
+      className="pb-6"
+    />
   );
 }
 

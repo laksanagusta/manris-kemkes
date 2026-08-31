@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Save,
   Send,
+  ArrowLeft,
 } from "@/components/ui/icons";
 import { toast } from "sonner";
 
@@ -52,7 +53,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FormHeader } from "@/components/shared/form-shell";
-import { PageStack } from "@/components/shared/design-system";
+import { ActionButton, PageStack } from "@/components/shared/design-system";
 import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import { cn } from "@/lib/utils";
@@ -601,9 +602,12 @@ export default function EvaluationDetailPage() {
           <p className="text-sm text-muted-foreground">
             Periksa kembali tautan atau buka daftar evaluasi untuk memilih data yang benar.
           </p>
-          <Button asChild variant="outline">
-            <Link href="/evaluations">Kembali ke daftar</Link>
-          </Button>
+          <ActionButton asChild variant="secondary" size="sm">
+            <Link href="/evaluations">
+              <ArrowLeft className="size-3.5" aria-hidden="true" />
+              Kembali ke daftar
+            </Link>
+          </ActionButton>
         </CardContent>
       </Card>
     );
@@ -616,11 +620,6 @@ export default function EvaluationDetailPage() {
     <PageStack className="font-display space-y-8">
       <FormHeader
         title={`Form evaluasi ${evaluation.period}`}
-        description={
-          <>
-            {orgName} · {evaluation.templateName || evaluation.templateId}
-          </>
-        }
         badges={
           <>
             <Badge
@@ -757,7 +756,7 @@ export default function EvaluationDetailPage() {
               <div className="flex items-center justify-between gap-3">
                 <div className="space-y-1">
                   <CardTitle className="text-sm font-semibold">Identitas Evaluasi</CardTitle>
-                  <p className="text-xs leading-5 text-zinc-500">
+                  <p className="text-xs leading-5 text-secondary-foreground">
                     Field utama ditarik dari organisasi dan dipilih dari daftar user.
                   </p>
                 </div>
@@ -960,7 +959,7 @@ export default function EvaluationDetailPage() {
                 <CardTitle className="text-sm font-semibold">
                   Hasil Pemantauan dan Evaluasi
                 </CardTitle>
-                <p className="text-xs leading-5 text-zinc-500">
+                <p className="text-xs leading-5 text-secondary-foreground">
                   Isi jawaban, uraian kondisi, dan keterangan untuk setiap poin evaluasi.
                 </p>
               </div>
@@ -1065,7 +1064,7 @@ export default function EvaluationDetailPage() {
                                 }}
                                 disabled={!editable}
                               >
-                                <SelectTrigger className="h-8 border-border bg-card text-sm shadow-none">
+                                <SelectTrigger className="h-10 border-input bg-card text-sm shadow-none">
                                   <SelectValue placeholder="Ya/Tidak" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1228,7 +1227,7 @@ export default function EvaluationDetailPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <CardTitle className="text-sm font-semibold">Status kerja</CardTitle>
-                  <p className="text-xs leading-5 text-zinc-500">
+                  <p className="text-xs leading-5 text-secondary-foreground">
                     Pantau kelengkapan isian sebelum evaluasi difinalisasi.
                   </p>
                 </div>

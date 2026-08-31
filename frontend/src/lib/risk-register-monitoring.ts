@@ -45,12 +45,10 @@ export function getRiskRegisterMonitoringStatusLabel(
 
   switch ((status ?? "").trim().toLowerCase()) {
     case "draft":
-      return "Draf";
+      return "Sedang Berjalan";
     case "final":
     case "finalized": // legacy API payloads
       return "Selesai";
-    case "void":
-      return "Dibatalkan";
     default:
       return "Belum Dimulai";
   }
@@ -70,8 +68,6 @@ export function getRiskRegisterMonitoringStatusTone(
     case "final":
     case "finalized": // legacy API payloads
       return "success";
-    case "void":
-      return "danger";
     default:
       return "neutral";
   }
@@ -101,12 +97,10 @@ export function formatMonitoringReviewNext(
 export function getMonitoringTransactionStatusLabel(status?: string) {
   switch (status) {
     case "draft":
-      return "Draft";
+      return "Sedang Berjalan";
     case "final":
     case "finalized": // legacy API payloads
-      return "Final";
-    case "void":
-      return "Void";
+      return "Selesai";
     default:
       return status || "-";
   }

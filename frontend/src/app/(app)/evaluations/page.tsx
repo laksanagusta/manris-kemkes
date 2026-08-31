@@ -35,6 +35,7 @@ import {
   CollectionTableHeader,
   CollectionTableHeaderRow,
   CollectionToolbar,
+  KpiCard,
 } from "@/components/shared/design-system";
 import {
   AccentButton,
@@ -42,7 +43,6 @@ import {
   MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
-import { KpiCard } from "@/components/ui/kpi-card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -186,7 +186,7 @@ function EvaluationFiltersSidebar({
                 Periode
               </Label>
               <Select value={periodFilter} onValueChange={onPeriodFilterChange}>
-                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Periode" />
                 </SelectTrigger>
                 <SelectContent>
@@ -207,7 +207,7 @@ function EvaluationFiltersSidebar({
                 value={status}
                 onValueChange={(value) => onStatusChange(value as EvaluationStatus | "all")}
               >
-                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -642,21 +642,7 @@ export default function EvaluationsPage() {
 
   return (
     <PageStack>
-      <CollectionPageHeader
-        title="Evaluasi"
-        description="Kelola evaluasi monitoring dan tindak lanjut risiko organisasi."
-        actions={
-          token ? (
-            <AccentButton
-              type="button"
-              onClick={() => handleCreateDialogOpenChange(true)}
-              icon={<FilePlus2 className="size-3.5" strokeWidth={2.5} />}
-            >
-              Buat Evaluasi
-            </AccentButton>
-          ) : null
-        }
-      />
+      <CollectionPageHeader title="Evaluasi" />
 
       <MetricGrid>
         {evaluationSummaryCards.map((card) => (
@@ -665,16 +651,12 @@ export default function EvaluationsPage() {
             label={card.label}
             value={card.value}
             tone="white"
-            className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border border-0 p-4"
-            labelClassName="capitalize tracking-normal"
-            valueClassName="font-medium"
-            valueWrapClassName="mt-auto"
           />
         ))}
       </MetricGrid>
 
       <CollectionToolbar
-        actions={
+        leading={
           <EvaluationFiltersToolbar
             query={query}
             onQueryChange={(value) => {
@@ -716,6 +698,17 @@ export default function EvaluationsPage() {
             }}
             onReset={handleResetFilters}
           />
+        }
+        actions={
+          token ? (
+            <AccentButton
+              type="button"
+              onClick={() => handleCreateDialogOpenChange(true)}
+              icon={<FilePlus2 className="size-3.5" strokeWidth={2.5} />}
+            >
+              Buat Evaluasi
+            </AccentButton>
+          ) : null
         }
       />
 
@@ -914,7 +907,7 @@ export default function EvaluationsPage() {
                       ? "create-organization-error"
                       : undefined
                   }
-                  className="h-9 rounded-lg text-sm"
+                  className="h-10 rounded-lg text-sm"
                 />
                 {createFieldErrors.organization ? (
                   <p
@@ -946,7 +939,7 @@ export default function EvaluationsPage() {
                     aria-describedby={
                       createFieldErrors.period ? "create-period-error" : undefined
                     }
-                    className="h-9 rounded-lg text-sm"
+                    className="h-10 rounded-lg text-sm"
                   >
                     <SelectValue placeholder="Pilih periode" />
                   </SelectTrigger>

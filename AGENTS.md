@@ -10,7 +10,6 @@
 - Role-Based Access Control (RBAC) with 4 user levels (Super Admin, Unit, Reviewer, Pimpinan)
 - Real-time Executive Dashboard with Risk Heatmap 5×5
 - Incident management with CAPA tracking
-- Key Risk Indicators (KRI) monitoring
 - Approval workflows and escalation automation
 - Lessons learned repository
 - Risk versioning and audit trails
@@ -56,7 +55,7 @@ frontend/
 │   │   │   ├── dashboard/     # Executive Dashboard
 │   │   │   ├── inbox/         # Approval workflows
 │   │   │   ├── intelligence/  # AI tools suite
-│   │   │   ├── compliance/    # KRI, Controls, Lessons Learned
+│   │   │   ├── compliance/    # Controls, Lessons Learned
 │   │   │   └── admin/        # Management functions
 │   │   ├── (public)/          # Public routes
 │   │   ├── layout.tsx         # Root layout
@@ -234,7 +233,7 @@ The backend is transitioning to Clean Architecture with clear separation of conc
 
 ### Database Design
 - **Repository Pattern**: Clean interfaces for data access
-- **Entity Relationships**: Risk → Incidents → KRIs → Controls → Lessons Learned
+- **Entity Relationships**: Risk → Incidents → Controls → Lessons Learned
 - **Audit Trail**: Automatic change tracking for compliance
 - **RBAC**: Role-based access control at database level
 
@@ -243,7 +242,6 @@ The backend is transitioning to Clean Architecture with clear separation of conc
 - `risks` - Core risk records with scoring, status, and AI analysis
 - `risk_versions` - Risk version history for audit trail
 - `incidents` - Incident records with CAPA tracking
-- `kri` (Key Risk Indicators) - Risk monitoring metrics
 - `controls` - Risk control measures
 - `approvals` - Approval workflow records
 - `audit_logs` - Change tracking for compliance
@@ -277,9 +275,7 @@ The backend is transitioning to Clean Architecture with clear separation of conc
 - `POST /api/v1/ai/predictive` - Risk trend prediction
 - `POST /api/v1/ai/minutes` - Generate meeting minutes
 
-### KRI & Controls
-- `GET /api/v1/kris` - List KRIs
-- `POST /api/v1/kris` - Create KRI
+### Controls
 - `GET /api/v1/controls` - List controls
 - `POST /api/v1/controls` - Create control
 

@@ -11,11 +11,10 @@ export type RiskRegisterPayloadMitigation = {
   expectedOutput?: string;
   quantitativeTarget?: string;
   supportingUnit?: string;
-  resourcesRequired?: string;
-  contingencyPlan?: string;
-  potentialObstacle?: string;
-  costBenefitNote?: string;
-  isBreakthroughActivity?: boolean;
+	resourcesRequired?: string;
+	contingencyPlan?: string;
+	potentialObstacle?: string;
+	isBreakthroughActivity?: boolean;
   isExistingControl?: boolean;
 };
 
@@ -134,11 +133,10 @@ export function buildRiskRegisterPayload(
       expectedOutput: mitigation.expectedOutput || "",
       quantitativeTarget: mitigation.quantitativeTarget || "",
       supportingUnit: mitigation.supportingUnit || "",
-      resourcesRequired: mitigation.resourcesRequired || "",
-      contingencyPlan: mitigation.contingencyPlan || "",
-      potentialObstacle: mitigation.potentialObstacle || "",
-      costBenefitNote: mitigation.costBenefitNote || "",
-      isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
+		resourcesRequired: mitigation.resourcesRequired || "",
+		contingencyPlan: mitigation.contingencyPlan || "",
+		potentialObstacle: mitigation.potentialObstacle || "",
+		isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
       isExistingControl: mitigation.isExistingControl ?? false,
     })),
     roId: data.roId || undefined,

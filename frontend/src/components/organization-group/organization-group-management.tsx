@@ -323,7 +323,7 @@ export function OrganizationGroupManagement({
                     setPage(1);
                   }}
                   placeholder="Cari grup..."
-                  className="h-8 border-border bg-card pl-9 text-sm shadow-none"
+                  className="h-10 border-input bg-card pl-9 text-sm shadow-none"
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2 md:justify-end">
@@ -341,7 +341,7 @@ export function OrganizationGroupManagement({
 
         <div className="relative w-full overflow-x-auto">
           <Table className="min-w-[920px]">
-            <TableHeader className="[&_tr]:border-b [&_tr]:border-border">
+            <TableHeader className="[&_tr]:border-b [&_tr]:border-border/60">
               <TableRow className="border-b border-border transition-colors hover:bg-transparent">
                 <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap pl-4 pr-2.5 text-left align-middle uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
                   Nama Grup
@@ -473,7 +473,7 @@ export function OrganizationGroupManagement({
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Contoh: Jawa Timur"
                 disabled={saving}
-                className="h-9"
+                className="h-10"
               />
             </div>
 
@@ -541,7 +541,7 @@ export function OrganizationGroupManagement({
                   value={memberSearch}
                   onChange={(event) => setMemberSearch(event.target.value)}
                   placeholder="Cari organisasi..."
-                  className="h-9 pl-9"
+                  className="h-10 pl-9"
                   disabled={saving}
                 />
               </div>

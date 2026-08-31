@@ -29,10 +29,8 @@ func DefaultAIModels() map[string]string {
 		"transcript":      getEnvDefault("OPENAI_MODEL_TRANSCRIPT", ""),
 		"predictive":      getEnvDefault("OPENAI_MODEL_PREDICTIVE", ""),
 		"minutes":         getEnvDefault("OPENAI_MODEL_MINUTES", ""),
-		"kri":             getEnvDefault("OPENAI_MODEL_KRI", ""),
 		"risk-suggestion": getEnvDefault("OPENAI_MODEL_RISK_SUGGESTION", ""),
 		"incident":        getEnvDefault("OPENAI_MODEL_INCIDENT", ""),
-		"cba":             getEnvDefault("OPENAI_MODEL_CBA", ""),
 	}
 }
 

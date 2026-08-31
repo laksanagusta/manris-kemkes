@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import {
   CollectionDialogCancel,
@@ -15,6 +14,8 @@ import {
   CollectionTableHeader,
   CollectionTableHeaderRow,
   ExpandableSearchField,
+  KpiCard,
+  MetricGrid,
 } from "@/components/shared/design-system";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import {
@@ -51,7 +52,7 @@ import {
   MitigationProgressDialog,
 } from "@/components/shared/design-system";
 import { validateMitigationReportForm } from "@/lib/validation/reporting";
-import { getMitigationSubmissionActionState } from "@/lib/kri-reporting";
+import { getMitigationSubmissionActionState } from "@/lib/mitigation-reporting";
 import {
   buildMitigationMonitoringQueryString,
   parseMitigationMonitoringQueryState,
@@ -360,11 +361,12 @@ export function MitigationMonitoringPanel() {
     if (!value) return "-";
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return value;
-    return parsed.toLocaleDateString("id-ID", {
-      day: "numeric",
+
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
       month: "short",
       year: "numeric",
-    });
+    }).format(parsed);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -376,45 +378,29 @@ export function MitigationMonitoringPanel() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 md:grid-cols-4">
+    <div className="space-y-4">
+      <MetricGrid>
         <KpiCard
           label="Total Penanganan"
           value={mitigations.length}
           tone="white"
-          className="flex min-h-[96px] flex-col rounded-lg border-0 p-4 ring-1 ring-inset ring-border"
-          labelClassName="capitalize tracking-normal"
-          valueClassName="font-medium"
-          valueWrapClassName="mt-auto"
         />
         <KpiCard
           label="Overdue"
           value={overdueCount}
-          tone="rose"
-          className="flex min-h-[96px] flex-col rounded-lg border-0 p-4 ring-1 ring-inset ring-border"
-          labelClassName="capitalize tracking-normal"
-          valueClassName="font-medium"
-          valueWrapClassName="mt-auto"
+          tone="white"
         />
         <KpiCard
           label="Akan Datang"
           value={upcomingCount}
-          tone="zinc"
-          className="flex min-h-[96px] flex-col rounded-lg border-0 p-4 ring-1 ring-inset ring-border"
-          labelClassName="capitalize tracking-normal"
-          valueClassName="font-medium"
-          valueWrapClassName="mt-auto"
+          tone="white"
         />
         <KpiCard
           label="Selesai"
           value={completedCount}
-          tone="emerald"
-          className="flex min-h-[96px] flex-col rounded-lg border-0 p-4 ring-1 ring-inset ring-border"
-          labelClassName="capitalize tracking-normal"
-          valueClassName="font-medium"
-          valueWrapClassName="mt-auto"
+          tone="white"
         />
-      </div>
+      </MetricGrid>
 
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto md:ml-auto">
           <ExpandableSearchField
@@ -436,8 +422,7 @@ export function MitigationMonitoringPanel() {
         <CollectionTableCard>
           <Table className="min-w-[980px] table-fixed">
             <colgroup>
-              <col className="w-[34%]" />
-              <col className="w-[10%]" />
+              <col className="w-[44%]" />
               <col className="w-[18%]" />
               <col className="w-[14%]" />
               <col className="w-[12%]" />
@@ -447,9 +432,6 @@ export function MitigationMonitoringPanel() {
               <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
                 <CollectionTableHead className="px-3">
                   Rencana Penanganan
-                </CollectionTableHead>
-                <CollectionTableHead className="px-3">
-                  Kode Risiko
                 </CollectionTableHead>
                 <CollectionTableHead className="px-3">PIC</CollectionTableHead>
                 <CollectionTableHead className="px-3">
@@ -486,27 +468,18 @@ export function MitigationMonitoringPanel() {
                         </span>
                       </button>
                       <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                        Risiko: {item.title}
+                        {item.riskCode} · {item.title}
                       </p>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-foreground">
-                      <span className="font-mono text-sm font-medium tracking-wide text-muted-foreground">
-                        {item.riskCode}
-                      </span>
-                    </TableCell>
                     <TableCell className="px-3 py-2 align-middle">
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <p className="truncate text-sm font-medium text-muted-foreground">
                         {item.unit}
                       </p>
                     </TableCell>
                     <TableCell className="px-3 py-2 align-middle text-sm text-muted-foreground">
                       <div className="space-y-1">
                         <p>
-                          {item.dueDate
-                            ? new Date(item.dueDate).toLocaleDateString(
-                                "id-ID",
-                              )
-                            : "—"}
+                          {formatDate(item.dueDate)}
                         </p>
                         <p className="text-xs text-muted-foreground/80">
                           {tier.label}

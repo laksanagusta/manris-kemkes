@@ -56,6 +56,11 @@ import {
 import {
   ReportScopePicker,
 } from "@/components/report/report-scope-picker";
+import {
+  CollectionToolbar,
+  KpiCard,
+  MetricGrid,
+} from "@/components/shared/design-system";
 import type {
   RiskCycleDetailedComparisonItem,
   RiskCycleDetailedComparisonReport,
@@ -372,7 +377,7 @@ export function RiskCycleDetailReport({
   const requiresScopeSelection =
     requiresOrganizationSelection && !organizationGroupId && !orgFilter;
   const compactSelectTriggerClass =
-    "h-8 border border-border/50 bg-background/80 text-xs shadow-none";
+    "h-10 border border-input bg-background/80 text-xs shadow-none";
 
   useEffect(() => {
     if (controlledFromCycle) setFromCycle(controlledFromCycle);
@@ -578,14 +583,92 @@ export function RiskCycleDetailReport({
   return (
     <Card className="rounded-lg bg-card">
       <div className="space-y-3">
-        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">
-              Bandingkan snapshot risiko final antar dua cycle sampai ke
-              level kolom dan mitigasi.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
+        <CollectionToolbar
+          leading={
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Select value={fromCycle} onValueChange={setFromCycle}>
+                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-40")}>
+                    <SelectValue placeholder="Periode awal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cycleOptions.map((cycle) => (
+                      <SelectItem key={`from-${cycle}`} value={cycle}>
+                        {cycle}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={toCycle} onValueChange={setToCycle}>
+                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-40")}>
+                    <SelectValue placeholder="Periode akhir" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cycleOptions.map((cycle) => (
+                      <SelectItem key={`to-${cycle}`} value={cycle}>
+                        {cycle}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <ReportScopePicker
+                  className="min-w-0 flex-1"
+                  organizationId={orgFilter}
+                  onOrganizationChange={(value) => {
+                    setOrgFilter(value);
+                    if (value) {
+                      setOrganizationGroupId("");
+                    }
+                  }}
+                  organizations={organizations}
+                  organizationGroupId={organizationGroupId}
+                  onOrganizationGroupChange={(value) => {
+                    setOrganizationGroupId(value);
+                    if (value) {
+                      setOrgFilter("");
+                    }
+                  }}
+                  organizationGroups={organizationGroups}
+                  organizationPlaceholder="Semua unit"
+                  organizationGroupPlaceholder="Semua group"
+                  allowAllOrganizations={Boolean(user?.isGlobal)}
+                  allOrganizationLabel="Semua unit"
+                  allOrganizationValue="all"
+                  allowAllOrganizationGroups={Boolean(user?.isGlobal)}
+                  allOrganizationGroupLabel="Semua group"
+                  allOrganizationGroupValue="all"
+                />
+                <Select
+                  value={includeStable ? "show" : "hide"}
+                  onValueChange={(value) => setIncludeStable(value === "show")}
+                >
+                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-40")}>
+                    <SelectValue placeholder="Stable rows" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hide">Sembunyikan stable</SelectItem>
+                    <SelectItem value="show">Tampilkan stable</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {tabOptions.map((tab) => (
+                  <Button
+                    key={tab.value}
+                    type="button"
+                    size="sm"
+                    variant={activeTab === tab.value ? "default" : "outline"}
+                    className="h-8 text-xs"
+                    onClick={() => setActiveTab(tab.value)}
+                  >
+                    {tab.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          }
+          actions={
+            <>
             <Button
               type="button"
               size="sm"
@@ -606,84 +689,9 @@ export function RiskCycleDetailReport({
             >
               <Download className="size-3.5" /> XLSX
             </Button>
-            {tabOptions.map((tab) => (
-              <Button
-                key={tab.value}
-                type="button"
-                size="sm"
-                variant={activeTab === tab.value ? "default" : "outline"}
-                className="h-8 text-xs"
-                onClick={() => setActiveTab(tab.value)}
-              >
-                {tab.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <Select value={fromCycle} onValueChange={setFromCycle}>
-            <SelectTrigger className={compactSelectTriggerClass}>
-              <SelectValue placeholder="Periode awal" />
-            </SelectTrigger>
-            <SelectContent>
-              {cycleOptions.map((cycle) => (
-                <SelectItem key={`from-${cycle}`} value={cycle}>
-                  {cycle}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={toCycle} onValueChange={setToCycle}>
-            <SelectTrigger className={compactSelectTriggerClass}>
-              <SelectValue placeholder="Periode akhir" />
-            </SelectTrigger>
-            <SelectContent>
-              {cycleOptions.map((cycle) => (
-                <SelectItem key={`to-${cycle}`} value={cycle}>
-                  {cycle}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <ReportScopePicker
-            organizationId={orgFilter}
-            onOrganizationChange={(value) => {
-              setOrgFilter(value);
-              if (value) {
-                setOrganizationGroupId("");
-              }
-            }}
-            organizations={organizations}
-            organizationGroupId={organizationGroupId}
-            onOrganizationGroupChange={(value) => {
-              setOrganizationGroupId(value);
-              if (value) {
-                setOrgFilter("");
-              }
-            }}
-            organizationGroups={organizationGroups}
-            organizationPlaceholder="Semua unit"
-            organizationGroupPlaceholder="Semua group"
-            allowAllOrganizations={Boolean(user?.isGlobal)}
-            allOrganizationLabel="Semua unit"
-            allOrganizationValue="all"
-            allowAllOrganizationGroups={Boolean(user?.isGlobal)}
-            allOrganizationGroupLabel="Semua group"
-            allOrganizationGroupValue="all"
-          />
-          <Select
-            value={includeStable ? "show" : "hide"}
-            onValueChange={(value) => setIncludeStable(value === "show")}
-          >
-            <SelectTrigger className={compactSelectTriggerClass}>
-              <SelectValue placeholder="Stable rows" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="hide">Sembunyikan stable</SelectItem>
-              <SelectItem value="show">Tampilkan stable</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            </>
+          }
+        />
 
         {externalOrgName || externalMovement ? (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/15 px-4 py-3 text-xs text-muted-foreground">
@@ -711,41 +719,33 @@ export function RiskCycleDetailReport({
           </div>
         ) : null}
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricGrid>
             {[
               {
                 label: "Changed",
                 value: report?.summary.changedCount ?? 0,
-                className: "border-primary/20 bg-primary/10 text-primary",
               },
               {
                 label: "Added",
                 value: report?.summary.addedCount ?? 0,
-                className: "border-success/20 bg-success/10 text-success",
               },
               {
                 label: "Removed",
                 value: report?.summary.removedCount ?? 0,
-                className:
-                  "border-destructive/20 bg-destructive/10 text-destructive",
               },
               {
                 label: "Stable",
                 value: report?.summary.stableCount ?? 0,
-                className: "border-border bg-muted/40 text-foreground",
               },
             ].map((item) => (
-              <div
+              <KpiCard
                 key={item.label}
-                className={cn("flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4", item.className)}
-              >
-                <p className="text-xs uppercase tracking-wider opacity-80 mb-1">
-                  {item.label}
-                </p>
-                <p className="mt-auto text-2xl font-semibold">{item.value}</p>
-              </div>
+                label={item.label}
+                value={item.value}
+                tone="white"
+              />
             ))}
-        </div>
+          </MetricGrid>
 
         {loading ? (
           <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">

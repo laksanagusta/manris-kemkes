@@ -1,5 +1,4 @@
-import { MonitoringOperationalPanel } from "../_components/monitoring-operational-panel";
-import { MonitoringLatestProgressChart } from "../_components/monitoring-latest-progress-chart";
+import { MonitoringReadOnlyWorkspace } from "../_components/monitoring-read-only-workspace";
 import {
   CollectionPageHeader,
   PageStack,
@@ -9,11 +8,9 @@ export default function MonitoringPage() {
   return (
     <PageStack>
       <CollectionPageHeader
-        title="Monitoring"
-        description="Pantau kewajiban monitoring risiko dan progres organisasi."
+        title="Pemantauan"
       />
-      <MonitoringLatestProgressChart />
-      <MonitoringOperationalPanel />
+      <MonitoringReadOnlyWorkspace />
     </PageStack>
   );
 }
